@@ -155,9 +155,8 @@ pub fn verify_pq(
             };
             if ok == 1 {
                 return Ok(());
-            } else {
-                return Err(ConsensusError::PQSignatureInvalid);
             }
+            return Err(ConsensusError::PQSignatureInvalid);
         }
     }
 
@@ -169,13 +168,11 @@ pub fn verify_pq(
 pub fn shrincs_keygen() -> [u8; SHRINCS_PUBKEY_LEN] {
     #[cfg(feature = "shrincs-ffi")]
     {
-        if let Some(ffi) = load_shrincs() {
-            if let Some(keygen) = &ffi.keygen {
-                let mut pk = [0u8; SHRINCS_PUBKEY_LEN];
-                let ok = unsafe { (keygen)(pk.as_mut_ptr(), pk.len()) };
-                if ok == 1 {
-                    return pk;
-                }
+        if let Some(ffi) = load_shrincs() && let Some(keygen) = &ffi.keygen {
+            let mut pk = [0u8; SHRINCS_PUBKEY_LEN];
+            let ok = unsafe { (keygen)(pk.as_mut_ptr(), pk.len()) };
+            if ok == 1 {
+                return pk;
             }
         }
     }
@@ -193,21 +190,19 @@ pub fn shrincs_sign(pk: &[u8], msg32: &[u8]) -> [u8; SHRINCS_SIG_LEN] {
 
     #[cfg(feature = "shrincs-ffi")]
     {
-        if let Some(ffi) = load_shrincs() {
-            if let Some(sign) = &ffi.sign {
-                let ok = unsafe {
-                    (sign)(
-                        msg32.as_ptr(),
-                        msg32.len(),
-                        pk.as_ptr(),
-                        pk.len(),
-                        sig.as_mut_ptr(),
-                        sig.len(),
-                    )
-                };
-                if ok == 1 {
-                    return sig;
-                }
+        if let Some(ffi) = load_shrincs() && let Some(sign) = &ffi.sign {
+            let ok = unsafe {
+                (sign)(
+                    msg32.as_ptr(),
+                    msg32.len(),
+                    pk.as_ptr(),
+                    pk.len(),
+                    sig.as_mut_ptr(),
+                    sig.len(),
+                )
+            };
+            if ok == 1 {
+                return sig;
             }
         }
     }

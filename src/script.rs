@@ -119,7 +119,7 @@ pub fn execute_qscript(script: &[u8], ctx: &mut QScriptCtx) -> Result<(), Consen
         pc += 1;
 
         // Pushdata handling
-        if op >= 0x01 && op <= 0x4b {
+        if (0x01..=0x4b).contains(&op) {
             let n = op as usize;
             if pc + n > script.len() {
                 return Err(ConsensusError::ScriptFailed);

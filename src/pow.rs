@@ -23,7 +23,7 @@ pub fn bits_to_target(bits: u32) -> Option<[u8; 32]> {
         let bytes = value.to_be_bytes(); // 4 bytes
         target[32 - 4..].copy_from_slice(&bytes);
     } else {
-        let start = 32usize.checked_sub(exp as usize).unwrap_or(0);
+        let start = 32usize.saturating_sub(exp as usize);
         if start + 3 > 32 {
             return None;
         }

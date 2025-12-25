@@ -23,7 +23,7 @@ pub fn keygen() -> ShrincsProtoKeypair {
     pk[..32].copy_from_slice(&xmss.root);
     // stateless/fallback half = hash(root || tag)
     let mut h = Sha256::new();
-    h.update(&xmss.root);
+    h.update(xmss.root);
     h.update(b"fallback");
     let digest = h.finalize();
     pk[32..].copy_from_slice(&digest[..32]);

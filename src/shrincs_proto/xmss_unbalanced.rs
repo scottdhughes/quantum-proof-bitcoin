@@ -29,7 +29,7 @@ impl UnbalancedXmss {
         let params = wots_c::WotsCParams::default();
         let (wots_sk, wots_pk) = wots_c::keygen(&params);
         let mut h = Sha256::new();
-        h.update(&flatten_pk(&wots_pk));
+        h.update(flatten_pk(&wots_pk));
         h.update(height.to_le_bytes());
         let mut root = [0u8; 32];
         root.copy_from_slice(&h.finalize());
@@ -97,13 +97,13 @@ impl UnbalancedXmss {
             return false;
         }
         let mut h = Sha256::new();
-        h.update(&flatten_sig(&sig.ots_sig));
+        h.update(flatten_sig(&sig.ots_sig));
         let mut node = [0u8; 32];
         node.copy_from_slice(&h.finalize());
         for sibling in sig.auth.iter() {
             let mut hh = Sha256::new();
-            hh.update(&node);
-            hh.update(sibling);
+            hh.update(node);
+            hh.update(*sibling);
             node.copy_from_slice(&hh.finalize());
         }
         node == self.root

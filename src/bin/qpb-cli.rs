@@ -11,8 +11,6 @@ use std::io::{self, Write};
 
 #[cfg(feature = "cli-vectors")]
 use serde::Serialize;
-#[cfg(feature = "cli-vectors")]
-use serde_json;
 
 fn parse_bits(s: &str) -> u32 {
     u32::from_str_radix(s.trim_start_matches("0x"), 16).unwrap_or(0x207fffff)
@@ -80,8 +78,7 @@ fn emit_vectors_mode(args: &[String]) {
             }
             _ if a.starts_with("--sim-fallback-prob=") => {
                 if let Ok(v) = a["--sim-fallback-prob=".len()..].parse::<f64>() {
-                    // clamp into [0,1]
-                    sim_prob = v.max(0.0).min(1.0);
+                    sim_prob = v.clamp(0.0, 1.0);
                 }
             }
             _ => {}
@@ -135,10 +132,10 @@ fn emit_vectors_mode(args: &[String]) {
         let mut sig_ser = sig.to_vec();
         if q_sim > 0 {
             // add 16 bytes per simulated auth level (arbitrary pad to mimic growth)
-            sig_ser.extend(std::iter::repeat(0u8).take(16 * q_sim));
+            sig_ser.extend(std::iter::repeat_n(0u8, 16 * q_sim));
         }
         if custom_pad > 0 {
-            sig_ser.extend(std::iter::repeat(0u8).take(custom_pad));
+            sig_ser.extend(std::iter::repeat_n(0u8, custom_pad));
         }
         sig_ser.push(0x01); // SIGHASH_ALL marker for consistency
 
@@ -180,7 +177,7 @@ fn emit_vectors_mode(args: &[String]) {
                     "batch_index": idx,
                     "pk_ser": pk_enc,
                     "sig_ser": sig_enc,
-                    "msg32": hex::encode(&msg32),
+                    "msg32": hex::encode(msg32),
                     "force_slh": applied_force_slh,
                     "forced_by_prob": random_fallback,
                     "q_sim": q_sim,
@@ -323,7 +320,7 @@ fn main() {
     for i in 0..target_count {
         let mut pk = shrincs_keygen();
         // simple variation: xor first byte with index
-        pk[0] ^= (i as u8) & 0xff;
+        pk[0] ^= i as u8;
         let mut pkser = Vec::with_capacity(65);
         pkser.push(0x30);
         pkser.extend_from_slice(&pk);
@@ -511,37 +508,38 @@ fn main() {
 
         #[cfg(feature = "cli-vectors")]
         {
-            if let Some(path) = emit_vectors.as_ref() {
-                if height > 0 && do_spends {
-                    let spend = &txs[1];
-                    let spend_prevouts = &prevouts_for_block[1];
-                    let sighash_type = 0x01u8;
-                    let msg = qpb_sighash(spend, 0, spend_prevouts, sighash_type, 0x00, None)
-                        .expect("sighash");
-                    let sig = &spend.vin[0].witness[0]; // sig_ser (sig||sighash_type)
-                    let pkser = &spend.vin[0].witness[1];
-                    #[derive(Serialize)]
-                    struct Vector<'a> {
-                        height: u32,
-                        txid: String,
-                        pk_ser: String,
-                        sig_ser: String,
-                        msg32: String,
-                        force_slh: bool,
-                        path: &'a str,
-                    }
-                    let vector = Vector {
-                        height,
-                        txid: hex::encode(spend.txid()),
-                        pk_ser: hex::encode(pkser),
-                        sig_ser: hex::encode(sig),
-                        msg32: hex::encode(msg),
-                        force_slh,
-                        path,
-                    };
-                    std::fs::write(path, serde_json::to_string_pretty(&vector).unwrap())
-                        .expect("write vector");
+            if let Some(path) = emit_vectors.as_ref()
+                && height > 0
+                && do_spends
+            {
+                let spend = &txs[1];
+                let spend_prevouts = &prevouts_for_block[1];
+                let sighash_type = 0x01u8;
+                let msg = qpb_sighash(spend, 0, spend_prevouts, sighash_type, 0x00, None)
+                    .expect("sighash");
+                let sig = &spend.vin[0].witness[0]; // sig_ser (sig||sighash_type)
+                let pkser = &spend.vin[0].witness[1];
+                #[derive(Serialize)]
+                struct Vector<'a> {
+                    height: u32,
+                    txid: String,
+                    pk_ser: String,
+                    sig_ser: String,
+                    msg32: String,
+                    force_slh: bool,
+                    path: &'a str,
                 }
+                let vector = Vector {
+                    height,
+                    txid: hex::encode(spend.txid()),
+                    pk_ser: hex::encode(pkser),
+                    sig_ser: hex::encode(sig),
+                    msg32: hex::encode(msg),
+                    force_slh,
+                    path,
+                };
+                std::fs::write(path, serde_json::to_string_pretty(&vector).unwrap())
+                    .expect("write vector");
             }
         }
 

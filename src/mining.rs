@@ -14,7 +14,7 @@ pub fn merkle_root(txids: &[[u8; 32]]) -> [u8; 32] {
     }
     let mut layer: Vec<[u8; 32]> = txids.to_vec();
     while layer.len() > 1 {
-        let mut next = Vec::with_capacity((layer.len() + 1) / 2);
+        let mut next = Vec::with_capacity(layer.len().div_ceil(2));
         for i in (0..layer.len()).step_by(2) {
             let a = layer[i];
             let b = if i + 1 < layer.len() {
@@ -43,10 +43,8 @@ pub fn mine_header_serial(
     let mut nonce = start_nonce;
     for _ in 0..max_attempts {
         header.nonce = nonce;
-        if let Ok(hash) = pow_hash(&header) {
-            if hash <= target {
-                return Some(header);
-            }
+        if let Ok(hash) = pow_hash(&header) && hash <= target {
+            return Some(header);
         }
         nonce = nonce.wrapping_add(1);
     }

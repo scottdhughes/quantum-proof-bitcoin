@@ -97,7 +97,7 @@ pub fn validate_p2qtsh_input(
         return Err(ConsensusError::ScriptTooLarge);
     }
 
-    if control_block.is_empty() || (control_block.len() - 1) % 32 != 0 {
+    if control_block.is_empty() || !(control_block.len() - 1).is_multiple_of(32) {
         return Err(ConsensusError::InvalidControlBlock);
     }
     let m = (control_block.len() - 1) / 32;
@@ -218,7 +218,7 @@ pub fn witness_merkle_root(block: &Block) -> [u8; 32] {
     }
     // Merkle pairwise hash256
     while hashes.len() > 1 {
-        let mut next = Vec::with_capacity((hashes.len() + 1) / 2);
+        let mut next = Vec::with_capacity(hashes.len().div_ceil(2));
         for i in (0..hashes.len()).step_by(2) {
             let a = hashes[i];
             let b = if i + 1 < hashes.len() {

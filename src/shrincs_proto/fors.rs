@@ -53,7 +53,7 @@ pub fn sign(msg: &[u8; 32], k: u32, a: u32) -> Vec<u8> {
             };
             for i in 0..limit {
                 let mut h = Sha256::new();
-                h.update(&digest);
+                h.update(digest);
                 h.update(i.to_be_bytes());
                 out.extend_from_slice(&h.finalize());
             }
@@ -97,7 +97,7 @@ pub fn verify(msg: &[u8; 32], sig: &[u8], k: u32, a: u32) -> bool {
         let start = i as usize * FORS_REVEAL_LEN;
         let end = start + FORS_REVEAL_LEN;
         let mut h = Sha256::new();
-        h.update(&digest);
+        h.update(digest);
         h.update(i.to_be_bytes());
         let expect = h.finalize();
         if reveals[start..end] != expect[..] {

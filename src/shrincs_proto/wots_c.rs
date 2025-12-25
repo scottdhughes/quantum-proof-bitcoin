@@ -54,7 +54,7 @@ pub fn gen_chain(input: &[u8], start: u32, steps: u32) -> Vec<u8> {
     for i in start..start + steps {
         let mut h = Sha256::new();
         h.update(&value);
-        h.update(&i.to_le_bytes());
+        h.update(i.to_le_bytes());
         value = h.finalize().to_vec();
     }
     value
