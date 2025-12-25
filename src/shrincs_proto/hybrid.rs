@@ -55,23 +55,13 @@ fn serialize_stateful(sig: &XmssSignature, out: &mut [u8]) {
     // Remaining bytes stay zero.
 }
 
-fn serialize_fallback(msg: &[u8; 32], pk: &[u8], out: &mut [u8]) {
+fn serialize_fallback(msg: &[u8; 32], _pk: &[u8], out: &mut [u8]) {
     out[0] = 1; // fallback flag
     out[1..5].copy_from_slice(&0u32.to_be_bytes());
     let fors_sig = fors::sign(msg, fors::FORS_K, fors::FORS_A);
-    let mut cursor = 5;
+    let cursor = 5;
     let take = fors_sig.len().min(out.len().saturating_sub(cursor));
     out[cursor..cursor + take].copy_from_slice(&fors_sig[..take]);
-    cursor += take;
-    if cursor < out.len() {
-        let mut h = Sha256::new();
-        h.update(msg);
-        h.update(pk);
-        let digest = h.finalize();
-        for i in cursor..out.len() {
-            out[i] = digest[i % digest.len()] ^ 0x5c;
-        }
-    }
 }
 
 pub fn sign(msg: &[u8; 32], kp: &ShrincsProtoKeypair, q: u32, force_fallback: bool) -> Vec<u8> {
@@ -91,10 +81,7 @@ pub fn verify(msg: &[u8; 32], pk: &[u8], sig: &[u8], q: u32) -> bool {
     }
     let fallback_flag = sig[0] == 1;
     if fallback_flag {
-        let mut fors_len = (fors::FORS_K as usize) * fors::FORS_REVEAL_LEN;
-        // allow shorter if buffer truncated
-        fors_len = fors_len.min(sig.len().saturating_sub(5));
-        let fors_slice = &sig[5..5 + fors_len];
+        let fors_slice = &sig[5..];
         return fors::verify(msg, fors_slice, fors::FORS_K, fors::FORS_A);
     }
     // Recreate XMSS view from pk
