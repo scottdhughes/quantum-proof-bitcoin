@@ -37,6 +37,8 @@ pub fn pqsig_cost(alg: AlgorithmId) -> u32 {
     }
 }
 
+const SHRINCS_MAX_INDEX: u32 = 1024;
+
 /// Stub verifier: length checks only; accepts valid-length SHRINCS signatures.
 fn verify_stub(
     alg: AlgorithmId,
@@ -44,16 +46,28 @@ fn verify_stub(
     msg32: &[u8],
     sig: &[u8],
 ) -> Result<(), ConsensusError> {
-    if msg32.len() != 32 {
-        return Err(ConsensusError::InvalidSignature);
-    }
     match alg {
         AlgorithmId::Shrincs => {
+            if msg32.len() != 32 {
+                return Err(ConsensusError::InvalidSignature);
+            }
             if pk.len() != SHRINCS_PUBKEY_LEN {
                 return Err(ConsensusError::InvalidPublicKey);
             }
             if sig.len() != SHRINCS_SIG_LEN {
                 return Err(ConsensusError::InvalidSignature);
+            }
+            // Message-binding: sig[4..] must repeat msg32; sig[0..4) is state/index (big-endian).
+            for (i, b) in sig.iter().enumerate().skip(4) {
+                if *b != msg32[(i - 4) % 32] {
+                    return Err(ConsensusError::InvalidSignature);
+                }
+            }
+            // LMS fast path: index < SHRINCS_MAX_INDEX; else simulate SLH fallback (still bound to msg32).
+            let idx = u32::from_be_bytes([sig[0], sig[1], sig[2], sig[3]]);
+            if idx >= SHRINCS_MAX_INDEX {
+                // fallback accepted
+                return Ok(());
             }
             Ok(())
         }
@@ -211,10 +225,13 @@ pub fn shrincs_sign(pk: &[u8], msg32: &[u8]) -> [u8; SHRINCS_SIG_LEN] {
         }
     }
 
-    // Fallback deterministic pattern
-    for i in 0..SHRINCS_SIG_LEN {
-        sig[i] = msg32[i % msg32.len()];
+    // Fallback deterministic pattern with message-binding and state index 0.
+    sig[0] = 0;
+    sig[1] = 0;
+    sig[2] = 0;
+    sig[3] = 0;
+    for i in 4..SHRINCS_SIG_LEN {
+        sig[i] = msg32[(i - 4) % msg32.len()];
     }
-    sig[0] = 0; // LMS state valid
     sig
 }

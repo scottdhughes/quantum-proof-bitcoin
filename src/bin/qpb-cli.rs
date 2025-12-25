@@ -314,6 +314,10 @@ fn main() {
         v
     };
     let mut p2qpkh_spk = build_p2qpkh(qpkh32(&current_pk_ser));
+    // Track last coinbase material for spending in the next block.
+    let mut last_coin_pk = current_pk;
+    let mut last_coin_pk_ser = current_pk_ser.clone();
+    let mut last_coin_spk = p2qpkh_spk.clone();
 
     // Optional target set for varied outputs
     let mut targets: Vec<Vec<u8>> = Vec::new();
@@ -334,12 +338,13 @@ fn main() {
 
     let mut prev_hash = [0u8; 32];
     let mut prev_coin_value: u64 = 0;
-    let mut prev_coin_txid: [u8; 32] = [0u8; 32];
+    let mut prev_coin_outpoint: Option<OutPoint> = None;
+    let mut utxos: Vec<(OutPoint, Prevout)> = Vec::new();
 
     for height in 0..nblocks {
         let subsidy = block_subsidy(height);
 
-        // Rotate key if requested
+        // Rotate key for the new coinbase if requested
         if fresh_key_each {
             current_pk = shrincs_keygen();
             current_pk_ser = {
@@ -374,10 +379,20 @@ fn main() {
 
         if height > 0 && do_spends {
             // Spend previous block's coinbase vout 0 (p2qpkh)
+            let prev_out = prev_coin_outpoint
+                .as_ref()
+                .cloned()
+                .expect("prev coinbase missing");
+            let (prev_pos, prev_utxo) = utxos
+                .iter()
+                .enumerate()
+                .find(|(_, (op, _))| *op == prev_out)
+                .map(|(i, (_, u))| (i, u.clone()))
+                .expect("prev coinbase utxo missing");
             let spend_in = TxIn {
                 prevout: OutPoint {
-                    txid: prev_coin_txid,
-                    vout: 0,
+                    txid: prev_out.txid,
+                    vout: prev_out.vout,
                 },
                 script_sig: Vec::new(),
                 sequence: 0xffff_ffff,
@@ -392,11 +407,11 @@ fn main() {
                     });
                 } else if targets.is_empty() {
                     spend_outputs.push(TxOut {
-                        value: prev_coin_value.saturating_sub(fee_for_block),
-                        script_pubkey: p2qpkh_spk.clone(),
+                        value: prev_utxo.value.saturating_sub(fee_for_block),
+                        script_pubkey: last_coin_spk.clone(),
                     });
                 } else {
-                    let each = prev_coin_value.saturating_sub(fee_for_block) / targets.len() as u64;
+                    let each = prev_utxo.value.saturating_sub(fee_for_block) / targets.len() as u64;
                     for spk in &targets {
                         spend_outputs.push(TxOut {
                             value: each,
@@ -411,23 +426,23 @@ fn main() {
                 vout: spend_outputs,
                 lock_time: 0,
             };
-            let spend_prevouts = vec![Prevout {
-                value: prev_coin_value,
-                script_pubkey: p2qpkh_spk.clone(),
-            }];
+            let spend_prevouts = vec![prev_utxo.clone()];
             let sighash_type = 0x01u8;
             let msg = qpb_sighash(&spend_tx, 0, &spend_prevouts, sighash_type, 0x00, None)
                 .expect("sighash");
-            let sig = shrincs_sign(&current_pk, &msg);
+            let sig = shrincs_sign(&last_coin_pk, &msg);
             let mut sig_ser = sig.to_vec();
             if force_slh {
                 // Flip state byte to force LMS failure -> SLH fallback path
                 sig_ser[0] = 1;
             }
             sig_ser.push(sighash_type);
-            spend_tx.vin[0].witness = vec![sig_ser, current_pk_ser.clone()];
+            spend_tx.vin[0].witness = vec![sig_ser, last_coin_pk_ser.clone()];
             txs.push(spend_tx);
             prevouts_for_block.push(spend_prevouts);
+
+            // Remove spent UTXO
+            utxos.remove(prev_pos);
         }
 
         // Compute witness commitment and add to coinbase outputs
@@ -487,8 +502,29 @@ fn main() {
 
         let header = mined.expect("no valid nonce found in range");
         prev_hash = header.hash();
-        prev_coin_value = subsidy;
-        prev_coin_txid = coinbase_txid;
+        prev_coin_value = subsidy
+            + if claim_fees && do_spends {
+                fee_for_block
+            } else {
+                0
+            };
+        prev_coin_outpoint = Some(OutPoint {
+            txid: coinbase_txid,
+            vout: 0,
+        });
+
+        // Record coinbase UTXO for next block's spend
+        utxos.push((
+            prev_coin_outpoint.as_ref().cloned().unwrap(),
+            Prevout {
+                value: prev_coin_value,
+                script_pubkey: p2qpkh_spk.clone(),
+            },
+        ));
+        // Track coinbase key used this height for next spend
+        last_coin_pk = current_pk;
+        last_coin_pk_ser = current_pk_ser.clone();
+        last_coin_spk = p2qpkh_spk.clone();
 
         // Build block object for validation
         let block = Block {

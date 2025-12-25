@@ -1,7 +1,7 @@
 use hex_literal::hex;
 use qpb_consensus::{
     Block, BlockHeader, CHAIN_ID, OutPoint, Prevout, Transaction, TxIn, TxOut, bits_to_target,
-    block_weight_wu, build_p2qtsh, penalty, qpb_sighash, validate_block_basic,
+    block_weight_wu, build_p2qtsh, penalty, qpb_sighash, shrincs_sign, validate_block_basic,
     validate_transaction_basic, validate_witness_commitment, witness_merkle_root,
 };
 
@@ -64,9 +64,10 @@ fn p2qpkh_sighash_and_validation() {
     };
 
     // pk_ser = alg_id || 64 zero bytes
+    let pk = [0u8; 64];
     let mut pk_ser = Vec::with_capacity(65);
     pk_ser.push(0x30);
-    pk_ser.extend_from_slice(&[0u8; 64]);
+    pk_ser.extend_from_slice(&pk);
 
     // scriptPubKey = OP_3 PUSH32(qpkh)
     let qpkh = qpb_consensus::qpkh32(&pk_ser);
@@ -92,7 +93,7 @@ fn p2qpkh_sighash_and_validation() {
         script_pubkey: spk.clone(),
     };
 
-    let tx = Transaction {
+    let mut tx = Transaction {
         version: 1,
         vin: vec![txin],
         vout: vec![txout],
@@ -101,12 +102,18 @@ fn p2qpkh_sighash_and_validation() {
 
     let prevouts = vec![Prevout {
         value: 50_0000_0000,
-        script_pubkey: spk,
+        script_pubkey: spk.clone(),
     }];
 
     // Ensure sighash is well-formed and 32 bytes.
     let msg = qpb_sighash(&tx, 0, &prevouts, 0x01, 0x00, None).unwrap();
     assert_eq!(msg.len(), 32);
+
+    // Produce a valid stub signature bound to msg.
+    let sig = shrincs_sign(&pk, &msg);
+    let mut sig_ser = sig.to_vec();
+    sig_ser.push(0x01); // SIGHASH_ALL
+    tx.vin[0].witness = vec![sig_ser, pk_ser];
 
     // Validate tx (stub PQ verify).
     let cost = validate_transaction_basic(&tx, &prevouts).unwrap();

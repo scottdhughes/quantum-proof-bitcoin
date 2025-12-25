@@ -26,3 +26,24 @@ fn shrincs_high_state_index_uses_fallback() {
     verify_pq(AlgorithmId::Shrincs, &pk, &msg, &sig)
         .expect("shrincs fallback path should accept high state index signature");
 }
+
+#[test]
+fn shrincs_msg_binding_rejects_tamper() {
+    let pk = shrincs_keygen();
+    let msg = [2u8; 32];
+    let mut sig = shrincs_sign(&pk, &msg);
+    // Tamper with message-binding section
+    sig[10] ^= 0xFF;
+    let res = verify_pq(AlgorithmId::Shrincs, &pk, &msg, &sig);
+    assert!(res.is_err(), "tampered sig must be rejected");
+
+    // Tamper with msg32 (mismatch to sig pattern)
+    let mut msg_bad = msg;
+    msg_bad[5] ^= 0xAA;
+    let sig_good = shrincs_sign(&pk, &msg);
+    let res = verify_pq(AlgorithmId::Shrincs, &pk, &msg_bad, &sig_good);
+    assert!(
+        res.is_err(),
+        "sig bound to original msg should fail on mutated msg"
+    );
+}
