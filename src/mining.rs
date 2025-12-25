@@ -43,7 +43,9 @@ pub fn mine_header_serial(
     let mut nonce = start_nonce;
     for _ in 0..max_attempts {
         header.nonce = nonce;
-        if let Ok(hash) = pow_hash(&header) && hash <= target {
+        if let Ok(hash) = pow_hash(&header)
+            && hash <= target
+        {
             return Some(header);
         }
         nonce = nonce.wrapping_add(1);
