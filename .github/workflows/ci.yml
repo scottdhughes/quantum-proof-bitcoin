@@ -31,6 +31,8 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     timeout-minutes: 5
+    # Only run benches on manual dispatch to keep push/PR fast and green.
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@v1
