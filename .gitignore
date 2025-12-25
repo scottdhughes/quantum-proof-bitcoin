@@ -1,0 +1,4 @@
+/target
+.venv
+/monitor_logs
+.DS_Store
