@@ -43,3 +43,9 @@ Flags of interest: `--no-spend`, `--fresh-key`, `--claim-fees`, `--parallel`, `-
 scripts/check.sh
 ```
 Runs `fmt`, `clippy`, and `test` with all features. Benches stay opt-in (not on push/PR).
+
+## Regenerate vectors
+Deterministic test vectors live in `vectors/`. Regenerate them with:
+```bash
+cargo run --bin gen_vectors
+```

@@ -1,0 +1,14 @@
+{
+  "description": "P2QTSH valid simple true leaf",
+  "expected": {
+    "valid": true
+  },
+  "input_index": 0,
+  "prevouts": [
+    {
+      "script_pubkey_hex": "522030a859a3be6d1d65b823498ae42b33b028be0023cd80c78a4e7e132605211667",
+      "value": 100000
+    }
+  ],
+  "tx_hex": "0100000000010102020202020202020202020202020202020202020202020202020202020202020000000000ffffffff0150c300000000000022532066bbf7403cce2f201c58d30104a66e463d0ea0de335fd68e8d2f133b9e72d071020151010100000000"
+}
