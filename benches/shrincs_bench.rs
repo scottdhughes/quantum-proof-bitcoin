@@ -22,7 +22,7 @@ fn bench_sign_verify(c: &mut Criterion) {
 
 fn bench_sweeps(c: &mut Criterion) {
     let msg = [0u8; 32];
-    for q in 1u32..=10 {
+    for q in 1u32..=15 {
         let kp = hybrid::keygen();
         let sig = hybrid::sign(&msg, &kp, q, false);
         c.bench_function(&format!("shrincs_sign_q{}", q), |b| {
@@ -31,7 +31,7 @@ fn bench_sweeps(c: &mut Criterion) {
         c.bench_function(&format!("shrincs_verify_q{}", q), |b| {
             b.iter(|| hybrid::verify(&msg, &kp.pk, &sig, q))
         });
-        for pad in (0usize..=192).step_by(16) {
+        for pad in (0usize..=240).step_by(16) {
             let label = format!("shrincs_sign_q{}_pad{}", q, pad);
             c.bench_function(&label, |b| {
                 b.iter(|| {
