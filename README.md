@@ -52,3 +52,4 @@ cargo run --bin gen_vectors
 
 ## Tooling
 - Wallet/addresses: see `docs/tooling/wallet.md` (bech32m v2/v3, ML-DSA-65 keygen/sign; tooling-only, non-consensus).
+- Performance harness: `docs/performance/pqsigcheck-calibration.md` (ML-DSA verify/sighash timing; no consensus change).

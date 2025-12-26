@@ -36,6 +36,26 @@ benches-shrincs = ["criterion"]
 [build-dependencies]
 cc = { version = "1.0", optional = true }
 
+[[bin]]
+name = "qpb-cli"
+path = "src/bin/qpb-cli.rs"
+
+[[bin]]
+name = "gen_vectors"
+path = "src/bin/gen_vectors.rs"
+
+[[bin]]
+name = "gen_chainparams"
+path = "src/bin/gen_chainparams.rs"
+
+[[bin]]
+name = "qpb-wallet"
+path = "src/bin/qpb-wallet.rs"
+
+[[bin]]
+name = "bench_perf"
+path = "src/bin/bench_perf.rs"
+
 [[bench]]
 name = "shrincs_bench"
 harness = false
