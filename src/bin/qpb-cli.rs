@@ -2,7 +2,7 @@ use base64::{Engine as _, engine::general_purpose};
 use qpb_consensus::{
     Block, BlockHeader, OutPoint, Prevout, Transaction, TxIn, TxOut, WEIGHT_FLOOR_WU,
     block_subsidy, build_p2qpkh, merkle_root, mine_header_parallel, mine_header_serial,
-    qpb_sighash, qpkh32, shrincs_keygen, shrincs_sign, validate_block_basic, witness_merkle_root,
+    mldsa_keypair, mldsa_sign, qpb_sighash, qpkh32, validate_block_basic, witness_merkle_root,
 };
 use rand::{Rng, RngCore};
 use std::env;
@@ -111,24 +111,19 @@ fn emit_vectors_mode(args: &[String]) {
         } else {
             msg32_template
         };
-        // Generate key and sig via SHRINCS
-        let pk = shrincs_keygen();
-        let mut pk_ser = Vec::with_capacity(65);
-        pk_ser.push(0x30);
-        pk_ser.extend_from_slice(&pk);
-        let mut sig = shrincs_sign(&pk, &msg32);
+        // Generate key and sig via ML-DSA
+        let (pk_bytes, sk_bytes) = mldsa_keypair();
+        let mut pk_ser = Vec::with_capacity(1 + pk_bytes.len());
+        pk_ser.push(0x11);
+        pk_ser.extend_from_slice(&pk_bytes);
+        let mut sig = mldsa_sign(&sk_bytes, &msg32).expect("mldsa sign");
         let random_fallback = sim_prob > 0.0 && rng.gen_range(0.0..1.0) < sim_prob;
         let applied_force_slh = force_slh || random_fallback;
         if applied_force_slh {
-            sig[0] = 0xff; // force LMS fail
+            sig[0] ^= 0xff; // perturb sig
         }
         // override state index if requested (big-endian in sig[0..4]) when not forcing SLH
-        if !applied_force_slh && state_index > 0 {
-            sig[0] = ((state_index >> 24) & 0xff) as u8;
-            sig[1] = ((state_index >> 16) & 0xff) as u8;
-            sig[2] = ((state_index >> 8) & 0xff) as u8;
-            sig[3] = (state_index & 0xff) as u8;
-        }
+        // (no-op for ML-DSA; kept for interface compatibility)
         let mut sig_ser = sig.to_vec();
         if q_sim > 0 {
             // add 16 bytes per simulated auth level (arbitrary pad to mimic growth)
@@ -306,27 +301,28 @@ fn main() {
     let message = b"QPB dev mine";
 
     // Dev key material (can refresh per block with --fresh-key)
-    let mut current_pk = shrincs_keygen();
+    let (mut current_pk_bytes, mut current_sk_bytes) = mldsa_keypair();
     let mut current_pk_ser = {
-        let mut v = Vec::with_capacity(65);
-        v.push(0x30);
-        v.extend_from_slice(&current_pk);
+        let mut v = Vec::with_capacity(1 + current_pk_bytes.len());
+        v.push(0x11);
+        v.extend_from_slice(&current_pk_bytes);
         v
     };
     let mut p2qpkh_spk = build_p2qpkh(qpkh32(&current_pk_ser));
     // Track last coinbase material for spending in the next block.
-    let mut last_coin_pk = current_pk;
     let mut last_coin_pk_ser = current_pk_ser.clone();
     let mut last_coin_spk = p2qpkh_spk.clone();
+    let mut last_coin_sk = current_sk_bytes.clone();
 
     // Optional target set for varied outputs
     let mut targets: Vec<Vec<u8>> = Vec::new();
     for i in 0..target_count {
-        let mut pk = shrincs_keygen();
+        let (pkb, _skb) = mldsa_keypair();
+        let mut pk = pkb;
         // simple variation: xor first byte with index
         pk[0] ^= i as u8;
-        let mut pkser = Vec::with_capacity(65);
-        pkser.push(0x30);
+        let mut pkser = Vec::with_capacity(1 + pk.len());
+        pkser.push(0x11);
         pkser.extend_from_slice(&pk);
         targets.push(build_p2qpkh(qpkh32(&pkser)));
     }
@@ -346,11 +342,13 @@ fn main() {
 
         // Rotate key for the new coinbase if requested
         if fresh_key_each {
-            current_pk = shrincs_keygen();
+            let (pkb, skb) = mldsa_keypair();
+            current_pk_bytes = pkb;
+            current_sk_bytes = skb;
             current_pk_ser = {
-                let mut v = Vec::with_capacity(65);
-                v.push(0x30);
-                v.extend_from_slice(&current_pk);
+                let mut v = Vec::with_capacity(1 + current_pk_bytes.len());
+                v.push(0x11);
+                v.extend_from_slice(&current_pk_bytes);
                 v
             };
             p2qpkh_spk = build_p2qpkh(qpkh32(&current_pk_ser));
@@ -430,11 +428,9 @@ fn main() {
             let sighash_type = 0x01u8;
             let msg = qpb_sighash(&spend_tx, 0, &spend_prevouts, sighash_type, 0x00, None)
                 .expect("sighash");
-            let sig = shrincs_sign(&last_coin_pk, &msg);
-            let mut sig_ser = sig.to_vec();
+            let mut sig_ser = mldsa_sign(&last_coin_sk, &msg).expect("ml-dsa sign");
             if force_slh {
-                // Flip state byte to force LMS failure -> SLH fallback path
-                sig_ser[0] = 1;
+                sig_ser[0] ^= 0x01; // simple perturbation for path testing
             }
             sig_ser.push(sighash_type);
             spend_tx.vin[0].witness = vec![sig_ser, last_coin_pk_ser.clone()];
@@ -522,9 +518,9 @@ fn main() {
             },
         ));
         // Track coinbase key used this height for next spend
-        last_coin_pk = current_pk;
         last_coin_pk_ser = current_pk_ser.clone();
         last_coin_spk = p2qpkh_spk.clone();
+        last_coin_sk = current_sk_bytes.clone();
 
         // Build block object for validation
         let block = Block {

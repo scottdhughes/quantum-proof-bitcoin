@@ -2,15 +2,15 @@
 
 [![CI](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/workflows/ci.yml/badge.svg)](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/workflows/ci.yml)
 
-Hash-first, post-quantum Bitcoin-derived consensus prototype with SHRINCS (hash-based, stateful-fast + stateless fallback) from genesis. INTERNAL: not an audit, not production security guidance, not legal/compliance advice.
+Hash-first, post-quantum Bitcoin-derived consensus prototype. **Consensus-active PQ algorithm at genesis: ML-DSA-65 (alg_id 0x11, Dilithium3).** SLH (0x21) and SHRINCS (0x30) are reserved/inactive and must be rejected in consensus. INTERNAL: not an audit, not production security guidance, not legal/compliance advice.
 
 ## Quick start
 ```bash
 cargo test --all-features
 ```
 
-## SHRINCS FFI quickstart (optional)
-Build the prototype C stub and point the runtime loader at it:
+## SHRINCS dev stub (optional; consensus rejects it)
+For research only, you can build the SHRINCS stub and opt in with `--features shrincs-dev,shrincs-ffi`. Consensus still rejects alg_id 0x30.
 ```bash
 # Linux
 gcc -shared -fPIC -o libshrincs.so ffi/shrincs.c
@@ -20,9 +20,9 @@ clang -dynamiclib -o libshrincs.dylib ffi/shrincs.c
 cl /LD ffi\\shrincs.c /Felibshrincs.dll
 
 export SHRINCS_LIB_PATH=$PWD/libshrincs.so   # or .dylib / .dll
-cargo test --all-features --features shrincs-ffi
+cargo test --features "shrincs-dev,shrincs-ffi"
 ```
-Without the library, the Rust fallback stub is used automatically.
+Without the library, the Rust fallback stub is used automatically under `shrincs-dev`.
 
 ## Mining CLI (dev/regtest)
 Examples with the `qpb-cli` binary:
@@ -43,3 +43,9 @@ Flags of interest: `--no-spend`, `--fresh-key`, `--claim-fees`, `--parallel`, `-
 scripts/check.sh
 ```
 Runs `fmt`, `clippy`, and `test` with all features. Benches stay opt-in (not on push/PR).
+
+## Regenerate vectors
+Deterministic test vectors live in `vectors/`. Regenerate them with:
+```bash
+cargo run --bin gen_vectors
+```

@@ -1,5 +1,8 @@
-use crate::constants::{SHRINCS_ALG_ID, SHRINCS_PUBKEY_LEN, SHRINCS_SIG_LEN};
+use crate::constants::{MLDSA65_ALG_ID, MLDSA65_PUBKEY_LEN, MLDSA65_SIG_LEN};
+#[cfg(feature = "shrincs-dev")]
+use crate::constants::{SHRINCS_MAX_INDEX, SHRINCS_PUBKEY_LEN, SHRINCS_SIG_LEN};
 use crate::errors::ConsensusError;
+use pqcrypto_traits::sign::{DetachedSignature, PublicKey, SecretKey};
 
 #[cfg(feature = "shrincs-ffi")]
 use libloading::Library;
@@ -12,20 +15,20 @@ use std::path::Path;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AlgorithmId {
-    Shrincs,
+    MLDSA65,
 }
 
 impl AlgorithmId {
     pub fn from_byte(b: u8) -> Result<Self, ConsensusError> {
         match b {
-            SHRINCS_ALG_ID => Ok(AlgorithmId::Shrincs),
+            MLDSA65_ALG_ID => Ok(AlgorithmId::MLDSA65),
             _ => Err(ConsensusError::InactiveAlgorithm),
         }
     }
 
     pub fn as_byte(self) -> u8 {
         match self {
-            AlgorithmId::Shrincs => SHRINCS_ALG_ID,
+            AlgorithmId::MLDSA65 => MLDSA65_ALG_ID,
         }
     }
 }
@@ -33,48 +36,12 @@ impl AlgorithmId {
 /// PQSigCheck cost units per algorithm (genesis).
 pub fn pqsig_cost(alg: AlgorithmId) -> u32 {
     match alg {
-        AlgorithmId::Shrincs => 1,
-    }
-}
-
-const SHRINCS_MAX_INDEX: u32 = 1024;
-
-/// Stub verifier: length checks only; accepts valid-length SHRINCS signatures.
-fn verify_stub(
-    alg: AlgorithmId,
-    pk: &[u8],
-    msg32: &[u8],
-    sig: &[u8],
-) -> Result<(), ConsensusError> {
-    match alg {
-        AlgorithmId::Shrincs => {
-            if msg32.len() != 32 {
-                return Err(ConsensusError::InvalidSignature);
-            }
-            if pk.len() != SHRINCS_PUBKEY_LEN {
-                return Err(ConsensusError::InvalidPublicKey);
-            }
-            if sig.len() != SHRINCS_SIG_LEN {
-                return Err(ConsensusError::InvalidSignature);
-            }
-            // Message-binding: sig[4..] must repeat msg32; sig[0..4) is state/index (big-endian).
-            for (i, b) in sig.iter().enumerate().skip(4) {
-                if *b != msg32[(i - 4) % 32] {
-                    return Err(ConsensusError::InvalidSignature);
-                }
-            }
-            // LMS fast path: index < SHRINCS_MAX_INDEX; else simulate SLH fallback (still bound to msg32).
-            let idx = u32::from_be_bytes([sig[0], sig[1], sig[2], sig[3]]);
-            if idx >= SHRINCS_MAX_INDEX {
-                // fallback accepted
-                return Ok(());
-            }
-            Ok(())
-        }
+        AlgorithmId::MLDSA65 => 1,
     }
 }
 
 #[cfg(feature = "shrincs-ffi")]
+#[allow(dead_code)]
 struct ShrincsFfi {
     #[allow(dead_code)]
     lib: Library,
@@ -151,47 +118,96 @@ pub fn verify_pq(
     msg32: &[u8],
     sig: &[u8],
 ) -> Result<(), ConsensusError> {
-    // Always enforce length checks
-    verify_stub(alg, pk, msg32, sig)?;
-
-    #[cfg(feature = "shrincs-ffi")]
-    {
-        if let Some(ffi) = load_shrincs() {
-            let ok = unsafe {
-                (ffi.verify)(
-                    msg32.as_ptr(),
-                    msg32.len(),
-                    pk.as_ptr(),
-                    pk.len(),
-                    sig.as_ptr(),
-                    sig.len(),
-                )
-            };
-            if ok == 1 {
-                return Ok(());
+    match alg {
+        AlgorithmId::MLDSA65 => {
+            if msg32.len() != 32 {
+                return Err(ConsensusError::InvalidSignature);
             }
-            return Err(ConsensusError::PQSignatureInvalid);
+            if pk.len() != MLDSA65_PUBKEY_LEN || sig.len() != MLDSA65_SIG_LEN {
+                return Err(ConsensusError::InvalidSignature);
+            }
+            let pk_obj = pqcrypto_dilithium::dilithium3::PublicKey::from_bytes(pk)
+                .map_err(|_| ConsensusError::InvalidPublicKey)?;
+            let sig_obj = pqcrypto_dilithium::dilithium3::DetachedSignature::from_bytes(sig)
+                .map_err(|_| ConsensusError::InvalidSignature)?;
+            pqcrypto_dilithium::dilithium3::verify_detached_signature(&sig_obj, msg32, &pk_obj)
+                .map_err(|_| ConsensusError::PQSignatureInvalid)
         }
-    }
+    }?;
 
-    // Fallback stub accept
+    #[allow(unreachable_code)]
     Ok(())
 }
 
-/// Deterministic keygen helper (uses shrincs-ffi if available; otherwise fixed pattern).
-pub fn shrincs_keygen() -> [u8; SHRINCS_PUBKEY_LEN] {
+/// Dev-only SHRINCS stub verifier (never active in consensus).
+#[cfg(feature = "shrincs-dev")]
+pub fn verify_shrincs_dev(pk: &[u8], msg32: &[u8], sig: &[u8]) -> Result<(), ConsensusError> {
+    if msg32.len() != 32 {
+        return Err(ConsensusError::InvalidSignature);
+    }
+    if pk.len() != SHRINCS_PUBKEY_LEN || sig.len() != SHRINCS_SIG_LEN {
+        return Err(ConsensusError::InvalidSignature);
+    }
+
+    // Enforce message binding: sig[4..] repeats msg32.
+    for (i, b) in sig.iter().enumerate().skip(4) {
+        if *b != msg32[(i - 4) % 32] {
+            return Err(ConsensusError::InvalidSignature);
+        }
+    }
+
+    let idx = u32::from_be_bytes([sig[0], sig[1], sig[2], sig[3]]);
+
+    // If an FFI library is available, attempt to verify there too (but still
+    // require the message-binding pattern above for determinism).
     #[cfg(feature = "shrincs-ffi")]
-    {
-        if let Some(ffi) = load_shrincs()
-            && let Some(keygen) = &ffi.keygen
-        {
-            let mut pk = [0u8; SHRINCS_PUBKEY_LEN];
-            let ok = unsafe { (keygen)(pk.as_mut_ptr(), pk.len()) };
-            if ok == 1 {
-                return pk;
+    if let Some(ffi) = load_shrincs() {
+        unsafe {
+            let rc = (ffi.verify)(
+                msg32.as_ptr(),
+                msg32.len(),
+                pk.as_ptr(),
+                pk.len(),
+                sig.as_ptr(),
+                sig.len(),
+            );
+            if rc == 1 {
+                return Ok(());
             }
         }
     }
+
+    if idx >= SHRINCS_MAX_INDEX {
+        // Simulate SLH fallback acceptance in the stub.
+        return Ok(());
+    }
+
+    Ok(())
+}
+
+/// ML-DSA keypair helper for dev/CLI.
+pub fn mldsa_keypair() -> (Vec<u8>, Vec<u8>) {
+    let (pk, sk) = pqcrypto_dilithium::dilithium3::keypair();
+    (pk.as_bytes().to_vec(), sk.as_bytes().to_vec())
+}
+
+/// ML-DSA sign helper (deterministic).
+pub fn mldsa_sign(sk: &[u8], msg32: &[u8]) -> Result<Vec<u8>, ConsensusError> {
+    if msg32.len() != 32 {
+        return Err(ConsensusError::InvalidSignature);
+    }
+    if sk.len() != pqcrypto_dilithium::dilithium3::secret_key_bytes() {
+        return Err(ConsensusError::InvalidSignature);
+    }
+    let sk_obj = pqcrypto_dilithium::dilithium3::SecretKey::from_bytes(sk)
+        .map_err(|_| ConsensusError::InvalidSignature)?;
+    let sig = pqcrypto_dilithium::dilithium3::detached_sign(msg32, &sk_obj);
+    Ok(sig.as_bytes().to_vec())
+}
+
+/// Dev-only SHRINCS helpers retained behind `shrincs-dev`.
+#[cfg(feature = "shrincs-dev")]
+pub fn shrincs_keygen() -> [u8; SHRINCS_PUBKEY_LEN] {
     // Fallback deterministic pattern
     let mut pk = [0u8; SHRINCS_PUBKEY_LEN];
     for (i, b) in pk.iter_mut().enumerate() {
@@ -200,36 +216,10 @@ pub fn shrincs_keygen() -> [u8; SHRINCS_PUBKEY_LEN] {
     pk
 }
 
-/// Deterministic sign helper (uses shrincs-ffi if available; otherwise repeats msg bytes and zeros state byte).
-pub fn shrincs_sign(pk: &[u8], msg32: &[u8]) -> [u8; SHRINCS_SIG_LEN] {
+#[cfg(feature = "shrincs-dev")]
+pub fn shrincs_sign(_pk: &[u8], msg32: &[u8]) -> [u8; SHRINCS_SIG_LEN] {
     let mut sig = [0u8; SHRINCS_SIG_LEN];
-
-    #[cfg(feature = "shrincs-ffi")]
-    {
-        if let Some(ffi) = load_shrincs()
-            && let Some(sign) = &ffi.sign
-        {
-            let ok = unsafe {
-                (sign)(
-                    msg32.as_ptr(),
-                    msg32.len(),
-                    pk.as_ptr(),
-                    pk.len(),
-                    sig.as_mut_ptr(),
-                    sig.len(),
-                )
-            };
-            if ok == 1 {
-                return sig;
-            }
-        }
-    }
-
-    // Fallback deterministic pattern with message-binding and state index 0.
-    sig[0] = 0;
-    sig[1] = 0;
-    sig[2] = 0;
-    sig[3] = 0;
+    sig[0..4].copy_from_slice(&0u32.to_be_bytes());
     for i in 4..SHRINCS_SIG_LEN {
         sig[i] = msg32[(i - 4) % msg32.len()];
     }

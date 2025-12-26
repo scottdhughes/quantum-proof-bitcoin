@@ -13,6 +13,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: stable
+      - name: Vectors up-to-date
+        run: |
+          cargo run --quiet --bin gen_vectors
+          git diff --exit-code -- vectors/
       - name: Run tests
         run: cargo test --all-features
 
