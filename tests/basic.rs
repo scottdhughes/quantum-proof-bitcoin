@@ -1,8 +1,9 @@
 use hex_literal::hex;
 use qpb_consensus::{
     Block, BlockHeader, CHAIN_ID, OutPoint, Prevout, Transaction, TxIn, TxOut, bits_to_target,
-    block_weight_wu, build_p2qtsh, penalty, qpb_sighash, shrincs_sign, validate_block_basic,
-    validate_transaction_basic, validate_witness_commitment, witness_merkle_root,
+    block_weight_wu, build_p2qtsh, mldsa_keypair, mldsa_sign, penalty, qpb_sighash,
+    validate_block_basic, validate_transaction_basic, validate_witness_commitment,
+    witness_merkle_root,
 };
 
 fn genesis_header() -> BlockHeader {
@@ -63,11 +64,11 @@ fn p2qpkh_sighash_and_validation() {
         vout: 0,
     };
 
-    // pk_ser = alg_id || 64 zero bytes
-    let pk = [0u8; 64];
-    let mut pk_ser = Vec::with_capacity(65);
-    pk_ser.push(0x30);
-    pk_ser.extend_from_slice(&pk);
+    // pk_ser = alg_id || ML-DSA-65 pk
+    let (pk_bytes, sk_bytes) = mldsa_keypair();
+    let mut pk_ser = Vec::with_capacity(1 + pk_bytes.len());
+    pk_ser.push(0x11);
+    pk_ser.extend_from_slice(&pk_bytes);
 
     // scriptPubKey = OP_3 PUSH32(qpkh)
     let qpkh = qpb_consensus::qpkh32(&pk_ser);
@@ -77,15 +78,7 @@ fn p2qpkh_sighash_and_validation() {
         prevout,
         script_sig: Vec::new(),
         sequence: 0xffffffff,
-        witness: vec![
-            {
-                // sig_ser = 324-byte sig + sighash byte
-                let mut v = vec![0u8; 324];
-                v.push(0x01); // SIGHASH_ALL
-                v
-            },
-            pk_ser.clone(),
-        ],
+        witness: vec![Vec::new(), pk_ser.clone()],
     };
 
     let txout = TxOut {
@@ -109,15 +102,84 @@ fn p2qpkh_sighash_and_validation() {
     let msg = qpb_sighash(&tx, 0, &prevouts, 0x01, 0x00, None).unwrap();
     assert_eq!(msg.len(), 32);
 
-    // Produce a valid stub signature bound to msg.
-    let sig = shrincs_sign(&pk, &msg);
-    let mut sig_ser = sig.to_vec();
+    // Produce a valid ML-DSA signature bound to msg.
+    let mut sig_ser = mldsa_sign(&sk_bytes, &msg).expect("ml-dsa sign");
     sig_ser.push(0x01); // SIGHASH_ALL
     tx.vin[0].witness = vec![sig_ser, pk_ser];
 
     // Validate tx (stub PQ verify).
     let cost = validate_transaction_basic(&tx, &prevouts).unwrap();
     assert_eq!(cost, 1);
+}
+
+#[test]
+fn p2qpkh_shrincs_alg_is_rejected() {
+    // Build a tx that uses alg_id 0x30 (reserved) and ensure validation fails.
+    let prevout = OutPoint {
+        txid: [0u8; 32],
+        vout: 0,
+    };
+    let pk = [0u8; 64];
+    let mut pk_ser = Vec::with_capacity(1 + pk.len());
+    pk_ser.push(0x30);
+    pk_ser.extend_from_slice(&pk);
+    let spk = qpb_consensus::build_p2qpkh(qpb_consensus::qpkh32(&pk_ser));
+
+    let tx = Transaction {
+        version: 1,
+        vin: vec![TxIn {
+            prevout,
+            script_sig: Vec::new(),
+            sequence: 0xffff_ffff,
+            witness: vec![vec![0u8; 325], pk_ser.clone()], // bogus sig len+1
+        }],
+        vout: vec![TxOut {
+            value: 1_0000,
+            script_pubkey: spk.clone(),
+        }],
+        lock_time: 0,
+    };
+    let prevouts = vec![Prevout {
+        value: 1_0000,
+        script_pubkey: spk,
+    }];
+    let res = validate_transaction_basic(&tx, &prevouts);
+    assert!(res.is_err(), "SHRINCS alg_id must be rejected at consensus");
+}
+
+#[test]
+fn p2qpkh_slh_alg_is_rejected() {
+    // Build a tx that uses alg_id 0x21 (reserved) and ensure validation fails.
+    let prevout = OutPoint {
+        txid: [0u8; 32],
+        vout: 0,
+    };
+    let pk = [0u8; 64];
+    let mut pk_ser = Vec::with_capacity(1 + pk.len());
+    pk_ser.push(0x21);
+    pk_ser.extend_from_slice(&pk);
+    let spk = qpb_consensus::build_p2qpkh(qpb_consensus::qpkh32(&pk_ser));
+
+    let tx = Transaction {
+        version: 1,
+        vin: vec![TxIn {
+            prevout,
+            script_sig: Vec::new(),
+            sequence: 0xffff_ffff,
+            witness: vec![vec![0u8; 325], pk_ser.clone()], // bogus sig len+1
+        }],
+        vout: vec![TxOut {
+            value: 1_0000,
+            script_pubkey: spk.clone(),
+        }],
+        lock_time: 0,
+    };
+    let prevouts = vec![Prevout {
+        value: 1_0000,
+        script_pubkey: spk,
+    }];
+    let res = validate_transaction_basic(&tx, &prevouts);
+    assert!(res.is_err(), "SLH alg_id must be rejected at consensus");
 }
 
 #[test]

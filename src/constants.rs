@@ -29,9 +29,17 @@ pub const MAX_STACK_ITEMS: usize = 1000;
 pub const MAX_CONTROL_BLOCK_DEPTH: usize = 128;
 
 // ---- PQ algorithms ----
+// Active at genesis
+pub const MLDSA65_ALG_ID: u8 = 0x11;
+// ML-DSA-65 (Dilithium3) sizes
+pub const MLDSA65_PUBKEY_LEN: usize = 1952;
+pub const MLDSA65_SIG_LEN: usize = 3309;
+// Reserved/inactive
+pub const SLH_DSA_ALG_ID: u8 = 0x21;
 pub const SHRINCS_ALG_ID: u8 = 0x30;
 pub const SHRINCS_PUBKEY_LEN: usize = 64;
 pub const SHRINCS_SIG_LEN: usize = 324;
+pub const SHRINCS_MAX_INDEX: u32 = 1024;
 
 // ---- Witness versions & script ----
 pub const P2QTSH_VERSION: u8 = 0x02; // OP_2 PUSH32

@@ -36,7 +36,7 @@ fn bench_sweeps(c: &mut Criterion) {
             c.bench_function(&label, |b| {
                 b.iter(|| {
                     let mut s = hybrid::sign(&msg, &kp, q, false);
-                    s.extend(std::iter::repeat(0u8).take(pad));
+                    s.extend(std::iter::repeat_n(0u8, pad));
                     s
                 })
             });

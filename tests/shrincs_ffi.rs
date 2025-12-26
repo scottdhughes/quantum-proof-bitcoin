@@ -1,6 +1,6 @@
-#![cfg(feature = "shrincs-ffi")]
+#![cfg(all(feature = "shrincs-dev", feature = "shrincs-ffi"))]
 
-use qpb_consensus::{AlgorithmId, verify_pq};
+use qpb_consensus::pq::verify_shrincs_dev;
 use std::env;
 use std::fs;
 
@@ -19,11 +19,10 @@ fn shrincs_ffi_loads_and_verifies() {
         return;
     }
 
-    let alg = AlgorithmId::Shrincs;
     let pk = vec![0u8; 64];
     let sig = vec![0u8; 324];
     let msg = vec![0u8; 32];
 
     // Should succeed via FFI (stub returns 1 on correct lengths).
-    verify_pq(alg, &pk, &msg, &sig).expect("ffi verify failed");
+    verify_shrincs_dev(&pk, &msg, &sig).expect("ffi verify failed");
 }
