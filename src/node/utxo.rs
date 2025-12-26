@@ -58,6 +58,10 @@ impl UtxoSet {
             },
         );
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.map.is_empty()
+    }
 }
 
 fn key_for(txid: &[u8; 32], vout: u32) -> String {
