@@ -1,0 +1,65 @@
+use std::collections::BTreeMap;
+use std::fs;
+use std::path::Path;
+
+use anyhow::Result;
+use serde::{Deserialize, Serialize};
+
+use crate::types::Prevout;
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct UtxoEntry {
+    value: u64,
+    script_pubkey: Vec<u8>,
+}
+
+#[derive(Debug, Default)]
+pub struct UtxoSet {
+    map: BTreeMap<String, UtxoEntry>,
+}
+
+impl UtxoSet {
+    pub fn load(datadir: &Path) -> Result<Self> {
+        let path = datadir.join("utxo.json");
+        if !path.exists() {
+            return Ok(Self::default());
+        }
+        let map: BTreeMap<String, UtxoEntry> = serde_json::from_reader(fs::File::open(&path)?)?;
+        Ok(Self { map })
+    }
+
+    pub fn save(&self, datadir: &Path) -> Result<()> {
+        let path = datadir.join("utxo.json");
+        let data = serde_json::to_vec_pretty(&self.map)?;
+        fs::write(path, data)?;
+        Ok(())
+    }
+
+    pub fn get(&self, txid: &[u8; 32], vout: u32) -> Option<Prevout> {
+        let key = key_for(txid, vout);
+        self.map.get(&key).map(|e| Prevout {
+            value: e.value,
+            script_pubkey: e.script_pubkey.clone(),
+        })
+    }
+
+    pub fn remove(&mut self, txid: &[u8; 32], vout: u32) {
+        let key = key_for(txid, vout);
+        self.map.remove(&key);
+    }
+
+    pub fn insert(&mut self, txid: &[u8; 32], vout: u32, value: u64, script_pubkey: Vec<u8>) {
+        let key = key_for(txid, vout);
+        self.map.insert(
+            key,
+            UtxoEntry {
+                value,
+                script_pubkey,
+            },
+        );
+    }
+}
+
+fn key_for(txid: &[u8; 32], vout: u32) -> String {
+    format!("{}:{}", hex::encode(txid), vout)
+}

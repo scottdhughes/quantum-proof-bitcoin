@@ -23,6 +23,8 @@
 
 **Phase 0A status:** Implemented genesis init + persistent tip/index only (no RPC/submitblock yet). Run `qpb-node --chain devnet|regtest --datadir <path>` to bootstrap from `docs/chain/chainparams.json` and persist height/tip/index on disk.
 
+**Phase 0B status:** Adds blockstore + UTXO persistence and a minimal JSON-RPC (tip-only, no reorgs, no P2P/mempool). RPC methods: `getblockcount`, `getbestblockhash`, `getblockhash`, `getblock` (verbosity 0), `submitblock`, `getutxo`. Use `qpb-node --rpc-addr 127.0.0.1:38332 --chain devnet --datadir <path>`.
+
 ### Phase 1 — Minimal P2P sync
 **Deliverables**
 - Headers-first sync (inv/getheaders/headers/getdata/blocks) with basic DoS limits.
