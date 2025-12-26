@@ -9,6 +9,7 @@ use qpb_consensus::node::chainparams::{
     compute_chain_id, compute_genesis_hash, load_chainparams, select_network,
 };
 use qpb_consensus::node::node::Node;
+use qpb_consensus::node::p2p::{SyncOpts, sync_with_retries};
 use qpb_consensus::node::rpc::handle_rpc;
 
 #[derive(Parser, Debug)]
@@ -34,6 +35,12 @@ struct Args {
         action = clap::ArgAction::Append
     )]
     p2p_connect: Option<Vec<String>>,
+    #[arg(long, default_value_t = 30000)]
+    p2p_deadline_ms: u64,
+    #[arg(long, default_value_t = 3)]
+    p2p_attempts: usize,
+    #[arg(long, default_value_t = 250)]
+    p2p_backoff_ms: u64,
 }
 
 fn main() -> Result<()> {
@@ -72,19 +79,18 @@ fn main() -> Result<()> {
     if let Some(peers) = args.p2p_connect.as_ref() {
         let params = load_chainparams(&args.chainparams)?;
         let net = select_network(&params, &args.chain)?;
-        let mut synced = false;
-        for peer in peers {
-            match qpb_consensus::node::p2p::sync_headers_and_blocks(&mut node, net, peer) {
-                Ok(()) => {
-                    synced = true;
-                    break;
-                }
-                Err(e) => eprintln!("p2p sync to {} failed: {}", peer, e),
-            }
+        let addrs: Vec<std::net::SocketAddr> =
+            peers.iter().filter_map(|s| s.parse().ok()).collect();
+        if addrs.is_empty() {
+            anyhow::bail!("no valid p2p peers provided");
         }
-        if !synced {
-            anyhow::bail!("p2p sync failed for all peers");
-        }
+        let opts = SyncOpts {
+            max_attempts_per_peer: args.p2p_attempts.max(1),
+            initial_backoff_ms: args.p2p_backoff_ms,
+            max_backoff_ms: 5_000,
+            total_deadline_ms: args.p2p_deadline_ms,
+        };
+        sync_with_retries(&mut node, net, &addrs, &opts)?;
     }
 
     if let Some(addr) = args.rpc_addr {

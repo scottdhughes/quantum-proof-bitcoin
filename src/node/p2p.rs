@@ -1,6 +1,7 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::time::Duration;
+use std::time::Instant;
 
 use anyhow::{Result, anyhow};
 use sha2::{Digest, Sha256};
@@ -25,6 +26,25 @@ pub const CMD_BLOCK: &str = "block";
 pub const DEFAULT_READ_TIMEOUT_MS: u64 = 2000;
 pub const DEFAULT_WRITE_TIMEOUT_MS: u64 = 2000;
 pub const MAX_MESSAGE_BYTES: u32 = 8 * 1024 * 1024;
+
+#[derive(Clone, Debug)]
+pub struct SyncOpts {
+    pub max_attempts_per_peer: usize,
+    pub initial_backoff_ms: u64,
+    pub max_backoff_ms: u64,
+    pub total_deadline_ms: u64,
+}
+
+impl Default for SyncOpts {
+    fn default() -> Self {
+        Self {
+            max_attempts_per_peer: 3,
+            initial_backoff_ms: 250,
+            max_backoff_ms: 5_000,
+            total_deadline_ms: 30_000,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct Message {
@@ -252,4 +272,43 @@ pub fn sync_headers_and_blocks(node: &mut Node, net: &NetworkParams, addr: &str)
         }
     }
     Ok(())
+}
+
+pub fn sync_with_retries(
+    node: &mut Node,
+    net: &NetworkParams,
+    peers: &[std::net::SocketAddr],
+    opts: &SyncOpts,
+) -> Result<()> {
+    let deadline = Instant::now()
+        .checked_add(Duration::from_millis(opts.total_deadline_ms))
+        .unwrap_or_else(Instant::now);
+    for peer in peers {
+        let mut backoff = Duration::from_millis(opts.initial_backoff_ms);
+        for attempt in 0..opts.max_attempts_per_peer {
+            if Instant::now() >= deadline {
+                return Err(anyhow!("p2p sync deadline exceeded"));
+            }
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            let addr_str = peer.to_string();
+            match sync_headers_and_blocks(node, net, &addr_str) {
+                Ok(()) => return Ok(()),
+                Err(e) => {
+                    // last attempt or deadline exceeded
+                    if attempt + 1 == opts.max_attempts_per_peer {
+                        break;
+                    }
+                    let sleep_dur = backoff.min(remaining);
+                    std::thread::sleep(sleep_dur);
+                    backoff = std::cmp::min(
+                        Duration::from_millis(opts.max_backoff_ms),
+                        backoff.saturating_mul(2),
+                    );
+                    // continue to next attempt
+                    let _ = e; // silence unused in non-logging builds
+                }
+            }
+        }
+    }
+    Err(anyhow!("p2p sync failed for all peers"))
 }

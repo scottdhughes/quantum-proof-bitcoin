@@ -9,8 +9,8 @@ use qpb_consensus::node::chainparams::{load_chainparams, select_network};
 use qpb_consensus::node::node::Node;
 use qpb_consensus::node::p2p::{
     CMD_BLOCK, CMD_GETDATA, CMD_GETHEADERS, CMD_HEADERS, CMD_VERACK, CMD_VERSION,
-    MAX_MESSAGE_BYTES, read_message, ser_version, sync_headers_and_blocks, write_headers_payload,
-    write_message,
+    MAX_MESSAGE_BYTES, SyncOpts, read_message, ser_version, sync_with_retries,
+    write_headers_payload, write_message,
 };
 use qpb_consensus::script::build_p2qpkh;
 use qpb_consensus::types::{Block, BlockHeader, OutPoint, Transaction, TxIn, TxOut};
@@ -123,14 +123,13 @@ fn p2p_multi_peer_fallback_succeeds() {
     let bad = start_bad_peer(magic);
     let good = start_good_peer(magic, node.best_hash_hex().to_string());
 
-    let peers = vec![bad, good];
-    let mut synced = false;
-    for p in peers.iter() {
-        if sync_headers_and_blocks(&mut node, net, p).is_ok() {
-            synced = true;
-            break;
-        }
-    }
-    assert!(synced, "should sync with good peer");
+    let peers = vec![bad.parse().unwrap(), good.parse().unwrap()];
+    let opts = SyncOpts {
+        max_attempts_per_peer: 2,
+        initial_backoff_ms: 50,
+        max_backoff_ms: 200,
+        total_deadline_ms: 2_000,
+    };
+    sync_with_retries(&mut node, net, &peers, &opts).expect("sync should succeed");
     assert_eq!(node.height(), 1);
 }
