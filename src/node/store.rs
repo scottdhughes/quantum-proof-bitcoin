@@ -69,7 +69,7 @@ impl Store {
     }
 }
 
-fn write_state(datadir: &Path, state: &NodeState, index: &BlockIndex) -> Result<()> {
+pub fn write_state(datadir: &Path, state: &NodeState, index: &BlockIndex) -> Result<()> {
     let state_path = datadir.join("state.json");
     let index_path = datadir.join("index.json");
     fs::write(&state_path, serde_json::to_vec_pretty(state)?)?;
