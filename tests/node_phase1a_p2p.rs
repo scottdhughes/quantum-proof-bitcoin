@@ -9,7 +9,7 @@ use qpb_consensus::node::chainparams::select_network;
 use qpb_consensus::node::node::Node;
 use qpb_consensus::node::p2p::{
     CMD_BLOCK, CMD_GETDATA, CMD_GETHEADERS, CMD_HEADERS, CMD_VERACK, CMD_VERSION, read_message,
-    ser_version, sync_headers_and_blocks, write_headers_payload, write_message,
+    ser_version, sync_headers_and_blocks, write_message,
 };
 use qpb_consensus::script::build_p2qpkh;
 use qpb_consensus::types::{Block, BlockHeader, OutPoint, Transaction, TxIn, TxOut};
