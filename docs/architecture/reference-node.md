@@ -23,12 +23,14 @@
 
 **Phase 0A status:** Implemented genesis init + persistent tip/index only (no RPC/submitblock yet). Run `qpb-node --chain devnet|regtest --datadir <path>` to bootstrap from `docs/chain/chainparams.json` and persist height/tip/index on disk.
 
-**Phase 0B status (current):** Blockstore + UTXO persistence and tip-only submitblock wired in-process. Minimal JSON-RPC (HTTP POST /rpc) is available for getblockcount/getbestblockhash/getblockhash/getblock/submitblock/getutxo. No P2P/mempool yet.
+**Phase 0B status:** Blockstore + UTXO persistence and tip-only submitblock wired in-process. Minimal JSON-RPC (HTTP POST /rpc) is available for getblockcount/getbestblockhash/getblockhash/getblock/submitblock/getutxo. No P2P/mempool yet.
 
 ### Phase 1 — Minimal P2P sync
 **Phase 1A status:** Outbound headers-first sync (getheaders/headers/getdata/blocks) to a single peer, tip-only (no reorgs yet). No mempool/tx relay.
 
-**Phase 1B1 status (current):** Outbound sync with multiple peers (try in order until one succeeds), read/write timeouts, max message size guard (8MB), safer partial reads. Still tip-only; no reorgs or inbound/mempool.
+**Phase 1B1 status:** Outbound sync with multiple peers (try in order until one succeeds), read/write timeouts, max message size guard (8MB), safer partial reads. Still tip-only; no reorgs or inbound/mempool.
+
+**Phase 1B2 status (current):** Outbound sync now retries peers with backoff/deadline; recovers from dropped connections mid-handshake or mid-block. Still tip-only; no forks/reorgs/mempool.
 
 **Deliverables (overall Phase 1)**
 - Headers-first sync with basic DoS limits.
@@ -44,7 +46,9 @@ Run example: `cargo run --bin qpb-node -- --chain devnet --datadir /tmp/qpb-dev 
 Multi-peer example: `... --p2p-connect 127.0.0.1:18444 --p2p-connect 127.0.0.1:18445`
 
 ### Phase 2 — Mempool + mining (optional)
-**Deliverables**
+**Phase 2A status (current):** Local coinbase-only miner via JSON-RPC `generatenextblock` (tip-only, no mempool). PoW enforced unless `--no-pow` is set; submits through the same validation/UTXO pipeline.
+
+**Deliverables (remaining)**
 - Minimal mempool with fee/ancestor limits suitable for dev/testnet.
 - `getblocktemplate` for external miners; ability to assemble candidate blocks.
 - Optional local CPU miner reuse of existing PoW module.
@@ -53,6 +57,9 @@ Multi-peer example: `... --p2p-connect 127.0.0.1:18444 --p2p-connect 127.0.0.1:1
 - RBF policy, package relay, or advanced fee estimation.
 - P2P tx relay robustness (ok if absent; focus stays on validation + template).
 - Wallet/key UX.
+
+Run mining example:
+`curl -s -X POST http://127.0.0.1:38332/rpc -d '{"jsonrpc":"2.0","id":1,"method":"generatenextblock","params":[]}'`
 
 ## Deferred Route B (Bitcoin Core fork)
 - Consider after testnet stabilization to achieve protocol parity and broader ecosystem tooling.

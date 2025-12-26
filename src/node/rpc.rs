@@ -2,6 +2,8 @@ use anyhow::{Result, anyhow};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::node::chainparams::{load_chainparams, select_network};
+use crate::node::miner::mine_block_bytes;
 use crate::node::node::Node;
 
 #[derive(Deserialize)]
@@ -79,6 +81,26 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<Value> {
             let bytes = hex::decode(hex).map_err(|_| anyhow!("invalid block hex"))?;
             node.submit_block_bytes(&bytes)?;
             Ok(Value::String("accepted".to_string()))
+        }
+        "generatenextblock" => {
+            let n = params
+                .first()
+                .and_then(|v| v.as_u64())
+                .unwrap_or(1)
+                .clamp(1, 10) as usize;
+            let cp = load_chainparams(std::path::Path::new("docs/chain/chainparams.json"))?;
+            let net = select_network(&cp, &node.chain)?;
+            let mut hashes = Vec::with_capacity(n);
+            for _ in 0..n {
+                let bytes = mine_block_bytes(node, net, node.no_pow())?;
+                node.submit_block_bytes(&bytes)?;
+                hashes.push(Value::String(node.best_hash_hex().to_string()));
+            }
+            if n == 1 {
+                Ok(hashes.pop().unwrap())
+            } else {
+                Ok(Value::Array(hashes))
+            }
         }
         "getutxo" => {
             let txid_hex = params

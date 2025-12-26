@@ -97,6 +97,10 @@ impl Node {
         self.utxo.get(txid, vout)
     }
 
+    pub fn no_pow(&self) -> bool {
+        self.no_pow
+    }
+
     pub fn submit_block_bytes(&mut self, bytes: &[u8]) -> Result<()> {
         let block = parse_block(bytes)?;
 
