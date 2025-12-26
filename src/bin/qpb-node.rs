@@ -27,6 +27,13 @@ struct Args {
     rpc_addr: Option<String>,
     #[arg(long, default_value_t = false)]
     no_pow: bool,
+    #[arg(
+        long = "p2p-connect",
+        value_parser = clap::builder::NonEmptyStringValueParser::new(),
+        num_args = 0..,
+        action = clap::ArgAction::Append
+    )]
+    p2p_connect: Option<Vec<String>>,
 }
 
 fn main() -> Result<()> {
@@ -52,7 +59,7 @@ fn main() -> Result<()> {
         anyhow::bail!("genesis chain_id mismatch for {}", args.chain);
     }
 
-    let node = Node::open_or_init(&args.chain, &args.datadir, args.no_pow)?;
+    let mut node = Node::open_or_init(&args.chain, &args.datadir, args.no_pow)?;
 
     println!(
         "chain={} height={} tip={}",
@@ -60,6 +67,25 @@ fn main() -> Result<()> {
         node.height(),
         node.best_hash_hex()
     );
+
+    // Optional outbound P2P sync: try peers in order until one succeeds.
+    if let Some(peers) = args.p2p_connect.as_ref() {
+        let params = load_chainparams(&args.chainparams)?;
+        let net = select_network(&params, &args.chain)?;
+        let mut synced = false;
+        for peer in peers {
+            match qpb_consensus::node::p2p::sync_headers_and_blocks(&mut node, net, peer) {
+                Ok(()) => {
+                    synced = true;
+                    break;
+                }
+                Err(e) => eprintln!("p2p sync to {} failed: {}", peer, e),
+            }
+        }
+        if !synced {
+            anyhow::bail!("p2p sync failed for all peers");
+        }
+    }
 
     if let Some(addr) = args.rpc_addr {
         start_rpc_server(addr, node)?;
