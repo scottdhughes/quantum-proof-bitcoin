@@ -16,6 +16,7 @@ pub struct BlockIndex {
     pub hashes: Vec<String>, // index by height
 }
 
+#[derive(Debug)]
 pub struct Store {
     pub datadir: PathBuf,
     pub state: NodeState,
