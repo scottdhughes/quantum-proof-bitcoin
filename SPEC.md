@@ -11,6 +11,7 @@
   - alg_id `0x21` — SLH-DSA-SHA2-192s (reserved)
   - alg_id `0x30` — SHRINCS (dev-only; consensus rejects)
 - All other alg_id values: rejected.
+- Crypto provenance and validation invariants: see `docs/crypto/MLDSA-65.md`.
 
 ## Consensus enforcement (summary)
 - AlgorithmId parser accepts only `0x11`; anything else -> `InactiveAlgorithm`.
@@ -25,4 +26,3 @@
 
 ## Activation stance
 - SHRINCS and SLH-DSA remain reserved until a future hard fork and published, audited implementations.
-
