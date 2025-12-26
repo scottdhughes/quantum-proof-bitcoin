@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "chain_id_derivation": "CHAIN_ID = HASH256(SerializeBlockHeader(genesis_header))",
+  "networks": {
+    "devnet": {
+      "name": "devnet",
+      "hrp": "qpb",
+      "p2p_magic": "66782113",
+      "p2p_port": 38333,
+      "rpc_port": 38332,
+      "genesis": {
+        "coinbase_tx_hex": "010000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff1d515042206465766e65742067656e6573697320323032352d31322d3235ffffffff010000000000000000016a0000000000",
+        "header": {
+          "version": 1,
+          "prev_blockhash_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+          "merkle_root_hex": "a588f2988ed3988f5012c9fa530339bf1d7a53d79c036cce5455a497bb1b8564",
+          "time": 1766620800,
+          "bits": 545259519,
+          "nonce": 0
+        },
+        "block_hash_hex": "054c2c3112a5b0b57a38baa597ed8c56c7d65edf32e1335c8c7260a019c80fe4",
+        "chain_id_hex": "f00c1817124878353f9103cbe58dc4252f1bb44ea980a561ce19dbd06ac38c8e"
+      }
+    },
+    "regtest": {
+      "name": "regtest",
+      "hrp": "qpbreg",
+      "p2p_magic": "AFED1906",
+      "p2p_port": 38444,
+      "rpc_port": 38443,
+      "genesis": {
+        "coinbase_tx_hex": "010000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff1e51504220726567746573742067656e6573697320323032352d31322d3235ffffffff010000000000000000016a0000000000",
+        "header": {
+          "version": 1,
+          "prev_blockhash_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+          "merkle_root_hex": "b1c2a45f0f3fc91cc5ef788fefa27ff92ef159d84fe5a0e9ea90dca5d078e10c",
+          "time": 1766620800,
+          "bits": 545259519,
+          "nonce": 1
+        },
+        "block_hash_hex": "47606a1fa4e354851ee35489581c62223d509c074b9f8e3fc05afa0d1e3f6763",
+        "chain_id_hex": "9026045859c42f9952b229492aeeaee6de1ecd206aa669548d8dc3211f8d1446"
+      }
+    },
+    "testnet": {
+      "name": "testnet",
+      "hrp": "tqpb",
+      "p2p_magic": "BC5A2C49",
+      "p2p_port": 38334,
+      "rpc_port": 38335,
+      "genesis": null
+    }
+  }
+}
