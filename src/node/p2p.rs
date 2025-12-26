@@ -1,5 +1,6 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::time::Duration;
 
 use anyhow::{Result, anyhow};
 use sha2::{Digest, Sha256};
@@ -21,6 +22,10 @@ pub const CMD_HEADERS: &str = "headers";
 pub const CMD_GETDATA: &str = "getdata";
 pub const CMD_BLOCK: &str = "block";
 
+pub const DEFAULT_READ_TIMEOUT_MS: u64 = 2000;
+pub const DEFAULT_WRITE_TIMEOUT_MS: u64 = 2000;
+pub const MAX_MESSAGE_BYTES: u32 = 8 * 1024 * 1024;
+
 #[derive(Debug)]
 pub struct Message {
     pub command: String,
@@ -40,6 +45,7 @@ pub fn write_message(
     command: &str,
     payload: &[u8],
 ) -> Result<()> {
+    stream.set_write_timeout(Some(Duration::from_millis(DEFAULT_WRITE_TIMEOUT_MS)))?;
     let mut header = Vec::with_capacity(24 + payload.len());
     header.extend_from_slice(&magic);
     let mut cmd_bytes = [0u8; 12];
@@ -54,24 +60,40 @@ pub fn write_message(
     Ok(())
 }
 
-fn read_exact(stream: &mut TcpStream, len: usize) -> Result<Vec<u8>> {
+fn read_exact_timeout(stream: &mut TcpStream, len: usize) -> Result<Vec<u8>> {
+    stream.set_read_timeout(Some(Duration::from_millis(DEFAULT_READ_TIMEOUT_MS)))?;
     let mut buf = vec![0u8; len];
-    stream.read_exact(&mut buf)?;
+    let mut read = 0;
+    while read < len {
+        let n = stream.read(&mut buf[read..])?;
+        if n == 0 {
+            return Err(anyhow!("unexpected EOF"));
+        }
+        read += n;
+    }
     Ok(buf)
 }
 
 pub fn read_message(stream: &mut TcpStream, magic: [u8; 4]) -> Result<Message> {
     let mut header = [0u8; 24];
+    stream.set_read_timeout(Some(Duration::from_millis(DEFAULT_READ_TIMEOUT_MS)))?;
     stream.read_exact(&mut header)?;
     if header[..4] != magic {
         return Err(anyhow!("magic mismatch"));
     }
-    let cmd = String::from_utf8_lossy(&header[4..16])
+    let cmd_raw = &header[4..16];
+    if !cmd_raw.iter().all(|b| *b == 0 || (0x20..=0x7e).contains(b)) {
+        return Err(anyhow!("invalid command bytes"));
+    }
+    let cmd = String::from_utf8_lossy(cmd_raw)
         .trim_end_matches('\0')
         .to_string();
-    let len = u32::from_le_bytes(header[16..20].try_into().unwrap()) as usize;
+    let len = u32::from_le_bytes(header[16..20].try_into().unwrap());
+    if len > MAX_MESSAGE_BYTES {
+        return Err(anyhow!("message too large"));
+    }
     let cksum = &header[20..24];
-    let payload = read_exact(stream, len)?;
+    let payload = read_exact_timeout(stream, len as usize)?;
     if checksum(&payload) != cksum {
         return Err(anyhow!("checksum mismatch"));
     }
@@ -184,6 +206,8 @@ pub fn sync_headers_and_blocks(node: &mut Node, net: &NetworkParams, addr: &str)
         .try_into()
         .map_err(|_| anyhow!("bad magic"))?;
     let mut stream = TcpStream::connect(addr)?;
+    stream.set_read_timeout(Some(Duration::from_millis(DEFAULT_READ_TIMEOUT_MS)))?;
+    stream.set_write_timeout(Some(Duration::from_millis(DEFAULT_WRITE_TIMEOUT_MS)))?;
 
     // handshake
     let version_payload = ser_version(node.height() as i32);

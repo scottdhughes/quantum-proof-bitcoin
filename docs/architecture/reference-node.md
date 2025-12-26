@@ -26,7 +26,9 @@
 **Phase 0B status (current):** Blockstore + UTXO persistence and tip-only submitblock wired in-process. Minimal JSON-RPC (HTTP POST /rpc) is available for getblockcount/getbestblockhash/getblockhash/getblock/submitblock/getutxo. No P2P/mempool yet.
 
 ### Phase 1 — Minimal P2P sync
-**Phase 1A status (current):** Outbound headers-first sync (getheaders/headers/getdata/blocks) to a single peer, tip-only (no reorgs yet). No mempool/tx relay.
+**Phase 1A status:** Outbound headers-first sync (getheaders/headers/getdata/blocks) to a single peer, tip-only (no reorgs yet). No mempool/tx relay.
+
+**Phase 1B1 status (current):** Outbound sync with multiple peers (try in order until one succeeds), read/write timeouts, max message size guard (8MB), safer partial reads. Still tip-only; no reorgs or inbound/mempool.
 
 **Deliverables (overall Phase 1)**
 - Headers-first sync with basic DoS limits.
@@ -39,6 +41,7 @@
 - Address relay, addrman heuristics.
 
 Run example: `cargo run --bin qpb-node -- --chain devnet --datadir /tmp/qpb-dev --rpc-addr 127.0.0.1:38332 --p2p-connect 127.0.0.1:18444 --no-pow`
+Multi-peer example: `... --p2p-connect 127.0.0.1:18444 --p2p-connect 127.0.0.1:18445`
 
 ### Phase 2 — Mempool + mining (optional)
 **Deliverables**
