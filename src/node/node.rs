@@ -83,6 +83,16 @@ impl Node {
         self.store.tip_hash()
     }
 
+    pub fn get_blockhash(&self, height: u64) -> Option<String> {
+        self.store.index.hashes.get(height as usize).cloned()
+    }
+
+    pub fn get_block_bytes(&self, hash_hex: &str) -> Option<Vec<u8>> {
+        blockstore::get_block(&self.datadir, hash_hex)
+            .ok()
+            .flatten()
+    }
+
     pub fn utxo_get(&self, txid: &[u8; 32], vout: u32) -> Option<Prevout> {
         self.utxo.get(txid, vout)
     }

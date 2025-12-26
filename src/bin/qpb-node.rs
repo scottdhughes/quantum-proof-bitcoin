@@ -1,12 +1,15 @@
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result};
 use clap::Parser;
+use tiny_http::{Header, Method, Response, Server};
 
 use qpb_consensus::node::chainparams::{
     compute_chain_id, compute_genesis_hash, load_chainparams, select_network,
 };
-use qpb_consensus::node::store::Store;
+use qpb_consensus::node::node::Node;
+use qpb_consensus::node::rpc::handle_rpc;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -20,6 +23,10 @@ struct Args {
     chainparams: PathBuf,
     #[arg(long, default_value = ".qpb")]
     datadir: PathBuf,
+    #[arg(long)]
+    rpc_addr: Option<String>,
+    #[arg(long, default_value_t = false)]
+    no_pow: bool,
 }
 
 fn main() -> Result<()> {
@@ -45,13 +52,44 @@ fn main() -> Result<()> {
         anyhow::bail!("genesis chain_id mismatch for {}", args.chain);
     }
 
-    let store = Store::open_or_init(&args.datadir, &args.chain, &genesis.block_hash_hex)?;
+    let node = Node::open_or_init(&args.chain, &args.datadir, args.no_pow)?;
 
     println!(
         "chain={} height={} tip={}",
-        store.chain(),
-        store.height(),
-        store.tip_hash()
+        node.chain,
+        node.height(),
+        node.best_hash_hex()
     );
+
+    if let Some(addr) = args.rpc_addr {
+        start_rpc_server(addr, node)?;
+    }
+    Ok(())
+}
+
+fn start_rpc_server(addr: String, node: Node) -> Result<()> {
+    let server = Server::http(&addr).map_err(|e| anyhow::anyhow!("bind {}: {}", addr, e))?;
+    println!("rpc listening on http://{}", addr);
+    let shared = Arc::new(Mutex::new(node));
+    for mut request in server.incoming_requests() {
+        let shared = Arc::clone(&shared);
+        if request.method() != &Method::Post || request.url() != "/rpc" {
+            let _ = request.respond(Response::from_string("not found").with_status_code(404));
+            continue;
+        }
+        let mut body = String::new();
+        if let Err(e) = request.as_reader().read_to_string(&mut body) {
+            let _ = request
+                .respond(Response::from_string(format!("read error: {}", e)).with_status_code(400));
+            continue;
+        }
+        let resp_body = {
+            let mut node = shared.lock().unwrap();
+            handle_rpc(&mut node, &body)
+        };
+        let response = Response::from_string(resp_body)
+            .with_header(Header::from_bytes("Content-Type", "application/json").unwrap());
+        let _ = request.respond(response);
+    }
     Ok(())
 }
