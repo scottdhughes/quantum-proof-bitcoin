@@ -98,7 +98,7 @@ fn rpc_submit_block_success_and_state() {
     assert_eq!(node.height(), 1);
 
     // verify state persists
-    let mut node2 = Node::open_or_init("devnet", datadir, true).unwrap();
+    let node2 = Node::open_or_init("devnet", datadir, true).unwrap();
     assert_eq!(node2.height(), 1);
 }
 
