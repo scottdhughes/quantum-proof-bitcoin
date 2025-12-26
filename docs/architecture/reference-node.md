@@ -21,6 +21,8 @@
 - Fee policy, mempool, or relay rules.
 - Wallet/key management.
 
+**Phase 0A status:** Implemented genesis init + persistent tip/index only (no RPC/submitblock yet). Run `qpb-node --chain devnet|regtest --datadir <path>` to bootstrap from `docs/chain/chainparams.json` and persist height/tip/index on disk.
+
 ### Phase 1 — Minimal P2P sync
 **Deliverables**
 - Headers-first sync (inv/getheaders/headers/getdata/blocks) with basic DoS limits.

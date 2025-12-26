@@ -9,6 +9,7 @@ pub mod constants;
 pub mod errors;
 pub mod hashing;
 pub mod mining;
+pub mod node;
 pub mod pow;
 pub mod pq;
 pub mod reward;
