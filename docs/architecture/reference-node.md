@@ -23,7 +23,7 @@
 
 **Phase 0A status:** Implemented genesis init + persistent tip/index only (no RPC/submitblock yet). Run `qpb-node --chain devnet|regtest --datadir <path>` to bootstrap from `docs/chain/chainparams.json` and persist height/tip/index on disk.
 
-**Phase 0B status (current):** Blockstore + UTXO persistence and tip-only submitblock wired in-process (no RPC/P2P/mempool yet). Next step: expose JSON-RPC over HTTP in a later Phase 0B step.
+**Phase 0B status (current):** Blockstore + UTXO persistence and tip-only submitblock wired in-process. Minimal JSON-RPC (HTTP POST /rpc) is available for getblockcount/getbestblockhash/getblockhash/getblock/submitblock/getutxo. No P2P/mempool yet.
 
 ### Phase 1 — Minimal P2P sync
 **Deliverables**
