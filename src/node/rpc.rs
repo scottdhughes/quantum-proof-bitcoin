@@ -6,6 +6,12 @@ use crate::node::chainparams::{load_chainparams, select_network};
 use crate::node::miner::mine_block_bytes;
 use crate::node::node::Node;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RpcAction {
+    Continue,
+    Stop,
+}
+
 #[derive(Deserialize)]
 struct RpcRequest {
     jsonrpc: String,
@@ -32,27 +38,44 @@ struct RpcResponse<'a> {
 }
 
 pub fn handle_rpc(node: &mut Node, req_json: &str) -> String {
+    handle_rpc_action(node, req_json).0
+}
+
+/// Returns (response_json, action).
+pub fn handle_rpc_action(node: &mut Node, req_json: &str) -> (String, RpcAction) {
     let parsed: RpcRequest = match serde_json::from_str(req_json) {
         Ok(r) => r,
         Err(_) => {
-            return ser_error(Value::Null, -32700, "parse error");
+            return (
+                ser_error(Value::Null, -32700, "parse error"),
+                RpcAction::Continue,
+            );
         }
     };
 
     if parsed.jsonrpc != "2.0" {
-        return ser_error(parsed.id, -32600, "invalid request");
+        return (
+            ser_error(parsed.id, -32600, "invalid request"),
+            RpcAction::Continue,
+        );
     }
 
     match dispatch(node, &parsed.method, &parsed.params) {
-        Ok(res) => ser_ok(parsed.id, res),
-        Err(e) => ser_error(parsed.id, -32000, &e.to_string()),
+        Ok((res, action)) => (ser_ok(parsed.id, res), action),
+        Err(e) => (
+            ser_error(parsed.id, -32000, &e.to_string()),
+            RpcAction::Continue,
+        ),
     }
 }
 
-fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<Value> {
+fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, RpcAction)> {
     match method {
-        "getblockcount" => Ok(Value::from(node.height())),
-        "getbestblockhash" => Ok(Value::from(node.best_hash_hex().to_string())),
+        "getblockcount" => Ok((Value::from(node.height()), RpcAction::Continue)),
+        "getbestblockhash" => Ok((
+            Value::from(node.best_hash_hex().to_string()),
+            RpcAction::Continue,
+        )),
         "getblockhash" => {
             let h = params
                 .first()
@@ -61,7 +84,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<Value> {
             let hash = node
                 .get_blockhash(h)
                 .ok_or_else(|| anyhow!("height out of range"))?;
-            Ok(Value::from(hash))
+            Ok((Value::from(hash), RpcAction::Continue))
         }
         "getblock" => {
             let hash = params
@@ -71,7 +94,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<Value> {
             let bytes = node
                 .get_block_bytes(hash)
                 .ok_or_else(|| anyhow!("block not found"))?;
-            Ok(Value::from(hex::encode(bytes)))
+            Ok((Value::from(hex::encode(bytes)), RpcAction::Continue))
         }
         "submitblock" => {
             let hex = params
@@ -80,7 +103,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<Value> {
                 .ok_or_else(|| anyhow!("missing block hex"))?;
             let bytes = hex::decode(hex).map_err(|_| anyhow!("invalid block hex"))?;
             node.submit_block_bytes(&bytes)?;
-            Ok(Value::String("accepted".to_string()))
+            Ok((Value::String("accepted".to_string()), RpcAction::Continue))
         }
         "generatenextblock" => {
             let n = params
@@ -96,11 +119,12 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<Value> {
                 node.submit_block_bytes(&bytes)?;
                 hashes.push(Value::String(node.best_hash_hex().to_string()));
             }
-            if n == 1 {
-                Ok(hashes.pop().unwrap())
+            let val = if n == 1 {
+                hashes.pop().unwrap()
             } else {
-                Ok(Value::Array(hashes))
-            }
+                Value::Array(hashes)
+            };
+            Ok((val, RpcAction::Continue))
         }
         "getutxo" => {
             let txid_hex = params
@@ -117,15 +141,17 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<Value> {
                 return Err(anyhow!("invalid txid length"));
             }
             txid.copy_from_slice(&txid_bytes);
-            if let Some(p) = node.utxo_get(&txid, vout) {
-                Ok(serde_json::json!({
+            let res = if let Some(p) = node.utxo_get(&txid, vout) {
+                serde_json::json!({
                     "value": p.value,
                     "script_pubkey_hex": hex::encode(p.script_pubkey),
-                }))
+                })
             } else {
-                Ok(Value::Null)
-            }
+                Value::Null
+            };
+            Ok((res, RpcAction::Continue))
         }
+        "stop" | "shutdown" => Ok((Value::String("stopping".to_string()), RpcAction::Stop)),
         _ => Err(anyhow!("method not found")),
     }
 }

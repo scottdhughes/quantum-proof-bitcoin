@@ -61,6 +61,9 @@ Multi-peer example: `... --p2p-connect 127.0.0.1:18444 --p2p-connect 127.0.0.1:1
 Run mining example:
 `curl -s -X POST http://127.0.0.1:38332/rpc -d '{"jsonrpc":"2.0","id":1,"method":"generatenextblock","params":[]}'`
 
+Stop example:
+`curl -s -X POST http://127.0.0.1:38332/rpc -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"stop","params":[]}'`
+
 ## Deferred Route B (Bitcoin Core fork)
 - Consider after testnet stabilization to achieve protocol parity and broader ecosystem tooling.
 - Would reuse the stabilized consensus rules, chainparams, and vectors from this repo.

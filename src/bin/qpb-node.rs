@@ -10,7 +10,7 @@ use qpb_consensus::node::chainparams::{
 };
 use qpb_consensus::node::node::Node;
 use qpb_consensus::node::p2p::{SyncOpts, sync_with_retries};
-use qpb_consensus::node::rpc::handle_rpc;
+use qpb_consensus::node::rpc::{RpcAction, handle_rpc_action};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -115,13 +115,16 @@ fn start_rpc_server(addr: String, node: Node) -> Result<()> {
                 .respond(Response::from_string(format!("read error: {}", e)).with_status_code(400));
             continue;
         }
-        let resp_body = {
+        let (resp_body, action) = {
             let mut node = shared.lock().unwrap();
-            handle_rpc(&mut node, &body)
+            handle_rpc_action(&mut node, &body)
         };
         let response = Response::from_string(resp_body)
             .with_header(Header::from_bytes("Content-Type", "application/json").unwrap());
         let _ = request.respond(response);
+        if matches!(action, RpcAction::Stop) {
+            break;
+        }
     }
     Ok(())
 }
