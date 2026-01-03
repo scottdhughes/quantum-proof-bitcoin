@@ -14,6 +14,7 @@ pub mod pow;
 pub mod pq;
 pub mod reward;
 pub mod script;
+pub mod shrincs;
 pub mod shrincs_proto;
 pub mod sighash;
 pub mod types;
