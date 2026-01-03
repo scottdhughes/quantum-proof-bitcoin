@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::node::chainparams::{load_chainparams, select_network};
-use crate::node::miner::mine_block_bytes;
-use crate::node::node::Node;
+use crate::node::miner::{mine_block_bytes, mine_block_bytes_with_mempool};
+use crate::node::node::{Node, parse_transaction};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RpcAction {
@@ -126,6 +126,28 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             };
             Ok((val, RpcAction::Continue))
         }
+        "generateblock" => {
+            // Generate block including mempool transactions
+            let n = params
+                .first()
+                .and_then(|v| v.as_u64())
+                .unwrap_or(1)
+                .clamp(1, 10) as usize;
+            let cp = load_chainparams(std::path::Path::new("docs/chain/chainparams.json"))?;
+            let net = select_network(&cp, &node.chain)?;
+            let mut hashes = Vec::with_capacity(n);
+            for _ in 0..n {
+                let bytes = mine_block_bytes_with_mempool(node, net, node.no_pow(), true)?;
+                node.submit_block_bytes(&bytes)?;
+                hashes.push(Value::String(node.best_hash_hex().to_string()));
+            }
+            let val = if n == 1 {
+                hashes.pop().unwrap()
+            } else {
+                Value::Array(hashes)
+            };
+            Ok((val, RpcAction::Continue))
+        }
         "getutxo" => {
             let txid_hex = params
                 .first()
@@ -152,6 +174,37 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             Ok((res, RpcAction::Continue))
         }
         "stop" | "shutdown" => Ok((Value::String("stopping".to_string()), RpcAction::Stop)),
+        "sendrawtransaction" => {
+            let hex = params
+                .first()
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing transaction hex"))?;
+            let bytes = hex::decode(hex).map_err(|_| anyhow!("invalid transaction hex"))?;
+            let tx = parse_transaction(&bytes)?;
+            let txid = node.add_to_mempool(tx)?;
+            Ok((Value::String(hex::encode(txid)), RpcAction::Continue))
+        }
+        "getmempoolinfo" => {
+            let info = node.mempool_info();
+            Ok((
+                serde_json::json!({
+                    "size": info.size,
+                    "bytes": info.bytes,
+                    "total_fee": info.total_fee,
+                }),
+                RpcAction::Continue,
+            ))
+        }
+        "getrawmempool" => {
+            let info = node.mempool_info();
+            // For now, return just the count. Full txid list would need Mempool iteration.
+            Ok((
+                serde_json::json!({
+                    "count": info.size,
+                }),
+                RpcAction::Continue,
+            ))
+        }
         _ => Err(anyhow!("method not found")),
     }
 }

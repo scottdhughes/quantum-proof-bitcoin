@@ -1,5 +1,6 @@
 pub mod blockstore;
 pub mod chainparams;
+pub mod mempool;
 pub mod miner;
 #[allow(clippy::module_inception)]
 pub mod node;

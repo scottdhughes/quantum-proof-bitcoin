@@ -2,7 +2,7 @@ use crate::hashing::hash256;
 use crate::varint::{ser_bytes, write_compact_size};
 
 /// Outpoint (txid, vout).
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct OutPoint {
     pub txid: [u8; 32],
     pub vout: u32,

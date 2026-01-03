@@ -8,6 +8,7 @@ use crate::node::blockstore;
 use crate::node::chainparams::{
     compute_chain_id, compute_genesis_hash, load_chainparams, select_network, to_block_header,
 };
+use crate::node::mempool::{Mempool, MempoolInfo};
 use crate::node::store::{Store, write_state};
 use crate::node::utxo::UtxoSet;
 use crate::pow::pow_hash;
@@ -21,6 +22,7 @@ pub struct Node {
     pub datadir: PathBuf,
     pub store: Store,
     utxo: UtxoSet,
+    mempool: Mempool,
     #[allow(dead_code)]
     params_path: PathBuf,
     no_pow: bool,
@@ -70,6 +72,7 @@ impl Node {
             datadir: datadir.to_path_buf(),
             store,
             utxo,
+            mempool: Mempool::new(),
             params_path,
             no_pow,
         })
@@ -99,6 +102,58 @@ impl Node {
 
     pub fn no_pow(&self) -> bool {
         self.no_pow
+    }
+
+    /// Add a transaction to the mempool.
+    pub fn add_to_mempool(&mut self, tx: Transaction) -> Result<[u8; 32]> {
+        // Gather prevouts for the transaction
+        let mut prevouts = Vec::with_capacity(tx.vin.len());
+        for vin in &tx.vin {
+            // First check mempool for unconfirmed parents
+            if let Some(parent_entry) = self.mempool.get(&vin.prevout.txid) {
+                let vout_idx = vin.prevout.vout as usize;
+                if vout_idx >= parent_entry.tx.vout.len() {
+                    anyhow::bail!("invalid prevout index");
+                }
+                let txout = &parent_entry.tx.vout[vout_idx];
+                prevouts.push(Prevout {
+                    value: txout.value,
+                    script_pubkey: txout.script_pubkey.clone(),
+                });
+            } else if let Some(prev) = self.utxo.get(&vin.prevout.txid, vin.prevout.vout) {
+                prevouts.push(prev);
+            } else {
+                anyhow::bail!(
+                    "missing prevout: {}:{}",
+                    hex::encode(vin.prevout.txid),
+                    vin.prevout.vout
+                );
+            }
+        }
+
+        // Use a closure that captures our UTXO set for any additional lookups
+        let utxo_ref = &self.utxo;
+        self.mempool
+            .add_transaction(tx, prevouts, |txid, vout| utxo_ref.get(txid, vout))
+    }
+
+    /// Get mempool info.
+    pub fn mempool_info(&self) -> MempoolInfo {
+        self.mempool.get_info()
+    }
+
+    /// Get a transaction from the mempool.
+    pub fn mempool_get(&self, txid: &[u8; 32]) -> Option<&Transaction> {
+        self.mempool.get(txid).map(|e| &e.tx)
+    }
+
+    /// Select transactions from mempool for block building.
+    pub fn mempool_select_for_block(&self, max_weight: u32) -> Vec<Transaction> {
+        self.mempool
+            .select_for_block(max_weight)
+            .into_iter()
+            .map(|e| e.tx.clone())
+            .collect()
     }
 
     pub fn submit_block_bytes(&mut self, bytes: &[u8]) -> Result<()> {
@@ -157,6 +212,10 @@ impl Node {
         self.store.state.tip_hash_hex = block_hash_hex.clone();
         self.store.index.hashes.push(block_hash_hex);
         write_state(&self.store.datadir, &self.store.state, &self.store.index)?;
+
+        // Remove confirmed transactions from mempool
+        let confirmed_txids: Vec<[u8; 32]> = block.txdata.iter().map(|tx| tx.txid()).collect();
+        self.mempool.remove_confirmed(&confirmed_txids);
 
         Ok(())
     }
@@ -231,7 +290,8 @@ fn parse_block(bytes: &[u8]) -> Result<Block> {
     })
 }
 
-fn parse_transaction(bytes: &[u8]) -> Result<Transaction> {
+/// Parse a raw transaction from bytes.
+pub fn parse_transaction(bytes: &[u8]) -> Result<Transaction> {
     let mut cur = Cursor::new(bytes.to_vec());
     parse_transaction_cursor(&mut cur)
 }
