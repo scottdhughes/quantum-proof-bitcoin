@@ -96,11 +96,11 @@ pub const LEVEL3: ShrincsParams = ShrincsParams {
     security_level: 3,
     n: 24,
     w: 256,
-    wots_chains: 24, // 192/8 = 24
+    wots_chains: 24,     // 192/8 = 24
     wots_sig_bytes: 576, // 24 chains × 24 bytes
-    wots_overhead: 36, // 32-byte randomness + 4-byte counter
+    wots_overhead: 36,   // 32-byte randomness + 4-byte counter
     auth_node_bytes: 24, // One hash per depth level
-    pk_bytes: 64, // 32B XMSS root + 32B SPHINCS+ hash
+    pk_bytes: 64,        // 32B XMSS root + 32B SPHINCS+ hash
     sig_base_bytes: 636, // 576 + 36 + 24 (first auth node)
     hash: HashFunction::Sha256,
     alg_id: 0x30,
@@ -122,11 +122,11 @@ pub const LEVEL1: ShrincsParams = ShrincsParams {
     security_level: 1,
     n: 16,
     w: 256,
-    wots_chains: 16, // 128/8 = 16
+    wots_chains: 16,     // 128/8 = 16
     wots_sig_bytes: 256, // 16 chains × 16 bytes
-    wots_overhead: 36, // 32-byte randomness + 4-byte counter
+    wots_overhead: 36,   // 32-byte randomness + 4-byte counter
     auth_node_bytes: 16, // One hash per depth level
-    pk_bytes: 64, // 32B XMSS root + 32B SPHINCS+ hash
+    pk_bytes: 64,        // 32B XMSS root + 32B SPHINCS+ hash
     sig_base_bytes: 308, // 256 + 36 + 16 (first auth node)
     hash: HashFunction::Sha256,
     alg_id: 0x30,

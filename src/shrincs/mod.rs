@@ -40,6 +40,6 @@ pub mod types;
 // Re-exports for convenient access
 pub use api::{ShrincsSign, ShrincsVerify};
 pub use error::ShrincsError;
-pub use params::{ShrincsParams, LEVEL3};
+pub use params::{LEVEL3, ShrincsParams};
 pub use state::{SigningState, StateManager};
 pub use types::{ShrincsPublicKey, ShrincsSecretKey, ShrincsSignature};
