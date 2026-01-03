@@ -9,6 +9,24 @@ Hash-first, post-quantum Bitcoin-derived consensus prototype. **Consensus-active
 cargo test --all-features
 ```
 
+## SHRINCS Roadmap
+
+SHRINCS (alg_id 0x30) is a hybrid stateful + stateless PQ signature scheme by Jonas Nick. **Target: NIST Level 3 (192-bit), ~636 byte signatures.**
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| 1. Preparation | **In Progress** | Module structure, types, API traits |
+| 2. Interface | Pending | State management, serialization |
+| 3. Monitoring | Pending | Track upstream reference implementation |
+| 4. Integration | Blocked | Port reference impl when available |
+| 5. Activation | Future | Hard fork + security audit |
+
+**Strategy**: Wait for Jonas Nick's reference implementation rather than building crypto from scratch.
+
+**Resources**:
+- [SHRINCS Delving Bitcoin](https://delvingbitcoin.org/t/shrincs-324-byte-stateful-post-quantum-signatures-with-static-backups/2158)
+- [Full spec: docs/crypto/SHRINCS.md](docs/crypto/SHRINCS.md)
+
 ## SHRINCS dev stub (optional; consensus rejects it)
 For research only, you can build the SHRINCS stub and opt in with `--features shrincs-dev,shrincs-ffi`. Consensus still rejects alg_id 0x30.
 ```bash
