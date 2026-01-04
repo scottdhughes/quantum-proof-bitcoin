@@ -47,6 +47,8 @@ pub const P2QPKH_VERSION: u8 = 0x03; // OP_3 PUSH32
 pub const SCRIPT_LEAF_VERSION_V0: u8 = 0x00;
 
 // ---- Opcodes ----
+pub const OP_CHECKLOCKTIMEVERIFY: u8 = 0xb1; // BIP65
+pub const OP_CHECKSEQUENCEVERIFY: u8 = 0xb2; // BIP112
 pub const OP_CTV: u8 = 0xb5;
 pub const OP_CHECKPQSIG: u8 = 0xba;
 

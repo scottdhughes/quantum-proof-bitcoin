@@ -1,6 +1,8 @@
 use crate::constants::{
-    MAX_SCRIPT_OPS, MAX_SCRIPT_SIZE, MAX_STACK_ITEMS, MAX_WITNESS_ITEM_BYTES, OP_CHECKPQSIG,
-    OP_CTV, P2QPKH_VERSION, P2QTSH_VERSION,
+    BIP68_MIN_VERSION, LOCKTIME_THRESHOLD, MAX_SCRIPT_OPS, MAX_SCRIPT_SIZE, MAX_STACK_ITEMS,
+    MAX_WITNESS_ITEM_BYTES, OP_CHECKLOCKTIMEVERIFY, OP_CHECKPQSIG, OP_CHECKSEQUENCEVERIFY, OP_CTV,
+    P2QPKH_VERSION, P2QTSH_VERSION, SEQUENCE_FINAL, SEQUENCE_LOCKTIME_DISABLE_FLAG,
+    SEQUENCE_LOCKTIME_MASK, SEQUENCE_LOCKTIME_TYPE_FLAG,
 };
 use crate::errors::ConsensusError;
 use crate::hashing::{hash256, tagged_hash};
@@ -90,6 +92,43 @@ pub fn qtap_reconstruct_root(leaf_hash: [u8; 32], merkle_path: &[[u8; 32]]) -> [
         h = qtap_branch_hash(&h, node);
     }
     h
+}
+
+// ---------- Script number helpers ----------
+
+/// Decode a script number (little-endian with sign bit in MSB of last byte).
+/// Returns None if the number doesn't fit in i64 or is malformed.
+/// Empty array is 0. Maximum 5 bytes to fit in i64 with sign.
+fn decode_script_num(data: &[u8]) -> Option<i64> {
+    if data.is_empty() {
+        return Some(0);
+    }
+    // Bitcoin limits script numbers to 4 bytes for most operations,
+    // but for CLTV/CSV we allow 5 bytes to handle full u32 range with sign.
+    if data.len() > 5 {
+        return None;
+    }
+    // Check for non-minimal encoding (leading zeros that aren't needed for sign)
+    if data.len() > 1 && data[data.len() - 1] == 0 && (data[data.len() - 2] & 0x80) == 0 {
+        return None; // Non-minimal
+    }
+    if data.len() > 1 && data[data.len() - 1] == 0x80 && (data[data.len() - 2] & 0x80) == 0 {
+        return None; // Non-minimal negative zero
+    }
+
+    let mut result: i64 = 0;
+    for (i, &byte) in data.iter().enumerate() {
+        result |= (byte as i64) << (8 * i);
+    }
+
+    // Check sign bit
+    if data[data.len() - 1] & 0x80 != 0 {
+        // Negative: clear the sign bit and negate
+        result &= !(0x80i64 << (8 * (data.len() - 1)));
+        result = -result;
+    }
+
+    Some(result)
 }
 
 // ---------- QScript v0 executor ----------
@@ -353,6 +392,89 @@ pub fn execute_qscript(script: &[u8], ctx: &mut QScriptCtx) -> Result<(), Consen
                 } else {
                     stack.push(vec![0]);
                 }
+            }
+            OP_CHECKLOCKTIMEVERIFY => {
+                // BIP65: OP_CHECKLOCKTIMEVERIFY (CLTV)
+                // Verifies that the transaction's nLockTime is >= the stack value.
+                // Does NOT pop the stack - leaves value for subsequent operations.
+                let top = stack.last().ok_or(ConsensusError::ScriptFailed)?;
+                let lock_value = decode_script_num(top).ok_or(ConsensusError::ScriptFailed)?;
+
+                // Negative values are invalid
+                if lock_value < 0 {
+                    return Err(ConsensusError::ScriptFailed);
+                }
+                let lock_value = lock_value as u64;
+
+                let tx_locktime = ctx.tx.lock_time as u64;
+
+                // Type must match: both must be time-based or both block-based
+                // Time-based: >= LOCKTIME_THRESHOLD (500_000_000)
+                let lock_is_time = lock_value >= LOCKTIME_THRESHOLD as u64;
+                let tx_is_time = tx_locktime >= LOCKTIME_THRESHOLD as u64;
+                if lock_is_time != tx_is_time {
+                    return Err(ConsensusError::ScriptFailed);
+                }
+
+                // Lock value must be <= tx locktime
+                if lock_value > tx_locktime {
+                    return Err(ConsensusError::ScriptFailed);
+                }
+
+                // Input must not be final (sequence != 0xffffffff)
+                // If input is final, locktime is ignored, so CLTV must fail
+                let input_seq = ctx.tx.vin[ctx.input_index].sequence;
+                if input_seq == SEQUENCE_FINAL {
+                    return Err(ConsensusError::ScriptFailed);
+                }
+
+                // Success - leave stack unchanged (NOP-like)
+            }
+            OP_CHECKSEQUENCEVERIFY => {
+                // BIP112: OP_CHECKSEQUENCEVERIFY (CSV)
+                // Verifies relative locktime based on input's nSequence.
+                // Does NOT pop the stack - leaves value for subsequent operations.
+                let top = stack.last().ok_or(ConsensusError::ScriptFailed)?;
+                let lock_value = decode_script_num(top).ok_or(ConsensusError::ScriptFailed)?;
+
+                // Negative values are invalid
+                if lock_value < 0 {
+                    return Err(ConsensusError::ScriptFailed);
+                }
+                let lock_value = lock_value as u32;
+
+                // If disable flag is set in the script value, treat as NOP (success)
+                if lock_value & SEQUENCE_LOCKTIME_DISABLE_FLAG != 0 {
+                    continue;
+                }
+
+                // Transaction version must be >= 2 for CSV enforcement
+                if ctx.tx.version < BIP68_MIN_VERSION {
+                    return Err(ConsensusError::ScriptFailed);
+                }
+
+                let input_seq = ctx.tx.vin[ctx.input_index].sequence;
+
+                // If input's disable flag is set, CSV fails (input opts out of relative lock)
+                if input_seq & SEQUENCE_LOCKTIME_DISABLE_FLAG != 0 {
+                    return Err(ConsensusError::ScriptFailed);
+                }
+
+                // Type flags must match (both time-based or both block-based)
+                let lock_is_time = lock_value & SEQUENCE_LOCKTIME_TYPE_FLAG != 0;
+                let seq_is_time = input_seq & SEQUENCE_LOCKTIME_TYPE_FLAG != 0;
+                if lock_is_time != seq_is_time {
+                    return Err(ConsensusError::ScriptFailed);
+                }
+
+                // Compare the masked values
+                let lock_masked = lock_value & SEQUENCE_LOCKTIME_MASK;
+                let seq_masked = input_seq & SEQUENCE_LOCKTIME_MASK;
+                if lock_masked > seq_masked {
+                    return Err(ConsensusError::ScriptFailed);
+                }
+
+                // Success - leave stack unchanged (NOP-like)
             }
             0x6a => {
                 // OP_RETURN
