@@ -180,6 +180,16 @@ impl Node {
         self.mempool.get(txid).map(|e| &e.tx)
     }
 
+    /// Check if a transaction is in the mempool.
+    pub fn mempool_contains(&self, txid: &[u8; 32]) -> bool {
+        self.mempool.contains(txid)
+    }
+
+    /// Get all txids in the mempool.
+    pub fn mempool_txids(&self) -> Vec<[u8; 32]> {
+        self.mempool.all_txids()
+    }
+
     /// Select transactions from mempool for block building.
     pub fn mempool_select_for_block(&self, max_weight: u32) -> Vec<Transaction> {
         self.mempool

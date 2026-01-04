@@ -472,6 +472,11 @@ impl Mempool {
             total_fee: fees,
         }
     }
+
+    /// Get all txids in the mempool.
+    pub fn all_txids(&self) -> Vec<[u8; 32]> {
+        self.txns.keys().copied().collect()
+    }
 }
 
 /// Mempool statistics for RPC.

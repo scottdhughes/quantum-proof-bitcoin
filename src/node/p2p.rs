@@ -22,6 +22,13 @@ pub const CMD_GETHEADERS: &str = "getheaders";
 pub const CMD_HEADERS: &str = "headers";
 pub const CMD_GETDATA: &str = "getdata";
 pub const CMD_BLOCK: &str = "block";
+pub const CMD_INV: &str = "inv";
+pub const CMD_TX: &str = "tx";
+
+/// Inventory type for transactions.
+pub const MSG_TX: u32 = 1;
+/// Inventory type for blocks.
+pub const MSG_BLOCK: u32 = 2;
 
 pub const DEFAULT_READ_TIMEOUT_MS: u64 = 2000;
 pub const DEFAULT_WRITE_TIMEOUT_MS: u64 = 2000;
@@ -206,11 +213,64 @@ fn parse_header_bytes(hbuf: &[u8; 80]) -> Result<BlockHeader> {
 pub fn ser_getdata_block(hash: [u8; 32]) -> Vec<u8> {
     let mut p = Vec::new();
     write_compact_size(1, &mut p);
-    p.extend_from_slice(&2u32.to_le_bytes()); // MSG_BLOCK
+    p.extend_from_slice(&MSG_BLOCK.to_le_bytes());
     let mut le = hash;
     le.reverse();
     p.extend_from_slice(&le);
     p
+}
+
+/// Serialize an INV message for transaction announcements.
+pub fn ser_inv_tx(txids: &[[u8; 32]]) -> Vec<u8> {
+    let mut p = Vec::new();
+    write_compact_size(txids.len() as u64, &mut p);
+    for txid in txids {
+        p.extend_from_slice(&MSG_TX.to_le_bytes());
+        let mut le = *txid;
+        le.reverse();
+        p.extend_from_slice(&le);
+    }
+    p
+}
+
+/// Serialize a GETDATA message for transactions.
+pub fn ser_getdata_tx(txids: &[[u8; 32]]) -> Vec<u8> {
+    let mut p = Vec::new();
+    write_compact_size(txids.len() as u64, &mut p);
+    for txid in txids {
+        p.extend_from_slice(&MSG_TX.to_le_bytes());
+        let mut le = *txid;
+        le.reverse();
+        p.extend_from_slice(&le);
+    }
+    p
+}
+
+/// Inventory entry parsed from INV or GETDATA message.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct InvEntry {
+    pub inv_type: u32,
+    pub hash: [u8; 32],
+}
+
+/// Parse INV or GETDATA payload into inventory entries.
+pub fn parse_inv(payload: &[u8]) -> Result<Vec<InvEntry>> {
+    let mut cur = std::io::Cursor::new(payload.to_vec());
+    let count = read_compact_size(&mut cur)? as usize;
+    let mut entries = Vec::with_capacity(count);
+    for _ in 0..count {
+        let mut type_buf = [0u8; 4];
+        cur.read_exact(&mut type_buf)?;
+        let inv_type = u32::from_le_bytes(type_buf);
+
+        let mut hash_le = [0u8; 32];
+        cur.read_exact(&mut hash_le)?;
+        let mut hash = [0u8; 32];
+        hash.copy_from_slice(&hash_le.iter().rev().cloned().collect::<Vec<_>>());
+
+        entries.push(InvEntry { inv_type, hash });
+    }
+    Ok(entries)
 }
 
 pub fn write_headers_payload(buf: &mut Vec<u8>, headers: &[BlockHeader]) {
@@ -311,4 +371,263 @@ pub fn sync_with_retries(
         }
     }
     Err(anyhow!("p2p sync failed for all peers"))
+}
+
+// ============================================================================
+// Transaction Relay
+// ============================================================================
+
+use crate::types::Transaction;
+use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
+
+/// A connected peer for transaction relay.
+pub struct PeerConnection {
+    stream: TcpStream,
+    magic: [u8; 4],
+    /// Txids we've already sent to this peer (avoid duplicates).
+    sent_txids: HashSet<[u8; 32]>,
+    /// Txids we've received INV for but not yet requested.
+    #[allow(dead_code)]
+    pending_inv: HashSet<[u8; 32]>,
+}
+
+impl PeerConnection {
+    /// Connect to a peer and complete handshake.
+    pub fn connect(addr: &str, magic: [u8; 4], height: i32) -> Result<Self> {
+        let mut stream = TcpStream::connect(addr)?;
+        stream.set_read_timeout(Some(Duration::from_millis(DEFAULT_READ_TIMEOUT_MS)))?;
+        stream.set_write_timeout(Some(Duration::from_millis(DEFAULT_WRITE_TIMEOUT_MS)))?;
+
+        // Handshake
+        let version_payload = ser_version(height);
+        write_message(&mut stream, magic, CMD_VERSION, &version_payload)?;
+        let msg = read_message(&mut stream, magic)?;
+        if msg.command != CMD_VERSION {
+            return Err(anyhow!("expected version"));
+        }
+        write_message(&mut stream, magic, CMD_VERACK, &[])?;
+        let _ = read_message(&mut stream, magic)?; // peer verack
+
+        Ok(Self {
+            stream,
+            magic,
+            sent_txids: HashSet::new(),
+            pending_inv: HashSet::new(),
+        })
+    }
+
+    /// Announce a transaction via INV message.
+    pub fn announce_tx(&mut self, txid: [u8; 32]) -> Result<()> {
+        if self.sent_txids.contains(&txid) {
+            return Ok(()); // Already announced
+        }
+        let payload = ser_inv_tx(&[txid]);
+        write_message(&mut self.stream, self.magic, CMD_INV, &payload)?;
+        self.sent_txids.insert(txid);
+        Ok(())
+    }
+
+    /// Send a raw transaction.
+    pub fn send_tx(&mut self, tx: &Transaction) -> Result<()> {
+        let payload = tx.serialize(true);
+        write_message(&mut self.stream, self.magic, CMD_TX, &payload)?;
+        Ok(())
+    }
+
+    /// Request transactions by txid.
+    pub fn request_txs(&mut self, txids: &[[u8; 32]]) -> Result<()> {
+        if txids.is_empty() {
+            return Ok(());
+        }
+        let payload = ser_getdata_tx(txids);
+        write_message(&mut self.stream, self.magic, CMD_GETDATA, &payload)?;
+        Ok(())
+    }
+
+    /// Read and handle one message. Returns parsed transaction if TX received.
+    pub fn recv_message(&mut self) -> Result<Option<PeerMessage>> {
+        let msg = read_message(&mut self.stream, self.magic)?;
+        match msg.command.as_str() {
+            CMD_INV => {
+                let entries = parse_inv(&msg.payload)?;
+                let txids: Vec<[u8; 32]> = entries
+                    .into_iter()
+                    .filter(|e| e.inv_type == MSG_TX)
+                    .map(|e| e.hash)
+                    .collect();
+                Ok(Some(PeerMessage::Inv { txids }))
+            }
+            CMD_TX => {
+                // Parse raw transaction
+                let tx = parse_transaction(&msg.payload)?;
+                Ok(Some(PeerMessage::Tx(tx)))
+            }
+            CMD_GETDATA => {
+                let entries = parse_inv(&msg.payload)?;
+                let txids: Vec<[u8; 32]> = entries
+                    .into_iter()
+                    .filter(|e| e.inv_type == MSG_TX)
+                    .map(|e| e.hash)
+                    .collect();
+                Ok(Some(PeerMessage::GetData { txids }))
+            }
+            _ => Ok(None), // Ignore other messages
+        }
+    }
+}
+
+/// Messages relevant to transaction relay.
+#[derive(Debug)]
+pub enum PeerMessage {
+    /// Received INV with transaction hashes.
+    Inv { txids: Vec<[u8; 32]> },
+    /// Received a transaction.
+    Tx(Transaction),
+    /// Peer requesting transactions.
+    GetData { txids: Vec<[u8; 32]> },
+}
+
+/// Parse a raw transaction from bytes.
+fn parse_transaction(bytes: &[u8]) -> Result<Transaction> {
+    use std::io::Cursor;
+
+    let mut cur = Cursor::new(bytes.to_vec());
+    let mut vbuf = [0u8; 4];
+    cur.read_exact(&mut vbuf)?;
+    let version = i32::from_le_bytes(vbuf);
+
+    // SegWit detection
+    let mut marker = [0u8; 1];
+    cur.read_exact(&mut marker)?;
+    let mut segwit = false;
+    if marker[0] == 0x00 {
+        let mut flag = [0u8; 1];
+        cur.read_exact(&mut flag)?;
+        if flag[0] == 0x01 {
+            segwit = true;
+        } else {
+            cur.set_position(cur.position() - 2);
+        }
+    } else {
+        cur.set_position(cur.position() - 1);
+    }
+
+    use crate::types::{OutPoint, TxIn, TxOut};
+
+    let vin_len = read_compact_size(&mut cur)? as usize;
+    let mut vin = Vec::with_capacity(vin_len);
+    for _ in 0..vin_len {
+        let mut txid_le = [0u8; 32];
+        cur.read_exact(&mut txid_le)?;
+        let mut txid = [0u8; 32];
+        txid.copy_from_slice(&txid_le.iter().rev().cloned().collect::<Vec<_>>());
+        let mut voutb = [0u8; 4];
+        cur.read_exact(&mut voutb)?;
+        let vout = u32::from_le_bytes(voutb);
+        let script_len = read_compact_size(&mut cur)? as usize;
+        let mut script_sig = vec![0u8; script_len];
+        cur.read_exact(&mut script_sig)?;
+        cur.read_exact(&mut voutb)?;
+        let sequence = u32::from_le_bytes(voutb);
+        vin.push(TxIn {
+            prevout: OutPoint { txid, vout },
+            script_sig,
+            sequence,
+            witness: Vec::new(),
+        });
+    }
+
+    let vout_len = read_compact_size(&mut cur)? as usize;
+    let mut vout_vec = Vec::with_capacity(vout_len);
+    for _ in 0..vout_len {
+        let mut valb = [0u8; 8];
+        cur.read_exact(&mut valb)?;
+        let value = u64::from_le_bytes(valb);
+        let spk_len = read_compact_size(&mut cur)? as usize;
+        let mut script_pubkey = vec![0u8; spk_len];
+        cur.read_exact(&mut script_pubkey)?;
+        vout_vec.push(TxOut {
+            value,
+            script_pubkey,
+        });
+    }
+
+    if segwit {
+        for txin in vin.iter_mut() {
+            let items = read_compact_size(&mut cur)? as usize;
+            let mut stack = Vec::with_capacity(items);
+            for _ in 0..items {
+                let len = read_compact_size(&mut cur)? as usize;
+                let mut item = vec![0u8; len];
+                cur.read_exact(&mut item)?;
+                stack.push(item);
+            }
+            txin.witness = stack;
+        }
+    }
+
+    let mut ltb = [0u8; 4];
+    cur.read_exact(&mut ltb)?;
+    let lock_time = u32::from_le_bytes(ltb);
+
+    Ok(Transaction {
+        version,
+        vin,
+        vout: vout_vec,
+        lock_time,
+    })
+}
+
+/// Manager for multiple peer connections with shared state.
+pub struct RelayManager {
+    peers: Vec<Arc<Mutex<PeerConnection>>>,
+    /// Txids we know about (either in mempool or already relayed).
+    known_txids: HashSet<[u8; 32]>,
+}
+
+impl RelayManager {
+    /// Create a new relay manager.
+    pub fn new() -> Self {
+        Self {
+            peers: Vec::new(),
+            known_txids: HashSet::new(),
+        }
+    }
+
+    /// Add a connected peer.
+    pub fn add_peer(&mut self, peer: PeerConnection) {
+        self.peers.push(Arc::new(Mutex::new(peer)));
+    }
+
+    /// Broadcast a transaction to all connected peers.
+    pub fn broadcast_tx(&mut self, txid: [u8; 32]) {
+        self.known_txids.insert(txid);
+        for peer in &self.peers {
+            if let Ok(mut p) = peer.lock() {
+                let _ = p.announce_tx(txid);
+            }
+        }
+    }
+
+    /// Check if we know about a transaction.
+    pub fn knows_tx(&self, txid: &[u8; 32]) -> bool {
+        self.known_txids.contains(txid)
+    }
+
+    /// Mark a transaction as known.
+    pub fn mark_known(&mut self, txid: [u8; 32]) {
+        self.known_txids.insert(txid);
+    }
+
+    /// Number of connected peers.
+    pub fn peer_count(&self) -> usize {
+        self.peers.len()
+    }
+}
+
+impl Default for RelayManager {
+    fn default() -> Self {
+        Self::new()
+    }
 }
