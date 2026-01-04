@@ -353,5 +353,6 @@ fn block_validation_without_pow_check() {
         vec![Prevout::regular(1_0000, spk)],
     ];
 
-    validate_block_basic(&block, &prevouts, 4_000_000, 4_000_000, false, 1).unwrap();
+    // MTP=0 since all transactions are final (lock_time=0, sequence=0xffffffff)
+    validate_block_basic(&block, &prevouts, 4_000_000, 4_000_000, false, 1, 0).unwrap();
 }

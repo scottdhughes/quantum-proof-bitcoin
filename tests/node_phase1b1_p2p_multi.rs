@@ -67,7 +67,7 @@ fn start_bad_peer(magic: [u8; 4]) -> String {
         let mut header = Vec::new();
         header.extend_from_slice(&magic);
         header.extend_from_slice(b"junk\0\0\0\0\0\0\0\0");
-        header.extend_from_slice(&((MAX_MESSAGE_BYTES + 1) as u32).to_le_bytes());
+        header.extend_from_slice(&(MAX_MESSAGE_BYTES + 1).to_le_bytes());
         header.extend_from_slice(&[0u8; 4]);
         header.extend_from_slice(&payload[..16]); // send partial to exercise read logic
         let _ = stream.write_all(&header);

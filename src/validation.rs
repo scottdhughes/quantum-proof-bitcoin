@@ -1,6 +1,6 @@
 use crate::constants::{
-    MAX_CONTROL_BLOCK_DEPTH, MAX_PQSIGCHECK_BUDGET, MAX_PQSIGCHECK_PER_TX, MAX_SCRIPT_SIZE,
-    MAX_WITNESS_ITEM_BYTES, SCRIPT_LEAF_VERSION_V0,
+    LOCKTIME_THRESHOLD, MAX_CONTROL_BLOCK_DEPTH, MAX_PQSIGCHECK_BUDGET, MAX_PQSIGCHECK_PER_TX,
+    MAX_SCRIPT_SIZE, MAX_WITNESS_ITEM_BYTES, SCRIPT_LEAF_VERSION_V0, SEQUENCE_FINAL,
 };
 use crate::errors::ConsensusError;
 use crate::pow::validate_pow;
@@ -12,6 +12,78 @@ use crate::script::{
 use crate::sighash::qpb_sighash;
 use crate::types::{Block, Prevout, Transaction};
 use crate::weight::{block_weight_wu, effective_median, max_allowed_weight, penalty};
+
+// ============================================================================
+// Locktime validation (BIP68/BIP113)
+// ============================================================================
+
+/// Check if a transaction is "final" - meaning its locktime should be ignored.
+/// A transaction is final if ALL inputs have sequence = 0xffffffff.
+pub fn is_tx_final_by_sequence(tx: &Transaction) -> bool {
+    tx.vin.iter().all(|input| input.sequence == SEQUENCE_FINAL)
+}
+
+/// Compute Median Time Past (MTP) from a list of block timestamps.
+/// BIP113 defines MTP as the median of the last 11 block timestamps.
+/// Returns 0 if the list is empty.
+pub fn compute_mtp(timestamps: &[u32]) -> u32 {
+    if timestamps.is_empty() {
+        return 0;
+    }
+    let mut sorted: Vec<u32> = timestamps.to_vec();
+    sorted.sort();
+    sorted[sorted.len() / 2]
+}
+
+/// Check if a transaction's locktime is satisfied.
+///
+/// # Arguments
+/// * `tx` - The transaction to check
+/// * `block_height` - The height of the block containing this transaction
+/// * `block_time` - The MTP (Median Time Past) for time-based locktimes (BIP113)
+///
+/// # Returns
+/// * `Ok(())` if the locktime is satisfied
+/// * `Err(ConsensusError::LocktimeNotSatisfied)` if the locktime is not satisfied
+pub fn check_locktime(tx: &Transaction, block_height: u32, mtp: u32) -> Result<(), ConsensusError> {
+    // If all inputs are final, locktime is ignored
+    if is_tx_final_by_sequence(tx) {
+        return Ok(());
+    }
+
+    let locktime = tx.lock_time;
+
+    // locktime of 0 is always satisfied
+    if locktime == 0 {
+        return Ok(());
+    }
+
+    if locktime < LOCKTIME_THRESHOLD {
+        // Height-based locktime: tx is valid when block_height >= locktime
+        if block_height < locktime {
+            return Err(ConsensusError::LocktimeNotSatisfied);
+        }
+    } else {
+        // Time-based locktime: tx is valid when MTP >= locktime
+        if mtp < locktime {
+            return Err(ConsensusError::LocktimeNotSatisfied);
+        }
+    }
+
+    Ok(())
+}
+
+/// Check locktime for mempool acceptance.
+/// Uses next block height and current MTP.
+pub fn check_locktime_for_mempool(
+    tx: &Transaction,
+    current_height: u32,
+    current_mtp: u32,
+) -> Result<(), ConsensusError> {
+    // For mempool, we check against the *next* block height
+    let next_height = current_height.saturating_add(1);
+    check_locktime(tx, next_height, current_mtp)
+}
 
 /// Validate a single P2QPKH input; returns PQSigCheck cost units consumed.
 pub fn validate_p2qpkh_input(
@@ -289,7 +361,16 @@ pub fn validate_witness_commitment(block: &Block) -> Result<(), ConsensusError> 
     Ok(())
 }
 
-/// Validate block weight, PQSigCheck budget, and witness commitment.
+/// Validate block weight, PQSigCheck budget, locktimes, and witness commitment.
+///
+/// # Arguments
+/// * `block` - The block to validate
+/// * `prevouts_by_tx` - Prevouts for each transaction (empty vec for coinbase)
+/// * `stm` - Short-term median weight
+/// * `ltm` - Long-term median weight
+/// * `check_pow` - Whether to validate proof-of-work
+/// * `height` - Height of this block
+/// * `mtp` - Median Time Past for time-based locktime validation (BIP113)
 pub fn validate_block_basic(
     block: &Block,
     prevouts_by_tx: &[Vec<Prevout>],
@@ -297,6 +378,7 @@ pub fn validate_block_basic(
     ltm: u32,
     check_pow: bool,
     height: u32,
+    mtp: u32,
 ) -> Result<(), ConsensusError> {
     if block.txdata.len() != prevouts_by_tx.len() {
         return Err(ConsensusError::PrevoutsLengthMismatch);
@@ -314,7 +396,7 @@ pub fn validate_block_basic(
         validate_pow(&block.header)?;
     }
 
-    // PQSigCheck budget and fee tally
+    // PQSigCheck budget, fee tally, and locktime validation
     let mut fees: i128 = 0;
     let mut block_cost = 0u32;
     for (i, (tx, prevs)) in block.txdata.iter().zip(prevouts_by_tx.iter()).enumerate() {
@@ -322,6 +404,10 @@ pub fn validate_block_basic(
             // Coinbase tx input scripts are not validated here.
             continue;
         }
+
+        // Validate locktime for non-coinbase transactions
+        check_locktime(tx, height, mtp)?;
+
         let tx_cost = validate_transaction_basic(tx, prevs)?;
         block_cost = block_cost
             .checked_add(tx_cost)

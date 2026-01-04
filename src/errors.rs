@@ -36,4 +36,6 @@ pub enum ConsensusError {
     InvalidControlBlock,
     #[error("witness commitment missing or mismatch")]
     WitnessCommitmentMismatch,
+    #[error("transaction locktime not satisfied")]
+    LocktimeNotSatisfied,
 }

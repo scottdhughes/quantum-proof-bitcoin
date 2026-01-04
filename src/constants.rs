@@ -66,3 +66,17 @@ pub const TAIL_EMISSION: u64 = 10_000_000; // 0.1 QPB
 /// Coinbase outputs require this many confirmations before they can be spent.
 /// This prevents spending coins from blocks that might be orphaned.
 pub const COINBASE_MATURITY: u32 = 100;
+
+// ---- Locktime constants ----
+/// Threshold for interpreting nLockTime: below = block height, at or above = Unix timestamp.
+/// This value (500,000,000) corresponds to November 1985 as a timestamp, safely past
+/// any realistic block height but before any practical use of Bitcoin.
+pub const LOCKTIME_THRESHOLD: u32 = 500_000_000;
+
+/// When all inputs have this sequence number, the transaction is considered final
+/// and nLockTime is ignored.
+pub const SEQUENCE_FINAL: u32 = 0xffffffff;
+
+/// Number of blocks to use for Median Time Past (BIP113).
+/// MTP is the median timestamp of the last 11 blocks.
+pub const MTP_BLOCKS: usize = 11;
