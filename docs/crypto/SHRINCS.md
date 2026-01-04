@@ -11,21 +11,44 @@ SHRINCS is a **hybrid stateful + stateless** post-quantum signature scheme desig
 
 | Aspect | Status |
 |--------|--------|
-| **Consensus** | Reserved (alg_id 0x30), **inactive** at genesis |
-| **Implementation** | Awaiting reference implementation |
-| **Target Security** | NIST Level 3 (192-bit) |
-| **Activation** | Requires hard fork + security audit |
+| **Consensus** | Feature-gated (alg_id 0x30), active with `--features shrincs-dev` |
+| **Implementation** | Phase 1-4 complete (full consensus integration) |
+| **Target Security** | NIST Level 1 (128-bit) dev, Level 3 (192-bit) production |
+| **Activation** | Requires security audit + hard fork for mainnet |
 
-## Implementation Plan
+## Implementation Status
 
-### Strategy: Wait for Reference Implementation
+### Completed Phases
 
-Given the production-path goal, we are **not** implementing SHRINCS cryptography from scratch. Instead:
+| Phase | Components | Status |
+|-------|------------|--------|
+| **Phase 1** | WOTS+C (counter grinding), basic XMSS tree | ✅ Complete |
+| **Phase 2** | PORS+FP (octopus auth), XMSS^MT hypertree | ✅ Complete |
+| **Phase 3** | SPHINCS+-128s fallback, unified signature type | ✅ Complete |
+| **Phase 4** | Consensus integration, AlgorithmId 0x30 wiring | ✅ Complete |
+| **Phase 5** | Fallback witness format, state persistence | ✅ Complete |
 
-1. **Monitor** Jonas Nick's GitHub and Delving Bitcoin thread
-2. **Prepare** codebase architecture for integration
-3. **Port/Wrap** when reference implementation becomes available
-4. **Audit** before consensus activation
+### Phase 4 Details
+
+- `AlgorithmId::SHRINCS` variant (feature-gated)
+- `verify_shrincs()` dispatch in `verify_pq()`
+- `shrincs_keypair()` and `shrincs_sign()` wrapper functions
+- PQSigCheck cost: 2 units (vs ML-DSA-65's 1 unit)
+- P2QPKH integration test passing
+
+### Phase 5 Details
+
+- Extended pk format: `[alg_id(1) || base_pk(64) || sphincs_pk(32)]` = 97 bytes
+- Signature type prefix: 0x00 stateful, 0x01 fallback
+- P2QPKH validation handles variable pk length via `validation.rs`
+- `FileStateManager` with atomic writes and cross-platform file locking
+- `shrincs_keypair_with_fallback()` and `shrincs_sign_fallback()` wrappers
+
+### Remaining Work (Phase 6)
+
+1. **Security audit** before activation height
+2. **Hard fork activation parameters**
+3. **Testnet deployment and stress testing**
 
 ### Monitoring
 
@@ -113,50 +136,71 @@ Fallback signature:
 └──────────┴───────────┴─────────────────────────────────────┘
 ```
 
-## Comparison to Current Implementation
+## Current Implementation vs Target
 
-| Aspect | Current Stub (`shrincs_proto/`) | Target (Level 3) |
-|--------|--------------------------------|------------------|
+| Aspect | Current (Phase 5) | Target (Production) |
+|--------|-------------------|---------------------|
 | PK size | 64 bytes | 64 bytes ✓ |
-| Sig size | 324 bytes (toy) | 636+ bytes |
-| WOTS w | 16 (toy) | 256 |
-| Tree | Height=1 (toy) | Unbalanced |
-| Security | None | 192-bit PQ |
-| Fallback | Fake FORS | Real SPHINCS+ |
+| Extended PK | 96 bytes (fallback) | 96 bytes ✓ |
+| Stateful sig | ~3.4 KB | ~3.4 KB ✓ |
+| Fallback sig | ~7.8 KB (SPHINCS+-128s) | ~7.8 KB ✓ |
+| WOTS w | 256 | 256 ✓ |
+| Tree | XMSS^MT hypertree | XMSS^MT ✓ |
+| Security | 128-bit PQ (Level 1) | 192-bit PQ (Level 3) |
+| Fallback | SPHINCS+-SHA2-128s | SPHINCS+-SHA2-192s |
+| Consensus | Feature-gated | Hard fork activation |
+| State | File-based + atomic + locking ✓ | File-based + atomic ✓ |
 
 ## Codebase Structure
 
 ```
-src/shrincs/           # New production module (in progress)
-├── mod.rs             # Module entry, re-exports
-├── params.rs          # Level 1/3 parameter definitions
-├── types.rs           # Key and signature types
-├── error.rs           # Error types
-├── api.rs             # Trait definitions (keygen, sign, verify)
-└── state.rs           # State management interface
+src/shrincs/               # Production SHRINCS implementation
+├── mod.rs                 # Module entry, re-exports
+├── params.rs              # Level 1/3 parameter definitions
+├── types.rs               # Key and signature types
+├── error.rs               # Error types
+├── api.rs                 # Trait definitions (keygen, sign, verify)
+├── state.rs               # State management (v1/v2 formats, layer tracking)
+├── wots.rs                # WOTS+C implementation (counter grinding)
+├── pors.rs                # PORS+FP (octopus auth, few-time signatures)
+├── tree.rs                # XMSS^MT hypertree (d-layer structure)
+├── shrincs.rs             # Full orchestrator (keygen, sign, verify, fallback)
+└── sphincs_fallback.rs    # SPHINCS+-128s stateless fallback
 
-src/shrincs_proto/     # Legacy stubs (deprecated)
-├── wots_c.rs          # Toy WOTS+ implementation
-├── xmss_unbalanced.rs # Fake Merkle tree
-├── fors.rs            # Fake FORS
-└── hybrid.rs          # Integration stub
+tests/
+├── shrincs_phase2.rs      # Integration tests for PORS, hypertree, state
+└── shrincs_roundtrip.rs   # End-to-end signature roundtrip tests
 ```
+
+### Key Types
+
+| Type | Purpose |
+|------|---------|
+| `ShrincsKeyMaterial` | Stateful PORS+XMSS keys |
+| `ShrincsExtendedKeyMaterial` | Stateful + SPHINCS+ fallback keys |
+| `ShrincsUnifiedSignature` | Enum: `Stateful` or `Fallback` |
+| `SigningState` | Leaf allocation, v2 layer tracking |
 
 ## Consensus Integration Path
 
-When reference implementation is available:
+### Completed (Phase 4)
 
-1. **Phase 4**: Port/wrap reference into `src/shrincs/`
-2. **Phase 5**: Update `src/pq.rs` to accept AlgorithmId 0x30
-3. **Phase 5**: Update `src/constants.rs` with final sizes
-4. **Phase 5**: Wire into `src/validation.rs`
-5. **Hard Fork**: Define activation height, coordinate upgrade
-6. **Audit**: External cryptographic security review
+1. ✅ `src/pq.rs`: `AlgorithmId::SHRINCS` variant with `verify_shrincs()` dispatch
+2. ✅ `src/constants.rs`: Updated sizes (`SHRINCS_SIG_MIN`, `SHRINCS_SIG_FALLBACK`)
+3. ✅ Feature-gated activation (`--features shrincs-dev`)
+4. ✅ P2QPKH integration test passing
+
+### Remaining (Phase 5)
+
+1. **Fallback witness format**: Define how SPHINCS+ pk is provided in witness
+2. **State persistence**: File-based with atomic updates
+3. **Hard Fork**: Define activation height, coordinate upgrade
+4. **Audit**: External cryptographic security review
 
 ## Open Questions
 
 1. **State Storage**: File-based with atomic updates? Database? Hardware wallet?
-2. **Fallback Trigger**: Auto-detect corruption? Explicit user request? Leaf exhaustion?
+2. ~~**Fallback Trigger**~~: ✅ Implemented - auto on `StateExhausted`/`StateCorrupted`, or via `force_fallback` flag
 3. **MPC Compatibility**: How to handle N-of-N multisig with stateful scheme?
 
 ## References

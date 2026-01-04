@@ -34,12 +34,20 @@ pub const MLDSA65_ALG_ID: u8 = 0x11;
 // ML-DSA-65 (Dilithium3) sizes
 pub const MLDSA65_PUBKEY_LEN: usize = 1952;
 pub const MLDSA65_SIG_LEN: usize = 3309;
-// Reserved/inactive
+// Reserved/inactive (require feature flags or hard fork)
 pub const SLH_DSA_ALG_ID: u8 = 0x21;
+
+// SHRINCS: Hybrid stateful/stateless hash-based signatures
+// Variable signature sizes: stateful path is smaller, fallback is larger
 pub const SHRINCS_ALG_ID: u8 = 0x30;
-pub const SHRINCS_PUBKEY_LEN: usize = 64;
-pub const SHRINCS_SIG_LEN: usize = 324;
-pub const SHRINCS_MAX_INDEX: u32 = 1024;
+pub const SHRINCS_PUBKEY_LEN: usize = 64; // 32B XMSS root + 32B SPHINCS+ pk hash
+pub const SHRINCS_SIG_MIN: usize = 3_400; // Minimum stateful signature (~3.4KB)
+pub const SHRINCS_SIG_FALLBACK: usize = 7_856; // SPHINCS+-128s fallback signature
+pub const SHRINCS_CAPACITY: u32 = 1 << 30; // 2^30 stateful signatures before fallback
+
+// SHRINCS fallback witness: extended pk includes full SPHINCS+ public key
+pub const SPHINCS_PK_LEN: usize = 32; // SPHINCS+-128s public key size
+pub const SHRINCS_FALLBACK_PUBKEY_LEN: usize = 96; // 64B base + 32B SPHINCS+ pk
 
 // ---- Witness versions & script ----
 pub const P2QTSH_VERSION: u8 = 0x02; // OP_2 PUSH32

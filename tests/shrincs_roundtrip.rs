@@ -1,50 +1,67 @@
+//! SHRINCS signature roundtrip tests.
+//!
+//! These tests verify the real SHRINCS implementation (PORS+FP + XMSS^MT)
+//! rather than the old deterministic stub.
+
 #![cfg(feature = "shrincs-dev")]
 
-use qpb_consensus::pq::{shrincs_keygen, shrincs_sign, verify_shrincs_dev};
+use qpb_consensus::pq::{AlgorithmId, shrincs_keypair, shrincs_sign, verify_pq};
 
 #[test]
 fn shrincs_sign_verify_roundtrip() {
-    let pk = shrincs_keygen();
+    // Generate real SHRINCS keypair
+    let (pk_ser, key_material, mut state) = shrincs_keypair().expect("shrincs keygen");
+
+    // Sign a message
     let msg = [0u8; 32];
-    let sig = shrincs_sign(&pk, &msg);
+    let sig_ser = shrincs_sign(&key_material, &mut state, &msg, 0x01).expect("shrincs sign");
 
-    // Should pass via FFI if present, otherwise via the stub verifier.
-    verify_shrincs_dev(&pk, &msg, &sig).expect("shrincs sign/verify roundtrip must succeed");
+    // Remove sighash byte for raw verification
+    let sig_raw = &sig_ser[..sig_ser.len() - 1];
+
+    // Verify via verify_pq dispatch (pk_ser[0] is alg_id, rest is pk)
+    let pk = &pk_ser[1..];
+    verify_pq(AlgorithmId::SHRINCS, pk, &msg, sig_raw).expect("verification should succeed");
 }
 
 #[test]
-fn shrincs_high_state_index_uses_fallback() {
-    let pk = shrincs_keygen();
-    let msg = [1u8; 32];
-    let mut sig = shrincs_sign(&pk, &msg);
+fn shrincs_wrong_message_fails() {
+    // Generate keypair
+    let (pk_ser, key_material, mut state) = shrincs_keypair().expect("shrincs keygen");
 
-    // Force the stub LMS path to fail (index >= MAX_INDEX in shrincs.c) so SLH fallback is used.
-    sig[0] = 0xFF;
-    sig[1] = 0xFF;
-    sig[2] = 0xFF;
-    sig[3] = 0xFF;
+    // Sign original message
+    let msg = [0xABu8; 32];
+    let sig_ser = shrincs_sign(&key_material, &mut state, &msg, 0x01).expect("shrincs sign");
 
-    verify_shrincs_dev(&pk, &msg, &sig)
-        .expect("shrincs fallback path should accept high state index signature");
+    // Remove sighash byte
+    let sig_raw = &sig_ser[..sig_ser.len() - 1];
+    let pk = &pk_ser[1..];
+
+    // Try to verify with different message
+    let wrong_msg = [0xCDu8; 32];
+    let res = verify_pq(AlgorithmId::SHRINCS, pk, &wrong_msg, sig_raw);
+    assert!(res.is_err(), "wrong message should fail verification");
 }
 
 #[test]
-fn shrincs_msg_binding_rejects_tamper() {
-    let pk = shrincs_keygen();
-    let msg = [2u8; 32];
-    let mut sig = shrincs_sign(&pk, &msg);
-    // Tamper with message-binding section
-    sig[10] ^= 0xFF;
-    let res = verify_shrincs_dev(&pk, &msg, &sig);
-    assert!(res.is_err(), "tampered sig must be rejected");
+fn shrincs_state_advances_on_each_sign() {
+    // Generate keypair
+    let (_pk_ser, key_material, mut state) = shrincs_keypair().expect("shrincs keygen");
 
-    // Tamper with msg32 (mismatch to sig pattern)
-    let mut msg_bad = msg;
-    msg_bad[5] ^= 0xAA;
-    let sig_good = shrincs_sign(&pk, &msg);
-    let res = verify_shrincs_dev(&pk, &msg_bad, &sig_good);
-    assert!(
-        res.is_err(),
-        "sig bound to original msg should fail on mutated msg"
+    // Get initial state
+    let initial_idx = state.next_leaf;
+
+    // Sign 3 messages
+    for i in 0..3 {
+        let msg = [i as u8; 32];
+        shrincs_sign(&key_material, &mut state, &msg, 0x01).expect("shrincs sign");
+    }
+
+    // State should have advanced by 3
+    let final_idx = state.next_leaf;
+    assert_eq!(
+        final_idx,
+        initial_idx + 3,
+        "state should advance by one for each signature"
     );
 }

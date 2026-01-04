@@ -1,3 +1,4 @@
+#![allow(clippy::module_inception)]
 //! SHRINCS: Stateful Hash-based Resilient INtegrity-preserving Compact Signatures
 //!
 //! A hybrid post-quantum signature scheme combining:
@@ -34,8 +35,13 @@
 pub mod api;
 pub mod error;
 pub mod params;
+pub mod pors;
+pub mod shrincs;
+pub mod sphincs_fallback;
 pub mod state;
+pub mod tree;
 pub mod types;
+pub mod wots;
 
 // Re-exports for convenient access
 pub use api::{ShrincsSign, ShrincsVerify};

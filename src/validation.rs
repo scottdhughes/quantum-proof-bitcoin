@@ -4,6 +4,8 @@ use crate::constants::{
     SEQUENCE_FINAL, SEQUENCE_LOCKTIME_DISABLE_FLAG, SEQUENCE_LOCKTIME_GRANULARITY,
     SEQUENCE_LOCKTIME_MASK, SEQUENCE_LOCKTIME_TYPE_FLAG,
 };
+#[cfg(feature = "shrincs-dev")]
+use crate::constants::{SHRINCS_ALG_ID, SHRINCS_PUBKEY_LEN};
 use crate::errors::ConsensusError;
 use crate::pow::validate_pow;
 use crate::pq::{AlgorithmId, pqsig_cost, verify_pq};
@@ -282,7 +284,25 @@ pub fn validate_p2qpkh_input(
         ScriptType::P2QPKH(h) => h,
         _ => return Err(ConsensusError::InvalidScriptPubKey),
     };
-    let computed = qpkh32(pk_ser);
+
+    // For SHRINCS fallback (0x01 signature), qpkh32 is computed from base pk only
+    // (first 65 bytes = alg_id + 64-byte base pk), even though witness carries
+    // extended pk with SPHINCS+ public key appended.
+    #[cfg(feature = "shrincs-dev")]
+    let pk_for_hash =
+        if pk_ser[0] == SHRINCS_ALG_ID && !sig_bytes.is_empty() && sig_bytes[0] == 0x01 {
+            // Fallback signature: hash only the base pk portion
+            if pk_ser.len() < 1 + SHRINCS_PUBKEY_LEN {
+                return Err(ConsensusError::InvalidPublicKey);
+            }
+            &pk_ser[..1 + SHRINCS_PUBKEY_LEN]
+        } else {
+            pk_ser
+        };
+    #[cfg(not(feature = "shrincs-dev"))]
+    let pk_for_hash = pk_ser;
+
+    let computed = qpkh32(pk_for_hash);
     if computed != script_hash {
         return Err(ConsensusError::InvalidPublicKey);
     }
