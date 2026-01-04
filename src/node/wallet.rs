@@ -313,13 +313,21 @@ impl Wallet {
         let base_weight = 10 * 4; // 40 WU
 
         // Select coins (simple largest-first algorithm)
-        let selected = select_coins(&wallet_utxos, amount, fee_rate, input_weight, output_weight, base_weight)?;
+        let selected = select_coins(
+            &wallet_utxos,
+            amount,
+            fee_rate,
+            input_weight,
+            output_weight,
+            base_weight,
+        )?;
 
         // Calculate fee based on actual selection
         let num_inputs = selected.utxos.len();
         let num_outputs = if selected.change > 0 { 2 } else { 1 };
-        let total_weight = base_weight + (num_inputs * input_weight) + (num_outputs * output_weight);
-        let vsize = (total_weight + 3) / 4;
+        let total_weight =
+            base_weight + (num_inputs * input_weight) + (num_outputs * output_weight);
+        let vsize = total_weight.div_ceil(4);
         let fee = vsize as u64 * fee_rate;
 
         // Verify we have enough
@@ -345,7 +353,10 @@ impl Wallet {
             txid.copy_from_slice(&txid_bytes);
 
             vin.push(TxIn {
-                prevout: OutPoint { txid, vout: utxo.vout },
+                prevout: OutPoint {
+                    txid,
+                    vout: utxo.vout,
+                },
                 script_sig: Vec::new(), // SegWit: empty script_sig
                 sequence: 0xffffffff,
                 witness: Vec::new(), // Will be filled after signing
@@ -449,8 +460,9 @@ fn select_coins(
         let num_inputs = selected.len();
         // Assume 2 outputs (recipient + change)
         let num_outputs = 2;
-        let total_weight = base_weight + (num_inputs * input_weight) + (num_outputs * output_weight);
-        let vsize = (total_weight + 3) / 4;
+        let total_weight =
+            base_weight + (num_inputs * input_weight) + (num_outputs * output_weight);
+        let vsize = total_weight.div_ceil(4);
         let fee = vsize as u64 * fee_rate;
 
         if total >= target + fee {
@@ -467,7 +479,7 @@ fn select_coins(
     let needed = {
         let num_inputs = selected.len().max(1);
         let total_weight = base_weight + (num_inputs * input_weight) + (2 * output_weight);
-        let vsize = (total_weight + 3) / 4;
+        let vsize = total_weight.div_ceil(4);
         target + (vsize as u64 * fee_rate)
     };
     Err(anyhow!(
