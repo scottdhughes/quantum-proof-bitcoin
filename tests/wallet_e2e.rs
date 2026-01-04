@@ -168,27 +168,19 @@ fn send_transaction_and_mine() {
 
     // Balance should be:
     // - 1st block subsidy: 5B
-    // - 2nd block subsidy: 5B (from mining the tx)
-    // - Transaction moved coins within wallet (no net change)
-    // - Fee lost: ~1500 sats
-    // Total: 10B - fee
+    // - 2nd block subsidy + fees: 5B + fee (miner receives tx fees in coinbase)
+    // - Transaction moved coins within wallet (no net change to value)
+    // Since we mined the block ourselves, the fee is recouped in the coinbase.
+    // Total: 10B (2 * subsidy)
     let resp = rpc_call(&mut node, "getbalance", "[]");
     let final_balance = resp["result"].as_u64().unwrap();
 
-    // We should have: 2 * subsidy - fee
-    let expected_max = BLOCK_SUBSIDY * 2;
-    let expected_min = BLOCK_SUBSIDY * 2 - 100_000; // Allow up to 100k fee
-
-    assert!(
-        final_balance < expected_max,
-        "Expected balance to decrease due to fee, got {}",
-        final_balance
-    );
-    assert!(
-        final_balance > expected_min,
-        "Fee seems too high: balance = {}, expected > {}",
+    // We should have exactly 2 * subsidy since fee paid = fee received as miner
+    assert_eq!(
         final_balance,
-        expected_min
+        BLOCK_SUBSIDY * 2,
+        "Expected balance = 2 * subsidy since miner receives fees, got {}",
+        final_balance
     );
 }
 
@@ -251,24 +243,16 @@ fn full_transaction_lifecycle() {
     // === Step 4: Verify final state ===
     // We should have:
     // - 3 block subsidies (3 * 5B = 15B)
-    // - minus fee from the transaction
+    // - Fee paid is recouped in the 3rd block's coinbase (miner = us)
     let resp = rpc_call(&mut node, "getbalance", "[]");
     let final_balance = resp["result"].as_u64().unwrap();
 
-    // Expected: 3 * subsidy - fee
-    // Fee should be small (a few thousand sats)
-    let expected_min = BLOCK_SUBSIDY * 3 - 100_000; // Allow up to 100k fee
-    assert!(
-        final_balance >= expected_min,
-        "Balance {} less than expected minimum {}",
+    // Expected: exactly 3 * subsidy since fee paid = fee received as miner
+    assert_eq!(
         final_balance,
-        expected_min
-    );
-    assert!(
-        final_balance < BLOCK_SUBSIDY * 3,
-        "Balance {} should be less than {} due to fees",
-        final_balance,
-        BLOCK_SUBSIDY * 3
+        BLOCK_SUBSIDY * 3,
+        "Expected balance = 3 * subsidy since miner receives fees, got {}",
+        final_balance
     );
 
     // Verify UTXOs exist

@@ -396,17 +396,14 @@ impl Mempool {
                     continue;
                 }
 
-                // Check if we can fit this tx (and all unselected ancestors)
-                let mut package_weight = entry.weight;
-                let mut package_txids = vec![entry.txid];
-
-                // Collect unselected ancestors
-                for ancestor_txid in self.get_unselected_ancestors(&entry.txid, &selected_txids) {
-                    if let Some(ancestor) = self.txns.get(&ancestor_txid) {
-                        package_weight += ancestor.weight;
-                        package_txids.push(ancestor_txid);
-                    }
-                }
+                // Collect tx and all unselected ancestors in topological order
+                // (get_unselected_ancestors returns [grandparent, parent, ..., child])
+                let package_txids = self.get_unselected_ancestors(&entry.txid, &selected_txids);
+                let package_weight: u32 = package_txids
+                    .iter()
+                    .filter_map(|txid| self.txns.get(txid))
+                    .map(|e| e.weight)
+                    .sum();
 
                 if total_weight + package_weight > max_weight {
                     continue;

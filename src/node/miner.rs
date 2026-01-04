@@ -170,13 +170,10 @@ fn build_block_with_mempool(node: &Node, net: &NetworkParams) -> Result<(Block, 
     let coinbase_reserve = 2000u32;
     let available_weight = max_weight.saturating_sub(coinbase_reserve);
 
-    // Select mempool transactions
-    let mempool_txs = node.mempool_select_for_block(available_weight);
-
-    // Calculate total fees from mempool txs
-    // Note: We don't have easy access to fees here. For now, set to 0.
-    // In production, we'd need to track fees or recalculate from prevouts.
-    let total_fees: u64 = mempool_txs.iter().map(|_tx| 0u64).sum();
+    // Select mempool transactions with fee metadata
+    let mempool_entries = node.mempool_select_entries_for_block(available_weight);
+    let total_fees: u64 = mempool_entries.iter().map(|e| e.fee).sum();
+    let mempool_txs: Vec<Transaction> = mempool_entries.into_iter().map(|e| e.tx).collect();
 
     // Height for BIP34-compliant coinbase
     let height = node.height() + 1;
@@ -405,15 +402,10 @@ fn build_block_to_address(
     let coinbase_reserve = 2000u32;
     let available_weight = max_weight.saturating_sub(coinbase_reserve);
 
-    // Select mempool transactions with fees
+    // Select mempool transactions with fee metadata
     let mempool_entries = node.mempool_select_entries_for_block(available_weight);
+    let total_fees: u64 = mempool_entries.iter().map(|e| e.fee).sum();
     let mempool_txs: Vec<Transaction> = mempool_entries.into_iter().map(|e| e.tx).collect();
-
-    // Calculate total fees
-    let total_fees: u64 = mempool_txs
-        .iter()
-        .map(|_| 0u64) // TODO: properly track fees from mempool entries
-        .sum();
 
     // Calculate subsidy
     let height = node.height() + 1;
