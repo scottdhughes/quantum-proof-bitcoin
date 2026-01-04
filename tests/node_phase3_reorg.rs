@@ -328,3 +328,126 @@ fn reorg_does_not_duplicate_confirmed_txs() {
         "Coinbase transactions should not return to mempool"
     );
 }
+
+// ============================================================================
+// Edge Case Tests for Hardened Reorg
+// ============================================================================
+
+/// Test that a reorg beyond MAX_REORG_DEPTH is rejected.
+///
+/// This protects against deep reorg attacks and avoids excessive resource usage.
+#[test]
+fn deep_reorg_rejected() {
+    use qpb_consensus::constants::MAX_REORG_DEPTH;
+
+    let dir = tempdir().unwrap();
+    let datadir = dir.path();
+
+    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let genesis_hash = get_tip_hash(&node);
+
+    // Build main chain: genesis -> block1 -> ... -> block(MAX_REORG_DEPTH + 5)
+    let mut prev_hash = genesis_hash;
+    for i in 1..=(MAX_REORG_DEPTH + 5) {
+        let block = build_block(prev_hash, i as u32, block_subsidy(i as u32), 1);
+        prev_hash = block_hash(&block);
+        node.submit_block_bytes(&block.serialize(true)).unwrap();
+    }
+
+    let main_height = node.height();
+    assert_eq!(main_height as usize, MAX_REORG_DEPTH + 5);
+    let _main_tip = get_tip_hash(&node);
+
+    // Build competing chain from genesis that's even longer
+    // This would require disconnecting all MAX_REORG_DEPTH + 5 blocks
+    let mut alt_prev = genesis_hash;
+    let mut alt_blocks = Vec::new();
+    for i in 1..=(MAX_REORG_DEPTH + 10) {
+        let block = build_block(alt_prev, i as u32, block_subsidy(i as u32), 999);
+        alt_prev = block_hash(&block);
+        alt_blocks.push(block);
+    }
+
+    // Submit the alternate chain
+    // Most blocks will just be stored; the reorg attempt happens on the last one
+    for block in &alt_blocks {
+        // We ignore errors - the reorg may fail due to depth limit
+        let _ = node.submit_block_bytes(&block.serialize(true));
+    }
+
+    // Node should still be on original chain (reorg rejected due to depth)
+    // Note: The exact behavior depends on when the depth check triggers
+    // Either we stay on main chain, or we're at a point where the last
+    // reorg attempt was rejected
+    let final_tip = get_tip_hash(&node);
+
+    // The node should NOT have fully reorged to the alternate chain
+    // It may have partially accepted some blocks or stayed on original
+    // Key assertion: we're not at the tip of the alt chain
+    assert_ne!(final_tip, alt_prev, "Should not have completed deep reorg");
+}
+
+/// Test that multiple consecutive reorgs work correctly.
+///
+/// This tests state consistency when reorgs happen in rapid succession.
+#[test]
+fn multiple_consecutive_reorgs() {
+    let dir = tempdir().unwrap();
+    let datadir = dir.path();
+
+    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let genesis_hash = get_tip_hash(&node);
+
+    // Initial chain: genesis -> A
+    let block_a = build_block(genesis_hash, 1, block_subsidy(1), 1);
+    let hash_a = block_hash(&block_a);
+    node.submit_block_bytes(&block_a.serialize(true)).unwrap();
+    assert_eq!(node.height(), 1);
+
+    // First reorg: genesis -> B -> C (longer)
+    let block_b = build_block(genesis_hash, 1, block_subsidy(1), 2);
+    let hash_b = block_hash(&block_b);
+    node.submit_block_bytes(&block_b.serialize(true)).unwrap();
+
+    let block_c = build_block(hash_b, 2, block_subsidy(2), 2);
+    let hash_c = block_hash(&block_c);
+    node.submit_block_bytes(&block_c.serialize(true)).unwrap();
+    assert_eq!(node.height(), 2);
+    assert_eq!(get_tip_hash(&node), hash_c);
+
+    // Second reorg: genesis -> A -> D -> E (even longer)
+    let block_d = build_block(hash_a, 2, block_subsidy(2), 3);
+    let hash_d = block_hash(&block_d);
+    node.submit_block_bytes(&block_d.serialize(true)).unwrap();
+
+    let block_e = build_block(hash_d, 3, block_subsidy(3), 3);
+    let hash_e = block_hash(&block_e);
+    node.submit_block_bytes(&block_e.serialize(true)).unwrap();
+    assert_eq!(node.height(), 3);
+    assert_eq!(get_tip_hash(&node), hash_e);
+
+    // Third reorg: genesis -> B -> C -> F -> G -> H (longest)
+    let block_f = build_block(hash_c, 3, block_subsidy(3), 4);
+    let hash_f = block_hash(&block_f);
+    node.submit_block_bytes(&block_f.serialize(true)).unwrap();
+
+    let block_g = build_block(hash_f, 4, block_subsidy(4), 4);
+    let hash_g = block_hash(&block_g);
+    node.submit_block_bytes(&block_g.serialize(true)).unwrap();
+
+    let block_h = build_block(hash_g, 5, block_subsidy(5), 4);
+    let hash_h = block_hash(&block_h);
+    node.submit_block_bytes(&block_h.serialize(true)).unwrap();
+
+    // Final state: should be on chain B -> C -> F -> G -> H
+    assert_eq!(node.height(), 5);
+    assert_eq!(get_tip_hash(&node), hash_h);
+
+    // Verify chain integrity by checking parent hashes
+    // Height 5 should be H, height 4 should be G, etc.
+    assert_eq!(get_block_hash_at_height(&mut node, 5), hash_h);
+    assert_eq!(get_block_hash_at_height(&mut node, 4), hash_g);
+    assert_eq!(get_block_hash_at_height(&mut node, 3), hash_f);
+    assert_eq!(get_block_hash_at_height(&mut node, 2), hash_c);
+    assert_eq!(get_block_hash_at_height(&mut node, 1), hash_b);
+}

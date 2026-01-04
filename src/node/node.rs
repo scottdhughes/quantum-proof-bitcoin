@@ -5,7 +5,7 @@ use anyhow::{Context, Result, anyhow};
 
 use std::collections::HashSet;
 
-use crate::constants::{COINBASE_MATURITY, WEIGHT_FLOOR_WU};
+use crate::constants::{COINBASE_MATURITY, MAX_REORG_DEPTH, WEIGHT_FLOOR_WU};
 use crate::node::blockstore;
 use crate::node::chain::{ChainIndex, UndoData};
 use crate::node::chainparams::{
@@ -764,8 +764,39 @@ impl Node {
         // Get blocks to connect (from fork point to new tip)
         let connect_path = self.chain_index.get_path(&fork_point, new_tip);
 
-        // Collect transactions from blocks being disconnected (for mempool restoration)
-        // We do this before disconnecting so we can access block data
+        // =====================================================================
+        // Pre-validation: Verify reorg is safe before modifying state
+        // =====================================================================
+
+        // Check reorg depth limit
+        if disconnect_path.len() > MAX_REORG_DEPTH {
+            anyhow::bail!(
+                "reorg depth {} exceeds maximum {}",
+                disconnect_path.len(),
+                MAX_REORG_DEPTH
+            );
+        }
+
+        // Verify all undo data exists for blocks we need to disconnect
+        for hash in &disconnect_path {
+            let hash_hex = hex::encode(hash);
+            if blockstore::get_undo(&self.datadir, &hash_hex)?.is_none() {
+                anyhow::bail!("missing undo data for block {}, cannot reorg", hash_hex);
+            }
+        }
+
+        // Verify all block data exists for blocks we need to connect
+        for hash in &connect_path {
+            let hash_hex = hex::encode(hash);
+            if blockstore::get_block(&self.datadir, &hash_hex)?.is_none() {
+                anyhow::bail!("missing block data for {}, cannot reorg", hash_hex);
+            }
+        }
+
+        // =====================================================================
+        // Collect transactions from blocks being disconnected (for mempool)
+        // =====================================================================
+
         let mut disconnected_txs: Vec<Transaction> = Vec::new();
         for hash in &disconnect_path {
             let hash_hex = hex::encode(hash);
@@ -778,16 +809,22 @@ impl Node {
             }
         }
 
+        // =====================================================================
         // Disconnect blocks (in reverse order - newest first)
+        // =====================================================================
+
         for hash in disconnect_path.iter().rev() {
             let hash_hex = hex::encode(hash);
             self.disconnect_block(&hash_hex)?;
         }
 
-        // Track txids confirmed in new chain (to avoid re-adding them)
+        // =====================================================================
+        // Connect blocks with rollback on failure
+        // =====================================================================
+
+        let mut connected_hashes: Vec<[u8; 32]> = Vec::new();
         let mut confirmed_in_new_chain: HashSet<[u8; 32]> = HashSet::new();
 
-        // Connect blocks (in order - oldest first)
         for hash in &connect_path {
             let hash_hex = hex::encode(hash);
             let block_bytes = blockstore::get_block(&self.datadir, &hash_hex)?
@@ -799,11 +836,52 @@ impl Node {
                 confirmed_in_new_chain.insert(tx.txid());
             }
 
-            self.connect_block(&block, &hash_hex)?;
+            match self.connect_block(&block, &hash_hex) {
+                Ok(()) => {
+                    connected_hashes.push(*hash);
+                }
+                Err(e) => {
+                    // Connection failed - must rollback to original chain
+                    eprintln!("reorg failed at block {}: {}, rolling back", hash_hex, e);
+
+                    // Mark the failing block as invalid
+                    self.chain_index.mark_invalid(hash);
+
+                    // Disconnect any blocks we just connected
+                    for rollback_hash in connected_hashes.iter().rev() {
+                        let rollback_hex = hex::encode(rollback_hash);
+                        if let Err(re) = self.disconnect_block(&rollback_hex) {
+                            eprintln!("rollback disconnect failed: {}", re);
+                        }
+                    }
+
+                    // Reconnect original chain
+                    for original_hash in &disconnect_path {
+                        let original_hex = hex::encode(original_hash);
+                        if let Ok(Some(bytes)) = blockstore::get_block(&self.datadir, &original_hex)
+                            && let Ok(original_block) = parse_block(&bytes)
+                            && let Err(re) = self.connect_block(&original_block, &original_hex)
+                        {
+                            eprintln!("rollback reconnect failed: {}", re);
+                        }
+                    }
+
+                    // Restore original tip in chain index
+                    self.chain_index.set_tip(current_tip);
+
+                    return Err(anyhow!(
+                        "reorg failed at {}: {}; rolled back to original chain",
+                        hash_hex,
+                        e
+                    ));
+                }
+            }
         }
 
-        // Restore disconnected transactions to mempool (if still valid)
-        // Transactions that conflict with the new chain will fail validation
+        // =====================================================================
+        // Restore disconnected transactions to mempool
+        // =====================================================================
+
         let mut restored_count = 0u32;
         for tx in disconnected_txs {
             let txid = tx.txid();
@@ -813,7 +891,20 @@ impl Node {
                 continue;
             }
 
-            // Try to re-add to mempool - ignore errors (may conflict with new chain)
+            // Check for double-spend conflicts with new chain
+            let mut conflicts = false;
+            for vin in &tx.vin {
+                if self.utxo.get(&vin.prevout.txid, vin.prevout.vout).is_none() {
+                    conflicts = true;
+                    break;
+                }
+            }
+
+            if conflicts {
+                continue;
+            }
+
+            // Try to re-add to mempool - ignore errors
             if self.try_add_to_mempool_with_missing(&tx).is_ok() {
                 restored_count += 1;
             }
