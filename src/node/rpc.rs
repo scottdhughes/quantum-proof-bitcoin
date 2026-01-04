@@ -342,7 +342,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             Ok((Value::Array(addresses), RpcAction::Continue))
         }
         "sendtoaddress" => {
-            // sendtoaddress <address> <amount> [fee_rate]
+            // sendtoaddress <address> <amount> [fee_rate] [rbf]
             let address = params
                 .first()
                 .and_then(|v| v.as_str())
@@ -352,6 +352,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 .and_then(|v| v.as_u64())
                 .ok_or_else(|| anyhow!("missing amount"))?;
             let fee_rate = params.get(2).and_then(|v| v.as_u64()).unwrap_or(1); // default 1 sat/vB
+            let rbf = params.get(3).and_then(|v| v.as_bool()).unwrap_or(false); // default no RBF
 
             let wallet_path = node.datadir.join("wallet.json");
             if !wallet_path.exists() {
@@ -367,14 +368,100 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             let utxos = node.utxo_iter_all();
             let current_height = node.height() as u32;
 
-            // Create and sign transaction
-            let tx = wallet.create_transaction(address, amount, fee_rate, utxos, current_height)?;
+            // Create and sign transaction with optional RBF signaling
+            let tx =
+                wallet.create_transaction(address, amount, fee_rate, utxos, current_height, rbf)?;
             let txid = tx.txid();
 
             // Add to mempool
             node.add_to_mempool(tx)?;
 
             Ok((Value::String(hex::encode(txid)), RpcAction::Continue))
+        }
+        "bumpfee" => {
+            // bumpfee <txid> <new_fee_rate>
+            // Creates a replacement transaction with higher fee
+            let txid_hex = params
+                .first()
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing txid"))?;
+            let new_fee_rate = params
+                .get(1)
+                .and_then(|v| v.as_u64())
+                .ok_or_else(|| anyhow!("missing new_fee_rate"))?;
+
+            // Parse txid
+            let txid_bytes = hex::decode(txid_hex).map_err(|_| anyhow!("invalid txid hex"))?;
+            if txid_bytes.len() != 32 {
+                return Err(anyhow!("txid must be 32 bytes"));
+            }
+            let mut txid = [0u8; 32];
+            txid.copy_from_slice(&txid_bytes);
+
+            // Get the original transaction from mempool
+            let original_entry = node
+                .mempool_get_entry(&txid)
+                .ok_or_else(|| anyhow!("transaction not in mempool"))?;
+
+            // Check if original signals RBF
+            if !original_entry.signals_rbf {
+                return Err(anyhow!(
+                    "transaction does not signal RBF (sequence must be <= 0xfffffffd)"
+                ));
+            }
+
+            // Get wallet
+            let wallet_path = node.datadir.join("wallet.json");
+            if !wallet_path.exists() {
+                return Err(anyhow!("wallet not found, call createwallet first"));
+            }
+            let hrp = load_hrp(
+                &node.chain,
+                Some(std::path::Path::new("docs/chain/chainparams.json")),
+            );
+            let wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
+
+            // Get the original transaction
+            let original_tx = &original_entry.tx;
+
+            // Collect prevouts for original inputs (needed for signing and fee calculation)
+            let mut original_prevouts = Vec::new();
+            for vin in &original_tx.vin {
+                let prevout = node
+                    .utxo_get(&vin.prevout.txid, vin.prevout.vout)
+                    .ok_or_else(|| {
+                        anyhow!("cannot find prevout for input (may have been spent)")
+                    })?;
+                original_prevouts.push(prevout);
+            }
+
+            // Create replacement transaction reusing the same inputs
+            // This guarantees conflict with the original (required for RBF)
+            let replacement_tx = wallet.create_replacement_transaction(
+                original_tx,
+                &original_prevouts,
+                new_fee_rate,
+            )?;
+
+            let new_txid = replacement_tx.txid();
+
+            // Calculate the new fee
+            let input_sum: u64 = original_prevouts.iter().map(|p| p.value).sum();
+            let output_sum: u64 = replacement_tx.vout.iter().map(|o| o.value).sum();
+            let new_fee = input_sum.saturating_sub(output_sum);
+
+            // Add replacement to mempool (RBF validation happens inside)
+            node.add_to_mempool(replacement_tx)?;
+
+            Ok((
+                serde_json::json!({
+                    "txid": hex::encode(new_txid),
+                    "origfee": original_entry.fee,
+                    "fee": new_fee,
+                    "errors": [],
+                }),
+                RpcAction::Continue,
+            ))
         }
         _ => Err(anyhow!("method not found")),
     }

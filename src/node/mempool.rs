@@ -7,6 +7,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 
 use anyhow::{Result, anyhow};
 
+use crate::constants::{INCREMENTAL_RELAY_FEE, MAX_REPLACEMENT_EVICTIONS};
 use crate::types::{OutPoint, Prevout, Transaction};
 use crate::validation::validate_transaction_basic;
 
@@ -46,6 +47,8 @@ pub struct MempoolEntry {
     pub descendant_size: usize,
     /// Combined ancestor fee (for CPFP mining).
     pub ancestor_fee: u64,
+    /// True if this transaction signals RBF (BIP125).
+    pub signals_rbf: bool,
 }
 
 impl MempoolEntry {
@@ -143,11 +146,22 @@ impl Mempool {
             return Err(anyhow!("transaction already in mempool"));
         }
 
-        // Check for double-spends
-        for vin in &tx.vin {
-            if self.spenders.contains_key(&vin.prevout) {
-                return Err(anyhow!("input already spent by mempool transaction"));
-            }
+        // Check for conflicts (double-spends) and handle RBF
+        let inputs: Vec<OutPoint> = tx.vin.iter().map(|vin| vin.prevout.clone()).collect();
+        let conflicts = self.find_conflicts(&inputs);
+
+        // Will be set if this is a replacement transaction
+        let mut eviction_set: Option<EvictionSet> = None;
+
+        if !conflicts.is_empty() {
+            // Calculate what would be evicted
+            let evict = self
+                .calculate_eviction_set(&conflicts)
+                .map_err(|e| anyhow!("{}", e))?;
+
+            // We need to calculate fee and vsize before validation
+            // For now, defer validation until after fee calculation below
+            eviction_set = Some(evict);
         }
 
         // Validate transaction
@@ -181,6 +195,20 @@ impl Mempool {
             if self.txns.contains_key(&vin.prevout.txid) {
                 mempool_parents.insert(vin.prevout.txid);
             }
+        }
+
+        // If this is a replacement, validate BIP125 rules
+        if let Some(ref evict) = eviction_set {
+            let original_parents = self.collect_conflict_parents(&conflicts);
+            self.validate_replacement(
+                fee,
+                vsize,
+                &conflicts,
+                evict,
+                &mempool_parents,
+                &original_parents,
+            )
+            .map_err(|e| anyhow!("{}", e))?;
         }
 
         // Calculate ancestor stats
@@ -221,6 +249,14 @@ impl Mempool {
             return Err(anyhow!("mempool full"));
         }
 
+        // Check if transaction signals RBF (before moving tx)
+        let signals_rbf = tx.signals_rbf();
+
+        // If this is a replacement, evict the conflicting transactions
+        if let Some(ref evict) = eviction_set {
+            self.evict_for_replacement(evict);
+        }
+
         // Create entry
         let entry = MempoolEntry {
             tx,
@@ -236,6 +272,7 @@ impl Mempool {
             descendant_count: 1, // Just self
             descendant_size: vsize as usize,
             ancestor_fee,
+            signals_rbf,
         };
 
         // Update parent's children set and descendant counts
@@ -460,6 +497,168 @@ impl Mempool {
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // RBF (Replace-by-Fee) Methods
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// Find all mempool transactions that conflict with the given inputs.
+    /// A conflict occurs when another transaction spends the same outpoint.
+    pub fn find_conflicts(&self, inputs: &[OutPoint]) -> HashSet<[u8; 32]> {
+        let mut conflicts = HashSet::new();
+        for input in inputs {
+            if let Some(&spending_txid) = self.spenders.get(input) {
+                conflicts.insert(spending_txid);
+            }
+        }
+        conflicts
+    }
+
+    /// Get all descendants of a transaction (children, grandchildren, etc.).
+    /// Does not include the transaction itself.
+    pub fn get_all_descendants(&self, txid: &[u8; 32]) -> HashSet<[u8; 32]> {
+        let mut descendants = HashSet::new();
+        let mut to_visit = vec![*txid];
+
+        while let Some(current) = to_visit.pop() {
+            if let Some(entry) = self.txns.get(&current) {
+                for child in &entry.mempool_children {
+                    if descendants.insert(*child) {
+                        to_visit.push(*child);
+                    }
+                }
+            }
+        }
+        descendants
+    }
+
+    /// Calculate the full eviction set for replacing conflicting transactions.
+    /// Returns all transactions that would be evicted (conflicts + their descendants).
+    pub fn calculate_eviction_set(
+        &self,
+        conflicts: &HashSet<[u8; 32]>,
+    ) -> Result<EvictionSet, RbfError> {
+        let mut all_to_evict = HashSet::new();
+        let mut total_fee: u64 = 0;
+        let mut total_vsize: u32 = 0;
+
+        // Add each conflict and all its descendants
+        for conflict_txid in conflicts {
+            // Add the conflict itself
+            if all_to_evict.insert(*conflict_txid)
+                && let Some(entry) = self.txns.get(conflict_txid)
+            {
+                total_fee += entry.fee;
+                total_vsize += entry.vsize;
+            }
+
+            // Add all descendants
+            for descendant_txid in self.get_all_descendants(conflict_txid) {
+                if all_to_evict.insert(descendant_txid)
+                    && let Some(entry) = self.txns.get(&descendant_txid)
+                {
+                    total_fee += entry.fee;
+                    total_vsize += entry.vsize;
+                }
+            }
+        }
+
+        // BIP125 Rule 5: Cannot evict more than MAX_REPLACEMENT_EVICTIONS
+        if all_to_evict.len() > MAX_REPLACEMENT_EVICTIONS {
+            return Err(RbfError::TooManyEvictions {
+                count: all_to_evict.len(),
+                max: MAX_REPLACEMENT_EVICTIONS,
+            });
+        }
+
+        Ok(EvictionSet {
+            txids: all_to_evict.into_iter().collect(),
+            total_fee,
+            total_vsize,
+        })
+    }
+
+    /// Validate that a replacement transaction satisfies BIP125 rules.
+    ///
+    /// # Arguments
+    /// * `replacement_fee` - Fee of the replacement transaction
+    /// * `replacement_vsize` - Virtual size of the replacement transaction
+    /// * `conflicts` - Set of directly conflicting transaction ids
+    /// * `eviction_set` - Pre-computed eviction set
+    /// * `new_mempool_parents` - Mempool parents of the replacement tx
+    /// * `original_parents` - Mempool parents of the conflicting transactions
+    pub fn validate_replacement(
+        &self,
+        replacement_fee: u64,
+        replacement_vsize: u32,
+        conflicts: &HashSet<[u8; 32]>,
+        eviction_set: &EvictionSet,
+        new_mempool_parents: &HashSet<[u8; 32]>,
+        original_parents: &HashSet<[u8; 32]>,
+    ) -> Result<(), RbfError> {
+        // BIP125 Rule 1: All conflicting transactions must signal RBF
+        for conflict_txid in conflicts {
+            if let Some(entry) = self.txns.get(conflict_txid)
+                && !entry.signals_rbf
+            {
+                return Err(RbfError::NotReplaceable {
+                    txid: *conflict_txid,
+                });
+            }
+        }
+
+        // BIP125 Rule 2: Replacement must not introduce new unconfirmed inputs
+        // (can only spend confirmed outputs or outputs from original tx's parents)
+        for parent in new_mempool_parents {
+            if !original_parents.contains(parent) && !conflicts.contains(parent) {
+                return Err(RbfError::NewUnconfirmedInputs { txid: *parent });
+            }
+        }
+
+        // BIP125 Rule 3: Replacement must pay higher absolute fee
+        if replacement_fee <= eviction_set.total_fee {
+            return Err(RbfError::InsufficientFee {
+                required: eviction_set.total_fee + 1,
+                provided: replacement_fee,
+            });
+        }
+
+        // BIP125 Rule 4: Replacement must pay for its own bandwidth
+        // The additional fee must cover the relay cost of the replacement tx
+        let bandwidth_fee_required = (replacement_vsize as u64) * INCREMENTAL_RELAY_FEE;
+        let additional_fee = replacement_fee.saturating_sub(eviction_set.total_fee);
+        if additional_fee < bandwidth_fee_required {
+            return Err(RbfError::InsufficientBandwidthFee {
+                required: eviction_set.total_fee + bandwidth_fee_required,
+                provided: replacement_fee,
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Evict transactions for RBF replacement.
+    /// Removes all transactions in the eviction set from the mempool.
+    pub fn evict_for_replacement(&mut self, eviction_set: &EvictionSet) {
+        // Remove in reverse topological order (children before parents)
+        // to avoid issues with parent/child relationship updates
+        for txid in &eviction_set.txids {
+            self.remove_transaction(txid, false);
+        }
+    }
+
+    /// Collect the mempool parents of a set of conflicting transactions.
+    fn collect_conflict_parents(&self, conflicts: &HashSet<[u8; 32]>) -> HashSet<[u8; 32]> {
+        let mut parents = HashSet::new();
+        for conflict_txid in conflicts {
+            if let Some(entry) = self.txns.get(conflict_txid) {
+                for parent in &entry.mempool_parents {
+                    parents.insert(*parent);
+                }
+            }
+        }
+        parents
+    }
+
     /// Get mempool info for RPC.
     pub fn get_info(&self) -> MempoolInfo {
         let fees: u64 = self.txns.values().map(|e| e.fee).sum();
@@ -502,6 +701,77 @@ pub struct MempoolInfo {
     pub bytes: usize,
     pub total_fee: u64,
 }
+
+/// Information about transactions to be evicted for RBF replacement.
+#[derive(Debug, Clone)]
+pub struct EvictionSet {
+    /// Txids of all transactions to evict (conflicts + descendants).
+    pub txids: Vec<[u8; 32]>,
+    /// Total fee of all evicted transactions.
+    pub total_fee: u64,
+    /// Total virtual size of all evicted transactions.
+    pub total_vsize: u32,
+}
+
+/// RBF validation error types.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RbfError {
+    /// Conflicting transaction does not signal RBF.
+    NotReplaceable { txid: [u8; 32] },
+    /// Replacement fee is not higher than sum of evicted fees.
+    InsufficientFee { required: u64, provided: u64 },
+    /// Replacement fee rate is below minimum of conflicting transactions.
+    InsufficientFeeRate { required: u64, provided: u64 },
+    /// Too many transactions would be evicted.
+    TooManyEvictions { count: usize, max: usize },
+    /// Replacement doesn't pay enough for relay bandwidth.
+    InsufficientBandwidthFee { required: u64, provided: u64 },
+    /// Replacement introduces new unconfirmed inputs.
+    NewUnconfirmedInputs { txid: [u8; 32] },
+}
+
+impl std::fmt::Display for RbfError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RbfError::NotReplaceable { txid } => {
+                write!(f, "transaction {} does not signal RBF", hex::encode(txid))
+            }
+            RbfError::InsufficientFee { required, provided } => {
+                write!(
+                    f,
+                    "insufficient fee: need {} sats, have {} sats",
+                    required, provided
+                )
+            }
+            RbfError::InsufficientFeeRate { required, provided } => {
+                write!(
+                    f,
+                    "insufficient fee rate: need {} sat/vB, have {} sat/vB",
+                    required, provided
+                )
+            }
+            RbfError::TooManyEvictions { count, max } => {
+                write!(f, "would evict {} transactions, max is {}", count, max)
+            }
+            RbfError::InsufficientBandwidthFee { required, provided } => {
+                write!(
+                    f,
+                    "insufficient bandwidth fee: need {} sats, have {} sats",
+                    required, provided
+                )
+            }
+            RbfError::NewUnconfirmedInputs { txid } => {
+                write!(
+                    f,
+                    "replacement spends new unconfirmed input from {}",
+                    hex::encode(txid)
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for RbfError {}
 
 #[cfg(test)]
 mod tests {

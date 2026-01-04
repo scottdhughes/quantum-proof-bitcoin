@@ -102,3 +102,20 @@ pub const SEQUENCE_LOCKTIME_MASK: u32 = 0x0000ffff;
 /// Granularity of time-based relative locktimes in seconds.
 /// Time-based relative locktimes are measured in 512-second intervals.
 pub const SEQUENCE_LOCKTIME_GRANULARITY: u32 = 512;
+
+// ---- BIP125 Replace-by-Fee (RBF) constants ----
+
+/// Maximum sequence number that signals RBF opt-in.
+/// Any input with sequence <= this value signals RBF.
+pub const MAX_BIP125_RBF_SEQUENCE: u32 = 0xfffffffd;
+
+/// Recommended sequence for RBF-enabled transactions.
+pub const SEQUENCE_RBF_ENABLED: u32 = 0xfffffffd;
+
+/// Maximum number of transactions that can be evicted by a replacement.
+/// BIP125 rule 5: replacement must not evict more than 100 descendants.
+pub const MAX_REPLACEMENT_EVICTIONS: usize = 100;
+
+/// Incremental relay fee in sat/vB for replacement transactions.
+/// Replacement must pay at least this much more per vB than what it evicts.
+pub const INCREMENTAL_RELAY_FEE: u64 = 1;

@@ -13,7 +13,7 @@ use pqcrypto_traits::sign::{DetachedSignature, PublicKey as PKTrait, SecretKey a
 use serde::{Deserialize, Serialize};
 
 use crate::address::{decode_address, encode_address, qpkh32};
-use crate::constants::COINBASE_MATURITY;
+use crate::constants::{COINBASE_MATURITY, SEQUENCE_FINAL, SEQUENCE_RBF_ENABLED};
 use crate::script::build_p2qpkh;
 use crate::sighash::qpb_sighash;
 use crate::types::{OutPoint, Prevout, Transaction, TxIn, TxOut};
@@ -291,6 +291,8 @@ impl Wallet {
     /// * `amount` - Amount to send in satoshis
     /// * `fee_rate` - Fee rate in sat/vB
     /// * `utxos` - Available UTXOs from the node
+    /// * `current_height` - Current block height (for coinbase maturity)
+    /// * `rbf` - Enable BIP125 RBF opt-in (allows fee bumping)
     ///
     /// # Returns
     /// * Signed transaction ready for broadcast
@@ -301,6 +303,7 @@ impl Wallet {
         fee_rate: u64,
         utxos: Vec<(String, u32, Prevout)>,
         current_height: u32,
+        rbf: bool,
     ) -> Result<Transaction> {
         // Decode recipient address to get scriptPubKey
         let decoded = decode_address(recipient).map_err(|e| anyhow!("invalid address: {}", e))?;
@@ -372,13 +375,20 @@ impl Wallet {
             let txid_bytes = hex::decode(&utxo.txid)?;
             txid.copy_from_slice(&txid_bytes);
 
+            // Use RBF-signaling sequence if requested, otherwise final
+            let sequence = if rbf {
+                SEQUENCE_RBF_ENABLED
+            } else {
+                SEQUENCE_FINAL
+            };
+
             vin.push(TxIn {
                 prevout: OutPoint {
                     txid,
                     vout: utxo.vout,
                 },
                 script_sig: Vec::new(), // SegWit: empty script_sig
-                sequence: 0xffffffff,
+                sequence,
                 witness: Vec::new(), // Will be filled after signing
             });
 
@@ -434,6 +444,146 @@ impl Wallet {
             let pk_ser = self.file.get_pk_ser(address)?;
 
             // Witness: [sig || sighash_type, pk_ser]
+            let mut sig_ser = sig;
+            sig_ser.push(sighash_type);
+
+            tx.vin[i].witness = vec![sig_ser, pk_ser];
+        }
+
+        Ok(tx)
+    }
+
+    /// Create a replacement transaction for RBF fee bumping.
+    ///
+    /// Reuses the same inputs as the original transaction to guarantee
+    /// conflict (required for RBF). Increases fee by reducing change output.
+    ///
+    /// # Arguments
+    /// * `original_tx` - The original transaction to replace
+    /// * `original_prevouts` - Prevouts for the original transaction's inputs
+    /// * `new_fee_rate` - New fee rate in sat/vB
+    ///
+    /// # Returns
+    /// * Signed replacement transaction
+    /// * Error if change is insufficient to cover new fee
+    pub fn create_replacement_transaction(
+        &self,
+        original_tx: &Transaction,
+        original_prevouts: &[Prevout],
+        new_fee_rate: u64,
+    ) -> Result<Transaction> {
+        if original_tx.vin.len() != original_prevouts.len() {
+            return Err(anyhow!(
+                "prevouts count {} doesn't match inputs {}",
+                original_prevouts.len(),
+                original_tx.vin.len()
+            ));
+        }
+
+        if original_tx.vout.is_empty() {
+            return Err(anyhow!("original transaction has no outputs"));
+        }
+
+        // Calculate input sum
+        let input_sum: u64 = original_prevouts.iter().map(|p| p.value).sum();
+
+        // Recipient is always the first output (convention from create_transaction)
+        let recipient_output = original_tx.vout[0].clone();
+        let recipient_amount = recipient_output.value;
+
+        // Estimate transaction size for fee calculation
+        // Same formula as create_transaction
+        let input_weight = 41 * 4 + (3310 + 1953 + 10); // ~5314 WU per input
+        let output_weight = 43 * 4; // 172 WU per output
+        let base_weight = 10 * 4; // 40 WU
+
+        let num_inputs = original_tx.vin.len();
+
+        // First, try with 2 outputs (recipient + change)
+        let weight_with_change = base_weight + (num_inputs * input_weight) + (2 * output_weight);
+        let vsize_with_change = weight_with_change.div_ceil(4);
+        let fee_with_change = vsize_with_change as u64 * new_fee_rate;
+
+        let available_for_change = input_sum.saturating_sub(recipient_amount + fee_with_change);
+
+        // Determine outputs based on whether change is worth including
+        let (vout, _new_fee) = if available_for_change > 0 {
+            // Include change output
+            // Find the change address from original tx (second output if exists)
+            let change_spk = if original_tx.vout.len() > 1 {
+                original_tx.vout[1].script_pubkey.clone()
+            } else {
+                // No change in original, use first wallet address
+                if self.file.keys.is_empty() {
+                    return Err(anyhow!("wallet has no keys for change output"));
+                }
+                let pk_ser = hex::decode(&self.file.keys[0].pk_ser_hex)?;
+                let qpkh = qpkh32(&pk_ser);
+                build_p2qpkh(qpkh)
+            };
+
+            let vout = vec![
+                recipient_output,
+                TxOut {
+                    value: available_for_change,
+                    script_pubkey: change_spk,
+                },
+            ];
+            (vout, fee_with_change)
+        } else {
+            // No room for change - try without change output
+            let weight_no_change = base_weight + (num_inputs * input_weight) + output_weight;
+            let vsize_no_change = weight_no_change.div_ceil(4);
+            let fee_no_change = vsize_no_change as u64 * new_fee_rate;
+
+            if input_sum < recipient_amount + fee_no_change {
+                return Err(anyhow!(
+                    "insufficient funds for fee bump: need {} sats, have {} sats",
+                    recipient_amount + fee_no_change,
+                    input_sum
+                ));
+            }
+
+            (vec![recipient_output], fee_no_change)
+        };
+
+        // Build replacement transaction with same inputs
+        let mut vin = Vec::with_capacity(num_inputs);
+        let mut input_addresses = Vec::with_capacity(num_inputs);
+
+        for (i, orig_vin) in original_tx.vin.iter().enumerate() {
+            // Find the wallet key for this input
+            let key = self
+                .file
+                .find_key_by_spk(&original_prevouts[i].script_pubkey)
+                .ok_or_else(|| anyhow!("wallet does not own input {} (cannot sign)", i))?;
+
+            input_addresses.push(key.address.clone());
+
+            vin.push(TxIn {
+                prevout: orig_vin.prevout.clone(),
+                script_sig: Vec::new(),
+                sequence: SEQUENCE_RBF_ENABLED, // Always RBF for replacements
+                witness: Vec::new(),
+            });
+        }
+
+        let mut tx = Transaction {
+            version: original_tx.version,
+            vin,
+            vout,
+            lock_time: original_tx.lock_time,
+        };
+
+        // Sign each input
+        for (i, address) in input_addresses.iter().enumerate() {
+            let sighash_type = 0x01u8; // SIGHASH_ALL
+            let msg32 = qpb_sighash(&tx, i, original_prevouts, sighash_type, 0x00, None)
+                .map_err(|e| anyhow!("sighash failed: {:?}", e))?;
+
+            let sig = self.file.sign(address, &msg32)?;
+            let pk_ser = self.file.get_pk_ser(address)?;
+
             let mut sig_ser = sig;
             sig_ser.push(sighash_type);
 

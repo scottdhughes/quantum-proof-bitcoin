@@ -10,7 +10,7 @@ use crate::node::chainparams::{
     compute_chain_id, compute_genesis_hash, load_chainparams, select_network, to_block_header,
 };
 use crate::node::feeest::{BlockFeeStats, FeeEstimate, FeeEstimator};
-use crate::node::mempool::{Mempool, MempoolInfo};
+use crate::node::mempool::{Mempool, MempoolEntry, MempoolInfo};
 use crate::node::store::{Store, write_state};
 use crate::node::utxo::UtxoSet;
 use crate::pow::pow_hash;
@@ -257,6 +257,11 @@ impl Node {
     /// Get a transaction from the mempool.
     pub fn mempool_get(&self, txid: &[u8; 32]) -> Option<&Transaction> {
         self.mempool.get(txid).map(|e| &e.tx)
+    }
+
+    /// Get a mempool entry with full metadata (for RBF, fee inspection, etc.).
+    pub fn mempool_get_entry(&self, txid: &[u8; 32]) -> Option<MempoolEntry> {
+        self.mempool.get(txid).cloned()
     }
 
     /// Check if a transaction is in the mempool.
