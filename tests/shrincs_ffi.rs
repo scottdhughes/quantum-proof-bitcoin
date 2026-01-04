@@ -1,10 +1,19 @@
+//! SHRINCS FFI test - for external C library integration.
+//!
+//! This test requires both shrincs-dev and shrincs-ffi features.
+//! It validates that an external SHRINCS C library (e.g., Jonas Nick's
+//! reference implementation) can be loaded and used for verification.
+
 #![cfg(all(feature = "shrincs-dev", feature = "shrincs-ffi"))]
 
-use qpb_consensus::pq::verify_shrincs_dev;
+use qpb_consensus::pq::{shrincs_keypair, shrincs_sign, verify_pq, AlgorithmId};
 use std::env;
 use std::fs;
 
-// This test is skipped unless SHRINCS_LIB_PATH points to an existing file.
+/// Test that FFI library can be loaded and used for verification.
+///
+/// This test is skipped unless SHRINCS_LIB_PATH points to an existing file.
+/// The FFI path is intended for Jonas Nick's reference C implementation.
 #[test]
 fn shrincs_ffi_loads_and_verifies() {
     let path = match env::var("SHRINCS_LIB_PATH") {
@@ -19,10 +28,15 @@ fn shrincs_ffi_loads_and_verifies() {
         return;
     }
 
-    let pk = vec![0u8; 64];
-    let sig = vec![0u8; 324];
-    let msg = vec![0u8; 32];
+    // Generate real keypair and signature for FFI verification
+    let (pk_ser, key_material, mut state) = shrincs_keypair().expect("shrincs keygen");
+    let msg = [0xFFu8; 32];
+    let sig_ser = shrincs_sign(&key_material, &mut state, &msg, 0x01).expect("shrincs sign");
 
-    // Should succeed via FFI (stub returns 1 on correct lengths).
-    verify_shrincs_dev(&pk, &msg, &sig).expect("ffi verify failed");
+    // Remove sighash byte
+    let sig_raw = &sig_ser[..sig_ser.len() - 1];
+    let pk = &pk_ser[1..];
+
+    // Verify through the verify_pq dispatch (which may use FFI if available)
+    verify_pq(AlgorithmId::SHRINCS, pk, &msg, sig_raw).expect("FFI verify failed");
 }

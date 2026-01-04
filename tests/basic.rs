@@ -5,6 +5,8 @@ use qpb_consensus::{
     validate_block_basic, validate_transaction_basic, validate_witness_commitment,
     witness_merkle_root,
 };
+#[cfg(feature = "shrincs-dev")]
+use qpb_consensus::{shrincs_keypair, shrincs_sign};
 
 fn genesis_header() -> BlockHeader {
     BlockHeader {
@@ -110,6 +112,7 @@ fn p2qpkh_sighash_and_validation() {
 }
 
 #[test]
+#[cfg(not(feature = "shrincs-dev"))]
 fn p2qpkh_shrincs_alg_is_rejected() {
     // Build a tx that uses alg_id 0x30 (reserved) and ensure validation fails.
     let prevout = OutPoint {
@@ -139,6 +142,58 @@ fn p2qpkh_shrincs_alg_is_rejected() {
     let prevouts = vec![Prevout::regular(1_0000, spk)];
     let res = validate_transaction_basic(&tx, &prevouts);
     assert!(res.is_err(), "SHRINCS alg_id must be rejected at consensus");
+}
+
+/// Test P2QPKH with SHRINCS signature (only when shrincs-dev feature is enabled).
+#[test]
+#[cfg(feature = "shrincs-dev")]
+fn p2qpkh_shrincs_roundtrip() {
+    // 1. Generate SHRINCS keypair
+    let (pk_ser, key_material, mut state) = shrincs_keypair().expect("shrincs keygen");
+
+    // 2. Create P2QPKH output using SHRINCS public key
+    let qpkh = qpb_consensus::qpkh32(&pk_ser);
+    let spk = qpb_consensus::build_p2qpkh(qpkh);
+
+    // 3. Build transaction
+    let prev_txid = [0u8; 32];
+    let txin = TxIn {
+        prevout: OutPoint {
+            txid: prev_txid,
+            vout: 0,
+        },
+        script_sig: Vec::new(),
+        sequence: 0xffffffff,
+        witness: vec![Vec::new(), pk_ser.clone()], // placeholder sig, pk
+    };
+    let txout = TxOut {
+        value: 50_0000_0000, // 50 QPB
+        script_pubkey: spk.clone(),
+    };
+    let mut tx = Transaction {
+        version: 1,
+        vin: vec![txin],
+        vout: vec![txout],
+        lock_time: 0,
+    };
+
+    let prevouts = vec![Prevout::regular(50_0000_0000, spk.clone())];
+
+    // 4. Compute sighash
+    let msg = qpb_sighash(&tx, 0, &prevouts, 0x01, 0x00, None).expect("sighash");
+    assert_eq!(msg.len(), 32);
+
+    // 5. Sign with SHRINCS
+    let sig_ser = shrincs_sign(&key_material, &mut state, &msg, 0x01).expect("shrincs sign");
+
+    // Update witness with actual signature
+    tx.vin[0].witness = vec![sig_ser, pk_ser];
+
+    // 6. Validate transaction
+    let cost = validate_transaction_basic(&tx, &prevouts).expect("validation should succeed");
+
+    // SHRINCS costs 2 PQSigCheck units (vs 1 for ML-DSA-65)
+    assert_eq!(cost, 2, "SHRINCS should cost 2 PQSigCheck units");
 }
 
 #[test]
