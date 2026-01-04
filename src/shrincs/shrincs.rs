@@ -20,10 +20,12 @@
 
 use crate::shrincs::error::ShrincsError;
 use crate::shrincs::pors::{self, PorsParams, PorsPublicKey, PorsSecretKey, PorsSignature};
+use crate::shrincs::sphincs_fallback::{
+    self, sphincs_pk_hash, SPHINCS_PK_BYTES, SPHINCS_SIG_BYTES, SPHINCS_SK_BYTES,
+};
 use crate::shrincs::state::SigningState;
 use crate::shrincs::tree::{
-    self, build_xmss_layer, sign_layer, HypertreeParams, HypertreeSignature, XmssLayer,
-    XmssLayerSignature,
+    build_xmss_layer, sign_layer, HypertreeParams, HypertreeSignature, XmssLayer,
 };
 use crate::shrincs::wots::WotsCParams;
 use rand::RngCore;
@@ -202,6 +204,152 @@ pub struct ShrincsKeyMaterial {
     pub xmss_layers: Vec<XmssLayer>,
 }
 
+// ============================================================================
+// Extended Key Material with SPHINCS+ Fallback
+// ============================================================================
+
+/// Extended key material including SPHINCS+ fallback keys
+///
+/// When the stateful XMSS tree is exhausted or state is corrupted,
+/// the SPHINCS+ fallback provides stateless signing capability.
+pub struct ShrincsExtendedKeyMaterial {
+    /// Base stateful key material (PORS + XMSS hypertree)
+    pub base: ShrincsKeyMaterial,
+    /// SPHINCS+ fallback secret key (64 bytes)
+    pub sphincs_sk: Vec<u8>,
+    /// SPHINCS+ fallback public key (32 bytes)
+    pub sphincs_pk: Vec<u8>,
+}
+
+/// Extended public key with SPHINCS+ fallback info
+#[derive(Clone, PartialEq, Eq)]
+pub struct ShrincsExtendedPublicKey {
+    /// Base public key
+    pub base: ShrincsFullPublicKey,
+    /// Hash of SPHINCS+ public key (32 bytes)
+    /// Full pk must be provided separately for fallback verification
+    pub sphincs_pk_hash: [u8; 32],
+}
+
+impl ShrincsExtendedPublicKey {
+    /// Serialize to bytes (fixed 96 bytes: base + sphincs_pk_hash)
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let base_bytes = self.base.to_bytes();
+        let mut out = Vec::with_capacity(base_bytes.len() + 32);
+        out.extend_from_slice(&base_bytes);
+        out.extend_from_slice(&self.sphincs_pk_hash);
+        out
+    }
+
+    /// Deserialize from bytes
+    pub fn from_bytes(bytes: &[u8], params: ShrincsFullParams) -> Option<Self> {
+        let n = params.n;
+        let base_len = 32 + n * 2;
+        if bytes.len() < base_len + 32 {
+            return None;
+        }
+
+        let base = ShrincsFullPublicKey::from_bytes(&bytes[..base_len], params)?;
+        let sphincs_pk_hash: [u8; 32] = bytes[base_len..base_len + 32].try_into().ok()?;
+
+        Some(Self {
+            base,
+            sphincs_pk_hash,
+        })
+    }
+
+    /// Verify that a provided SPHINCS+ public key matches the stored hash
+    pub fn verify_sphincs_pk(&self, pk: &[u8]) -> bool {
+        sphincs_pk_hash(pk) == self.sphincs_pk_hash
+    }
+}
+
+// ============================================================================
+// Unified Signature (Stateful or Fallback)
+// ============================================================================
+
+/// Signature type byte for wire format
+const SIG_TYPE_STATEFUL: u8 = 0x00;
+const SIG_TYPE_FALLBACK: u8 = 0x01;
+
+/// Unified signature that can be either stateful or fallback
+#[derive(Clone)]
+pub enum ShrincsUnifiedSignature {
+    /// Stateful PORS+XMSS signature (~3.4KB)
+    Stateful(ShrincsFullSignature),
+    /// SPHINCS+ fallback signature (~7.8KB)
+    Fallback {
+        /// The SPHINCS+ signature bytes
+        signature: Vec<u8>,
+        /// Reserved for future use (e.g., rotation counter)
+        reserved: u32,
+    },
+}
+
+impl ShrincsUnifiedSignature {
+    /// Check if this is a fallback signature
+    pub fn is_fallback(&self) -> bool {
+        matches!(self, ShrincsUnifiedSignature::Fallback { .. })
+    }
+
+    /// Get serialized size
+    pub fn size(&self) -> usize {
+        match self {
+            ShrincsUnifiedSignature::Stateful(sig) => 1 + sig.size(),
+            ShrincsUnifiedSignature::Fallback { signature, .. } => 1 + 4 + signature.len(),
+        }
+    }
+
+    /// Serialize to bytes with type prefix
+    pub fn to_bytes(&self) -> Vec<u8> {
+        match self {
+            ShrincsUnifiedSignature::Stateful(sig) => {
+                let inner = sig.to_bytes();
+                let mut out = Vec::with_capacity(1 + inner.len());
+                out.push(SIG_TYPE_STATEFUL);
+                out.extend_from_slice(&inner);
+                out
+            }
+            ShrincsUnifiedSignature::Fallback {
+                signature,
+                reserved,
+            } => {
+                let mut out = Vec::with_capacity(1 + 4 + signature.len());
+                out.push(SIG_TYPE_FALLBACK);
+                out.extend_from_slice(&reserved.to_le_bytes());
+                out.extend_from_slice(signature);
+                out
+            }
+        }
+    }
+
+    /// Deserialize from bytes
+    pub fn from_bytes(bytes: &[u8], params: ShrincsFullParams) -> Option<Self> {
+        if bytes.is_empty() {
+            return None;
+        }
+
+        match bytes[0] {
+            SIG_TYPE_STATEFUL => {
+                let sig = ShrincsFullSignature::from_bytes(&bytes[1..], params)?;
+                Some(ShrincsUnifiedSignature::Stateful(sig))
+            }
+            SIG_TYPE_FALLBACK => {
+                if bytes.len() < 5 {
+                    return None;
+                }
+                let reserved = u32::from_le_bytes(bytes[1..5].try_into().ok()?);
+                let signature = bytes[5..].to_vec();
+                Some(ShrincsUnifiedSignature::Fallback {
+                    signature,
+                    reserved,
+                })
+            }
+            _ => None,
+        }
+    }
+}
+
 /// Generate SHRINCS keypair
 pub fn keygen(params: ShrincsFullParams) -> Result<(ShrincsKeyMaterial, SigningState), ShrincsError> {
     let mut rng = rand::thread_rng();
@@ -269,6 +417,219 @@ pub fn keygen_from_seeds(
     let state = SigningState::new(max_signatures);
 
     Ok((key_material, state))
+}
+
+// ============================================================================
+// Extended Keygen with SPHINCS+ Fallback
+// ============================================================================
+
+/// Generate SHRINCS keypair with SPHINCS+ fallback keys
+///
+/// This is the recommended keygen for production use. It generates both:
+/// - Stateful PORS+XMSS keys (efficient, ~3.4KB signatures)
+/// - SPHINCS+ fallback keys (stateless, ~7.8KB signatures)
+///
+/// # Returns
+/// * Extended key material with both key types
+/// * Initial signing state
+/// * Extended public key (with SPHINCS+ pk hash)
+#[cfg(feature = "shrincs-dev")]
+pub fn keygen_with_fallback(
+    params: ShrincsFullParams,
+) -> Result<(ShrincsExtendedKeyMaterial, SigningState, ShrincsExtendedPublicKey), ShrincsError> {
+    let mut rng = rand::thread_rng();
+
+    // Generate seeds
+    let mut sk_seed = [0u8; 32];
+    let mut pk_seed = [0u8; 32];
+    let mut prf_key = [0u8; 32];
+    rng.fill_bytes(&mut sk_seed);
+    rng.fill_bytes(&mut pk_seed);
+    rng.fill_bytes(&mut prf_key);
+
+    keygen_with_fallback_from_seeds(sk_seed, pk_seed, prf_key, params)
+}
+
+/// Generate extended keypair from explicit seeds (for deterministic testing)
+#[cfg(feature = "shrincs-dev")]
+pub fn keygen_with_fallback_from_seeds(
+    sk_seed: [u8; 32],
+    pk_seed: [u8; 32],
+    prf_key: [u8; 32],
+    params: ShrincsFullParams,
+) -> Result<(ShrincsExtendedKeyMaterial, SigningState, ShrincsExtendedPublicKey), ShrincsError> {
+    // Generate base SHRINCS keys
+    let (base, state) = keygen_from_seeds(sk_seed, pk_seed, prf_key, params)?;
+
+    // Generate SPHINCS+ fallback keys
+    let (sphincs_pk, sphincs_sk) = sphincs_fallback::sphincs_keygen()?;
+
+    // Compute SPHINCS+ pk hash for embedding in extended public key
+    let pk_hash = sphincs_pk_hash(&sphincs_pk);
+
+    let extended_pk = ShrincsExtendedPublicKey {
+        base: base.pk.clone(),
+        sphincs_pk_hash: pk_hash,
+    };
+
+    let extended_material = ShrincsExtendedKeyMaterial {
+        base,
+        sphincs_sk,
+        sphincs_pk,
+    };
+
+    Ok((extended_material, state, extended_pk))
+}
+
+/// Stub when feature is disabled
+#[cfg(not(feature = "shrincs-dev"))]
+pub fn keygen_with_fallback(
+    _params: ShrincsFullParams,
+) -> Result<(ShrincsExtendedKeyMaterial, SigningState, ShrincsExtendedPublicKey), ShrincsError> {
+    Err(ShrincsError::NotImplemented(
+        "keygen_with_fallback requires shrincs-dev feature",
+    ))
+}
+
+/// Stub when feature is disabled
+#[cfg(not(feature = "shrincs-dev"))]
+pub fn keygen_with_fallback_from_seeds(
+    _sk_seed: [u8; 32],
+    _pk_seed: [u8; 32],
+    _prf_key: [u8; 32],
+    _params: ShrincsFullParams,
+) -> Result<(ShrincsExtendedKeyMaterial, SigningState, ShrincsExtendedPublicKey), ShrincsError> {
+    Err(ShrincsError::NotImplemented(
+        "keygen_with_fallback_from_seeds requires shrincs-dev feature",
+    ))
+}
+
+// ============================================================================
+// Auto-Fallback Signing
+// ============================================================================
+
+/// Sign with automatic fallback to SPHINCS+
+///
+/// Tries stateful signing first. On state exhaustion or `force_fallback`,
+/// uses SPHINCS+ for stateless signing.
+///
+/// # Arguments
+/// * `msg` - 32-byte message (typically transaction hash)
+/// * `key_material` - Extended key material with fallback keys
+/// * `state` - Mutable signing state (not consumed on fallback)
+/// * `force_fallback` - If true, skip stateful signing and use SPHINCS+
+///
+/// # Returns
+/// * `ShrincsUnifiedSignature::Stateful` - Normal stateful signature
+/// * `ShrincsUnifiedSignature::Fallback` - SPHINCS+ signature (on exhaustion or forced)
+#[cfg(feature = "shrincs-dev")]
+pub fn sign_auto(
+    msg: &[u8; 32],
+    key_material: &ShrincsExtendedKeyMaterial,
+    state: &mut SigningState,
+    force_fallback: bool,
+) -> Result<ShrincsUnifiedSignature, ShrincsError> {
+    // Check for forced fallback mode
+    if force_fallback {
+        return sign_fallback(msg, key_material);
+    }
+
+    // Try stateful signing
+    match sign(msg, &key_material.base, state) {
+        Ok(sig) => Ok(ShrincsUnifiedSignature::Stateful(sig)),
+        Err(ShrincsError::StateExhausted) | Err(ShrincsError::StateCorrupted(_)) => {
+            // Fall back to SPHINCS+
+            sign_fallback(msg, key_material)
+        }
+        Err(e) => Err(e),
+    }
+}
+
+/// Sign using SPHINCS+ fallback directly
+#[cfg(feature = "shrincs-dev")]
+fn sign_fallback(
+    msg: &[u8; 32],
+    key_material: &ShrincsExtendedKeyMaterial,
+) -> Result<ShrincsUnifiedSignature, ShrincsError> {
+    let signature = sphincs_fallback::sphincs_sign(msg, &key_material.sphincs_sk)?;
+    Ok(ShrincsUnifiedSignature::Fallback {
+        signature,
+        reserved: 0,
+    })
+}
+
+/// Stub when feature is disabled
+#[cfg(not(feature = "shrincs-dev"))]
+pub fn sign_auto(
+    _msg: &[u8; 32],
+    _key_material: &ShrincsExtendedKeyMaterial,
+    _state: &mut SigningState,
+    _force_fallback: bool,
+) -> Result<ShrincsUnifiedSignature, ShrincsError> {
+    Err(ShrincsError::NotImplemented(
+        "sign_auto requires shrincs-dev feature",
+    ))
+}
+
+// ============================================================================
+// Unified Verification
+// ============================================================================
+
+/// Verify a unified signature (stateful or fallback)
+///
+/// # Arguments
+/// * `msg` - Original 32-byte message
+/// * `sig` - Unified signature
+/// * `pk` - Extended public key (contains SPHINCS+ pk hash)
+/// * `sphincs_pk` - Full SPHINCS+ public key (required for fallback verification)
+///
+/// # Returns
+/// * `Ok(())` on valid signature
+/// * `Err` on invalid signature or missing data
+#[cfg(feature = "shrincs-dev")]
+pub fn verify_unified(
+    msg: &[u8; 32],
+    sig: &ShrincsUnifiedSignature,
+    pk: &ShrincsExtendedPublicKey,
+    sphincs_pk: Option<&[u8]>,
+) -> Result<(), ShrincsError> {
+    match sig {
+        ShrincsUnifiedSignature::Stateful(stateful_sig) => {
+            // Verify using base SHRINCS verification
+            verify(msg, stateful_sig, &pk.base)
+        }
+        ShrincsUnifiedSignature::Fallback { signature, .. } => {
+            // SPHINCS+ verification requires the full public key
+            let sphincs_pk = sphincs_pk.ok_or_else(|| {
+                ShrincsError::InvalidPublicKey(
+                    "SPHINCS+ public key required for fallback verification".into(),
+                )
+            })?;
+
+            // Verify the provided pk matches the stored hash
+            if !pk.verify_sphincs_pk(sphincs_pk) {
+                return Err(ShrincsError::InvalidPublicKey(
+                    "SPHINCS+ public key does not match stored hash".into(),
+                ));
+            }
+
+            // Verify SPHINCS+ signature
+            sphincs_fallback::sphincs_verify(msg, signature, sphincs_pk)
+        }
+    }
+}
+
+/// Stub when feature is disabled
+#[cfg(not(feature = "shrincs-dev"))]
+pub fn verify_unified(
+    _msg: &[u8; 32],
+    _sig: &ShrincsUnifiedSignature,
+    _pk: &ShrincsExtendedPublicKey,
+    _sphincs_pk: Option<&[u8]>,
+) -> Result<(), ShrincsError> {
+    Err(ShrincsError::NotImplemented(
+        "verify_unified requires shrincs-dev feature",
+    ))
 }
 
 /// Generate PRF-based randomness for signing
@@ -554,5 +915,208 @@ mod tests {
         // Actual size depends on auth set size (variable)
         println!("Estimated signature size: {} bytes", estimate);
         assert!(estimate > 2000 && estimate < 5000);
+    }
+
+    // ========================================================================
+    // SPHINCS+ Fallback Tests (require shrincs-dev feature)
+    // ========================================================================
+
+    #[test]
+    #[cfg(feature = "shrincs-dev")]
+    fn test_keygen_with_fallback() {
+        let params = test_params();
+        let result = keygen_with_fallback(params);
+        assert!(result.is_ok(), "keygen_with_fallback should succeed");
+
+        let (key_material, state, ext_pk) = result.unwrap();
+
+        // Base keys should be valid
+        assert_eq!(key_material.base.pk.pors_root.len(), params.n);
+        assert_eq!(key_material.base.pk.hypertree_root.len(), params.n);
+
+        // SPHINCS+ keys should have correct sizes
+        assert_eq!(key_material.sphincs_pk.len(), SPHINCS_PK_BYTES);
+        assert_eq!(key_material.sphincs_sk.len(), SPHINCS_SK_BYTES);
+
+        // Extended pk should match
+        assert_eq!(ext_pk.base.pors_root, key_material.base.pk.pors_root);
+
+        // SPHINCS+ pk hash should be correct
+        assert!(ext_pk.verify_sphincs_pk(&key_material.sphincs_pk));
+
+        assert_eq!(state.remaining_leaves(), params.hypertree.max_signatures());
+    }
+
+    #[test]
+    #[cfg(feature = "shrincs-dev")]
+    fn test_sign_auto_stateful() {
+        let params = test_params();
+        let (key_material, mut state, ext_pk) = keygen_with_fallback(params).unwrap();
+
+        let msg = [0xABu8; 32];
+
+        // Normal signing should use stateful path
+        let sig = sign_auto(&msg, &key_material, &mut state, false).unwrap();
+
+        assert!(
+            !sig.is_fallback(),
+            "Normal signing should produce stateful signature"
+        );
+
+        // Verify the signature
+        let result = verify_unified(&msg, &sig, &ext_pk, Some(&key_material.sphincs_pk));
+        assert!(result.is_ok(), "Stateful signature should verify");
+
+        // Check state advanced
+        assert_eq!(
+            state.remaining_leaves(),
+            params.hypertree.max_signatures() - 1
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "shrincs-dev")]
+    fn test_sign_auto_forced_fallback() {
+        let params = test_params();
+        let (key_material, mut state, ext_pk) = keygen_with_fallback(params).unwrap();
+
+        let msg = [0xCDu8; 32];
+
+        // Forced fallback should use SPHINCS+
+        let sig = sign_auto(&msg, &key_material, &mut state, true).unwrap();
+
+        assert!(sig.is_fallback(), "Forced fallback should produce SPHINCS+ signature");
+
+        // Verify the signature (requires SPHINCS+ pk)
+        let result = verify_unified(&msg, &sig, &ext_pk, Some(&key_material.sphincs_pk));
+        assert!(result.is_ok(), "Fallback signature should verify");
+
+        // State should NOT advance (fallback doesn't consume leaves)
+        assert_eq!(
+            state.remaining_leaves(),
+            params.hypertree.max_signatures(),
+            "Fallback signing should not consume state"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "shrincs-dev")]
+    fn test_fallback_wrong_message_fails() {
+        let params = test_params();
+        let (key_material, mut state, ext_pk) = keygen_with_fallback(params).unwrap();
+
+        let msg = [0xEFu8; 32];
+        let wrong_msg = [0x12u8; 32];
+
+        let sig = sign_auto(&msg, &key_material, &mut state, true).unwrap();
+        assert!(sig.is_fallback());
+
+        // Verification with wrong message should fail
+        let result = verify_unified(&wrong_msg, &sig, &ext_pk, Some(&key_material.sphincs_pk));
+        assert!(result.is_err(), "Wrong message should fail fallback verification");
+    }
+
+    #[test]
+    #[cfg(feature = "shrincs-dev")]
+    fn test_fallback_wrong_key_fails() {
+        let params = test_params();
+        let (key_material1, mut state1, ext_pk1) = keygen_with_fallback(params).unwrap();
+        let (key_material2, _, _) = keygen_with_fallback(params).unwrap();
+
+        let msg = [0x34u8; 32];
+        let sig = sign_auto(&msg, &key_material1, &mut state1, true).unwrap();
+
+        // Verification with different SPHINCS+ pk should fail (hash mismatch)
+        let result = verify_unified(&msg, &sig, &ext_pk1, Some(&key_material2.sphincs_pk));
+        assert!(result.is_err(), "Wrong SPHINCS+ key should fail verification");
+    }
+
+    #[test]
+    #[cfg(feature = "shrincs-dev")]
+    fn test_fallback_missing_sphincs_pk() {
+        let params = test_params();
+        let (key_material, mut state, ext_pk) = keygen_with_fallback(params).unwrap();
+
+        let msg = [0x56u8; 32];
+        let sig = sign_auto(&msg, &key_material, &mut state, true).unwrap();
+
+        // Fallback verification without SPHINCS+ pk should fail
+        let result = verify_unified(&msg, &sig, &ext_pk, None);
+        assert!(result.is_err(), "Missing SPHINCS+ pk should fail");
+    }
+
+    #[test]
+    #[cfg(feature = "shrincs-dev")]
+    fn test_unified_signature_serialization() {
+        let params = test_params();
+        let (key_material, mut state, ext_pk) = keygen_with_fallback(params).unwrap();
+
+        let msg = [0x78u8; 32];
+
+        // Test stateful signature serialization
+        let stateful_sig = sign_auto(&msg, &key_material, &mut state, false).unwrap();
+        let stateful_bytes = stateful_sig.to_bytes();
+        let parsed_stateful = ShrincsUnifiedSignature::from_bytes(&stateful_bytes, params).unwrap();
+        assert!(!parsed_stateful.is_fallback());
+        assert!(verify_unified(&msg, &parsed_stateful, &ext_pk, Some(&key_material.sphincs_pk)).is_ok());
+
+        // Test fallback signature serialization
+        let fallback_sig = sign_auto(&msg, &key_material, &mut state, true).unwrap();
+        let fallback_bytes = fallback_sig.to_bytes();
+        let parsed_fallback = ShrincsUnifiedSignature::from_bytes(&fallback_bytes, params).unwrap();
+        assert!(parsed_fallback.is_fallback());
+        assert!(verify_unified(&msg, &parsed_fallback, &ext_pk, Some(&key_material.sphincs_pk)).is_ok());
+    }
+
+    #[test]
+    #[cfg(feature = "shrincs-dev")]
+    fn test_signature_size_comparison() {
+        let params = test_params();
+        let (key_material, mut state, _) = keygen_with_fallback(params).unwrap();
+
+        let msg = [0x9Au8; 32];
+
+        // Get stateful signature
+        let stateful_sig = sign_auto(&msg, &key_material, &mut state, false).unwrap();
+        let stateful_size = stateful_sig.size();
+
+        // Get fallback signature
+        let fallback_sig = sign_auto(&msg, &key_material, &mut state, true).unwrap();
+        let fallback_size = fallback_sig.size();
+
+        println!("Stateful signature size: {} bytes", stateful_size);
+        println!("Fallback signature size: {} bytes", fallback_size);
+
+        // Fallback should be larger (~7.8KB vs ~3.4KB)
+        assert!(
+            fallback_size > stateful_size,
+            "Fallback sig ({}) should be larger than stateful sig ({})",
+            fallback_size,
+            stateful_size
+        );
+
+        // Fallback should be approximately SPHINCS signature size
+        assert!(
+            fallback_size > 7000 && fallback_size < 8500,
+            "Fallback size {} should be ~7.8KB",
+            fallback_size
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "shrincs-dev")]
+    fn test_extended_public_key_serialization() {
+        let params = test_params();
+        let (key_material, _, ext_pk) = keygen_with_fallback(params).unwrap();
+
+        let bytes = ext_pk.to_bytes();
+        let parsed = ShrincsExtendedPublicKey::from_bytes(&bytes, params).unwrap();
+
+        assert_eq!(parsed.base.pors_root, ext_pk.base.pors_root);
+        assert_eq!(parsed.base.hypertree_root, ext_pk.base.hypertree_root);
+        assert_eq!(parsed.sphincs_pk_hash, ext_pk.sphincs_pk_hash);
+
+        // Verify SPHINCS+ pk still works
+        assert!(parsed.verify_sphincs_pk(&key_material.sphincs_pk));
     }
 }

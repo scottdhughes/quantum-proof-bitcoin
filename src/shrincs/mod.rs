@@ -36,6 +36,7 @@ pub mod error;
 pub mod params;
 pub mod pors;
 pub mod shrincs;
+pub mod sphincs_fallback;
 pub mod state;
 pub mod tree;
 pub mod types;

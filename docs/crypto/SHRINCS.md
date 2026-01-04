@@ -12,20 +12,26 @@ SHRINCS is a **hybrid stateful + stateless** post-quantum signature scheme desig
 | Aspect | Status |
 |--------|--------|
 | **Consensus** | Reserved (alg_id 0x30), **inactive** at genesis |
-| **Implementation** | Awaiting reference implementation |
-| **Target Security** | NIST Level 3 (192-bit) |
+| **Implementation** | Phase 1-3 complete (WOTS+C, PORS+FP, XMSS^MT, SPHINCS+ fallback) |
+| **Target Security** | NIST Level 1 (128-bit) dev, Level 3 (192-bit) production |
 | **Activation** | Requires hard fork + security audit |
 
-## Implementation Plan
+## Implementation Status
 
-### Strategy: Wait for Reference Implementation
+### Completed Phases
 
-Given the production-path goal, we are **not** implementing SHRINCS cryptography from scratch. Instead:
+| Phase | Components | Status |
+|-------|------------|--------|
+| **Phase 1** | WOTS+C (counter grinding), basic XMSS tree | ✅ Complete |
+| **Phase 2** | PORS+FP (octopus auth), XMSS^MT hypertree | ✅ Complete |
+| **Phase 3** | SPHINCS+-128s fallback, unified signature type | ✅ Complete |
+| **Phase 4** | Consensus integration, AlgorithmId 0x30 wiring | Pending |
 
-1. **Monitor** Jonas Nick's GitHub and Delving Bitcoin thread
-2. **Prepare** codebase architecture for integration
-3. **Port/Wrap** when reference implementation becomes available
-4. **Audit** before consensus activation
+### Remaining Work
+
+1. **Wire into consensus** (`src/pq.rs`, `src/validation.rs`)
+2. **State persistence** (file-based with atomic updates)
+3. **Security audit** before activation
 
 ### Monitoring
 
@@ -113,34 +119,48 @@ Fallback signature:
 └──────────┴───────────┴─────────────────────────────────────┘
 ```
 
-## Comparison to Current Implementation
+## Current Implementation vs Target
 
-| Aspect | Current Stub (`shrincs_proto/`) | Target (Level 3) |
-|--------|--------------------------------|------------------|
+| Aspect | Current (Phase 3) | Target (Production) |
+|--------|-------------------|---------------------|
 | PK size | 64 bytes | 64 bytes ✓ |
-| Sig size | 324 bytes (toy) | 636+ bytes |
-| WOTS w | 16 (toy) | 256 |
-| Tree | Height=1 (toy) | Unbalanced |
-| Security | None | 192-bit PQ |
-| Fallback | Fake FORS | Real SPHINCS+ |
+| Stateful sig | ~3.4 KB | ~3.4 KB ✓ |
+| Fallback sig | ~7.8 KB (SPHINCS+-128s) | ~7.8 KB ✓ |
+| WOTS w | 256 | 256 ✓ |
+| Tree | XMSS^MT hypertree | XMSS^MT ✓ |
+| Security | 128-bit PQ (Level 1) | 192-bit PQ (Level 3) |
+| Fallback | SPHINCS+-SHA2-128s | SPHINCS+-SHA2-192s |
+| State | In-memory | File-based + atomic |
 
 ## Codebase Structure
 
 ```
-src/shrincs/           # New production module (in progress)
-├── mod.rs             # Module entry, re-exports
-├── params.rs          # Level 1/3 parameter definitions
-├── types.rs           # Key and signature types
-├── error.rs           # Error types
-├── api.rs             # Trait definitions (keygen, sign, verify)
-└── state.rs           # State management interface
+src/shrincs/               # Production SHRINCS implementation
+├── mod.rs                 # Module entry, re-exports
+├── params.rs              # Level 1/3 parameter definitions
+├── types.rs               # Key and signature types
+├── error.rs               # Error types
+├── api.rs                 # Trait definitions (keygen, sign, verify)
+├── state.rs               # State management (v1/v2 formats, layer tracking)
+├── wots.rs                # WOTS+C implementation (counter grinding)
+├── pors.rs                # PORS+FP (octopus auth, few-time signatures)
+├── tree.rs                # XMSS^MT hypertree (d-layer structure)
+├── shrincs.rs             # Full orchestrator (keygen, sign, verify, fallback)
+└── sphincs_fallback.rs    # SPHINCS+-128s stateless fallback
 
-src/shrincs_proto/     # Legacy stubs (deprecated)
-├── wots_c.rs          # Toy WOTS+ implementation
-├── xmss_unbalanced.rs # Fake Merkle tree
-├── fors.rs            # Fake FORS
-└── hybrid.rs          # Integration stub
+tests/
+├── shrincs_phase2.rs      # Integration tests for PORS, hypertree, state
+└── shrincs_roundtrip.rs   # End-to-end signature roundtrip tests
 ```
+
+### Key Types
+
+| Type | Purpose |
+|------|---------|
+| `ShrincsKeyMaterial` | Stateful PORS+XMSS keys |
+| `ShrincsExtendedKeyMaterial` | Stateful + SPHINCS+ fallback keys |
+| `ShrincsUnifiedSignature` | Enum: `Stateful` or `Fallback` |
+| `SigningState` | Leaf allocation, v2 layer tracking |
 
 ## Consensus Integration Path
 
@@ -156,7 +176,7 @@ When reference implementation is available:
 ## Open Questions
 
 1. **State Storage**: File-based with atomic updates? Database? Hardware wallet?
-2. **Fallback Trigger**: Auto-detect corruption? Explicit user request? Leaf exhaustion?
+2. ~~**Fallback Trigger**~~: ✅ Implemented - auto on `StateExhausted`/`StateCorrupted`, or via `force_fallback` flag
 3. **MPC Compatibility**: How to handle N-of-N multisig with stateful scheme?
 
 ## References
