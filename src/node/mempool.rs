@@ -470,6 +470,25 @@ impl Mempool {
         }
     }
 
+    /// Get fee rate distribution for fee estimation.
+    ///
+    /// Returns pairs of (fee_rate_millionths, vsize) sorted by fee rate descending.
+    /// Used by the fee estimator to find the fee rate at a given mempool depth.
+    pub fn fee_rate_distribution(&self) -> Vec<(u64, u32)> {
+        // Collect entries sorted by ancestor fee rate (descending)
+        let mut entries: Vec<_> = self
+            .by_ancestor_fee_rate
+            .iter()
+            .filter_map(|key| self.txns.get(&key.txid))
+            .map(|e| (e.fee_rate_millionths, e.vsize))
+            .collect();
+
+        // Sort by fee rate descending (by_ancestor_fee_rate uses ancestor rate,
+        // but we want individual tx rate for fee estimation)
+        entries.sort_by(|a, b| b.0.cmp(&a.0));
+        entries
+    }
+
     /// Get all txids in the mempool.
     pub fn all_txids(&self) -> Vec<[u8; 32]> {
         self.txns.keys().copied().collect()

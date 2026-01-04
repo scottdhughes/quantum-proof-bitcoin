@@ -9,6 +9,7 @@ use crate::node::chain::{ChainIndex, UndoData};
 use crate::node::chainparams::{
     compute_chain_id, compute_genesis_hash, load_chainparams, select_network, to_block_header,
 };
+use crate::node::feeest::{BlockFeeStats, FeeEstimate, FeeEstimator};
 use crate::node::mempool::{Mempool, MempoolInfo};
 use crate::node::store::{Store, write_state};
 use crate::node::utxo::UtxoSet;
@@ -25,6 +26,7 @@ pub struct Node {
     utxo: UtxoSet,
     mempool: Mempool,
     chain_index: ChainIndex,
+    fee_estimator: FeeEstimator,
     #[allow(dead_code)]
     params_path: PathBuf,
     no_pow: bool,
@@ -106,6 +108,7 @@ impl Node {
             utxo,
             mempool: Mempool::new(),
             chain_index,
+            fee_estimator: FeeEstimator::new(),
             params_path,
             no_pow,
         })
@@ -420,6 +423,10 @@ impl Node {
         let confirmed_txids: Vec<[u8; 32]> = block.txdata.iter().map(|tx| tx.txid()).collect();
         self.mempool.remove_confirmed(&confirmed_txids);
 
+        // Record fee statistics for fee estimation
+        let fee_stats = compute_block_fee_stats(block, &prevouts_by_tx, new_height as u64);
+        self.fee_estimator.record_block(fee_stats);
+
         Ok(())
     }
 
@@ -531,6 +538,16 @@ impl Node {
     /// Returns the txid if accepted, or an error if rejected.
     pub fn handle_incoming_tx(&mut self, tx: Transaction) -> Result<[u8; 32]> {
         self.add_to_mempool(tx)
+    }
+
+    /// Estimate fee rate for confirmation within target blocks.
+    ///
+    /// Returns a fee estimate with the recommended sat/vB rate and
+    /// any warnings if estimation data was limited.
+    pub fn estimate_smart_fee(&self, conf_target: u64) -> FeeEstimate {
+        // Use floor weight as max block weight for capacity calculation
+        self.fee_estimator
+            .estimate(&self.mempool, conf_target, WEIGHT_FLOOR_WU)
     }
 }
 
@@ -700,4 +717,61 @@ fn parse_transaction_cursor(cur: &mut Cursor<Vec<u8>>) -> Result<Transaction> {
         vout: vout_vec,
         lock_time,
     })
+}
+
+/// Compute fee statistics for a connected block.
+///
+/// Calculates minimum and median fee rates from transactions in the block.
+/// Used to build historical data for fee estimation.
+fn compute_block_fee_stats(
+    block: &Block,
+    prevouts_by_tx: &[Vec<Prevout>],
+    height: u64,
+) -> BlockFeeStats {
+    // Collect fee rates for non-coinbase transactions (scaled by 1000)
+    let mut fee_rates: Vec<u64> = Vec::new();
+    let mut total_weight: u32 = 0;
+
+    for (tx_idx, tx) in block.txdata.iter().enumerate() {
+        if tx_idx == 0 {
+            // Skip coinbase
+            continue;
+        }
+
+        // Calculate fee from prevouts
+        let input_sum: u64 = prevouts_by_tx[tx_idx].iter().map(|p| p.value).sum();
+        let output_sum: u64 = tx.vout.iter().map(|o| o.value).sum();
+        let fee = input_sum.saturating_sub(output_sum);
+
+        // Calculate weight and vsize (same formula as mempool)
+        let base_bytes = tx.serialize(false).len();
+        let full_bytes = tx.serialize(true).len();
+        let witness_bytes = full_bytes.saturating_sub(base_bytes);
+        let weight = (4 * base_bytes + witness_bytes) as u32;
+        let vsize = weight.div_ceil(4);
+        total_weight = total_weight.saturating_add(weight);
+
+        if vsize > 0 {
+            // Fee rate in sat/vB * 1000 for precision
+            let fee_rate = fee * 1000 / vsize as u64;
+            fee_rates.push(fee_rate);
+        }
+    }
+
+    // Calculate min and median
+    let (min_fee_rate, median_fee_rate) = if fee_rates.is_empty() {
+        (0, 0)
+    } else {
+        fee_rates.sort_unstable();
+        let min = fee_rates[0];
+        let median = fee_rates[fee_rates.len() / 2];
+        (min, median)
+    };
+
+    BlockFeeStats {
+        height,
+        min_fee_rate,
+        median_fee_rate,
+        block_weight: total_weight,
+    }
 }
