@@ -61,3 +61,8 @@ pub const COIN: u64 = 100_000_000;
 pub const INITIAL_SUBSIDY: u64 = 50 * COIN;
 pub const HALVING_INTERVAL: u32 = 210_000;
 pub const TAIL_EMISSION: u64 = 10_000_000; // 0.1 QPB
+
+// ---- Coinbase maturity ----
+/// Coinbase outputs require this many confirmations before they can be spent.
+/// This prevents spending coins from blocks that might be orphaned.
+pub const COINBASE_MATURITY: u32 = 100;

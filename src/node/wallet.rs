@@ -13,6 +13,7 @@ use pqcrypto_traits::sign::{DetachedSignature, PublicKey as PKTrait, SecretKey a
 use serde::{Deserialize, Serialize};
 
 use crate::address::{decode_address, encode_address, qpkh32};
+use crate::constants::COINBASE_MATURITY;
 use crate::script::build_p2qpkh;
 use crate::sighash::qpb_sighash;
 use crate::types::{OutPoint, Prevout, Transaction, TxIn, TxOut};
@@ -172,6 +173,10 @@ pub struct WalletUtxo {
     pub value: u64,
     /// ScriptPubKey (hex).
     pub script_pubkey: String,
+    /// Block height at which this output was created.
+    pub height: u32,
+    /// True if this output is from a coinbase transaction.
+    pub is_coinbase: bool,
 }
 
 /// Wallet state integrated with the node.
@@ -260,6 +265,8 @@ impl Wallet {
                     address,
                     value: prevout.value,
                     script_pubkey: hex::encode(&prevout.script_pubkey),
+                    height: prevout.height,
+                    is_coinbase: prevout.is_coinbase,
                 });
             }
         }
@@ -293,15 +300,28 @@ impl Wallet {
         amount: u64,
         fee_rate: u64,
         utxos: Vec<(String, u32, Prevout)>,
+        current_height: u32,
     ) -> Result<Transaction> {
         // Decode recipient address to get scriptPubKey
         let decoded = decode_address(recipient).map_err(|e| anyhow!("invalid address: {}", e))?;
         let recipient_spk = decoded.script_pubkey;
 
-        // Get wallet UTXOs
-        let wallet_utxos = self.list_unspent(|| utxos)?;
+        // Get wallet UTXOs and filter out immature coinbase outputs
+        let all_wallet_utxos = self.list_unspent(|| utxos)?;
+        let wallet_utxos: Vec<WalletUtxo> = all_wallet_utxos
+            .into_iter()
+            .filter(|u| {
+                if u.is_coinbase {
+                    let confirmations = current_height.saturating_sub(u.height);
+                    confirmations >= COINBASE_MATURITY
+                } else {
+                    true
+                }
+            })
+            .collect();
+
         if wallet_utxos.is_empty() {
-            return Err(anyhow!("no UTXOs available"));
+            return Err(anyhow!("no mature UTXOs available"));
         }
 
         // Estimate transaction size for fee calculation
@@ -365,6 +385,8 @@ impl Wallet {
             prevouts.push(Prevout {
                 value: utxo.value,
                 script_pubkey: hex::decode(&utxo.script_pubkey)?,
+                height: utxo.height,
+                is_coinbase: utxo.is_coinbase,
             });
 
             input_addresses.push(utxo.address.clone());

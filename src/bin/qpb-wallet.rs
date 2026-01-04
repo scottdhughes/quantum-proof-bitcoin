@@ -179,9 +179,11 @@ fn sign_p2qpkh(
         serde_json::from_str(&fs::read_to_string(prevouts_json)?).context("prevouts json")?;
     let prevouts: Vec<Prevout> = prevouts
         .into_iter()
-        .map(|p| Prevout {
-            value: p.value,
-            script_pubkey: Vec::from_hex(p.script_pubkey_hex).unwrap_or_default(),
+        .map(|p| {
+            Prevout::regular(
+                p.value,
+                Vec::from_hex(p.script_pubkey_hex).unwrap_or_default(),
+            )
         })
         .collect();
     let sighash_type = u8::from_str_radix(sighash_hex, 16).context("sighash parse")?;

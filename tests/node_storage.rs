@@ -16,12 +16,15 @@ fn utxo_save_load_roundtrip() {
     let tmp = tempfile::tempdir().unwrap();
     let mut utxo = UtxoSet::load(tmp.path()).unwrap();
     let txid = [1u8; 32];
-    utxo.insert(&txid, 0, 42, vec![0x6a]);
+    // height=10, is_coinbase=true
+    utxo.insert(&txid, 0, 42, vec![0x6a], 10, true);
     utxo.save(tmp.path()).unwrap();
 
     let utxo2 = UtxoSet::load(tmp.path()).unwrap();
     let prev = utxo2.get(&txid, 0).unwrap();
     assert_eq!(prev.value, 42);
     assert_eq!(prev.script_pubkey, vec![0x6a]);
+    assert_eq!(prev.height, 10);
+    assert!(prev.is_coinbase);
     assert!(utxo2.get(&txid, 1).is_none());
 }

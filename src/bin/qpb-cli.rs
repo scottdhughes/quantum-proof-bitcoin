@@ -512,10 +512,7 @@ fn main() {
         // Record coinbase UTXO for next block's spend
         utxos.push((
             prev_coin_outpoint.as_ref().cloned().unwrap(),
-            Prevout {
-                value: prev_coin_value,
-                script_pubkey: p2qpkh_spk.clone(),
-            },
+            Prevout::regular(prev_coin_value, p2qpkh_spk.clone()),
         ));
         // Track coinbase key used this height for next spend
         last_coin_pk_ser = current_pk_ser.clone();

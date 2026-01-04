@@ -152,10 +152,7 @@ fn sample_prevouts(pk_bytes: &[u8]) -> Vec<Prevout> {
     pk_ser.extend_from_slice(pk_bytes);
     let qpkh = qpb_consensus::address::qpkh32(&pk_ser);
     let spk = build_spk_v3(&qpkh);
-    vec![Prevout {
-        value: 50_0000_0000,
-        script_pubkey: spk,
-    }]
+    vec![Prevout::regular(50_0000_0000, spk)]
 }
 
 fn build_spk_v3(prog: &[u8; 32]) -> Vec<u8> {

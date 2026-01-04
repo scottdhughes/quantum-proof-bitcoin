@@ -29,6 +29,32 @@ pub struct TxOut {
 pub struct Prevout {
     pub value: u64,
     pub script_pubkey: Vec<u8>,
+    /// Block height at which this output was created.
+    pub height: u32,
+    /// True if this output is from a coinbase transaction.
+    pub is_coinbase: bool,
+}
+
+impl Prevout {
+    /// Create a new Prevout with full metadata.
+    pub fn new(value: u64, script_pubkey: Vec<u8>, height: u32, is_coinbase: bool) -> Self {
+        Self {
+            value,
+            script_pubkey,
+            height,
+            is_coinbase,
+        }
+    }
+
+    /// Create a Prevout for non-coinbase outputs (convenience for tests).
+    pub fn regular(value: u64, script_pubkey: Vec<u8>) -> Self {
+        Self {
+            value,
+            script_pubkey,
+            height: 0,
+            is_coinbase: false,
+        }
+    }
 }
 
 /// Transaction object (SegWit-aware).

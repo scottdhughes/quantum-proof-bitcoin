@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, anyhow};
 
-use crate::constants::WEIGHT_FLOOR_WU;
+use crate::constants::{COINBASE_MATURITY, WEIGHT_FLOOR_WU};
 use crate::node::blockstore;
 use crate::node::chain::{ChainIndex, UndoData};
 use crate::node::chainparams::{
@@ -64,7 +64,7 @@ impl Node {
             let bytes = genesis_block.serialize(true);
             blockstore::put_block(datadir, &genesis.block_hash_hex, &bytes)?;
             if utxo.is_empty() {
-                populate_utxo_from_block(&mut utxo, &genesis_block);
+                populate_utxo_from_block(&mut utxo, &genesis_block, 0);
                 utxo.save(datadir)?;
             }
         }
@@ -146,6 +146,8 @@ impl Node {
     pub fn add_to_mempool(&mut self, tx: Transaction) -> Result<[u8; 32]> {
         // Gather prevouts for the transaction
         let mut prevouts = Vec::with_capacity(tx.vin.len());
+        let current_height = self.store.height() as u32;
+
         for vin in &tx.vin {
             // First check mempool for unconfirmed parents
             if let Some(parent_entry) = self.mempool.get(&vin.prevout.txid) {
@@ -154,11 +156,25 @@ impl Node {
                     anyhow::bail!("invalid prevout index");
                 }
                 let txout = &parent_entry.tx.vout[vout_idx];
+                // Mempool outputs are unconfirmed (height=0) and never coinbase
                 prevouts.push(Prevout {
                     value: txout.value,
                     script_pubkey: txout.script_pubkey.clone(),
+                    height: 0,
+                    is_coinbase: false,
                 });
             } else if let Some(prev) = self.utxo.get(&vin.prevout.txid, vin.prevout.vout) {
+                // Check coinbase maturity for mempool acceptance
+                if prev.is_coinbase {
+                    let confirmations = current_height.saturating_sub(prev.height);
+                    if confirmations < COINBASE_MATURITY {
+                        anyhow::bail!(
+                            "coinbase output not mature: {} confirmations, need {}",
+                            confirmations,
+                            COINBASE_MATURITY
+                        );
+                    }
+                }
                 prevouts.push(prev);
             } else {
                 anyhow::bail!(
@@ -262,6 +278,7 @@ impl Node {
         // Collect undo data as we gather prevouts
         let mut undo = UndoData::new();
 
+        let new_height = (self.store.height() + 1) as u32;
         for tx in block.txdata.iter().skip(1) {
             let mut v = Vec::with_capacity(tx.vin.len());
             for txin in &tx.vin {
@@ -269,6 +286,19 @@ impl Node {
                     .utxo
                     .get(&txin.prevout.txid, txin.prevout.vout)
                     .ok_or_else(|| anyhow!("missing prevout"))?;
+
+                // Check coinbase maturity
+                if prev.is_coinbase {
+                    let confirmations = new_height.saturating_sub(prev.height);
+                    if confirmations < COINBASE_MATURITY {
+                        anyhow::bail!(
+                            "coinbase output not mature: {} confirmations, need {}",
+                            confirmations,
+                            COINBASE_MATURITY
+                        );
+                    }
+                }
+
                 // Save for undo
                 undo.add_spent(txin.prevout.txid, txin.prevout.vout, &prev);
                 v.push(prev);
@@ -282,7 +312,7 @@ impl Node {
             WEIGHT_FLOOR_WU,
             WEIGHT_FLOOR_WU,
             !self.no_pow,
-            (self.store.height() + 1) as u32,
+            new_height,
         )?;
 
         // Store undo data before modifying UTXO set
@@ -295,11 +325,18 @@ impl Node {
             }
         }
         // Add outputs
-        for tx in &block.txdata {
+        for (tx_idx, tx) in block.txdata.iter().enumerate() {
             let txid = tx.txid();
+            let is_coinbase = tx_idx == 0;
             for (vout, txout) in tx.vout.iter().enumerate() {
-                self.utxo
-                    .insert(&txid, vout as u32, txout.value, txout.script_pubkey.clone());
+                self.utxo.insert(
+                    &txid,
+                    vout as u32,
+                    txout.value,
+                    txout.script_pubkey.clone(),
+                    new_height,
+                    is_coinbase,
+                );
             }
         }
         self.utxo.save(&self.datadir)?;
@@ -349,6 +386,8 @@ impl Node {
                 spent.vout,
                 spent.value,
                 spent.script_pubkey.clone(),
+                spent.height,
+                spent.is_coinbase,
             );
         }
         self.utxo.save(&self.datadir)?;
@@ -404,11 +443,19 @@ impl Node {
     }
 }
 
-fn populate_utxo_from_block(utxo: &mut UtxoSet, block: &Block) {
-    for tx in &block.txdata {
+fn populate_utxo_from_block(utxo: &mut UtxoSet, block: &Block, height: u32) {
+    for (tx_idx, tx) in block.txdata.iter().enumerate() {
         let txid = tx.txid();
+        let is_coinbase = tx_idx == 0;
         for (vout, txout) in tx.vout.iter().enumerate() {
-            utxo.insert(&txid, vout as u32, txout.value, txout.script_pubkey.clone());
+            utxo.insert(
+                &txid,
+                vout as u32,
+                txout.value,
+                txout.script_pubkey.clone(),
+                height,
+                is_coinbase,
+            );
         }
     }
 }

@@ -54,6 +54,10 @@ pub struct SpentOutput {
     pub vout: u32,
     pub value: u64,
     pub script_pubkey: Vec<u8>,
+    /// Block height at which this output was created.
+    pub height: u32,
+    /// True if this output is from a coinbase transaction.
+    pub is_coinbase: bool,
 }
 
 impl UndoData {
@@ -71,6 +75,8 @@ impl UndoData {
             vout,
             value: prevout.value,
             script_pubkey: prevout.script_pubkey.clone(),
+            height: prevout.height,
+            is_coinbase: prevout.is_coinbase,
         });
     }
 
@@ -88,6 +94,8 @@ impl UndoData {
             let spk_len = spent.script_pubkey.len() as u32;
             out.extend_from_slice(&spk_len.to_le_bytes());
             out.extend_from_slice(&spent.script_pubkey);
+            out.extend_from_slice(&spent.height.to_le_bytes());
+            out.push(if spent.is_coinbase { 1 } else { 0 });
         }
 
         out
@@ -104,6 +112,7 @@ impl UndoData {
         let mut spent_outputs = Vec::with_capacity(count);
 
         for _ in 0..count {
+            // txid(32) + vout(4) + value(8) + spk_len(4) + height(4) + is_coinbase(1) = 53 base
             if offset + 32 + 4 + 8 + 4 > bytes.len() {
                 anyhow::bail!("undo data truncated");
             }
@@ -122,18 +131,26 @@ impl UndoData {
                 u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap()) as usize;
             offset += 4;
 
-            if offset + spk_len > bytes.len() {
+            if offset + spk_len + 4 + 1 > bytes.len() {
                 anyhow::bail!("undo data script truncated");
             }
 
             let script_pubkey = bytes[offset..offset + spk_len].to_vec();
             offset += spk_len;
 
+            let height = u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap());
+            offset += 4;
+
+            let is_coinbase = bytes[offset] != 0;
+            offset += 1;
+
             spent_outputs.push(SpentOutput {
                 txid,
                 vout,
                 value,
                 script_pubkey,
+                height,
+                is_coinbase,
             });
         }
 
@@ -474,19 +491,9 @@ mod tests {
         undo.add_spent(
             [1u8; 32],
             0,
-            &Prevout {
-                value: 50000,
-                script_pubkey: vec![0x00, 0x14, 0xab],
-            },
+            &Prevout::new(50000, vec![0x00, 0x14, 0xab], 5, true),
         );
-        undo.add_spent(
-            [2u8; 32],
-            1,
-            &Prevout {
-                value: 100000,
-                script_pubkey: vec![0x51],
-            },
-        );
+        undo.add_spent([2u8; 32], 1, &Prevout::new(100000, vec![0x51], 10, false));
 
         let bytes = undo.to_bytes();
         let restored = UndoData::from_bytes(&bytes).unwrap();
@@ -494,6 +501,10 @@ mod tests {
         assert_eq!(restored.spent_outputs.len(), 2);
         assert_eq!(restored.spent_outputs[0].txid, [1u8; 32]);
         assert_eq!(restored.spent_outputs[0].value, 50000);
+        assert_eq!(restored.spent_outputs[0].height, 5);
+        assert!(restored.spent_outputs[0].is_coinbase);
         assert_eq!(restored.spent_outputs[1].vout, 1);
+        assert_eq!(restored.spent_outputs[1].height, 10);
+        assert!(!restored.spent_outputs[1].is_coinbase);
     }
 }

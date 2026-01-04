@@ -124,10 +124,7 @@ fn deserialize_tx(hex_tx: &str) -> Transaction {
 
 fn prevouts_from_json(v: &[PrevoutJson]) -> Vec<Prevout> {
     v.iter()
-        .map(|p| Prevout {
-            value: p.value,
-            script_pubkey: Vec::from_hex(&p.script_pubkey_hex).unwrap(),
-        })
+        .map(|p| Prevout::regular(p.value, Vec::from_hex(&p.script_pubkey_hex).unwrap()))
         .collect()
 }
 

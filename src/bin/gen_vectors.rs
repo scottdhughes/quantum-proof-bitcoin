@@ -41,10 +41,7 @@ fn p2qpkh_vectors() {
         vout: 0,
     };
     let spk = build_p2qpkh(qpkh32(&pk_ser));
-    let prevouts = vec![Prevout {
-        value: 50_0000_0000,
-        script_pubkey: spk.clone(),
-    }];
+    let prevouts = vec![Prevout::regular(50_0000_0000, spk.clone())];
 
     let base_tx = Transaction {
         version: 1,
@@ -176,10 +173,7 @@ fn p2qtsh_vectors() {
     let qroot = qtap_reconstruct_root(leaf_hash, &[]);
     let spk = build_p2qtsh(qroot);
 
-    let prevouts = [Prevout {
-        value: 10_0000,
-        script_pubkey: spk.clone(),
-    }];
+    let prevouts = [Prevout::regular(10_0000, spk.clone())];
 
     let tx_valid = Transaction {
         version: 1,
