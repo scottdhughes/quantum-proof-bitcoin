@@ -17,8 +17,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::constants::{
     MAX_CONNECTIONS_PER_IP, MAX_CONNECTIONS_PER_SUBNET, MAX_INBOUND_CONNECTIONS,
-    MAX_MISBEHAVIOR_LOG, MAX_OUTBOUND_CONNECTIONS, MESSAGE_BUCKET_CAPACITY,
-    PEER_BAN_THRESHOLD, PEER_SCORE_DECAY_PER_HOUR,
+    MAX_MISBEHAVIOR_LOG, MAX_OUTBOUND_CONNECTIONS, MESSAGE_BUCKET_CAPACITY, PEER_BAN_THRESHOLD,
+    PEER_SCORE_DECAY_PER_HOUR,
 };
 
 // ============================================================================
@@ -853,7 +853,10 @@ impl std::fmt::Debug for PeerManager {
         f.debug_struct("PeerManager")
             .field("inbound_count", &inbound)
             .field("outbound_count", &outbound)
-            .field("next_id", &self.next_id.load(std::sync::atomic::Ordering::SeqCst))
+            .field(
+                "next_id",
+                &self.next_id.load(std::sync::atomic::Ordering::SeqCst),
+            )
             .finish()
     }
 }

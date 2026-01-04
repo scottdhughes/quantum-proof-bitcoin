@@ -6,7 +6,9 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use tiny_http::{Header, Method, Response, Server};
 
-use qpb_consensus::constants::{DEFAULT_DEVNET_PORT, DEFAULT_MAINNET_PORT, DEFAULT_TESTNET_PORT, MAX_INBOUND_CONNECTIONS};
+use qpb_consensus::constants::{
+    DEFAULT_DEVNET_PORT, DEFAULT_MAINNET_PORT, DEFAULT_TESTNET_PORT, MAX_INBOUND_CONNECTIONS,
+};
 use qpb_consensus::node::chainparams::{
     compute_chain_id, compute_genesis_hash, load_chainparams, select_network,
 };
@@ -154,16 +156,12 @@ fn main() -> Result<()> {
         node_arc = Some(Arc::clone(&shared));
 
         // Start accepting connections
-        listener.start(
-            Arc::clone(&shared),
-            peer_manager,
-            |peer_id, version| {
-                println!(
-                    "peer {} connected: version={}, height={}",
-                    peer_id, version.version, version.start_height
-                );
-            },
-        );
+        listener.start(Arc::clone(&shared), peer_manager, |peer_id, version| {
+            println!(
+                "peer {} connected: version={}, height={}",
+                peer_id, version.version, version.start_height
+            );
+        });
 
         inbound_listener = Some(listener);
 
@@ -238,8 +236,9 @@ fn start_rpc_server_shared(addr: String, shared: Arc<Mutex<Node>>) -> Result<()>
             }
             let mut body = String::new();
             if let Err(e) = request.as_reader().read_to_string(&mut body) {
-                let _ = request
-                    .respond(Response::from_string(format!("read error: {}", e)).with_status_code(400));
+                let _ = request.respond(
+                    Response::from_string(format!("read error: {}", e)).with_status_code(400),
+                );
                 continue;
             }
             let (resp_body, action) = {
