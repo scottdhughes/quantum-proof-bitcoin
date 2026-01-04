@@ -525,6 +525,8 @@ fn main() {
             txdata: txs.clone(),
         };
 
+        // MTP is 0 since all transactions in this CLI tool are final
+        // (lock_time=0 and all inputs have sequence=0xffffffff)
         validate_block_basic(
             &block,
             &prevouts_for_block,
@@ -532,6 +534,7 @@ fn main() {
             WEIGHT_FLOOR_WU,
             true,
             height,
+            0, // MTP not needed for final transactions
         )
         .expect("block validation failed");
 

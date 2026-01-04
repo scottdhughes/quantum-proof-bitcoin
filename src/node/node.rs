@@ -129,6 +129,44 @@ impl Node {
             .flatten()
     }
 
+    /// Extract the timestamp from block bytes (offset 68-71 in the 80-byte header).
+    fn extract_block_time(block_bytes: &[u8]) -> u32 {
+        if block_bytes.len() < 76 {
+            return 0;
+        }
+        u32::from_le_bytes([
+            block_bytes[68],
+            block_bytes[69],
+            block_bytes[70],
+            block_bytes[71],
+        ])
+    }
+
+    /// Compute Median Time Past (MTP) for the block at the given height.
+    /// MTP is the median of the timestamps of the last 11 blocks (BIP113).
+    /// Returns 0 for height 0.
+    pub fn compute_mtp(&self, height: u64) -> u32 {
+        use crate::constants::MTP_BLOCKS;
+
+        if height == 0 {
+            return 0;
+        }
+
+        // Collect timestamps from the last MTP_BLOCKS blocks (or fewer if not enough)
+        let start = height.saturating_sub(MTP_BLOCKS as u64 - 1);
+        let mut timestamps: Vec<u32> = Vec::with_capacity(MTP_BLOCKS);
+
+        for h in start..=height {
+            if let Some(hash_hex) = self.get_blockhash(h) {
+                if let Some(block_bytes) = self.get_block_bytes(&hash_hex) {
+                    timestamps.push(Self::extract_block_time(&block_bytes));
+                }
+            }
+        }
+
+        crate::validation::compute_mtp(&timestamps)
+    }
+
     pub fn utxo_get(&self, txid: &[u8; 32], vout: u32) -> Option<Prevout> {
         self.utxo.get(txid, vout)
     }
@@ -184,6 +222,12 @@ impl Node {
                 );
             }
         }
+
+        // Check locktime before accepting into mempool
+        // Use next block height and current MTP for evaluation
+        let current_mtp = self.compute_mtp(self.store.height());
+        crate::validation::check_locktime_for_mempool(&tx, current_height, current_mtp)
+            .map_err(|e| anyhow::anyhow!("locktime not satisfied: {}", e))?;
 
         // Use a closure that captures our UTXO set for any additional lookups
         let utxo_ref = &self.utxo;
@@ -306,6 +350,10 @@ impl Node {
             prevouts_by_tx.push(v);
         }
 
+        // Compute MTP for locktime validation (based on blocks up to parent)
+        let current_height = self.store.height();
+        let mtp = self.compute_mtp(current_height);
+
         validate_block_basic(
             block,
             &prevouts_by_tx,
@@ -313,6 +361,7 @@ impl Node {
             WEIGHT_FLOOR_WU,
             !self.no_pow,
             new_height,
+            mtp,
         )?;
 
         // Store undo data before modifying UTXO set
