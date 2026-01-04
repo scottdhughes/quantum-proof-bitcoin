@@ -354,5 +354,6 @@ fn block_validation_without_pow_check() {
     ];
 
     // MTP=0 since all transactions are final (lock_time=0, sequence=0xffffffff)
-    validate_block_basic(&block, &prevouts, 4_000_000, 4_000_000, false, 1, 0).unwrap();
+    // The closure returns 0 for any height since we don't need MTP lookups for final txs
+    validate_block_basic(&block, &prevouts, 4_000_000, 4_000_000, false, 1, 0, |_| 0).unwrap();
 }

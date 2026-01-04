@@ -1,6 +1,8 @@
 use crate::constants::{
-    LOCKTIME_THRESHOLD, MAX_CONTROL_BLOCK_DEPTH, MAX_PQSIGCHECK_BUDGET, MAX_PQSIGCHECK_PER_TX,
-    MAX_SCRIPT_SIZE, MAX_WITNESS_ITEM_BYTES, SCRIPT_LEAF_VERSION_V0, SEQUENCE_FINAL,
+    BIP68_MIN_VERSION, LOCKTIME_THRESHOLD, MAX_CONTROL_BLOCK_DEPTH, MAX_PQSIGCHECK_BUDGET,
+    MAX_PQSIGCHECK_PER_TX, MAX_SCRIPT_SIZE, MAX_WITNESS_ITEM_BYTES, SCRIPT_LEAF_VERSION_V0,
+    SEQUENCE_FINAL, SEQUENCE_LOCKTIME_DISABLE_FLAG, SEQUENCE_LOCKTIME_GRANULARITY,
+    SEQUENCE_LOCKTIME_MASK, SEQUENCE_LOCKTIME_TYPE_FLAG,
 };
 use crate::errors::ConsensusError;
 use crate::pow::validate_pow;
@@ -83,6 +85,158 @@ pub fn check_locktime_for_mempool(
     // For mempool, we check against the *next* block height
     let next_height = current_height.saturating_add(1);
     check_locktime(tx, next_height, current_mtp)
+}
+
+// ============================================================================
+// BIP68 Relative locktime validation
+// ============================================================================
+
+/// Check if relative locktime is disabled for this input's sequence number.
+/// If the disable flag (bit 31) is set, the input has no relative lock.
+#[inline]
+pub fn sequence_locktime_disabled(sequence: u32) -> bool {
+    (sequence & SEQUENCE_LOCKTIME_DISABLE_FLAG) != 0
+}
+
+/// Check if the sequence encodes a time-based (vs block-based) relative locktime.
+/// If the type flag (bit 22) is set, it's time-based (512-second granularity).
+#[inline]
+pub fn sequence_locktime_is_time(sequence: u32) -> bool {
+    (sequence & SEQUENCE_LOCKTIME_TYPE_FLAG) != 0
+}
+
+/// Extract the relative locktime value from a sequence number (lower 16 bits).
+#[inline]
+pub fn sequence_locktime_value(sequence: u32) -> u32 {
+    sequence & SEQUENCE_LOCKTIME_MASK
+}
+
+/// Calculate the minimum required height/time for a relative locktime.
+///
+/// For block-based: returns the minimum block height at which input can be spent.
+/// For time-based: returns the minimum MTP at which input can be spent.
+///
+/// # Arguments
+/// * `sequence` - The input's nSequence value
+/// * `prevout_height` - The height at which the prevout was confirmed
+/// * `prevout_mtp` - The MTP at the height when the prevout was confirmed
+///
+/// # Returns
+/// * `None` if relative locktime is disabled
+/// * `Some((min_height, min_time))` with the minimum height/time required
+pub fn calculate_sequence_lock(
+    sequence: u32,
+    prevout_height: u32,
+    prevout_mtp: u32,
+) -> Option<(u32, u32)> {
+    if sequence_locktime_disabled(sequence) {
+        return None;
+    }
+
+    let lock_value = sequence_locktime_value(sequence);
+
+    if sequence_locktime_is_time(sequence) {
+        // Time-based: prevout_mtp + (lock_value * 512 seconds)
+        let min_time =
+            prevout_mtp.saturating_add(lock_value.saturating_mul(SEQUENCE_LOCKTIME_GRANULARITY));
+        Some((0, min_time))
+    } else {
+        // Block-based: prevout_height + lock_value
+        let min_height = prevout_height.saturating_add(lock_value);
+        Some((min_height, 0))
+    }
+}
+
+/// Check if a transaction's relative locktimes (BIP68) are satisfied.
+///
+/// BIP68 relative locktimes only apply to transactions with version >= 2.
+/// Each input with a relative locktime must have its prevout sufficiently aged.
+///
+/// # Arguments
+/// * `tx` - The transaction to check
+/// * `prevouts` - The prevouts being spent (must include height info)
+/// * `block_height` - The height of the block containing this transaction
+/// * `block_mtp` - The MTP for the block containing this transaction
+/// * `get_prevout_mtp` - Function to get MTP at a specific height (for time-based locks)
+///
+/// # Returns
+/// * `Ok(())` if all relative locktimes are satisfied
+/// * `Err(ConsensusError::SequenceLockNotSatisfied)` if any relative locktime is not satisfied
+pub fn check_sequence_locks<F>(
+    tx: &Transaction,
+    prevouts: &[Prevout],
+    block_height: u32,
+    block_mtp: u32,
+    get_prevout_mtp: F,
+) -> Result<(), ConsensusError>
+where
+    F: Fn(u32) -> u32,
+{
+    // BIP68 only applies to transactions with version >= 2
+    if tx.version < BIP68_MIN_VERSION {
+        return Ok(());
+    }
+
+    for (idx, vin) in tx.vin.iter().enumerate() {
+        let sequence = vin.sequence;
+
+        // Skip if relative locktime is disabled for this input
+        if sequence_locktime_disabled(sequence) {
+            continue;
+        }
+
+        let prevout = &prevouts[idx];
+        let prevout_height = prevout.height;
+
+        // For unconfirmed prevouts (height=0), relative locktime cannot be satisfied
+        // unless the lock value is 0
+        if prevout_height == 0 {
+            let lock_value = sequence_locktime_value(sequence);
+            if lock_value > 0 {
+                return Err(ConsensusError::SequenceLockNotSatisfied);
+            }
+            continue;
+        }
+
+        let lock_value = sequence_locktime_value(sequence);
+
+        if sequence_locktime_is_time(sequence) {
+            // Time-based relative locktime
+            let prevout_mtp = get_prevout_mtp(prevout_height);
+            let required_time = prevout_mtp
+                .saturating_add(lock_value.saturating_mul(SEQUENCE_LOCKTIME_GRANULARITY));
+
+            if block_mtp < required_time {
+                return Err(ConsensusError::SequenceLockNotSatisfied);
+            }
+        } else {
+            // Block-based relative locktime
+            let required_height = prevout_height.saturating_add(lock_value);
+
+            if block_height < required_height {
+                return Err(ConsensusError::SequenceLockNotSatisfied);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Check relative locktimes for mempool acceptance.
+/// Uses next block height and current MTP.
+pub fn check_sequence_locks_for_mempool<F>(
+    tx: &Transaction,
+    prevouts: &[Prevout],
+    current_height: u32,
+    current_mtp: u32,
+    get_prevout_mtp: F,
+) -> Result<(), ConsensusError>
+where
+    F: Fn(u32) -> u32,
+{
+    // For mempool, we check against the *next* block height
+    let next_height = current_height.saturating_add(1);
+    check_sequence_locks(tx, prevouts, next_height, current_mtp, get_prevout_mtp)
 }
 
 /// Validate a single P2QPKH input; returns PQSigCheck cost units consumed.
@@ -371,7 +525,9 @@ pub fn validate_witness_commitment(block: &Block) -> Result<(), ConsensusError> 
 /// * `check_pow` - Whether to validate proof-of-work
 /// * `height` - Height of this block
 /// * `mtp` - Median Time Past for time-based locktime validation (BIP113)
-pub fn validate_block_basic(
+/// * `get_mtp_at_height` - Function to get MTP at a specific height (for BIP68 time-based relative locks)
+#[allow(clippy::too_many_arguments)]
+pub fn validate_block_basic<F>(
     block: &Block,
     prevouts_by_tx: &[Vec<Prevout>],
     stm: u32,
@@ -379,7 +535,11 @@ pub fn validate_block_basic(
     check_pow: bool,
     height: u32,
     mtp: u32,
-) -> Result<(), ConsensusError> {
+    get_mtp_at_height: F,
+) -> Result<(), ConsensusError>
+where
+    F: Fn(u32) -> u32,
+{
     if block.txdata.len() != prevouts_by_tx.len() {
         return Err(ConsensusError::PrevoutsLengthMismatch);
     }
@@ -405,8 +565,11 @@ pub fn validate_block_basic(
             continue;
         }
 
-        // Validate locktime for non-coinbase transactions
+        // Validate absolute locktime (BIP113)
         check_locktime(tx, height, mtp)?;
+
+        // Validate relative locktimes (BIP68)
+        check_sequence_locks(tx, prevs, height, mtp, &get_mtp_at_height)?;
 
         let tx_cost = validate_transaction_basic(tx, prevs)?;
         block_cost = block_cost
