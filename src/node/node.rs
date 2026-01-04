@@ -60,6 +60,15 @@ impl Node {
         let store = Store::open_or_init(datadir, chain, &genesis.block_hash_hex)?;
         let mut utxo = UtxoSet::load(datadir)?;
 
+        // Load mempool, validating transactions against current UTXO set
+        let (mempool, mempool_stats) = Mempool::load(datadir, |txid, vout| utxo.get(txid, vout))?;
+        if mempool_stats.loaded > 0 || mempool_stats.invalid > 0 {
+            eprintln!(
+                "mempool: loaded {} txs ({} invalid, {} parse errors)",
+                mempool_stats.loaded, mempool_stats.invalid, mempool_stats.parse_failed
+            );
+        }
+
         // Ensure genesis block bytes are present in blockstore
         if blockstore::get_block(datadir, &genesis.block_hash_hex)?.is_none() {
             let genesis_block = build_genesis_block(genesis)?;
@@ -106,7 +115,7 @@ impl Node {
             datadir: datadir.to_path_buf(),
             store,
             utxo,
-            mempool: Mempool::new(),
+            mempool,
             chain_index,
             fee_estimator: FeeEstimator::new(),
             params_path,
@@ -428,6 +437,9 @@ impl Node {
         let confirmed_txids: Vec<[u8; 32]> = block.txdata.iter().map(|tx| tx.txid()).collect();
         self.mempool.remove_confirmed(&confirmed_txids);
 
+        // Persist mempool state
+        self.mempool.save(&self.datadir)?;
+
         // Record fee statistics for fee estimation
         let fee_stats = compute_block_fee_stats(block, &prevouts_by_tx, new_height as u64);
         self.fee_estimator.record_block(fee_stats);
@@ -553,6 +565,13 @@ impl Node {
         // Use floor weight as max block weight for capacity calculation
         self.fee_estimator
             .estimate(&self.mempool, conf_target, WEIGHT_FLOOR_WU)
+    }
+
+    /// Save node state to disk (called on shutdown).
+    ///
+    /// Persists mempool transactions so they can be restored on restart.
+    pub fn save(&self) -> Result<()> {
+        self.mempool.save(&self.datadir)
     }
 }
 
