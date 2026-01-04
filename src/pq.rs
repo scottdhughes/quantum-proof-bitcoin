@@ -68,9 +68,11 @@ struct ShrincsFfi {
 }
 
 #[cfg(feature = "shrincs-ffi")]
+#[allow(dead_code)]
 static SHRINCS_FFI: OnceCell<Option<ShrincsFfi>> = OnceCell::new();
 
 #[cfg(feature = "shrincs-ffi")]
+#[allow(dead_code)]
 fn load_shrincs() -> Option<&'static ShrincsFfi> {
     SHRINCS_FFI
         .get_or_init(|| {
@@ -159,7 +161,7 @@ pub fn verify_pq(
 fn verify_shrincs(pk: &[u8], msg32: &[u8], sig: &[u8]) -> Result<(), ConsensusError> {
     use crate::constants::{SHRINCS_FALLBACK_PUBKEY_LEN, SPHINCS_PK_LEN};
     use crate::shrincs::shrincs::{ShrincsFullParams, ShrincsFullPublicKey, verify};
-    use crate::shrincs::sphincs_fallback::{sphincs_pk_hash, sphincs_verify};
+    use crate::shrincs::sphincs_fallback::sphincs_verify;
 
     if msg32.len() != 32 {
         return Err(ConsensusError::InvalidSignature);

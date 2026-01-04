@@ -373,10 +373,10 @@ impl FileStateManager {
 
     /// Ensure parent directory exists.
     fn ensure_dir(&self) -> Result<(), ShrincsError> {
-        if let Some(parent) = self.path.parent() {
-            if !parent.exists() {
-                std::fs::create_dir_all(parent)?;
-            }
+        if let Some(parent) = self.path.parent()
+            && !parent.exists()
+        {
+            std::fs::create_dir_all(parent)?;
         }
         Ok(())
     }
@@ -454,6 +454,7 @@ pub struct LockGuard {
 
 impl Drop for LockGuard {
     fn drop(&mut self) {
+        #[allow(unused_imports)]
         use fs2::FileExt;
         // Unlock on drop (ignore errors)
         let _ = self.file.unlock();

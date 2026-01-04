@@ -87,7 +87,7 @@ impl XmssLayerSignature {
     /// Serialize to bytes
     pub fn to_bytes(&self) -> Vec<u8> {
         let wots_bytes = self.wots_sig.to_bytes();
-        let n = self.wots_sig.params.n;
+        let _n = self.wots_sig.params.n;
 
         let mut out = Vec::new();
         out.extend_from_slice(&self.leaf_index.to_le_bytes());
@@ -207,9 +207,9 @@ fn hash_node(
     let mut hasher = Sha256::new();
     hasher.update(b"XMSS_NODE");
     hasher.update(pk_seed);
-    hasher.update(&layer.to_le_bytes());
-    hasher.update(&tree_idx.to_le_bytes());
-    hasher.update(&node_idx.to_le_bytes());
+    hasher.update(layer.to_le_bytes());
+    hasher.update(tree_idx.to_le_bytes());
+    hasher.update(node_idx.to_le_bytes());
     hasher.update(left);
     hasher.update(right);
     let hash = hasher.finalize();
@@ -227,8 +227,8 @@ fn hash_wots_pk(
     let mut hasher = Sha256::new();
     hasher.update(b"XMSS_WOTS_PK");
     hasher.update(pk_seed);
-    hasher.update(&layer.to_le_bytes());
-    hasher.update(&leaf_idx.to_le_bytes());
+    hasher.update(layer.to_le_bytes());
+    hasher.update(leaf_idx.to_le_bytes());
     for tip in &pk.chain_tips {
         hasher.update(tip);
     }
@@ -260,9 +260,9 @@ pub fn build_xmss_layer(
         let mut hasher = Sha256::new();
         hasher.update(b"XMSS_SK_DERIVE");
         hasher.update(sk_seed);
-        hasher.update(&layer_idx.to_le_bytes());
-        hasher.update(&tree_idx.to_le_bytes());
-        hasher.update(&leaf_idx.to_le_bytes());
+        hasher.update(layer_idx.to_le_bytes());
+        hasher.update(tree_idx.to_le_bytes());
+        hasher.update(leaf_idx.to_le_bytes());
         let derived_seed: [u8; 32] = hasher.finalize().into();
 
         let (sk, pk) = wots::keygen(&derived_seed, pk_seed, addr, &params.wots_params);
@@ -360,6 +360,7 @@ pub fn sign_layer(
 }
 
 /// Verify a single XMSS layer signature
+#[allow(clippy::too_many_arguments)]
 pub fn verify_layer(
     msg: &[u8],
     sig: &XmssLayerSignature,
@@ -401,6 +402,7 @@ pub fn verify_layer(
     let mut pk_elements = Vec::with_capacity(params.wots_params.l);
     let mut chain_addr = addr;
 
+    #[allow(clippy::needless_range_loop)]
     for i in 0..params.wots_params.l {
         chain_addr.chain = i as u32;
         let remaining = params.wots_params.w - 1 - digits[i];
@@ -424,8 +426,8 @@ pub fn verify_layer(
 
     // Verify auth path leads to expected root
     let mut idx = sig.leaf_index;
-    for (level, sibling) in sig.auth_path.iter().enumerate() {
-        let (left, right) = if idx % 2 == 0 {
+    for sibling in sig.auth_path.iter() {
+        let (left, right) = if idx.is_multiple_of(2) {
             (&leaf_hash, sibling)
         } else {
             (sibling, &leaf_hash)
@@ -517,7 +519,7 @@ pub fn verify_hypertree(
         return false;
     }
 
-    let mut current_msg = msg.to_vec();
+    let current_msg = msg.to_vec();
 
     for (i, layer_sig) in sig.layer_sigs.iter().enumerate() {
         // For the last layer, expected root is the public key

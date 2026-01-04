@@ -191,7 +191,7 @@ fn derive_leaf_secret(sk_seed: &[u8; 32], pk_seed: &[u8; 32], idx: u32, n: usize
     hasher.update(b"PORS_LEAF");
     hasher.update(sk_seed);
     hasher.update(pk_seed);
-    hasher.update(&idx.to_le_bytes());
+    hasher.update(idx.to_le_bytes());
     let hash = hasher.finalize();
     hash[..n].to_vec()
 }
@@ -201,7 +201,7 @@ fn hash_leaf(pk_seed: &[u8; 32], leaf_value: &[u8], idx: u32, n: usize) -> Vec<u
     let mut hasher = Sha256::new();
     hasher.update(b"PORS_LEAF_HASH");
     hasher.update(pk_seed);
-    hasher.update(&idx.to_le_bytes());
+    hasher.update(idx.to_le_bytes());
     hasher.update(leaf_value);
     let hash = hasher.finalize();
     hash[..n].to_vec()
@@ -219,8 +219,8 @@ fn hash_node(
     let mut hasher = Sha256::new();
     hasher.update(b"PORS_NODE");
     hasher.update(pk_seed);
-    hasher.update(&level.to_le_bytes());
-    hasher.update(&idx.to_le_bytes());
+    hasher.update(level.to_le_bytes());
+    hasher.update(idx.to_le_bytes());
     hasher.update(left);
     hasher.update(right);
     let hash = hasher.finalize();
@@ -290,7 +290,7 @@ pub fn derive_indices(digest: &[u8], k: usize, t: usize) -> Vec<u32> {
             // Extend digest
             let mut hasher = Sha256::new();
             hasher.update(&extended_digest);
-            hasher.update(&round.to_le_bytes());
+            hasher.update(round.to_le_bytes());
             extended_digest = hasher.finalize().to_vec();
             round += 1;
             continue;
@@ -306,7 +306,7 @@ pub fn derive_indices(digest: &[u8], k: usize, t: usize) -> Vec<u32> {
             // Hash again for next attempt
             let mut hasher = Sha256::new();
             hasher.update(&extended_digest);
-            hasher.update(&round.to_le_bytes());
+            hasher.update(round.to_le_bytes());
             extended_digest = hasher.finalize().to_vec();
             round += 1;
         }
@@ -415,7 +415,7 @@ fn message_digest(randomness: &[u8; 32], pk_root: &[u8], msg: &[u8; 32], counter
     hasher.update(randomness);
     hasher.update(pk_root);
     hasher.update(msg);
-    hasher.update(&counter.to_le_bytes());
+    hasher.update(counter.to_le_bytes());
     hasher.finalize().to_vec()
 }
 

@@ -1,3 +1,4 @@
+#![allow(clippy::module_inception)]
 //! SHRINCS: Stateful Hash-based Resilient INtegrity-preserving Compact Signatures
 //!
 //! A hybrid post-quantum signature scheme combining:

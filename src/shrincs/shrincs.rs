@@ -20,6 +20,7 @@
 
 use crate::shrincs::error::ShrincsError;
 use crate::shrincs::pors::{self, PorsParams, PorsPublicKey, PorsSecretKey, PorsSignature};
+#[allow(unused_imports)]
 use crate::shrincs::sphincs_fallback::{
     self, SPHINCS_PK_BYTES, SPHINCS_SIG_BYTES, SPHINCS_SK_BYTES, sphincs_pk_hash,
 };
@@ -27,6 +28,7 @@ use crate::shrincs::state::SigningState;
 use crate::shrincs::tree::{
     HypertreeParams, HypertreeSignature, XmssLayer, build_xmss_layer, sign_layer,
 };
+#[allow(unused_imports)]
 use crate::shrincs::wots::WotsCParams;
 use rand::RngCore;
 use sha2::{Digest, Sha256};
@@ -274,6 +276,7 @@ const SIG_TYPE_FALLBACK: u8 = 0x01;
 
 /// Unified signature that can be either stateful or fallback
 #[derive(Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum ShrincsUnifiedSignature {
     /// Stateful PORS+XMSS signature (~3.4KB)
     Stateful(ShrincsFullSignature),
@@ -668,7 +671,7 @@ fn generate_randomness(prf_key: &[u8; 32], msg: &[u8; 32], leaf_index: u64) -> [
     hasher.update(b"SHRINCS_PRF");
     hasher.update(prf_key);
     hasher.update(msg);
-    hasher.update(&leaf_index.to_le_bytes());
+    hasher.update(leaf_index.to_le_bytes());
     hasher.finalize().into()
 }
 
@@ -710,7 +713,7 @@ pub fn sign(
     let mut current_msg = {
         let mut hasher = Sha256::new();
         hasher.update(b"PORS_SIG_HASH");
-        hasher.update(&pors_sig.to_bytes());
+        hasher.update(pors_sig.to_bytes());
         let hash: [u8; 32] = hasher.finalize().into();
         hash.to_vec()
     };

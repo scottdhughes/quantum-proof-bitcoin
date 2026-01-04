@@ -146,7 +146,7 @@ impl WotsCSignature {
 fn tweakable_hash(pk_seed: &[u8], addr: &Address, input: &[u8], n: usize) -> Vec<u8> {
     let mut hasher = Sha256::new();
     hasher.update(pk_seed);
-    hasher.update(&addr.to_bytes());
+    hasher.update(addr.to_bytes());
     hasher.update(input);
     let hash = hasher.finalize();
     hash[..n].to_vec()
@@ -254,7 +254,7 @@ fn message_digest_with_counter(
     hasher.update(randomness);
     hasher.update(pk_root);
     hasher.update(msg);
-    hasher.update(&counter.to_le_bytes());
+    hasher.update(counter.to_le_bytes());
     let digest = hasher.finalize();
 
     // Convert to base-w
@@ -320,8 +320,8 @@ pub fn keygen(
         // Derive chain secret from sk_seed using PRF
         let mut hasher = Sha256::new();
         hasher.update(sk_seed);
-        hasher.update(&(i as u32).to_le_bytes());
-        hasher.update(&addr.to_bytes());
+        hasher.update((i as u32).to_le_bytes());
+        hasher.update(addr.to_bytes());
         let seed: [u8; 32] = hasher.finalize().into();
         seeds.push(seed);
 
@@ -374,6 +374,7 @@ pub fn sign(
     let mut sig_elements = Vec::with_capacity(params.l);
     let mut chain_addr = addr;
 
+    #[allow(clippy::needless_range_loop)]
     for i in 0..params.l {
         chain_addr.chain = i as u32;
         // Sign element = chain value at position digits[i]
@@ -421,6 +422,7 @@ pub fn verify(
 
     // Verify each chain
     let mut chain_addr = addr;
+    #[allow(clippy::needless_range_loop)]
     for i in 0..params.l {
         chain_addr.chain = i as u32;
         // Advance signature element to chain tip
