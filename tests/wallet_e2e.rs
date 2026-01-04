@@ -127,7 +127,12 @@ fn send_transaction_and_mine() {
         &format!(r#"[1, "{}"]"#, sender_addr),
     );
 
-    // Verify sender has the subsidy
+    // Mine 99 more blocks to mature the coinbase (COINBASE_MATURITY = 100)
+    for _ in 0..10 {
+        rpc_call(&mut node, "generatenextblock", "[10]");
+    }
+
+    // Verify sender has the subsidy (only the 1 block mined to sender_addr)
     let resp = rpc_call(&mut node, "getbalance", "[]");
     assert_eq!(resp["result"].as_u64().unwrap(), BLOCK_SUBSIDY);
 
@@ -212,6 +217,11 @@ fn full_transaction_lifecycle() {
         "generatetoaddress",
         &format!(r#"[2, "{}"]"#, miner_addr),
     );
+
+    // Mine 98 more blocks to mature the coinbases (COINBASE_MATURITY = 100)
+    for _ in 0..10 {
+        rpc_call(&mut node, "generatenextblock", "[10]");
+    }
 
     let resp = rpc_call(&mut node, "getbalance", "[]");
     let initial_balance = resp["result"].as_u64().unwrap();
@@ -311,4 +321,65 @@ fn balance_persists_across_restart() {
         let utxos = resp["result"].as_array().unwrap();
         assert_eq!(utxos.len(), 1);
     }
+}
+
+#[test]
+fn coinbase_maturity_enforced() {
+    // Test that coinbase outputs cannot be spent until they have 100 confirmations
+    let dir = tempdir().unwrap();
+    let datadir = dir.path();
+
+    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+
+    // Create wallet
+    rpc_call(&mut node, "createwallet", "[]");
+    let resp = rpc_call(&mut node, "getnewaddress", r#"["miner"]"#);
+    let miner_addr = resp["result"].as_str().unwrap().to_string();
+    let resp = rpc_call(&mut node, "getnewaddress", r#"["recipient"]"#);
+    let recipient_addr = resp["result"].as_str().unwrap().to_string();
+
+    // Mine 1 block to wallet
+    rpc_call(
+        &mut node,
+        "generatetoaddress",
+        &format!(r#"[1, "{}"]"#, miner_addr),
+    );
+
+    // Try to send immediately - should fail (not mature)
+    let resp = rpc_call(
+        &mut node,
+        "sendtoaddress",
+        &format!(r#"["{}", 1000]"#, recipient_addr),
+    );
+    assert!(
+        resp["error"].is_object(),
+        "Expected error when spending immature coinbase"
+    );
+    assert!(
+        resp["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains("no mature UTXOs"),
+        "Expected 'no mature UTXOs' error, got: {:?}",
+        resp["error"]["message"]
+    );
+
+    // Mine 99 more blocks (total 100 confirmations)
+    for _ in 0..10 {
+        rpc_call(&mut node, "generatenextblock", "[10]");
+    }
+
+    // Now sending should succeed
+    let resp = rpc_call(
+        &mut node,
+        "sendtoaddress",
+        &format!(r#"["{}", 1000]"#, recipient_addr),
+    );
+    assert!(
+        resp["error"].is_null(),
+        "Expected success after maturity, got: {:?}",
+        resp["error"]
+    );
+    let txid = resp["result"].as_str().unwrap();
+    assert!(!txid.is_empty());
 }

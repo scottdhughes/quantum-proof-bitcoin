@@ -11,6 +11,10 @@ use crate::types::Prevout;
 struct UtxoEntry {
     value: u64,
     script_pubkey: Vec<u8>,
+    /// Block height at which this output was created.
+    height: u32,
+    /// True if this output is from a coinbase transaction.
+    is_coinbase: bool,
 }
 
 #[derive(Debug, Default)]
@@ -40,6 +44,8 @@ impl UtxoSet {
         self.map.get(&key).map(|e| Prevout {
             value: e.value,
             script_pubkey: e.script_pubkey.clone(),
+            height: e.height,
+            is_coinbase: e.is_coinbase,
         })
     }
 
@@ -48,13 +54,23 @@ impl UtxoSet {
         self.map.remove(&key);
     }
 
-    pub fn insert(&mut self, txid: &[u8; 32], vout: u32, value: u64, script_pubkey: Vec<u8>) {
+    pub fn insert(
+        &mut self,
+        txid: &[u8; 32],
+        vout: u32,
+        value: u64,
+        script_pubkey: Vec<u8>,
+        height: u32,
+        is_coinbase: bool,
+    ) {
         let key = key_for(txid, vout);
         self.map.insert(
             key,
             UtxoEntry {
                 value,
                 script_pubkey,
+                height,
+                is_coinbase,
             },
         );
     }
@@ -81,6 +97,8 @@ impl UtxoSet {
                     Prevout {
                         value: entry.value,
                         script_pubkey: entry.script_pubkey.clone(),
+                        height: entry.height,
+                        is_coinbase: entry.is_coinbase,
                     },
                 ))
             })

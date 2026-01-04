@@ -333,9 +333,10 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
 
             // Get all UTXOs for coin selection
             let utxos = node.utxo_iter_all();
+            let current_height = node.height() as u32;
 
             // Create and sign transaction
-            let tx = wallet.create_transaction(address, amount, fee_rate, utxos)?;
+            let tx = wallet.create_transaction(address, amount, fee_rate, utxos, current_height)?;
             let txid = tx.txid();
 
             // Add to mempool

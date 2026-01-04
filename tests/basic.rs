@@ -93,10 +93,7 @@ fn p2qpkh_sighash_and_validation() {
         lock_time: 0,
     };
 
-    let prevouts = vec![Prevout {
-        value: 50_0000_0000,
-        script_pubkey: spk.clone(),
-    }];
+    let prevouts = vec![Prevout::regular(50_0000_0000, spk.clone())];
 
     // Ensure sighash is well-formed and 32 bytes.
     let msg = qpb_sighash(&tx, 0, &prevouts, 0x01, 0x00, None).unwrap();
@@ -139,10 +136,7 @@ fn p2qpkh_shrincs_alg_is_rejected() {
         }],
         lock_time: 0,
     };
-    let prevouts = vec![Prevout {
-        value: 1_0000,
-        script_pubkey: spk,
-    }];
+    let prevouts = vec![Prevout::regular(1_0000, spk)];
     let res = validate_transaction_basic(&tx, &prevouts);
     assert!(res.is_err(), "SHRINCS alg_id must be rejected at consensus");
 }
@@ -174,10 +168,7 @@ fn p2qpkh_slh_alg_is_rejected() {
         }],
         lock_time: 0,
     };
-    let prevouts = vec![Prevout {
-        value: 1_0000,
-        script_pubkey: spk,
-    }];
+    let prevouts = vec![Prevout::regular(1_0000, spk)];
     let res = validate_transaction_basic(&tx, &prevouts);
     assert!(res.is_err(), "SLH alg_id must be rejected at consensus");
 }
@@ -214,10 +205,7 @@ fn p2qtsh_validation_simple_true_script() {
         vout: vec![txout],
         lock_time: 0,
     };
-    let prevouts = vec![Prevout {
-        value: 1_0000,
-        script_pubkey: spk,
-    }];
+    let prevouts = vec![Prevout::regular(1_0000, spk)];
 
     let cost = validate_transaction_basic(&tx, &prevouts).unwrap();
     assert_eq!(cost, 0);
@@ -362,10 +350,7 @@ fn block_validation_without_pow_check() {
     // prevouts sets
     let prevouts = vec![
         vec![], // coinbase prevouts placeholder
-        vec![Prevout {
-            value: 1_0000,
-            script_pubkey: spk,
-        }],
+        vec![Prevout::regular(1_0000, spk)],
     ];
 
     validate_block_basic(&block, &prevouts, 4_000_000, 4_000_000, false, 1).unwrap();
