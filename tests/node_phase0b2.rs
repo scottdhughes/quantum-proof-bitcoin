@@ -72,17 +72,20 @@ fn submit_block_tip_only_updates_state() {
 }
 
 #[test]
-fn submit_block_rejects_wrong_prev() {
+fn submit_block_orphan_does_not_extend_tip() {
+    // When a block with unknown parent is submitted, it's stored as an orphan
+    // but doesn't extend the active chain (supports future reorg handling)
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
     let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
-    let prev = [1u8; 32];
+    let prev = [1u8; 32]; // Unknown parent
     let block = build_block(prev, 1, block_subsidy(1));
     let bytes = serialize_block(&block);
-    let err = node.submit_block_bytes(&bytes).unwrap_err();
-    assert!(err.to_string().contains("prev block hash"));
-    assert_eq!(node.height(), 0);
+
+    // Should succeed (stored as orphan) but not change tip
+    node.submit_block_bytes(&bytes).unwrap();
+    assert_eq!(node.height(), 0); // Still at genesis
 }
 
 fn block_subsidy(height: u32) -> u64 {
