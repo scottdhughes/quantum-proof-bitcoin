@@ -419,59 +419,34 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 &node.chain,
                 Some(std::path::Path::new("docs/chain/chainparams.json")),
             );
-            let mut wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
+            let wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
 
-            // Collect outputs from original transaction (to recreate the payment)
+            // Get the original transaction
             let original_tx = &original_entry.tx;
 
-            // Find recipient output
-            // Convention: first output is always recipient, second (if exists) is change
-            // This matches how create_transaction builds transactions
-            if original_tx.vout.is_empty() {
-                return Err(anyhow!("original transaction has no outputs"));
+            // Collect prevouts for original inputs (needed for signing and fee calculation)
+            let mut original_prevouts = Vec::new();
+            for vin in &original_tx.vin {
+                let prevout = node
+                    .utxo_get(&vin.prevout.txid, vin.prevout.vout)
+                    .ok_or_else(|| {
+                        anyhow!("cannot find prevout for input (may have been spent)")
+                    })?;
+                original_prevouts.push(prevout);
             }
 
-            // First output is the recipient
-            let recipient_spk = original_tx.vout[0].script_pubkey.clone();
-            let recipient_amount = original_tx.vout[0].value;
-
-            // Encode recipient address from scriptPubKey
-            // This is a P2QPKH scriptPubKey: OP_3 (0x53) PUSH32 (0x20) <32-byte hash>
-            if recipient_spk.len() != 34 || recipient_spk[0] != 0x53 || recipient_spk[1] != 0x20 {
-                return Err(anyhow!("unsupported recipient script type for bumpfee"));
-            }
-            let mut recipient_hash = [0u8; 32];
-            recipient_hash.copy_from_slice(&recipient_spk[2..34]);
-            let recipient_address = crate::address::encode_address(&hrp, 3, &recipient_hash)
-                .map_err(|e| anyhow!("failed to encode recipient address: {}", e))?;
-
-            // Create replacement transaction with same recipient but higher fee
-            let utxos = node.utxo_iter_all();
-            let current_height = node.height() as u32;
-
-            // The replacement must signal RBF too (in case user wants to bump again)
-            let replacement_tx = wallet.create_transaction(
-                &recipient_address,
-                recipient_amount,
+            // Create replacement transaction reusing the same inputs
+            // This guarantees conflict with the original (required for RBF)
+            let replacement_tx = wallet.create_replacement_transaction(
+                original_tx,
+                &original_prevouts,
                 new_fee_rate,
-                utxos,
-                current_height,
-                true, // RBF enabled
             )?;
 
             let new_txid = replacement_tx.txid();
 
             // Calculate the new fee
-            let input_sum: u64 = {
-                // Get prevouts for the replacement tx to calculate fee
-                let mut sum = 0u64;
-                for vin in &replacement_tx.vin {
-                    if let Some(prevout) = node.utxo_get(&vin.prevout.txid, vin.prevout.vout) {
-                        sum += prevout.value;
-                    }
-                }
-                sum
-            };
+            let input_sum: u64 = original_prevouts.iter().map(|p| p.value).sum();
             let output_sum: u64 = replacement_tx.vout.iter().map(|o| o.value).sum();
             let new_fee = input_sum.saturating_sub(output_sum);
 

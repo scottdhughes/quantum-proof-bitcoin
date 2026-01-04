@@ -299,6 +299,97 @@ fn rbf_replacement_requires_higher_fee() {
 }
 
 #[test]
+fn bumpfee_reuses_same_inputs() {
+    let dir = tempdir().unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+
+    // Setup wallet
+    rpc_call(&mut node, "createwallet", "[]");
+    let resp = rpc_call(&mut node, "getnewaddress", r#"["sender"]"#);
+    let sender = resp["result"].as_str().unwrap().to_string();
+    let resp = rpc_call(&mut node, "getnewaddress", r#"["recipient"]"#);
+    let recipient = resp["result"].as_str().unwrap().to_string();
+
+    // Mine blocks to get mature coins
+    mine_to_address(&mut node, 101, &sender);
+
+    // Create initial transaction with RBF enabled
+    let resp = rpc_call(
+        &mut node,
+        "sendtoaddress",
+        &format!(r#"["{}", 1000, 1, true]"#, recipient),
+    );
+    assert!(
+        resp.get("error").is_none() || resp["error"].is_null(),
+        "sendtoaddress failed: {:?}",
+        resp
+    );
+    let orig_txid_hex = resp["result"].as_str().unwrap().to_string();
+
+    // Get original transaction inputs
+    let orig_txid_bytes = hex::decode(&orig_txid_hex).unwrap();
+    let mut orig_txid = [0u8; 32];
+    orig_txid.copy_from_slice(&orig_txid_bytes);
+    let orig_entry = node
+        .mempool_get_entry(&orig_txid)
+        .expect("original tx in mempool");
+    let orig_inputs: Vec<_> = orig_entry
+        .tx
+        .vin
+        .iter()
+        .map(|vin| (vin.prevout.txid, vin.prevout.vout))
+        .collect();
+
+    // Bump the fee
+    let resp = rpc_call(
+        &mut node,
+        "bumpfee",
+        &format!(r#"["{}", 5]"#, orig_txid_hex),
+    );
+    assert!(
+        resp.get("error").is_none() || resp["error"].is_null(),
+        "bumpfee failed: {:?}",
+        resp
+    );
+
+    let new_txid_hex = resp["result"]["txid"].as_str().unwrap();
+
+    // Get replacement transaction inputs
+    let new_txid_bytes = hex::decode(new_txid_hex).unwrap();
+    let mut new_txid = [0u8; 32];
+    new_txid.copy_from_slice(&new_txid_bytes);
+    let new_entry = node
+        .mempool_get_entry(&new_txid)
+        .expect("replacement tx in mempool");
+    let new_inputs: Vec<_> = new_entry
+        .tx
+        .vin
+        .iter()
+        .map(|vin| (vin.prevout.txid, vin.prevout.vout))
+        .collect();
+
+    // CRITICAL: Replacement must use the SAME inputs as original
+    assert_eq!(
+        orig_inputs, new_inputs,
+        "replacement must reuse same inputs to guarantee conflict"
+    );
+
+    // Only one tx should be in mempool (replacement evicted original)
+    let mempool_resp = rpc_call(&mut node, "getmempoolinfo", "[]");
+    assert_eq!(
+        mempool_resp["result"]["size"].as_u64().unwrap(),
+        1,
+        "mempool should have exactly 1 tx after replacement"
+    );
+
+    // Original should be gone
+    assert!(
+        node.mempool_get_entry(&orig_txid).is_none(),
+        "original tx should be evicted"
+    );
+}
+
+#[test]
 fn signals_rbf_method_on_transaction() {
     use qpb_consensus::types::{OutPoint, Transaction, TxIn, TxOut};
 
