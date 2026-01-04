@@ -11,10 +11,10 @@ SHRINCS is a **hybrid stateful + stateless** post-quantum signature scheme desig
 
 | Aspect | Status |
 |--------|--------|
-| **Consensus** | Reserved (alg_id 0x30), **inactive** at genesis |
-| **Implementation** | Phase 1-3 complete (WOTS+C, PORS+FP, XMSS^MT, SPHINCS+ fallback) |
+| **Consensus** | Feature-gated (alg_id 0x30), active with `--features shrincs-dev` |
+| **Implementation** | Phase 1-4 complete (full consensus integration) |
 | **Target Security** | NIST Level 1 (128-bit) dev, Level 3 (192-bit) production |
-| **Activation** | Requires hard fork + security audit |
+| **Activation** | Requires security audit + hard fork for mainnet |
 
 ## Implementation Status
 
@@ -25,13 +25,21 @@ SHRINCS is a **hybrid stateful + stateless** post-quantum signature scheme desig
 | **Phase 1** | WOTS+C (counter grinding), basic XMSS tree | ✅ Complete |
 | **Phase 2** | PORS+FP (octopus auth), XMSS^MT hypertree | ✅ Complete |
 | **Phase 3** | SPHINCS+-128s fallback, unified signature type | ✅ Complete |
-| **Phase 4** | Consensus integration, AlgorithmId 0x30 wiring | Pending |
+| **Phase 4** | Consensus integration, AlgorithmId 0x30 wiring | ✅ Complete |
+
+### Phase 4 Details
+
+- `AlgorithmId::SHRINCS` variant (feature-gated)
+- `verify_shrincs()` dispatch in `verify_pq()`
+- `shrincs_keypair()` and `shrincs_sign()` wrapper functions
+- PQSigCheck cost: 2 units (vs ML-DSA-65's 1 unit)
+- P2QPKH integration test passing
 
 ### Remaining Work
 
-1. **Wire into consensus** (`src/pq.rs`, `src/validation.rs`)
+1. **Fallback witness format** (SPHINCS+ pk in witness for 0x01 signatures)
 2. **State persistence** (file-based with atomic updates)
-3. **Security audit** before activation
+3. **Security audit** before activation height
 
 ### Monitoring
 
@@ -121,7 +129,7 @@ Fallback signature:
 
 ## Current Implementation vs Target
 
-| Aspect | Current (Phase 3) | Target (Production) |
+| Aspect | Current (Phase 4) | Target (Production) |
 |--------|-------------------|---------------------|
 | PK size | 64 bytes | 64 bytes ✓ |
 | Stateful sig | ~3.4 KB | ~3.4 KB ✓ |
@@ -130,6 +138,7 @@ Fallback signature:
 | Tree | XMSS^MT hypertree | XMSS^MT ✓ |
 | Security | 128-bit PQ (Level 1) | 192-bit PQ (Level 3) |
 | Fallback | SPHINCS+-SHA2-128s | SPHINCS+-SHA2-192s |
+| Consensus | Feature-gated | Hard fork activation |
 | State | In-memory | File-based + atomic |
 
 ## Codebase Structure
@@ -164,14 +173,19 @@ tests/
 
 ## Consensus Integration Path
 
-When reference implementation is available:
+### Completed (Phase 4)
 
-1. **Phase 4**: Port/wrap reference into `src/shrincs/`
-2. **Phase 5**: Update `src/pq.rs` to accept AlgorithmId 0x30
-3. **Phase 5**: Update `src/constants.rs` with final sizes
-4. **Phase 5**: Wire into `src/validation.rs`
-5. **Hard Fork**: Define activation height, coordinate upgrade
-6. **Audit**: External cryptographic security review
+1. ✅ `src/pq.rs`: `AlgorithmId::SHRINCS` variant with `verify_shrincs()` dispatch
+2. ✅ `src/constants.rs`: Updated sizes (`SHRINCS_SIG_MIN`, `SHRINCS_SIG_FALLBACK`)
+3. ✅ Feature-gated activation (`--features shrincs-dev`)
+4. ✅ P2QPKH integration test passing
+
+### Remaining (Phase 5)
+
+1. **Fallback witness format**: Define how SPHINCS+ pk is provided in witness
+2. **State persistence**: File-based with atomic updates
+3. **Hard Fork**: Define activation height, coordinate upgrade
+4. **Audit**: External cryptographic security review
 
 ## Open Questions
 
