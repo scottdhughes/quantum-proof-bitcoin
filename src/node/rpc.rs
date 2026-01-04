@@ -342,7 +342,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             Ok((Value::Array(addresses), RpcAction::Continue))
         }
         "sendtoaddress" => {
-            // sendtoaddress <address> <amount> [fee_rate]
+            // sendtoaddress <address> <amount> [fee_rate] [rbf]
             let address = params
                 .first()
                 .and_then(|v| v.as_str())
@@ -352,6 +352,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 .and_then(|v| v.as_u64())
                 .ok_or_else(|| anyhow!("missing amount"))?;
             let fee_rate = params.get(2).and_then(|v| v.as_u64()).unwrap_or(1); // default 1 sat/vB
+            let rbf = params.get(3).and_then(|v| v.as_bool()).unwrap_or(false); // default no RBF
 
             let wallet_path = node.datadir.join("wallet.json");
             if !wallet_path.exists() {
@@ -367,14 +368,125 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             let utxos = node.utxo_iter_all();
             let current_height = node.height() as u32;
 
-            // Create and sign transaction
-            let tx = wallet.create_transaction(address, amount, fee_rate, utxos, current_height)?;
+            // Create and sign transaction with optional RBF signaling
+            let tx =
+                wallet.create_transaction(address, amount, fee_rate, utxos, current_height, rbf)?;
             let txid = tx.txid();
 
             // Add to mempool
             node.add_to_mempool(tx)?;
 
             Ok((Value::String(hex::encode(txid)), RpcAction::Continue))
+        }
+        "bumpfee" => {
+            // bumpfee <txid> <new_fee_rate>
+            // Creates a replacement transaction with higher fee
+            let txid_hex = params
+                .first()
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing txid"))?;
+            let new_fee_rate = params
+                .get(1)
+                .and_then(|v| v.as_u64())
+                .ok_or_else(|| anyhow!("missing new_fee_rate"))?;
+
+            // Parse txid
+            let txid_bytes = hex::decode(txid_hex).map_err(|_| anyhow!("invalid txid hex"))?;
+            if txid_bytes.len() != 32 {
+                return Err(anyhow!("txid must be 32 bytes"));
+            }
+            let mut txid = [0u8; 32];
+            txid.copy_from_slice(&txid_bytes);
+
+            // Get the original transaction from mempool
+            let original_entry = node
+                .mempool_get_entry(&txid)
+                .ok_or_else(|| anyhow!("transaction not in mempool"))?;
+
+            // Check if original signals RBF
+            if !original_entry.signals_rbf {
+                return Err(anyhow!(
+                    "transaction does not signal RBF (sequence must be <= 0xfffffffd)"
+                ));
+            }
+
+            // Get wallet
+            let wallet_path = node.datadir.join("wallet.json");
+            if !wallet_path.exists() {
+                return Err(anyhow!("wallet not found, call createwallet first"));
+            }
+            let hrp = load_hrp(
+                &node.chain,
+                Some(std::path::Path::new("docs/chain/chainparams.json")),
+            );
+            let mut wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
+
+            // Collect outputs from original transaction (to recreate the payment)
+            let original_tx = &original_entry.tx;
+
+            // Find recipient output
+            // Convention: first output is always recipient, second (if exists) is change
+            // This matches how create_transaction builds transactions
+            if original_tx.vout.is_empty() {
+                return Err(anyhow!("original transaction has no outputs"));
+            }
+
+            // First output is the recipient
+            let recipient_spk = original_tx.vout[0].script_pubkey.clone();
+            let recipient_amount = original_tx.vout[0].value;
+
+            // Encode recipient address from scriptPubKey
+            // This is a P2QPKH scriptPubKey: OP_3 (0x53) PUSH32 (0x20) <32-byte hash>
+            if recipient_spk.len() != 34 || recipient_spk[0] != 0x53 || recipient_spk[1] != 0x20 {
+                return Err(anyhow!("unsupported recipient script type for bumpfee"));
+            }
+            let mut recipient_hash = [0u8; 32];
+            recipient_hash.copy_from_slice(&recipient_spk[2..34]);
+            let recipient_address = crate::address::encode_address(&hrp, 3, &recipient_hash)
+                .map_err(|e| anyhow!("failed to encode recipient address: {}", e))?;
+
+            // Create replacement transaction with same recipient but higher fee
+            let utxos = node.utxo_iter_all();
+            let current_height = node.height() as u32;
+
+            // The replacement must signal RBF too (in case user wants to bump again)
+            let replacement_tx = wallet.create_transaction(
+                &recipient_address,
+                recipient_amount,
+                new_fee_rate,
+                utxos,
+                current_height,
+                true, // RBF enabled
+            )?;
+
+            let new_txid = replacement_tx.txid();
+
+            // Calculate the new fee
+            let input_sum: u64 = {
+                // Get prevouts for the replacement tx to calculate fee
+                let mut sum = 0u64;
+                for vin in &replacement_tx.vin {
+                    if let Some(prevout) = node.utxo_get(&vin.prevout.txid, vin.prevout.vout) {
+                        sum += prevout.value;
+                    }
+                }
+                sum
+            };
+            let output_sum: u64 = replacement_tx.vout.iter().map(|o| o.value).sum();
+            let new_fee = input_sum.saturating_sub(output_sum);
+
+            // Add replacement to mempool (RBF validation happens inside)
+            node.add_to_mempool(replacement_tx)?;
+
+            Ok((
+                serde_json::json!({
+                    "txid": hex::encode(new_txid),
+                    "origfee": original_entry.fee,
+                    "fee": new_fee,
+                    "errors": [],
+                }),
+                RpcAction::Continue,
+            ))
         }
         _ => Err(anyhow!("method not found")),
     }

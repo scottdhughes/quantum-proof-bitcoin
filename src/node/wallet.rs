@@ -13,7 +13,7 @@ use pqcrypto_traits::sign::{DetachedSignature, PublicKey as PKTrait, SecretKey a
 use serde::{Deserialize, Serialize};
 
 use crate::address::{decode_address, encode_address, qpkh32};
-use crate::constants::COINBASE_MATURITY;
+use crate::constants::{COINBASE_MATURITY, SEQUENCE_FINAL, SEQUENCE_RBF_ENABLED};
 use crate::script::build_p2qpkh;
 use crate::sighash::qpb_sighash;
 use crate::types::{OutPoint, Prevout, Transaction, TxIn, TxOut};
@@ -291,6 +291,8 @@ impl Wallet {
     /// * `amount` - Amount to send in satoshis
     /// * `fee_rate` - Fee rate in sat/vB
     /// * `utxos` - Available UTXOs from the node
+    /// * `current_height` - Current block height (for coinbase maturity)
+    /// * `rbf` - Enable BIP125 RBF opt-in (allows fee bumping)
     ///
     /// # Returns
     /// * Signed transaction ready for broadcast
@@ -301,6 +303,7 @@ impl Wallet {
         fee_rate: u64,
         utxos: Vec<(String, u32, Prevout)>,
         current_height: u32,
+        rbf: bool,
     ) -> Result<Transaction> {
         // Decode recipient address to get scriptPubKey
         let decoded = decode_address(recipient).map_err(|e| anyhow!("invalid address: {}", e))?;
@@ -372,13 +375,20 @@ impl Wallet {
             let txid_bytes = hex::decode(&utxo.txid)?;
             txid.copy_from_slice(&txid_bytes);
 
+            // Use RBF-signaling sequence if requested, otherwise final
+            let sequence = if rbf {
+                SEQUENCE_RBF_ENABLED
+            } else {
+                SEQUENCE_FINAL
+            };
+
             vin.push(TxIn {
                 prevout: OutPoint {
                     txid,
                     vout: utxo.vout,
                 },
                 script_sig: Vec::new(), // SegWit: empty script_sig
-                sequence: 0xffffffff,
+                sequence,
                 witness: Vec::new(), // Will be filled after signing
             });
 

@@ -143,6 +143,17 @@ impl Transaction {
     pub fn wtxid(&self) -> [u8; 32] {
         hash256(&self.serialize(true))
     }
+
+    /// Check if this transaction signals RBF opt-in per BIP125.
+    ///
+    /// A transaction signals RBF if any input has sequence <= 0xfffffffd.
+    /// This allows the transaction to be replaced with a higher-fee version.
+    pub fn signals_rbf(&self) -> bool {
+        use crate::constants::MAX_BIP125_RBF_SEQUENCE;
+        self.vin
+            .iter()
+            .any(|input| input.sequence <= MAX_BIP125_RBF_SEQUENCE)
+    }
 }
 
 impl BlockHeader {
