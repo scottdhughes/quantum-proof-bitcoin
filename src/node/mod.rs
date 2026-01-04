@@ -6,6 +6,7 @@ pub mod mempool;
 pub mod miner;
 #[allow(clippy::module_inception)]
 pub mod node;
+pub mod orphan;
 pub mod p2p;
 pub mod rpc;
 pub mod store;
