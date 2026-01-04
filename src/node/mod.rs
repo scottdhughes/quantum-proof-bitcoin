@@ -1,6 +1,7 @@
 pub mod blockstore;
 pub mod chain;
 pub mod chainparams;
+pub mod checkpoints;
 pub mod feeest;
 pub mod mempool;
 pub mod miner;
@@ -8,6 +9,7 @@ pub mod miner;
 pub mod node;
 pub mod orphan;
 pub mod p2p;
+pub mod peer;
 pub mod rpc;
 pub mod store;
 pub mod utxo;

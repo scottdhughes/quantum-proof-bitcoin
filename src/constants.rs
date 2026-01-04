@@ -149,3 +149,50 @@ pub const MAX_ORPHANS_PER_PEER: usize = 10;
 /// Maximum number of missing parents an orphan can have.
 /// Rejects transactions with too many unknown inputs (likely spam).
 pub const MAX_MISSING_PARENTS: usize = 10;
+
+// ============================================================================
+// Peer Scoring & Banning
+// ============================================================================
+
+/// Misbehavior score threshold that triggers a ban.
+/// When a peer's accumulated score reaches this value, they are disconnected.
+pub const PEER_BAN_THRESHOLD: u32 = 100;
+
+/// Score points that decay per hour.
+/// Allows peers to recover from minor infractions over time.
+pub const PEER_SCORE_DECAY_PER_HOUR: u32 = 10;
+
+/// Default temporary ban duration in seconds (24 hours).
+pub const DEFAULT_BAN_DURATION_SECS: u64 = 24 * 60 * 60;
+
+/// Maximum misbehavior log entries to keep per peer.
+pub const MAX_MISBEHAVIOR_LOG: usize = 50;
+
+// ============================================================================
+// Rate Limiting
+// ============================================================================
+
+/// Maximum P2P messages per second per peer.
+pub const MAX_MESSAGES_PER_SECOND: u32 = 100;
+
+/// Message rate limit bucket capacity (allows bursts).
+pub const MESSAGE_BUCKET_CAPACITY: u32 = 500;
+
+/// Maximum transaction relay per second per peer.
+pub const MAX_TX_RELAY_PER_SECOND: u32 = 10;
+
+/// Transaction relay bucket capacity.
+pub const TX_RELAY_BUCKET_CAPACITY: u32 = 50;
+
+// ============================================================================
+// Connection Limits
+// ============================================================================
+
+/// Maximum total outbound P2P connections.
+pub const MAX_OUTBOUND_CONNECTIONS: usize = 8;
+
+/// Maximum connections from the same /16 subnet.
+pub const MAX_CONNECTIONS_PER_SUBNET: usize = 2;
+
+/// Maximum connections from the same IP address.
+pub const MAX_CONNECTIONS_PER_IP: usize = 1;

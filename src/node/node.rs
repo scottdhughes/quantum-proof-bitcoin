@@ -11,9 +11,11 @@ use crate::node::chain::{ChainIndex, UndoData};
 use crate::node::chainparams::{
     compute_chain_id, compute_genesis_hash, load_chainparams, select_network, to_block_header,
 };
+use crate::node::checkpoints::CheckpointVerifier;
 use crate::node::feeest::{BlockFeeStats, FeeEstimate, FeeEstimator};
 use crate::node::mempool::{Mempool, MempoolEntry, MempoolInfo};
 use crate::node::orphan::OrphanPool;
+use crate::node::peer::BanList;
 use crate::node::store::{Store, write_state};
 use crate::node::utxo::UtxoSet;
 use crate::pow::pow_hash;
@@ -57,6 +59,10 @@ pub struct Node {
     #[allow(dead_code)]
     params_path: PathBuf,
     no_pow: bool,
+    /// Checkpoint verifier for chain validation.
+    checkpoint_verifier: CheckpointVerifier,
+    /// Persistent ban list for misbehaving peers.
+    ban_list: BanList,
     /// Cached unlocked wallet (for encrypted wallets).
     wallet: Option<super::wallet::Wallet>,
 }
@@ -150,6 +156,8 @@ impl Node {
             fee_estimator: FeeEstimator::new(),
             params_path,
             no_pow,
+            checkpoint_verifier: CheckpointVerifier::new(chain),
+            ban_list: BanList::load(datadir).unwrap_or_else(|_| BanList::new()),
             wallet: None,
         })
     }
@@ -185,6 +193,21 @@ impl Node {
     /// Set the cached wallet.
     pub fn set_wallet(&mut self, wallet: Option<super::wallet::Wallet>) {
         self.wallet = wallet;
+    }
+
+    /// Get a reference to the checkpoint verifier.
+    pub fn checkpoint_verifier(&self) -> &CheckpointVerifier {
+        &self.checkpoint_verifier
+    }
+
+    /// Get a reference to the ban list.
+    pub fn ban_list(&self) -> &BanList {
+        &self.ban_list
+    }
+
+    /// Get a mutable reference to the ban list.
+    pub fn ban_list_mut(&mut self) -> &mut BanList {
+        &mut self.ban_list
     }
 
     /// Extract the timestamp from block bytes (offset 68-71 in the 80-byte header).
@@ -532,6 +555,13 @@ impl Node {
         // Already have this block?
         if self.chain_index.contains(&block_hash) {
             return Ok(()); // Already processed
+        }
+
+        // Verify against checkpoints before storing
+        // Height is parent height + 1; if parent unknown, we check later during connect
+        if let Some(parent_meta) = self.chain_index.get(&block.header.prev_blockhash) {
+            let block_height = parent_meta.height + 1;
+            self.checkpoint_verifier.verify(block_height, &block_hash)?;
         }
 
         // Store block data first
