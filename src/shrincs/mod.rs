@@ -34,8 +34,12 @@
 pub mod api;
 pub mod error;
 pub mod params;
+pub mod pors;
+pub mod shrincs;
 pub mod state;
+pub mod tree;
 pub mod types;
+pub mod wots;
 
 // Re-exports for convenient access
 pub use api::{ShrincsSign, ShrincsVerify};
