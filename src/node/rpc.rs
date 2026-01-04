@@ -2,9 +2,11 @@ use anyhow::{Result, anyhow};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::address::load_hrp;
 use crate::node::chainparams::{load_chainparams, select_network};
 use crate::node::miner::{build_block_template, mine_block_bytes, mine_block_bytes_with_mempool};
 use crate::node::node::{Node, parse_transaction};
+use crate::node::wallet::Wallet;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RpcAction {
@@ -211,6 +213,66 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             let template = build_block_template(node, net)?;
             let val = serde_json::to_value(template).map_err(|e| anyhow!("{}", e))?;
             Ok((val, RpcAction::Continue))
+        }
+        // Wallet RPCs
+        "createwallet" => {
+            let wallet_path = node.datadir.join("wallet.json");
+            let hrp = load_hrp(
+                &node.chain,
+                Some(std::path::Path::new("docs/chain/chainparams.json")),
+            );
+            let _wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
+            Ok((
+                serde_json::json!({
+                    "name": "default",
+                    "path": wallet_path.to_string_lossy(),
+                }),
+                RpcAction::Continue,
+            ))
+        }
+        "getnewaddress" => {
+            let label = params.first().and_then(|v| v.as_str()).unwrap_or("");
+            let wallet_path = node.datadir.join("wallet.json");
+            let hrp = load_hrp(
+                &node.chain,
+                Some(std::path::Path::new("docs/chain/chainparams.json")),
+            );
+            let mut wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
+            let address = wallet.get_new_address(label)?;
+            Ok((Value::String(address), RpcAction::Continue))
+        }
+        "getbalance" => {
+            let wallet_path = node.datadir.join("wallet.json");
+            if !wallet_path.exists() {
+                return Err(anyhow!("wallet not found, call createwallet first"));
+            }
+            let wallet = Wallet::load(&wallet_path)?;
+            let balance = wallet.get_balance(|| node.utxo_iter_all())?;
+            // Return balance in satoshis
+            Ok((Value::from(balance), RpcAction::Continue))
+        }
+        "listunspent" => {
+            let wallet_path = node.datadir.join("wallet.json");
+            if !wallet_path.exists() {
+                return Err(anyhow!("wallet not found, call createwallet first"));
+            }
+            let wallet = Wallet::load(&wallet_path)?;
+            let utxos = wallet.list_unspent(|| node.utxo_iter_all())?;
+            let val = serde_json::to_value(utxos).map_err(|e| anyhow!("{}", e))?;
+            Ok((val, RpcAction::Continue))
+        }
+        "listaddresses" => {
+            let wallet_path = node.datadir.join("wallet.json");
+            if !wallet_path.exists() {
+                return Err(anyhow!("wallet not found, call createwallet first"));
+            }
+            let wallet = Wallet::load(&wallet_path)?;
+            let addresses: Vec<Value> = wallet
+                .addresses()
+                .into_iter()
+                .map(|a| Value::String(a.to_string()))
+                .collect();
+            Ok((Value::Array(addresses), RpcAction::Continue))
         }
         _ => Err(anyhow!("method not found")),
     }
