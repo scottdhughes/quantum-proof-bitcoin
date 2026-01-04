@@ -1,15 +1,51 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Result, anyhow};
+use serde::Serialize;
 
 use crate::constants::WEIGHT_FLOOR_WU;
 use crate::hashing::hash256;
 use crate::node::chainparams::NetworkParams;
 use crate::node::node::Node;
 use crate::pow::{bits_to_target, pow_hash};
+use crate::reward::block_subsidy;
 use crate::script::build_p2qpkh;
 use crate::types::{Block, BlockHeader, Transaction, TxIn, TxOut};
 use crate::weight::max_allowed_weight;
+
+/// A transaction entry in the block template.
+#[derive(Debug, Clone, Serialize)]
+pub struct TemplateTransaction {
+    /// Transaction ID (hex).
+    pub txid: String,
+    /// Serialized transaction (hex).
+    pub data: String,
+    /// Transaction fee in satoshis.
+    pub fee: u64,
+    /// Transaction weight in weight units.
+    pub weight: u32,
+}
+
+/// Block template for external miners.
+#[derive(Debug, Clone, Serialize)]
+pub struct BlockTemplate {
+    /// Block version.
+    pub version: i32,
+    /// Previous block hash (hex, big-endian).
+    pub previousblockhash: String,
+    /// Transactions to include (excluding coinbase).
+    pub transactions: Vec<TemplateTransaction>,
+    /// Total value available for coinbase (subsidy + fees).
+    pub coinbasevalue: u64,
+    /// Target threshold (hex, big-endian).
+    pub target: String,
+    /// Compact difficulty bits.
+    pub bits: String,
+    /// Current timestamp.
+    pub curtime: u32,
+    /// Height of the block being built.
+    pub height: u64,
+}
 
 /// Build and optionally mine a coinbase-only block on the current tip.
 /// Returns the serialized block bytes.
@@ -217,4 +253,66 @@ fn current_time() -> u32 {
 fn dummy_qpkh() -> [u8; 32] {
     // Deterministic placeholder: HASH256("QPB/DEV/COINBASE")
     hash256(b"QPB/DEV/COINBASE")
+}
+
+/// Build a block template for external miners.
+///
+/// Returns a `BlockTemplate` containing all information needed for an external
+/// miner to construct and mine a valid block.
+pub fn build_block_template(node: &Node, net: &NetworkParams) -> Result<BlockTemplate> {
+    // Previous block hash
+    let prev_hash_hex = node.best_hash_hex().to_string();
+
+    // Current height (next block's height)
+    let height = node.height() + 1;
+
+    // Get difficulty bits from genesis (devnet uses constant difficulty)
+    let bits = net
+        .genesis
+        .as_ref()
+        .ok_or_else(|| anyhow!("missing genesis"))?
+        .header
+        .bits;
+
+    // Calculate target from bits
+    let target_bytes = bits_to_target(bits).ok_or_else(|| anyhow!("invalid bits"))?;
+    let target_hex = hex::encode(target_bytes);
+
+    // Calculate max weight for block
+    let max_weight = max_allowed_weight(WEIGHT_FLOOR_WU, WEIGHT_FLOOR_WU);
+    let coinbase_reserve = 2000u32;
+    let available_weight = max_weight.saturating_sub(coinbase_reserve);
+
+    // Select mempool transactions with full metadata
+    let mempool_entries = node.mempool_select_entries_for_block(available_weight);
+
+    // Build transaction list with fees
+    let mut total_fees: u64 = 0;
+    let transactions: Vec<TemplateTransaction> = mempool_entries
+        .iter()
+        .map(|entry| {
+            total_fees += entry.fee;
+            TemplateTransaction {
+                txid: hex::encode(entry.txid),
+                data: hex::encode(entry.tx.serialize(true)),
+                fee: entry.fee,
+                weight: entry.weight,
+            }
+        })
+        .collect();
+
+    // Coinbase value = subsidy + total fees
+    let subsidy = block_subsidy(height as u32);
+    let coinbasevalue = subsidy + total_fees;
+
+    Ok(BlockTemplate {
+        version: 1,
+        previousblockhash: prev_hash_hex,
+        transactions,
+        coinbasevalue,
+        target: target_hex,
+        bits: format!("{:08x}", bits),
+        curtime: current_time(),
+        height,
+    })
 }
