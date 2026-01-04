@@ -693,6 +693,12 @@ impl Node {
     }
 
     /// Reorganize the chain to a new tip.
+    ///
+    /// This performs a full chain reorganization:
+    /// 1. Finds the fork point between current and new chain
+    /// 2. Disconnects blocks from current tip back to fork point
+    /// 3. Connects blocks from fork point to new tip
+    /// 4. Restores disconnected transactions to mempool (if still valid)
     fn reorganize_to(&mut self, new_tip: &[u8; 32]) -> Result<()> {
         let current_tip_hex = self.store.tip_hash().to_string();
         let mut current_tip = [0u8; 32];
@@ -710,11 +716,28 @@ impl Node {
         // Get blocks to connect (from fork point to new tip)
         let connect_path = self.chain_index.get_path(&fork_point, new_tip);
 
+        // Collect transactions from blocks being disconnected (for mempool restoration)
+        // We do this before disconnecting so we can access block data
+        let mut disconnected_txs: Vec<Transaction> = Vec::new();
+        for hash in &disconnect_path {
+            let hash_hex = hex::encode(hash);
+            let block_bytes = blockstore::get_block(&self.datadir, &hash_hex)?
+                .ok_or_else(|| anyhow!("block not found: {}", hash_hex))?;
+            let block = parse_block(&block_bytes)?;
+            // Skip coinbase (index 0), collect all other transactions
+            for tx in block.txdata.into_iter().skip(1) {
+                disconnected_txs.push(tx);
+            }
+        }
+
         // Disconnect blocks (in reverse order - newest first)
         for hash in disconnect_path.iter().rev() {
             let hash_hex = hex::encode(hash);
             self.disconnect_block(&hash_hex)?;
         }
+
+        // Track txids confirmed in new chain (to avoid re-adding them)
+        let mut confirmed_in_new_chain: HashSet<[u8; 32]> = HashSet::new();
 
         // Connect blocks (in order - oldest first)
         for hash in &connect_path {
@@ -722,7 +745,35 @@ impl Node {
             let block_bytes = blockstore::get_block(&self.datadir, &hash_hex)?
                 .ok_or_else(|| anyhow!("block not found: {}", hash_hex))?;
             let block = parse_block(&block_bytes)?;
+
+            // Track txids confirmed in new chain
+            for tx in &block.txdata {
+                confirmed_in_new_chain.insert(tx.txid());
+            }
+
             self.connect_block(&block, &hash_hex)?;
+        }
+
+        // Restore disconnected transactions to mempool (if still valid)
+        // Transactions that conflict with the new chain will fail validation
+        let mut restored_count = 0u32;
+        for tx in disconnected_txs {
+            let txid = tx.txid();
+
+            // Skip if already confirmed in the new chain
+            if confirmed_in_new_chain.contains(&txid) {
+                continue;
+            }
+
+            // Try to re-add to mempool - ignore errors (may conflict with new chain)
+            if self.try_add_to_mempool_with_missing(&tx).is_ok() {
+                restored_count += 1;
+            }
+        }
+
+        if restored_count > 0 {
+            // Save mempool with restored transactions
+            let _ = self.mempool.save(&self.datadir);
         }
 
         // Update chain index tip
