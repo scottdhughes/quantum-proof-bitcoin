@@ -38,4 +38,6 @@ pub enum ConsensusError {
     WitnessCommitmentMismatch,
     #[error("transaction locktime not satisfied")]
     LocktimeNotSatisfied,
+    #[error("BIP68 relative locktime not satisfied")]
+    SequenceLockNotSatisfied,
 }

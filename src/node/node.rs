@@ -223,11 +223,22 @@ impl Node {
             }
         }
 
-        // Check locktime before accepting into mempool
+        // Check absolute locktime before accepting into mempool (BIP113)
         // Use next block height and current MTP for evaluation
         let current_mtp = self.compute_mtp(self.store.height());
         crate::validation::check_locktime_for_mempool(&tx, current_height, current_mtp)
             .map_err(|e| anyhow::anyhow!("locktime not satisfied: {}", e))?;
+
+        // Check relative locktimes before accepting into mempool (BIP68)
+        let get_mtp_at_height = |h: u32| self.compute_mtp(h as u64);
+        crate::validation::check_sequence_locks_for_mempool(
+            &tx,
+            &prevouts,
+            current_height,
+            current_mtp,
+            get_mtp_at_height,
+        )
+        .map_err(|e| anyhow::anyhow!("relative locktime not satisfied: {}", e))?;
 
         // Use a closure that captures our UTXO set for any additional lookups
         let utxo_ref = &self.utxo;
@@ -354,6 +365,9 @@ impl Node {
         let current_height = self.store.height();
         let mtp = self.compute_mtp(current_height);
 
+        // For BIP68 time-based relative locks, we need MTP at prevout heights
+        let get_mtp_at_height = |h: u32| self.compute_mtp(h as u64);
+
         validate_block_basic(
             block,
             &prevouts_by_tx,
@@ -362,6 +376,7 @@ impl Node {
             !self.no_pow,
             new_height,
             mtp,
+            get_mtp_at_height,
         )?;
 
         // Store undo data before modifying UTXO set

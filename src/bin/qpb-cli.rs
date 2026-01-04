@@ -534,7 +534,8 @@ fn main() {
             WEIGHT_FLOOR_WU,
             true,
             height,
-            0, // MTP not needed for final transactions
+            0,     // MTP not needed for final transactions
+            |_| 0, // No MTP lookup needed for final transactions
         )
         .expect("block validation failed");
 

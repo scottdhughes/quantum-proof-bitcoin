@@ -80,3 +80,23 @@ pub const SEQUENCE_FINAL: u32 = 0xffffffff;
 /// Number of blocks to use for Median Time Past (BIP113).
 /// MTP is the median timestamp of the last 11 blocks.
 pub const MTP_BLOCKS: usize = 11;
+
+// ---- BIP68 Relative locktime constants ----
+/// Minimum transaction version that enforces BIP68 relative locktimes.
+/// Transactions with version < 2 do not have relative locktime enforcement.
+pub const BIP68_MIN_VERSION: i32 = 2;
+
+/// If this bit is set in nSequence, relative locktime is disabled for that input.
+/// The input can be spent regardless of how recently the prevout was confirmed.
+pub const SEQUENCE_LOCKTIME_DISABLE_FLAG: u32 = 1 << 31; // 0x80000000
+
+/// If this bit is set, the relative locktime is time-based (512-second granularity).
+/// If not set, the relative locktime is block-based.
+pub const SEQUENCE_LOCKTIME_TYPE_FLAG: u32 = 1 << 22; // 0x00400000
+
+/// Mask for extracting the relative locktime value (lower 16 bits).
+pub const SEQUENCE_LOCKTIME_MASK: u32 = 0x0000ffff;
+
+/// Granularity of time-based relative locktimes in seconds.
+/// Time-based relative locktimes are measured in 512-second intervals.
+pub const SEQUENCE_LOCKTIME_GRANULARITY: u32 = 512;
