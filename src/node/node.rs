@@ -1,5 +1,6 @@
 use std::io::{Cursor, Read};
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result, anyhow};
 
@@ -15,7 +16,7 @@ use crate::node::checkpoints::CheckpointVerifier;
 use crate::node::feeest::{BlockFeeStats, FeeEstimate, FeeEstimator};
 use crate::node::mempool::{Mempool, MempoolEntry, MempoolInfo};
 use crate::node::orphan::OrphanPool;
-use crate::node::peer::BanList;
+use crate::node::peer::{BanList, PeerManager};
 use crate::node::store::{Store, write_state};
 use crate::node::utxo::UtxoSet;
 use crate::pow::pow_hash;
@@ -65,6 +66,8 @@ pub struct Node {
     ban_list: BanList,
     /// Cached unlocked wallet (for encrypted wallets).
     wallet: Option<super::wallet::Wallet>,
+    /// Peer manager for tracking connected peers (inbound and outbound).
+    peer_manager: Option<Arc<PeerManager>>,
 }
 
 impl Node {
@@ -159,6 +162,7 @@ impl Node {
             checkpoint_verifier: CheckpointVerifier::new(chain),
             ban_list: BanList::load(datadir).unwrap_or_else(|_| BanList::new()),
             wallet: None,
+            peer_manager: None,
         })
     }
 
@@ -208,6 +212,41 @@ impl Node {
     /// Get a mutable reference to the ban list.
     pub fn ban_list_mut(&mut self) -> &mut BanList {
         &mut self.ban_list
+    }
+
+    // ---- Peer Management Methods ----
+
+    /// Initialize the peer manager for P2P connections.
+    ///
+    /// Creates a PeerManager with a shared ban list. Must be called before
+    /// starting the inbound listener. Returns the PeerManager for use with
+    /// InboundListener::start().
+    pub fn init_peer_manager(&mut self) -> Arc<PeerManager> {
+        let ban_list = Arc::new(Mutex::new(BanList::new()));
+        let peer_manager = Arc::new(PeerManager::new(ban_list));
+        self.peer_manager = Some(Arc::clone(&peer_manager));
+        peer_manager
+    }
+
+    /// Set the peer manager (for testing or external initialization).
+    pub fn set_peer_manager(&mut self, pm: Arc<PeerManager>) {
+        self.peer_manager = Some(pm);
+    }
+
+    /// Get the count of connected peers.
+    ///
+    /// Returns (inbound_count, outbound_count). Returns (0, 0) if peer manager
+    /// is not initialized.
+    pub fn peer_count(&self) -> (usize, usize) {
+        match &self.peer_manager {
+            Some(pm) => pm.peer_counts(),
+            None => (0, 0),
+        }
+    }
+
+    /// Get a reference to the peer manager (if initialized).
+    pub fn peer_manager(&self) -> Option<&Arc<PeerManager>> {
+        self.peer_manager.as_ref()
     }
 
     /// Extract the timestamp from block bytes (offset 68-71 in the 80-byte header).

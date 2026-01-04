@@ -16,8 +16,8 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use crate::constants::{
-    MAX_CONNECTIONS_PER_IP, MAX_CONNECTIONS_PER_SUBNET, MAX_MISBEHAVIOR_LOG,
-    MAX_OUTBOUND_CONNECTIONS, MESSAGE_BUCKET_CAPACITY, PEER_BAN_THRESHOLD,
+    MAX_CONNECTIONS_PER_IP, MAX_CONNECTIONS_PER_SUBNET, MAX_INBOUND_CONNECTIONS,
+    MAX_MISBEHAVIOR_LOG, MAX_OUTBOUND_CONNECTIONS, MESSAGE_BUCKET_CAPACITY, PEER_BAN_THRESHOLD,
     PEER_SCORE_DECAY_PER_HOUR,
 };
 
@@ -559,6 +559,305 @@ impl ConnectionLimiter {
     pub fn connections_from_ip(&self, addr: &str) -> usize {
         let ip = normalize_address(addr);
         self.by_ip.get(&ip).copied().unwrap_or(0)
+    }
+
+    /// Check if a new inbound connection would be allowed.
+    ///
+    /// Uses inbound-specific limits (MAX_INBOUND_CONNECTIONS) instead of outbound.
+    pub fn can_accept_inbound(
+        &self,
+        addr: &str,
+        current_inbound: usize,
+        ban_list: Option<&BanList>,
+    ) -> Result<(), ConnectionDenied> {
+        // Check ban list first
+        if let Some(bans) = ban_list
+            && bans.is_banned(addr)
+        {
+            return Err(ConnectionDenied::Banned);
+        }
+
+        // Check inbound-specific limit
+        if current_inbound >= MAX_INBOUND_CONNECTIONS {
+            return Err(ConnectionDenied::MaxConnections);
+        }
+
+        let ip = normalize_address(addr);
+        let subnet = extract_subnet(&ip);
+
+        // Check per-IP limit
+        if let Some(&count) = self.by_ip.get(&ip)
+            && count >= MAX_CONNECTIONS_PER_IP
+        {
+            return Err(ConnectionDenied::MaxPerIP);
+        }
+
+        // Check per-subnet limit
+        if let Some(&count) = self.by_subnet.get(&subnet)
+            && count >= MAX_CONNECTIONS_PER_SUBNET
+        {
+            return Err(ConnectionDenied::MaxPerSubnet);
+        }
+
+        Ok(())
+    }
+}
+
+// ============================================================================
+// Peer Direction & Info
+// ============================================================================
+
+/// Direction of a peer connection.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PeerDirection {
+    /// We connected to the peer (outbound).
+    Outbound,
+    /// The peer connected to us (inbound).
+    Inbound,
+}
+
+impl std::fmt::Display for PeerDirection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PeerDirection::Outbound => write!(f, "outbound"),
+            PeerDirection::Inbound => write!(f, "inbound"),
+        }
+    }
+}
+
+/// Information about a connected peer.
+#[derive(Debug, Clone)]
+pub struct PeerInfo {
+    /// Unique peer identifier for this session.
+    pub id: u64,
+    /// Peer's socket address.
+    pub addr: String,
+    /// Connection direction.
+    pub direction: PeerDirection,
+    /// Peer's protocol version.
+    pub version: i32,
+    /// Peer's advertised services.
+    pub services: u64,
+    /// Peer's best block height at connection time.
+    pub start_height: i32,
+    /// Unix timestamp when connection was established.
+    pub connected_at: u64,
+    /// Peer's misbehavior score.
+    pub score: PeerScore,
+    /// Rate limiter for messages.
+    pub msg_limiter: RateLimiter,
+    /// Rate limiter for transaction relay.
+    pub tx_limiter: RateLimiter,
+}
+
+impl PeerInfo {
+    /// Create a new PeerInfo for a connection.
+    pub fn new(
+        id: u64,
+        addr: String,
+        direction: PeerDirection,
+        version: i32,
+        services: u64,
+        start_height: i32,
+    ) -> Self {
+        Self {
+            id,
+            addr,
+            direction,
+            version,
+            services,
+            start_height,
+            connected_at: current_unix_time(),
+            score: PeerScore::new(),
+            msg_limiter: RateLimiter::for_messages(),
+            tx_limiter: RateLimiter::for_tx_relay(),
+        }
+    }
+}
+
+// ============================================================================
+// PeerManager
+// ============================================================================
+
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
+
+/// Manages connected peers with thread-safe operations.
+///
+/// Tracks inbound/outbound connections, enforces limits, and provides
+/// peer lookup by ID.
+pub struct PeerManager {
+    /// Connected peers indexed by ID.
+    peers: Mutex<HashMap<u64, Arc<Mutex<PeerInfo>>>>,
+    /// Connection limiter for IP/subnet enforcement.
+    connection_limiter: Mutex<ConnectionLimiter>,
+    /// Ban list reference.
+    ban_list: Arc<Mutex<BanList>>,
+    /// Next peer ID to assign.
+    next_id: AtomicU64,
+    /// Current inbound connection count.
+    inbound_count: AtomicUsize,
+    /// Current outbound connection count.
+    outbound_count: AtomicUsize,
+}
+
+impl PeerManager {
+    /// Create a new peer manager with the given ban list.
+    pub fn new(ban_list: Arc<Mutex<BanList>>) -> Self {
+        Self {
+            peers: Mutex::new(HashMap::new()),
+            connection_limiter: Mutex::new(ConnectionLimiter::new()),
+            ban_list,
+            next_id: AtomicU64::new(1),
+            inbound_count: AtomicUsize::new(0),
+            outbound_count: AtomicUsize::new(0),
+        }
+    }
+
+    /// Check if a new inbound connection from this address is allowed.
+    pub fn can_accept_inbound(&self, addr: &str) -> Result<(), ConnectionDenied> {
+        let limiter = self.connection_limiter.lock().unwrap();
+        let ban_list = self.ban_list.lock().unwrap();
+        let inbound = self.inbound_count.load(Ordering::SeqCst);
+        limiter.can_accept_inbound(addr, inbound, Some(&*ban_list))
+    }
+
+    /// Register a new peer and return its assigned ID.
+    pub fn add_peer(
+        &self,
+        addr: String,
+        direction: PeerDirection,
+        version: i32,
+        services: u64,
+        start_height: i32,
+    ) -> u64 {
+        let id = self.next_id.fetch_add(1, Ordering::SeqCst);
+        let info = PeerInfo::new(id, addr.clone(), direction, version, services, start_height);
+
+        // Update connection limiter
+        {
+            let mut limiter = self.connection_limiter.lock().unwrap();
+            limiter.add_connection(&addr);
+        }
+
+        // Update counts
+        match direction {
+            PeerDirection::Inbound => {
+                self.inbound_count.fetch_add(1, Ordering::SeqCst);
+            }
+            PeerDirection::Outbound => {
+                self.outbound_count.fetch_add(1, Ordering::SeqCst);
+            }
+        }
+
+        // Store peer
+        {
+            let mut peers = self.peers.lock().unwrap();
+            peers.insert(id, Arc::new(Mutex::new(info)));
+        }
+
+        id
+    }
+
+    /// Remove a peer by ID.
+    pub fn remove_peer(&self, id: u64) -> Option<PeerInfo> {
+        let peer_arc = {
+            let mut peers = self.peers.lock().unwrap();
+            peers.remove(&id)
+        };
+
+        if let Some(arc) = peer_arc {
+            let info = arc.lock().unwrap().clone();
+
+            // Update connection limiter
+            {
+                let mut limiter = self.connection_limiter.lock().unwrap();
+                limiter.remove_connection(&info.addr);
+            }
+
+            // Update counts
+            match info.direction {
+                PeerDirection::Inbound => {
+                    self.inbound_count.fetch_sub(1, Ordering::SeqCst);
+                }
+                PeerDirection::Outbound => {
+                    self.outbound_count.fetch_sub(1, Ordering::SeqCst);
+                }
+            }
+
+            Some(info)
+        } else {
+            None
+        }
+    }
+
+    /// Get a peer by ID.
+    pub fn get_peer(&self, id: u64) -> Option<Arc<Mutex<PeerInfo>>> {
+        let peers = self.peers.lock().unwrap();
+        peers.get(&id).cloned()
+    }
+
+    /// Get current peer counts: (inbound, outbound).
+    pub fn peer_counts(&self) -> (usize, usize) {
+        (
+            self.inbound_count.load(Ordering::SeqCst),
+            self.outbound_count.load(Ordering::SeqCst),
+        )
+    }
+
+    /// Get total peer count.
+    pub fn total_peers(&self) -> usize {
+        let (inbound, outbound) = self.peer_counts();
+        inbound + outbound
+    }
+
+    /// Get info for all connected peers.
+    pub fn list_peers(&self) -> Vec<PeerInfo> {
+        let peers = self.peers.lock().unwrap();
+        peers
+            .values()
+            .map(|arc| arc.lock().unwrap().clone())
+            .collect()
+    }
+
+    /// Record misbehavior for a peer. Returns true if peer should be banned.
+    pub fn record_misbehavior(&self, id: u64, behavior: Misbehavior) -> bool {
+        if let Some(arc) = self.get_peer(id) {
+            let mut info = arc.lock().unwrap();
+            let should_ban = info.score.record(behavior);
+            if should_ban {
+                // Add to ban list
+                let mut ban_list = self.ban_list.lock().unwrap();
+                ban_list.ban_temporarily(
+                    &info.addr,
+                    crate::constants::DEFAULT_BAN_DURATION_SECS,
+                    behavior.description(),
+                );
+            }
+            should_ban
+        } else {
+            false
+        }
+    }
+
+    /// Check if an address is banned.
+    pub fn is_banned(&self, addr: &str) -> bool {
+        let ban_list = self.ban_list.lock().unwrap();
+        ban_list.is_banned(addr)
+    }
+}
+
+impl std::fmt::Debug for PeerManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let (inbound, outbound) = self.peer_counts();
+        f.debug_struct("PeerManager")
+            .field("inbound_count", &inbound)
+            .field("outbound_count", &outbound)
+            .field(
+                "next_id",
+                &self.next_id.load(std::sync::atomic::Ordering::SeqCst),
+            )
+            .finish()
     }
 }
 

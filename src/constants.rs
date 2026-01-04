@@ -197,6 +197,26 @@ pub const MAX_CONNECTIONS_PER_SUBNET: usize = 2;
 /// Maximum connections from the same IP address.
 pub const MAX_CONNECTIONS_PER_IP: usize = 1;
 
+/// Maximum inbound P2P connections to accept.
+/// Bitcoin Core uses 117 as default (125 total - 8 outbound).
+pub const MAX_INBOUND_CONNECTIONS: usize = 117;
+
+/// Handshake timeout for new P2P connections in milliseconds.
+pub const HANDSHAKE_TIMEOUT_MS: u64 = 10_000;
+
+// ============================================================================
+// P2P Network Ports
+// ============================================================================
+
+/// Default P2P listen port for mainnet.
+pub const DEFAULT_MAINNET_PORT: u16 = 8333;
+
+/// Default P2P listen port for testnet.
+pub const DEFAULT_TESTNET_PORT: u16 = 18333;
+
+/// Default P2P listen port for devnet (local development).
+pub const DEFAULT_DEVNET_PORT: u16 = 28333;
+
 // ============================================================================
 // Chain Reorganization
 // ============================================================================

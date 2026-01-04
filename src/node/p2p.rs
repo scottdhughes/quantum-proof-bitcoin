@@ -631,3 +631,503 @@ impl Default for RelayManager {
         Self::new()
     }
 }
+
+// ============================================================================
+// Inbound Connection Handling
+// ============================================================================
+
+use std::net::{SocketAddr, TcpListener};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread::{self, JoinHandle};
+
+use crate::constants::{DEFAULT_DEVNET_PORT, DEFAULT_TESTNET_PORT, HANDSHAKE_TIMEOUT_MS};
+use crate::node::peer::{Misbehavior, PeerDirection, PeerManager};
+
+/// Parsed VERSION message from a peer.
+#[derive(Debug, Clone)]
+pub struct PeerVersion {
+    /// Protocol version (e.g., 70015).
+    pub version: i32,
+    /// Service flags.
+    pub services: u64,
+    /// Peer's reported timestamp.
+    pub timestamp: i64,
+    /// Peer's reported block height.
+    pub start_height: i32,
+    /// Whether peer wants relay.
+    pub relay: bool,
+}
+
+/// Parse a VERSION message payload.
+pub fn parse_version(payload: &[u8]) -> Result<PeerVersion> {
+    if payload.len() < 85 {
+        return Err(anyhow!("VERSION payload too short"));
+    }
+
+    let version = i32::from_le_bytes(payload[0..4].try_into().unwrap());
+    let services = u64::from_le_bytes(payload[4..12].try_into().unwrap());
+    let timestamp = i64::from_le_bytes(payload[12..20].try_into().unwrap());
+
+    // Skip addr_recv (26 bytes) and addr_from (26 bytes) and nonce (8 bytes)
+    // That's 20 + 26 + 26 + 8 = 80 bytes
+    // Then user_agent varint + string, then start_height (4 bytes), then relay (1 byte)
+
+    let mut cur = std::io::Cursor::new(&payload[80..]);
+    let user_agent_len = read_compact_size(&mut cur)? as usize;
+    let pos = cur.position() as usize;
+
+    // Skip user agent string
+    let remaining = &payload[80 + pos + user_agent_len..];
+    if remaining.len() < 4 {
+        return Err(anyhow!("VERSION payload missing start_height"));
+    }
+
+    let start_height = i32::from_le_bytes(remaining[0..4].try_into().unwrap());
+    let relay = if remaining.len() > 4 {
+        remaining[4] != 0
+    } else {
+        true // Default to relay if not specified
+    };
+
+    Ok(PeerVersion {
+        version,
+        services,
+        timestamp,
+        start_height,
+        relay,
+    })
+}
+
+/// Perform handshake as responder (for inbound connections).
+///
+/// Handshake order for responder:
+/// 1. Receive VERSION from peer
+/// 2. Send our VERSION
+/// 3. Send VERACK
+/// 4. Receive VERACK from peer
+pub fn handle_inbound_handshake(
+    stream: &mut TcpStream,
+    magic: [u8; 4],
+    our_height: i32,
+) -> Result<PeerVersion> {
+    // Set handshake-specific timeout
+    stream.set_read_timeout(Some(Duration::from_millis(HANDSHAKE_TIMEOUT_MS)))?;
+    stream.set_write_timeout(Some(Duration::from_millis(HANDSHAKE_TIMEOUT_MS)))?;
+
+    // 1. Wait for VERSION from peer
+    let msg = read_message(stream, magic)?;
+    if msg.command != CMD_VERSION {
+        return Err(anyhow!("expected VERSION, got {}", msg.command));
+    }
+    let peer_version = parse_version(&msg.payload)?;
+
+    // 2. Send our VERSION
+    let our_version = ser_version(our_height);
+    write_message(stream, magic, CMD_VERSION, &our_version)?;
+
+    // 3. Send VERACK
+    write_message(stream, magic, CMD_VERACK, &[])?;
+
+    // 4. Wait for VERACK (tolerate VERSION if peer sends it again)
+    let verack_msg = read_message(stream, magic)?;
+    if verack_msg.command != CMD_VERACK && verack_msg.command != CMD_VERSION {
+        return Err(anyhow!("expected VERACK, got {}", verack_msg.command));
+    }
+
+    // Restore normal timeouts
+    stream.set_read_timeout(Some(Duration::from_millis(DEFAULT_READ_TIMEOUT_MS)))?;
+    stream.set_write_timeout(Some(Duration::from_millis(DEFAULT_WRITE_TIMEOUT_MS)))?;
+
+    Ok(peer_version)
+}
+
+/// Serialize a PONG response (nonce from PING).
+pub fn ser_pong(nonce: u64) -> Vec<u8> {
+    nonce.to_le_bytes().to_vec()
+}
+
+/// Serialize a HEADERS response.
+pub fn ser_headers(headers: &[BlockHeader]) -> Vec<u8> {
+    let mut p = Vec::new();
+    write_compact_size(headers.len() as u64, &mut p);
+    for header in headers {
+        ser_header(header, &mut p);
+        p.push(0); // tx count = 0
+    }
+    p
+}
+
+/// Serialize a single block header.
+fn ser_header(header: &BlockHeader, buf: &mut Vec<u8>) {
+    buf.extend_from_slice(&header.version.to_le_bytes());
+    let mut prev_le = header.prev_blockhash;
+    prev_le.reverse();
+    buf.extend_from_slice(&prev_le);
+    let mut merkle_le = header.merkle_root;
+    merkle_le.reverse();
+    buf.extend_from_slice(&merkle_le);
+    buf.extend_from_slice(&header.time.to_le_bytes());
+    buf.extend_from_slice(&header.bits.to_le_bytes());
+    buf.extend_from_slice(&header.nonce.to_le_bytes());
+}
+
+/// Parse a GETHEADERS message.
+pub fn parse_getheaders(payload: &[u8]) -> Result<(Vec<[u8; 32]>, [u8; 32])> {
+    let mut cur = std::io::Cursor::new(payload.to_vec());
+    let mut vbuf = [0u8; 4];
+    cur.read_exact(&mut vbuf)?; // protocol version
+
+    let count = read_compact_size(&mut cur)? as usize;
+    let mut locator = Vec::with_capacity(count);
+    for _ in 0..count {
+        let mut hash_le = [0u8; 32];
+        cur.read_exact(&mut hash_le)?;
+        let mut hash = [0u8; 32];
+        hash.copy_from_slice(&hash_le.iter().rev().cloned().collect::<Vec<_>>());
+        locator.push(hash);
+    }
+
+    let mut stop_le = [0u8; 32];
+    cur.read_exact(&mut stop_le)?;
+    let mut stop = [0u8; 32];
+    stop.copy_from_slice(&stop_le.iter().rev().cloned().collect::<Vec<_>>());
+
+    Ok((locator, stop))
+}
+
+/// Parse a GETDATA message.
+pub fn parse_getdata(payload: &[u8]) -> Result<Vec<InvEntry>> {
+    parse_inv(payload)
+}
+
+/// Configuration for the inbound listener.
+#[derive(Debug, Clone)]
+pub struct InboundConfig {
+    /// Address to bind to.
+    pub bind_addr: SocketAddr,
+    /// Network magic bytes.
+    pub magic: [u8; 4],
+    /// Maximum inbound connections.
+    pub max_inbound: usize,
+}
+
+/// Inbound connection listener.
+///
+/// Accepts incoming TCP connections, performs handshake, and spawns
+/// worker threads to handle each peer.
+pub struct InboundListener {
+    /// TCP listener handle.
+    listener: TcpListener,
+    /// Network magic bytes.
+    magic: [u8; 4],
+    /// Shutdown signal.
+    shutdown: Arc<AtomicBool>,
+    /// Listener thread handle.
+    thread_handle: Option<JoinHandle<()>>,
+}
+
+impl InboundListener {
+    /// Create a new inbound listener bound to the given address.
+    pub fn bind(config: InboundConfig) -> Result<Self> {
+        let listener = TcpListener::bind(config.bind_addr)?;
+        listener.set_nonblocking(false)?;
+
+        Ok(Self {
+            listener,
+            magic: config.magic,
+            shutdown: Arc::new(AtomicBool::new(false)),
+            thread_handle: None,
+        })
+    }
+
+    /// Get the local address we're listening on.
+    pub fn local_addr(&self) -> Result<SocketAddr> {
+        Ok(self.listener.local_addr()?)
+    }
+
+    /// Start accepting connections in a background thread.
+    ///
+    /// The node reference is used to access chain state for serving requests.
+    /// The peer manager is used for connection limits and peer tracking.
+    pub fn start<F>(
+        &mut self,
+        node: Arc<Mutex<Node>>,
+        peer_manager: Arc<PeerManager>,
+        on_peer_connected: F,
+    ) where
+        F: Fn(u64, PeerVersion) + Send + Sync + 'static,
+    {
+        let listener = self.listener.try_clone().expect("clone listener");
+        let magic = self.magic;
+        let shutdown = self.shutdown.clone();
+        let on_connected = Arc::new(on_peer_connected);
+
+        let handle = thread::spawn(move || {
+            for stream_result in listener.incoming() {
+                // Check shutdown flag
+                if shutdown.load(Ordering::SeqCst) {
+                    break;
+                }
+
+                let mut stream = match stream_result {
+                    Ok(s) => s,
+                    Err(e) => {
+                        eprintln!("accept error: {}", e);
+                        continue;
+                    }
+                };
+
+                let peer_addr = match stream.peer_addr() {
+                    Ok(addr) => addr.to_string(),
+                    Err(_) => continue,
+                };
+
+                // Check connection limits
+                if let Err(denied) = peer_manager.can_accept_inbound(&peer_addr) {
+                    eprintln!("rejecting inbound from {}: {}", peer_addr, denied);
+                    continue;
+                }
+
+                // Get current height for handshake
+                let our_height = {
+                    let node = node.lock().unwrap();
+                    node.height() as i32
+                };
+
+                // Perform handshake
+                let peer_version = match handle_inbound_handshake(&mut stream, magic, our_height) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        eprintln!("handshake failed from {}: {}", peer_addr, e);
+                        continue;
+                    }
+                };
+
+                // Register peer
+                let peer_id = peer_manager.add_peer(
+                    peer_addr.clone(),
+                    PeerDirection::Inbound,
+                    peer_version.version,
+                    peer_version.services,
+                    peer_version.start_height,
+                );
+
+                eprintln!(
+                    "inbound peer {} connected: id={}, version={}, height={}",
+                    peer_addr, peer_id, peer_version.version, peer_version.start_height
+                );
+
+                // Notify callback
+                on_connected(peer_id, peer_version.clone());
+
+                // Spawn message handler thread
+                let node_clone = node.clone();
+                let peer_manager_clone = peer_manager.clone();
+                let shutdown_clone = shutdown.clone();
+
+                thread::spawn(move || {
+                    if let Err(e) = handle_inbound_messages(
+                        stream,
+                        magic,
+                        peer_id,
+                        node_clone,
+                        peer_manager_clone.clone(),
+                        shutdown_clone,
+                    ) {
+                        eprintln!("peer {} disconnected: {}", peer_id, e);
+                    }
+                    peer_manager_clone.remove_peer(peer_id);
+                });
+            }
+        });
+
+        self.thread_handle = Some(handle);
+    }
+
+    /// Signal the listener to stop accepting connections.
+    pub fn shutdown(&self) {
+        self.shutdown.store(true, Ordering::SeqCst);
+        // Connect to ourselves to unblock accept()
+        let _ = TcpStream::connect(self.listener.local_addr().unwrap());
+    }
+
+    /// Wait for the listener thread to finish.
+    pub fn join(self) {
+        if let Some(handle) = self.thread_handle {
+            let _ = handle.join();
+        }
+    }
+}
+
+/// Handle messages from an inbound peer.
+fn handle_inbound_messages(
+    mut stream: TcpStream,
+    magic: [u8; 4],
+    peer_id: u64,
+    node: Arc<Mutex<Node>>,
+    peer_manager: Arc<PeerManager>,
+    shutdown: Arc<AtomicBool>,
+) -> Result<()> {
+    loop {
+        if shutdown.load(Ordering::SeqCst) {
+            break;
+        }
+
+        let msg = match read_message(&mut stream, magic) {
+            Ok(m) => m,
+            Err(e) => {
+                // Check if it's a timeout (normal) or actual error
+                if e.to_string().contains("timed out") {
+                    continue; // Normal timeout, keep listening
+                }
+                return Err(e);
+            }
+        };
+
+        // Rate limiting
+        if let Some(peer_arc) = peer_manager.get_peer(peer_id) {
+            let mut peer = peer_arc.lock().unwrap();
+            if !peer.msg_limiter.try_consume(1) {
+                let should_ban = peer.score.record(Misbehavior::RateLimitExceeded);
+                if should_ban {
+                    return Err(anyhow!("rate limit exceeded, banned"));
+                }
+                continue;
+            }
+        }
+
+        match msg.command.as_str() {
+            CMD_GETHEADERS => {
+                handle_getheaders(&mut stream, magic, &msg.payload, &node)?;
+            }
+            CMD_GETDATA => {
+                handle_getdata(&mut stream, magic, &msg.payload, &node)?;
+            }
+            CMD_PING => {
+                handle_ping(&mut stream, magic, &msg.payload)?;
+            }
+            CMD_INV => {
+                // TODO: Handle transaction announcements
+            }
+            CMD_TX => {
+                // TODO: Handle incoming transactions
+            }
+            _ => {
+                // Ignore unknown messages
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Handle a GETHEADERS request.
+fn handle_getheaders(
+    stream: &mut TcpStream,
+    magic: [u8; 4],
+    payload: &[u8],
+    node: &Arc<Mutex<Node>>,
+) -> Result<()> {
+    let (locator, _stop) = parse_getheaders(payload)?;
+
+    let node_guard = node.lock().unwrap();
+
+    // Find the first locator hash we have by checking heights
+    let mut start_height: u64 = 0;
+    for hash in &locator {
+        let hash_hex = hex::encode(hash);
+        // Check if we have this block by trying to get its bytes
+        if node_guard.get_block_bytes(&hash_hex).is_some() {
+            // Found a known block, start from the next one
+            // We need to find its height - scan from tip down
+            for h in (0..=node_guard.height()).rev() {
+                if let Some(h_hex) = node_guard.get_blockhash(h)
+                    && h_hex == hash_hex
+                {
+                    start_height = h + 1;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    // Gather up to 2000 headers
+    let mut headers = Vec::new();
+    let max_headers = 2000;
+    let tip = node_guard.height();
+
+    for h in start_height..=tip {
+        if headers.len() >= max_headers {
+            break;
+        }
+        if let Some(hash_hex) = node_guard.get_blockhash(h)
+            && let Some(block_bytes) = node_guard.get_block_bytes(&hash_hex)
+            && block_bytes.len() >= 80
+            && let Ok(header) = parse_header_bytes(block_bytes[..80].try_into().unwrap())
+        {
+            headers.push(header);
+        }
+    }
+
+    drop(node_guard); // Release lock before I/O
+
+    let response = ser_headers(&headers);
+    write_message(stream, magic, CMD_HEADERS, &response)?;
+
+    Ok(())
+}
+
+/// Handle a GETDATA request.
+fn handle_getdata(
+    stream: &mut TcpStream,
+    magic: [u8; 4],
+    payload: &[u8],
+    node: &Arc<Mutex<Node>>,
+) -> Result<()> {
+    let entries = parse_getdata(payload)?;
+
+    for entry in entries {
+        match entry.inv_type {
+            MSG_BLOCK => {
+                let hash_hex = hex::encode(entry.hash);
+                let node_guard = node.lock().unwrap();
+                if let Some(block_bytes) = node_guard.get_block_bytes(&hash_hex) {
+                    drop(node_guard);
+                    write_message(stream, magic, CMD_BLOCK, &block_bytes)?;
+                }
+            }
+            MSG_TX => {
+                let node_guard = node.lock().unwrap();
+                if let Some(tx) = node_guard.mempool_get(&entry.hash) {
+                    let tx_bytes = tx.serialize(true);
+                    drop(node_guard);
+                    write_message(stream, magic, CMD_TX, &tx_bytes)?;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    Ok(())
+}
+
+/// Handle a PING request with PONG response.
+fn handle_ping(stream: &mut TcpStream, magic: [u8; 4], payload: &[u8]) -> Result<()> {
+    // PING payload is 8-byte nonce, reply with same nonce
+    if payload.len() >= 8 {
+        let nonce = u64::from_le_bytes(payload[0..8].try_into().unwrap());
+        let pong = ser_pong(nonce);
+        write_message(stream, magic, CMD_PONG, &pong)?;
+    }
+    Ok(())
+}
+
+/// Get default port for a chain.
+pub fn default_port_for_chain(chain: &str) -> u16 {
+    match chain {
+        "mainnet" => crate::constants::DEFAULT_MAINNET_PORT,
+        "testnet" => DEFAULT_TESTNET_PORT,
+        _ => DEFAULT_DEVNET_PORT,
+    }
+}

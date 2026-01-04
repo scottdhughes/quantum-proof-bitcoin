@@ -823,6 +823,56 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 RpcAction::Continue,
             ))
         }
+        // ============================================================
+        // Peer/Connection RPCs
+        // ============================================================
+        "getpeerinfo" => {
+            // getpeerinfo
+            // Returns info about all connected peers
+            if let Some(pm) = node.peer_manager() {
+                let peers: Vec<serde_json::Value> = pm
+                    .list_peers()
+                    .iter()
+                    .map(|peer| {
+                        serde_json::json!({
+                            "id": peer.id,
+                            "addr": peer.addr,
+                            "inbound": peer.direction == crate::node::peer::PeerDirection::Inbound,
+                            "version": peer.version,
+                            "services": format!("{:#x}", peer.services),
+                            "startingheight": peer.start_height,
+                            "conntime": peer.connected_at,
+                            "banscore": peer.score.raw_score(),
+                        })
+                    })
+                    .collect();
+                Ok((Value::Array(peers), RpcAction::Continue))
+            } else {
+                // No peer manager = not listening for connections
+                Ok((Value::Array(vec![]), RpcAction::Continue))
+            }
+        }
+        "getconnectioncount" => {
+            // getconnectioncount
+            // Returns total number of connected peers
+            let (inbound, outbound) = node.peer_count();
+            Ok((Value::from(inbound + outbound), RpcAction::Continue))
+        }
+        "getnetworkinfo" => {
+            // getnetworkinfo
+            // Returns network status info
+            let (inbound, outbound) = node.peer_count();
+            let listening = node.peer_manager().is_some();
+            Ok((
+                serde_json::json!({
+                    "connections": inbound + outbound,
+                    "connections_in": inbound,
+                    "connections_out": outbound,
+                    "networkactive": listening,
+                }),
+                RpcAction::Continue,
+            ))
+        }
         _ => Err(anyhow!("method not found")),
     }
 }
