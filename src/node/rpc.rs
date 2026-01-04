@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::node::chainparams::{load_chainparams, select_network};
-use crate::node::miner::{mine_block_bytes, mine_block_bytes_with_mempool};
+use crate::node::miner::{build_block_template, mine_block_bytes, mine_block_bytes_with_mempool};
 use crate::node::node::{Node, parse_transaction};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -204,6 +204,13 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 }),
                 RpcAction::Continue,
             ))
+        }
+        "getblocktemplate" => {
+            let cp = load_chainparams(std::path::Path::new("docs/chain/chainparams.json"))?;
+            let net = select_network(&cp, &node.chain)?;
+            let template = build_block_template(node, net)?;
+            let val = serde_json::to_value(template).map_err(|e| anyhow!("{}", e))?;
+            Ok((val, RpcAction::Continue))
         }
         _ => Err(anyhow!("method not found")),
     }

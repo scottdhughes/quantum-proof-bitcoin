@@ -199,6 +199,18 @@ impl Node {
             .collect()
     }
 
+    /// Select transactions from mempool with full entry metadata (for block templates).
+    pub fn mempool_select_entries_for_block(
+        &self,
+        max_weight: u32,
+    ) -> Vec<crate::node::mempool::MempoolEntry> {
+        self.mempool
+            .select_for_block(max_weight)
+            .into_iter()
+            .cloned()
+            .collect()
+    }
+
     pub fn submit_block_bytes(&mut self, bytes: &[u8]) -> Result<()> {
         let block = parse_block(bytes)?;
         let block_hash = pow_hash(&block.header)?;
