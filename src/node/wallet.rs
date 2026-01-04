@@ -146,6 +146,38 @@ fn generate_random_bytes<const N: usize>() -> [u8; N] {
     bytes
 }
 
+/// Simple timestamp for wallet dumps (avoids chrono dependency).
+fn chrono_lite_now() -> String {
+    use std::time::SystemTime;
+
+    match SystemTime::now().duration_since(SystemTime::UNIX_EPOCH) {
+        Ok(d) => {
+            let secs = d.as_secs();
+            // Convert Unix timestamp to ISO 8601-ish format
+            // This is approximate but sufficient for wallet dumps
+            let days = secs / 86400;
+            let years_since_1970 = days / 365;
+            let year = 1970 + years_since_1970;
+
+            // Rough month/day calculation
+            let day_of_year = days % 365;
+            let month = (day_of_year / 30).min(11) + 1;
+            let day = (day_of_year % 30) + 1;
+
+            let time_of_day = secs % 86400;
+            let hour = time_of_day / 3600;
+            let minute = (time_of_day % 3600) / 60;
+            let second = time_of_day % 60;
+
+            format!(
+                "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
+                year, month, day, hour, minute, second
+            )
+        }
+        Err(_) => "unknown".to_string(),
+    }
+}
+
 impl WalletFile {
     /// Create a new empty wallet (unencrypted).
     pub fn new(network: &str, hrp: &str) -> Self {
@@ -803,6 +835,178 @@ impl Wallet {
         let key = Self::find_key_by_address(keys, address)
             .ok_or_else(|| anyhow!("address not in wallet"))?;
         Ok(hex::decode(&key.pk_ser_hex)?)
+    }
+
+    // ========================================================================
+    // Backup / Dump
+    // ========================================================================
+
+    /// Create a backup of the wallet file.
+    ///
+    /// This copies the wallet file to the destination path. For encrypted wallets,
+    /// the backup contains encrypted keys and can be safely copied without unlocking.
+    pub fn backup(&self, destination: &Path) -> Result<()> {
+        // Ensure parent directory exists
+        if let Some(parent) = destination.parent()
+            && !parent.exists()
+        {
+            fs::create_dir_all(parent)?;
+        }
+
+        // Copy the wallet file
+        fs::copy(&self.path, destination)?;
+        Ok(())
+    }
+
+    /// Dump wallet keys to a human-readable text file.
+    ///
+    /// For encrypted wallets, this requires the wallet to be unlocked.
+    /// The output format includes secret keys, public keys, addresses, and labels.
+    ///
+    /// **WARNING**: The dump file contains plaintext secret keys and should
+    /// be handled with extreme care. Consider encrypting the file after export.
+    pub fn dump_keys(&self) -> Result<String> {
+        use std::fmt::Write;
+
+        let keys = self.get_active_keys()?;
+
+        let mut output = String::new();
+
+        // Header
+        writeln!(output, "# QPB Wallet Dump")?;
+        writeln!(output, "# Created: {}", chrono_lite_now())?;
+        writeln!(output, "# Network: {}", self.file.network)?;
+        writeln!(output, "# HRP: {}", self.file.hrp)?;
+        writeln!(output, "# Keys: {}", keys.len())?;
+        writeln!(output, "#")?;
+        writeln!(
+            output,
+            "# WARNING: This file contains plaintext secret keys!"
+        )?;
+        writeln!(
+            output,
+            "# Store securely and delete after import/verification."
+        )?;
+        writeln!(output, "#")?;
+        writeln!(output, "# Format: secretkey pubkey address label")?;
+        writeln!(output)?;
+
+        // Keys
+        for key in keys {
+            let label = if key.label.is_empty() {
+                "-"
+            } else {
+                &key.label
+            };
+            writeln!(
+                output,
+                "{} {} {} {}",
+                key.sk_hex, key.pk_ser_hex, key.address, label
+            )?;
+        }
+
+        writeln!(output)?;
+        writeln!(output, "# End of dump")?;
+
+        Ok(output)
+    }
+
+    /// Import keys from a wallet dump file.
+    ///
+    /// For encrypted wallets, this requires the wallet to be unlocked.
+    /// Keys that already exist (by address) are skipped.
+    ///
+    /// Returns the number of keys imported.
+    pub fn import_dump(&mut self, dump_content: &str) -> Result<usize> {
+        let mut imported = 0;
+
+        for line in dump_content.lines() {
+            let line = line.trim();
+
+            // Skip empty lines and comments
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+
+            // Parse: secretkey pubkey address [label]
+            let parts: Vec<&str> = line.splitn(4, ' ').collect();
+            if parts.len() < 3 {
+                continue; // Skip malformed lines
+            }
+
+            let sk_hex = parts[0];
+            let pk_ser_hex = parts[1];
+            let address = parts[2];
+            let label = parts.get(3).unwrap_or(&"imported");
+
+            // Verify the secret key is valid hex and correct length
+            let sk_bytes = hex::decode(sk_hex)
+                .map_err(|_| anyhow!("invalid secret key hex for address {}", address))?;
+
+            if sk_bytes.len() != pqcrypto_dilithium::dilithium3::secret_key_bytes() {
+                return Err(anyhow!(
+                    "invalid secret key length for address {} (expected {}, got {})",
+                    address,
+                    pqcrypto_dilithium::dilithium3::secret_key_bytes(),
+                    sk_bytes.len()
+                ));
+            }
+
+            // Verify the secret key parses correctly
+            let _ = pqcrypto_dilithium::dilithium3::SecretKey::from_bytes(&sk_bytes)
+                .map_err(|e| anyhow!("invalid secret key: {:?}", e))?;
+
+            // Verify the public key
+            let pk_ser = hex::decode(pk_ser_hex)
+                .map_err(|_| anyhow!("invalid public key hex for address {}", address))?;
+
+            // Verify address matches the public key
+            let qpkh = qpkh32(&pk_ser);
+            let derived_address =
+                encode_address(&self.file.hrp, 3, &qpkh).map_err(|e| anyhow!("{}", e))?;
+
+            if derived_address != address {
+                return Err(anyhow!(
+                    "address mismatch: dump says {}, key derives to {}",
+                    address,
+                    derived_address
+                ));
+            }
+
+            // Check if address already exists
+            let keys = self.get_active_keys()?;
+            if Self::find_key_by_address(keys, address).is_some() {
+                continue; // Skip existing keys
+            }
+
+            // Add the key
+            let new_key = WalletKey {
+                pk_ser_hex: pk_ser_hex.to_string(),
+                sk_hex: sk_hex.to_string(),
+                address: address.to_string(),
+                label: label.to_string(),
+            };
+
+            if self.file.encrypted {
+                // Add to unlocked keys and re-encrypt
+                let unlocked_keys = self
+                    .unlocked_keys
+                    .as_mut()
+                    .ok_or_else(|| anyhow!("wallet is locked"))?;
+                unlocked_keys.push(new_key);
+                self.sync_encrypted_keys()?;
+            } else {
+                self.file.keys.push(new_key);
+            }
+
+            imported += 1;
+        }
+
+        if imported > 0 {
+            self.save()?;
+        }
+
+        Ok(imported)
     }
 
     /// Create and sign a transaction sending to an address.
