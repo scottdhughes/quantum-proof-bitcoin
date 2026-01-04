@@ -232,6 +232,38 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 RpcAction::Continue,
             ))
         }
+        "estimatesmartfee" => {
+            // Bitcoin Core compatible format (returns BTC/kB)
+            let conf_target = params.first().and_then(|v| v.as_u64()).unwrap_or(6);
+            let estimate = node.estimate_smart_fee(conf_target);
+
+            // Convert sat/vB to BTC/kB: 1 BTC/kB = 100,000 sat/vB
+            let feerate_btc_kb = estimate.feerate_sat_vb / 100_000.0;
+
+            let mut result = serde_json::json!({
+                "feerate": feerate_btc_kb,
+                "blocks": estimate.blocks,
+            });
+
+            if !estimate.errors.is_empty() {
+                result["errors"] = serde_json::json!(estimate.errors);
+            }
+
+            Ok((result, RpcAction::Continue))
+        }
+        "estimatefee" => {
+            // Simpler format returning sat/vB directly
+            let conf_target = params.first().and_then(|v| v.as_u64()).unwrap_or(6);
+            let estimate = node.estimate_smart_fee(conf_target);
+
+            Ok((
+                serde_json::json!({
+                    "feerate_sat_vb": estimate.feerate_sat_vb,
+                    "blocks": estimate.blocks,
+                }),
+                RpcAction::Continue,
+            ))
+        }
         "getrawmempool" => {
             let info = node.mempool_info();
             // For now, return just the count. Full txid list would need Mempool iteration.
