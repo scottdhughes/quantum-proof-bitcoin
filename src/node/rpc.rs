@@ -742,6 +742,87 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 RpcAction::Continue,
             ))
         }
+        // ============================================================
+        // Ban Management RPCs
+        // ============================================================
+        "setban" => {
+            // setban <addr> <add|remove> [ban_duration_secs]
+            // Adds or removes an address from the ban list
+            let addr = params
+                .first()
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing address"))?;
+            let action = params
+                .get(1)
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing action (add|remove)"))?;
+
+            match action {
+                "add" => {
+                    let duration = params
+                        .get(2)
+                        .and_then(|v| v.as_u64())
+                        .unwrap_or(crate::constants::DEFAULT_BAN_DURATION_SECS);
+                    let reason = params
+                        .get(3)
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("manual ban via RPC");
+                    node.ban_list_mut().ban_temporarily(addr, duration, reason);
+                    Ok((serde_json::json!({"banned": true}), RpcAction::Continue))
+                }
+                "remove" => {
+                    let removed = node.ban_list_mut().unban(addr);
+                    Ok((serde_json::json!({"removed": removed}), RpcAction::Continue))
+                }
+                _ => Err(anyhow!("action must be 'add' or 'remove'")),
+            }
+        }
+        "listbanned" => {
+            // listbanned
+            // Returns all banned addresses with their expiration times
+            let bans: Vec<serde_json::Value> = node
+                .ban_list()
+                .list_bans()
+                .iter()
+                .map(|entry| {
+                    serde_json::json!({
+                        "address": entry.address,
+                        "reason": entry.reason,
+                        "ban_time": entry.ban_time,
+                        "unban_time": entry.unban_time,
+                    })
+                })
+                .collect();
+            Ok((Value::Array(bans), RpcAction::Continue))
+        }
+        "clearbanned" => {
+            // clearbanned
+            // Clears all bans
+            node.ban_list_mut().clear();
+            Ok((serde_json::json!({"cleared": true}), RpcAction::Continue))
+        }
+        "getcheckpoints" => {
+            // getcheckpoints
+            // Returns configured checkpoints for this network
+            let checkpoints: Vec<serde_json::Value> = node
+                .checkpoint_verifier()
+                .checkpoints()
+                .iter()
+                .map(|cp| {
+                    serde_json::json!({
+                        "height": cp.height,
+                        "hash": hex::encode(cp.hash),
+                    })
+                })
+                .collect();
+            Ok((
+                serde_json::json!({
+                    "checkpoints": checkpoints,
+                    "max_height": node.checkpoint_verifier().max_checkpoint_height(),
+                }),
+                RpcAction::Continue,
+            ))
+        }
         _ => Err(anyhow!("method not found")),
     }
 }
