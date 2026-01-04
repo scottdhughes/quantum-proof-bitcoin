@@ -266,3 +266,173 @@ fn walletpassphrase_on_unencrypted_wallet_fails() {
     let err = rpc_err(&mut node, "walletpassphrase", r#"["somepass", 300]"#);
     assert!(err.contains("not encrypted"));
 }
+
+// ============================================================================
+// Backup and Dump Tests
+// ============================================================================
+
+#[test]
+fn backupwallet_creates_copy() {
+    let dir = tempdir().unwrap();
+    let datadir = dir.path();
+    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+
+    // Create wallet with an address
+    rpc_ok(&mut node, "createwallet", "[]");
+    let addr = rpc_ok(&mut node, "getnewaddress", r#"["backup-test"]"#);
+    assert!(addr.is_string());
+
+    // Backup to a new location
+    let backup_path = dir.path().join("backup.json");
+    let backup_path_str = backup_path.to_str().unwrap();
+    let params = format!(r#"["{}"]"#, backup_path_str);
+    rpc_ok(&mut node, "backupwallet", &params);
+
+    // Verify backup file exists and is valid JSON
+    assert!(backup_path.exists());
+    let backup_content = std::fs::read_to_string(&backup_path).unwrap();
+    let backup: serde_json::Value = serde_json::from_str(&backup_content).unwrap();
+    assert_eq!(backup["network"], "devnet");
+    assert!(!backup["keys"].as_array().unwrap().is_empty());
+}
+
+#[test]
+fn backupwallet_works_on_encrypted() {
+    let dir = tempdir().unwrap();
+    let datadir = dir.path();
+    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+
+    // Create, add key, and encrypt wallet
+    rpc_ok(&mut node, "createwallet", "[]");
+    rpc_ok(&mut node, "getnewaddress", r#"["test"]"#);
+    rpc_ok(&mut node, "encryptwallet", r#"["password"]"#);
+
+    // Reload node (wallet is locked)
+    let mut node2 = Node::open_or_init("devnet", datadir, true).unwrap();
+
+    // Backup should work without unlocking
+    let backup_path = dir.path().join("encrypted-backup.json");
+    let params = format!(r#"["{}"]"#, backup_path.to_str().unwrap());
+    rpc_ok(&mut node2, "backupwallet", &params);
+
+    // Verify backup has encrypted format
+    let backup_content = std::fs::read_to_string(&backup_path).unwrap();
+    let backup: serde_json::Value = serde_json::from_str(&backup_content).unwrap();
+    assert_eq!(backup["encrypted"], true);
+    assert!(backup["ciphertext"].is_string());
+}
+
+#[test]
+fn dumpwallet_exports_keys() {
+    let dir = tempdir().unwrap();
+    let datadir = dir.path();
+    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+
+    // Create wallet with addresses
+    rpc_ok(&mut node, "createwallet", "[]");
+    let addr1 = rpc_ok(&mut node, "getnewaddress", r#"["first"]"#);
+    let addr2 = rpc_ok(&mut node, "getnewaddress", r#"["second"]"#);
+
+    // Dump to file
+    let dump_path = dir.path().join("dump.txt");
+    let params = format!(r#"["{}"]"#, dump_path.to_str().unwrap());
+    let result = rpc_ok(&mut node, "dumpwallet", &params);
+    assert!(result["warning"].as_str().unwrap().contains("private keys"));
+
+    // Verify dump file content
+    let dump_content = std::fs::read_to_string(&dump_path).unwrap();
+    assert!(dump_content.contains("# QPB Wallet Dump"));
+    assert!(dump_content.contains("Network: devnet"));
+    assert!(dump_content.contains(addr1.as_str().unwrap()));
+    assert!(dump_content.contains(addr2.as_str().unwrap()));
+    assert!(dump_content.contains("first"));
+    assert!(dump_content.contains("second"));
+}
+
+#[test]
+fn dumpwallet_requires_unlock_for_encrypted() {
+    let dir = tempdir().unwrap();
+    let datadir = dir.path();
+    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+
+    // Create and encrypt
+    rpc_ok(&mut node, "createwallet", "[]");
+    rpc_ok(&mut node, "getnewaddress", r#"["test"]"#);
+    rpc_ok(&mut node, "encryptwallet", r#"["password"]"#);
+
+    // Reload (locked)
+    let mut node2 = Node::open_or_init("devnet", datadir, true).unwrap();
+
+    // Dump should fail when locked
+    let dump_path = dir.path().join("dump.txt");
+    let params = format!(r#"["{}"]"#, dump_path.to_str().unwrap());
+    let err = rpc_err(&mut node2, "dumpwallet", &params);
+    assert!(err.contains("unlock") || err.contains("locked") || err.contains("encrypted"));
+
+    // Unlock and try again
+    rpc_ok(&mut node2, "walletpassphrase", r#"["password", 300]"#);
+    rpc_ok(&mut node2, "dumpwallet", &params);
+    assert!(dump_path.exists());
+}
+
+#[test]
+fn importwallet_imports_keys() {
+    let dir = tempdir().unwrap();
+    let datadir = dir.path();
+
+    // Create first wallet and dump
+    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    rpc_ok(&mut node, "createwallet", "[]");
+    let addr1 = rpc_ok(&mut node, "getnewaddress", r#"["original"]"#);
+
+    let dump_path = dir.path().join("dump.txt");
+    let dump_params = format!(r#"["{}"]"#, dump_path.to_str().unwrap());
+    rpc_ok(&mut node, "dumpwallet", &dump_params);
+
+    // Create second wallet in different directory
+    let dir2 = tempdir().unwrap();
+    let datadir2 = dir2.path();
+    let mut node2 = Node::open_or_init("devnet", datadir2, true).unwrap();
+    rpc_ok(&mut node2, "createwallet", "[]");
+
+    // Initially, second wallet has no keys
+    let addresses = rpc_ok(&mut node2, "listaddresses", "[]");
+    assert!(addresses.as_array().unwrap().is_empty());
+
+    // Import from dump
+    let result = rpc_ok(&mut node2, "importwallet", &dump_params);
+    assert_eq!(result["imported"].as_u64().unwrap(), 1);
+
+    // Now wallet should have the imported key
+    let addresses = rpc_ok(&mut node2, "listaddresses", "[]");
+    let addr_list: Vec<&str> = addresses
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_str().unwrap())
+        .collect();
+    assert!(addr_list.contains(&addr1.as_str().unwrap()));
+}
+
+#[test]
+fn importwallet_skips_existing_keys() {
+    let dir = tempdir().unwrap();
+    let datadir = dir.path();
+    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+
+    // Create wallet and dump
+    rpc_ok(&mut node, "createwallet", "[]");
+    rpc_ok(&mut node, "getnewaddress", r#"["test"]"#);
+
+    let dump_path = dir.path().join("dump.txt");
+    let dump_params = format!(r#"["{}"]"#, dump_path.to_str().unwrap());
+    rpc_ok(&mut node, "dumpwallet", &dump_params);
+
+    // Import back into same wallet (keys should be skipped)
+    let result = rpc_ok(&mut node, "importwallet", &dump_params);
+    assert_eq!(result["imported"].as_u64().unwrap(), 0); // Should skip existing
+
+    // Wallet should still have only 1 key
+    let addresses = rpc_ok(&mut node, "listaddresses", "[]");
+    assert_eq!(addresses.as_array().unwrap().len(), 1);
+}

@@ -648,6 +648,100 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
 
             Ok((wallet, RpcAction::Continue))
         }
+        "backupwallet" => {
+            // backupwallet <destination>
+            // Creates a backup of the wallet file (works on encrypted wallets without unlock)
+            let destination = params
+                .first()
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing destination path"))?;
+
+            let wallet_path = node.datadir.join("wallet.json");
+            if !wallet_path.exists() {
+                return Err(anyhow!("wallet not found, call createwallet first"));
+            }
+
+            let wallet = Wallet::load(&wallet_path)?;
+            wallet.backup(std::path::Path::new(destination))?;
+
+            Ok((Value::Null, RpcAction::Continue))
+        }
+        "dumpwallet" => {
+            // dumpwallet <filename>
+            // Exports all private keys to a human-readable text file
+            // Requires wallet to be unlocked if encrypted
+            let filename = params
+                .first()
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing filename"))?;
+
+            let wallet_path = node.datadir.join("wallet.json");
+            if !wallet_path.exists() {
+                return Err(anyhow!("wallet not found, call createwallet first"));
+            }
+
+            // Check if we have a cached unlocked wallet
+            let dump_content = if let Some(wallet) = node.wallet() {
+                wallet.dump_keys()?
+            } else {
+                let wallet = Wallet::load(&wallet_path)?;
+                if wallet.is_encrypted() {
+                    return Err(anyhow!(
+                        "wallet is encrypted; unlock with walletpassphrase first"
+                    ));
+                }
+                wallet.dump_keys()?
+            };
+
+            // Write to file
+            std::fs::write(filename, &dump_content)?;
+
+            Ok((
+                serde_json::json!({
+                    "filename": filename,
+                    "warning": "File contains plaintext private keys. Store securely!"
+                }),
+                RpcAction::Continue,
+            ))
+        }
+        "importwallet" => {
+            // importwallet <filename>
+            // Imports keys from a wallet dump file
+            // Requires wallet to be unlocked if encrypted
+            let filename = params
+                .first()
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing filename"))?;
+
+            let wallet_path = node.datadir.join("wallet.json");
+            if !wallet_path.exists() {
+                return Err(anyhow!("wallet not found, call createwallet first"));
+            }
+
+            // Read dump file
+            let dump_content = std::fs::read_to_string(filename)
+                .map_err(|e| anyhow!("failed to read dump file: {}", e))?;
+
+            // Import into wallet
+            let imported = if let Some(wallet) = node.wallet_mut() {
+                wallet.import_dump(&dump_content)?
+            } else {
+                let mut wallet = Wallet::load(&wallet_path)?;
+                if wallet.is_encrypted() {
+                    return Err(anyhow!(
+                        "wallet is encrypted; unlock with walletpassphrase first"
+                    ));
+                }
+                wallet.import_dump(&dump_content)?
+            };
+
+            Ok((
+                serde_json::json!({
+                    "imported": imported
+                }),
+                RpcAction::Continue,
+            ))
+        }
         _ => Err(anyhow!("method not found")),
     }
 }
