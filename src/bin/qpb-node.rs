@@ -123,6 +123,11 @@ fn start_rpc_server(addr: String, node: Node) -> Result<()> {
             .with_header(Header::from_bytes("Content-Type", "application/json").unwrap());
         let _ = request.respond(response);
         if matches!(action, RpcAction::Stop) {
+            // Save mempool before shutdown
+            let node = shared.lock().unwrap();
+            if let Err(e) = node.save() {
+                eprintln!("warning: failed to save node state: {}", e);
+            }
             break;
         }
     }

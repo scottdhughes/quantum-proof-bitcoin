@@ -4,9 +4,13 @@
 //! Provides fee-prioritized selection for miners.
 
 use std::collections::{BTreeSet, HashMap, HashSet};
+use std::fs;
+use std::path::Path;
 
 use anyhow::{Result, anyhow};
+use serde::{Deserialize, Serialize};
 
+use super::node::parse_transaction;
 use crate::constants::{INCREMENTAL_RELAY_FEE, MAX_REPLACEMENT_EVICTIONS};
 use crate::types::{OutPoint, Prevout, Transaction};
 use crate::validation::validate_transaction_basic;
@@ -17,6 +21,40 @@ pub const MAX_DESCENDANTS: usize = 25;
 pub const MAX_ANCESTOR_SIZE_VBYTES: usize = 101_000;
 pub const MAX_DESCENDANT_SIZE_VBYTES: usize = 101_000;
 pub const MAX_MEMPOOL_SIZE: usize = 300_000_000; // 300 MB
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Persistence Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Serializable representation of a mempool transaction.
+/// Stores only the raw transaction hex - all metadata is rebuilt on load.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct MempoolTxRecord {
+    /// Transaction serialized as hex (with witness data).
+    tx_hex: String,
+}
+
+/// Container for persisted mempool data.
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct MempoolData {
+    /// List of transactions to reload.
+    transactions: Vec<MempoolTxRecord>,
+}
+
+/// Statistics from loading mempool.
+#[derive(Debug, Default, Clone)]
+pub struct MempoolLoadStats {
+    /// Number of transactions successfully loaded.
+    pub loaded: usize,
+    /// Number of transactions that failed validation (missing inputs, etc.).
+    pub invalid: usize,
+    /// Number of transactions that failed to parse from hex.
+    pub parse_failed: usize,
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mempool Entry
+// ─────────────────────────────────────────────────────────────────────────────
 
 /// Entry in the mempool with cached metadata.
 #[derive(Debug, Clone)]
@@ -692,6 +730,165 @@ impl Mempool {
     pub fn all_txids(&self) -> Vec<[u8; 32]> {
         self.txns.keys().copied().collect()
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Persistence Methods
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// Save mempool to disk.
+    ///
+    /// Transactions are stored as hex strings in JSON format.
+    /// All computed fields (fee, weight, ancestors) are rebuilt on load.
+    pub fn save(&self, datadir: &Path) -> Result<()> {
+        let path = datadir.join("mempool.json");
+
+        let records: Vec<MempoolTxRecord> = self
+            .txns
+            .values()
+            .map(|entry| MempoolTxRecord {
+                tx_hex: hex::encode(entry.tx.serialize(true)),
+            })
+            .collect();
+
+        let data = MempoolData {
+            transactions: records,
+        };
+
+        let json = serde_json::to_vec_pretty(&data)?;
+        fs::write(path, json)?;
+        Ok(())
+    }
+
+    /// Load mempool from disk and validate against current UTXO set.
+    ///
+    /// Transactions whose inputs no longer exist (confirmed or double-spent)
+    /// are silently dropped. All computed fields are rebuilt.
+    ///
+    /// # Arguments
+    /// * `datadir` - Data directory containing mempool.json
+    /// * `utxo_lookup` - Function to lookup UTXOs by (txid, vout)
+    ///
+    /// # Returns
+    /// * `Ok((mempool, stats))` with load statistics
+    /// * `Err` on I/O or parse errors
+    pub fn load<F>(datadir: &Path, utxo_lookup: F) -> Result<(Self, MempoolLoadStats)>
+    where
+        F: Fn(&[u8; 32], u32) -> Option<Prevout>,
+    {
+        let path = datadir.join("mempool.json");
+        if !path.exists() {
+            return Ok((Self::default(), MempoolLoadStats::default()));
+        }
+
+        let data: MempoolData = serde_json::from_reader(fs::File::open(&path)?)?;
+        let mut mempool = Self::new();
+        let mut stats = MempoolLoadStats::default();
+
+        // Parse all transactions first
+        let mut parsed_txs: Vec<Transaction> = Vec::new();
+        for record in &data.transactions {
+            match hex::decode(&record.tx_hex)
+                .ok()
+                .and_then(|bytes| parse_transaction(&bytes).ok())
+            {
+                Some(tx) => parsed_txs.push(tx),
+                None => stats.parse_failed += 1,
+            }
+        }
+
+        // Build txid -> tx index for dependency resolution
+        let tx_by_id: HashMap<[u8; 32], &Transaction> =
+            parsed_txs.iter().map(|tx| (tx.txid(), tx)).collect();
+
+        // Topologically sort to add parents before children
+        let sorted = topological_sort_txs(&parsed_txs, &tx_by_id);
+
+        // Reload each transaction
+        for tx in sorted {
+            match mempool.try_reload_transaction(tx, &utxo_lookup) {
+                Ok(_) => stats.loaded += 1,
+                Err(_) => stats.invalid += 1,
+            }
+        }
+
+        Ok((mempool, stats))
+    }
+
+    /// Internal: Try to reload a transaction, looking up prevouts from UTXO or mempool.
+    fn try_reload_transaction<F>(&mut self, tx: Transaction, utxo_lookup: &F) -> Result<[u8; 32]>
+    where
+        F: Fn(&[u8; 32], u32) -> Option<Prevout>,
+    {
+        let mut prevouts = Vec::with_capacity(tx.vin.len());
+
+        for vin in &tx.vin {
+            // First check if input comes from another mempool tx
+            if let Some(parent_entry) = self.txns.get(&vin.prevout.txid) {
+                let vout_idx = vin.prevout.vout as usize;
+                if vout_idx >= parent_entry.tx.vout.len() {
+                    anyhow::bail!("invalid prevout index");
+                }
+                let txout = &parent_entry.tx.vout[vout_idx];
+                prevouts.push(Prevout {
+                    value: txout.value,
+                    script_pubkey: txout.script_pubkey.clone(),
+                    height: 0,
+                    is_coinbase: false,
+                });
+            } else if let Some(prev) = utxo_lookup(&vin.prevout.txid, vin.prevout.vout) {
+                prevouts.push(prev);
+            } else {
+                anyhow::bail!("missing prevout - tx may have been confirmed or double-spent");
+            }
+        }
+
+        // Use existing add_transaction which rebuilds all computed fields
+        self.add_transaction(tx, prevouts, utxo_lookup)
+    }
+}
+
+/// Topologically sort transactions so parents come before children.
+fn topological_sort_txs<'a>(
+    txs: &'a [Transaction],
+    tx_by_id: &HashMap<[u8; 32], &'a Transaction>,
+) -> Vec<Transaction> {
+    let mut result = Vec::new();
+    let mut visited = HashSet::new();
+    let mut temp_mark = HashSet::new();
+
+    fn visit<'a>(
+        tx: &'a Transaction,
+        tx_by_id: &HashMap<[u8; 32], &'a Transaction>,
+        visited: &mut HashSet<[u8; 32]>,
+        temp_mark: &mut HashSet<[u8; 32]>,
+        result: &mut Vec<Transaction>,
+    ) {
+        let txid = tx.txid();
+        if visited.contains(&txid) {
+            return;
+        }
+        if temp_mark.contains(&txid) {
+            return; // Cycle detected - skip
+        }
+        temp_mark.insert(txid);
+
+        // Visit parents first
+        for vin in &tx.vin {
+            if let Some(parent) = tx_by_id.get(&vin.prevout.txid) {
+                visit(parent, tx_by_id, visited, temp_mark, result);
+            }
+        }
+
+        temp_mark.remove(&txid);
+        visited.insert(txid);
+        result.push(tx.clone());
+    }
+
+    for tx in txs {
+        visit(tx, tx_by_id, &mut visited, &mut temp_mark, &mut result);
+    }
+
+    result
 }
 
 /// Mempool statistics for RPC.
@@ -792,7 +989,7 @@ mod tests {
                 .collect(),
             vout: vec![TxOut {
                 value: output_value,
-                script_pubkey: vec![0x00; 33], // dummy P2QPKH-like
+                script_pubkey: vec![0x6a], // OP_RETURN (minimal valid output)
             }],
             lock_time: 0,
         }
@@ -833,4 +1030,7 @@ mod tests {
         // Second tx trying to spend same UTXO should detect conflict
         assert!(pool.is_spent(&prevout));
     }
+
+    // Note: Persistence tests are in tests/mempool_persist.rs as integration tests
+    // because they require properly signed transactions to pass validation.
 }
