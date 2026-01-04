@@ -252,14 +252,16 @@ fn mempool_restoration_after_reorg() {
     // These blocks have only coinbase transactions (no spending tx)
     let block_102b = build_block(fork_point_hash, 102, block_subsidy(102), 999);
     let block_102b_hash = block_hash(&block_102b);
-    node.submit_block_bytes(&block_102b.serialize(true)).unwrap();
+    node.submit_block_bytes(&block_102b.serialize(true))
+        .unwrap();
 
     // Still at height 102 (same cumulative work)
     assert_eq!(node.height(), 102);
 
     let block_103b = build_block(block_102b_hash, 103, block_subsidy(103), 999);
     let block_103b_hash = block_hash(&block_103b);
-    node.submit_block_bytes(&block_103b.serialize(true)).unwrap();
+    node.submit_block_bytes(&block_103b.serialize(true))
+        .unwrap();
 
     // Now at height 103 - reorg happened!
     assert_eq!(node.height(), 103);
