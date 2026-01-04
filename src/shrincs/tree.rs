@@ -217,7 +217,13 @@ fn hash_node(
 }
 
 /// Compress WOTS+ public key to leaf hash
-fn hash_wots_pk(pk_seed: &[u8; 32], pk: &WotsCPublicKey, layer: u32, leaf_idx: u32, n: usize) -> Vec<u8> {
+fn hash_wots_pk(
+    pk_seed: &[u8; 32],
+    pk: &WotsCPublicKey,
+    layer: u32,
+    leaf_idx: u32,
+    n: usize,
+) -> Vec<u8> {
     let mut hasher = Sha256::new();
     hasher.update(b"XMSS_WOTS_PK");
     hasher.update(pk_seed);
@@ -470,7 +476,12 @@ impl Hypertree {
     }
 
     /// Sign with the hypertree
-    pub fn sign(&self, msg: &[u8], leaf_indices: &[u32], randomness: &[u8; 32]) -> Option<HypertreeSignature> {
+    pub fn sign(
+        &self,
+        msg: &[u8],
+        leaf_indices: &[u32],
+        randomness: &[u8; 32],
+    ) -> Option<HypertreeSignature> {
         if leaf_indices.len() != self.params.d as usize {
             return None;
         }

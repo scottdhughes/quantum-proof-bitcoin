@@ -214,7 +214,11 @@ impl SigningState {
         let mut out = Vec::new();
 
         // Use v2 if layer states present, otherwise v1 for compatibility
-        let version = if self.layer_states.is_some() { 0x02 } else { 0x01 };
+        let version = if self.layer_states.is_some() {
+            0x02
+        } else {
+            0x01
+        };
         out.push(version);
 
         // Flags

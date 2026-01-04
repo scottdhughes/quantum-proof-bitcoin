@@ -6,7 +6,7 @@
 
 #![cfg(all(feature = "shrincs-dev", feature = "shrincs-ffi"))]
 
-use qpb_consensus::pq::{shrincs_keypair, shrincs_sign, verify_pq, AlgorithmId};
+use qpb_consensus::pq::{AlgorithmId, shrincs_keypair, shrincs_sign, verify_pq};
 use std::env;
 use std::fs;
 

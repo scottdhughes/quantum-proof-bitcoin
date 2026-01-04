@@ -19,7 +19,7 @@ use sha2::{Digest, Sha256};
 // Conditional imports when feature is enabled
 #[cfg(feature = "shrincs-dev")]
 use pqcrypto_sphincsplus::sphincssha2128ssimple::{
-    detached_sign, keypair, verify_detached_signature, DetachedSignature, PublicKey, SecretKey,
+    DetachedSignature, PublicKey, SecretKey, detached_sign, keypair, verify_detached_signature,
 };
 
 #[cfg(feature = "shrincs-dev")]
@@ -83,7 +83,11 @@ pub fn sphincs_sign(msg: &[u8; 32], sk_bytes: &[u8]) -> Result<Vec<u8>, ShrincsE
 /// * `Ok(())` on valid signature
 /// * `Err(VerificationFailed)` on invalid signature
 #[cfg(feature = "shrincs-dev")]
-pub fn sphincs_verify(msg: &[u8; 32], sig_bytes: &[u8], pk_bytes: &[u8]) -> Result<(), ShrincsError> {
+pub fn sphincs_verify(
+    msg: &[u8; 32],
+    sig_bytes: &[u8],
+    pk_bytes: &[u8],
+) -> Result<(), ShrincsError> {
     if pk_bytes.len() != SPHINCS_PK_BYTES {
         return Err(ShrincsError::InvalidPublicKey(format!(
             "SPHINCS+ pk wrong size: {} vs expected {}",

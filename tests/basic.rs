@@ -6,7 +6,9 @@ use qpb_consensus::{
     witness_merkle_root,
 };
 #[cfg(feature = "shrincs-dev")]
-use qpb_consensus::{shrincs_keypair, shrincs_keypair_with_fallback, shrincs_sign, shrincs_sign_fallback};
+use qpb_consensus::{
+    shrincs_keypair, shrincs_keypair_with_fallback, shrincs_sign, shrincs_sign_fallback,
+};
 
 fn genesis_header() -> BlockHeader {
     BlockHeader {
@@ -256,7 +258,8 @@ fn p2qpkh_shrincs_fallback_roundtrip() {
     tx.vin[0].witness = vec![sig_ser, ext_pk_ser];
 
     // 7. Validate transaction
-    let cost = validate_transaction_basic(&tx, &prevouts).expect("fallback validation should succeed");
+    let cost =
+        validate_transaction_basic(&tx, &prevouts).expect("fallback validation should succeed");
 
     // SHRINCS fallback still costs 2 PQSigCheck units
     assert_eq!(cost, 2, "SHRINCS fallback should cost 2 PQSigCheck units");

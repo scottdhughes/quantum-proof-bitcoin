@@ -157,9 +157,9 @@ pub fn verify_pq(
 /// - 0x01: Fallback signature - pk must be 96 bytes (base pk + SPHINCS+ pk)
 #[cfg(feature = "shrincs-dev")]
 fn verify_shrincs(pk: &[u8], msg32: &[u8], sig: &[u8]) -> Result<(), ConsensusError> {
-    use crate::shrincs::shrincs::{verify, ShrincsFullParams, ShrincsFullPublicKey};
-    use crate::shrincs::sphincs_fallback::{sphincs_pk_hash, sphincs_verify};
     use crate::constants::{SHRINCS_FALLBACK_PUBKEY_LEN, SPHINCS_PK_LEN};
+    use crate::shrincs::shrincs::{ShrincsFullParams, ShrincsFullPublicKey, verify};
+    use crate::shrincs::sphincs_fallback::{sphincs_pk_hash, sphincs_verify};
 
     if msg32.len() != 32 {
         return Err(ConsensusError::InvalidSignature);
@@ -168,7 +168,9 @@ fn verify_shrincs(pk: &[u8], msg32: &[u8], sig: &[u8]) -> Result<(), ConsensusEr
         return Err(ConsensusError::InvalidSignature);
     }
 
-    let msg: [u8; 32] = msg32.try_into().map_err(|_| ConsensusError::InvalidSignature)?;
+    let msg: [u8; 32] = msg32
+        .try_into()
+        .map_err(|_| ConsensusError::InvalidSignature)?;
     let params = ShrincsFullParams::LEVEL1_2_30;
 
     // Parse and verify based on signature type prefix
@@ -184,11 +186,11 @@ fn verify_shrincs(pk: &[u8], msg32: &[u8], sig: &[u8]) -> Result<(), ConsensusEr
 
             // Parse signature data after type prefix
             let sig_data = &sig[1..];
-            let full_sig = crate::shrincs::shrincs::ShrincsFullSignature::from_bytes(sig_data, params)
-                .ok_or(ConsensusError::InvalidSignature)?;
+            let full_sig =
+                crate::shrincs::shrincs::ShrincsFullSignature::from_bytes(sig_data, params)
+                    .ok_or(ConsensusError::InvalidSignature)?;
 
-            verify(&msg, &full_sig, &full_pk)
-                .map_err(|_| ConsensusError::PQSignatureInvalid)
+            verify(&msg, &full_sig, &full_pk).map_err(|_| ConsensusError::PQSignatureInvalid)
         }
         0x01 => {
             // Fallback signature - pk must be extended (64 + 32 = 96 bytes)
@@ -259,10 +261,14 @@ pub fn mldsa_sign(sk: &[u8], msg32: &[u8]) -> Result<Vec<u8>, ConsensusError> {
 /// - `state`: Signing state (must be persisted to prevent key reuse)
 #[cfg(feature = "shrincs-dev")]
 pub fn shrincs_keypair() -> Result<
-    (Vec<u8>, crate::shrincs::shrincs::ShrincsKeyMaterial, crate::shrincs::state::SigningState),
+    (
+        Vec<u8>,
+        crate::shrincs::shrincs::ShrincsKeyMaterial,
+        crate::shrincs::state::SigningState,
+    ),
     ConsensusError,
 > {
-    use crate::shrincs::shrincs::{keygen, ShrincsFullParams};
+    use crate::shrincs::shrincs::{ShrincsFullParams, keygen};
 
     let params = ShrincsFullParams::LEVEL1_2_30;
     let (key_material, state) = keygen(params).map_err(|_| ConsensusError::InvalidSignature)?;
@@ -329,7 +335,7 @@ pub fn shrincs_keypair_with_fallback() -> Result<
     ),
     ConsensusError,
 > {
-    use crate::shrincs::shrincs::{keygen_with_fallback, ShrincsFullParams};
+    use crate::shrincs::shrincs::{ShrincsFullParams, keygen_with_fallback};
 
     let params = ShrincsFullParams::LEVEL1_2_30;
     let (ext_key, state, _ext_pk) =
@@ -368,8 +374,8 @@ pub fn shrincs_sign_fallback(
         .try_into()
         .map_err(|_| ConsensusError::InvalidSignature)?;
 
-    let sphincs_sig = sphincs_sign(&msg, &ext_key.sphincs_sk)
-        .map_err(|_| ConsensusError::InvalidSignature)?;
+    let sphincs_sig =
+        sphincs_sign(&msg, &ext_key.sphincs_sk).map_err(|_| ConsensusError::InvalidSignature)?;
 
     // Format: type_prefix(1) || reserved(4) || sphincs_sig || sighash(1)
     let mut sig_ser = Vec::with_capacity(1 + 4 + sphincs_sig.len() + 1);

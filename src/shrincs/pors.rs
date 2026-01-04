@@ -143,7 +143,9 @@ impl PorsSignature {
         let mut offset = 4;
         let mut indices = Vec::with_capacity(k);
         for _ in 0..k {
-            indices.push(u32::from_le_bytes(bytes[offset..offset + 4].try_into().ok()?));
+            indices.push(u32::from_le_bytes(
+                bytes[offset..offset + 4].try_into().ok()?,
+            ));
             offset += 4;
         }
 
@@ -206,7 +208,14 @@ fn hash_leaf(pk_seed: &[u8; 32], leaf_value: &[u8], idx: u32, n: usize) -> Vec<u
 }
 
 /// Hash two child nodes to get parent
-fn hash_node(pk_seed: &[u8; 32], left: &[u8], right: &[u8], level: u32, idx: u32, n: usize) -> Vec<u8> {
+fn hash_node(
+    pk_seed: &[u8; 32],
+    left: &[u8],
+    right: &[u8],
+    level: u32,
+    idx: u32,
+    n: usize,
+) -> Vec<u8> {
     let mut hasher = Sha256::new();
     hasher.update(b"PORS_NODE");
     hasher.update(pk_seed);
@@ -308,11 +317,7 @@ pub fn derive_indices(digest: &[u8], k: usize, t: usize) -> Vec<u32> {
 
 /// Compute octopus authentication set for k selected indices
 /// Returns the minimal set of sibling hashes needed to verify all paths to root
-pub fn octopus_auth(
-    indices: &[u32],
-    tree_levels: &[Vec<Vec<u8>>],
-    height: u32,
-) -> Vec<Vec<u8>> {
+pub fn octopus_auth(indices: &[u32], tree_levels: &[Vec<Vec<u8>>], height: u32) -> Vec<Vec<u8>> {
     if indices.is_empty() {
         return Vec::new();
     }
@@ -349,7 +354,11 @@ pub fn octopus_auth(
         }
 
         // Deduplicate and sort parent indices for consistent traversal
-        let mut unique_parents: Vec<u32> = next_layer.into_iter().collect::<HashSet<_>>().into_iter().collect();
+        let mut unique_parents: Vec<u32> = next_layer
+            .into_iter()
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect();
         unique_parents.sort();
         layer = unique_parents;
     }
@@ -389,19 +398,18 @@ pub fn estimate_auth_size(indices: &[u32], height: u32) -> usize {
             next_layer.push(idx >> 1);
         }
 
-        layer = next_layer.into_iter().collect::<HashSet<_>>().into_iter().collect();
+        layer = next_layer
+            .into_iter()
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect();
     }
 
     auth_count
 }
 
 /// Compute message digest with counter
-fn message_digest(
-    randomness: &[u8; 32],
-    pk_root: &[u8],
-    msg: &[u8; 32],
-    counter: u32,
-) -> Vec<u8> {
+fn message_digest(randomness: &[u8; 32], pk_root: &[u8], msg: &[u8; 32], counter: u32) -> Vec<u8> {
     let mut hasher = Sha256::new();
     hasher.update(b"PORS_MSG");
     hasher.update(randomness);
@@ -447,10 +455,7 @@ pub fn keygen(
 
     let (root, tree_levels) = build_tree(&sk);
 
-    let pk = PorsPublicKey {
-        root,
-        params,
-    };
+    let pk = PorsPublicKey { root, params };
 
     (sk, pk, tree_levels)
 }
@@ -574,7 +579,8 @@ fn octopus_verify(
                 // Current node is left child
                 let right_node = if index_set.contains(&sibling_idx) {
                     // Find sibling in current nodes
-                    current_nodes.iter()
+                    current_nodes
+                        .iter()
                         .find(|(i, _)| *i == sibling_idx)
                         .map(|(_, n)| n.clone())
                 } else {
@@ -594,7 +600,8 @@ fn octopus_verify(
             } else {
                 // Current node is right child
                 let left_node = if index_set.contains(&sibling_idx) {
-                    current_nodes.iter()
+                    current_nodes
+                        .iter()
                         .find(|(i, _)| *i == sibling_idx)
                         .map(|(_, n)| n.clone())
                 } else {
@@ -685,7 +692,7 @@ mod tests {
         let params = PorsParams {
             n: 16,
             k: 4,
-            a: 4,  // Smaller tree for testing: t = 4 * 16 = 64
+            a: 4, // Smaller tree for testing: t = 4 * 16 = 64
             t: 64,
             mmax: 20,
         };
@@ -704,7 +711,7 @@ mod tests {
         let params = PorsParams {
             n: 16,
             k: 4,
-            a: 4,  // t = 64
+            a: 4, // t = 64
             t: 64,
             mmax: 30,
         };

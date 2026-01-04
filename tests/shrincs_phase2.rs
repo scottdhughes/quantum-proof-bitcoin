@@ -22,7 +22,7 @@ fn test_params() -> ShrincsFullParams {
         pors: PorsParams {
             n: 16,
             k: 4,
-            a: 4,  // t = 64
+            a: 4, // t = 64
             t: 64,
             mmax: 30,
         },
@@ -138,7 +138,10 @@ fn shrincs_deterministic_keygen() {
     let (km2, _) = shrincs::keygen_from_seeds(sk_seed, pk_seed, prf_key, params).unwrap();
 
     // Public keys should be identical
-    assert_eq!(km1.pk.pors_root, km2.pk.pors_root, "PORS roots should match");
+    assert_eq!(
+        km1.pk.pors_root, km2.pk.pors_root,
+        "PORS roots should match"
+    );
     assert_eq!(
         km1.pk.hypertree_root, km2.pk.hypertree_root,
         "Hypertree roots should match"
@@ -152,7 +155,8 @@ fn shrincs_full_sign_verify() {
     let pk_seed = [2u8; 32];
     let prf_key = [3u8; 32];
 
-    let (key_material, mut state) = shrincs::keygen_from_seeds(sk_seed, pk_seed, prf_key, params).unwrap();
+    let (key_material, mut state) =
+        shrincs::keygen_from_seeds(sk_seed, pk_seed, prf_key, params).unwrap();
 
     // Sign a message
     let msg = [0xABu8; 32];
@@ -173,7 +177,8 @@ fn shrincs_multiple_signatures() {
     let pk_seed = [20u8; 32];
     let prf_key = [30u8; 32];
 
-    let (key_material, mut state) = shrincs::keygen_from_seeds(sk_seed, pk_seed, prf_key, params).unwrap();
+    let (key_material, mut state) =
+        shrincs::keygen_from_seeds(sk_seed, pk_seed, prf_key, params).unwrap();
 
     // Sign multiple messages
     for i in 0..5 {
@@ -201,7 +206,8 @@ fn shrincs_wrong_message_fails() {
     let pk_seed = [6u8; 32];
     let prf_key = [7u8; 32];
 
-    let (key_material, mut state) = shrincs::keygen_from_seeds(sk_seed, pk_seed, prf_key, params).unwrap();
+    let (key_material, mut state) =
+        shrincs::keygen_from_seeds(sk_seed, pk_seed, prf_key, params).unwrap();
 
     let msg = [0xAAu8; 32];
     let sig = shrincs::sign(&msg, &key_material, &mut state).unwrap();
@@ -222,7 +228,8 @@ fn shrincs_state_progression() {
     let pk_seed = [22u8; 32];
     let prf_key = [33u8; 32];
 
-    let (key_material, mut state) = shrincs::keygen_from_seeds(sk_seed, pk_seed, prf_key, params).unwrap();
+    let (key_material, mut state) =
+        shrincs::keygen_from_seeds(sk_seed, pk_seed, prf_key, params).unwrap();
 
     // Initial state should be at leaf 0
     assert_eq!(state.next_leaf, 0);
@@ -320,7 +327,8 @@ fn signature_size_bounds() {
     let pk_seed = [2u8; 32];
     let prf_key = [3u8; 32];
 
-    let (key_material, mut state) = shrincs::keygen_from_seeds(sk_seed, pk_seed, prf_key, params).unwrap();
+    let (key_material, mut state) =
+        shrincs::keygen_from_seeds(sk_seed, pk_seed, prf_key, params).unwrap();
 
     let msg = [0u8; 32];
     let sig = shrincs::sign(&msg, &key_material, &mut state).unwrap();
@@ -347,7 +355,8 @@ fn signature_serialization_roundtrip() {
     let pk_seed = [43u8; 32];
     let prf_key = [44u8; 32];
 
-    let (key_material, mut state) = shrincs::keygen_from_seeds(sk_seed, pk_seed, prf_key, params).unwrap();
+    let (key_material, mut state) =
+        shrincs::keygen_from_seeds(sk_seed, pk_seed, prf_key, params).unwrap();
 
     let msg = [0x55u8; 32];
     let sig = shrincs::sign(&msg, &key_material, &mut state).unwrap();

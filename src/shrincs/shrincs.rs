@@ -21,11 +21,11 @@
 use crate::shrincs::error::ShrincsError;
 use crate::shrincs::pors::{self, PorsParams, PorsPublicKey, PorsSecretKey, PorsSignature};
 use crate::shrincs::sphincs_fallback::{
-    self, sphincs_pk_hash, SPHINCS_PK_BYTES, SPHINCS_SIG_BYTES, SPHINCS_SK_BYTES,
+    self, SPHINCS_PK_BYTES, SPHINCS_SIG_BYTES, SPHINCS_SK_BYTES, sphincs_pk_hash,
 };
 use crate::shrincs::state::SigningState;
 use crate::shrincs::tree::{
-    build_xmss_layer, sign_layer, HypertreeParams, HypertreeSignature, XmssLayer,
+    HypertreeParams, HypertreeSignature, XmssLayer, build_xmss_layer, sign_layer,
 };
 use crate::shrincs::wots::WotsCParams;
 use rand::RngCore;
@@ -351,7 +351,9 @@ impl ShrincsUnifiedSignature {
 }
 
 /// Generate SHRINCS keypair
-pub fn keygen(params: ShrincsFullParams) -> Result<(ShrincsKeyMaterial, SigningState), ShrincsError> {
+pub fn keygen(
+    params: ShrincsFullParams,
+) -> Result<(ShrincsKeyMaterial, SigningState), ShrincsError> {
     let mut rng = rand::thread_rng();
 
     // Generate seeds
@@ -436,7 +438,14 @@ pub fn keygen_from_seeds(
 #[cfg(feature = "shrincs-dev")]
 pub fn keygen_with_fallback(
     params: ShrincsFullParams,
-) -> Result<(ShrincsExtendedKeyMaterial, SigningState, ShrincsExtendedPublicKey), ShrincsError> {
+) -> Result<
+    (
+        ShrincsExtendedKeyMaterial,
+        SigningState,
+        ShrincsExtendedPublicKey,
+    ),
+    ShrincsError,
+> {
     let mut rng = rand::thread_rng();
 
     // Generate seeds
@@ -457,7 +466,14 @@ pub fn keygen_with_fallback_from_seeds(
     pk_seed: [u8; 32],
     prf_key: [u8; 32],
     params: ShrincsFullParams,
-) -> Result<(ShrincsExtendedKeyMaterial, SigningState, ShrincsExtendedPublicKey), ShrincsError> {
+) -> Result<
+    (
+        ShrincsExtendedKeyMaterial,
+        SigningState,
+        ShrincsExtendedPublicKey,
+    ),
+    ShrincsError,
+> {
     // Generate base SHRINCS keys
     let (base, state) = keygen_from_seeds(sk_seed, pk_seed, prf_key, params)?;
 
@@ -485,7 +501,14 @@ pub fn keygen_with_fallback_from_seeds(
 #[cfg(not(feature = "shrincs-dev"))]
 pub fn keygen_with_fallback(
     _params: ShrincsFullParams,
-) -> Result<(ShrincsExtendedKeyMaterial, SigningState, ShrincsExtendedPublicKey), ShrincsError> {
+) -> Result<
+    (
+        ShrincsExtendedKeyMaterial,
+        SigningState,
+        ShrincsExtendedPublicKey,
+    ),
+    ShrincsError,
+> {
     Err(ShrincsError::NotImplemented(
         "keygen_with_fallback requires shrincs-dev feature",
     ))
@@ -498,7 +521,14 @@ pub fn keygen_with_fallback_from_seeds(
     _pk_seed: [u8; 32],
     _prf_key: [u8; 32],
     _params: ShrincsFullParams,
-) -> Result<(ShrincsExtendedKeyMaterial, SigningState, ShrincsExtendedPublicKey), ShrincsError> {
+) -> Result<
+    (
+        ShrincsExtendedKeyMaterial,
+        SigningState,
+        ShrincsExtendedPublicKey,
+    ),
+    ShrincsError,
+> {
     Err(ShrincsError::NotImplemented(
         "keygen_with_fallback_from_seeds requires shrincs-dev feature",
     ))
@@ -705,7 +735,9 @@ pub fn sign(
             &key_material.sk.pk_seed,
             &randomness,
         )
-        .ok_or(ShrincsError::CryptoError("XMSS layer signing failed".into()))?;
+        .ok_or(ShrincsError::CryptoError(
+            "XMSS layer signing failed".into(),
+        ))?;
 
         // Next layer signs this layer's root
         current_msg = layer.root.clone();
@@ -874,7 +906,10 @@ mod tests {
         }
 
         // Check state advanced
-        assert_eq!(state.remaining_leaves(), params.hypertree.max_signatures() - 5);
+        assert_eq!(
+            state.remaining_leaves(),
+            params.hypertree.max_signatures() - 5
+        );
     }
 
     #[test]
@@ -985,7 +1020,10 @@ mod tests {
         // Forced fallback should use SPHINCS+
         let sig = sign_auto(&msg, &key_material, &mut state, true).unwrap();
 
-        assert!(sig.is_fallback(), "Forced fallback should produce SPHINCS+ signature");
+        assert!(
+            sig.is_fallback(),
+            "Forced fallback should produce SPHINCS+ signature"
+        );
 
         // Verify the signature (requires SPHINCS+ pk)
         let result = verify_unified(&msg, &sig, &ext_pk, Some(&key_material.sphincs_pk));
@@ -1013,7 +1051,10 @@ mod tests {
 
         // Verification with wrong message should fail
         let result = verify_unified(&wrong_msg, &sig, &ext_pk, Some(&key_material.sphincs_pk));
-        assert!(result.is_err(), "Wrong message should fail fallback verification");
+        assert!(
+            result.is_err(),
+            "Wrong message should fail fallback verification"
+        );
     }
 
     #[test]
@@ -1028,7 +1069,10 @@ mod tests {
 
         // Verification with different SPHINCS+ pk should fail (hash mismatch)
         let result = verify_unified(&msg, &sig, &ext_pk1, Some(&key_material2.sphincs_pk));
-        assert!(result.is_err(), "Wrong SPHINCS+ key should fail verification");
+        assert!(
+            result.is_err(),
+            "Wrong SPHINCS+ key should fail verification"
+        );
     }
 
     #[test]
@@ -1058,14 +1102,30 @@ mod tests {
         let stateful_bytes = stateful_sig.to_bytes();
         let parsed_stateful = ShrincsUnifiedSignature::from_bytes(&stateful_bytes, params).unwrap();
         assert!(!parsed_stateful.is_fallback());
-        assert!(verify_unified(&msg, &parsed_stateful, &ext_pk, Some(&key_material.sphincs_pk)).is_ok());
+        assert!(
+            verify_unified(
+                &msg,
+                &parsed_stateful,
+                &ext_pk,
+                Some(&key_material.sphincs_pk)
+            )
+            .is_ok()
+        );
 
         // Test fallback signature serialization
         let fallback_sig = sign_auto(&msg, &key_material, &mut state, true).unwrap();
         let fallback_bytes = fallback_sig.to_bytes();
         let parsed_fallback = ShrincsUnifiedSignature::from_bytes(&fallback_bytes, params).unwrap();
         assert!(parsed_fallback.is_fallback());
-        assert!(verify_unified(&msg, &parsed_fallback, &ext_pk, Some(&key_material.sphincs_pk)).is_ok());
+        assert!(
+            verify_unified(
+                &msg,
+                &parsed_fallback,
+                &ext_pk,
+                Some(&key_material.sphincs_pk)
+            )
+            .is_ok()
+        );
     }
 
     #[test]

@@ -38,7 +38,7 @@ impl WotsCParams {
     pub const LEVEL1: Self = Self {
         n: 16,
         w: 256,
-        l: 16,          // 128 / 8 = 16
+        l: 16,            // 128 / 8 = 16
         target_sum: 2040, // From paper Table 1
     };
 
@@ -46,7 +46,7 @@ impl WotsCParams {
     pub const LEVEL3: Self = Self {
         n: 24,
         w: 256,
-        l: 24,          // 192 / 8 = 24
+        l: 24,            // 192 / 8 = 24
         target_sum: 3060, // Scaled from Level 1: 2040 * 24/16 = 3060
     };
 
@@ -169,7 +169,13 @@ pub struct Address {
 
 impl Address {
     pub fn new(layer: u32, tree: u64, keypair: u32, chain: u32, hash_idx: u32) -> Self {
-        Self { layer, tree, keypair, chain, hash_idx }
+        Self {
+            layer,
+            tree,
+            keypair,
+            chain,
+            hash_idx,
+        }
     }
 
     pub fn to_bytes(&self) -> [u8; 22] {
@@ -333,8 +339,14 @@ pub fn keygen(
     }
 
     (
-        WotsCSecretKey { seeds, params: *params },
-        WotsCPublicKey { chain_tips, params: *params },
+        WotsCSecretKey {
+            seeds,
+            params: *params,
+        },
+        WotsCPublicKey {
+            chain_tips,
+            params: *params,
+        },
     )
 }
 
@@ -524,7 +536,10 @@ mod tests {
 
         // This may take a few attempts but should find a valid counter
         let result = grind_counter(&randomness, &pk_root, &msg, &params, 1 << 20);
-        assert!(result.is_some(), "Should find counter within reasonable attempts");
+        assert!(
+            result.is_some(),
+            "Should find counter within reasonable attempts"
+        );
 
         let (counter, digits) = result.unwrap();
         let sum: u32 = digits.iter().sum();

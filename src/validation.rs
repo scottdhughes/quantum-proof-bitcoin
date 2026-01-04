@@ -289,16 +289,16 @@ pub fn validate_p2qpkh_input(
     // (first 65 bytes = alg_id + 64-byte base pk), even though witness carries
     // extended pk with SPHINCS+ public key appended.
     #[cfg(feature = "shrincs-dev")]
-    let pk_for_hash = if pk_ser[0] == SHRINCS_ALG_ID && !sig_bytes.is_empty() && sig_bytes[0] == 0x01
-    {
-        // Fallback signature: hash only the base pk portion
-        if pk_ser.len() < 1 + SHRINCS_PUBKEY_LEN {
-            return Err(ConsensusError::InvalidPublicKey);
-        }
-        &pk_ser[..1 + SHRINCS_PUBKEY_LEN]
-    } else {
-        pk_ser
-    };
+    let pk_for_hash =
+        if pk_ser[0] == SHRINCS_ALG_ID && !sig_bytes.is_empty() && sig_bytes[0] == 0x01 {
+            // Fallback signature: hash only the base pk portion
+            if pk_ser.len() < 1 + SHRINCS_PUBKEY_LEN {
+                return Err(ConsensusError::InvalidPublicKey);
+            }
+            &pk_ser[..1 + SHRINCS_PUBKEY_LEN]
+        } else {
+            pk_ser
+        };
     #[cfg(not(feature = "shrincs-dev"))]
     let pk_for_hash = pk_ser;
 
