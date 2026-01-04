@@ -2,9 +2,12 @@ use anyhow::{Result, anyhow};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::address::decode_address;
 use crate::address::load_hrp;
 use crate::node::chainparams::{load_chainparams, select_network};
-use crate::node::miner::{build_block_template, mine_block_bytes, mine_block_bytes_with_mempool};
+use crate::node::miner::{
+    build_block_template, mine_block_bytes, mine_block_bytes_with_mempool, mine_block_to_address,
+};
 use crate::node::node::{Node, parse_transaction};
 use crate::node::wallet::Wallet;
 
@@ -140,6 +143,38 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             let mut hashes = Vec::with_capacity(n);
             for _ in 0..n {
                 let bytes = mine_block_bytes_with_mempool(node, net, node.no_pow(), true)?;
+                node.submit_block_bytes(&bytes)?;
+                hashes.push(Value::String(node.best_hash_hex().to_string()));
+            }
+            let val = if n == 1 {
+                hashes.pop().unwrap()
+            } else {
+                Value::Array(hashes)
+            };
+            Ok((val, RpcAction::Continue))
+        }
+        "generatetoaddress" => {
+            // generatetoaddress <n> <address>
+            // Generate n blocks with coinbase paying to address
+            let n = params
+                .first()
+                .and_then(|v| v.as_u64())
+                .unwrap_or(1)
+                .clamp(1, 10) as usize;
+            let address = params
+                .get(1)
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing address"))?;
+
+            // Decode address to get script_pubkey
+            let decoded = decode_address(address).map_err(|e| anyhow!("invalid address: {}", e))?;
+
+            let cp = load_chainparams(std::path::Path::new("docs/chain/chainparams.json"))?;
+            let net = select_network(&cp, &node.chain)?;
+            let mut hashes = Vec::with_capacity(n);
+            for _ in 0..n {
+                let bytes =
+                    mine_block_to_address(node, net, decoded.script_pubkey.clone(), node.no_pow())?;
                 node.submit_block_bytes(&bytes)?;
                 hashes.push(Value::String(node.best_hash_hex().to_string()));
             }
