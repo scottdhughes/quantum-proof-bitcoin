@@ -157,10 +157,10 @@ impl Node {
         let mut timestamps: Vec<u32> = Vec::with_capacity(MTP_BLOCKS);
 
         for h in start..=height {
-            if let Some(hash_hex) = self.get_blockhash(h) {
-                if let Some(block_bytes) = self.get_block_bytes(&hash_hex) {
-                    timestamps.push(Self::extract_block_time(&block_bytes));
-                }
+            if let Some(hash_hex) = self.get_blockhash(h)
+                && let Some(block_bytes) = self.get_block_bytes(&hash_hex)
+            {
+                timestamps.push(Self::extract_block_time(&block_bytes));
             }
         }
 
