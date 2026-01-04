@@ -57,6 +57,8 @@ pub struct Node {
     #[allow(dead_code)]
     params_path: PathBuf,
     no_pow: bool,
+    /// Cached unlocked wallet (for encrypted wallets).
+    wallet: Option<super::wallet::Wallet>,
 }
 
 impl Node {
@@ -148,6 +150,7 @@ impl Node {
             fee_estimator: FeeEstimator::new(),
             params_path,
             no_pow,
+            wallet: None,
         })
     }
 
@@ -167,6 +170,21 @@ impl Node {
         blockstore::get_block(&self.datadir, hash_hex)
             .ok()
             .flatten()
+    }
+
+    /// Get a reference to the cached wallet (if unlocked).
+    pub fn wallet(&self) -> Option<&super::wallet::Wallet> {
+        self.wallet.as_ref()
+    }
+
+    /// Get a mutable reference to the cached wallet (if unlocked).
+    pub fn wallet_mut(&mut self) -> Option<&mut super::wallet::Wallet> {
+        self.wallet.as_mut()
+    }
+
+    /// Set the cached wallet.
+    pub fn set_wallet(&mut self, wallet: Option<super::wallet::Wallet>) {
+        self.wallet = wallet;
     }
 
     /// Extract the timestamp from block bytes (offset 68-71 in the 80-byte header).

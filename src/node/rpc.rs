@@ -300,12 +300,23 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
         "getnewaddress" => {
             let label = params.first().and_then(|v| v.as_str()).unwrap_or("");
             let wallet_path = node.datadir.join("wallet.json");
-            let hrp = load_hrp(
-                &node.chain,
-                Some(std::path::Path::new("docs/chain/chainparams.json")),
-            );
-            let mut wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
-            let address = wallet.get_new_address(label)?;
+
+            // Use cached wallet if available (for encrypted wallets)
+            let address = if let Some(wallet) = node.wallet_mut() {
+                wallet.get_new_address(label)?
+            } else {
+                let hrp = load_hrp(
+                    &node.chain,
+                    Some(std::path::Path::new("docs/chain/chainparams.json")),
+                );
+                let mut wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
+                let addr = wallet.get_new_address(label)?;
+                // If encrypted, warn the user (they should use walletpassphrase first)
+                if wallet.is_encrypted() {
+                    return Err(anyhow!("wallet is locked; unlock with walletpassphrase first"));
+                }
+                addr
+            };
             Ok((Value::String(address), RpcAction::Continue))
         }
         "getbalance" => {
@@ -313,8 +324,17 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             if !wallet_path.exists() {
                 return Err(anyhow!("wallet not found, call createwallet first"));
             }
-            let wallet = Wallet::load(&wallet_path)?;
-            let balance = wallet.get_balance(|| node.utxo_iter_all())?;
+
+            // Use cached wallet if available (for encrypted wallets)
+            let balance = if let Some(wallet) = node.wallet() {
+                wallet.get_balance(|| node.utxo_iter_all())?
+            } else {
+                let wallet = Wallet::load(&wallet_path)?;
+                if wallet.is_encrypted() {
+                    return Err(anyhow!("wallet is locked; unlock with walletpassphrase first"));
+                }
+                wallet.get_balance(|| node.utxo_iter_all())?
+            };
             // Return balance in satoshis
             Ok((Value::from(balance), RpcAction::Continue))
         }
@@ -323,8 +343,17 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             if !wallet_path.exists() {
                 return Err(anyhow!("wallet not found, call createwallet first"));
             }
-            let wallet = Wallet::load(&wallet_path)?;
-            let utxos = wallet.list_unspent(|| node.utxo_iter_all())?;
+
+            // Use cached wallet if available (for encrypted wallets)
+            let utxos = if let Some(wallet) = node.wallet() {
+                wallet.list_unspent(|| node.utxo_iter_all())?
+            } else {
+                let wallet = Wallet::load(&wallet_path)?;
+                if wallet.is_encrypted() {
+                    return Err(anyhow!("wallet is locked; unlock with walletpassphrase first"));
+                }
+                wallet.list_unspent(|| node.utxo_iter_all())?
+            };
             let val = serde_json::to_value(utxos).map_err(|e| anyhow!("{}", e))?;
             Ok((val, RpcAction::Continue))
         }
@@ -333,11 +362,20 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             if !wallet_path.exists() {
                 return Err(anyhow!("wallet not found, call createwallet first"));
             }
-            let wallet = Wallet::load(&wallet_path)?;
-            let addresses: Vec<Value> = wallet
-                .addresses()
+
+            // Use cached wallet if available (for encrypted wallets)
+            let addresses = if let Some(wallet) = node.wallet() {
+                wallet.addresses()?
+            } else {
+                let wallet = Wallet::load(&wallet_path)?;
+                if wallet.is_encrypted() {
+                    return Err(anyhow!("wallet is locked; unlock with walletpassphrase first"));
+                }
+                wallet.addresses()?
+            };
+            let addresses: Vec<Value> = addresses
                 .into_iter()
-                .map(|a| Value::String(a.to_string()))
+                .map(|a| Value::String(a))
                 .collect();
             Ok((Value::Array(addresses), RpcAction::Continue))
         }
@@ -358,19 +396,25 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             if !wallet_path.exists() {
                 return Err(anyhow!("wallet not found, call createwallet first"));
             }
-            let hrp = load_hrp(
-                &node.chain,
-                Some(std::path::Path::new("docs/chain/chainparams.json")),
-            );
-            let mut wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
 
             // Get all UTXOs for coin selection
             let utxos = node.utxo_iter_all();
             let current_height = node.height() as u32;
 
-            // Create and sign transaction with optional RBF signaling
-            let tx =
-                wallet.create_transaction(address, amount, fee_rate, utxos, current_height, rbf)?;
+            // Use cached wallet if available (for encrypted wallets)
+            let tx = if let Some(wallet) = node.wallet_mut() {
+                wallet.create_transaction(address, amount, fee_rate, utxos, current_height, rbf)?
+            } else {
+                let hrp = load_hrp(
+                    &node.chain,
+                    Some(std::path::Path::new("docs/chain/chainparams.json")),
+                );
+                let mut wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
+                if wallet.is_encrypted() {
+                    return Err(anyhow!("wallet is locked; unlock with walletpassphrase first"));
+                }
+                wallet.create_transaction(address, amount, fee_rate, utxos, current_height, rbf)?
+            };
             let txid = tx.txid();
 
             // Add to mempool
@@ -462,6 +506,143 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 }),
                 RpcAction::Continue,
             ))
+        }
+        // Wallet encryption RPCs
+        "encryptwallet" => {
+            // encryptwallet <passphrase>
+            let password = params
+                .first()
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing passphrase"))?;
+
+            let wallet_path = node.datadir.join("wallet.json");
+            if !wallet_path.exists() {
+                return Err(anyhow!("wallet not found, call createwallet first"));
+            }
+
+            let mut wallet = Wallet::load(&wallet_path)?;
+
+            if wallet.is_encrypted() {
+                return Err(anyhow!("wallet is already encrypted"));
+            }
+
+            wallet.encrypt_wallet(password)?;
+
+            Ok((
+                serde_json::json!({
+                    "warning": "wallet encrypted successfully; you must unlock with walletpassphrase before signing transactions"
+                }),
+                RpcAction::Continue,
+            ))
+        }
+        "walletpassphrase" => {
+            // walletpassphrase <passphrase> <timeout>
+            let password = params
+                .first()
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing passphrase"))?;
+
+            let timeout_secs = params
+                .get(1)
+                .and_then(|v| v.as_u64())
+                .unwrap_or(300); // default 5 minutes
+
+            let wallet_path = node.datadir.join("wallet.json");
+            if !wallet_path.exists() {
+                return Err(anyhow!("wallet not found, call createwallet first"));
+            }
+
+            let mut wallet = Wallet::load(&wallet_path)?;
+
+            if !wallet.is_encrypted() {
+                return Err(anyhow!("wallet is not encrypted"));
+            }
+
+            wallet.unlock(password, timeout_secs)?;
+
+            // Store the unlocked wallet in the node for subsequent operations
+            node.set_wallet(Some(wallet));
+
+            Ok((Value::Null, RpcAction::Continue))
+        }
+        "walletlock" => {
+            // walletlock
+            let wallet_path = node.datadir.join("wallet.json");
+            if !wallet_path.exists() {
+                return Err(anyhow!("wallet not found, call createwallet first"));
+            }
+
+            // Clear any cached unlocked wallet from the node
+            if let Some(wallet) = node.wallet_mut() {
+                wallet.lock();
+            }
+            node.set_wallet(None);
+
+            Ok((Value::Null, RpcAction::Continue))
+        }
+        "walletpassphrasechange" => {
+            // walletpassphrasechange <oldpassphrase> <newpassphrase>
+            let old_password = params
+                .first()
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing old passphrase"))?;
+
+            let new_password = params
+                .get(1)
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing new passphrase"))?;
+
+            let wallet_path = node.datadir.join("wallet.json");
+            if !wallet_path.exists() {
+                return Err(anyhow!("wallet not found, call createwallet first"));
+            }
+
+            let mut wallet = Wallet::load(&wallet_path)?;
+
+            if !wallet.is_encrypted() {
+                return Err(anyhow!("wallet is not encrypted"));
+            }
+
+            wallet.change_password(old_password, new_password)?;
+
+            Ok((Value::Null, RpcAction::Continue))
+        }
+        "getwalletinfo" => {
+            // getwalletinfo - returns wallet status including encryption state
+            let wallet_path = node.datadir.join("wallet.json");
+            if !wallet_path.exists() {
+                return Err(anyhow!("wallet not found, call createwallet first"));
+            }
+
+            let wallet = if let Some(w) = node.wallet() {
+                // Use cached wallet if available (may be unlocked)
+                let is_unlocked = w.is_unlocked();
+                let is_encrypted = w.is_encrypted();
+                let key_count = w.addresses().map(|a| a.len()).unwrap_or(0);
+                serde_json::json!({
+                    "walletname": "default",
+                    "encrypted": is_encrypted,
+                    "unlocked": is_unlocked,
+                    "keypoolsize": key_count,
+                })
+            } else {
+                // Load from disk (will be locked if encrypted)
+                let wallet = Wallet::load(&wallet_path)?;
+                let is_encrypted = wallet.is_encrypted();
+                let key_count = if is_encrypted {
+                    0 // Can't count keys when locked
+                } else {
+                    wallet.addresses().map(|a| a.len()).unwrap_or(0)
+                };
+                serde_json::json!({
+                    "walletname": "default",
+                    "encrypted": is_encrypted,
+                    "unlocked": !is_encrypted, // Unencrypted wallets are always "unlocked"
+                    "keypoolsize": key_count,
+                })
+            };
+
+            Ok((wallet, RpcAction::Continue))
         }
         _ => Err(anyhow!("method not found")),
     }

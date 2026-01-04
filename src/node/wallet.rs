@@ -2,14 +2,29 @@
 //!
 //! Provides persistent key storage, address tracking, and UTXO management
 //! for wallet integration with the node.
+//!
+//! ## Encryption
+//!
+//! Wallets can be encrypted at rest using AES-256-GCM with Argon2id key derivation.
+//! When encrypted, secret keys are stored as ciphertext and require a password to unlock.
+//!
+//! - **Version 1**: Legacy unencrypted format (keys stored as plaintext hex)
+//! - **Version 2**: Supports both encrypted and unencrypted modes
 
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
+use std::time::{Duration, Instant};
 
+use aes_gcm::{
+    Aes256Gcm, KeyInit, Nonce,
+    aead::{Aead, OsRng},
+};
 use anyhow::{Result, anyhow};
+use argon2::{Algorithm, Argon2, Params, Version};
 use pqcrypto_dilithium::dilithium3::{SecretKey, detached_sign, keypair, secret_key_bytes};
 use pqcrypto_traits::sign::{DetachedSignature, PublicKey as PKTrait, SecretKey as SKTrait};
+use rand::RngCore;
 use serde::{Deserialize, Serialize};
 
 use crate::address::{decode_address, encode_address, qpkh32};
@@ -21,12 +36,28 @@ use crate::types::{OutPoint, Prevout, Transaction, TxIn, TxOut};
 /// Algorithm ID for ML-DSA-65 (Dilithium3).
 const MLDSA_ALG_ID: u8 = 0x11;
 
+/// Current wallet format version.
+const WALLET_VERSION: u32 = 2;
+
+/// Argon2id parameters for key derivation.
+/// These provide good security while keeping unlock time reasonable (~1 second).
+const ARGON2_M_COST: u32 = 65536; // 64 MiB memory
+const ARGON2_T_COST: u32 = 3; // 3 iterations
+const ARGON2_P_COST: u32 = 1; // 1 parallel lane
+const ARGON2_OUTPUT_LEN: usize = 32; // 256-bit key
+
+/// Salt length for Argon2.
+const SALT_LEN: usize = 32;
+
+/// Nonce length for AES-256-GCM.
+const NONCE_LEN: usize = 12;
+
 /// A key entry in the wallet.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalletKey {
     /// Serialized public key (alg_id || pk).
     pub pk_ser_hex: String,
-    /// Secret key (hex encoded). In production, this should be encrypted.
+    /// Secret key (hex encoded). Stored encrypted when wallet is locked.
     pub sk_hex: String,
     /// Derived P2QPKH address.
     pub address: String,
@@ -35,7 +66,16 @@ pub struct WalletKey {
     pub label: String,
 }
 
-/// Wallet file format.
+/// Encryption metadata for encrypted wallets.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EncryptionMeta {
+    /// Argon2id salt (hex encoded, 32 bytes).
+    pub salt: String,
+    /// AES-GCM nonce (hex encoded, 12 bytes).
+    pub nonce: String,
+}
+
+/// Wallet file format (version 2 with optional encryption).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalletFile {
     /// Wallet format version.
@@ -44,17 +84,73 @@ pub struct WalletFile {
     pub network: String,
     /// Human-readable prefix for addresses.
     pub hrp: String,
-    /// Keys stored in the wallet.
+    /// Whether the wallet is encrypted.
+    #[serde(default)]
+    pub encrypted: bool,
+    /// Encryption metadata (only present when encrypted).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub encryption: Option<EncryptionMeta>,
+    /// Encrypted keys blob (hex encoded ciphertext, only when encrypted).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ciphertext: Option<String>,
+    /// Keys stored in the wallet (only present when not encrypted).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub keys: Vec<WalletKey>,
 }
 
+// ============================================================================
+// Encryption Helper Functions
+// ============================================================================
+
+/// Derive an encryption key from a password using Argon2id.
+fn derive_key(password: &str, salt: &[u8]) -> Result<[u8; 32]> {
+    let params = Params::new(ARGON2_M_COST, ARGON2_T_COST, ARGON2_P_COST, Some(ARGON2_OUTPUT_LEN))
+        .map_err(|e| anyhow!("argon2 params error: {}", e))?;
+    let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
+
+    let mut key = [0u8; 32];
+    argon2
+        .hash_password_into(password.as_bytes(), salt, &mut key)
+        .map_err(|e| anyhow!("argon2 hash error: {}", e))?;
+
+    Ok(key)
+}
+
+/// Encrypt data using AES-256-GCM.
+fn encrypt_data(key: &[u8; 32], nonce: &[u8; NONCE_LEN], plaintext: &[u8]) -> Result<Vec<u8>> {
+    let cipher = Aes256Gcm::new_from_slice(key).map_err(|e| anyhow!("aes init error: {}", e))?;
+    let nonce = Nonce::from_slice(nonce);
+    cipher
+        .encrypt(nonce, plaintext)
+        .map_err(|e| anyhow!("encryption error: {}", e))
+}
+
+/// Decrypt data using AES-256-GCM.
+fn decrypt_data(key: &[u8; 32], nonce: &[u8; NONCE_LEN], ciphertext: &[u8]) -> Result<Vec<u8>> {
+    let cipher = Aes256Gcm::new_from_slice(key).map_err(|e| anyhow!("aes init error: {}", e))?;
+    let nonce = Nonce::from_slice(nonce);
+    cipher
+        .decrypt(nonce, ciphertext)
+        .map_err(|_| anyhow!("decryption error: incorrect password or corrupted data"))
+}
+
+/// Generate random bytes for salt or nonce.
+fn generate_random_bytes<const N: usize>() -> [u8; N] {
+    let mut bytes = [0u8; N];
+    OsRng.fill_bytes(&mut bytes);
+    bytes
+}
+
 impl WalletFile {
-    /// Create a new empty wallet.
+    /// Create a new empty wallet (unencrypted).
     pub fn new(network: &str, hrp: &str) -> Self {
         Self {
-            version: 1,
+            version: WALLET_VERSION,
             network: network.to_string(),
             hrp: hrp.to_string(),
+            encrypted: false,
+            encryption: None,
+            ciphertext: None,
             keys: Vec::new(),
         }
     }
@@ -70,6 +166,129 @@ impl WalletFile {
     pub fn save(&self, path: &Path) -> Result<()> {
         let data = serde_json::to_string_pretty(self)?;
         fs::write(path, data)?;
+        Ok(())
+    }
+
+    /// Check if the wallet is encrypted.
+    pub fn is_encrypted(&self) -> bool {
+        self.encrypted
+    }
+
+    /// Encrypt the wallet with a password.
+    ///
+    /// This encrypts all secret keys and clears the plaintext keys array.
+    /// The wallet must be saved after encryption.
+    pub fn encrypt(&mut self, password: &str) -> Result<()> {
+        if self.encrypted {
+            return Err(anyhow!("wallet is already encrypted"));
+        }
+
+        if password.is_empty() {
+            return Err(anyhow!("password cannot be empty"));
+        }
+
+        // Generate salt and nonce
+        let salt: [u8; SALT_LEN] = generate_random_bytes();
+        let nonce: [u8; NONCE_LEN] = generate_random_bytes();
+
+        // Derive encryption key from password
+        let key = derive_key(password, &salt)?;
+
+        // Serialize keys to JSON
+        let keys_json = serde_json::to_string(&self.keys)?;
+
+        // Encrypt the keys JSON
+        let ciphertext = encrypt_data(&key, &nonce, keys_json.as_bytes())?;
+
+        // Update wallet state
+        self.encrypted = true;
+        self.encryption = Some(EncryptionMeta {
+            salt: hex::encode(salt),
+            nonce: hex::encode(nonce),
+        });
+        self.ciphertext = Some(hex::encode(ciphertext));
+        self.keys.clear();
+
+        Ok(())
+    }
+
+    /// Decrypt the wallet keys with a password.
+    ///
+    /// Returns the decrypted keys. The wallet file itself remains encrypted on disk.
+    pub fn decrypt_keys(&self, password: &str) -> Result<Vec<WalletKey>> {
+        if !self.encrypted {
+            return Ok(self.keys.clone());
+        }
+
+        let encryption = self
+            .encryption
+            .as_ref()
+            .ok_or_else(|| anyhow!("encrypted wallet missing encryption metadata"))?;
+
+        let ciphertext_hex = self
+            .ciphertext
+            .as_ref()
+            .ok_or_else(|| anyhow!("encrypted wallet missing ciphertext"))?;
+
+        // Decode salt and nonce
+        let salt = hex::decode(&encryption.salt)?;
+        let nonce_bytes = hex::decode(&encryption.nonce)?;
+        let ciphertext = hex::decode(ciphertext_hex)?;
+
+        if salt.len() != SALT_LEN {
+            return Err(anyhow!("invalid salt length"));
+        }
+        if nonce_bytes.len() != NONCE_LEN {
+            return Err(anyhow!("invalid nonce length"));
+        }
+
+        let mut nonce = [0u8; NONCE_LEN];
+        nonce.copy_from_slice(&nonce_bytes);
+
+        // Derive key and decrypt
+        let key = derive_key(password, &salt)?;
+        let plaintext = decrypt_data(&key, &nonce, &ciphertext)?;
+
+        // Parse decrypted JSON
+        let keys: Vec<WalletKey> = serde_json::from_slice(&plaintext)
+            .map_err(|e| anyhow!("failed to parse decrypted keys: {}", e))?;
+
+        Ok(keys)
+    }
+
+    /// Change the wallet password.
+    ///
+    /// Requires the old password to decrypt, then re-encrypts with the new password.
+    pub fn change_password(&mut self, old_password: &str, new_password: &str) -> Result<()> {
+        if !self.encrypted {
+            return Err(anyhow!("wallet is not encrypted"));
+        }
+
+        if new_password.is_empty() {
+            return Err(anyhow!("new password cannot be empty"));
+        }
+
+        // Decrypt with old password
+        let keys = self.decrypt_keys(old_password)?;
+
+        // Generate new salt and nonce
+        let salt: [u8; SALT_LEN] = generate_random_bytes();
+        let nonce: [u8; NONCE_LEN] = generate_random_bytes();
+
+        // Derive new encryption key
+        let key = derive_key(new_password, &salt)?;
+
+        // Re-encrypt
+        let keys_json = serde_json::to_string(&keys)?;
+        let ciphertext = encrypt_data(&key, &nonce, keys_json.as_bytes())?;
+
+        // Update wallet state
+        self.encryption = Some(EncryptionMeta {
+            salt: hex::encode(salt),
+            nonce: hex::encode(nonce),
+        });
+        self.ciphertext = Some(hex::encode(ciphertext));
+
         Ok(())
     }
 
@@ -180,12 +399,34 @@ pub struct WalletUtxo {
 }
 
 /// Wallet state integrated with the node.
-#[derive(Debug)]
+///
+/// For encrypted wallets, decrypted keys are held in memory only when unlocked.
+/// The wallet can be set to auto-lock after a timeout.
 pub struct Wallet {
-    /// The wallet file with keys.
+    /// The wallet file with keys (encrypted keys stored on disk).
     pub file: WalletFile,
     /// Path to wallet file.
     pub path: std::path::PathBuf,
+    /// Decrypted keys held in memory when wallet is unlocked.
+    /// None if wallet is locked (or unencrypted - uses file.keys directly).
+    unlocked_keys: Option<Vec<WalletKey>>,
+    /// Derived encryption key (stored while unlocked for re-encryption).
+    /// This is the Argon2id-derived 256-bit key, NOT the password.
+    encryption_key: Option<[u8; 32]>,
+    /// When the wallet should auto-lock (None = no auto-lock).
+    unlock_until: Option<Instant>,
+}
+
+impl std::fmt::Debug for Wallet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Wallet")
+            .field("file", &self.file)
+            .field("path", &self.path)
+            .field("unlocked_keys", &self.unlocked_keys.as_ref().map(|k| format!("[{} keys]", k.len())))
+            .field("encryption_key", &self.encryption_key.map(|_| "[REDACTED]"))
+            .field("unlock_until", &self.unlock_until)
+            .finish()
+    }
 }
 
 impl Wallet {
@@ -202,6 +443,9 @@ impl Wallet {
         Ok(Self {
             file,
             path: path.to_path_buf(),
+            unlocked_keys: None,
+            encryption_key: None,
+            unlock_until: None,
         })
     }
 
@@ -211,7 +455,112 @@ impl Wallet {
         Ok(Self {
             file,
             path: path.to_path_buf(),
+            unlocked_keys: None,
+            encryption_key: None,
+            unlock_until: None,
         })
+    }
+
+    // ========================================================================
+    // Encryption / Locking
+    // ========================================================================
+
+    /// Check if the wallet is encrypted.
+    pub fn is_encrypted(&self) -> bool {
+        self.file.encrypted
+    }
+
+    /// Check if the wallet is unlocked (ready for signing).
+    ///
+    /// For unencrypted wallets, this always returns true.
+    /// For encrypted wallets, returns true only if unlocked and not timed out.
+    pub fn is_unlocked(&self) -> bool {
+        if !self.file.encrypted {
+            return true;
+        }
+        // Check if unlocked and not expired
+        if let Some(keys) = &self.unlocked_keys {
+            if let Some(until) = self.unlock_until {
+                if Instant::now() > until {
+                    return false; // Timed out
+                }
+            }
+            !keys.is_empty() || self.unlocked_keys.is_some()
+        } else {
+            false
+        }
+    }
+
+    /// Encrypt the wallet with a password.
+    ///
+    /// This encrypts all keys and saves the wallet. After encryption,
+    /// the wallet will need to be unlocked with `unlock()` before signing.
+    pub fn encrypt_wallet(&mut self, password: &str) -> Result<()> {
+        if self.file.encrypted {
+            return Err(anyhow!("wallet is already encrypted"));
+        }
+        self.file.encrypt(password)?;
+        self.save()?;
+        Ok(())
+    }
+
+    /// Unlock an encrypted wallet for signing operations.
+    ///
+    /// # Arguments
+    /// * `password` - The wallet password
+    /// * `timeout_secs` - Optional timeout in seconds (0 = no timeout)
+    pub fn unlock(&mut self, password: &str, timeout_secs: u64) -> Result<()> {
+        if !self.file.encrypted {
+            return Err(anyhow!("wallet is not encrypted"));
+        }
+
+        // Get encryption metadata
+        let encryption = self.file.encryption.as_ref()
+            .ok_or_else(|| anyhow!("encrypted wallet missing encryption metadata"))?;
+        let salt = hex::decode(&encryption.salt)?;
+
+        // Derive encryption key from password
+        let key = derive_key(password, &salt)?;
+
+        // Decrypt keys using the derived key
+        let keys = self.file.decrypt_keys(password)?;
+
+        self.unlocked_keys = Some(keys);
+        self.encryption_key = Some(key);
+
+        // Set timeout if specified
+        if timeout_secs > 0 {
+            self.unlock_until = Some(Instant::now() + Duration::from_secs(timeout_secs));
+        } else {
+            self.unlock_until = None;
+        }
+
+        Ok(())
+    }
+
+    /// Lock the wallet, clearing decrypted keys and encryption key from memory.
+    pub fn lock(&mut self) {
+        // Securely clear the encryption key
+        if let Some(ref mut key) = self.encryption_key {
+            key.fill(0);
+        }
+        self.unlocked_keys = None;
+        self.encryption_key = None;
+        self.unlock_until = None;
+    }
+
+    /// Change the wallet password.
+    pub fn change_password(&mut self, old_password: &str, new_password: &str) -> Result<()> {
+        self.file.change_password(old_password, new_password)?;
+        self.save()?;
+        // Re-unlock with new password if was unlocked
+        if self.unlocked_keys.is_some() {
+            let timeout = self.unlock_until.map(|u| {
+                u.saturating_duration_since(Instant::now()).as_secs()
+            }).unwrap_or(0);
+            self.unlock(new_password, timeout)?;
+        }
+        Ok(())
     }
 
     /// Save the wallet.
@@ -220,18 +569,143 @@ impl Wallet {
     }
 
     /// Generate a new address.
+    ///
+    /// For encrypted wallets, this requires the wallet to be unlocked.
+    /// The new key is added to both the in-memory unlocked keys and
+    /// re-encrypted to the on-disk ciphertext.
     pub fn get_new_address(&mut self, label: &str) -> Result<String> {
-        let addr = self.file.generate_key(label)?;
+        if self.file.encrypted && self.unlocked_keys.is_none() {
+            return Err(anyhow!("wallet is locked; unlock first to generate new address"));
+        }
+
+        // Generate the new key
+        let (pk, sk) = keypair();
+        let pk_bytes = pk.as_bytes();
+        let sk_bytes = sk.as_bytes();
+
+        // Serialize public key with algorithm ID prefix
+        let mut pk_ser = Vec::with_capacity(1 + pk_bytes.len());
+        pk_ser.push(MLDSA_ALG_ID);
+        pk_ser.extend_from_slice(pk_bytes);
+
+        // Compute address
+        let qpkh = qpkh32(&pk_ser);
+        let address = encode_address(&self.file.hrp, 3, &qpkh).map_err(|e| anyhow!("{}", e))?;
+
+        let key = WalletKey {
+            pk_ser_hex: hex::encode(&pk_ser),
+            sk_hex: hex::encode(sk_bytes),
+            address: address.clone(),
+            label: label.to_string(),
+        };
+
+        if self.file.encrypted {
+            // Add to unlocked keys and re-encrypt
+            let keys = self.unlocked_keys.as_mut().unwrap();
+            keys.push(key);
+            self.sync_encrypted_keys()?;
+        } else {
+            // Add directly to file keys
+            self.file.keys.push(key);
+        }
+
         self.save()?;
-        Ok(addr)
+        Ok(address)
+    }
+
+    /// Sync unlocked keys back to encrypted ciphertext.
+    ///
+    /// This re-encrypts the keys with a new nonce for forward secrecy.
+    fn sync_encrypted_keys(&mut self) -> Result<()> {
+        if !self.file.encrypted {
+            return Ok(());
+        }
+
+        let keys = self.unlocked_keys.as_ref()
+            .ok_or_else(|| anyhow!("cannot sync: wallet is locked"))?;
+
+        let encryption_key = self.encryption_key
+            .ok_or_else(|| anyhow!("cannot sync: encryption key not available"))?;
+
+        // Generate new nonce for forward secrecy
+        let nonce: [u8; NONCE_LEN] = generate_random_bytes();
+
+        // Serialize keys to JSON
+        let keys_json = serde_json::to_string(keys)?;
+
+        // Encrypt the keys JSON
+        let ciphertext = encrypt_data(&encryption_key, &nonce, keys_json.as_bytes())?;
+
+        // Update wallet file with new ciphertext and nonce
+        if let Some(ref mut encryption) = self.file.encryption {
+            encryption.nonce = hex::encode(nonce);
+        }
+        self.file.ciphertext = Some(hex::encode(ciphertext));
+
+        Ok(())
+    }
+
+    /// Get the keys to use for operations.
+    ///
+    /// For unencrypted wallets, returns file keys.
+    /// For encrypted wallets, returns unlocked keys (requires unlock first).
+    /// Returns error if wallet is locked or unlock timeout has expired.
+    fn get_active_keys(&self) -> Result<&Vec<WalletKey>> {
+        if self.file.encrypted {
+            // Check if timed out
+            if let Some(until) = self.unlock_until {
+                if Instant::now() > until {
+                    return Err(anyhow!("wallet unlock has timed out"));
+                }
+            }
+            self.unlocked_keys
+                .as_ref()
+                .ok_or_else(|| anyhow!("wallet is locked"))
+        } else {
+            Ok(&self.file.keys)
+        }
+    }
+
+    /// Compute script pubkeys from a set of keys.
+    fn compute_script_pubkeys(keys: &[WalletKey]) -> Result<HashSet<Vec<u8>>> {
+        let mut spks = HashSet::new();
+        for key in keys {
+            let pk_ser = hex::decode(&key.pk_ser_hex)?;
+            let qpkh = qpkh32(&pk_ser);
+            let spk = build_p2qpkh(qpkh);
+            spks.insert(spk);
+        }
+        Ok(spks)
+    }
+
+    /// Find a key by address.
+    fn find_key_by_address<'a>(keys: &'a [WalletKey], address: &str) -> Option<&'a WalletKey> {
+        keys.iter().find(|k| k.address == address)
+    }
+
+    /// Find a key by scriptPubKey.
+    fn find_key_by_script(keys: &[WalletKey], spk: &[u8]) -> Option<WalletKey> {
+        for key in keys {
+            if let Ok(pk_ser) = hex::decode(&key.pk_ser_hex) {
+                let qpkh = qpkh32(&pk_ser);
+                let key_spk = build_p2qpkh(qpkh);
+                if key_spk == spk {
+                    return Some(key.clone());
+                }
+            }
+        }
+        None
     }
 
     /// Get wallet balance by filtering UTXO set.
+    ///
+    /// For encrypted wallets, requires the wallet to be unlocked.
     pub fn get_balance<F>(&self, utxo_iter: F) -> Result<u64>
     where
         F: FnOnce() -> Vec<(String, u32, Prevout)>,
     {
-        let spks = self.file.script_pubkeys()?;
+        let keys = self.get_active_keys()?;
+        let spks = Self::compute_script_pubkeys(keys)?;
         let utxos = utxo_iter();
         let balance: u64 = utxos
             .iter()
@@ -242,21 +716,22 @@ impl Wallet {
     }
 
     /// List wallet UTXOs.
+    ///
+    /// For encrypted wallets, requires the wallet to be unlocked.
     pub fn list_unspent<F>(&self, utxo_iter: F) -> Result<Vec<WalletUtxo>>
     where
         F: FnOnce() -> Vec<(String, u32, Prevout)>,
     {
-        let spks = self.file.script_pubkeys()?;
+        let keys = self.get_active_keys()?;
+        let spks = Self::compute_script_pubkeys(keys)?;
         let utxos = utxo_iter();
 
         let mut wallet_utxos = Vec::new();
         for (txid_hex, vout, prevout) in utxos {
             if spks.contains(&prevout.script_pubkey) {
                 // Find the address for this UTXO
-                let address = self
-                    .file
-                    .find_key_by_spk(&prevout.script_pubkey)
-                    .map(|k| k.address.clone())
+                let address = Self::find_key_by_script(keys, &prevout.script_pubkey)
+                    .map(|k| k.address)
                     .unwrap_or_default();
 
                 wallet_utxos.push(WalletUtxo {
@@ -275,13 +750,39 @@ impl Wallet {
     }
 
     /// Sign a message with a wallet key.
+    ///
+    /// For encrypted wallets, requires the wallet to be unlocked.
     pub fn sign(&self, address: &str, msg32: &[u8; 32]) -> Result<Vec<u8>> {
-        self.file.sign(address, msg32)
+        let keys = self.get_active_keys()?;
+        let key = Self::find_key_by_address(keys, address)
+            .ok_or_else(|| anyhow!("address not in wallet"))?;
+
+        let sk_bytes = hex::decode(&key.sk_hex)?;
+        if sk_bytes.len() != secret_key_bytes() {
+            return Err(anyhow!("invalid secret key length"));
+        }
+
+        let sk = SecretKey::from_bytes(&sk_bytes).map_err(|e| anyhow!("{:?}", e))?;
+        let sig = detached_sign(msg32, &sk);
+        Ok(sig.as_bytes().to_vec())
     }
 
     /// Get all addresses.
-    pub fn addresses(&self) -> Vec<&str> {
-        self.file.addresses()
+    ///
+    /// For encrypted wallets, requires the wallet to be unlocked.
+    pub fn addresses(&self) -> Result<Vec<String>> {
+        let keys = self.get_active_keys()?;
+        Ok(keys.iter().map(|k| k.address.clone()).collect())
+    }
+
+    /// Get the serialized public key for an address.
+    ///
+    /// For encrypted wallets, requires the wallet to be unlocked.
+    pub fn get_pk_ser(&self, address: &str) -> Result<Vec<u8>> {
+        let keys = self.get_active_keys()?;
+        let key = Self::find_key_by_address(keys, address)
+            .ok_or_else(|| anyhow!("address not in wallet"))?;
+        Ok(hex::decode(&key.pk_ser_hex)?)
     }
 
     /// Create and sign a transaction sending to an address.
@@ -414,10 +915,11 @@ impl Wallet {
         // Change output (if any)
         if change > 0 {
             // Use first wallet address for change, or generate new one
-            let change_address = if self.file.keys.is_empty() {
+            let keys = self.get_active_keys()?;
+            let change_address = if keys.is_empty() {
                 self.get_new_address("change")?
             } else {
-                self.file.keys[0].address.clone()
+                keys[0].address.clone()
             };
             let change_decoded = decode_address(&change_address)
                 .map_err(|e| anyhow!("invalid change address: {}", e))?;
@@ -440,8 +942,8 @@ impl Wallet {
             let msg32 = qpb_sighash(&tx, i, &prevouts, sighash_type, 0x00, None)
                 .map_err(|e| anyhow!("sighash failed: {:?}", e))?;
 
-            let sig = self.file.sign(address, &msg32)?;
-            let pk_ser = self.file.get_pk_ser(address)?;
+            let sig = self.sign(address, &msg32)?;
+            let pk_ser = self.get_pk_ser(address)?;
 
             // Witness: [sig || sighash_type, pk_ser]
             let mut sig_ser = sig;
@@ -514,10 +1016,11 @@ impl Wallet {
                 original_tx.vout[1].script_pubkey.clone()
             } else {
                 // No change in original, use first wallet address
-                if self.file.keys.is_empty() {
+                let keys = self.get_active_keys()?;
+                if keys.is_empty() {
                     return Err(anyhow!("wallet has no keys for change output"));
                 }
-                let pk_ser = hex::decode(&self.file.keys[0].pk_ser_hex)?;
+                let pk_ser = hex::decode(&keys[0].pk_ser_hex)?;
                 let qpkh = qpkh32(&pk_ser);
                 build_p2qpkh(qpkh)
             };
@@ -550,12 +1053,11 @@ impl Wallet {
         // Build replacement transaction with same inputs
         let mut vin = Vec::with_capacity(num_inputs);
         let mut input_addresses = Vec::with_capacity(num_inputs);
+        let keys = self.get_active_keys()?;
 
         for (i, orig_vin) in original_tx.vin.iter().enumerate() {
             // Find the wallet key for this input
-            let key = self
-                .file
-                .find_key_by_spk(&original_prevouts[i].script_pubkey)
+            let key = Self::find_key_by_script(keys, &original_prevouts[i].script_pubkey)
                 .ok_or_else(|| anyhow!("wallet does not own input {} (cannot sign)", i))?;
 
             input_addresses.push(key.address.clone());
@@ -581,8 +1083,8 @@ impl Wallet {
             let msg32 = qpb_sighash(&tx, i, original_prevouts, sighash_type, 0x00, None)
                 .map_err(|e| anyhow!("sighash failed: {:?}", e))?;
 
-            let sig = self.file.sign(address, &msg32)?;
-            let pk_ser = self.file.get_pk_ser(address)?;
+            let sig = self.sign(address, &msg32)?;
+            let pk_ser = self.get_pk_ser(address)?;
 
             let mut sig_ser = sig;
             sig_ser.push(sighash_type);
