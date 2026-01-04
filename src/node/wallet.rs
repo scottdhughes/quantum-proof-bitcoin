@@ -104,8 +104,13 @@ pub struct WalletFile {
 
 /// Derive an encryption key from a password using Argon2id.
 fn derive_key(password: &str, salt: &[u8]) -> Result<[u8; 32]> {
-    let params = Params::new(ARGON2_M_COST, ARGON2_T_COST, ARGON2_P_COST, Some(ARGON2_OUTPUT_LEN))
-        .map_err(|e| anyhow!("argon2 params error: {}", e))?;
+    let params = Params::new(
+        ARGON2_M_COST,
+        ARGON2_T_COST,
+        ARGON2_P_COST,
+        Some(ARGON2_OUTPUT_LEN),
+    )
+    .map_err(|e| anyhow!("argon2 params error: {}", e))?;
     let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
 
     let mut key = [0u8; 32];
@@ -422,7 +427,13 @@ impl std::fmt::Debug for Wallet {
         f.debug_struct("Wallet")
             .field("file", &self.file)
             .field("path", &self.path)
-            .field("unlocked_keys", &self.unlocked_keys.as_ref().map(|k| format!("[{} keys]", k.len())))
+            .field(
+                "unlocked_keys",
+                &self
+                    .unlocked_keys
+                    .as_ref()
+                    .map(|k| format!("[{} keys]", k.len())),
+            )
             .field("encryption_key", &self.encryption_key.map(|_| "[REDACTED]"))
             .field("unlock_until", &self.unlock_until)
             .finish()
@@ -480,10 +491,10 @@ impl Wallet {
         }
         // Check if unlocked and not expired
         if let Some(keys) = &self.unlocked_keys {
-            if let Some(until) = self.unlock_until {
-                if Instant::now() > until {
-                    return false; // Timed out
-                }
+            if let Some(until) = self.unlock_until
+                && Instant::now() > until
+            {
+                return false; // Timed out
             }
             !keys.is_empty() || self.unlocked_keys.is_some()
         } else {
@@ -515,7 +526,10 @@ impl Wallet {
         }
 
         // Get encryption metadata
-        let encryption = self.file.encryption.as_ref()
+        let encryption = self
+            .file
+            .encryption
+            .as_ref()
             .ok_or_else(|| anyhow!("encrypted wallet missing encryption metadata"))?;
         let salt = hex::decode(&encryption.salt)?;
 
@@ -555,9 +569,10 @@ impl Wallet {
         self.save()?;
         // Re-unlock with new password if was unlocked
         if self.unlocked_keys.is_some() {
-            let timeout = self.unlock_until.map(|u| {
-                u.saturating_duration_since(Instant::now()).as_secs()
-            }).unwrap_or(0);
+            let timeout = self
+                .unlock_until
+                .map(|u| u.saturating_duration_since(Instant::now()).as_secs())
+                .unwrap_or(0);
             self.unlock(new_password, timeout)?;
         }
         Ok(())
@@ -575,7 +590,9 @@ impl Wallet {
     /// re-encrypted to the on-disk ciphertext.
     pub fn get_new_address(&mut self, label: &str) -> Result<String> {
         if self.file.encrypted && self.unlocked_keys.is_none() {
-            return Err(anyhow!("wallet is locked; unlock first to generate new address"));
+            return Err(anyhow!(
+                "wallet is locked; unlock first to generate new address"
+            ));
         }
 
         // Generate the new key
@@ -621,10 +638,13 @@ impl Wallet {
             return Ok(());
         }
 
-        let keys = self.unlocked_keys.as_ref()
+        let keys = self
+            .unlocked_keys
+            .as_ref()
             .ok_or_else(|| anyhow!("cannot sync: wallet is locked"))?;
 
-        let encryption_key = self.encryption_key
+        let encryption_key = self
+            .encryption_key
             .ok_or_else(|| anyhow!("cannot sync: encryption key not available"))?;
 
         // Generate new nonce for forward secrecy
@@ -653,10 +673,10 @@ impl Wallet {
     fn get_active_keys(&self) -> Result<&Vec<WalletKey>> {
         if self.file.encrypted {
             // Check if timed out
-            if let Some(until) = self.unlock_until {
-                if Instant::now() > until {
-                    return Err(anyhow!("wallet unlock has timed out"));
-                }
+            if let Some(until) = self.unlock_until
+                && Instant::now() > until
+            {
+                return Err(anyhow!("wallet unlock has timed out"));
             }
             self.unlocked_keys
                 .as_ref()

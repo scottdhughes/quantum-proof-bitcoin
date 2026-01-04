@@ -313,7 +313,9 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 let addr = wallet.get_new_address(label)?;
                 // If encrypted, warn the user (they should use walletpassphrase first)
                 if wallet.is_encrypted() {
-                    return Err(anyhow!("wallet is locked; unlock with walletpassphrase first"));
+                    return Err(anyhow!(
+                        "wallet is locked; unlock with walletpassphrase first"
+                    ));
                 }
                 addr
             };
@@ -331,7 +333,9 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             } else {
                 let wallet = Wallet::load(&wallet_path)?;
                 if wallet.is_encrypted() {
-                    return Err(anyhow!("wallet is locked; unlock with walletpassphrase first"));
+                    return Err(anyhow!(
+                        "wallet is locked; unlock with walletpassphrase first"
+                    ));
                 }
                 wallet.get_balance(|| node.utxo_iter_all())?
             };
@@ -350,7 +354,9 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             } else {
                 let wallet = Wallet::load(&wallet_path)?;
                 if wallet.is_encrypted() {
-                    return Err(anyhow!("wallet is locked; unlock with walletpassphrase first"));
+                    return Err(anyhow!(
+                        "wallet is locked; unlock with walletpassphrase first"
+                    ));
                 }
                 wallet.list_unspent(|| node.utxo_iter_all())?
             };
@@ -369,14 +375,13 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             } else {
                 let wallet = Wallet::load(&wallet_path)?;
                 if wallet.is_encrypted() {
-                    return Err(anyhow!("wallet is locked; unlock with walletpassphrase first"));
+                    return Err(anyhow!(
+                        "wallet is locked; unlock with walletpassphrase first"
+                    ));
                 }
                 wallet.addresses()?
             };
-            let addresses: Vec<Value> = addresses
-                .into_iter()
-                .map(|a| Value::String(a))
-                .collect();
+            let addresses: Vec<Value> = addresses.into_iter().map(Value::String).collect();
             Ok((Value::Array(addresses), RpcAction::Continue))
         }
         "sendtoaddress" => {
@@ -411,7 +416,9 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 );
                 let mut wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
                 if wallet.is_encrypted() {
-                    return Err(anyhow!("wallet is locked; unlock with walletpassphrase first"));
+                    return Err(anyhow!(
+                        "wallet is locked; unlock with walletpassphrase first"
+                    ));
                 }
                 wallet.create_transaction(address, amount, fee_rate, utxos, current_height, rbf)?
             };
@@ -542,10 +549,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 .and_then(|v| v.as_str())
                 .ok_or_else(|| anyhow!("missing passphrase"))?;
 
-            let timeout_secs = params
-                .get(1)
-                .and_then(|v| v.as_u64())
-                .unwrap_or(300); // default 5 minutes
+            let timeout_secs = params.get(1).and_then(|v| v.as_u64()).unwrap_or(300); // default 5 minutes
 
             let wallet_path = node.datadir.join("wallet.json");
             if !wallet_path.exists() {

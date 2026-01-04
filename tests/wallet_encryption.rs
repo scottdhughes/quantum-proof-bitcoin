@@ -50,7 +50,12 @@ fn encryptwallet_basic() {
 
     // Encrypt the wallet
     let result = rpc_ok(&mut node, "encryptwallet", r#"["mypassword123"]"#);
-    assert!(result["warning"].as_str().unwrap().contains("encrypted successfully"));
+    assert!(
+        result["warning"]
+            .as_str()
+            .unwrap()
+            .contains("encrypted successfully")
+    );
 
     // Check wallet info after encryption
     // Note: After encryption, wallet is locked so we load from disk
