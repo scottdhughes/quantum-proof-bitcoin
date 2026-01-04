@@ -119,3 +119,25 @@ pub const MAX_REPLACEMENT_EVICTIONS: usize = 100;
 /// Incremental relay fee in sat/vB for replacement transactions.
 /// Replacement must pay at least this much more per vB than what it evicts.
 pub const INCREMENTAL_RELAY_FEE: u64 = 1;
+
+// ---- Orphan Pool constants ----
+
+/// Maximum number of orphan transactions to buffer.
+/// Prevents memory exhaustion from P2P spam.
+pub const MAX_ORPHAN_TRANSACTIONS: usize = 100;
+
+/// Maximum size of a single orphan transaction in bytes.
+/// Oversized orphans are rejected immediately.
+pub const MAX_ORPHAN_TX_SIZE: usize = 100_000;
+
+/// Maximum total bytes of orphan transactions.
+/// Provides an overall memory cap independent of count.
+pub const MAX_ORPHAN_POOL_BYTES: usize = 10_000_000; // 10 MB
+
+/// Maximum orphan transactions from a single peer.
+/// Limits per-peer flooding attacks.
+pub const MAX_ORPHANS_PER_PEER: usize = 10;
+
+/// Maximum number of missing parents an orphan can have.
+/// Rejects transactions with too many unknown inputs (likely spam).
+pub const MAX_MISSING_PARENTS: usize = 10;

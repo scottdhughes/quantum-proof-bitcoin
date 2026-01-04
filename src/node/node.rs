@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, anyhow};
 
+use std::collections::HashSet;
+
 use crate::constants::{COINBASE_MATURITY, WEIGHT_FLOOR_WU};
 use crate::node::blockstore;
 use crate::node::chain::{ChainIndex, UndoData};
@@ -11,12 +13,36 @@ use crate::node::chainparams::{
 };
 use crate::node::feeest::{BlockFeeStats, FeeEstimate, FeeEstimator};
 use crate::node::mempool::{Mempool, MempoolEntry, MempoolInfo};
+use crate::node::orphan::OrphanPool;
 use crate::node::store::{Store, write_state};
 use crate::node::utxo::UtxoSet;
 use crate::pow::pow_hash;
 use crate::types::{Block, BlockHeader, OutPoint, Prevout, Transaction, TxIn, TxOut};
 use crate::validation::validate_block_basic;
 use crate::varint::read_compact_size;
+
+/// Result of attempting to add a transaction.
+#[derive(Debug)]
+pub enum AddTxResult {
+    /// Transaction was accepted into mempool.
+    Accepted([u8; 32]),
+    /// Transaction was added to orphan pool (missing parents).
+    Orphaned {
+        txid: [u8; 32],
+        missing: Vec<[u8; 32]>,
+    },
+    /// Transaction was rejected.
+    Rejected(String),
+}
+
+/// Internal error type for transaction addition.
+#[derive(Debug)]
+enum AddError {
+    /// Transaction has missing input(s).
+    MissingInputs(Vec<[u8; 32]>),
+    /// Other validation error.
+    Other(String),
+}
 
 #[derive(Debug)]
 pub struct Node {
@@ -25,6 +51,7 @@ pub struct Node {
     pub store: Store,
     utxo: UtxoSet,
     mempool: Mempool,
+    orphan_pool: OrphanPool,
     chain_index: ChainIndex,
     fee_estimator: FeeEstimator,
     #[allow(dead_code)]
@@ -116,6 +143,7 @@ impl Node {
             store,
             utxo,
             mempool,
+            orphan_pool: OrphanPool::new(),
             chain_index,
             fee_estimator: FeeEstimator::new(),
             params_path,
@@ -302,6 +330,179 @@ impl Node {
             .into_iter()
             .cloned()
             .collect()
+    }
+
+    // ---- Orphan Pool Methods ----
+
+    /// Add a transaction, routing to orphan pool if parents are missing.
+    ///
+    /// This is the main entry point for transactions received from peers.
+    /// Unlike `add_to_mempool`, this won't fail for missing parents - it
+    /// will buffer the transaction as an orphan instead.
+    pub fn add_transaction_or_orphan(&mut self, tx: Transaction, peer: Option<u64>) -> AddTxResult {
+        let txid = tx.txid();
+
+        // Try to add directly to mempool
+        match self.try_add_to_mempool_with_missing(&tx) {
+            Ok(()) => {
+                // Success! Now process any orphans that were waiting for this tx
+                let resolved = self.process_orphan_resolution(&txid);
+                if !resolved.is_empty() {
+                    // Log or handle resolved orphans if needed
+                }
+                AddTxResult::Accepted(txid)
+            }
+            Err(AddError::MissingInputs(missing)) => {
+                // Transaction has missing parents - add to orphan pool
+                let missing_set: HashSet<[u8; 32]> = missing.iter().copied().collect();
+                match self.orphan_pool.add_orphan(tx, missing_set, peer) {
+                    Ok(true) => AddTxResult::Orphaned {
+                        txid,
+                        missing: missing.clone(),
+                    },
+                    Ok(false) => {
+                        // Already in orphan pool
+                        AddTxResult::Orphaned { txid, missing }
+                    }
+                    Err(e) => AddTxResult::Rejected(format!("orphan rejected: {}", e)),
+                }
+            }
+            Err(AddError::Other(msg)) => AddTxResult::Rejected(msg),
+        }
+    }
+
+    /// Try to add a transaction to mempool, returning missing inputs if any.
+    fn try_add_to_mempool_with_missing(&mut self, tx: &Transaction) -> Result<(), AddError> {
+        let mut prevouts = Vec::with_capacity(tx.vin.len());
+        let mut missing = Vec::new();
+        let current_height = self.store.height() as u32;
+
+        for vin in &tx.vin {
+            // First check mempool for unconfirmed parents
+            if let Some(parent_entry) = self.mempool.get(&vin.prevout.txid) {
+                let vout_idx = vin.prevout.vout as usize;
+                if vout_idx >= parent_entry.tx.vout.len() {
+                    return Err(AddError::Other("invalid prevout index".to_string()));
+                }
+                let txout = &parent_entry.tx.vout[vout_idx];
+                prevouts.push(Prevout {
+                    value: txout.value,
+                    script_pubkey: txout.script_pubkey.clone(),
+                    height: 0,
+                    is_coinbase: false,
+                });
+            } else if let Some(prev) = self.utxo.get(&vin.prevout.txid, vin.prevout.vout) {
+                // Check coinbase maturity
+                if prev.is_coinbase {
+                    let confirmations = current_height.saturating_sub(prev.height);
+                    if confirmations < COINBASE_MATURITY {
+                        return Err(AddError::Other(format!(
+                            "coinbase output not mature: {} confirmations, need {}",
+                            confirmations, COINBASE_MATURITY
+                        )));
+                    }
+                }
+                prevouts.push(prev);
+            } else {
+                // Missing input - record and continue to find all missing
+                missing.push(vin.prevout.txid);
+                // Push placeholder to maintain index alignment
+                prevouts.push(Prevout {
+                    value: 0,
+                    script_pubkey: vec![],
+                    height: 0,
+                    is_coinbase: false,
+                });
+            }
+        }
+
+        if !missing.is_empty() {
+            return Err(AddError::MissingInputs(missing));
+        }
+
+        // Check absolute locktime
+        let current_mtp = self.compute_mtp(self.store.height());
+        crate::validation::check_locktime_for_mempool(tx, current_height, current_mtp)
+            .map_err(|e| AddError::Other(format!("locktime not satisfied: {}", e)))?;
+
+        // Check relative locktimes
+        let get_mtp_at_height = |h: u32| self.compute_mtp(h as u64);
+        crate::validation::check_sequence_locks_for_mempool(
+            tx,
+            &prevouts,
+            current_height,
+            current_mtp,
+            get_mtp_at_height,
+        )
+        .map_err(|e| AddError::Other(format!("relative locktime not satisfied: {}", e)))?;
+
+        // Add to mempool
+        let utxo_ref = &self.utxo;
+        self.mempool
+            .add_transaction(tx.clone(), prevouts, |txid, vout| utxo_ref.get(txid, vout))
+            .map_err(|e| AddError::Other(e.to_string()))?;
+
+        Ok(())
+    }
+
+    /// Process orphan resolution when a parent transaction is added.
+    ///
+    /// Returns txids of orphans that were successfully added to mempool.
+    fn process_orphan_resolution(&mut self, parent_txid: &[u8; 32]) -> Vec<[u8; 32]> {
+        let mut resolved = Vec::new();
+        let mut to_process = vec![*parent_txid];
+
+        while let Some(parent) = to_process.pop() {
+            // Get orphans waiting for this parent
+            let waiting = self.orphan_pool.get_orphans_for_parent(&parent);
+
+            for orphan_txid in waiting {
+                // Mark this parent as found
+                let all_found = self.orphan_pool.parent_found(&parent, &orphan_txid);
+
+                if all_found {
+                    // All parents found - try to add to mempool
+                    if let Some(entry) = self.orphan_pool.remove_orphan(&orphan_txid) {
+                        match self.try_add_to_mempool_with_missing(&entry.tx) {
+                            Ok(()) => {
+                                resolved.push(orphan_txid);
+                                // This resolved orphan might unlock more orphans
+                                to_process.push(orphan_txid);
+                            }
+                            Err(AddError::MissingInputs(missing)) => {
+                                // Still missing some parents - re-add as orphan
+                                let missing_set: HashSet<[u8; 32]> = missing.into_iter().collect();
+                                let _ = self.orphan_pool.add_orphan(
+                                    entry.tx,
+                                    missing_set,
+                                    entry.from_peer,
+                                );
+                            }
+                            Err(_) => {
+                                // Invalid for some other reason - drop it
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        resolved
+    }
+
+    /// Get the number of orphan transactions.
+    pub fn orphan_count(&self) -> usize {
+        self.orphan_pool.len()
+    }
+
+    /// Check if a transaction is in the orphan pool.
+    pub fn orphan_contains(&self, txid: &[u8; 32]) -> bool {
+        self.orphan_pool.contains(txid)
+    }
+
+    /// Remove all orphans from a disconnected peer.
+    pub fn remove_orphans_for_peer(&mut self, peer_id: u64) -> Vec<[u8; 32]> {
+        self.orphan_pool.remove_for_peer(peer_id)
     }
 
     pub fn submit_block_bytes(&mut self, bytes: &[u8]) -> Result<()> {
