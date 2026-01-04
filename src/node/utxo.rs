@@ -62,6 +62,30 @@ impl UtxoSet {
     pub fn is_empty(&self) -> bool {
         self.map.is_empty()
     }
+
+    /// Iterate over all UTXOs in the set.
+    /// Returns (txid_hex, vout, Prevout) for each entry.
+    pub fn iter_all(&self) -> Vec<(String, u32, Prevout)> {
+        self.map
+            .iter()
+            .filter_map(|(key, entry)| {
+                let parts: Vec<&str> = key.split(':').collect();
+                if parts.len() != 2 {
+                    return None;
+                }
+                let txid_hex = parts[0].to_string();
+                let vout: u32 = parts[1].parse().ok()?;
+                Some((
+                    txid_hex,
+                    vout,
+                    Prevout {
+                        value: entry.value,
+                        script_pubkey: entry.script_pubkey.clone(),
+                    },
+                ))
+            })
+            .collect()
+    }
 }
 
 fn key_for(txid: &[u8; 32], vout: u32) -> String {

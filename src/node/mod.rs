@@ -9,3 +9,4 @@ pub mod p2p;
 pub mod rpc;
 pub mod store;
 pub mod utxo;
+pub mod wallet;

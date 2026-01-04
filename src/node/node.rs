@@ -133,6 +133,11 @@ impl Node {
         self.utxo.get(txid, vout)
     }
 
+    /// Iterate over all UTXOs in the set.
+    pub fn utxo_iter_all(&self) -> Vec<(String, u32, Prevout)> {
+        self.utxo.iter_all()
+    }
+
     pub fn no_pow(&self) -> bool {
         self.no_pow
     }
