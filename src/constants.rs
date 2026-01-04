@@ -196,3 +196,11 @@ pub const MAX_CONNECTIONS_PER_SUBNET: usize = 2;
 
 /// Maximum connections from the same IP address.
 pub const MAX_CONNECTIONS_PER_IP: usize = 1;
+
+// ============================================================================
+// Chain Reorganization
+// ============================================================================
+
+/// Maximum number of blocks to disconnect in a single reorganization.
+/// Prevents excessive reorgs that could indicate an attack or major network issue.
+pub const MAX_REORG_DEPTH: usize = 100;
