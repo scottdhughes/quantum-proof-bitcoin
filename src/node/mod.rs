@@ -1,4 +1,5 @@
 pub mod blockstore;
+pub mod chain;
 pub mod chainparams;
 pub mod mempool;
 pub mod miner;

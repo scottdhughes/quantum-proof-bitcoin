@@ -5,6 +5,7 @@ use anyhow::{Context, Result, anyhow};
 
 use crate::constants::WEIGHT_FLOOR_WU;
 use crate::node::blockstore;
+use crate::node::chain::{ChainIndex, UndoData};
 use crate::node::chainparams::{
     compute_chain_id, compute_genesis_hash, load_chainparams, select_network, to_block_header,
 };
@@ -23,6 +24,7 @@ pub struct Node {
     pub store: Store,
     utxo: UtxoSet,
     mempool: Mempool,
+    chain_index: ChainIndex,
     #[allow(dead_code)]
     params_path: PathBuf,
     no_pow: bool,
@@ -67,12 +69,43 @@ impl Node {
             }
         }
 
+        // Initialize chain index from stored state
+        let mut chain_index = ChainIndex::new();
+        let mut genesis_hash = [0u8; 32];
+        genesis_hash.copy_from_slice(&stored_hash);
+        chain_index.init_genesis(genesis_hash, [0u8; 32]);
+
+        // Rebuild chain index from stored block hashes
+        for (height, hash_hex) in store.index.hashes.iter().enumerate() {
+            if height == 0 {
+                continue; // Genesis already added
+            }
+            let mut hash = [0u8; 32];
+            if let Ok(h) = hex::decode(hash_hex)
+                && h.len() == 32
+            {
+                hash.copy_from_slice(&h);
+                // Get prev hash from previous height
+                if let Some(prev_hex) = store.index.hashes.get(height - 1) {
+                    let mut prev_hash = [0u8; 32];
+                    if let Ok(p) = hex::decode(prev_hex)
+                        && p.len() == 32
+                    {
+                        prev_hash.copy_from_slice(&p);
+                        let _ = chain_index.add_block(hash, prev_hash);
+                        chain_index.mark_valid(&hash);
+                    }
+                }
+            }
+        }
+
         Ok(Self {
             chain: chain.to_string(),
             datadir: datadir.to_path_buf(),
             store,
             utxo,
             mempool: Mempool::new(),
+            chain_index,
             params_path,
             no_pow,
         })
@@ -158,15 +191,50 @@ impl Node {
 
     pub fn submit_block_bytes(&mut self, bytes: &[u8]) -> Result<()> {
         let block = parse_block(bytes)?;
-
+        let block_hash = pow_hash(&block.header)?;
+        let block_hash_hex = hex::encode(block_hash);
         let prev_hex = hex::encode(block.header.prev_blockhash);
-        if prev_hex != self.store.tip_hash() {
-            anyhow::bail!("prev block hash does not match tip");
+
+        // Already have this block?
+        if self.chain_index.contains(&block_hash) {
+            return Ok(()); // Already processed
         }
 
+        // Store block data first
+        blockstore::put_block(&self.datadir, &block_hash_hex, bytes)?;
+
+        // Add to chain index
+        let is_new_tip = self
+            .chain_index
+            .add_block(block_hash, block.header.prev_blockhash)?;
+
+        // If parent is unknown, we've stored it as orphan - nothing more to do
+        if !self.chain_index.contains(&block.header.prev_blockhash) {
+            return Ok(());
+        }
+
+        // Check if this extends the current tip directly
+        if prev_hex == self.store.tip_hash() {
+            // Simple case: extends tip directly
+            self.connect_block(&block, &block_hash_hex)?;
+        } else if is_new_tip {
+            // New tip on a different branch - need to reorg
+            self.reorganize_to(&block_hash)?;
+        }
+        // Otherwise it's a competing block that didn't become tip - just store it
+
+        Ok(())
+    }
+
+    /// Connect a block to the active chain (must be direct child of current tip).
+    fn connect_block(&mut self, block: &Block, block_hash_hex: &str) -> Result<()> {
         // Build prevouts for each tx
         let mut prevouts_by_tx: Vec<Vec<Prevout>> = Vec::with_capacity(block.txdata.len());
         prevouts_by_tx.push(Vec::new()); // coinbase
+
+        // Collect undo data as we gather prevouts
+        let mut undo = UndoData::new();
+
         for tx in block.txdata.iter().skip(1) {
             let mut v = Vec::with_capacity(tx.vin.len());
             for txin in &tx.vin {
@@ -174,19 +242,24 @@ impl Node {
                     .utxo
                     .get(&txin.prevout.txid, txin.prevout.vout)
                     .ok_or_else(|| anyhow!("missing prevout"))?;
+                // Save for undo
+                undo.add_spent(txin.prevout.txid, txin.prevout.vout, &prev);
                 v.push(prev);
             }
             prevouts_by_tx.push(v);
         }
 
         validate_block_basic(
-            &block,
+            block,
             &prevouts_by_tx,
             WEIGHT_FLOOR_WU,
             WEIGHT_FLOOR_WU,
             !self.no_pow,
             (self.store.height() + 1) as u32,
         )?;
+
+        // Store undo data before modifying UTXO set
+        blockstore::put_undo(&self.datadir, block_hash_hex, &undo.to_bytes())?;
 
         // Apply spends
         for tx in block.txdata.iter().skip(1) {
@@ -204,18 +277,101 @@ impl Node {
         }
         self.utxo.save(&self.datadir)?;
 
-        let block_hash = pow_hash(&block.header)?;
-        let block_hash_hex = hex::encode(block_hash);
-        blockstore::put_block(&self.datadir, &block_hash_hex, bytes)?;
-
+        // Update state
         self.store.state.height += 1;
-        self.store.state.tip_hash_hex = block_hash_hex.clone();
-        self.store.index.hashes.push(block_hash_hex);
+        self.store.state.tip_hash_hex = block_hash_hex.to_string();
+        self.store.index.hashes.push(block_hash_hex.to_string());
         write_state(&self.store.datadir, &self.store.state, &self.store.index)?;
+
+        // Mark as valid in chain index
+        let mut hash = [0u8; 32];
+        hex::decode_to_slice(block_hash_hex, &mut hash).ok();
+        self.chain_index.mark_valid(&hash);
 
         // Remove confirmed transactions from mempool
         let confirmed_txids: Vec<[u8; 32]> = block.txdata.iter().map(|tx| tx.txid()).collect();
         self.mempool.remove_confirmed(&confirmed_txids);
+
+        Ok(())
+    }
+
+    /// Disconnect a block from the active chain (must be current tip).
+    fn disconnect_block(&mut self, block_hash_hex: &str) -> Result<()> {
+        // Load block
+        let block_bytes = blockstore::get_block(&self.datadir, block_hash_hex)?
+            .ok_or_else(|| anyhow!("block not found: {}", block_hash_hex))?;
+        let block = parse_block(&block_bytes)?;
+
+        // Load undo data
+        let undo_bytes = blockstore::get_undo(&self.datadir, block_hash_hex)?
+            .ok_or_else(|| anyhow!("undo data not found: {}", block_hash_hex))?;
+        let undo = UndoData::from_bytes(&undo_bytes)?;
+
+        // Remove outputs added by this block
+        for tx in &block.txdata {
+            let txid = tx.txid();
+            for (vout, _) in tx.vout.iter().enumerate() {
+                self.utxo.remove(&txid, vout as u32);
+            }
+        }
+
+        // Restore spent outputs
+        for spent in &undo.spent_outputs {
+            self.utxo.insert(
+                &spent.txid,
+                spent.vout,
+                spent.value,
+                spent.script_pubkey.clone(),
+            );
+        }
+        self.utxo.save(&self.datadir)?;
+
+        // Update state
+        self.store.state.height -= 1;
+        self.store.index.hashes.pop();
+        if let Some(prev_hash) = self.store.index.hashes.last() {
+            self.store.state.tip_hash_hex = prev_hash.clone();
+        }
+        write_state(&self.store.datadir, &self.store.state, &self.store.index)?;
+
+        Ok(())
+    }
+
+    /// Reorganize the chain to a new tip.
+    fn reorganize_to(&mut self, new_tip: &[u8; 32]) -> Result<()> {
+        let current_tip_hex = self.store.tip_hash().to_string();
+        let mut current_tip = [0u8; 32];
+        hex::decode_to_slice(&current_tip_hex, &mut current_tip)?;
+
+        // Find fork point
+        let fork_point = self
+            .chain_index
+            .find_fork_point(&current_tip, new_tip)
+            .ok_or_else(|| anyhow!("no common ancestor found"))?;
+
+        // Get blocks to disconnect (from current tip back to fork point)
+        let disconnect_path = self.chain_index.get_path(&fork_point, &current_tip);
+
+        // Get blocks to connect (from fork point to new tip)
+        let connect_path = self.chain_index.get_path(&fork_point, new_tip);
+
+        // Disconnect blocks (in reverse order - newest first)
+        for hash in disconnect_path.iter().rev() {
+            let hash_hex = hex::encode(hash);
+            self.disconnect_block(&hash_hex)?;
+        }
+
+        // Connect blocks (in order - oldest first)
+        for hash in &connect_path {
+            let hash_hex = hex::encode(hash);
+            let block_bytes = blockstore::get_block(&self.datadir, &hash_hex)?
+                .ok_or_else(|| anyhow!("block not found: {}", hash_hex))?;
+            let block = parse_block(&block_bytes)?;
+            self.connect_block(&block, &hash_hex)?;
+        }
+
+        // Update chain index tip
+        self.chain_index.set_tip(*new_tip);
 
         Ok(())
     }
