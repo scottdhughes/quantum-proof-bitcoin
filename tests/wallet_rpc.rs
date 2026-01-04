@@ -189,3 +189,80 @@ fn wallet_persists_across_reloads() {
         assert_eq!(addresses[0], addr1);
     }
 }
+
+#[test]
+fn sendtoaddress_requires_wallet() {
+    let dir = tempdir().unwrap();
+    let datadir = dir.path();
+
+    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+
+    // Try to send without wallet
+    let resp = rpc_call(
+        &mut node,
+        "sendtoaddress",
+        r#"["qpb1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqpqqqdcmcq", 1000]"#,
+    );
+
+    // Should fail - no wallet
+    assert!(resp["error"].is_object());
+    let msg = resp["error"]["message"].as_str().unwrap();
+    assert!(msg.contains("wallet not found"));
+}
+
+#[test]
+fn sendtoaddress_fails_with_no_utxos() {
+    let dir = tempdir().unwrap();
+    let datadir = dir.path();
+
+    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+
+    // Create wallet and generate addresses
+    rpc_call(&mut node, "createwallet", "[]");
+    let sender_addr = rpc_call(&mut node, "getnewaddress", r#"["sender"]"#)["result"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let recipient_addr = rpc_call(&mut node, "getnewaddress", r#"["recipient"]"#)["result"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    // Try to send - should fail because no UTXOs for sender
+    let resp = rpc_call(
+        &mut node,
+        "sendtoaddress",
+        &format!(r#"["{}", 1000]"#, recipient_addr),
+    );
+
+    // Should fail - no UTXOs
+    assert!(resp["error"].is_object());
+    let msg = resp["error"]["message"].as_str().unwrap();
+    assert!(
+        msg.contains("no UTXOs") || msg.contains("insufficient"),
+        "unexpected error: {}",
+        msg
+    );
+
+    // Verify sender address exists (for clarity)
+    assert!(!sender_addr.is_empty());
+}
+
+#[test]
+fn sendtoaddress_validates_address() {
+    let dir = tempdir().unwrap();
+    let datadir = dir.path();
+
+    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+
+    // Create wallet
+    rpc_call(&mut node, "createwallet", "[]");
+
+    // Try to send to invalid address
+    let resp = rpc_call(&mut node, "sendtoaddress", r#"["invalid-address", 1000]"#);
+
+    // Should fail - invalid address
+    assert!(resp["error"].is_object());
+    let msg = resp["error"]["message"].as_str().unwrap();
+    assert!(msg.contains("invalid address") || msg.contains("address"));
+}

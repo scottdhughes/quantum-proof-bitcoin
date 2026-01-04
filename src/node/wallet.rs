@@ -12,9 +12,10 @@ use pqcrypto_dilithium::dilithium3::{SecretKey, detached_sign, keypair, secret_k
 use pqcrypto_traits::sign::{DetachedSignature, PublicKey as PKTrait, SecretKey as SKTrait};
 use serde::{Deserialize, Serialize};
 
-use crate::address::{encode_address, qpkh32};
+use crate::address::{decode_address, encode_address, qpkh32};
 use crate::script::build_p2qpkh;
-use crate::types::Prevout;
+use crate::sighash::qpb_sighash;
+use crate::types::{OutPoint, Prevout, Transaction, TxIn, TxOut};
 
 /// Algorithm ID for ML-DSA-65 (Dilithium3).
 const MLDSA_ALG_ID: u8 = 0x11;
@@ -275,6 +276,217 @@ impl Wallet {
     pub fn addresses(&self) -> Vec<&str> {
         self.file.addresses()
     }
+
+    /// Create and sign a transaction sending to an address.
+    ///
+    /// # Arguments
+    /// * `recipient` - Destination address
+    /// * `amount` - Amount to send in satoshis
+    /// * `fee_rate` - Fee rate in sat/vB
+    /// * `utxos` - Available UTXOs from the node
+    ///
+    /// # Returns
+    /// * Signed transaction ready for broadcast
+    pub fn create_transaction(
+        &mut self,
+        recipient: &str,
+        amount: u64,
+        fee_rate: u64,
+        utxos: Vec<(String, u32, Prevout)>,
+    ) -> Result<Transaction> {
+        // Decode recipient address to get scriptPubKey
+        let decoded = decode_address(recipient).map_err(|e| anyhow!("invalid address: {}", e))?;
+        let recipient_spk = decoded.script_pubkey;
+
+        // Get wallet UTXOs
+        let wallet_utxos = self.list_unspent(|| utxos)?;
+        if wallet_utxos.is_empty() {
+            return Err(anyhow!("no UTXOs available"));
+        }
+
+        // Estimate transaction size for fee calculation
+        // Base size: ~10 bytes (version + locktime + counts)
+        // Per input: ~41 bytes base + witness (sig ~3310 + pk ~1953 + overhead ~10)
+        // Per output: ~43 bytes (8 value + 1 len + 34 scriptPubKey)
+        let input_weight = 41 * 4 + (3310 + 1953 + 10); // ~5314 WU per input
+        let output_weight = 43 * 4; // 172 WU per output
+        let base_weight = 10 * 4; // 40 WU
+
+        // Select coins (simple largest-first algorithm)
+        let selected = select_coins(
+            &wallet_utxos,
+            amount,
+            fee_rate,
+            input_weight,
+            output_weight,
+            base_weight,
+        )?;
+
+        // Calculate fee based on actual selection
+        let num_inputs = selected.utxos.len();
+        let num_outputs = if selected.change > 0 { 2 } else { 1 };
+        let total_weight =
+            base_weight + (num_inputs * input_weight) + (num_outputs * output_weight);
+        let vsize = total_weight.div_ceil(4);
+        let fee = vsize as u64 * fee_rate;
+
+        // Verify we have enough
+        if selected.total < amount + fee {
+            return Err(anyhow!(
+                "insufficient funds: have {}, need {} + {} fee",
+                selected.total,
+                amount,
+                fee
+            ));
+        }
+
+        let change = selected.total - amount - fee;
+
+        // Build transaction inputs
+        let mut vin = Vec::with_capacity(num_inputs);
+        let mut prevouts = Vec::with_capacity(num_inputs);
+        let mut input_addresses = Vec::with_capacity(num_inputs);
+
+        for utxo in &selected.utxos {
+            let mut txid = [0u8; 32];
+            let txid_bytes = hex::decode(&utxo.txid)?;
+            txid.copy_from_slice(&txid_bytes);
+
+            vin.push(TxIn {
+                prevout: OutPoint {
+                    txid,
+                    vout: utxo.vout,
+                },
+                script_sig: Vec::new(), // SegWit: empty script_sig
+                sequence: 0xffffffff,
+                witness: Vec::new(), // Will be filled after signing
+            });
+
+            prevouts.push(Prevout {
+                value: utxo.value,
+                script_pubkey: hex::decode(&utxo.script_pubkey)?,
+            });
+
+            input_addresses.push(utxo.address.clone());
+        }
+
+        // Build transaction outputs
+        let mut vout = Vec::with_capacity(num_outputs);
+
+        // Recipient output
+        vout.push(TxOut {
+            value: amount,
+            script_pubkey: recipient_spk,
+        });
+
+        // Change output (if any)
+        if change > 0 {
+            // Use first wallet address for change, or generate new one
+            let change_address = if self.file.keys.is_empty() {
+                self.get_new_address("change")?
+            } else {
+                self.file.keys[0].address.clone()
+            };
+            let change_decoded = decode_address(&change_address)
+                .map_err(|e| anyhow!("invalid change address: {}", e))?;
+            vout.push(TxOut {
+                value: change,
+                script_pubkey: change_decoded.script_pubkey,
+            });
+        }
+
+        let mut tx = Transaction {
+            version: 1,
+            vin,
+            vout,
+            lock_time: 0,
+        };
+
+        // Sign each input
+        for (i, address) in input_addresses.iter().enumerate() {
+            let sighash_type = 0x01u8; // SIGHASH_ALL
+            let msg32 = qpb_sighash(&tx, i, &prevouts, sighash_type, 0x00, None)
+                .map_err(|e| anyhow!("sighash failed: {:?}", e))?;
+
+            let sig = self.file.sign(address, &msg32)?;
+            let pk_ser = self.file.get_pk_ser(address)?;
+
+            // Witness: [sig || sighash_type, pk_ser]
+            let mut sig_ser = sig;
+            sig_ser.push(sighash_type);
+
+            tx.vin[i].witness = vec![sig_ser, pk_ser];
+        }
+
+        Ok(tx)
+    }
+}
+
+/// Result of coin selection.
+#[derive(Debug)]
+struct CoinSelection {
+    /// Selected UTXOs.
+    utxos: Vec<WalletUtxo>,
+    /// Total value of selected UTXOs.
+    total: u64,
+    /// Change amount (may be 0).
+    change: u64,
+}
+
+/// Select coins using largest-first algorithm.
+///
+/// This is a simple algorithm that selects UTXOs from largest to smallest
+/// until we have enough to cover the target amount plus estimated fees.
+fn select_coins(
+    available: &[WalletUtxo],
+    target: u64,
+    fee_rate: u64,
+    input_weight: usize,
+    output_weight: usize,
+    base_weight: usize,
+) -> Result<CoinSelection> {
+    // Sort by value descending (largest first)
+    let mut sorted: Vec<_> = available.iter().collect();
+    sorted.sort_by(|a, b| b.value.cmp(&a.value));
+
+    let mut selected = Vec::new();
+    let mut total = 0u64;
+
+    for utxo in sorted {
+        selected.push(utxo.clone());
+        total += utxo.value;
+
+        // Calculate fee for current selection
+        let num_inputs = selected.len();
+        // Assume 2 outputs (recipient + change)
+        let num_outputs = 2;
+        let total_weight =
+            base_weight + (num_inputs * input_weight) + (num_outputs * output_weight);
+        let vsize = total_weight.div_ceil(4);
+        let fee = vsize as u64 * fee_rate;
+
+        if total >= target + fee {
+            let change = total - target - fee;
+            return Ok(CoinSelection {
+                utxos: selected,
+                total,
+                change,
+            });
+        }
+    }
+
+    // Not enough funds
+    let needed = {
+        let num_inputs = selected.len().max(1);
+        let total_weight = base_weight + (num_inputs * input_weight) + (2 * output_weight);
+        let vsize = total_weight.div_ceil(4);
+        target + (vsize as u64 * fee_rate)
+    };
+    Err(anyhow!(
+        "insufficient funds: have {}, need approximately {}",
+        total,
+        needed
+    ))
 }
 
 #[cfg(test)]

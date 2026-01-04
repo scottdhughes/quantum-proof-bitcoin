@@ -274,6 +274,40 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 .collect();
             Ok((Value::Array(addresses), RpcAction::Continue))
         }
+        "sendtoaddress" => {
+            // sendtoaddress <address> <amount> [fee_rate]
+            let address = params
+                .first()
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing address"))?;
+            let amount = params
+                .get(1)
+                .and_then(|v| v.as_u64())
+                .ok_or_else(|| anyhow!("missing amount"))?;
+            let fee_rate = params.get(2).and_then(|v| v.as_u64()).unwrap_or(1); // default 1 sat/vB
+
+            let wallet_path = node.datadir.join("wallet.json");
+            if !wallet_path.exists() {
+                return Err(anyhow!("wallet not found, call createwallet first"));
+            }
+            let hrp = load_hrp(
+                &node.chain,
+                Some(std::path::Path::new("docs/chain/chainparams.json")),
+            );
+            let mut wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
+
+            // Get all UTXOs for coin selection
+            let utxos = node.utxo_iter_all();
+
+            // Create and sign transaction
+            let tx = wallet.create_transaction(address, amount, fee_rate, utxos)?;
+            let txid = tx.txid();
+
+            // Add to mempool
+            node.add_to_mempool(tx)?;
+
+            Ok((Value::String(hex::encode(txid)), RpcAction::Continue))
+        }
         _ => Err(anyhow!("method not found")),
     }
 }
