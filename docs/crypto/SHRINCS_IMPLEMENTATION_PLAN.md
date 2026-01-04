@@ -167,23 +167,52 @@
 
 ---
 
-### Phase 5: Activation & Deployment
+### Phase 5: Production Readiness ✅ COMPLETE
+
+**Goal**: Fallback witness format and state persistence
+
+13. ✅ **Fallback witness format** (`src/pq.rs`, `src/validation.rs`)
+    - Extended pk format: `[alg_id(1) || base_pk(64) || sphincs_pk(32)]` = 97 bytes
+    - Signature type prefix: 0x00 stateful, 0x01 fallback
+    - P2QPKH validation handles variable pk length
+    - qpkh32 computed from base pk only (address compatibility)
+
+14. ✅ **File-based state persistence** (`src/shrincs/state.rs`)
+    - `FileStateManager` with atomic temp-file + rename
+    - Cross-platform file locking via `fs2` crate
+    - `LockGuard` RAII pattern for safe lock release
+    - `load_with_lock()` / `save_with_lock()` for explicit locking
+    - Parent directory auto-creation
+
+15. ✅ **Wrapper functions** (`src/pq.rs`)
+    - `shrincs_keypair_with_fallback()` - Extended keys with SPHINCS+
+    - `shrincs_sign_fallback()` - Direct SPHINCS+ signing
+
+**Deliverables**:
+- ✅ Updated `src/pq.rs` with fallback verification and wrappers
+- ✅ Updated `src/validation.rs` for extended pk handling
+- ✅ Enhanced `src/shrincs/state.rs` with FileStateManager
+- ✅ P2QPKH fallback integration test
+
+---
+
+### Phase 6: Activation & Deployment
 
 **Goal**: Safe production rollout
 
-13. **Hard fork activation planning**
-    - Define activation height
-    - Grace period for node upgrades
-
-14. **Security audit**
+16. **Security audit**
     - Third-party review of SHRINCS implementation
     - Formal verification where possible
 
-15. **Testnet deployment**
+17. **Hard fork activation planning**
+    - Define activation height
+    - Grace period for node upgrades
+
+18. **Testnet deployment**
     - Extended soak period
     - Stress testing with mixed algorithm transactions
 
-16. **Documentation**
+19. **Documentation**
     - Update whitepaper
     - Wallet integration guide
     - Migration documentation
@@ -210,11 +239,16 @@
 - [x] Verification via `verify_pq()` dispatch (no validation.rs changes needed)
 - [x] P2QPKH integration test with actual transaction
 
-**Phase 5 Next Steps:**
-- [ ] Define fallback witness format for SPHINCS+ verification
-- [ ] Implement file-based state persistence with atomic updates
+**Phase 5 Complete:**
+- [x] Define fallback witness format (extended 97-byte pk)
+- [x] Update validation.rs to handle variable SHRINCS pk length
+- [x] Implement FileStateManager with atomic writes and file locking
+- [x] Add fallback P2QPKH integration test
+
+**Phase 6 Next Steps:**
 - [ ] Security audit before activation height
 - [ ] Define hard fork activation parameters
+- [ ] Testnet deployment and stress testing
 
 ---
 

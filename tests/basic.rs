@@ -6,7 +6,7 @@ use qpb_consensus::{
     witness_merkle_root,
 };
 #[cfg(feature = "shrincs-dev")]
-use qpb_consensus::{shrincs_keypair, shrincs_sign};
+use qpb_consensus::{shrincs_keypair, shrincs_keypair_with_fallback, shrincs_sign, shrincs_sign_fallback};
 
 fn genesis_header() -> BlockHeader {
     BlockHeader {
@@ -194,6 +194,72 @@ fn p2qpkh_shrincs_roundtrip() {
 
     // SHRINCS costs 2 PQSigCheck units (vs 1 for ML-DSA-65)
     assert_eq!(cost, 2, "SHRINCS should cost 2 PQSigCheck units");
+}
+
+/// Test P2QPKH with SHRINCS fallback signature (SPHINCS+ mode).
+#[test]
+#[cfg(feature = "shrincs-dev")]
+fn p2qpkh_shrincs_fallback_roundtrip() {
+    // 1. Generate SHRINCS keypair with SPHINCS+ fallback capability
+    let (pk_ser, sphincs_pk, ext_key, _state) =
+        shrincs_keypair_with_fallback().expect("shrincs keygen with fallback");
+
+    // pk_ser is [alg_id(1) || base_pk(64)] = 65 bytes
+    assert_eq!(pk_ser.len(), 65, "base pk_ser should be 65 bytes");
+    // sphincs_pk is the full SPHINCS+ public key (32 bytes)
+    assert_eq!(sphincs_pk.len(), 32, "sphincs_pk should be 32 bytes");
+
+    // 2. Create P2QPKH output using base public key (fallback uses same address!)
+    let qpkh = qpb_consensus::qpkh32(&pk_ser);
+    let spk = qpb_consensus::build_p2qpkh(qpkh);
+
+    // 3. Build transaction with placeholder witness
+    let prev_txid = [0u8; 32];
+    let txin = TxIn {
+        prevout: OutPoint {
+            txid: prev_txid,
+            vout: 0,
+        },
+        script_sig: Vec::new(),
+        sequence: 0xffffffff,
+        witness: vec![Vec::new(), Vec::new()], // placeholder
+    };
+    let txout = TxOut {
+        value: 50_0000_0000,
+        script_pubkey: spk.clone(),
+    };
+    let mut tx = Transaction {
+        version: 1,
+        vin: vec![txin],
+        vout: vec![txout],
+        lock_time: 0,
+    };
+
+    let prevouts = vec![Prevout::regular(50_0000_0000, spk.clone())];
+
+    // 4. Compute sighash
+    let msg = qpb_sighash(&tx, 0, &prevouts, 0x01, 0x00, None).expect("sighash");
+    assert_eq!(msg.len(), 32);
+
+    // 5. Sign with SPHINCS+ fallback mode
+    let sig_ser = shrincs_sign_fallback(&ext_key, &msg, 0x01).expect("shrincs fallback sign");
+
+    // Verify signature starts with fallback type prefix
+    assert_eq!(sig_ser[0], 0x01, "fallback sig should start with 0x01");
+
+    // 6. Build extended pk_ser for witness: [alg_id(1) || base_pk(64) || sphincs_pk(32)]
+    let mut ext_pk_ser = pk_ser.clone();
+    ext_pk_ser.extend_from_slice(&sphincs_pk);
+    assert_eq!(ext_pk_ser.len(), 97, "extended pk_ser should be 97 bytes");
+
+    // Update witness with fallback signature and extended pk
+    tx.vin[0].witness = vec![sig_ser, ext_pk_ser];
+
+    // 7. Validate transaction
+    let cost = validate_transaction_basic(&tx, &prevouts).expect("fallback validation should succeed");
+
+    // SHRINCS fallback still costs 2 PQSigCheck units
+    assert_eq!(cost, 2, "SHRINCS fallback should cost 2 PQSigCheck units");
 }
 
 #[test]

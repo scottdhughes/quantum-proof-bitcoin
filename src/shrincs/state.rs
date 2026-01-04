@@ -339,22 +339,85 @@ pub trait StateManager {
     fn delete(&self) -> Result<(), ShrincsError>;
 }
 
-/// File-based state manager with atomic updates.
+/// File-based state manager with atomic updates and file locking.
+///
+/// # Safety
+///
+/// This manager uses file locking to prevent concurrent access. The lock is
+/// held for the duration of save/load operations. For signing workflows:
+///
+/// 1. Acquire exclusive lock
+/// 2. Load current state
+/// 3. Allocate leaf index
+/// 4. Save updated state (atomic write)
+/// 5. Release lock
+/// 6. Sign with allocated leaf
+///
+/// This ensures state is persisted before signing, preventing reuse.
 pub struct FileStateManager {
     path: std::path::PathBuf,
+    lock_path: std::path::PathBuf,
 }
 
 impl FileStateManager {
     /// Create a new file-based state manager.
     pub fn new<P: AsRef<Path>>(path: P) -> Self {
-        Self {
-            path: path.as_ref().to_path_buf(),
+        let path = path.as_ref().to_path_buf();
+        let lock_path = path.with_extension("lock");
+        Self { path, lock_path }
+    }
+
+    /// Ensure parent directory exists.
+    fn ensure_dir(&self) -> Result<(), ShrincsError> {
+        if let Some(parent) = self.path.parent() {
+            if !parent.exists() {
+                std::fs::create_dir_all(parent)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Acquire an exclusive file lock.
+    ///
+    /// Returns a guard that releases the lock on drop.
+    pub fn lock(&self) -> Result<LockGuard, ShrincsError> {
+        use fs2::FileExt;
+        self.ensure_dir()?;
+
+        let file = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(false)
+            .open(&self.lock_path)?;
+
+        // Block until we acquire exclusive lock
+        file.lock_exclusive()?;
+
+        Ok(LockGuard { file })
+    }
+
+    /// Try to acquire an exclusive file lock without blocking.
+    ///
+    /// Returns None if lock is held by another process.
+    pub fn try_lock(&self) -> Result<Option<LockGuard>, ShrincsError> {
+        use fs2::FileExt;
+        self.ensure_dir()?;
+
+        let file = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(false)
+            .open(&self.lock_path)?;
+
+        match file.try_lock_exclusive() {
+            Ok(()) => Ok(Some(LockGuard { file })),
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => Ok(None),
+            Err(e) => Err(ShrincsError::from(e)),
         }
     }
-}
 
-impl StateManager for FileStateManager {
-    fn load(&self) -> Result<SigningState, ShrincsError> {
+    /// Load state while holding lock.
+    pub fn load_with_lock(&self, _lock: &LockGuard) -> Result<SigningState, ShrincsError> {
         if !self.path.exists() {
             return Err(ShrincsError::StateNotFound);
         }
@@ -362,7 +425,13 @@ impl StateManager for FileStateManager {
         SigningState::from_bytes(&bytes)
     }
 
-    fn save(&self, state: &SigningState) -> Result<(), ShrincsError> {
+    /// Save state while holding lock.
+    pub fn save_with_lock(
+        &self,
+        state: &SigningState,
+        _lock: &LockGuard,
+    ) -> Result<(), ShrincsError> {
+        self.ensure_dir()?;
         let bytes = state.to_bytes();
 
         // Write to temp file first, then atomic rename
@@ -372,6 +441,31 @@ impl StateManager for FileStateManager {
 
         Ok(())
     }
+}
+
+/// RAII guard for file lock.
+pub struct LockGuard {
+    file: std::fs::File,
+}
+
+impl Drop for LockGuard {
+    fn drop(&mut self) {
+        use fs2::FileExt;
+        // Unlock on drop (ignore errors)
+        let _ = self.file.unlock();
+    }
+}
+
+impl StateManager for FileStateManager {
+    fn load(&self) -> Result<SigningState, ShrincsError> {
+        let lock = self.lock()?;
+        self.load_with_lock(&lock)
+    }
+
+    fn save(&self, state: &SigningState) -> Result<(), ShrincsError> {
+        let lock = self.lock()?;
+        self.save_with_lock(state, &lock)
+    }
 
     fn exists(&self) -> bool {
         self.path.exists()
@@ -380,6 +474,10 @@ impl StateManager for FileStateManager {
     fn delete(&self) -> Result<(), ShrincsError> {
         if self.path.exists() {
             std::fs::remove_file(&self.path)?;
+        }
+        // Also clean up lock file
+        if self.lock_path.exists() {
+            let _ = std::fs::remove_file(&self.lock_path);
         }
         Ok(())
     }
@@ -538,5 +636,87 @@ mod tests {
 
         let restored = SigningState::from_bytes(&bytes_v2).unwrap();
         assert!(restored.layer_states.is_some());
+    }
+
+    #[test]
+    fn file_state_manager_roundtrip() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("shrincs").join("state.bin");
+        let mgr = FileStateManager::new(&path);
+
+        // Initially no state
+        assert!(!mgr.exists());
+
+        // Create and save state
+        let mut state = SigningState::new(1000);
+        state.allocate_leaf().unwrap();
+        state.allocate_leaf().unwrap();
+
+        mgr.save(&state).unwrap();
+        assert!(mgr.exists());
+
+        // Load and verify
+        let loaded = mgr.load().unwrap();
+        assert_eq!(loaded.next_leaf, 2);
+        assert!(loaded.is_used(0));
+        assert!(loaded.is_used(1));
+
+        // Delete
+        mgr.delete().unwrap();
+        assert!(!mgr.exists());
+    }
+
+    #[test]
+    fn file_state_manager_locking() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("state.bin");
+        let mgr = FileStateManager::new(&path);
+
+        // Acquire lock
+        let lock = mgr.lock().unwrap();
+
+        // Try to acquire again (should fail with try_lock)
+        let result = mgr.try_lock().unwrap();
+        assert!(result.is_none(), "should not acquire lock while held");
+
+        // Save and load with lock
+        let state = SigningState::new(100);
+        mgr.save_with_lock(&state, &lock).unwrap();
+        let loaded = mgr.load_with_lock(&lock).unwrap();
+        assert_eq!(loaded.max_leaves, 100);
+
+        // Drop lock
+        drop(lock);
+
+        // Now can acquire again
+        let lock2 = mgr.try_lock().unwrap();
+        assert!(lock2.is_some(), "should acquire lock after release");
+    }
+
+    #[test]
+    fn file_state_manager_atomic_update() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("state.bin");
+        let mgr = FileStateManager::new(&path);
+
+        // Initial state
+        let state = SigningState::new(1000);
+        mgr.save(&state).unwrap();
+
+        // Multiple updates
+        for i in 0..5 {
+            let lock = mgr.lock().unwrap();
+            let mut current = mgr.load_with_lock(&lock).unwrap();
+            current.allocate_leaf().unwrap();
+            mgr.save_with_lock(&current, &lock).unwrap();
+            // Lock released here
+        }
+
+        // Verify final state
+        let final_state = mgr.load().unwrap();
+        assert_eq!(final_state.next_leaf, 5);
+        for i in 0..5 {
+            assert!(final_state.is_used(i));
+        }
     }
 }

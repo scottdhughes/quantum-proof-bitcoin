@@ -26,6 +26,7 @@ SHRINCS is a **hybrid stateful + stateless** post-quantum signature scheme desig
 | **Phase 2** | PORS+FP (octopus auth), XMSS^MT hypertree | ✅ Complete |
 | **Phase 3** | SPHINCS+-128s fallback, unified signature type | ✅ Complete |
 | **Phase 4** | Consensus integration, AlgorithmId 0x30 wiring | ✅ Complete |
+| **Phase 5** | Fallback witness format, state persistence | ✅ Complete |
 
 ### Phase 4 Details
 
@@ -35,11 +36,19 @@ SHRINCS is a **hybrid stateful + stateless** post-quantum signature scheme desig
 - PQSigCheck cost: 2 units (vs ML-DSA-65's 1 unit)
 - P2QPKH integration test passing
 
-### Remaining Work
+### Phase 5 Details
 
-1. **Fallback witness format** (SPHINCS+ pk in witness for 0x01 signatures)
-2. **State persistence** (file-based with atomic updates)
-3. **Security audit** before activation height
+- Extended pk format: `[alg_id(1) || base_pk(64) || sphincs_pk(32)]` = 97 bytes
+- Signature type prefix: 0x00 stateful, 0x01 fallback
+- P2QPKH validation handles variable pk length via `validation.rs`
+- `FileStateManager` with atomic writes and cross-platform file locking
+- `shrincs_keypair_with_fallback()` and `shrincs_sign_fallback()` wrappers
+
+### Remaining Work (Phase 6)
+
+1. **Security audit** before activation height
+2. **Hard fork activation parameters**
+3. **Testnet deployment and stress testing**
 
 ### Monitoring
 
@@ -129,9 +138,10 @@ Fallback signature:
 
 ## Current Implementation vs Target
 
-| Aspect | Current (Phase 4) | Target (Production) |
+| Aspect | Current (Phase 5) | Target (Production) |
 |--------|-------------------|---------------------|
 | PK size | 64 bytes | 64 bytes ✓ |
+| Extended PK | 96 bytes (fallback) | 96 bytes ✓ |
 | Stateful sig | ~3.4 KB | ~3.4 KB ✓ |
 | Fallback sig | ~7.8 KB (SPHINCS+-128s) | ~7.8 KB ✓ |
 | WOTS w | 256 | 256 ✓ |
@@ -139,7 +149,7 @@ Fallback signature:
 | Security | 128-bit PQ (Level 1) | 192-bit PQ (Level 3) |
 | Fallback | SPHINCS+-SHA2-128s | SPHINCS+-SHA2-192s |
 | Consensus | Feature-gated | Hard fork activation |
-| State | In-memory | File-based + atomic |
+| State | File-based + atomic + locking ✓ | File-based + atomic ✓ |
 
 ## Codebase Structure
 
