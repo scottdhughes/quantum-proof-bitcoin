@@ -132,3 +132,268 @@ fn inv_entry_equality() {
     assert_eq!(entry1, entry2);
     assert_ne!(entry1, entry3);
 }
+
+// ============================================================================
+// Node P2P tx relay integration tests
+// ============================================================================
+
+use qpb_consensus::node::node::Node;
+use qpb_consensus::node::rpc::handle_rpc;
+use tempfile::tempdir;
+
+fn rpc_call(node: &mut Node, method: &str, params: &str) -> serde_json::Value {
+    let req = format!(
+        r#"{{"jsonrpc":"2.0","id":1,"method":"{}","params":{}}}"#,
+        method, params
+    );
+    let resp = handle_rpc(node, &req);
+    serde_json::from_str(&resp).unwrap()
+}
+
+/// Create a transaction using the wallet and return its txid.
+/// The transaction will be in the mempool after this call.
+fn create_tx_via_wallet(node: &mut Node) -> [u8; 32] {
+    // Create wallet if not exists
+    rpc_call(node, "createwallet", "[]");
+
+    // Generate addresses
+    let resp = rpc_call(node, "getnewaddress", r#"["sender"]"#);
+    let sender_addr = resp["result"].as_str().unwrap().to_string();
+    let resp = rpc_call(node, "getnewaddress", r#"["recipient"]"#);
+    let recipient_addr = resp["result"].as_str().unwrap().to_string();
+
+    // Mine to sender address so we have funds (101 blocks for coinbase maturity)
+    // RPC clamps to 10 blocks per call, so we need multiple calls
+    for _ in 0..11 {
+        rpc_call(
+            node,
+            "generatetoaddress",
+            &format!(r#"[10, "{}"]"#, sender_addr),
+        );
+    }
+
+    // Send to recipient (creates tx in mempool)
+    let resp = rpc_call(
+        node,
+        "sendtoaddress",
+        &format!(r#"["{}", 1000]"#, recipient_addr),
+    );
+    assert!(
+        resp.get("error").is_none() || resp["error"].is_null(),
+        "sendtoaddress failed: {:?}",
+        resp
+    );
+
+    let txid_hex = resp["result"].as_str().unwrap();
+    let txid_bytes = hex::decode(txid_hex).unwrap();
+    let mut txid = [0u8; 32];
+    txid.copy_from_slice(&txid_bytes);
+    txid
+}
+
+/// Get a transaction from the mempool by txid.
+fn get_mempool_tx(node: &Node, txid: &[u8; 32]) -> Option<Transaction> {
+    node.mempool_get(txid).cloned()
+}
+
+#[test]
+fn node_handle_tx_inv_filters_unknown() {
+    let dir = tempdir().unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+
+    // Create a tx via wallet (handles mining, signing, etc.)
+    let txid = create_tx_via_wallet(&mut node);
+
+    // Known tx should not be requested
+    let unknown_txid = [0x42u8; 32];
+    let inv_txids = vec![txid, unknown_txid];
+
+    let wanted = node.handle_tx_inv(&inv_txids);
+
+    // Should only want the unknown one
+    assert_eq!(wanted.len(), 1);
+    assert_eq!(wanted[0], unknown_txid);
+}
+
+#[test]
+fn node_handle_tx_getdata_returns_mempool_txs() {
+    let dir = tempdir().unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+
+    // Create a tx via wallet
+    let txid = create_tx_via_wallet(&mut node);
+
+    // Request the tx
+    let unknown_txid = [0x42u8; 32];
+    let getdata_txids = vec![txid, unknown_txid];
+
+    let txs = node.handle_tx_getdata(&getdata_txids);
+
+    // Should only return the one we have
+    assert_eq!(txs.len(), 1);
+    assert_eq!(txs[0].txid(), txid);
+}
+
+#[test]
+fn node_handle_incoming_tx_adds_to_mempool() {
+    // This test verifies that handle_incoming_tx correctly adds txs to mempool.
+    // We create a tx on node_a, then relay it to node_b which has the same chain state.
+
+    let dir_a = tempdir().unwrap();
+    let dir_b = tempdir().unwrap();
+
+    let mut node_a = Node::open_or_init("devnet", dir_a.path(), true).unwrap();
+    let mut node_b = Node::open_or_init("devnet", dir_b.path(), true).unwrap();
+
+    // Create wallet and get addresses on node_a
+    rpc_call(&mut node_a, "createwallet", "[]");
+    let resp = rpc_call(&mut node_a, "getnewaddress", r#"["sender"]"#);
+    let sender_addr = resp["result"].as_str().unwrap().to_string();
+    let resp = rpc_call(&mut node_a, "getnewaddress", r#"["recipient"]"#);
+    let recipient_addr = resp["result"].as_str().unwrap().to_string();
+
+    // Both nodes need IDENTICAL chain state for tx relay to work.
+    // Mine to the same address on both nodes (node_b doesn't need the wallet keys,
+    // just the same UTXOs for validation).
+    for _ in 0..11 {
+        rpc_call(
+            &mut node_a,
+            "generatetoaddress",
+            &format!(r#"[10, "{}"]"#, sender_addr),
+        );
+        rpc_call(
+            &mut node_b,
+            "generatetoaddress",
+            &format!(r#"[10, "{}"]"#, sender_addr),
+        );
+    }
+
+    // Now create tx on node_a - it has the wallet keys to sign
+    let resp = rpc_call(
+        &mut node_a,
+        "sendtoaddress",
+        &format!(r#"["{}", 1000]"#, recipient_addr),
+    );
+    assert!(
+        resp.get("error").is_none() || resp["error"].is_null(),
+        "sendtoaddress failed: {:?}",
+        resp
+    );
+    let txid_hex = resp["result"].as_str().unwrap();
+    let txid_bytes = hex::decode(txid_hex).unwrap();
+    let mut txid = [0u8; 32];
+    txid.copy_from_slice(&txid_bytes);
+
+    // Get the tx from node_a's mempool
+    let tx = get_mempool_tx(&node_a, &txid).expect("tx should be in node_a mempool");
+
+    // Node B doesn't have this tx yet
+    assert!(!node_b.mempool_contains(&txid));
+
+    // Simulate receiving the tx from a peer on node_b
+    let result = node_b.handle_incoming_tx(tx);
+    assert!(result.is_ok(), "handle_incoming_tx failed: {:?}", result);
+    assert_eq!(result.unwrap(), txid);
+
+    // Should now be in node_b's mempool
+    assert!(node_b.mempool_contains(&txid));
+}
+
+#[test]
+fn tx_relay_simulation_between_nodes() {
+    // Simulate tx relay: Node A creates tx, Node B receives INV, requests, and accepts
+
+    let dir_a = tempdir().unwrap();
+    let dir_b = tempdir().unwrap();
+
+    let mut node_a = Node::open_or_init("devnet", dir_a.path(), true).unwrap();
+    let mut node_b = Node::open_or_init("devnet", dir_b.path(), true).unwrap();
+
+    // Create wallet and get addresses on node_a
+    rpc_call(&mut node_a, "createwallet", "[]");
+    let resp = rpc_call(&mut node_a, "getnewaddress", r#"["sender"]"#);
+    let sender_addr = resp["result"].as_str().unwrap().to_string();
+    let resp = rpc_call(&mut node_a, "getnewaddress", r#"["recipient"]"#);
+    let recipient_addr = resp["result"].as_str().unwrap().to_string();
+
+    // Both nodes mine to the SAME address for identical UTXO sets
+    for _ in 0..11 {
+        rpc_call(
+            &mut node_a,
+            "generatetoaddress",
+            &format!(r#"[10, "{}"]"#, sender_addr),
+        );
+        rpc_call(
+            &mut node_b,
+            "generatetoaddress",
+            &format!(r#"[10, "{}"]"#, sender_addr),
+        );
+    }
+
+    // Node A creates a transaction via wallet (only node_a has the keys)
+    let resp = rpc_call(
+        &mut node_a,
+        "sendtoaddress",
+        &format!(r#"["{}", 1000]"#, recipient_addr),
+    );
+    assert!(
+        resp.get("error").is_none() || resp["error"].is_null(),
+        "sendtoaddress failed: {:?}",
+        resp
+    );
+    let txid_hex = resp["result"].as_str().unwrap();
+    let txid_bytes = hex::decode(txid_hex).unwrap();
+    let mut txid = [0u8; 32];
+    txid.copy_from_slice(&txid_bytes);
+
+    // Verify Node A has it, Node B doesn't
+    assert!(node_a.mempool_contains(&txid));
+    assert!(!node_b.mempool_contains(&txid));
+
+    // Step 1: Node A announces (INV) the txid
+    // Node B checks if it wants this tx
+    let wanted = node_b.handle_tx_inv(&[txid]);
+    assert_eq!(wanted, vec![txid]);
+
+    // Step 2: Node B requests (GETDATA) the tx from Node A
+    let txs = node_a.handle_tx_getdata(&wanted);
+    assert_eq!(txs.len(), 1);
+
+    // Step 3: Node B receives and accepts the tx
+    let accepted = node_b.handle_incoming_tx(txs[0].clone());
+    assert!(accepted.is_ok(), "Failed to accept tx: {:?}", accepted);
+    assert_eq!(accepted.unwrap(), txid);
+
+    // Now both nodes have the transaction
+    assert!(node_a.mempool_contains(&txid));
+    assert!(node_b.mempool_contains(&txid));
+}
+
+#[test]
+fn tx_relay_rejects_invalid_transaction() {
+    let dir = tempdir().unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+
+    // Create an invalid transaction (spending non-existent output)
+    let invalid_tx = Transaction {
+        version: 2,
+        vin: vec![TxIn {
+            prevout: OutPoint {
+                txid: [0xdeu8; 32], // doesn't exist
+                vout: 0,
+            },
+            script_sig: vec![],
+            sequence: 0xffffffff,
+            witness: vec![],
+        }],
+        vout: vec![TxOut {
+            value: 1000,
+            script_pubkey: vec![0x6a], // OP_RETURN
+        }],
+        lock_time: 0,
+    };
+
+    // Should be rejected
+    let result = node.handle_incoming_tx(invalid_tx);
+    assert!(result.is_err());
+}

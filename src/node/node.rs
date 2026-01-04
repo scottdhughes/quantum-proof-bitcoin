@@ -505,6 +505,33 @@ impl Node {
 
         Ok(())
     }
+
+    // ---- P2P Transaction Relay Methods ----
+
+    /// Handle incoming INV message for transactions.
+    /// Returns list of txids we want to request (not in our mempool).
+    pub fn handle_tx_inv(&self, txids: &[[u8; 32]]) -> Vec<[u8; 32]> {
+        txids
+            .iter()
+            .filter(|txid| !self.mempool.contains(txid))
+            .copied()
+            .collect()
+    }
+
+    /// Handle incoming GETDATA request for transactions.
+    /// Returns list of transactions we have in mempool.
+    pub fn handle_tx_getdata(&self, txids: &[[u8; 32]]) -> Vec<Transaction> {
+        txids
+            .iter()
+            .filter_map(|txid| self.mempool.get(txid).map(|e| e.tx.clone()))
+            .collect()
+    }
+
+    /// Handle incoming transaction from a peer.
+    /// Returns the txid if accepted, or an error if rejected.
+    pub fn handle_incoming_tx(&mut self, tx: Transaction) -> Result<[u8; 32]> {
+        self.add_to_mempool(tx)
+    }
 }
 
 fn populate_utxo_from_block(utxo: &mut UtxoSet, block: &Block, height: u32) {
