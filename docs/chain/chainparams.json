@@ -51,7 +51,19 @@
       "p2p_port": 38334,
       "rpc_port": 38335,
       "dns_seeds": [],
-      "genesis": null
+      "genesis": {
+        "coinbase_tx_hex": "010000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff1e51504220746573746e65742067656e6573697320323032352d31322d3235ffffffff010000000000000000016a0000000000",
+        "header": {
+          "version": 1,
+          "prev_blockhash_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+          "merkle_root_hex": "4714327da9e10fe37489c5655be864f66baf3779bacecbdf05b18b1585dfdcc0",
+          "time": 1766620800,
+          "bits": 545259519,
+          "nonce": 0
+        },
+        "block_hash_hex": "31ff1d66e9ca1fd324f136af604699ff13b014d178975bff3b0c77684ec8d05d",
+        "chain_id_hex": "cca923bb464f10da281b78376ff75f33973b3d4ea8efe9a93165b468229e3a79"
+      }
     }
   }
 }

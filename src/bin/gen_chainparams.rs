@@ -25,7 +25,7 @@ struct ChainParams {
 struct Networks {
     devnet: Network,
     regtest: Network,
-    testnet: NetworkTbd,
+    testnet: Network,
 }
 
 #[derive(Serialize)]
@@ -35,17 +35,8 @@ struct Network {
     p2p_magic: String,
     p2p_port: u16,
     rpc_port: u16,
+    dns_seeds: Vec<String>,
     genesis: Genesis,
-}
-
-#[derive(Serialize)]
-struct NetworkTbd {
-    name: String,
-    hrp: String,
-    p2p_magic: String,
-    p2p_port: u16,
-    rpc_port: u16,
-    genesis: Option<Genesis>,
 }
 
 #[derive(Serialize)]
@@ -82,14 +73,13 @@ fn main() -> anyhow::Result<()> {
         "QPB regtest genesis 2025-12-25",
     )?;
 
-    let testnet = NetworkTbd {
-        name: "testnet".to_string(),
-        hrp: "tqpb".to_string(),
-        p2p_magic: derive_magic("testnet"),
-        p2p_port: 38_334,
-        rpc_port: 38_335,
-        genesis: None,
-    };
+    let testnet = build_network(
+        "testnet",
+        "tqpb",
+        38_334,
+        38_335,
+        "QPB testnet genesis 2025-12-25",
+    )?;
 
     let params = ChainParams {
         schema_version: SCHEMA_VERSION,
@@ -127,6 +117,7 @@ fn build_network(
         p2p_magic: magic,
         p2p_port,
         rpc_port,
+        dns_seeds: vec![],
         genesis,
     })
 }
