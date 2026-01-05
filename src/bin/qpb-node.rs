@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -21,6 +21,7 @@ use qpb_consensus::node::p2p::{
     InboundConfig, InboundListener, OutboundConfig, OutboundManager, SyncOpts, sync_with_retries,
 };
 use qpb_consensus::node::rpc::{RpcAction, handle_rpc_action};
+use qpb_consensus::node::rpc_limiter::RpcRateLimiter;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -76,6 +77,10 @@ struct Args {
     /// RPC password for authentication.
     #[arg(long = "rpcpassword")]
     rpc_password: Option<String>,
+
+    /// Maximum RPC requests per second per client (0 = unlimited).
+    #[arg(long = "rpc-rate-limit", default_value_t = 100)]
+    rpc_rate_limit: u32,
 }
 
 /// RPC authentication configuration.
@@ -278,11 +283,13 @@ fn main() -> Result<()> {
         // If RPC is also enabled, run it
         if let Some(ref addr) = args.rpc_addr {
             let rpc_auth = create_rpc_auth(&args)?;
+            let rpc_limiter = create_rpc_limiter(&args);
             start_rpc_server_shared(
                 addr.clone(),
                 node_arc.clone().unwrap(),
                 Arc::clone(&shutdown_flag),
                 rpc_auth,
+                rpc_limiter,
             )?;
         }
 
@@ -338,7 +345,8 @@ fn main() -> Result<()> {
     } else if let Some(ref addr) = args.rpc_addr {
         // No listening, just RPC server
         let rpc_auth = create_rpc_auth(&args)?;
-        start_rpc_server(addr.clone(), node, rpc_auth)?;
+        let rpc_limiter = create_rpc_limiter(&args);
+        start_rpc_server(addr.clone(), node, rpc_auth, rpc_limiter)?;
     }
 
     Ok(())
@@ -368,15 +376,57 @@ fn create_rpc_auth(args: &Args) -> Result<Option<RpcAuth>> {
     }
 }
 
-fn start_rpc_server(addr: String, node: Node, auth: Option<RpcAuth>) -> Result<()> {
+/// Create RPC rate limiter from CLI args.
+/// Returns None if rate limiting is disabled (--rpc-rate-limit=0).
+fn create_rpc_limiter(args: &Args) -> Option<Arc<RpcRateLimiter>> {
+    if args.rpc_rate_limit == 0 {
+        warn!("RPC rate limiting disabled (--rpc-rate-limit=0)");
+        None
+    } else {
+        // Use 2x rate as bucket capacity for burst allowance
+        let bucket_capacity = args.rpc_rate_limit.saturating_mul(2);
+        Some(Arc::new(RpcRateLimiter::new(
+            bucket_capacity,
+            args.rpc_rate_limit,
+        )))
+    }
+}
+
+fn start_rpc_server(
+    addr: String,
+    node: Node,
+    auth: Option<RpcAuth>,
+    rate_limiter: Option<Arc<RpcRateLimiter>>,
+) -> Result<()> {
     let server = Server::http(&addr).map_err(|e| anyhow::anyhow!("bind {}: {}", addr, e))?;
-    info!(%addr, auth_enabled = auth.is_some(), "rpc listening");
+    info!(
+        %addr,
+        auth_enabled = auth.is_some(),
+        rate_limit_enabled = rate_limiter.is_some(),
+        "rpc listening"
+    );
     let shared = Arc::new(Mutex::new(node));
     for mut request in server.incoming_requests() {
         let shared = Arc::clone(&shared);
         if request.method() != &Method::Post || request.url() != "/rpc" {
             let _ = request.respond(Response::from_string("not found").with_status_code(404));
             continue;
+        }
+
+        // Check rate limit if enabled
+        if let Some(ref limiter) = rate_limiter {
+            let client_ip = request
+                .remote_addr()
+                .map(|addr| addr.ip())
+                .unwrap_or(IpAddr::V4(Ipv4Addr::LOCALHOST));
+            if !limiter.try_consume(client_ip) {
+                let _ = request.respond(
+                    Response::from_string(r#"{"error":"Too Many Requests"}"#)
+                        .with_status_code(429)
+                        .with_header(Header::from_bytes("Retry-After", "1").unwrap()),
+                );
+                continue;
+            }
         }
 
         // Check authentication if enabled
@@ -435,9 +485,15 @@ fn start_rpc_server_shared(
     shared: Arc<Mutex<Node>>,
     shutdown: Arc<AtomicBool>,
     auth: Option<RpcAuth>,
+    rate_limiter: Option<Arc<RpcRateLimiter>>,
 ) -> Result<()> {
     let server = Server::http(&addr).map_err(|e| anyhow::anyhow!("bind {}: {}", addr, e))?;
-    info!(%addr, auth_enabled = auth.is_some(), "rpc listening");
+    info!(
+        %addr,
+        auth_enabled = auth.is_some(),
+        rate_limit_enabled = rate_limiter.is_some(),
+        "rpc listening"
+    );
 
     std::thread::spawn(move || {
         loop {
@@ -457,6 +513,22 @@ fn start_rpc_server_shared(
             if request.method() != &Method::Post || request.url() != "/rpc" {
                 let _ = request.respond(Response::from_string("not found").with_status_code(404));
                 continue;
+            }
+
+            // Check rate limit if enabled
+            if let Some(ref limiter) = rate_limiter {
+                let client_ip = request
+                    .remote_addr()
+                    .map(|addr| addr.ip())
+                    .unwrap_or(IpAddr::V4(Ipv4Addr::LOCALHOST));
+                if !limiter.try_consume(client_ip) {
+                    let _ = request.respond(
+                        Response::from_string(r#"{"error":"Too Many Requests"}"#)
+                            .with_status_code(429)
+                            .with_header(Header::from_bytes("Retry-After", "1").unwrap()),
+                    );
+                    continue;
+                }
             }
 
             // Check authentication if enabled

@@ -184,6 +184,15 @@ pub const MAX_TX_RELAY_PER_SECOND: u32 = 10;
 /// Transaction relay bucket capacity.
 pub const TX_RELAY_BUCKET_CAPACITY: u32 = 50;
 
+/// Maximum RPC requests per second per client.
+pub const RPC_MAX_REQUESTS_PER_SECOND: u32 = 100;
+
+/// RPC request bucket capacity (burst allowance).
+pub const RPC_BUCKET_CAPACITY: u32 = 200;
+
+/// Stale RPC client entry pruning age (seconds).
+pub const RPC_CLIENT_MAX_AGE_SECS: u64 = 300;
+
 // ============================================================================
 // Connection Limits
 // ============================================================================
