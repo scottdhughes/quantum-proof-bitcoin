@@ -1,6 +1,8 @@
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 use clap::Parser;
@@ -115,10 +117,10 @@ fn main() -> Result<()> {
     }
 
     // Start inbound listener if enabled
-    let mut inbound_listener: Option<InboundListener> = None;
     let node_arc: Option<Arc<Mutex<Node>>>;
 
     if args.listen {
+        let mut inbound_listener: Option<InboundListener>;
         // Determine port based on chain
         let port = args.p2p_port.unwrap_or(match args.chain.as_str() {
             "mainnet" => DEFAULT_MAINNET_PORT,
@@ -165,23 +167,58 @@ fn main() -> Result<()> {
 
         inbound_listener = Some(listener);
 
+        // Create shutdown flag
+        let shutdown_flag = Arc::new(AtomicBool::new(false));
+
         // If RPC is also enabled, run it
         if let Some(addr) = args.rpc_addr {
-            start_rpc_server_shared(addr, node_arc.clone().unwrap())?;
+            start_rpc_server_shared(addr, node_arc.clone().unwrap(), Arc::clone(&shutdown_flag))?;
         }
 
-        // Wait for shutdown signal (Ctrl+C)
+        // Install signal handler
+        let shutdown_for_signal = Arc::clone(&shutdown_flag);
+        ctrlc::set_handler(move || {
+            eprintln!("\nShutdown signal received...");
+            shutdown_for_signal.store(true, Ordering::SeqCst);
+        })
+        .expect("Error setting Ctrl+C handler");
+
         println!("Press Ctrl+C to stop the node");
-        std::thread::park(); // Block forever until interrupted
+
+        // Wait for shutdown signal
+        while !shutdown_flag.load(Ordering::SeqCst) {
+            std::thread::sleep(Duration::from_millis(100));
+        }
+
+        // Graceful shutdown sequence
+        eprintln!("Initiating graceful shutdown...");
+
+        // 1. Stop accepting new connections
+        if let Some(ref listener) = inbound_listener {
+            eprintln!("Stopping inbound listener...");
+            listener.shutdown();
+        }
+
+        // 2. Wait for listener thread to finish
+        if let Some(listener) = inbound_listener.take() {
+            listener.join();
+            eprintln!("Listener stopped");
+        }
+
+        // 3. Save node state
+        eprintln!("Saving node state...");
+        if let Some(ref node_arc) = node_arc {
+            let node = node_arc.lock().unwrap();
+            if let Err(e) = node.save() {
+                eprintln!("Warning: failed to save node state: {}", e);
+            }
+        }
+
+        eprintln!("Shutdown complete");
+        return Ok(());
     } else if let Some(addr) = args.rpc_addr {
         // No listening, just RPC server
         start_rpc_server(addr, node)?;
-    }
-
-    // Clean shutdown of listener if running
-    if let Some(listener) = inbound_listener {
-        listener.shutdown();
-        listener.join();
     }
 
     Ok(())
@@ -223,12 +260,28 @@ fn start_rpc_server(addr: String, node: Node) -> Result<()> {
 }
 
 /// Start RPC server with a shared node (runs in background thread).
-fn start_rpc_server_shared(addr: String, shared: Arc<Mutex<Node>>) -> Result<()> {
+fn start_rpc_server_shared(
+    addr: String,
+    shared: Arc<Mutex<Node>>,
+    shutdown: Arc<AtomicBool>,
+) -> Result<()> {
     let server = Server::http(&addr).map_err(|e| anyhow::anyhow!("bind {}: {}", addr, e))?;
     println!("rpc listening on http://{}", addr);
 
     std::thread::spawn(move || {
-        for mut request in server.incoming_requests() {
+        loop {
+            // Check shutdown flag
+            if shutdown.load(Ordering::SeqCst) {
+                break;
+            }
+
+            // Use recv_timeout for periodic shutdown checks
+            let mut request = match server.recv_timeout(Duration::from_millis(500)) {
+                Ok(Some(req)) => req,
+                Ok(None) => continue, // Timeout, check shutdown again
+                Err(_) => break,
+            };
+
             let shared = Arc::clone(&shared);
             if request.method() != &Method::Post || request.url() != "/rpc" {
                 let _ = request.respond(Response::from_string("not found").with_status_code(404));
@@ -249,11 +302,8 @@ fn start_rpc_server_shared(addr: String, shared: Arc<Mutex<Node>>) -> Result<()>
                 .with_header(Header::from_bytes("Content-Type", "application/json").unwrap());
             let _ = request.respond(response);
             if matches!(action, RpcAction::Stop) {
-                // Save mempool before shutdown
-                let node = shared.lock().unwrap();
-                if let Err(e) = node.save() {
-                    eprintln!("warning: failed to save node state: {}", e);
-                }
+                // Signal shutdown for other components
+                shutdown.store(true, Ordering::SeqCst);
                 break;
             }
         }
