@@ -10,6 +10,7 @@ use crate::node::miner::{
 };
 use crate::node::node::{Node, parse_transaction};
 use crate::node::wallet::Wallet;
+use crate::script::parse_script_pubkey;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RpcAction {
@@ -966,6 +967,181 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 }),
                 RpcAction::Continue,
             ))
+        }
+        // ============================================================
+        // Transaction Utility RPCs
+        // ============================================================
+        "validateaddress" => {
+            // validateaddress <address>
+            // Returns address validation info
+            let addr = params
+                .first()
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing address"))?;
+
+            match decode_address(addr) {
+                Ok(decoded) => Ok((
+                    serde_json::json!({
+                        "isvalid": true,
+                        "address": addr,
+                        "scriptPubKey": hex::encode(&decoded.script_pubkey),
+                        "witness_version": decoded.witness_version,
+                        "witness_program": hex::encode(decoded.program),
+                        "hrp": decoded.hrp,
+                    }),
+                    RpcAction::Continue,
+                )),
+                Err(_) => Ok((serde_json::json!({"isvalid": false}), RpcAction::Continue)),
+            }
+        }
+        "decoderawtransaction" => {
+            // decoderawtransaction <hex>
+            // Parses a hex-encoded transaction and returns JSON
+            let hex_str = params
+                .first()
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing transaction hex"))?;
+
+            let bytes = hex::decode(hex_str).map_err(|_| anyhow!("invalid hex encoding"))?;
+            let tx = parse_transaction(&bytes)?;
+
+            // Build vin array
+            let vin: Vec<Value> = tx
+                .vin
+                .iter()
+                .map(|inp| {
+                    serde_json::json!({
+                        "txid": hex::encode(inp.prevout.txid),
+                        "vout": inp.prevout.vout,
+                        "scriptSig": {
+                            "hex": hex::encode(&inp.script_sig)
+                        },
+                        "sequence": inp.sequence
+                    })
+                })
+                .collect();
+
+            // Build vout array with script type detection
+            let vout: Vec<Value> = tx
+                .vout
+                .iter()
+                .enumerate()
+                .map(|(i, out)| {
+                    let script_type = match parse_script_pubkey(&out.script_pubkey) {
+                        crate::script::ScriptType::P2QTSH(_) => "P2QTSH",
+                        crate::script::ScriptType::P2QPKH(_) => "P2QPKH",
+                        crate::script::ScriptType::OpReturn(_) => "OP_RETURN",
+                        crate::script::ScriptType::Unknown => "unknown",
+                    };
+                    serde_json::json!({
+                        "value": out.value as f64 / 100_000_000.0,
+                        "n": i,
+                        "scriptPubKey": {
+                            "hex": hex::encode(&out.script_pubkey),
+                            "type": script_type
+                        }
+                    })
+                })
+                .collect();
+
+            let result = serde_json::json!({
+                "txid": hex::encode(tx.txid()),
+                "version": tx.version,
+                "locktime": tx.lock_time,
+                "size": bytes.len(),
+                "vin": vin,
+                "vout": vout,
+            });
+            Ok((result, RpcAction::Continue))
+        }
+        "createrawtransaction" => {
+            // createrawtransaction [{"txid":"...", "vout":n},...] {"address":amount,...} [locktime]
+            // Creates an unsigned raw transaction
+            let inputs = params
+                .first()
+                .and_then(|v| v.as_array())
+                .ok_or_else(|| anyhow!("missing inputs array"))?;
+            let outputs = params
+                .get(1)
+                .and_then(|v| v.as_object())
+                .ok_or_else(|| anyhow!("missing outputs object"))?;
+            let locktime = params.get(2).and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+
+            // Parse inputs
+            let mut vin = Vec::with_capacity(inputs.len());
+            for input in inputs {
+                let txid_hex = input
+                    .get("txid")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| anyhow!("input missing txid"))?;
+                let vout = input
+                    .get("vout")
+                    .and_then(|v| v.as_u64())
+                    .ok_or_else(|| anyhow!("input missing vout"))?
+                    as u32;
+
+                let txid_bytes =
+                    hex::decode(txid_hex).map_err(|_| anyhow!("invalid txid hex: {}", txid_hex))?;
+                if txid_bytes.len() != 32 {
+                    return Err(anyhow!("txid must be 32 bytes"));
+                }
+                let mut txid = [0u8; 32];
+                txid.copy_from_slice(&txid_bytes);
+
+                vin.push(crate::types::TxIn {
+                    prevout: crate::types::OutPoint { txid, vout },
+                    script_sig: vec![],
+                    sequence: 0xffffffff,
+                    witness: vec![],
+                });
+            }
+
+            // Parse outputs
+            let mut vout = Vec::with_capacity(outputs.len());
+            for (addr, amount) in outputs {
+                // Support both integer satoshis and float BTC amounts
+                let value_sats = if let Some(sats) = amount.as_u64() {
+                    sats
+                } else if let Some(btc) = amount.as_f64() {
+                    (btc * 100_000_000.0).round() as u64
+                } else {
+                    return Err(anyhow!("invalid amount for address {}", addr));
+                };
+
+                // Handle special "data" key for OP_RETURN
+                let script_pubkey = if addr == "data" {
+                    let data_hex = amount
+                        .as_str()
+                        .ok_or_else(|| anyhow!("data value must be hex string"))?;
+                    let data =
+                        hex::decode(data_hex).map_err(|_| anyhow!("invalid data hex encoding"))?;
+                    let mut script = vec![0x6a]; // OP_RETURN
+                    crate::varint::ser_bytes(&data, &mut script);
+                    script
+                } else {
+                    // Decode address to scriptPubKey
+                    let decoded = decode_address(addr)
+                        .map_err(|e| anyhow!("invalid address {}: {}", addr, e))?;
+                    decoded.script_pubkey
+                };
+
+                vout.push(crate::types::TxOut {
+                    value: value_sats,
+                    script_pubkey,
+                });
+            }
+
+            // Build transaction
+            let tx = crate::types::Transaction {
+                version: 2,
+                vin,
+                vout,
+                lock_time: locktime,
+            };
+
+            // Serialize to hex (no witness for unsigned tx)
+            let hex_str = hex::encode(tx.serialize(false));
+            Ok((Value::String(hex_str), RpcAction::Continue))
         }
         _ => Err(anyhow!("method not found")),
     }
