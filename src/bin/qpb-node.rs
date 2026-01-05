@@ -392,6 +392,63 @@ fn create_rpc_limiter(args: &Args) -> Option<Arc<RpcRateLimiter>> {
     }
 }
 
+/// Format Prometheus metrics for the /metrics endpoint.
+fn format_prometheus_metrics(node: &Node, inbound: usize, outbound: usize) -> String {
+    let mut metrics = String::with_capacity(2048);
+    let mempool_info = node.mempool_info();
+
+    // Node info (gauge with labels)
+    metrics.push_str("# HELP qpb_node_info Node information\n");
+    metrics.push_str("# TYPE qpb_node_info gauge\n");
+    metrics.push_str(&format!("qpb_node_info{{chain=\"{}\"}} 1\n", node.chain));
+
+    // Block height
+    metrics.push_str("# HELP qpb_block_height Current block height\n");
+    metrics.push_str("# TYPE qpb_block_height gauge\n");
+    metrics.push_str(&format!("qpb_block_height {}\n", node.height()));
+
+    // Peer connections
+    metrics.push_str("# HELP qpb_peers_inbound Number of inbound peer connections\n");
+    metrics.push_str("# TYPE qpb_peers_inbound gauge\n");
+    metrics.push_str(&format!("qpb_peers_inbound {}\n", inbound));
+
+    metrics.push_str("# HELP qpb_peers_outbound Number of outbound peer connections\n");
+    metrics.push_str("# TYPE qpb_peers_outbound gauge\n");
+    metrics.push_str(&format!("qpb_peers_outbound {}\n", outbound));
+
+    metrics.push_str("# HELP qpb_peers_total Total peer connections\n");
+    metrics.push_str("# TYPE qpb_peers_total gauge\n");
+    metrics.push_str(&format!("qpb_peers_total {}\n", inbound + outbound));
+
+    // Mempool stats
+    metrics.push_str("# HELP qpb_mempool_size Number of transactions in mempool\n");
+    metrics.push_str("# TYPE qpb_mempool_size gauge\n");
+    metrics.push_str(&format!("qpb_mempool_size {}\n", mempool_info.size));
+
+    metrics.push_str("# HELP qpb_mempool_bytes Total size of mempool in bytes\n");
+    metrics.push_str("# TYPE qpb_mempool_bytes gauge\n");
+    metrics.push_str(&format!("qpb_mempool_bytes {}\n", mempool_info.bytes));
+
+    metrics.push_str("# HELP qpb_mempool_fees_total Total fees in mempool (satoshis)\n");
+    metrics.push_str("# TYPE qpb_mempool_fees_total gauge\n");
+    metrics.push_str(&format!(
+        "qpb_mempool_fees_total {}\n",
+        mempool_info.total_fee
+    ));
+
+    // Orphan transactions
+    metrics.push_str("# HELP qpb_orphan_txs Number of orphan transactions\n");
+    metrics.push_str("# TYPE qpb_orphan_txs gauge\n");
+    metrics.push_str(&format!("qpb_orphan_txs {}\n", node.orphan_count()));
+
+    // UTXO set size
+    metrics.push_str("# HELP qpb_utxo_count Number of unspent transaction outputs\n");
+    metrics.push_str("# TYPE qpb_utxo_count gauge\n");
+    metrics.push_str(&format!("qpb_utxo_count {}\n", node.utxo_count()));
+
+    metrics
+}
+
 fn start_rpc_server(
     addr: String,
     node: Node,
@@ -408,6 +465,37 @@ fn start_rpc_server(
     let shared = Arc::new(Mutex::new(node));
     for mut request in server.incoming_requests() {
         let shared = Arc::clone(&shared);
+
+        // Handle health endpoint (no auth required for load balancers/monitoring)
+        if request.method() == &Method::Get && request.url() == "/health" {
+            let node = shared.lock().unwrap();
+            let (inbound, outbound) = node.peer_count();
+            let health_response = format!(
+                r#"{{"status":"ok","chain":"{}","height":{},"tip":"{}","peers":{{"inbound":{},"outbound":{}}}}}"#,
+                node.chain,
+                node.height(),
+                node.best_hash_hex(),
+                inbound,
+                outbound
+            );
+            let _ = request.respond(
+                Response::from_string(health_response)
+                    .with_header(Header::from_bytes("Content-Type", "application/json").unwrap()),
+            );
+            continue;
+        }
+
+        // Handle Prometheus metrics endpoint (no auth required for scraping)
+        if request.method() == &Method::Get && request.url() == "/metrics" {
+            let node = shared.lock().unwrap();
+            let (inbound, outbound) = node.peer_count();
+            let metrics = format_prometheus_metrics(&node, inbound, outbound);
+            let _ = request.respond(Response::from_string(metrics).with_header(
+                Header::from_bytes("Content-Type", "text/plain; version=0.0.4").unwrap(),
+            ));
+            continue;
+        }
+
         if request.method() != &Method::Post || request.url() != "/rpc" {
             let _ = request.respond(Response::from_string("not found").with_status_code(404));
             continue;
@@ -510,6 +598,37 @@ fn start_rpc_server_shared(
             };
 
             let shared = Arc::clone(&shared);
+
+            // Handle health endpoint (no auth required for load balancers/monitoring)
+            if request.method() == &Method::Get && request.url() == "/health" {
+                let node = shared.lock().unwrap();
+                let (inbound, outbound) = node.peer_count();
+                let health_response = format!(
+                    r#"{{"status":"ok","chain":"{}","height":{},"tip":"{}","peers":{{"inbound":{},"outbound":{}}}}}"#,
+                    node.chain,
+                    node.height(),
+                    node.best_hash_hex(),
+                    inbound,
+                    outbound
+                );
+                let _ =
+                    request.respond(Response::from_string(health_response).with_header(
+                        Header::from_bytes("Content-Type", "application/json").unwrap(),
+                    ));
+                continue;
+            }
+
+            // Handle Prometheus metrics endpoint (no auth required for scraping)
+            if request.method() == &Method::Get && request.url() == "/metrics" {
+                let node = shared.lock().unwrap();
+                let (inbound, outbound) = node.peer_count();
+                let metrics = format_prometheus_metrics(&node, inbound, outbound);
+                let _ = request.respond(Response::from_string(metrics).with_header(
+                    Header::from_bytes("Content-Type", "text/plain; version=0.0.4").unwrap(),
+                ));
+                continue;
+            }
+
             if request.method() != &Method::Post || request.url() != "/rpc" {
                 let _ = request.respond(Response::from_string("not found").with_status_code(404));
                 continue;

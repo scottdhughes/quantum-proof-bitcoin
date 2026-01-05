@@ -105,6 +105,80 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 .ok_or_else(|| anyhow!("block not found"))?;
             Ok((Value::from(hex::encode(bytes)), RpcAction::Continue))
         }
+        "getblockheader" => {
+            let hash = params
+                .first()
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing block hash"))?;
+            let header_info = node
+                .get_block_header(hash)
+                .ok_or_else(|| anyhow!("block not found"))?;
+            let result = serde_json::json!({
+                "hash": header_info.hash,
+                "confirmations": header_info.confirmations,
+                "height": header_info.height,
+                "version": header_info.version,
+                "merkleroot": header_info.merkle_root,
+                "time": header_info.time,
+                "bits": header_info.bits,
+                "nonce": header_info.nonce,
+                "previousblockhash": header_info.previous_block_hash,
+                "nextblockhash": header_info.next_block_hash
+            });
+            Ok((result, RpcAction::Continue))
+        }
+        "getrawtransaction" => {
+            let txid_hex = params
+                .first()
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing txid"))?;
+            let verbose = params.get(1).and_then(|v| v.as_bool()).unwrap_or(false);
+
+            let txid: [u8; 32] = hex::decode(txid_hex)
+                .map_err(|_| anyhow!("invalid txid hex"))?
+                .try_into()
+                .map_err(|_| anyhow!("txid must be 32 bytes"))?;
+
+            // Try mempool first
+            if let Some(tx) = node.mempool_get(&txid) {
+                let hex = hex::encode(tx.serialize(true));
+                if verbose {
+                    // Return decoded transaction
+                    let result = serde_json::json!({
+                        "txid": txid_hex,
+                        "hex": hex,
+                        "version": tx.version,
+                        "locktime": tx.lock_time,
+                        "vin": tx.vin.iter().map(|inp| {
+                            serde_json::json!({
+                                "txid": hex::encode(inp.prevout.txid),
+                                "vout": inp.prevout.vout,
+                                "scriptSig": {
+                                    "hex": hex::encode(&inp.script_sig)
+                                },
+                                "sequence": inp.sequence
+                            })
+                        }).collect::<Vec<_>>(),
+                        "vout": tx.vout.iter().enumerate().map(|(i, out)| {
+                            serde_json::json!({
+                                "value": out.value as f64 / 100_000_000.0,
+                                "n": i,
+                                "scriptPubKey": {
+                                    "hex": hex::encode(&out.script_pubkey)
+                                }
+                            })
+                        }).collect::<Vec<_>>(),
+                        "confirmations": 0
+                    });
+                    Ok((result, RpcAction::Continue))
+                } else {
+                    Ok((Value::from(hex), RpcAction::Continue))
+                }
+            } else {
+                // TODO: Search confirmed transactions when txindex is implemented
+                Err(anyhow!("transaction not found (txindex not enabled)"))
+            }
+        }
         "submitblock" => {
             let hex = params
                 .first()

@@ -1,0 +1,10 @@
+{
+  "a588f2988ed3988f5012c9fa530339bf1d7a53d79c036cce5455a497bb1b8564:0": {
+    "value": 0,
+    "script_pubkey": [
+      106
+    ],
+    "height": 0,
+    "is_coinbase": true
+  }
+}
