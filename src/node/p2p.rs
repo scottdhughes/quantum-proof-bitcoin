@@ -5,6 +5,7 @@ use std::time::Instant;
 
 use anyhow::{Result, anyhow};
 use sha2::{Digest, Sha256};
+use tracing::{debug, info, warn};
 
 use crate::node::chainparams::NetworkParams;
 use crate::node::node::{AddTxResult, Node};
@@ -1010,7 +1011,7 @@ impl InboundListener {
                 let mut stream = match stream_result {
                     Ok(s) => s,
                     Err(e) => {
-                        eprintln!("accept error: {}", e);
+                        warn!(error = %e, "accept error");
                         continue;
                     }
                 };
@@ -1022,7 +1023,7 @@ impl InboundListener {
 
                 // Check connection limits
                 if let Err(denied) = peer_manager.can_accept_inbound(&peer_addr) {
-                    eprintln!("rejecting inbound from {}: {}", peer_addr, denied);
+                    debug!(%peer_addr, reason = %denied, "rejecting inbound connection");
                     continue;
                 }
 
@@ -1036,7 +1037,7 @@ impl InboundListener {
                 let peer_version = match handle_inbound_handshake(&mut stream, magic, our_height) {
                     Ok(v) => v,
                     Err(e) => {
-                        eprintln!("handshake failed from {}: {}", peer_addr, e);
+                        warn!(%peer_addr, error = %e, "handshake failed");
                         continue;
                     }
                 };
@@ -1050,9 +1051,12 @@ impl InboundListener {
                     peer_version.start_height,
                 );
 
-                eprintln!(
-                    "inbound peer {} connected: id={}, version={}, height={}",
-                    peer_addr, peer_id, peer_version.version, peer_version.start_height
+                info!(
+                    %peer_addr,
+                    peer_id,
+                    version = peer_version.version,
+                    height = peer_version.start_height,
+                    "inbound peer connected"
                 );
 
                 // Notify callback
@@ -1072,7 +1076,7 @@ impl InboundListener {
                         peer_manager_clone.clone(),
                         shutdown_clone,
                     ) {
-                        eprintln!("peer {} disconnected: {}", peer_id, e);
+                        debug!(peer_id, error = %e, "peer disconnected");
                     }
                     peer_manager_clone.remove_peer(peer_id);
                 });
@@ -1227,11 +1231,11 @@ fn handle_inbound_messages(
                 match parse_addr(&msg.payload) {
                     Ok(addrs) => {
                         if !addrs.is_empty() {
-                            eprintln!("peer {} shared {} addresses", peer_id, addrs.len());
+                            debug!(peer_id, count = addrs.len(), "peer shared addresses");
                         }
                     }
                     Err(e) => {
-                        eprintln!("failed to parse ADDR from peer {}: {}", peer_id, e);
+                        warn!(peer_id, error = %e, "failed to parse ADDR message");
                     }
                 }
             }
