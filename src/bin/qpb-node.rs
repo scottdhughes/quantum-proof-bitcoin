@@ -86,6 +86,10 @@ struct Args {
     /// Maximum RPC requests per second per client (0 = unlimited).
     #[arg(long = "rpc-rate-limit", default_value_t = 100)]
     rpc_rate_limit: u32,
+
+    /// Enable transaction index for looking up confirmed transactions.
+    #[arg(long = "txindex", default_value_t = false)]
+    txindex: bool,
 }
 
 /// RPC authentication configuration.
@@ -155,6 +159,12 @@ fn merge_config_with_args(mut args: Args, config: &Config) -> Args {
         args.bind_addr = config.p2p.bind.clone().unwrap();
     }
 
+    // Index configuration
+    // txindex defaults to false; enable if config says so and CLI didn't override
+    if !args.txindex && config.index.txindex.unwrap_or(false) {
+        args.txindex = true;
+    }
+
     args
 }
 
@@ -215,7 +225,14 @@ fn main() -> Result<()> {
         anyhow::bail!("genesis chain_id mismatch for {}", args.chain);
     }
 
-    let mut node = Node::open_or_init(&args.chain, &args.datadir, args.no_pow)?;
+    let mut node = Node::open_or_init(&args.chain, &args.datadir, args.no_pow, args.txindex)?;
+
+    if args.txindex {
+        info!(
+            indexed_txs = node.txindex_len(),
+            "transaction indexing enabled"
+        );
+    }
 
     info!(
         chain = %node.chain,

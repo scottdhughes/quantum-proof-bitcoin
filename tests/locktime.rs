@@ -301,7 +301,7 @@ fn mempool_rejects_future_height_locktime() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create wallet and mine coins
     rpc_call(&mut node, "createwallet", "[]");
@@ -333,7 +333,7 @@ fn normal_transactions_with_final_sequence_succeed() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create wallet and mine coins
     rpc_call(&mut node, "createwallet", "[]");

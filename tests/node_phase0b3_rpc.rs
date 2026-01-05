@@ -63,7 +63,7 @@ fn rpc(id: i32, method: &str, params: serde_json::Value, node: &mut Node) -> ser
 #[test]
 fn rpc_basic_queries() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     let r = rpc(1, "getblockcount", json!([]), &mut node);
     assert_eq!(r["result"], 0);
@@ -83,7 +83,7 @@ fn rpc_basic_queries() {
 fn rpc_submit_block_success_and_state() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     let mut prev = [0u8; 32];
     let tip_bytes = Vec::from_hex(node.best_hash_hex()).unwrap();
@@ -98,14 +98,14 @@ fn rpc_submit_block_success_and_state() {
     assert_eq!(node.height(), 1);
 
     // verify state persists
-    let node2 = Node::open_or_init("devnet", datadir, true).unwrap();
+    let node2 = Node::open_or_init("devnet", datadir, true, false).unwrap();
     assert_eq!(node2.height(), 1);
 }
 
 #[test]
 fn rpc_submit_block_rejects_bad_hex() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     let resp = rpc(1, "submitblock", json!(["zzzz"]), &mut node);
     assert!(resp["error"].is_object());

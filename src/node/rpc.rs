@@ -175,9 +175,65 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 } else {
                     Ok((Value::from(hex), RpcAction::Continue))
                 }
+            } else if let Some(loc) = node.txindex_get(&txid) {
+                // Transaction found in txindex - load from block
+                let block = node
+                    .get_block_parsed(&loc.block_hash)
+                    .ok_or_else(|| anyhow!("block not found: {}", loc.block_hash))?;
+                let tx = block
+                    .txdata
+                    .get(loc.tx_position as usize)
+                    .ok_or_else(|| anyhow!("tx position {} out of range", loc.tx_position))?;
+
+                let hex = hex::encode(tx.serialize(true));
+                if verbose {
+                    // Calculate confirmations
+                    let block_height = node.get_block_height(&loc.block_hash).unwrap_or(0);
+                    let tip_height = node.height();
+                    let confirmations = if block_height <= tip_height {
+                        (tip_height - block_height + 1) as i64
+                    } else {
+                        -1
+                    };
+
+                    let result = serde_json::json!({
+                        "txid": txid_hex,
+                        "hex": hex,
+                        "blockhash": loc.block_hash,
+                        "blockheight": block_height,
+                        "confirmations": confirmations,
+                        "version": tx.version,
+                        "locktime": tx.lock_time,
+                        "vin": tx.vin.iter().map(|inp| {
+                            serde_json::json!({
+                                "txid": hex::encode(inp.prevout.txid),
+                                "vout": inp.prevout.vout,
+                                "scriptSig": {
+                                    "hex": hex::encode(&inp.script_sig)
+                                },
+                                "sequence": inp.sequence
+                            })
+                        }).collect::<Vec<_>>(),
+                        "vout": tx.vout.iter().enumerate().map(|(i, out)| {
+                            serde_json::json!({
+                                "value": out.value as f64 / 100_000_000.0,
+                                "n": i,
+                                "scriptPubKey": {
+                                    "hex": hex::encode(&out.script_pubkey)
+                                }
+                            })
+                        }).collect::<Vec<_>>()
+                    });
+                    Ok((result, RpcAction::Continue))
+                } else {
+                    Ok((Value::from(hex), RpcAction::Continue))
+                }
+            } else if !node.txindex_enabled() {
+                Err(anyhow!(
+                    "transaction not found (txindex not enabled, use --txindex flag)"
+                ))
             } else {
-                // TODO: Search confirmed transactions when txindex is implemented
-                Err(anyhow!("transaction not found (txindex not enabled)"))
+                Err(anyhow!("transaction not found"))
             }
         }
         "submitblock" => {
@@ -327,6 +383,13 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 RpcAction::Continue,
             ))
         }
+        "gettxindexinfo" => Ok((
+            serde_json::json!({
+                "enabled": node.txindex_enabled(),
+                "txcount": node.txindex_len(),
+            }),
+            RpcAction::Continue,
+        )),
         "estimatesmartfee" => {
             // Bitcoin Core compatible format (returns BTC/kB)
             let conf_target = params.first().and_then(|v| v.as_u64()).unwrap_or(6);

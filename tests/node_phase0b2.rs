@@ -52,7 +52,7 @@ fn submit_block_tip_only_updates_state() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
     assert_eq!(node.height(), 0);
 
     let mut prev = [0u8; 32];
@@ -66,7 +66,7 @@ fn submit_block_tip_only_updates_state() {
     assert_eq!(node.height(), 1);
 
     // Persisted state survives reload
-    let node2 = Node::open_or_init("devnet", datadir, true).unwrap();
+    let node2 = Node::open_or_init("devnet", datadir, true, false).unwrap();
     assert_eq!(node2.height(), 1);
     assert_eq!(node.best_hash_hex(), node2.best_hash_hex());
 }
@@ -78,7 +78,7 @@ fn submit_block_orphan_does_not_extend_tip() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
     let prev = [1u8; 32]; // Unknown parent
     let block = build_block(prev, 1, block_subsidy(1));
     let bytes = serialize_block(&block);

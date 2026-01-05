@@ -19,7 +19,7 @@ fn createwallet_creates_file() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
     let resp = rpc_call(&mut node, "createwallet", "[]");
 
     // Should succeed
@@ -35,7 +35,7 @@ fn getnewaddress_generates_address() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create wallet first
     rpc_call(&mut node, "createwallet", "[]");
@@ -54,7 +54,7 @@ fn getnewaddress_creates_wallet_if_missing() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Don't create wallet first - getnewaddress should auto-create
     let resp = rpc_call(&mut node, "getnewaddress", "[]");
@@ -69,7 +69,7 @@ fn getbalance_returns_zero_for_empty_wallet() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create wallet and generate an address
     rpc_call(&mut node, "createwallet", "[]");
@@ -88,7 +88,7 @@ fn listunspent_returns_empty_for_new_wallet() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create wallet
     rpc_call(&mut node, "createwallet", "[]");
@@ -107,7 +107,7 @@ fn listaddresses_returns_generated_addresses() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create wallet
     rpc_call(&mut node, "createwallet", "[]");
@@ -148,7 +148,7 @@ fn getbalance_requires_wallet() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Try to get balance without creating wallet
     let resp = rpc_call(&mut node, "getbalance", "[]");
@@ -166,7 +166,7 @@ fn wallet_persists_across_reloads() {
 
     let addr1;
     {
-        let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+        let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
         rpc_call(&mut node, "createwallet", "[]");
         addr1 = rpc_call(&mut node, "getnewaddress", r#"["persist"]"#)["result"]
             .as_str()
@@ -176,7 +176,7 @@ fn wallet_persists_across_reloads() {
 
     // Reload node and check addresses
     {
-        let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+        let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
         let resp = rpc_call(&mut node, "listaddresses", "[]");
         let addresses: Vec<String> = resp["result"]
             .as_array()
@@ -195,7 +195,7 @@ fn sendtoaddress_requires_wallet() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Try to send without wallet
     let resp = rpc_call(
@@ -215,7 +215,7 @@ fn sendtoaddress_fails_with_no_utxos() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create wallet and generate addresses
     rpc_call(&mut node, "createwallet", "[]");
@@ -253,7 +253,7 @@ fn sendtoaddress_validates_address() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create wallet
     rpc_call(&mut node, "createwallet", "[]");

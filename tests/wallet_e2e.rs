@@ -28,7 +28,7 @@ fn mine_to_wallet_updates_balance() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create wallet and get an address
     rpc_call(&mut node, "createwallet", "[]");
@@ -72,7 +72,7 @@ fn mine_multiple_blocks_accumulates_balance() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create wallet and get an address
     rpc_call(&mut node, "createwallet", "[]");
@@ -111,7 +111,7 @@ fn send_transaction_and_mine() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create wallet and generate addresses
     rpc_call(&mut node, "createwallet", "[]");
@@ -189,7 +189,7 @@ fn full_transaction_lifecycle() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // === Setup: Create wallet ===
     rpc_call(&mut node, "createwallet", "[]");
@@ -274,7 +274,7 @@ fn balance_persists_across_restart() {
 
     let address;
     {
-        let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+        let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
         // Create wallet and mine
         rpc_call(&mut node, "createwallet", "[]");
@@ -294,7 +294,7 @@ fn balance_persists_across_restart() {
 
     // Restart node
     {
-        let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+        let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
         // Verify balance persisted
         let resp = rpc_call(&mut node, "getbalance", "[]");
@@ -313,7 +313,7 @@ fn coinbase_maturity_enforced() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create wallet
     rpc_call(&mut node, "createwallet", "[]");

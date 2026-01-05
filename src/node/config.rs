@@ -31,6 +31,9 @@ pub struct Config {
 
     /// Logging configuration
     pub log: LogConfig,
+
+    /// Index configuration
+    pub index: IndexConfig,
 }
 
 /// RPC server configuration.
@@ -83,6 +86,15 @@ pub struct MiningConfig {
 pub struct LogConfig {
     /// Log level filter (e.g., "info", "debug", "warn")
     pub level: Option<String>,
+}
+
+/// Index configuration.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct IndexConfig {
+    /// Enable transaction index (--txindex).
+    /// When enabled, maintains txid -> block mapping for all confirmed transactions.
+    pub txindex: Option<bool>,
 }
 
 impl Config {
