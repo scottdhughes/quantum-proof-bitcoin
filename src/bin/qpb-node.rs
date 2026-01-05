@@ -114,11 +114,24 @@ fn main() -> Result<()> {
 
     // 1. Manual --p2p-connect peers (highest priority)
     if let Some(peers) = args.p2p_connect.as_ref() {
-        peer_addrs.extend(
-            peers
-                .iter()
-                .filter_map(|s| s.parse::<std::net::SocketAddr>().ok()),
-        );
+        let manual_addrs: Vec<std::net::SocketAddr> = peers
+            .iter()
+            .filter_map(|s| s.parse::<std::net::SocketAddr>().ok())
+            .collect();
+
+        // Seed address manager with manual peers so OutboundManager can use them
+        if !manual_addrs.is_empty() {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            for addr in &manual_addrs {
+                // services=1 (NODE_NETWORK) is a reasonable default
+                node.addr_manager_mut().add(*addr, 1, now);
+            }
+        }
+
+        peer_addrs.extend(manual_addrs);
     }
 
     // 2. DNS seeds (if no manual peers specified)

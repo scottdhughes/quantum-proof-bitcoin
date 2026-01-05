@@ -37,6 +37,20 @@ pub const DEFAULT_READ_TIMEOUT_MS: u64 = 2000;
 pub const DEFAULT_WRITE_TIMEOUT_MS: u64 = 2000;
 pub const MAX_MESSAGE_BYTES: u32 = 8 * 1024 * 1024;
 
+/// Check if an error is a recoverable socket timeout/EAGAIN error.
+/// On different platforms, socket timeouts manifest differently:
+/// - Linux: "Resource temporarily unavailable" (EAGAIN/EWOULDBLOCK)
+/// - macOS: "Resource temporarily unavailable" (EAGAIN, os error 35)
+/// - Windows: "timed out"
+fn is_timeout_error(e: &anyhow::Error) -> bool {
+    let msg = e.to_string();
+    msg.contains("timed out")
+        || msg.contains("temporarily unavailable")
+        || msg.contains("would block")
+        || msg.contains("os error 35")
+        || msg.contains("os error 11")
+}
+
 #[derive(Clone, Debug)]
 pub struct SyncOpts {
     pub max_attempts_per_peer: usize,
@@ -529,6 +543,12 @@ pub fn sync_with_retries(
             match sync_headers_and_blocks(node, net, &addr_str) {
                 Ok(()) => return Ok(()),
                 Err(e) => {
+                    tracing::debug!(
+                        peer = %addr_str,
+                        attempt = attempt + 1,
+                        error = %e,
+                        "sync attempt failed"
+                    );
                     // last attempt or deadline exceeded
                     if attempt + 1 == opts.max_attempts_per_peer {
                         break;
@@ -539,8 +559,6 @@ pub fn sync_with_retries(
                         Duration::from_millis(opts.max_backoff_ms),
                         backoff.saturating_mul(2),
                     );
-                    // continue to next attempt
-                    let _ = e; // silence unused in non-logging builds
                 }
             }
         }
@@ -1120,6 +1138,18 @@ impl InboundListener {
                         }
                     };
 
+                // Store peer's advertised address in AddrManager for discovery
+                if let Some(listening_addr) = peer_version.addr_from {
+                    let mut node_guard = node.lock().unwrap();
+                    let now = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map(|d| d.as_secs())
+                        .unwrap_or(0);
+                    node_guard
+                        .addr_manager_mut()
+                        .add(listening_addr, peer_version.services, now);
+                }
+
                 // Register peer
                 let peer_id = peer_manager.add_peer(
                     peer_addr.clone(),
@@ -1196,8 +1226,8 @@ fn handle_inbound_messages(
         let msg = match read_message(&mut stream, magic) {
             Ok(m) => m,
             Err(e) => {
-                // Check if it's a timeout (normal) or actual error
-                if e.to_string().contains("timed out") {
+                // Check if it's a timeout/EAGAIN (normal) or actual error
+                if is_timeout_error(&e) {
                     // On timeout, process any pending relay transactions
                     let to_relay = peer_manager.take_relay_for_peer(peer_id);
                     if !to_relay.is_empty() {
@@ -1581,6 +1611,13 @@ fn outbound_maintenance_loop(
                     break;
                 }
 
+                // Skip our own listening address
+                if let Some(local) = config.local_addr {
+                    if addr == local {
+                        continue;
+                    }
+                }
+
                 // Skip if already connected
                 if peer_manager.is_connected(&addr) {
                     continue;
@@ -1613,7 +1650,7 @@ fn try_connect_outbound(
     }
 
     // Try to connect with timeout
-    let stream = match TcpStream::connect_timeout(
+    let mut stream = match TcpStream::connect_timeout(
         addr,
         Duration::from_millis(OUTBOUND_CONNECT_TIMEOUT_MS),
     ) {
@@ -1679,6 +1716,11 @@ fn try_connect_outbound(
         height = peer_version.start_height,
         "outbound peer connected"
     );
+
+    // Send GETADDR to request peer's known addresses (for address discovery)
+    if let Err(e) = write_message(&mut stream, config.magic, CMD_GETADDR, &[]) {
+        debug!(peer_id, error = %e, "failed to send GETADDR");
+    }
 
     // Spawn message handler thread
     let node_clone = node.clone();
