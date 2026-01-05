@@ -7,7 +7,7 @@
 //! - `RateLimiter`: Token bucket rate limiting
 //! - `ConnectionLimiter`: Limits connections per IP/subnet
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -648,6 +648,10 @@ pub struct PeerInfo {
     pub msg_limiter: RateLimiter,
     /// Rate limiter for transaction relay.
     pub tx_limiter: RateLimiter,
+    /// Txids we've sent INV for to this peer (avoid duplicate announcements).
+    pub sent_inv: HashSet<[u8; 32]>,
+    /// Txids we've received from this peer (avoid relaying back).
+    pub received_from: HashSet<[u8; 32]>,
 }
 
 impl PeerInfo {
@@ -671,6 +675,8 @@ impl PeerInfo {
             score: PeerScore::new(),
             msg_limiter: RateLimiter::for_messages(),
             tx_limiter: RateLimiter::for_tx_relay(),
+            sent_inv: HashSet::new(),
+            received_from: HashSet::new(),
         }
     }
 }
@@ -699,6 +705,8 @@ pub struct PeerManager {
     inbound_count: AtomicUsize,
     /// Current outbound connection count.
     outbound_count: AtomicUsize,
+    /// Queue of (sender_peer_id, txid) for relay to other peers.
+    relay_queue: Mutex<Vec<(u64, [u8; 32])>>,
 }
 
 impl PeerManager {
@@ -711,6 +719,7 @@ impl PeerManager {
             next_id: AtomicU64::new(1),
             inbound_count: AtomicUsize::new(0),
             outbound_count: AtomicUsize::new(0),
+            relay_queue: Mutex::new(Vec::new()),
         }
     }
 
@@ -844,6 +853,52 @@ impl PeerManager {
     pub fn is_banned(&self, addr: &str) -> bool {
         let ban_list = self.ban_list.lock().unwrap();
         ban_list.is_banned(addr)
+    }
+
+    /// Queue a transaction for relay to other peers.
+    /// The sender_id is excluded from relay targets.
+    pub fn queue_relay(&self, sender_id: u64, txid: [u8; 32]) {
+        let mut queue = self.relay_queue.lock().unwrap();
+        queue.push((sender_id, txid));
+    }
+
+    /// Take pending relay items for a specific peer.
+    /// Returns txids that should be announced to this peer (excludes sender, already-sent).
+    pub fn take_relay_for_peer(&self, peer_id: u64) -> Vec<[u8; 32]> {
+        let queue = self.relay_queue.lock().unwrap();
+        let peer_arc = match self.get_peer(peer_id) {
+            Some(arc) => arc,
+            None => return Vec::new(),
+        };
+
+        let mut peer = peer_arc.lock().unwrap();
+        let mut to_relay = Vec::new();
+
+        for (sender_id, txid) in queue.iter() {
+            // Skip if we're the sender
+            if *sender_id == peer_id {
+                continue;
+            }
+            // Skip if we received this tx from this peer
+            if peer.received_from.contains(txid) {
+                continue;
+            }
+            // Skip if we already announced to this peer
+            if peer.sent_inv.contains(txid) {
+                continue;
+            }
+            // Mark as sent and queue for relay
+            peer.sent_inv.insert(*txid);
+            to_relay.push(*txid);
+        }
+
+        to_relay
+    }
+
+    /// Clear processed relay items (call periodically to prevent unbounded growth).
+    pub fn clear_relay_queue(&self) {
+        let mut queue = self.relay_queue.lock().unwrap();
+        queue.clear();
     }
 }
 

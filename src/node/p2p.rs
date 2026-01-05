@@ -7,7 +7,7 @@ use anyhow::{Result, anyhow};
 use sha2::{Digest, Sha256};
 
 use crate::node::chainparams::NetworkParams;
-use crate::node::node::Node;
+use crate::node::node::{AddTxResult, Node};
 use crate::pow::pow_hash;
 use crate::types::BlockHeader;
 use crate::varint::{read_compact_size, write_compact_size};
@@ -978,7 +978,13 @@ fn handle_inbound_messages(
             Err(e) => {
                 // Check if it's a timeout (normal) or actual error
                 if e.to_string().contains("timed out") {
-                    continue; // Normal timeout, keep listening
+                    // On timeout, process any pending relay transactions
+                    let to_relay = peer_manager.take_relay_for_peer(peer_id);
+                    if !to_relay.is_empty() {
+                        let payload = ser_inv_tx(&to_relay);
+                        write_message(&mut stream, magic, CMD_INV, &payload)?;
+                    }
+                    continue;
                 }
                 return Err(e);
             }
@@ -1007,10 +1013,70 @@ fn handle_inbound_messages(
                 handle_ping(&mut stream, magic, &msg.payload)?;
             }
             CMD_INV => {
-                // TODO: Handle transaction announcements
+                // Parse inventory announcements and request unknown transactions
+                let entries = parse_inv(&msg.payload)?;
+                let mut tx_requests: Vec<[u8; 32]> = Vec::new();
+
+                // Check rate limit for tx processing
+                if let Some(peer_arc) = peer_manager.get_peer(peer_id) {
+                    let mut peer = peer_arc.lock().unwrap();
+                    if !peer.tx_limiter.try_consume(entries.len() as u32) {
+                        // Rate limited - skip processing but don't disconnect
+                        continue;
+                    }
+                }
+
+                let node_guard = node.lock().unwrap();
+                for entry in entries {
+                    if entry.inv_type == MSG_TX {
+                        // Only request if not already in mempool
+                        if !node_guard.mempool_contains(&entry.hash) {
+                            tx_requests.push(entry.hash);
+                        }
+                    }
+                }
+                drop(node_guard);
+
+                // Send GETDATA for unknown transactions
+                if !tx_requests.is_empty() {
+                    let payload = ser_getdata_tx(&tx_requests);
+                    write_message(&mut stream, magic, CMD_GETDATA, &payload)?;
+                }
             }
             CMD_TX => {
-                // TODO: Handle incoming transactions
+                // Parse and validate incoming transaction
+                let tx = parse_transaction(&msg.payload)?;
+                let txid = tx.txid();
+
+                // Rate limit tx processing
+                if let Some(peer_arc) = peer_manager.get_peer(peer_id) {
+                    let mut peer = peer_arc.lock().unwrap();
+                    if !peer.tx_limiter.try_consume(1) {
+                        // Rate limited - skip but don't disconnect
+                        continue;
+                    }
+                    // Track that we received this tx from this peer
+                    peer.received_from.insert(txid);
+                }
+
+                // Add to mempool (or orphan pool if parents missing)
+                let mut node_guard = node.lock().unwrap();
+                match node_guard.add_transaction_or_orphan(tx, Some(peer_id)) {
+                    AddTxResult::Accepted(txid) => {
+                        drop(node_guard);
+                        // Queue for relay to other peers
+                        peer_manager.queue_relay(peer_id, txid);
+                    }
+                    AddTxResult::Orphaned {
+                        txid: _,
+                        missing: _,
+                    } => {
+                        // Orphaned - already buffered, no relay needed yet
+                    }
+                    AddTxResult::Rejected(_reason) => {
+                        // Could penalize peer for bad tx, but skip for now
+                    }
+                }
             }
             _ => {
                 // Ignore unknown messages
