@@ -7,6 +7,8 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use clap::Parser;
 use tiny_http::{Header, Method, Response, Server};
+use tracing::{debug, info, warn};
+use tracing_subscriber::EnvFilter;
 
 use qpb_consensus::constants::{
     DEFAULT_DEVNET_PORT, DEFAULT_MAINNET_PORT, DEFAULT_TESTNET_PORT, MAX_INBOUND_CONNECTIONS,
@@ -67,6 +69,13 @@ struct Args {
 }
 
 fn main() -> Result<()> {
+    // Initialize structured logging with RUST_LOG env filter
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
+        .init();
+
     let args = Args::parse();
     let params = load_chainparams(&args.chainparams)?;
     let net = select_network(&params, &args.chain)?;
@@ -91,11 +100,11 @@ fn main() -> Result<()> {
 
     let mut node = Node::open_or_init(&args.chain, &args.datadir, args.no_pow)?;
 
-    println!(
-        "chain={} height={} tip={}",
-        node.chain,
-        node.height(),
-        node.best_hash_hex()
+    info!(
+        chain = %node.chain,
+        height = node.height(),
+        tip = %node.best_hash_hex(),
+        "node started"
     );
 
     // Gather peer addresses from multiple sources
@@ -115,7 +124,7 @@ fn main() -> Result<()> {
         use qpb_consensus::node::discovery::resolve_dns_seeds;
         let dns_addrs = resolve_dns_seeds(&net.dns_seeds, net.p2p_port);
         if !dns_addrs.is_empty() {
-            println!("resolved {} addresses from DNS seeds", dns_addrs.len());
+            info!(count = dns_addrs.len(), "resolved addresses from DNS seeds");
             peer_addrs.extend(dns_addrs);
         }
     }
@@ -166,7 +175,7 @@ fn main() -> Result<()> {
 
         // Bind the listener
         let mut listener = InboundListener::bind(config)?;
-        println!("p2p listening on {}", bind_addr);
+        info!(%bind_addr, "p2p listening");
 
         // Wrap node for sharing
         let shared = Arc::new(Mutex::new(node));
@@ -174,9 +183,11 @@ fn main() -> Result<()> {
 
         // Start accepting connections
         listener.start(Arc::clone(&shared), peer_manager, |peer_id, version| {
-            println!(
-                "peer {} connected: version={}, height={}",
-                peer_id, version.version, version.start_height
+            info!(
+                peer_id,
+                version = version.version,
+                height = version.start_height,
+                "peer connected"
             );
         });
 
@@ -193,12 +204,12 @@ fn main() -> Result<()> {
         // Install signal handler
         let shutdown_for_signal = Arc::clone(&shutdown_flag);
         ctrlc::set_handler(move || {
-            eprintln!("\nShutdown signal received...");
+            info!("shutdown signal received");
             shutdown_for_signal.store(true, Ordering::SeqCst);
         })
         .expect("Error setting Ctrl+C handler");
 
-        println!("Press Ctrl+C to stop the node");
+        info!("press Ctrl+C to stop the node");
 
         // Wait for shutdown signal
         while !shutdown_flag.load(Ordering::SeqCst) {
@@ -206,30 +217,30 @@ fn main() -> Result<()> {
         }
 
         // Graceful shutdown sequence
-        eprintln!("Initiating graceful shutdown...");
+        debug!("initiating graceful shutdown");
 
         // 1. Stop accepting new connections
         if let Some(ref listener) = inbound_listener {
-            eprintln!("Stopping inbound listener...");
+            debug!("stopping inbound listener");
             listener.shutdown();
         }
 
         // 2. Wait for listener thread to finish
         if let Some(listener) = inbound_listener.take() {
             listener.join();
-            eprintln!("Listener stopped");
+            debug!("listener stopped");
         }
 
         // 3. Save node state
-        eprintln!("Saving node state...");
+        debug!("saving node state");
         if let Some(ref node_arc) = node_arc {
             let node = node_arc.lock().unwrap();
             if let Err(e) = node.save() {
-                eprintln!("Warning: failed to save node state: {}", e);
+                warn!(error = %e, "failed to save node state");
             }
         }
 
-        eprintln!("Shutdown complete");
+        info!("shutdown complete");
         return Ok(());
     } else if let Some(addr) = args.rpc_addr {
         // No listening, just RPC server
@@ -241,7 +252,7 @@ fn main() -> Result<()> {
 
 fn start_rpc_server(addr: String, node: Node) -> Result<()> {
     let server = Server::http(&addr).map_err(|e| anyhow::anyhow!("bind {}: {}", addr, e))?;
-    println!("rpc listening on http://{}", addr);
+    info!(%addr, "rpc listening");
     let shared = Arc::new(Mutex::new(node));
     for mut request in server.incoming_requests() {
         let shared = Arc::clone(&shared);
@@ -266,7 +277,7 @@ fn start_rpc_server(addr: String, node: Node) -> Result<()> {
             // Save mempool before shutdown
             let node = shared.lock().unwrap();
             if let Err(e) = node.save() {
-                eprintln!("warning: failed to save node state: {}", e);
+                warn!(error = %e, "failed to save node state");
             }
             break;
         }
@@ -281,7 +292,7 @@ fn start_rpc_server_shared(
     shutdown: Arc<AtomicBool>,
 ) -> Result<()> {
     let server = Server::http(&addr).map_err(|e| anyhow::anyhow!("bind {}: {}", addr, e))?;
-    println!("rpc listening on http://{}", addr);
+    info!(%addr, "rpc listening");
 
     std::thread::spawn(move || {
         loop {

@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 use std::net::{SocketAddr, ToSocketAddrs};
+use tracing::warn;
 
 /// Maximum DNS seeds to try per network.
 pub const MAX_DNS_SEEDS: usize = 3;
@@ -37,7 +38,7 @@ pub fn resolve_dns_seeds(seeds: &[String], default_port: u16) -> Vec<SocketAddr>
                 }
             }
             Err(e) => {
-                eprintln!("DNS resolution failed for {}: {}", seed, e);
+                warn!(seed = %seed, error = %e, "DNS resolution failed");
             }
         }
     }
