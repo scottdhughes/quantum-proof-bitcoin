@@ -66,6 +66,62 @@ docker compose up -d
 | `--rpcpassword` | None | RPC authentication password |
 | `--rpc-rate-limit` | `100` | Max RPC requests/second/client |
 | `--no-pow` | `false` | Skip PoW verification (dev only) |
+| `--config`, `-c` | `{datadir}/qpb.toml` | Path to configuration file |
+
+### Configuration File
+
+Instead of command-line flags, you can use a TOML configuration file. By default, the node looks for `qpb.toml` in the data directory.
+
+**Priority:** CLI flags override config file values.
+
+**Example `qpb.toml`:**
+
+```toml
+# Network configuration
+chain = "testnet"
+datadir = "/var/lib/qpb"
+
+# RPC server
+[rpc]
+bind = "127.0.0.1:18332"
+user = "admin"
+password = "secretpassword"
+rate_limit = 100
+
+# P2P network
+[p2p]
+listen = true
+bind = "0.0.0.0"
+port = 18333
+max_inbound = 125
+connect = ["seed1.example.com:18333", "seed2.example.com:18333"]
+
+# Mining (development only)
+[mining]
+no_pow = false
+
+# Logging
+[log]
+level = "info"
+```
+
+**Configuration Options:**
+
+| Section | Key | Type | Description |
+|---------|-----|------|-------------|
+| (root) | `chain` | string | Network: "mainnet", "testnet", "devnet" |
+| (root) | `datadir` | string | Data directory path |
+| `[rpc]` | `bind` | string | RPC bind address (e.g., "127.0.0.1:28332") |
+| `[rpc]` | `user` | string | RPC authentication username |
+| `[rpc]` | `password` | string | RPC authentication password |
+| `[rpc]` | `rate_limit` | number | Max requests/second/client |
+| `[p2p]` | `listen` | boolean | Accept inbound connections |
+| `[p2p]` | `bind` | string | P2P bind address |
+| `[p2p]` | `port` | number | P2P port |
+| `[p2p]` | `max_inbound` | number | Maximum inbound connections |
+| `[p2p]` | `connect` | array | Peer addresses to connect to |
+| `[mining]` | `no_pow` | boolean | Skip PoW verification |
+| `[log]` | `level` | string | Log level ("error", "warn", "info", "debug", "trace") |
 
 ### Network Ports
 

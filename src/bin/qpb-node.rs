@@ -16,6 +16,7 @@ use qpb_consensus::constants::{
 use qpb_consensus::node::chainparams::{
     compute_chain_id, compute_genesis_hash, load_chainparams, select_network,
 };
+use qpb_consensus::node::config::Config;
 use qpb_consensus::node::node::Node;
 use qpb_consensus::node::p2p::{
     InboundConfig, InboundListener, OutboundConfig, OutboundManager, SyncOpts, sync_with_retries,
@@ -29,6 +30,10 @@ use qpb_consensus::node::rpc_limiter::RpcRateLimiter;
     about = "QPB reference node (Phase 0A: genesis init + persistence)"
 )]
 struct Args {
+    /// Path to configuration file (default: {datadir}/qpb.toml)
+    #[arg(long = "config", short = 'c')]
+    config: Option<PathBuf>,
+
     #[arg(long, default_value = "devnet")]
     chain: String,
     #[arg(long, default_value = "docs/chain/chainparams.json")]
@@ -114,6 +119,45 @@ impl RpcAuth {
     }
 }
 
+/// Merge configuration file values with CLI arguments.
+///
+/// CLI arguments take priority over config file values.
+/// For Option<T> fields, the config value is used only if CLI didn't provide one.
+fn merge_config_with_args(mut args: Args, config: &Config) -> Args {
+    // RPC configuration
+    if args.rpc_addr.is_none() {
+        args.rpc_addr = config.rpc.bind.clone();
+    }
+    if args.rpc_user.is_none() {
+        args.rpc_user = config.rpc.user.clone();
+    }
+    if args.rpc_password.is_none() {
+        args.rpc_password = config.rpc.password.clone();
+    }
+    // Note: rpc_rate_limit has a CLI default, so config can't override it easily
+
+    // P2P configuration
+    if args.p2p_connect.is_none() {
+        args.p2p_connect = config.p2p.connect.clone();
+    }
+    if args.p2p_port.is_none() {
+        args.p2p_port = config.p2p.port;
+    }
+    if args.max_inbound.is_none() {
+        args.max_inbound = config.p2p.max_inbound;
+    }
+    // listen defaults to false; only apply config if user wants to enable it
+    if !args.listen && config.p2p.listen.unwrap_or(false) {
+        args.listen = true;
+    }
+    // bind_addr has CLI default; use config if provided
+    if config.p2p.bind.is_some() && args.bind_addr == "0.0.0.0" {
+        args.bind_addr = config.p2p.bind.clone().unwrap();
+    }
+
+    args
+}
+
 fn main() -> Result<()> {
     // Initialize structured logging with RUST_LOG env filter
     tracing_subscriber::fmt()
@@ -123,6 +167,33 @@ fn main() -> Result<()> {
         .init();
 
     let args = Args::parse();
+
+    // Load configuration file (from --config or default location in datadir)
+    let config_path = args
+        .config
+        .clone()
+        .unwrap_or_else(|| args.datadir.join("qpb.toml"));
+    let config = if config_path.exists() {
+        match Config::load(&config_path) {
+            Ok(cfg) => {
+                info!(path = %config_path.display(), "loaded configuration file");
+                cfg
+            }
+            Err(e) => {
+                anyhow::bail!(
+                    "failed to load config file '{}': {}",
+                    config_path.display(),
+                    e
+                );
+            }
+        }
+    } else {
+        Config::default()
+    };
+
+    // Merge config values with CLI args (CLI takes priority)
+    let args = merge_config_with_args(args, &config);
+
     let params = load_chainparams(&args.chainparams)?;
     let net = select_network(&params, &args.chain)?;
     let genesis = net

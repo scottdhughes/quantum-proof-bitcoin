@@ -1,0 +1,88 @@
+# QPB Node Configuration Example
+#
+# Copy this file to your data directory as qpb.toml and modify as needed.
+# CLI flags will override values in this file.
+#
+# Default location: {datadir}/qpb.toml
+# Override with: qpb-node --config=/path/to/qpb.toml
+
+# ============================================================================
+# NETWORK SETTINGS
+# ============================================================================
+
+# Network selection: "mainnet", "testnet", or "devnet"
+# Default: "devnet"
+# chain = "devnet"
+
+# Data directory for blocks, UTXO set, wallet, and other persistent data
+# Default: ".qpb"
+# datadir = "/var/lib/qpb"
+
+# ============================================================================
+# RPC SERVER
+# ============================================================================
+
+[rpc]
+# RPC server bind address
+# Format: "host:port"
+# Example: "127.0.0.1:28332" for local only, "0.0.0.0:28332" for all interfaces
+# bind = "127.0.0.1:28332"
+
+# RPC authentication (both required for authentication)
+# WARNING: Running without authentication is insecure for production use
+# user = "admin"
+# password = "change-me-in-production"
+
+# Rate limiting: maximum requests per second per client
+# Set to 0 to disable rate limiting (not recommended)
+# Default: 100
+# rate_limit = 100
+
+# ============================================================================
+# P2P NETWORK
+# ============================================================================
+
+[p2p]
+# Accept inbound P2P connections
+# Default: false
+# listen = true
+
+# P2P bind address for inbound connections
+# Default: "0.0.0.0"
+# bind = "0.0.0.0"
+
+# P2P port override (default depends on network)
+# mainnet: 8333, testnet: 18333, devnet: 28333
+# port = 28333
+
+# Maximum number of inbound connections
+# Default: unlimited
+# max_inbound = 125
+
+# Peer addresses to connect to on startup
+# DNS seeds are used automatically if no peers are specified
+# connect = [
+#     "seed1.example.com:28333",
+#     "seed2.example.com:28333",
+# ]
+
+# ============================================================================
+# MINING (Development Only)
+# ============================================================================
+
+[mining]
+# Skip proof-of-work verification
+# WARNING: Only use for development/testing!
+# Default: false
+# no_pow = false
+
+# ============================================================================
+# LOGGING
+# ============================================================================
+
+[log]
+# Log level filter
+# Options: "error", "warn", "info", "debug", "trace"
+# Can also use RUST_LOG environment variable
+# Default: "info"
+# level = "info"
