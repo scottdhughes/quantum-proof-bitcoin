@@ -1,8 +1,12 @@
-# QPB Reference Node Route Decision
+# QPB Reference Node Architecture
 
-**Decision:** Route A (Rust-native minimal node) is the reference node for devnet/testnet now. Route B (a Bitcoin Core fork) is deferred until after testnet stabilizes.
+**Decision:** Route A (Rust-native minimal node) is the reference implementation for devnet/testnet. Route B (Bitcoin Core fork) is deferred until after testnet stabilizes.
 
-## Why this decision
+> **See Also:**
+> - [RPC Reference](../rpc/README.md) - Complete API documentation
+> - [Running a Node](../operations/running-a-node.md) - Installation and configuration guide
+
+## Why Route A
 - Faster iteration on consensus and tooling using the existing Rust consensus crate.
 - Keeps PoW, PQ validation, and vector determinism unified in one codebase.
 - A future Core port remains possible once testnet parameters and wire behavior are stable.
@@ -23,7 +27,7 @@
 
 **Phase 0A status:** Implemented genesis init + persistent tip/index only (no RPC/submitblock yet). Run `qpb-node --chain devnet|regtest --datadir <path>` to bootstrap from `docs/chain/chainparams.json` and persist height/tip/index on disk.
 
-**Phase 0B status:** Blockstore + UTXO persistence and tip-only submitblock wired in-process. Minimal JSON-RPC (HTTP POST /rpc) is available for getblockcount/getbestblockhash/getblockhash/getblock/submitblock/getutxo. No P2P/mempool yet.
+**Phase 0B status:** Complete. Blockstore + UTXO persistence with tip-only submitblock. Full JSON-RPC API with 40+ methods. See [RPC Reference](../rpc/README.md).
 
 ### Phase 1 — Minimal P2P sync
 **Phase 1A status:** Outbound headers-first sync (getheaders/headers/getdata/blocks) to a single peer, tip-only (no reorgs yet). No mempool/tx relay.
@@ -45,18 +49,26 @@
 Run example: `cargo run --bin qpb-node -- --chain devnet --datadir /tmp/qpb-dev --rpc-addr 127.0.0.1:38332 --p2p-connect 127.0.0.1:18444 --no-pow`
 Multi-peer example: `... --p2p-connect 127.0.0.1:18444 --p2p-connect 127.0.0.1:18445`
 
-### Phase 2 — Mempool + mining (optional)
-**Phase 2A status (current):** Local coinbase-only miner via JSON-RPC `generatenextblock` (tip-only, no mempool). PoW enforced unless `--no-pow` is set; submits through the same validation/UTXO pipeline.
+### Phase 2 — Mempool + mining
+**Status:** Complete.
 
-**Deliverables (remaining)**
-- Minimal mempool with fee/ancestor limits suitable for dev/testnet.
-- `getblocktemplate` for external miners; ability to assemble candidate blocks.
-- Optional local CPU miner reuse of existing PoW module.
+**Implemented:**
+- Mempool with fee/ancestor limits
+- `getblocktemplate` for external miners
+- Local mining via `generatenextblock`, `generateblock`, `generatetoaddress`
+- RBF support with `bumpfee` RPC
+- Fee estimation via `estimatesmartfee`
+- Full wallet with encryption, backup/restore
+- Transaction relay between nodes
+- Inbound P2P connections
+- Peer scoring and ban management
+- RPC authentication and rate limiting
+- Health and metrics endpoints
 
-**Non-goals**
-- RBF policy, package relay, or advanced fee estimation.
-- P2P tx relay robustness (ok if absent; focus stays on validation + template).
-- Wallet/key UX.
+**Non-goals (Phase 2)**
+- Package relay or CPFP
+- Compact blocks (BIP152)
+- Difficulty adjustment (uses static bits)
 
 Run mining example:
 `curl -s -X POST http://127.0.0.1:38332/rpc -d '{"jsonrpc":"2.0","id":1,"method":"generatenextblock","params":[]}'`
