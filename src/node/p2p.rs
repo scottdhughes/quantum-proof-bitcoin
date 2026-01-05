@@ -134,22 +134,58 @@ pub fn read_message(stream: &mut TcpStream, magic: [u8; 4]) -> Result<Message> {
 }
 
 pub fn ser_version(start_height: i32) -> Vec<u8> {
+    ser_version_with_addr(start_height, None)
+}
+
+/// Serialize VERSION message with optional local address advertisement.
+///
+/// If `local_addr` is provided, it will be included in the `addr_from` field
+/// so peers can learn our listening address for future connections.
+pub fn ser_version_with_addr(
+    start_height: i32,
+    local_addr: Option<std::net::SocketAddr>,
+) -> Vec<u8> {
+    use rand::RngCore;
+
     let mut p = Vec::new();
     p.extend_from_slice(&70015i32.to_le_bytes()); // version
+
+    // services: NODE_NETWORK (1) if we're advertising an address
+    let services: u64 = if local_addr.is_some() { 1 } else { 0 };
+    p.extend_from_slice(&services.to_le_bytes());
+
+    // timestamp: current time
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0);
+    p.extend_from_slice(&timestamp.to_le_bytes());
+
+    // addr_recv: zeroed (we don't know receiver's advertised address)
     p.extend_from_slice(&0u64.to_le_bytes()); // services
-    p.extend_from_slice(&(0i64).to_le_bytes()); // time
-    // addr_recv
-    p.extend_from_slice(&0u64.to_le_bytes());
-    p.extend_from_slice(&[0u8; 16]);
-    p.extend_from_slice(&0u16.to_be_bytes());
-    // addr_from
-    p.extend_from_slice(&0u64.to_le_bytes());
-    p.extend_from_slice(&[0u8; 16]);
-    p.extend_from_slice(&0u16.to_be_bytes());
-    p.extend_from_slice(&0u64.to_le_bytes()); // nonce
+    p.extend_from_slice(&[0u8; 16]); // ip
+    p.extend_from_slice(&0u16.to_be_bytes()); // port
+
+    // addr_from: our listening address (if provided)
+    if let Some(addr) = local_addr {
+        let net_addr = NetAddr::from_socket_addr(&addr, services);
+        p.extend_from_slice(&net_addr.services.to_le_bytes());
+        p.extend_from_slice(&net_addr.ip);
+        p.extend_from_slice(&net_addr.port.to_be_bytes());
+    } else {
+        p.extend_from_slice(&0u64.to_le_bytes());
+        p.extend_from_slice(&[0u8; 16]);
+        p.extend_from_slice(&0u16.to_be_bytes());
+    }
+
+    // nonce: random value for self-connection detection
+    let mut rng = rand::thread_rng();
+    let nonce: u64 = rng.next_u64();
+    p.extend_from_slice(&nonce.to_le_bytes());
+
     write_compact_size(0, &mut p); // user agent empty
     p.extend_from_slice(&start_height.to_le_bytes());
-    p.push(0); // relay false
+    p.push(1); // relay true (we want transaction announcements)
     p
 }
 
@@ -795,9 +831,22 @@ pub struct PeerVersion {
     pub start_height: i32,
     /// Whether peer wants relay.
     pub relay: bool,
+    /// Peer's advertised listening address (from addr_from field).
+    pub addr_from: Option<std::net::SocketAddr>,
 }
 
 /// Parse a VERSION message payload.
+///
+/// VERSION message layout:
+/// - version: 4 bytes (offset 0-4)
+/// - services: 8 bytes (offset 4-12)
+/// - timestamp: 8 bytes (offset 12-20)
+/// - addr_recv: 26 bytes (offset 20-46) - services(8) + ip(16) + port(2)
+/// - addr_from: 26 bytes (offset 46-72) - services(8) + ip(16) + port(2)
+/// - nonce: 8 bytes (offset 72-80)
+/// - user_agent: varint + string (offset 80+)
+/// - start_height: 4 bytes
+/// - relay: 1 byte (optional)
 pub fn parse_version(payload: &[u8]) -> Result<PeerVersion> {
     if payload.len() < 85 {
         return Err(anyhow!("VERSION payload too short"));
@@ -807,10 +856,30 @@ pub fn parse_version(payload: &[u8]) -> Result<PeerVersion> {
     let services = u64::from_le_bytes(payload[4..12].try_into().unwrap());
     let timestamp = i64::from_le_bytes(payload[12..20].try_into().unwrap());
 
-    // Skip addr_recv (26 bytes) and addr_from (26 bytes) and nonce (8 bytes)
-    // That's 20 + 26 + 26 + 8 = 80 bytes
-    // Then user_agent varint + string, then start_height (4 bytes), then relay (1 byte)
+    // Parse addr_from (offset 46-72): services(8) + ip(16) + port(2)
+    let addr_from = if payload.len() >= 72 {
+        let addr_services = u64::from_le_bytes(payload[46..54].try_into().unwrap());
+        let mut ip = [0u8; 16];
+        ip.copy_from_slice(&payload[54..70]);
+        let port = u16::from_be_bytes(payload[70..72].try_into().unwrap());
 
+        // Only consider non-zero addresses with valid port
+        if ip != [0u8; 16] && port != 0 {
+            let net_addr = NetAddr {
+                time: 0,
+                services: addr_services,
+                ip,
+                port,
+            };
+            net_addr.to_socket_addr()
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    // Skip to user_agent (offset 80)
     let mut cur = std::io::Cursor::new(&payload[80..]);
     let user_agent_len = read_compact_size(&mut cur)? as usize;
     let pos = cur.position() as usize;
@@ -834,6 +903,7 @@ pub fn parse_version(payload: &[u8]) -> Result<PeerVersion> {
         timestamp,
         start_height,
         relay,
+        addr_from,
     })
 }
 
@@ -841,13 +911,17 @@ pub fn parse_version(payload: &[u8]) -> Result<PeerVersion> {
 ///
 /// Handshake order for responder:
 /// 1. Receive VERSION from peer
-/// 2. Send our VERSION
+/// 2. Send our VERSION (with our listening address if provided)
 /// 3. Send VERACK
 /// 4. Receive VERACK from peer
+///
+/// If `local_addr` is provided, it will be advertised in our VERSION message
+/// so peers can learn our listening address for future connections.
 pub fn handle_inbound_handshake(
     stream: &mut TcpStream,
     magic: [u8; 4],
     our_height: i32,
+    local_addr: Option<std::net::SocketAddr>,
 ) -> Result<PeerVersion> {
     // Set handshake-specific timeout
     stream.set_read_timeout(Some(Duration::from_millis(HANDSHAKE_TIMEOUT_MS)))?;
@@ -860,8 +934,8 @@ pub fn handle_inbound_handshake(
     }
     let peer_version = parse_version(&msg.payload)?;
 
-    // 2. Send our VERSION
-    let our_version = ser_version(our_height);
+    // 2. Send our VERSION with local address advertisement
+    let our_version = ser_version_with_addr(our_height, local_addr);
     write_message(stream, magic, CMD_VERSION, &our_version)?;
 
     // 3. Send VERACK
@@ -1001,6 +1075,9 @@ impl InboundListener {
         let shutdown = self.shutdown.clone();
         let on_connected = Arc::new(on_peer_connected);
 
+        // Capture our listening address for VERSION advertisement
+        let local_addr = self.listener.local_addr().ok();
+
         let handle = thread::spawn(move || {
             for stream_result in listener.incoming() {
                 // Check shutdown flag
@@ -1033,14 +1110,15 @@ impl InboundListener {
                     node.height() as i32
                 };
 
-                // Perform handshake
-                let peer_version = match handle_inbound_handshake(&mut stream, magic, our_height) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        warn!(%peer_addr, error = %e, "handshake failed");
-                        continue;
-                    }
-                };
+                // Perform handshake (advertise our listening address)
+                let peer_version =
+                    match handle_inbound_handshake(&mut stream, magic, our_height, local_addr) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            warn!(%peer_addr, error = %e, "handshake failed");
+                            continue;
+                        }
+                    };
 
                 // Register peer
                 let peer_id = peer_manager.add_peer(
