@@ -855,6 +855,18 @@ impl PeerManager {
         ban_list.is_banned(addr)
     }
 
+    /// Check if we're already connected to an address.
+    ///
+    /// Used by outbound manager to avoid connecting to same peer twice.
+    pub fn is_connected(&self, addr: &std::net::SocketAddr) -> bool {
+        let addr_str = addr.to_string();
+        let peers = self.peers.lock().unwrap();
+        peers.values().any(|arc| {
+            let info = arc.lock().unwrap();
+            info.addr == addr_str
+        })
+    }
+
     /// Queue a transaction for relay to other peers.
     /// The sender_id is excluded from relay targets.
     pub fn queue_relay(&self, sender_id: u64, txid: [u8; 32]) {

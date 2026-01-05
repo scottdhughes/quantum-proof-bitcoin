@@ -205,6 +205,21 @@ pub const MAX_INBOUND_CONNECTIONS: usize = 117;
 pub const HANDSHAKE_TIMEOUT_MS: u64 = 10_000;
 
 // ============================================================================
+// Outbound Connection Maintenance
+// ============================================================================
+
+/// Target number of outbound connections to maintain.
+/// The outbound manager will try to keep this many connections active.
+pub const TARGET_OUTBOUND_CONNECTIONS: usize = 8;
+
+/// Interval between outbound maintenance checks in milliseconds.
+/// Controls how often we check if we need more outbound connections.
+pub const OUTBOUND_MAINTENANCE_INTERVAL_MS: u64 = 30_000;
+
+/// Timeout for outbound connection attempts in milliseconds.
+pub const OUTBOUND_CONNECT_TIMEOUT_MS: u64 = 5_000;
+
+// ============================================================================
 // P2P Network Ports
 // ============================================================================
 

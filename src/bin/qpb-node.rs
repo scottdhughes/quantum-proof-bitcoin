@@ -17,7 +17,9 @@ use qpb_consensus::node::chainparams::{
     compute_chain_id, compute_genesis_hash, load_chainparams, select_network,
 };
 use qpb_consensus::node::node::Node;
-use qpb_consensus::node::p2p::{InboundConfig, InboundListener, SyncOpts, sync_with_retries};
+use qpb_consensus::node::p2p::{
+    InboundConfig, InboundListener, OutboundConfig, OutboundManager, SyncOpts, sync_with_retries,
+};
 use qpb_consensus::node::rpc::{RpcAction, handle_rpc_action};
 
 #[derive(Parser, Debug)]
@@ -193,16 +195,30 @@ fn main() -> Result<()> {
         node_arc = Some(Arc::clone(&shared));
 
         // Start accepting connections
-        listener.start(Arc::clone(&shared), peer_manager, |peer_id, version| {
-            info!(
-                peer_id,
-                version = version.version,
-                height = version.start_height,
-                "peer connected"
-            );
-        });
+        listener.start(
+            Arc::clone(&shared),
+            Arc::clone(&peer_manager),
+            |peer_id, version| {
+                info!(
+                    peer_id,
+                    version = version.version,
+                    height = version.start_height,
+                    "peer connected"
+                );
+            },
+        );
 
         inbound_listener = Some(listener);
+
+        // Start outbound connection manager
+        let outbound_config = OutboundConfig {
+            magic,
+            target_outbound: 8,
+            local_addr: Some(bind_addr),
+            maintenance_interval_ms: 30_000,
+        };
+        let mut outbound_manager = OutboundManager::new(outbound_config);
+        outbound_manager.start(Arc::clone(&shared), Arc::clone(&peer_manager));
 
         // Create shutdown flag
         let shutdown_flag = Arc::new(AtomicBool::new(false));
@@ -230,19 +246,27 @@ fn main() -> Result<()> {
         // Graceful shutdown sequence
         debug!("initiating graceful shutdown");
 
-        // 1. Stop accepting new connections
+        // 1. Stop outbound manager
+        debug!("stopping outbound manager");
+        outbound_manager.shutdown();
+
+        // 2. Stop accepting new connections
         if let Some(ref listener) = inbound_listener {
             debug!("stopping inbound listener");
             listener.shutdown();
         }
 
-        // 2. Wait for listener thread to finish
+        // 3. Wait for outbound manager to finish
+        outbound_manager.join();
+        debug!("outbound manager stopped");
+
+        // 4. Wait for listener thread to finish
         if let Some(listener) = inbound_listener.take() {
             listener.join();
             debug!("listener stopped");
         }
 
-        // 3. Save node state
+        // 5. Save node state
         debug!("saving node state");
         if let Some(ref node_arc) = node_arc {
             let node = node_arc.lock().unwrap();
