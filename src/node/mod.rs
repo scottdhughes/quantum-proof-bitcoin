@@ -15,5 +15,6 @@ pub mod peer;
 pub mod rpc;
 pub mod rpc_limiter;
 pub mod store;
+pub mod txindex;
 pub mod utxo;
 pub mod wallet;

@@ -34,7 +34,7 @@ fn rpc_err(node: &mut Node, method: &str, params: &str) -> String {
 fn encryptwallet_basic() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create wallet
     rpc_ok(&mut node, "createwallet", "[]");
@@ -59,7 +59,7 @@ fn encryptwallet_basic() {
 
     // Check wallet info after encryption
     // Note: After encryption, wallet is locked so we load from disk
-    let mut node2 = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node2 = Node::open_or_init("devnet", datadir, true, false).unwrap();
     let info = rpc_ok(&mut node2, "getwalletinfo", "[]");
     assert_eq!(info["encrypted"], true);
     assert_eq!(info["unlocked"], false); // Locked after encryption
@@ -69,13 +69,13 @@ fn encryptwallet_basic() {
 fn encryptwallet_cannot_encrypt_twice() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     rpc_ok(&mut node, "createwallet", "[]");
     rpc_ok(&mut node, "encryptwallet", r#"["password1"]"#);
 
     // Trying to encrypt again should fail
-    let mut node2 = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node2 = Node::open_or_init("devnet", datadir, true, false).unwrap();
     let err = rpc_err(&mut node2, "encryptwallet", r#"["password2"]"#);
     assert!(err.contains("already encrypted"));
 }
@@ -84,7 +84,7 @@ fn encryptwallet_cannot_encrypt_twice() {
 fn walletpassphrase_unlocks_wallet() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create and encrypt wallet
     rpc_ok(&mut node, "createwallet", "[]");
@@ -92,7 +92,7 @@ fn walletpassphrase_unlocks_wallet() {
     rpc_ok(&mut node, "encryptwallet", r#"["testpass"]"#);
 
     // Reload node (wallet is now locked)
-    let mut node2 = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node2 = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Operations should fail when locked
     let err = rpc_err(&mut node2, "listaddresses", "[]");
@@ -116,14 +116,14 @@ fn walletpassphrase_unlocks_wallet() {
 fn walletpassphrase_wrong_password_fails() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     rpc_ok(&mut node, "createwallet", "[]");
     rpc_ok(&mut node, "getnewaddress", r#"["test"]"#);
     rpc_ok(&mut node, "encryptwallet", r#"["correctpassword"]"#);
 
     // Reload node
-    let mut node2 = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node2 = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Wrong password should fail
     let err = rpc_err(&mut node2, "walletpassphrase", r#"["wrongpassword", 300]"#);
@@ -134,14 +134,14 @@ fn walletpassphrase_wrong_password_fails() {
 fn walletlock_locks_wallet() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     rpc_ok(&mut node, "createwallet", "[]");
     rpc_ok(&mut node, "getnewaddress", r#"["test"]"#);
     rpc_ok(&mut node, "encryptwallet", r#"["testpass"]"#);
 
     // Reload and unlock
-    let mut node2 = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node2 = Node::open_or_init("devnet", datadir, true, false).unwrap();
     rpc_ok(&mut node2, "walletpassphrase", r#"["testpass", 300]"#);
 
     // Verify unlocked
@@ -160,14 +160,14 @@ fn walletlock_locks_wallet() {
 fn walletpassphrasechange_changes_password() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     rpc_ok(&mut node, "createwallet", "[]");
     rpc_ok(&mut node, "getnewaddress", r#"["test"]"#);
     rpc_ok(&mut node, "encryptwallet", r#"["oldpass"]"#);
 
     // Change password
-    let mut node2 = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node2 = Node::open_or_init("devnet", datadir, true, false).unwrap();
     rpc_ok(
         &mut node2,
         "walletpassphrasechange",
@@ -175,7 +175,7 @@ fn walletpassphrasechange_changes_password() {
     );
 
     // Old password should no longer work
-    let mut node3 = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node3 = Node::open_or_init("devnet", datadir, true, false).unwrap();
     let err = rpc_err(&mut node3, "walletpassphrase", r#"["oldpass", 300]"#);
     assert!(err.contains("incorrect password") || err.contains("decryption"));
 
@@ -189,7 +189,7 @@ fn walletpassphrasechange_changes_password() {
 fn generate_address_after_unlock() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create wallet with one address, then encrypt
     rpc_ok(&mut node, "createwallet", "[]");
@@ -197,7 +197,7 @@ fn generate_address_after_unlock() {
     rpc_ok(&mut node, "encryptwallet", r#"["pass"]"#);
 
     // Reload and unlock
-    let mut node2 = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node2 = Node::open_or_init("devnet", datadir, true, false).unwrap();
     rpc_ok(&mut node2, "walletpassphrase", r#"["pass", 300]"#);
 
     // Generate new address while unlocked
@@ -211,7 +211,7 @@ fn generate_address_after_unlock() {
     // Lock and reload - both addresses should still be there
     rpc_ok(&mut node2, "walletlock", "[]");
 
-    let mut node3 = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node3 = Node::open_or_init("devnet", datadir, true, false).unwrap();
     rpc_ok(&mut node3, "walletpassphrase", r#"["pass", 300]"#);
     let addresses = rpc_ok(&mut node3, "listaddresses", "[]");
     assert_eq!(addresses.as_array().unwrap().len(), 2);
@@ -222,14 +222,14 @@ fn encrypted_wallet_unencrypted_functions() {
     // Test that balance and other read operations don't work when locked
     let dir = tempdir().unwrap();
     let datadir = dir.path();
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     rpc_ok(&mut node, "createwallet", "[]");
     rpc_ok(&mut node, "getnewaddress", r#"["test"]"#);
     rpc_ok(&mut node, "encryptwallet", r#"["testpass"]"#);
 
     // Reload node (locked)
-    let mut node2 = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node2 = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // These should all fail when locked
     let err = rpc_err(&mut node2, "getbalance", "[]");
@@ -258,7 +258,7 @@ fn encrypted_wallet_unencrypted_functions() {
 fn walletpassphrase_on_unencrypted_wallet_fails() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     rpc_ok(&mut node, "createwallet", "[]");
 
@@ -275,7 +275,7 @@ fn walletpassphrase_on_unencrypted_wallet_fails() {
 fn backupwallet_creates_copy() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create wallet with an address
     rpc_ok(&mut node, "createwallet", "[]");
@@ -300,7 +300,7 @@ fn backupwallet_creates_copy() {
 fn backupwallet_works_on_encrypted() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create, add key, and encrypt wallet
     rpc_ok(&mut node, "createwallet", "[]");
@@ -308,7 +308,7 @@ fn backupwallet_works_on_encrypted() {
     rpc_ok(&mut node, "encryptwallet", r#"["password"]"#);
 
     // Reload node (wallet is locked)
-    let mut node2 = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node2 = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Backup should work without unlocking
     let backup_path = dir.path().join("encrypted-backup.json");
@@ -326,7 +326,7 @@ fn backupwallet_works_on_encrypted() {
 fn dumpwallet_exports_keys() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create wallet with addresses
     rpc_ok(&mut node, "createwallet", "[]");
@@ -353,7 +353,7 @@ fn dumpwallet_exports_keys() {
 fn dumpwallet_requires_unlock_for_encrypted() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create and encrypt
     rpc_ok(&mut node, "createwallet", "[]");
@@ -361,7 +361,7 @@ fn dumpwallet_requires_unlock_for_encrypted() {
     rpc_ok(&mut node, "encryptwallet", r#"["password"]"#);
 
     // Reload (locked)
-    let mut node2 = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node2 = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Dump should fail when locked
     let dump_path = dir.path().join("dump.txt");
@@ -381,7 +381,7 @@ fn importwallet_imports_keys() {
     let datadir = dir.path();
 
     // Create first wallet and dump
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
     rpc_ok(&mut node, "createwallet", "[]");
     let addr1 = rpc_ok(&mut node, "getnewaddress", r#"["original"]"#);
 
@@ -392,7 +392,7 @@ fn importwallet_imports_keys() {
     // Create second wallet in different directory
     let dir2 = tempdir().unwrap();
     let datadir2 = dir2.path();
-    let mut node2 = Node::open_or_init("devnet", datadir2, true).unwrap();
+    let mut node2 = Node::open_or_init("devnet", datadir2, true, false).unwrap();
     rpc_ok(&mut node2, "createwallet", "[]");
 
     // Initially, second wallet has no keys
@@ -418,7 +418,7 @@ fn importwallet_imports_keys() {
 fn importwallet_skips_existing_keys() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
-    let mut node = Node::open_or_init("devnet", datadir, true).unwrap();
+    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
 
     // Create wallet and dump
     rpc_ok(&mut node, "createwallet", "[]");

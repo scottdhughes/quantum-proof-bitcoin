@@ -47,7 +47,7 @@ fn make_child_tx(parent_txid: [u8; 32], vout: u32, value: u64) -> Transaction {
 #[test]
 fn orphan_added_when_parent_missing() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     // Create a transaction spending from a non-existent parent
     let fake_parent = [1u8; 32];
@@ -77,7 +77,7 @@ fn orphan_added_when_parent_missing() {
 #[test]
 fn orphan_resolved_when_parent_arrives() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     // Setup: Create wallet and mine coins
     rpc_call(&mut node, "createwallet", "[]");
@@ -166,7 +166,7 @@ fn orphan_eviction_on_limit() {
     use qpb_consensus::constants::MAX_ORPHAN_TRANSACTIONS;
 
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     // Add orphans up to the limit
     let mut first_txid = None;
@@ -211,7 +211,7 @@ fn orphan_per_peer_limit() {
     use qpb_consensus::constants::MAX_ORPHANS_PER_PEER;
 
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     let peer_id = 42u64;
 
@@ -255,7 +255,7 @@ fn orphan_per_peer_limit() {
 #[test]
 fn orphan_removed_for_disconnected_peer() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     let peer1 = 1u64;
     let peer2 = 2u64;
@@ -285,7 +285,7 @@ fn orphan_removed_for_disconnected_peer() {
 #[test]
 fn direct_mempool_add_still_works() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     // Setup: Create wallet and mine coins
     rpc_call(&mut node, "createwallet", "[]");

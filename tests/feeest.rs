@@ -30,7 +30,7 @@ fn mine_to_address(node: &mut Node, count: u32, address: &str) {
 #[test]
 fn estimatesmartfee_returns_valid_response() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     // Call estimatesmartfee with default target
     let resp = rpc_call(&mut node, "estimatesmartfee", "[6]");
@@ -50,7 +50,7 @@ fn estimatesmartfee_returns_valid_response() {
 #[test]
 fn estimatefee_returns_sat_vb_format() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     // Call estimatefee with target
     let resp = rpc_call(&mut node, "estimatefee", "[3]");
@@ -67,7 +67,7 @@ fn estimatefee_returns_sat_vb_format() {
 #[test]
 fn estimate_with_empty_mempool_uses_default() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     // Empty mempool, no history - should return default minimum
     let resp = rpc_call(&mut node, "estimatefee", "[1]");
@@ -79,7 +79,7 @@ fn estimate_with_empty_mempool_uses_default() {
 #[test]
 fn estimate_uses_mempool_data() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     // Setup wallet
     rpc_call(&mut node, "createwallet", "[]");
@@ -124,7 +124,7 @@ fn estimate_uses_mempool_data() {
 #[test]
 fn estimate_uses_historical_data() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     // Setup wallet
     rpc_call(&mut node, "createwallet", "[]");
@@ -164,7 +164,7 @@ fn estimate_uses_historical_data() {
 #[test]
 fn estimate_clamps_target_range() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     // Target 0 should clamp to 1
     let resp = rpc_call(&mut node, "estimatesmartfee", "[0]");
@@ -178,7 +178,7 @@ fn estimate_clamps_target_range() {
 #[test]
 fn estimatesmartfee_btc_kb_conversion() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     // Get both formats
     let smart_resp = rpc_call(&mut node, "estimatesmartfee", "[6]");

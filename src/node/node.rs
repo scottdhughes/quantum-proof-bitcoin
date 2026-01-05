@@ -19,6 +19,7 @@ use crate::node::mempool::{Mempool, MempoolEntry, MempoolInfo};
 use crate::node::orphan::OrphanPool;
 use crate::node::peer::{BanList, PeerManager};
 use crate::node::store::{Store, write_state};
+use crate::node::txindex::{TxIndex, TxLocation};
 use crate::node::utxo::UtxoSet;
 use crate::pow::pow_hash;
 use crate::types::{Block, BlockHeader, OutPoint, Prevout, Transaction, TxIn, TxOut};
@@ -96,10 +97,12 @@ pub struct Node {
     peer_manager: Option<Arc<PeerManager>>,
     /// Address manager for peer discovery.
     addr_manager: AddrManager,
+    /// Transaction index for looking up confirmed transactions by txid.
+    txindex: TxIndex,
 }
 
 impl Node {
-    pub fn open_or_init(chain: &str, datadir: &Path, no_pow: bool) -> Result<Self> {
+    pub fn open_or_init(chain: &str, datadir: &Path, no_pow: bool, txindex: bool) -> Result<Self> {
         let params_path = PathBuf::from("docs/chain/chainparams.json");
         let params = load_chainparams(&params_path)?;
         let net = select_network(&params, chain)?;
@@ -176,6 +179,9 @@ impl Node {
             }
         }
 
+        // Load transaction index if enabled
+        let txindex_store = TxIndex::load(datadir, txindex)?;
+
         Ok(Self {
             chain: chain.to_string(),
             datadir: datadir.to_path_buf(),
@@ -193,6 +199,7 @@ impl Node {
             peer_manager: None,
             addr_manager: AddrManager::load(datadir, MAX_ADDR_MANAGER_SIZE)
                 .unwrap_or_else(|_| AddrManager::new(MAX_ADDR_MANAGER_SIZE)),
+            txindex: txindex_store,
         })
     }
 
@@ -212,6 +219,19 @@ impl Node {
         blockstore::get_block(&self.datadir, hash_hex)
             .ok()
             .flatten()
+    }
+
+    /// Get a parsed block by hash.
+    pub fn get_block_parsed(&self, hash_hex: &str) -> Option<Block> {
+        let bytes = self.get_block_bytes(hash_hex)?;
+        parse_block(&bytes).ok()
+    }
+
+    /// Get block height by hash (for calculating confirmations).
+    pub fn get_block_height(&self, hash_hex: &str) -> Option<u64> {
+        let hash_bytes: [u8; 32] = hex::decode(hash_hex).ok()?.try_into().ok()?;
+        let meta = self.chain_index.get(&hash_bytes)?;
+        Some(meta.height)
     }
 
     /// Get block header information by hash.
@@ -817,6 +837,12 @@ impl Node {
         }
         self.utxo.save(&self.datadir)?;
 
+        // Index all transactions in this block
+        for (tx_idx, tx) in block.txdata.iter().enumerate() {
+            let txid = tx.txid();
+            self.txindex.insert(&txid, block_hash_hex, tx_idx as u32);
+        }
+
         // Update state
         self.store.state.height += 1;
         self.store.state.tip_hash_hex = block_hash_hex.to_string();
@@ -860,6 +886,12 @@ impl Node {
             for (vout, _) in tx.vout.iter().enumerate() {
                 self.utxo.remove(&txid, vout as u32);
             }
+        }
+
+        // Remove transactions from txindex
+        for tx in &block.txdata {
+            let txid = tx.txid();
+            self.txindex.remove(&txid);
         }
 
         // Restore spent outputs
@@ -1111,7 +1143,25 @@ impl Node {
         self.mempool.save(&self.datadir)?;
         self.ban_list.save()?;
         self.addr_manager.save()?;
+        self.txindex.save(&self.datadir)?;
         Ok(())
+    }
+
+    // ---- Transaction Index Methods ----
+
+    /// Check if txindex is enabled.
+    pub fn txindex_enabled(&self) -> bool {
+        self.txindex.is_enabled()
+    }
+
+    /// Get the number of indexed transactions.
+    pub fn txindex_len(&self) -> usize {
+        self.txindex.len()
+    }
+
+    /// Look up a confirmed transaction's location by txid.
+    pub fn txindex_get(&self, txid: &[u8; 32]) -> Option<&TxLocation> {
+        self.txindex.get(txid)
     }
 }
 

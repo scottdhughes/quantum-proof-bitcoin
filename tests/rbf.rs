@@ -30,7 +30,7 @@ fn mine_to_address(node: &mut Node, count: u32, address: &str) {
 #[test]
 fn transaction_signals_rbf_with_rbf_flag() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     // Setup wallet
     rpc_call(&mut node, "createwallet", "[]");
@@ -77,7 +77,7 @@ fn transaction_signals_rbf_with_rbf_flag() {
 #[test]
 fn transaction_does_not_signal_rbf_by_default() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     // Setup wallet
     rpc_call(&mut node, "createwallet", "[]");
@@ -118,7 +118,7 @@ fn transaction_does_not_signal_rbf_by_default() {
 #[test]
 fn bumpfee_increases_fee_and_replaces() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     // Setup wallet
     rpc_call(&mut node, "createwallet", "[]");
@@ -203,7 +203,7 @@ fn bumpfee_increases_fee_and_replaces() {
 #[test]
 fn bumpfee_rejects_non_rbf_transaction() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     // Setup wallet
     rpc_call(&mut node, "createwallet", "[]");
@@ -246,7 +246,7 @@ fn bumpfee_rejects_non_rbf_transaction() {
 #[test]
 fn rbf_replacement_requires_higher_fee() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     // Setup wallet
     rpc_call(&mut node, "createwallet", "[]");
@@ -301,7 +301,7 @@ fn rbf_replacement_requires_higher_fee() {
 #[test]
 fn bumpfee_reuses_same_inputs() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true).unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
     // Setup wallet
     rpc_call(&mut node, "createwallet", "[]");
