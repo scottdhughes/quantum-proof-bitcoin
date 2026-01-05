@@ -27,6 +27,9 @@ pub struct NetworkParams {
     pub p2p_magic: String,
     pub p2p_port: u16,
     pub rpc_port: u16,
+    /// DNS seed hostnames for peer discovery.
+    #[serde(default)]
+    pub dns_seeds: Vec<String>,
     pub genesis: Option<GenesisParams>,
 }
 
