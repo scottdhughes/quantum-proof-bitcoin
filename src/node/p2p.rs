@@ -24,6 +24,8 @@ pub const CMD_GETDATA: &str = "getdata";
 pub const CMD_BLOCK: &str = "block";
 pub const CMD_INV: &str = "inv";
 pub const CMD_TX: &str = "tx";
+pub const CMD_GETADDR: &str = "getaddr";
+pub const CMD_ADDR: &str = "addr";
 
 /// Inventory type for transactions.
 pub const MSG_TX: u32 = 1;
@@ -279,6 +281,142 @@ pub fn write_headers_payload(buf: &mut Vec<u8>, headers: &[BlockHeader]) {
         buf.extend_from_slice(&h.serialize());
         buf.push(0); // tx count
     }
+}
+
+// ============================================================================
+// Address Messages (getaddr/addr)
+// ============================================================================
+
+/// Maximum addresses to send in a single ADDR message.
+pub const MAX_ADDR_TO_SEND: usize = 1000;
+
+/// Maximum addresses to accept in a single ADDR message.
+pub const MAX_ADDR_TO_RECEIVE: usize = 1000;
+
+/// Network address entry as sent in ADDR messages.
+///
+/// Bitcoin protocol format: time(4) + services(8) + IPv6(16) + port(2) = 30 bytes
+#[derive(Debug, Clone)]
+pub struct NetAddr {
+    /// Unix timestamp when this address was last seen.
+    pub time: u32,
+    /// Service flags (NODE_NETWORK, etc.).
+    pub services: u64,
+    /// IPv6 address (IPv4 mapped to ::ffff:a.b.c.d).
+    pub ip: [u8; 16],
+    /// Network port in network byte order.
+    pub port: u16,
+}
+
+impl NetAddr {
+    /// Create from a SocketAddr with current timestamp.
+    pub fn from_socket_addr(addr: &std::net::SocketAddr, services: u64) -> Self {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs() as u32)
+            .unwrap_or(0);
+        Self::from_socket_addr_with_time(addr, services, now)
+    }
+
+    /// Create from a SocketAddr with specific timestamp.
+    pub fn from_socket_addr_with_time(
+        addr: &std::net::SocketAddr,
+        services: u64,
+        time: u32,
+    ) -> Self {
+        use std::net::SocketAddr;
+
+        let ip = match addr {
+            SocketAddr::V4(v4) => {
+                // IPv4-mapped IPv6 address: ::ffff:a.b.c.d
+                let octets = v4.ip().octets();
+                [
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, octets[0], octets[1], octets[2],
+                    octets[3],
+                ]
+            }
+            SocketAddr::V6(v6) => v6.ip().octets(),
+        };
+
+        Self {
+            time,
+            services,
+            ip,
+            port: addr.port(),
+        }
+    }
+
+    /// Convert to SocketAddr.
+    pub fn to_socket_addr(&self) -> Option<std::net::SocketAddr> {
+        use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
+
+        // Check for IPv4-mapped address
+        if self.ip[..12] == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff] {
+            let ip = Ipv4Addr::new(self.ip[12], self.ip[13], self.ip[14], self.ip[15]);
+            Some(SocketAddr::new(IpAddr::V4(ip), self.port))
+        } else {
+            let ip = Ipv6Addr::from(self.ip);
+            Some(SocketAddr::new(IpAddr::V6(ip), self.port))
+        }
+    }
+
+    /// Serialize for wire format (30 bytes).
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut buf = Vec::with_capacity(30);
+        buf.extend_from_slice(&self.time.to_le_bytes());
+        buf.extend_from_slice(&self.services.to_le_bytes());
+        buf.extend_from_slice(&self.ip);
+        buf.extend_from_slice(&self.port.to_be_bytes()); // Network byte order!
+        buf
+    }
+}
+
+/// Parse ADDR message payload.
+pub fn parse_addr(payload: &[u8]) -> Result<Vec<NetAddr>> {
+    let mut cur = std::io::Cursor::new(payload.to_vec());
+    let count = read_compact_size(&mut cur)? as usize;
+
+    if count > MAX_ADDR_TO_RECEIVE {
+        return Err(anyhow!("too many addresses: {}", count));
+    }
+
+    let mut addrs = Vec::with_capacity(count);
+    for _ in 0..count {
+        let mut time_buf = [0u8; 4];
+        let mut services_buf = [0u8; 8];
+        let mut ip_buf = [0u8; 16];
+        let mut port_buf = [0u8; 2];
+
+        cur.read_exact(&mut time_buf)?;
+        cur.read_exact(&mut services_buf)?;
+        cur.read_exact(&mut ip_buf)?;
+        cur.read_exact(&mut port_buf)?;
+
+        addrs.push(NetAddr {
+            time: u32::from_le_bytes(time_buf),
+            services: u64::from_le_bytes(services_buf),
+            ip: ip_buf,
+            port: u16::from_be_bytes(port_buf), // Network byte order!
+        });
+    }
+
+    Ok(addrs)
+}
+
+/// Serialize ADDR message payload.
+pub fn ser_addr(addrs: &[NetAddr]) -> Vec<u8> {
+    let mut buf = Vec::new();
+    let count = addrs.len().min(MAX_ADDR_TO_SEND);
+    write_compact_size(count as u64, &mut buf);
+    for addr in addrs.iter().take(count) {
+        buf.extend_from_slice(&addr.serialize());
+    }
+    buf
+}
+
+/// Serialize empty GETADDR message (no payload).
+pub fn ser_getaddr() -> Vec<u8> {
+    Vec::new()
 }
 
 pub fn sync_headers_and_blocks(node: &mut Node, net: &NetworkParams, addr: &str) -> Result<()> {
@@ -1075,6 +1213,25 @@ fn handle_inbound_messages(
                     }
                     AddTxResult::Rejected(_reason) => {
                         // Could penalize peer for bad tx, but skip for now
+                    }
+                }
+            }
+            CMD_GETADDR => {
+                // Peer is requesting known addresses
+                // For now, send empty response (no address manager integration yet)
+                let payload = ser_addr(&[]);
+                write_message(&mut stream, magic, CMD_ADDR, &payload)?;
+            }
+            CMD_ADDR => {
+                // Peer is sharing addresses - parse and log for now
+                match parse_addr(&msg.payload) {
+                    Ok(addrs) => {
+                        if !addrs.is_empty() {
+                            eprintln!("peer {} shared {} addresses", peer_id, addrs.len());
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("failed to parse ADDR from peer {}: {}", peer_id, e);
                     }
                 }
             }

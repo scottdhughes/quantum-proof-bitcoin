@@ -2,6 +2,7 @@ pub mod blockstore;
 pub mod chain;
 pub mod chainparams;
 pub mod checkpoints;
+pub mod discovery;
 pub mod feeest;
 pub mod mempool;
 pub mod miner;

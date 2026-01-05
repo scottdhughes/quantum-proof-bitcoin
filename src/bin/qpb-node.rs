@@ -98,22 +98,37 @@ fn main() -> Result<()> {
         node.best_hash_hex()
     );
 
-    // Optional outbound P2P sync: try peers in order until one succeeds.
+    // Gather peer addresses from multiple sources
+    let mut peer_addrs: Vec<std::net::SocketAddr> = Vec::new();
+
+    // 1. Manual --p2p-connect peers (highest priority)
     if let Some(peers) = args.p2p_connect.as_ref() {
-        let params = load_chainparams(&args.chainparams)?;
-        let net = select_network(&params, &args.chain)?;
-        let addrs: Vec<std::net::SocketAddr> =
-            peers.iter().filter_map(|s| s.parse().ok()).collect();
-        if addrs.is_empty() {
-            anyhow::bail!("no valid p2p peers provided");
+        peer_addrs.extend(
+            peers
+                .iter()
+                .filter_map(|s| s.parse::<std::net::SocketAddr>().ok()),
+        );
+    }
+
+    // 2. DNS seeds (if no manual peers specified)
+    if peer_addrs.is_empty() && !net.dns_seeds.is_empty() {
+        use qpb_consensus::node::discovery::resolve_dns_seeds;
+        let dns_addrs = resolve_dns_seeds(&net.dns_seeds, net.p2p_port);
+        if !dns_addrs.is_empty() {
+            println!("resolved {} addresses from DNS seeds", dns_addrs.len());
+            peer_addrs.extend(dns_addrs);
         }
+    }
+
+    // Sync with discovered peers
+    if !peer_addrs.is_empty() {
         let opts = SyncOpts {
             max_attempts_per_peer: args.p2p_attempts.max(1),
             initial_backoff_ms: args.p2p_backoff_ms,
             max_backoff_ms: 5_000,
             total_deadline_ms: args.p2p_deadline_ms,
         };
-        sync_with_retries(&mut node, net, &addrs, &opts)?;
+        sync_with_retries(&mut node, net, &peer_addrs, &opts)?;
     }
 
     // Start inbound listener if enabled
