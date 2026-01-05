@@ -48,6 +48,31 @@ enum AddError {
     Other(String),
 }
 
+/// Block header information returned by getblockheader RPC.
+#[derive(Debug, Clone)]
+pub struct BlockHeaderInfo {
+    /// Block hash (hex, big-endian).
+    pub hash: String,
+    /// Number of confirmations (1 = tip).
+    pub confirmations: i64,
+    /// Block height.
+    pub height: u64,
+    /// Block version.
+    pub version: u32,
+    /// Merkle root (hex, big-endian).
+    pub merkle_root: String,
+    /// Block timestamp (Unix epoch).
+    pub time: u32,
+    /// Compact difficulty bits (hex).
+    pub bits: String,
+    /// Block nonce.
+    pub nonce: u32,
+    /// Previous block hash (hex, big-endian).
+    pub previous_block_hash: String,
+    /// Next block hash if any (hex, big-endian).
+    pub next_block_hash: Option<String>,
+}
+
 #[derive(Debug)]
 pub struct Node {
     pub chain: String,
@@ -187,6 +212,66 @@ impl Node {
         blockstore::get_block(&self.datadir, hash_hex)
             .ok()
             .flatten()
+    }
+
+    /// Get block header information by hash.
+    /// Returns header fields plus height, confirmations, and next block hash.
+    pub fn get_block_header(&self, hash_hex: &str) -> Option<BlockHeaderInfo> {
+        let bytes = self.get_block_bytes(hash_hex)?;
+        if bytes.len() < 80 {
+            return None;
+        }
+
+        // Parse header from first 80 bytes
+        let version = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
+
+        let mut prev_blockhash = [0u8; 32];
+        prev_blockhash.copy_from_slice(&bytes[4..36]);
+        prev_blockhash.reverse(); // Convert from LE to BE
+
+        let mut merkle_root = [0u8; 32];
+        merkle_root.copy_from_slice(&bytes[36..68]);
+        merkle_root.reverse(); // Convert from LE to BE
+
+        let time = u32::from_le_bytes([bytes[68], bytes[69], bytes[70], bytes[71]]);
+        let bits = u32::from_le_bytes([bytes[72], bytes[73], bytes[74], bytes[75]]);
+        let nonce = u32::from_le_bytes([bytes[76], bytes[77], bytes[78], bytes[79]]);
+
+        // Get height from chain index
+        let hash_bytes: [u8; 32] = hex::decode(hash_hex)
+            .ok()?
+            .try_into()
+            .ok()?;
+        let meta = self.chain_index.get(&hash_bytes)?;
+        let height = meta.height;
+
+        // Calculate confirmations
+        let tip_height = self.height();
+        let confirmations = if height <= tip_height {
+            (tip_height - height + 1) as i64
+        } else {
+            -1 // Shouldn't happen for valid blocks
+        };
+
+        // Get next block hash if not tip
+        let next_block_hash = if height < tip_height {
+            self.get_blockhash(height + 1)
+        } else {
+            None
+        };
+
+        Some(BlockHeaderInfo {
+            hash: hash_hex.to_string(),
+            confirmations,
+            height,
+            version,
+            merkle_root: hex::encode(merkle_root),
+            time,
+            bits: format!("{:08x}", bits),
+            nonce,
+            previous_block_hash: hex::encode(prev_blockhash),
+            next_block_hash,
+        })
     }
 
     /// Check if we have a block by its hash (raw bytes, not hex).
@@ -593,6 +678,11 @@ impl Node {
     /// Get the number of orphan transactions.
     pub fn orphan_count(&self) -> usize {
         self.orphan_pool.len()
+    }
+
+    /// Get the number of UTXOs in the set.
+    pub fn utxo_count(&self) -> usize {
+        self.utxo.len()
     }
 
     /// Check if a transaction is in the orphan pool.

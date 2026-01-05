@@ -1,0 +1,35 @@
+# Build artifacts
+target/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test data and fixtures
+tests/
+benches/
+fixtures/
+
+# Documentation (not needed for build)
+*.md
+LICENSE
+
+# Data directories
+.qpb/
+data/
+
+# CI/CD
+.github/
+.travis.yml
+.circleci/
+
+# Misc
+*.log
+*.bak
+.DS_Store

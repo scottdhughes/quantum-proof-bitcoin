@@ -79,6 +79,10 @@ impl UtxoSet {
         self.map.is_empty()
     }
 
+    pub fn len(&self) -> usize {
+        self.map.len()
+    }
+
     /// Iterate over all UTXOs in the set.
     /// Returns (txid_hex, vout, Prevout) for each entry.
     pub fn iter_all(&self) -> Vec<(String, u32, Prevout)> {
