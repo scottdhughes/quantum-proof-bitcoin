@@ -1,12 +1,14 @@
 # Multi-stage Dockerfile for QPB Node
 # Stage 1: Build the binary
-FROM rust:1.83-slim-bookworm AS builder
+FROM rust:slim-bookworm AS builder
 
-# Install build dependencies
+# Install build dependencies and nightly toolchain
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && rustup toolchain install nightly \
+    && rustup default nightly
 
 WORKDIR /build
 
@@ -24,6 +26,7 @@ RUN cargo build --release --bin qpb-node || true
 # Now copy the real source code
 COPY src/ src/
 COPY docs/ docs/
+COPY benches/ benches/
 
 # Touch to invalidate cached dummy files
 RUN touch src/bin/qpb-node.rs src/lib.rs

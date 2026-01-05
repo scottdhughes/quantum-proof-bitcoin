@@ -13,7 +13,6 @@ target/
 
 # Test data and fixtures
 tests/
-benches/
 fixtures/
 
 # Documentation (not needed for build)
