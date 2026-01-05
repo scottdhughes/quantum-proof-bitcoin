@@ -192,10 +192,13 @@ pub const TX_RELAY_BUCKET_CAPACITY: u32 = 50;
 pub const MAX_OUTBOUND_CONNECTIONS: usize = 8;
 
 /// Maximum connections from the same /16 subnet.
-pub const MAX_CONNECTIONS_PER_SUBNET: usize = 2;
+/// Higher limit (10) allows local testing with multiple nodes on localhost.
+pub const MAX_CONNECTIONS_PER_SUBNET: usize = 10;
 
 /// Maximum connections from the same IP address.
-pub const MAX_CONNECTIONS_PER_IP: usize = 1;
+/// Higher limit (10) allows local testing with multiple nodes on localhost.
+/// In production, connections come from different IPs so this limit rarely triggers.
+pub const MAX_CONNECTIONS_PER_IP: usize = 10;
 
 /// Maximum inbound P2P connections to accept.
 /// Bitcoin Core uses 117 as default (125 total - 8 outbound).

@@ -189,6 +189,11 @@ impl Node {
             .flatten()
     }
 
+    /// Check if we have a block by its hash (raw bytes, not hex).
+    pub fn has_block(&self, hash: &[u8; 32]) -> bool {
+        self.get_block_bytes(&hex::encode(hash)).is_some()
+    }
+
     /// Get a reference to the cached wallet (if unlocked).
     pub fn wallet(&self) -> Option<&super::wallet::Wallet> {
         self.wallet.as_ref()

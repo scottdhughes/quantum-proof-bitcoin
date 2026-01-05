@@ -37,6 +37,20 @@ pub const DEFAULT_READ_TIMEOUT_MS: u64 = 2000;
 pub const DEFAULT_WRITE_TIMEOUT_MS: u64 = 2000;
 pub const MAX_MESSAGE_BYTES: u32 = 8 * 1024 * 1024;
 
+/// Check if an error is a recoverable socket timeout/EAGAIN error.
+/// On different platforms, socket timeouts manifest differently:
+/// - Linux: "Resource temporarily unavailable" (EAGAIN/EWOULDBLOCK)
+/// - macOS: "Resource temporarily unavailable" (EAGAIN, os error 35)
+/// - Windows: "timed out"
+fn is_timeout_error(e: &anyhow::Error) -> bool {
+    let msg = e.to_string();
+    msg.contains("timed out")
+        || msg.contains("temporarily unavailable")
+        || msg.contains("would block")
+        || msg.contains("os error 35")
+        || msg.contains("os error 11")
+}
+
 #[derive(Clone, Debug)]
 pub struct SyncOpts {
     pub max_attempts_per_peer: usize,
@@ -256,6 +270,19 @@ pub fn ser_getdata_block(hash: [u8; 32]) -> Vec<u8> {
     let mut le = hash;
     le.reverse();
     p.extend_from_slice(&le);
+    p
+}
+
+/// Serialize an INV message for block announcements.
+pub fn ser_inv_block(block_hashes: &[[u8; 32]]) -> Vec<u8> {
+    let mut p = Vec::new();
+    write_compact_size(block_hashes.len() as u64, &mut p);
+    for hash in block_hashes {
+        p.extend_from_slice(&MSG_BLOCK.to_le_bytes());
+        let mut le = *hash;
+        le.reverse();
+        p.extend_from_slice(&le);
+    }
     p
 }
 
@@ -529,6 +556,12 @@ pub fn sync_with_retries(
             match sync_headers_and_blocks(node, net, &addr_str) {
                 Ok(()) => return Ok(()),
                 Err(e) => {
+                    tracing::debug!(
+                        peer = %addr_str,
+                        attempt = attempt + 1,
+                        error = %e,
+                        "sync attempt failed"
+                    );
                     // last attempt or deadline exceeded
                     if attempt + 1 == opts.max_attempts_per_peer {
                         break;
@@ -539,8 +572,6 @@ pub fn sync_with_retries(
                         Duration::from_millis(opts.max_backoff_ms),
                         backoff.saturating_mul(2),
                     );
-                    // continue to next attempt
-                    let _ = e; // silence unused in non-logging builds
                 }
             }
         }
@@ -1120,6 +1151,18 @@ impl InboundListener {
                         }
                     };
 
+                // Store peer's advertised address in AddrManager for discovery
+                if let Some(listening_addr) = peer_version.addr_from {
+                    let mut node_guard = node.lock().unwrap();
+                    let now = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map(|d| d.as_secs())
+                        .unwrap_or(0);
+                    node_guard
+                        .addr_manager_mut()
+                        .add(listening_addr, peer_version.services, now);
+                }
+
                 // Register peer
                 let peer_id = peer_manager.add_peer(
                     peer_addr.clone(),
@@ -1196,12 +1239,18 @@ fn handle_inbound_messages(
         let msg = match read_message(&mut stream, magic) {
             Ok(m) => m,
             Err(e) => {
-                // Check if it's a timeout (normal) or actual error
-                if e.to_string().contains("timed out") {
+                // Check if it's a timeout/EAGAIN (normal) or actual error
+                if is_timeout_error(&e) {
                     // On timeout, process any pending relay transactions
                     let to_relay = peer_manager.take_relay_for_peer(peer_id);
                     if !to_relay.is_empty() {
                         let payload = ser_inv_tx(&to_relay);
+                        write_message(&mut stream, magic, CMD_INV, &payload)?;
+                    }
+                    // Also process any pending relay blocks
+                    let blocks_to_relay = peer_manager.take_block_relay_for_peer(peer_id);
+                    if !blocks_to_relay.is_empty() {
+                        let payload = ser_inv_block(&blocks_to_relay);
                         write_message(&mut stream, magic, CMD_INV, &payload)?;
                     }
                     continue;
@@ -1233,9 +1282,10 @@ fn handle_inbound_messages(
                 handle_ping(&mut stream, magic, &msg.payload)?;
             }
             CMD_INV => {
-                // Parse inventory announcements and request unknown transactions
+                // Parse inventory announcements and request unknown blocks/transactions
                 let entries = parse_inv(&msg.payload)?;
                 let mut tx_requests: Vec<[u8; 32]> = Vec::new();
+                let mut block_requests: Vec<[u8; 32]> = Vec::new();
 
                 // Check rate limit for tx processing
                 if let Some(peer_arc) = peer_manager.get_peer(peer_id) {
@@ -1248,14 +1298,30 @@ fn handle_inbound_messages(
 
                 let node_guard = node.lock().unwrap();
                 for entry in entries {
-                    if entry.inv_type == MSG_TX {
-                        // Only request if not already in mempool
-                        if !node_guard.mempool_contains(&entry.hash) {
-                            tx_requests.push(entry.hash);
+                    match entry.inv_type {
+                        MSG_TX => {
+                            // Only request if not already in mempool
+                            if !node_guard.mempool_contains(&entry.hash) {
+                                tx_requests.push(entry.hash);
+                            }
                         }
+                        MSG_BLOCK => {
+                            // Only request if we don't have this block
+                            if !node_guard.has_block(&entry.hash) {
+                                block_requests.push(entry.hash);
+                            }
+                        }
+                        _ => {}
                     }
                 }
                 drop(node_guard);
+
+                // Send GETDATA for unknown blocks
+                for block_hash in block_requests {
+                    let payload = ser_getdata_block(block_hash);
+                    write_message(&mut stream, magic, CMD_GETDATA, &payload)?;
+                    debug!(?block_hash, "requesting block from peer");
+                }
 
                 // Send GETDATA for unknown transactions
                 if !tx_requests.is_empty() {
@@ -1339,6 +1405,31 @@ fn handle_inbound_messages(
                     }
                     Err(e) => {
                         warn!(peer_id, error = %e, "failed to parse ADDR message");
+                    }
+                }
+            }
+            CMD_BLOCK => {
+                // Received a block (typically in response to our GETDATA)
+                // Submit it to the node for validation and acceptance
+                let mut node_guard = node.lock().unwrap();
+                match node_guard.submit_block_bytes(&msg.payload) {
+                    Ok(_) => {
+                        // Block accepted - queue for relay to other peers
+                        // Extract block hash from the header (first 80 bytes)
+                        if msg.payload.len() >= 80
+                            && let Ok(header) =
+                                parse_header_bytes(msg.payload[..80].try_into().unwrap())
+                        {
+                            let block_hash = header.hash();
+                            drop(node_guard);
+                            // Relay to other peers (excluding sender)
+                            peer_manager.queue_block_relay(peer_id, block_hash);
+                            info!(block_hash = %hex::encode(block_hash), "accepted block from peer");
+                        }
+                    }
+                    Err(e) => {
+                        // Block rejected - could penalize peer, but log for now
+                        debug!(peer_id, error = %e, "rejected block from peer");
                     }
                 }
             }
@@ -1581,6 +1672,13 @@ fn outbound_maintenance_loop(
                     break;
                 }
 
+                // Skip our own listening address
+                if let Some(local) = config.local_addr
+                    && addr == local
+                {
+                    continue;
+                }
+
                 // Skip if already connected
                 if peer_manager.is_connected(&addr) {
                     continue;
@@ -1613,7 +1711,7 @@ fn try_connect_outbound(
     }
 
     // Try to connect with timeout
-    let stream = match TcpStream::connect_timeout(
+    let mut stream = match TcpStream::connect_timeout(
         addr,
         Duration::from_millis(OUTBOUND_CONNECT_TIMEOUT_MS),
     ) {
@@ -1679,6 +1777,11 @@ fn try_connect_outbound(
         height = peer_version.start_height,
         "outbound peer connected"
     );
+
+    // Send GETADDR to request peer's known addresses (for address discovery)
+    if let Err(e) = write_message(&mut stream, config.magic, CMD_GETADDR, &[]) {
+        debug!(peer_id, error = %e, "failed to send GETADDR");
+    }
 
     // Spawn message handler thread
     let node_clone = node.clone();

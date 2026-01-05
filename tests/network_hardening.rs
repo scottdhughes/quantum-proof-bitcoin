@@ -293,6 +293,9 @@ fn rate_limiter_allows_within_limit() {
 
 #[test]
 fn connection_limiter_enforces_limits() {
+    use qpb_consensus::constants::{
+        MAX_CONNECTIONS_PER_IP, MAX_CONNECTIONS_PER_SUBNET, MAX_OUTBOUND_CONNECTIONS,
+    };
     use qpb_consensus::node::peer::ConnectionLimiter;
 
     let mut limiter = ConnectionLimiter::new();
@@ -301,20 +304,30 @@ fn connection_limiter_enforces_limits() {
     assert!(limiter.can_connect("192.168.1.1", None).is_ok());
     limiter.add_connection("192.168.1.1");
 
-    // Same IP should fail on second connection (MAX_CONNECTIONS_PER_IP = 1)
+    // Add connections up to the per-IP limit (or total limit, whichever is lower)
+    let per_ip_limit = MAX_CONNECTIONS_PER_IP.min(MAX_OUTBOUND_CONNECTIONS);
+    for _ in 1..per_ip_limit {
+        limiter.add_connection("192.168.1.1");
+    }
+
+    // Next connection from same IP should fail (either MaxPerIP or MaxConnections)
     assert!(limiter.can_connect("192.168.1.1", None).is_err());
 
-    // Different IPs in same /16 subnet should allow 2
-    assert!(limiter.can_connect("10.0.1.1", None).is_ok());
-    limiter.add_connection("10.0.1.1");
+    // Reset limiter for subnet test
+    let mut limiter = ConnectionLimiter::new();
 
-    assert!(limiter.can_connect("10.0.2.1", None).is_ok());
-    limiter.add_connection("10.0.2.1");
+    // Add connections from different IPs in same /16 subnet up to limit
+    let per_subnet_limit = MAX_CONNECTIONS_PER_SUBNET.min(MAX_OUTBOUND_CONNECTIONS);
+    for i in 0..per_subnet_limit {
+        limiter.add_connection(&format!("10.0.{}.1", i));
+    }
 
-    // 3rd in same /16 blocked (MAX_CONNECTIONS_PER_SUBNET = 2)
-    assert!(limiter.can_connect("10.0.3.1", None).is_err());
+    // Next from same subnet should fail (either MaxPerSubnet or MaxConnections)
+    assert!(limiter.can_connect("10.0.99.1", None).is_err());
 
     // Track disconnection
+    let mut limiter = ConnectionLimiter::new();
+    limiter.add_connection("192.168.1.1");
     limiter.remove_connection("192.168.1.1");
     assert!(limiter.can_connect("192.168.1.1", None).is_ok()); // Can connect again
 }

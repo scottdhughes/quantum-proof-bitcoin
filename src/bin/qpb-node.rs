@@ -114,11 +114,24 @@ fn main() -> Result<()> {
 
     // 1. Manual --p2p-connect peers (highest priority)
     if let Some(peers) = args.p2p_connect.as_ref() {
-        peer_addrs.extend(
-            peers
-                .iter()
-                .filter_map(|s| s.parse::<std::net::SocketAddr>().ok()),
-        );
+        let manual_addrs: Vec<std::net::SocketAddr> = peers
+            .iter()
+            .filter_map(|s| s.parse::<std::net::SocketAddr>().ok())
+            .collect();
+
+        // Seed address manager with manual peers so OutboundManager can use them
+        if !manual_addrs.is_empty() {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            for addr in &manual_addrs {
+                // services=1 (NODE_NETWORK) is a reasonable default
+                node.addr_manager_mut().add(*addr, 1, now);
+            }
+        }
+
+        peer_addrs.extend(manual_addrs);
     }
 
     // 2. DNS seeds (if no manual peers specified)
@@ -362,10 +375,31 @@ fn start_rpc_server_shared(
             let response = Response::from_string(resp_body)
                 .with_header(Header::from_bytes("Content-Type", "application/json").unwrap());
             let _ = request.respond(response);
-            if matches!(action, RpcAction::Stop) {
-                // Signal shutdown for other components
-                shutdown.store(true, Ordering::SeqCst);
-                break;
+
+            // Handle RPC actions
+            match action {
+                RpcAction::Stop => {
+                    // Signal shutdown for other components
+                    shutdown.store(true, Ordering::SeqCst);
+                    break;
+                }
+                RpcAction::BroadcastBlock(block_hash) => {
+                    // Queue block for relay to all peers (sender_id=0 for locally-mined)
+                    let node = shared.lock().unwrap();
+                    if let Some(pm) = node.peer_manager() {
+                        pm.queue_block_relay(0, block_hash);
+                        debug!(?block_hash, "queued block for broadcast");
+                    }
+                }
+                RpcAction::BroadcastTransaction(txid) => {
+                    // Queue transaction for relay to all peers (sender_id=0 for local tx)
+                    let node = shared.lock().unwrap();
+                    if let Some(pm) = node.peer_manager() {
+                        pm.queue_relay(0, txid);
+                        debug!(?txid, "queued transaction for broadcast");
+                    }
+                }
+                RpcAction::Continue => {}
             }
         }
     });

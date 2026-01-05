@@ -15,6 +15,10 @@ use crate::node::wallet::Wallet;
 pub enum RpcAction {
     Continue,
     Stop,
+    /// Broadcast a newly-mined or accepted block to peers.
+    BroadcastBlock([u8; 32]),
+    /// Broadcast a newly-accepted transaction to peers.
+    BroadcastTransaction([u8; 32]),
 }
 
 #[derive(Deserialize)]
@@ -129,7 +133,11 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             } else {
                 Value::Array(hashes)
             };
-            Ok((val, RpcAction::Continue))
+            // Broadcast the new tip to peers
+            let tip_hash = hex::decode(node.best_hash_hex())?;
+            let mut block_hash = [0u8; 32];
+            block_hash.copy_from_slice(&tip_hash);
+            Ok((val, RpcAction::BroadcastBlock(block_hash)))
         }
         "generateblock" => {
             // Generate block including mempool transactions
@@ -151,7 +159,11 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             } else {
                 Value::Array(hashes)
             };
-            Ok((val, RpcAction::Continue))
+            // Broadcast the new tip to peers
+            let tip_hash = hex::decode(node.best_hash_hex())?;
+            let mut block_hash = [0u8; 32];
+            block_hash.copy_from_slice(&tip_hash);
+            Ok((val, RpcAction::BroadcastBlock(block_hash)))
         }
         "generatetoaddress" => {
             // generatetoaddress <n> <address>
@@ -183,7 +195,11 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             } else {
                 Value::Array(hashes)
             };
-            Ok((val, RpcAction::Continue))
+            // Broadcast the new tip to peers
+            let tip_hash = hex::decode(node.best_hash_hex())?;
+            let mut block_hash = [0u8; 32];
+            block_hash.copy_from_slice(&tip_hash);
+            Ok((val, RpcAction::BroadcastBlock(block_hash)))
         }
         "getutxo" => {
             let txid_hex = params
@@ -219,7 +235,11 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             let bytes = hex::decode(hex).map_err(|_| anyhow!("invalid transaction hex"))?;
             let tx = parse_transaction(&bytes)?;
             let txid = node.add_to_mempool(tx)?;
-            Ok((Value::String(hex::encode(txid)), RpcAction::Continue))
+            // Broadcast to peers (sender_id=0 means broadcast to all)
+            Ok((
+                Value::String(hex::encode(txid)),
+                RpcAction::BroadcastTransaction(txid),
+            ))
         }
         "getmempoolinfo" => {
             let info = node.mempool_info();
