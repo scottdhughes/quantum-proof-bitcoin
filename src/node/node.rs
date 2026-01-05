@@ -166,7 +166,8 @@ impl Node {
             ban_list: BanList::load(datadir).unwrap_or_else(|_| BanList::new()),
             wallet: None,
             peer_manager: None,
-            addr_manager: AddrManager::new(MAX_ADDR_MANAGER_SIZE),
+            addr_manager: AddrManager::load(datadir, MAX_ADDR_MANAGER_SIZE)
+                .unwrap_or_else(|_| AddrManager::new(MAX_ADDR_MANAGER_SIZE)),
         })
     }
 
@@ -1015,7 +1016,10 @@ impl Node {
     ///
     /// Persists mempool transactions so they can be restored on restart.
     pub fn save(&self) -> Result<()> {
-        self.mempool.save(&self.datadir)
+        self.mempool.save(&self.datadir)?;
+        self.ban_list.save()?;
+        self.addr_manager.save()?;
+        Ok(())
     }
 }
 
