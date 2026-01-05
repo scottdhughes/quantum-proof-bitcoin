@@ -34,7 +34,7 @@
 
 **Phase 1B1 status:** Outbound sync with multiple peers (try in order until one succeeds), read/write timeouts, max message size guard (8MB), safer partial reads. Still tip-only; no reorgs or inbound/mempool.
 
-**Phase 1B2 status (current):** Outbound sync now retries peers with backoff/deadline; recovers from dropped connections mid-handshake or mid-block. Still tip-only; no forks/reorgs/mempool.
+**Phase 1B2 status:** Complete. Outbound sync with retry/backoff, connection recovery, and full reorg support (fork detection, undo data, chain reorganization with rollback).
 
 **Deliverables (overall Phase 1)**
 - Headers-first sync with basic DoS limits.
