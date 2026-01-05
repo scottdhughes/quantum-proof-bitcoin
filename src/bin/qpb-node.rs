@@ -125,6 +125,17 @@ fn main() -> Result<()> {
         let dns_addrs = resolve_dns_seeds(&net.dns_seeds, net.p2p_port);
         if !dns_addrs.is_empty() {
             info!(count = dns_addrs.len(), "resolved addresses from DNS seeds");
+
+            // Seed address manager with DNS-resolved peers
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            for addr in &dns_addrs {
+                // services=1 (NODE_NETWORK) is a reasonable default for DNS-resolved peers
+                node.addr_manager_mut().add(*addr, 1, now);
+            }
+
             peer_addrs.extend(dns_addrs);
         }
     }

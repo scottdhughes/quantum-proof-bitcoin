@@ -1222,16 +1222,41 @@ fn handle_inbound_messages(
             }
             CMD_GETADDR => {
                 // Peer is requesting known addresses
-                // For now, send empty response (no address manager integration yet)
-                let payload = ser_addr(&[]);
+                // Get up to 23 recent addresses to share (Bitcoin protocol standard)
+                let node_guard = node.lock().unwrap();
+                let addrs_to_share = node_guard.addr_manager().get_addrs_to_share(23);
+                drop(node_guard);
+
+                // Convert to NetAddr format
+                let net_addrs: Vec<NetAddr> = addrs_to_share
+                    .iter()
+                    .map(|(addr, services, last_seen)| {
+                        NetAddr::from_socket_addr_with_time(addr, *services, *last_seen as u32)
+                    })
+                    .collect();
+
+                debug!(peer_id, count = net_addrs.len(), "responding to GETADDR");
+                let payload = ser_addr(&net_addrs);
                 write_message(&mut stream, magic, CMD_ADDR, &payload)?;
             }
             CMD_ADDR => {
-                // Peer is sharing addresses - parse and log for now
+                // Peer is sharing addresses - parse and store them
                 match parse_addr(&msg.payload) {
                     Ok(addrs) => {
                         if !addrs.is_empty() {
                             debug!(peer_id, count = addrs.len(), "peer shared addresses");
+
+                            // Add each address to our address manager
+                            let mut node_guard = node.lock().unwrap();
+                            for net_addr in &addrs {
+                                if let Some(socket_addr) = net_addr.to_socket_addr() {
+                                    node_guard.addr_manager_mut().add(
+                                        socket_addr,
+                                        net_addr.services,
+                                        net_addr.time as u64,
+                                    );
+                                }
+                            }
                         }
                     }
                     Err(e) => {
