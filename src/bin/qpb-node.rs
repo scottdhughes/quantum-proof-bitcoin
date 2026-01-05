@@ -400,10 +400,7 @@ fn format_prometheus_metrics(node: &Node, inbound: usize, outbound: usize) -> St
     // Node info (gauge with labels)
     metrics.push_str("# HELP qpb_node_info Node information\n");
     metrics.push_str("# TYPE qpb_node_info gauge\n");
-    metrics.push_str(&format!(
-        "qpb_node_info{{chain=\"{}\"}} 1\n",
-        node.chain
-    ));
+    metrics.push_str(&format!("qpb_node_info{{chain=\"{}\"}} 1\n", node.chain));
 
     // Block height
     metrics.push_str("# HELP qpb_block_height Current block height\n");
@@ -434,7 +431,10 @@ fn format_prometheus_metrics(node: &Node, inbound: usize, outbound: usize) -> St
 
     metrics.push_str("# HELP qpb_mempool_fees_total Total fees in mempool (satoshis)\n");
     metrics.push_str("# TYPE qpb_mempool_fees_total gauge\n");
-    metrics.push_str(&format!("qpb_mempool_fees_total {}\n", mempool_info.total_fee));
+    metrics.push_str(&format!(
+        "qpb_mempool_fees_total {}\n",
+        mempool_info.total_fee
+    ));
 
     // Orphan transactions
     metrics.push_str("# HELP qpb_orphan_txs Number of orphan transactions\n");
@@ -490,11 +490,9 @@ fn start_rpc_server(
             let node = shared.lock().unwrap();
             let (inbound, outbound) = node.peer_count();
             let metrics = format_prometheus_metrics(&node, inbound, outbound);
-            let _ = request.respond(
-                Response::from_string(metrics).with_header(
-                    Header::from_bytes("Content-Type", "text/plain; version=0.0.4").unwrap(),
-                ),
-            );
+            let _ = request.respond(Response::from_string(metrics).with_header(
+                Header::from_bytes("Content-Type", "text/plain; version=0.0.4").unwrap(),
+            ));
             continue;
         }
 
@@ -613,10 +611,10 @@ fn start_rpc_server_shared(
                     inbound,
                     outbound
                 );
-                let _ = request.respond(
-                    Response::from_string(health_response)
-                        .with_header(Header::from_bytes("Content-Type", "application/json").unwrap()),
-                );
+                let _ =
+                    request.respond(Response::from_string(health_response).with_header(
+                        Header::from_bytes("Content-Type", "application/json").unwrap(),
+                    ));
                 continue;
             }
 
@@ -625,11 +623,9 @@ fn start_rpc_server_shared(
                 let node = shared.lock().unwrap();
                 let (inbound, outbound) = node.peer_count();
                 let metrics = format_prometheus_metrics(&node, inbound, outbound);
-                let _ = request.respond(
-                    Response::from_string(metrics).with_header(
-                        Header::from_bytes("Content-Type", "text/plain; version=0.0.4").unwrap(),
-                    ),
-                );
+                let _ = request.respond(Response::from_string(metrics).with_header(
+                    Header::from_bytes("Content-Type", "text/plain; version=0.0.4").unwrap(),
+                ));
                 continue;
             }
 

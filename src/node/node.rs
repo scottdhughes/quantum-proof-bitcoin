@@ -238,10 +238,7 @@ impl Node {
         let nonce = u32::from_le_bytes([bytes[76], bytes[77], bytes[78], bytes[79]]);
 
         // Get height from chain index
-        let hash_bytes: [u8; 32] = hex::decode(hash_hex)
-            .ok()?
-            .try_into()
-            .ok()?;
+        let hash_bytes: [u8; 32] = hex::decode(hash_hex).ok()?.try_into().ok()?;
         let meta = self.chain_index.get(&hash_bytes)?;
         let height = meta.height;
 
