@@ -1461,3 +1461,285 @@ pub fn default_port_for_chain(chain: &str) -> u16 {
         _ => DEFAULT_DEVNET_PORT,
     }
 }
+
+// ============================================================================
+// Outbound Connection Manager
+// ============================================================================
+
+use crate::constants::{
+    OUTBOUND_CONNECT_TIMEOUT_MS, OUTBOUND_MAINTENANCE_INTERVAL_MS, TARGET_OUTBOUND_CONNECTIONS,
+};
+
+/// Configuration for the outbound connection manager.
+#[derive(Debug, Clone)]
+pub struct OutboundConfig {
+    /// Network magic bytes.
+    pub magic: [u8; 4],
+    /// Target number of outbound connections to maintain.
+    pub target_outbound: usize,
+    /// Our local listening address (for VERSION addr_from).
+    pub local_addr: Option<SocketAddr>,
+    /// Maintenance check interval in milliseconds.
+    pub maintenance_interval_ms: u64,
+}
+
+impl Default for OutboundConfig {
+    fn default() -> Self {
+        Self {
+            magic: [0; 4],
+            target_outbound: TARGET_OUTBOUND_CONNECTIONS,
+            local_addr: None,
+            maintenance_interval_ms: OUTBOUND_MAINTENANCE_INTERVAL_MS,
+        }
+    }
+}
+
+/// Outbound connection manager.
+///
+/// Runs a background thread that:
+/// 1. Monitors current outbound connection count
+/// 2. Connects to new peers when below target
+/// 3. Handles message loops for outbound peers
+pub struct OutboundManager {
+    /// Configuration.
+    config: OutboundConfig,
+    /// Shutdown signal.
+    shutdown: Arc<AtomicBool>,
+    /// Manager thread handle.
+    thread_handle: Option<JoinHandle<()>>,
+}
+
+impl OutboundManager {
+    /// Create a new outbound manager.
+    pub fn new(config: OutboundConfig) -> Self {
+        Self {
+            config,
+            shutdown: Arc::new(AtomicBool::new(false)),
+            thread_handle: None,
+        }
+    }
+
+    /// Start the outbound maintenance loop.
+    pub fn start(&mut self, node: Arc<Mutex<Node>>, peer_manager: Arc<PeerManager>) {
+        let config = self.config.clone();
+        let shutdown = self.shutdown.clone();
+
+        let handle = thread::spawn(move || {
+            outbound_maintenance_loop(config, node, peer_manager, shutdown);
+        });
+
+        self.thread_handle = Some(handle);
+    }
+
+    /// Signal shutdown.
+    pub fn shutdown(&self) {
+        self.shutdown.store(true, Ordering::SeqCst);
+    }
+
+    /// Wait for the manager thread to finish.
+    pub fn join(self) {
+        if let Some(handle) = self.thread_handle {
+            let _ = handle.join();
+        }
+    }
+}
+
+/// Main outbound connection maintenance loop.
+fn outbound_maintenance_loop(
+    config: OutboundConfig,
+    node: Arc<Mutex<Node>>,
+    peer_manager: Arc<PeerManager>,
+    shutdown: Arc<AtomicBool>,
+) {
+    info!("outbound manager started");
+
+    loop {
+        if shutdown.load(Ordering::SeqCst) {
+            break;
+        }
+
+        // Check if we need more outbound connections
+        let (_, outbound_count) = peer_manager.peer_counts();
+
+        if outbound_count < config.target_outbound {
+            let needed = config.target_outbound - outbound_count;
+            debug!(
+                current = outbound_count,
+                target = config.target_outbound,
+                needed,
+                "checking for outbound peers"
+            );
+
+            // Get candidate addresses to try
+            let candidates = {
+                let node_guard = node.lock().unwrap();
+                node_guard.addr_manager().get_addrs_to_try(needed)
+            };
+
+            for addr in candidates {
+                if shutdown.load(Ordering::SeqCst) {
+                    break;
+                }
+
+                // Skip if already connected
+                if peer_manager.is_connected(&addr) {
+                    continue;
+                }
+
+                // Try to connect
+                try_connect_outbound(&addr, &config, &node, &peer_manager, &shutdown);
+            }
+        }
+
+        // Sleep before next check
+        thread::sleep(Duration::from_millis(config.maintenance_interval_ms));
+    }
+
+    info!("outbound manager stopped");
+}
+
+/// Try to establish an outbound connection to a peer.
+fn try_connect_outbound(
+    addr: &SocketAddr,
+    config: &OutboundConfig,
+    node: &Arc<Mutex<Node>>,
+    peer_manager: &Arc<PeerManager>,
+    shutdown: &Arc<AtomicBool>,
+) {
+    // Mark attempt in address manager
+    {
+        let mut node_guard = node.lock().unwrap();
+        node_guard.addr_manager_mut().mark_attempt(addr, false);
+    }
+
+    // Try to connect with timeout
+    let stream = match TcpStream::connect_timeout(
+        addr,
+        Duration::from_millis(OUTBOUND_CONNECT_TIMEOUT_MS),
+    ) {
+        Ok(s) => s,
+        Err(e) => {
+            debug!(%addr, error = %e, "outbound connect failed");
+            return;
+        }
+    };
+
+    // Get our height for handshake
+    let our_height = {
+        let node_guard = node.lock().unwrap();
+        node_guard.height() as i32
+    };
+
+    // Perform handshake as initiator
+    let peer_version = match handle_outbound_handshake(
+        stream.try_clone().expect("clone stream"),
+        config.magic,
+        our_height,
+        config.local_addr,
+    ) {
+        Ok(v) => v,
+        Err(e) => {
+            debug!(%addr, error = %e, "outbound handshake failed");
+            return;
+        }
+    };
+
+    // Mark success in address manager
+    {
+        let mut node_guard = node.lock().unwrap();
+        node_guard.addr_manager_mut().mark_good(addr);
+
+        // Add peer's advertised address if available and different
+        if let Some(listening_addr) = peer_version.addr_from
+            && listening_addr != *addr
+        {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            node_guard
+                .addr_manager_mut()
+                .add(listening_addr, peer_version.services, now);
+        }
+    }
+
+    // Register peer
+    let peer_id = peer_manager.add_peer(
+        addr.to_string(),
+        PeerDirection::Outbound,
+        peer_version.version,
+        peer_version.services,
+        peer_version.start_height,
+    );
+
+    info!(
+        %addr,
+        peer_id,
+        version = peer_version.version,
+        height = peer_version.start_height,
+        "outbound peer connected"
+    );
+
+    // Spawn message handler thread
+    let node_clone = node.clone();
+    let peer_manager_clone = peer_manager.clone();
+    let shutdown_clone = shutdown.clone();
+    let magic = config.magic;
+
+    thread::spawn(move || {
+        if let Err(e) = handle_inbound_messages(
+            stream,
+            magic,
+            peer_id,
+            node_clone,
+            peer_manager_clone.clone(),
+            shutdown_clone,
+        ) {
+            debug!(peer_id, error = %e, "outbound peer disconnected");
+        }
+        peer_manager_clone.remove_peer(peer_id);
+    });
+}
+
+/// Perform handshake as initiator (for outbound connections).
+///
+/// Handshake order for initiator:
+/// 1. Send our VERSION
+/// 2. Receive peer's VERSION
+/// 3. Send VERACK
+/// 4. Receive VERACK
+pub fn handle_outbound_handshake(
+    mut stream: TcpStream,
+    magic: [u8; 4],
+    our_height: i32,
+    local_addr: Option<SocketAddr>,
+) -> Result<PeerVersion> {
+    stream.set_read_timeout(Some(Duration::from_millis(HANDSHAKE_TIMEOUT_MS)))?;
+    stream.set_write_timeout(Some(Duration::from_millis(HANDSHAKE_TIMEOUT_MS)))?;
+
+    // 1. Send our VERSION with local address
+    let our_version = ser_version_with_addr(our_height, local_addr);
+    write_message(&mut stream, magic, CMD_VERSION, &our_version)?;
+
+    // 2. Receive peer's VERSION
+    let msg = read_message(&mut stream, magic)?;
+    if msg.command != CMD_VERSION {
+        return Err(anyhow!("expected VERSION, got {}", msg.command));
+    }
+    let peer_version = parse_version(&msg.payload)?;
+
+    // 3. Send VERACK
+    write_message(&mut stream, magic, CMD_VERACK, &[])?;
+
+    // 4. Receive VERACK (tolerate VERSION if peer sends it again)
+    let verack_msg = read_message(&mut stream, magic)?;
+    if verack_msg.command != CMD_VERACK && verack_msg.command != CMD_VERSION {
+        return Err(anyhow!("expected VERACK, got {}", verack_msg.command));
+    }
+
+    // Restore normal timeouts
+    stream.set_read_timeout(Some(Duration::from_millis(DEFAULT_READ_TIMEOUT_MS)))?;
+    stream.set_write_timeout(Some(Duration::from_millis(DEFAULT_WRITE_TIMEOUT_MS)))?;
+
+    Ok(peer_version)
+}
