@@ -1,7 +1,12 @@
 //! Peer discovery via DNS seeds and P2P address exchange.
 
 use std::collections::HashMap;
+use std::fs;
 use std::net::{SocketAddr, ToSocketAddrs};
+use std::path::{Path, PathBuf};
+
+use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use tracing::warn;
 
 /// Maximum DNS seeds to try per network.
@@ -51,7 +56,7 @@ pub fn resolve_dns_seeds(seeds: &[String], default_port: u16) -> Vec<SocketAddr>
 // ============================================================================
 
 /// Entry for a known peer address.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct AddrEntry {
     /// Service flags advertised by this peer.
     services: u64,
@@ -68,12 +73,15 @@ struct AddrEntry {
 /// Simple in-memory address manager.
 ///
 /// Tracks known peer addresses and their connection history.
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AddrManager {
     /// Known addresses with metadata.
     addrs: HashMap<SocketAddr, AddrEntry>,
     /// Maximum addresses to store.
     max_size: usize,
+    /// Path to persistence file.
+    #[serde(skip)]
+    path: Option<PathBuf>,
 }
 
 impl AddrManager {
@@ -82,7 +90,36 @@ impl AddrManager {
         Self {
             addrs: HashMap::new(),
             max_size,
+            path: None,
         }
+    }
+
+    /// Load address manager from disk, or create new if file doesn't exist.
+    pub fn load(datadir: &Path, max_size: usize) -> Result<Self> {
+        let path = datadir.join("addresses.json");
+
+        let mgr = if path.exists() {
+            let data = fs::read_to_string(&path)?;
+            let mut loaded: AddrManager = serde_json::from_str(&data)?;
+            loaded.path = Some(path);
+            loaded.max_size = max_size; // Override with current config
+            loaded
+        } else {
+            let mut new_mgr = AddrManager::new(max_size);
+            new_mgr.path = Some(path);
+            new_mgr
+        };
+
+        Ok(mgr)
+    }
+
+    /// Save address manager to disk.
+    pub fn save(&self) -> Result<()> {
+        if let Some(ref path) = self.path {
+            let data = serde_json::to_string_pretty(self)?;
+            fs::write(path, data)?;
+        }
+        Ok(())
     }
 
     /// Add an address (from ADDR message or DNS seed).
