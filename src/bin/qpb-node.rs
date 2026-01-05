@@ -68,6 +68,45 @@ struct Args {
     /// Maximum inbound connections to accept.
     #[arg(long = "maxinbound")]
     max_inbound: Option<usize>,
+
+    /// RPC username for authentication.
+    #[arg(long = "rpcuser")]
+    rpc_user: Option<String>,
+
+    /// RPC password for authentication.
+    #[arg(long = "rpcpassword")]
+    rpc_password: Option<String>,
+}
+
+/// RPC authentication configuration.
+#[derive(Clone)]
+struct RpcAuth {
+    /// Base64-encoded "user:password" for HTTP Basic Auth validation.
+    expected_basic: String,
+}
+
+impl RpcAuth {
+    fn new(user: &str, password: &str) -> Self {
+        use base64::Engine;
+        let credentials = format!("{}:{}", user, password);
+        let expected_basic = base64::engine::general_purpose::STANDARD.encode(credentials);
+        Self { expected_basic }
+    }
+
+    /// Validate an Authorization header value.
+    /// Returns true if auth is valid, false otherwise.
+    fn check(&self, auth_header: Option<&str>) -> bool {
+        match auth_header {
+            Some(value) => {
+                if let Some(encoded) = value.strip_prefix("Basic ") {
+                    encoded == self.expected_basic
+                } else {
+                    false
+                }
+            }
+            None => false,
+        }
+    }
 }
 
 fn main() -> Result<()> {
@@ -237,8 +276,14 @@ fn main() -> Result<()> {
         let shutdown_flag = Arc::new(AtomicBool::new(false));
 
         // If RPC is also enabled, run it
-        if let Some(addr) = args.rpc_addr {
-            start_rpc_server_shared(addr, node_arc.clone().unwrap(), Arc::clone(&shutdown_flag))?;
+        if let Some(ref addr) = args.rpc_addr {
+            let rpc_auth = create_rpc_auth(&args)?;
+            start_rpc_server_shared(
+                addr.clone(),
+                node_arc.clone().unwrap(),
+                Arc::clone(&shutdown_flag),
+                rpc_auth,
+            )?;
         }
 
         // Install signal handler
@@ -290,17 +335,42 @@ fn main() -> Result<()> {
 
         info!("shutdown complete");
         return Ok(());
-    } else if let Some(addr) = args.rpc_addr {
+    } else if let Some(ref addr) = args.rpc_addr {
         // No listening, just RPC server
-        start_rpc_server(addr, node)?;
+        let rpc_auth = create_rpc_auth(&args)?;
+        start_rpc_server(addr.clone(), node, rpc_auth)?;
     }
 
     Ok(())
 }
 
-fn start_rpc_server(addr: String, node: Node) -> Result<()> {
+/// Create RPC auth configuration from CLI args.
+/// Returns None if no auth is configured (allows unauthenticated access).
+fn create_rpc_auth(args: &Args) -> Result<Option<RpcAuth>> {
+    match (&args.rpc_user, &args.rpc_password) {
+        (Some(user), Some(password)) => {
+            if user.is_empty() || password.is_empty() {
+                anyhow::bail!("--rpcuser and --rpcpassword must not be empty");
+            }
+            Ok(Some(RpcAuth::new(user, password)))
+        }
+        (Some(_), None) => {
+            anyhow::bail!("--rpcpassword is required when --rpcuser is specified");
+        }
+        (None, Some(_)) => {
+            anyhow::bail!("--rpcuser is required when --rpcpassword is specified");
+        }
+        (None, None) => {
+            // No auth configured - warn but allow
+            warn!("RPC server running without authentication (--rpcuser/--rpcpassword not set)");
+            Ok(None)
+        }
+    }
+}
+
+fn start_rpc_server(addr: String, node: Node, auth: Option<RpcAuth>) -> Result<()> {
     let server = Server::http(&addr).map_err(|e| anyhow::anyhow!("bind {}: {}", addr, e))?;
-    info!(%addr, "rpc listening");
+    info!(%addr, auth_enabled = auth.is_some(), "rpc listening");
     let shared = Arc::new(Mutex::new(node));
     for mut request in server.incoming_requests() {
         let shared = Arc::clone(&shared);
@@ -308,6 +378,32 @@ fn start_rpc_server(addr: String, node: Node) -> Result<()> {
             let _ = request.respond(Response::from_string("not found").with_status_code(404));
             continue;
         }
+
+        // Check authentication if enabled
+        if let Some(ref rpc_auth) = auth {
+            let auth_header = request
+                .headers()
+                .iter()
+                .find(|h| {
+                    h.field
+                        .as_str()
+                        .as_str()
+                        .eq_ignore_ascii_case("authorization")
+                })
+                .map(|h| h.value.as_str());
+            if !rpc_auth.check(auth_header) {
+                let _ = request.respond(
+                    Response::from_string(r#"{"error":"Unauthorized"}"#)
+                        .with_status_code(401)
+                        .with_header(
+                            Header::from_bytes("WWW-Authenticate", "Basic realm=\"qpb-rpc\"")
+                                .unwrap(),
+                        ),
+                );
+                continue;
+            }
+        }
+
         let mut body = String::new();
         if let Err(e) = request.as_reader().read_to_string(&mut body) {
             let _ = request
@@ -338,9 +434,10 @@ fn start_rpc_server_shared(
     addr: String,
     shared: Arc<Mutex<Node>>,
     shutdown: Arc<AtomicBool>,
+    auth: Option<RpcAuth>,
 ) -> Result<()> {
     let server = Server::http(&addr).map_err(|e| anyhow::anyhow!("bind {}: {}", addr, e))?;
-    info!(%addr, "rpc listening");
+    info!(%addr, auth_enabled = auth.is_some(), "rpc listening");
 
     std::thread::spawn(move || {
         loop {
@@ -361,6 +458,32 @@ fn start_rpc_server_shared(
                 let _ = request.respond(Response::from_string("not found").with_status_code(404));
                 continue;
             }
+
+            // Check authentication if enabled
+            if let Some(ref rpc_auth) = auth {
+                let auth_header = request
+                    .headers()
+                    .iter()
+                    .find(|h| {
+                        h.field
+                            .as_str()
+                            .as_str()
+                            .eq_ignore_ascii_case("authorization")
+                    })
+                    .map(|h| h.value.as_str());
+                if !rpc_auth.check(auth_header) {
+                    let _ = request.respond(
+                        Response::from_string(r#"{"error":"Unauthorized"}"#)
+                            .with_status_code(401)
+                            .with_header(
+                                Header::from_bytes("WWW-Authenticate", "Basic realm=\"qpb-rpc\"")
+                                    .unwrap(),
+                            ),
+                    );
+                    continue;
+                }
+            }
+
             let mut body = String::new();
             if let Err(e) = request.as_reader().read_to_string(&mut body) {
                 let _ = request.respond(
