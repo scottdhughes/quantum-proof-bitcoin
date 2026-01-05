@@ -273,6 +273,19 @@ pub fn ser_getdata_block(hash: [u8; 32]) -> Vec<u8> {
     p
 }
 
+/// Serialize an INV message for block announcements.
+pub fn ser_inv_block(block_hashes: &[[u8; 32]]) -> Vec<u8> {
+    let mut p = Vec::new();
+    write_compact_size(block_hashes.len() as u64, &mut p);
+    for hash in block_hashes {
+        p.extend_from_slice(&MSG_BLOCK.to_le_bytes());
+        let mut le = *hash;
+        le.reverse();
+        p.extend_from_slice(&le);
+    }
+    p
+}
+
 /// Serialize an INV message for transaction announcements.
 pub fn ser_inv_tx(txids: &[[u8; 32]]) -> Vec<u8> {
     let mut p = Vec::new();
@@ -1234,6 +1247,12 @@ fn handle_inbound_messages(
                         let payload = ser_inv_tx(&to_relay);
                         write_message(&mut stream, magic, CMD_INV, &payload)?;
                     }
+                    // Also process any pending relay blocks
+                    let blocks_to_relay = peer_manager.take_block_relay_for_peer(peer_id);
+                    if !blocks_to_relay.is_empty() {
+                        let payload = ser_inv_block(&blocks_to_relay);
+                        write_message(&mut stream, magic, CMD_INV, &payload)?;
+                    }
                     continue;
                 }
                 return Err(e);
@@ -1263,9 +1282,10 @@ fn handle_inbound_messages(
                 handle_ping(&mut stream, magic, &msg.payload)?;
             }
             CMD_INV => {
-                // Parse inventory announcements and request unknown transactions
+                // Parse inventory announcements and request unknown blocks/transactions
                 let entries = parse_inv(&msg.payload)?;
                 let mut tx_requests: Vec<[u8; 32]> = Vec::new();
+                let mut block_requests: Vec<[u8; 32]> = Vec::new();
 
                 // Check rate limit for tx processing
                 if let Some(peer_arc) = peer_manager.get_peer(peer_id) {
@@ -1278,14 +1298,30 @@ fn handle_inbound_messages(
 
                 let node_guard = node.lock().unwrap();
                 for entry in entries {
-                    if entry.inv_type == MSG_TX {
-                        // Only request if not already in mempool
-                        if !node_guard.mempool_contains(&entry.hash) {
-                            tx_requests.push(entry.hash);
+                    match entry.inv_type {
+                        MSG_TX => {
+                            // Only request if not already in mempool
+                            if !node_guard.mempool_contains(&entry.hash) {
+                                tx_requests.push(entry.hash);
+                            }
                         }
+                        MSG_BLOCK => {
+                            // Only request if we don't have this block
+                            if !node_guard.has_block(&entry.hash) {
+                                block_requests.push(entry.hash);
+                            }
+                        }
+                        _ => {}
                     }
                 }
                 drop(node_guard);
+
+                // Send GETDATA for unknown blocks
+                for block_hash in block_requests {
+                    let payload = ser_getdata_block(block_hash);
+                    write_message(&mut stream, magic, CMD_GETDATA, &payload)?;
+                    debug!(?block_hash, "requesting block from peer");
+                }
 
                 // Send GETDATA for unknown transactions
                 if !tx_requests.is_empty() {
@@ -1369,6 +1405,31 @@ fn handle_inbound_messages(
                     }
                     Err(e) => {
                         warn!(peer_id, error = %e, "failed to parse ADDR message");
+                    }
+                }
+            }
+            CMD_BLOCK => {
+                // Received a block (typically in response to our GETDATA)
+                // Submit it to the node for validation and acceptance
+                let mut node_guard = node.lock().unwrap();
+                match node_guard.submit_block_bytes(&msg.payload) {
+                    Ok(_) => {
+                        // Block accepted - queue for relay to other peers
+                        // Extract block hash from the header (first 80 bytes)
+                        if msg.payload.len() >= 80
+                            && let Ok(header) =
+                                parse_header_bytes(msg.payload[..80].try_into().unwrap())
+                        {
+                            let block_hash = header.hash();
+                            drop(node_guard);
+                            // Relay to other peers (excluding sender)
+                            peer_manager.queue_block_relay(peer_id, block_hash);
+                            info!(block_hash = %hex::encode(block_hash), "accepted block from peer");
+                        }
+                    }
+                    Err(e) => {
+                        // Block rejected - could penalize peer, but log for now
+                        debug!(peer_id, error = %e, "rejected block from peer");
                     }
                 }
             }
@@ -1612,10 +1673,10 @@ fn outbound_maintenance_loop(
                 }
 
                 // Skip our own listening address
-                if let Some(local) = config.local_addr {
-                    if addr == local {
-                        continue;
-                    }
+                if let Some(local) = config.local_addr
+                    && addr == local
+                {
+                    continue;
                 }
 
                 // Skip if already connected

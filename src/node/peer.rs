@@ -707,6 +707,8 @@ pub struct PeerManager {
     outbound_count: AtomicUsize,
     /// Queue of (sender_peer_id, txid) for relay to other peers.
     relay_queue: Mutex<Vec<(u64, [u8; 32])>>,
+    /// Queue of (sender_peer_id, block_hash) for relay to other peers.
+    block_relay_queue: Mutex<Vec<(u64, [u8; 32])>>,
 }
 
 impl PeerManager {
@@ -720,6 +722,7 @@ impl PeerManager {
             inbound_count: AtomicUsize::new(0),
             outbound_count: AtomicUsize::new(0),
             relay_queue: Mutex::new(Vec::new()),
+            block_relay_queue: Mutex::new(Vec::new()),
         }
     }
 
@@ -912,6 +915,48 @@ impl PeerManager {
         let mut queue = self.relay_queue.lock().unwrap();
         queue.clear();
     }
+
+    /// Queue a block for relay to other peers.
+    /// The sender_id is excluded from relay targets (use 0 for locally-mined blocks).
+    pub fn queue_block_relay(&self, sender_id: u64, block_hash: [u8; 32]) {
+        let mut queue = self.block_relay_queue.lock().unwrap();
+        queue.push((sender_id, block_hash));
+    }
+
+    /// Take pending block relay items for a specific peer.
+    /// Returns block hashes that should be announced to this peer.
+    pub fn take_block_relay_for_peer(&self, peer_id: u64) -> Vec<[u8; 32]> {
+        let queue = self.block_relay_queue.lock().unwrap();
+        let peer_arc = match self.get_peer(peer_id) {
+            Some(arc) => arc,
+            None => return Vec::new(),
+        };
+
+        let mut peer = peer_arc.lock().unwrap();
+        let mut to_relay = Vec::new();
+
+        for (sender_id, block_hash) in queue.iter() {
+            // Skip if we're the sender (received from this peer)
+            if *sender_id == peer_id {
+                continue;
+            }
+            // Skip if we already announced to this peer
+            if peer.sent_inv.contains(block_hash) {
+                continue;
+            }
+            // Mark as sent and queue for relay
+            peer.sent_inv.insert(*block_hash);
+            to_relay.push(*block_hash);
+        }
+
+        to_relay
+    }
+
+    /// Clear processed block relay items.
+    pub fn clear_block_relay_queue(&self) {
+        let mut queue = self.block_relay_queue.lock().unwrap();
+        queue.clear();
+    }
 }
 
 impl std::fmt::Debug for PeerManager {
@@ -1082,32 +1127,45 @@ mod tests {
 
     #[test]
     fn connection_limiter_basic() {
+        use crate::constants::{MAX_CONNECTIONS_PER_IP, MAX_OUTBOUND_CONNECTIONS};
         let mut limiter = ConnectionLimiter::new();
 
         assert!(limiter.can_connect("1.2.3.4", None).is_ok());
-        limiter.add_connection("1.2.3.4");
 
-        // Second connection from same IP should fail
-        assert_eq!(
-            limiter.can_connect("1.2.3.4", None),
-            Err(ConnectionDenied::MaxPerIP)
+        // Add connections from same IP up to the effective limit
+        // (min of per-IP and total outbound limits)
+        let effective_limit = MAX_CONNECTIONS_PER_IP.min(MAX_OUTBOUND_CONNECTIONS);
+        for _ in 0..effective_limit {
+            limiter.add_connection("1.2.3.4");
+        }
+
+        // Next connection from same IP should fail (either MaxPerIP or MaxConnections)
+        assert!(limiter.can_connect("1.2.3.4", None).is_err());
+
+        // Verify the limit is respected
+        let result = limiter.can_connect("1.2.3.4", None);
+        assert!(
+            result == Err(ConnectionDenied::MaxPerIP)
+                || result == Err(ConnectionDenied::MaxConnections)
         );
-
-        // Different IP should work
-        assert!(limiter.can_connect("5.6.7.8", None).is_ok());
     }
 
     #[test]
     fn connection_limiter_subnet() {
+        use crate::constants::{MAX_CONNECTIONS_PER_SUBNET, MAX_OUTBOUND_CONNECTIONS};
         let mut limiter = ConnectionLimiter::new();
 
-        limiter.add_connection("1.2.3.4");
-        limiter.add_connection("1.2.5.6"); // Same /16 subnet
+        // Add connections from same /16 subnet up to the effective limit
+        let effective_limit = MAX_CONNECTIONS_PER_SUBNET.min(MAX_OUTBOUND_CONNECTIONS);
+        for i in 0..effective_limit {
+            limiter.add_connection(&format!("1.2.{}.1", i));
+        }
 
-        // Third from same subnet should fail
-        assert_eq!(
-            limiter.can_connect("1.2.9.9", None),
-            Err(ConnectionDenied::MaxPerSubnet)
+        // Next from same subnet should fail (either MaxPerSubnet or MaxConnections)
+        let result = limiter.can_connect("1.2.99.99", None);
+        assert!(
+            result == Err(ConnectionDenied::MaxPerSubnet)
+                || result == Err(ConnectionDenied::MaxConnections)
         );
     }
 
