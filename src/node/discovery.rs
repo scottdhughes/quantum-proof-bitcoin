@@ -51,7 +51,7 @@ pub fn resolve_dns_seeds(seeds: &[String], default_port: u16) -> Vec<SocketAddr>
 // ============================================================================
 
 /// Entry for a known peer address.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct AddrEntry {
     /// Service flags advertised by this peer.
     services: u64,
@@ -68,6 +68,7 @@ struct AddrEntry {
 /// Simple in-memory address manager.
 ///
 /// Tracks known peer addresses and their connection history.
+#[derive(Debug)]
 pub struct AddrManager {
     /// Known addresses with metadata.
     addrs: HashMap<SocketAddr, AddrEntry>,

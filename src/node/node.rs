@@ -13,6 +13,7 @@ use crate::node::chainparams::{
     compute_chain_id, compute_genesis_hash, load_chainparams, select_network, to_block_header,
 };
 use crate::node::checkpoints::CheckpointVerifier;
+use crate::node::discovery::{AddrManager, MAX_ADDR_MANAGER_SIZE};
 use crate::node::feeest::{BlockFeeStats, FeeEstimate, FeeEstimator};
 use crate::node::mempool::{Mempool, MempoolEntry, MempoolInfo};
 use crate::node::orphan::OrphanPool;
@@ -68,6 +69,8 @@ pub struct Node {
     wallet: Option<super::wallet::Wallet>,
     /// Peer manager for tracking connected peers (inbound and outbound).
     peer_manager: Option<Arc<PeerManager>>,
+    /// Address manager for peer discovery.
+    addr_manager: AddrManager,
 }
 
 impl Node {
@@ -163,6 +166,7 @@ impl Node {
             ban_list: BanList::load(datadir).unwrap_or_else(|_| BanList::new()),
             wallet: None,
             peer_manager: None,
+            addr_manager: AddrManager::new(MAX_ADDR_MANAGER_SIZE),
         })
     }
 
@@ -197,6 +201,16 @@ impl Node {
     /// Set the cached wallet.
     pub fn set_wallet(&mut self, wallet: Option<super::wallet::Wallet>) {
         self.wallet = wallet;
+    }
+
+    /// Get a reference to the address manager.
+    pub fn addr_manager(&self) -> &AddrManager {
+        &self.addr_manager
+    }
+
+    /// Get a mutable reference to the address manager.
+    pub fn addr_manager_mut(&mut self) -> &mut AddrManager {
+        &mut self.addr_manager
     }
 
     /// Get a reference to the checkpoint verifier.
