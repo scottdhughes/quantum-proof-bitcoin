@@ -12,6 +12,7 @@ pub mod orphan;
 pub mod p2p;
 pub mod peer;
 pub mod rpc;
+pub mod rpc_limiter;
 pub mod store;
 pub mod utxo;
 pub mod wallet;
