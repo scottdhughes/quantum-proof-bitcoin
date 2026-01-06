@@ -1,3 +1,4 @@
+use crate::activation::{Network, is_algorithm_active};
 use crate::constants::{MLDSA65_ALG_ID, MLDSA65_PUBKEY_LEN, MLDSA65_SIG_LEN};
 #[cfg(feature = "shrincs-dev")]
 use crate::constants::{SHRINCS_ALG_ID, SHRINCS_PUBKEY_LEN};
@@ -21,6 +22,9 @@ pub enum AlgorithmId {
 }
 
 impl AlgorithmId {
+    /// Parse algorithm ID from byte (no activation check).
+    ///
+    /// Use `from_byte_at_height` for consensus validation with activation checks.
     pub fn from_byte(b: u8) -> Result<Self, ConsensusError> {
         match b {
             MLDSA65_ALG_ID => Ok(AlgorithmId::MLDSA65),
@@ -28,6 +32,24 @@ impl AlgorithmId {
             SHRINCS_ALG_ID => Ok(AlgorithmId::SHRINCS),
             _ => Err(ConsensusError::InactiveAlgorithm),
         }
+    }
+
+    /// Parse algorithm ID with activation check.
+    ///
+    /// Returns an error if the algorithm is not active at the given height
+    /// on the specified network. Use this for consensus validation.
+    pub fn from_byte_at_height(
+        b: u8,
+        height: u32,
+        network: Network,
+    ) -> Result<Self, ConsensusError> {
+        // First check if algorithm is active at this height
+        if !is_algorithm_active(b, height, network) {
+            return Err(ConsensusError::InactiveAlgorithm);
+        }
+
+        // Then parse as normal
+        Self::from_byte(b)
     }
 
     pub fn as_byte(self) -> u8 {

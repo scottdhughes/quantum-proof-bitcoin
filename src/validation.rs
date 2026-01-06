@@ -1,3 +1,8 @@
+// TODO(activation): Update validation functions to accept block height and network
+// for proper activation checking. Currently uses feature flags which is sufficient
+// for devnet/testnet (immediate activation). Mainnet integration pending external audit.
+// See: src/activation.rs and AlgorithmId::from_byte_at_height()
+
 use crate::constants::{
     BIP68_MIN_VERSION, LOCKTIME_THRESHOLD, MAX_CONTROL_BLOCK_DEPTH, MAX_PQSIGCHECK_BUDGET,
     MAX_PQSIGCHECK_PER_TX, MAX_SCRIPT_SIZE, MAX_WITNESS_ITEM_BYTES, SCRIPT_LEAF_VERSION_V0,
