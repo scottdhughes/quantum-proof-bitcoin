@@ -20,6 +20,9 @@ RUN mkdir -p src/bin && \
     echo 'fn main() {}' > src/bin/qpb-node.rs && \
     echo 'pub fn dummy() {}' > src/lib.rs
 
+# Build arg to enable SHRINCS (default: enabled for testing)
+ARG ENABLE_SHRINCS=true
+
 # Build dependencies only (cached unless Cargo.toml changes)
 RUN cargo build --release --bin qpb-node || true
 
@@ -31,8 +34,12 @@ COPY benches/ benches/
 # Touch to invalidate cached dummy files
 RUN touch src/bin/qpb-node.rs src/lib.rs
 
-# Build the actual binary
-RUN cargo build --release --bin qpb-node
+# Build the actual binary (with SHRINCS if enabled)
+RUN if [ "$ENABLE_SHRINCS" = "true" ]; then \
+        cargo build --release --features shrincs-dev --bin qpb-node; \
+    else \
+        cargo build --release --bin qpb-node; \
+    fi
 
 # Stage 2: Runtime image
 FROM debian:bookworm-slim AS runtime
@@ -52,8 +59,12 @@ RUN mkdir -p /data && chown qpb:qpb /data
 # Copy binary from builder
 COPY --from=builder /build/target/release/qpb-node /usr/local/bin/qpb-node
 
-# Copy chainparams
+# Copy chainparams to expected location (node has hardcoded path)
 COPY --from=builder /build/docs/chain/chainparams.json /etc/qpb/chainparams.json
+
+# Create symlink at hardcoded path for compatibility
+RUN mkdir -p /data/docs/chain && \
+    ln -s /etc/qpb/chainparams.json /data/docs/chain/chainparams.json
 
 # Switch to non-root user
 USER qpb

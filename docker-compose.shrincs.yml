@@ -1,0 +1,131 @@
+# SHRINCS Multi-Node Test Network
+# Usage:
+#   docker-compose -f docker-compose.shrincs.yml build
+#   docker-compose -f docker-compose.shrincs.yml up -d
+#   ./scripts/shrincs_test.sh
+#   docker-compose -f docker-compose.shrincs.yml logs -f
+#   docker-compose -f docker-compose.shrincs.yml down -v
+
+services:
+  # Seed node - acts as miner and initial peer
+  qpb-miner:
+    build:
+      context: .
+      args:
+        ENABLE_SHRINCS: "true"
+    container_name: qpb-miner
+    hostname: qpb-miner
+    environment:
+      - QPB_CHAIN=devnet
+      - QPB_DATADIR=/data
+      - QPB_RPC_ADDR=0.0.0.0:28332
+      - RUST_LOG=info
+    volumes:
+      - qpb-miner-data:/data
+    ports:
+      - "28333:28333"  # P2P
+      - "28332:28332"  # RPC
+    networks:
+      - shrincs-testnet
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:28332/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    command: >
+      /usr/local/bin/qpb-node
+      --chain=devnet
+      --datadir=/data
+      --rpc-addr=0.0.0.0:28332
+      --bind=0.0.0.0
+      --port=28333
+      --chainparams=/etc/qpb/chainparams.json
+      --listen
+      --no-pow
+
+  # Validator node 1
+  qpb-node-1:
+    build:
+      context: .
+      args:
+        ENABLE_SHRINCS: "true"
+    container_name: qpb-node-1
+    hostname: qpb-node-1
+    environment:
+      - QPB_CHAIN=devnet
+      - QPB_DATADIR=/data
+      - QPB_RPC_ADDR=0.0.0.0:28332
+      - RUST_LOG=info
+    volumes:
+      - qpb-node1-data:/data
+    ports:
+      - "28334:28333"  # P2P (mapped to different host port)
+      - "28342:28332"  # RPC
+    networks:
+      - shrincs-testnet
+    depends_on:
+      qpb-miner:
+        condition: service_healthy
+    restart: unless-stopped
+    command: >
+      /usr/local/bin/qpb-node
+      --chain=devnet
+      --datadir=/data
+      --rpc-addr=0.0.0.0:28332
+      --bind=0.0.0.0
+      --port=28333
+      --chainparams=/etc/qpb/chainparams.json
+      --listen
+      --no-pow
+      --p2p-connect=qpb-miner:28333
+
+  # Validator node 2
+  qpb-node-2:
+    build:
+      context: .
+      args:
+        ENABLE_SHRINCS: "true"
+    container_name: qpb-node-2
+    hostname: qpb-node-2
+    environment:
+      - QPB_CHAIN=devnet
+      - QPB_DATADIR=/data
+      - QPB_RPC_ADDR=0.0.0.0:28332
+      - RUST_LOG=info
+    volumes:
+      - qpb-node2-data:/data
+    ports:
+      - "28335:28333"  # P2P
+      - "28352:28332"  # RPC
+    networks:
+      - shrincs-testnet
+    depends_on:
+      qpb-miner:
+        condition: service_healthy
+    restart: unless-stopped
+    command: >
+      /usr/local/bin/qpb-node
+      --chain=devnet
+      --datadir=/data
+      --rpc-addr=0.0.0.0:28332
+      --bind=0.0.0.0
+      --port=28333
+      --chainparams=/etc/qpb/chainparams.json
+      --listen
+      --no-pow
+      --p2p-connect=qpb-miner:28333
+      --p2p-connect=qpb-node-1:28333
+
+volumes:
+  qpb-miner-data:
+  qpb-node1-data:
+  qpb-node2-data:
+
+networks:
+  shrincs-testnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
