@@ -4,6 +4,7 @@
 //! PQ signature stubs, and block weight/penalty logic for the
 //! Quantum Proof Bitcoin (QPB) specification (v1.1 genesis draft).
 
+pub mod activation;
 pub mod address;
 pub mod constants;
 pub mod errors;

@@ -1,3 +1,8 @@
+// TODO(activation): Update OP_CHECKPQSIG to use AlgorithmId::from_byte_at_height()
+// for proper activation checking. Currently uses feature flags which is sufficient
+// for devnet/testnet (immediate activation). Mainnet integration pending external audit.
+// See: src/activation.rs
+
 use crate::constants::{
     BIP68_MIN_VERSION, LOCKTIME_THRESHOLD, MAX_SCRIPT_OPS, MAX_SCRIPT_SIZE, MAX_STACK_ITEMS,
     MAX_WITNESS_ITEM_BYTES, OP_CHECKLOCKTIMEVERIFY, OP_CHECKPQSIG, OP_CHECKSEQUENCEVERIFY, OP_CTV,
