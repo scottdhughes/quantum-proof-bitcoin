@@ -32,6 +32,7 @@ use crate::shrincs::tree::{
 use crate::shrincs::wots::WotsCParams;
 use rand::RngCore;
 use sha2::{Digest, Sha256};
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// Complete SHRINCS parameters
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -69,7 +70,7 @@ impl ShrincsFullParams {
 }
 
 /// SHRINCS secret key (complete)
-#[derive(Clone)]
+#[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct ShrincsFullSecretKey {
     /// Master secret seed
     pub sk_seed: [u8; 32],
@@ -78,14 +79,8 @@ pub struct ShrincsFullSecretKey {
     /// PRF key for randomness generation
     pub prf_key: [u8; 32],
     /// Parameters
+    #[zeroize(skip)]
     pub params: ShrincsFullParams,
-}
-
-impl Drop for ShrincsFullSecretKey {
-    fn drop(&mut self) {
-        self.sk_seed.fill(0);
-        self.prf_key.fill(0);
-    }
 }
 
 /// SHRINCS public key
