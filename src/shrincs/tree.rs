@@ -331,6 +331,7 @@ pub fn sign_layer(
     leaf_idx: u32,
     pk_seed: &[u8; 32],
     randomness: &[u8; 32],
+    hypertree_root: &[u8], // Use top-level root for all layers (enables verification)
 ) -> Option<XmssLayerSignature> {
     if leaf_idx >= (1 << layer.params.h_prime) {
         return None;
@@ -346,8 +347,9 @@ pub fn sign_layer(
     // Create WOTS address
     let addr = Address::new(layer.layer_idx, 0, leaf_idx, 0, 0);
 
-    // Sign with WOTS+C
-    let wots_sig = wots::sign(&msg_hash, sk, pk_seed, &layer.root, addr, randomness)?;
+    // Sign with WOTS+C using hypertree_root as pk_root (not layer.root)
+    // This enables verification without knowing intermediate layer roots
+    let wots_sig = wots::sign(&msg_hash, sk, pk_seed, hypertree_root, addr, randomness)?;
 
     // Get auth path
     let auth_path = get_auth_path(layer, leaf_idx);
@@ -359,18 +361,20 @@ pub fn sign_layer(
     })
 }
 
-/// Verify a single XMSS layer signature
+/// Reconstruct the layer root from an XMSS layer signature.
+/// Returns the reconstructed root, or None if WOTS counter verification fails.
+/// Uses pk_root (hypertree root) for message digest - same for all layers.
 #[allow(clippy::too_many_arguments)]
-pub fn verify_layer(
+pub fn reconstruct_layer_root_v2(
     msg: &[u8],
     sig: &XmssLayerSignature,
-    expected_root: &[u8],
+    pk_root: &[u8], // hypertree_root, same for all layers
     pk_seed: &[u8; 32],
     layer_idx: u32,
     tree_idx: u64,
     randomness: &[u8; 32],
     params: &HypertreeParams,
-) -> bool {
+) -> Option<Vec<u8>> {
     let n = params.wots_params.n;
 
     // Create message hash
@@ -378,24 +382,21 @@ pub fn verify_layer(
     hasher.update(msg);
     let msg_hash: [u8; 32] = hasher.finalize().into();
 
-    // Verify WOTS signature and recover public key
+    // Create WOTS address
     let addr = Address::new(layer_idx, tree_idx, sig.leaf_index, 0, 0);
 
-    // We need to recover the WOTS public key from the signature
-    // For verification, we compute what the public key should be
-    // by running the chain from signature values to tips
-
-    // First, recompute the message digest with counter
+    // Recompute the message digest with counter using pk_root (hypertree root)
     let (digits, sum) = wots::message_digest_with_counter_raw(
         randomness,
-        expected_root,
+        pk_root,
         &msg_hash,
         sig.wots_sig.counter,
         &params.wots_params,
     );
 
+    // Verify counter achieved target sum
     if sum != params.wots_params.target_sum {
-        return false;
+        return None;
     }
 
     // Compute WOTS public key elements by completing chains
@@ -424,7 +425,7 @@ pub fn verify_layer(
     };
     let mut leaf_hash = hash_wots_pk(pk_seed, &recovered_pk, layer_idx, sig.leaf_index, n);
 
-    // Verify auth path leads to expected root
+    // Walk auth path to reconstruct layer root
     let mut idx = sig.leaf_index;
     for sibling in sig.auth_path.iter() {
         let (left, right) = if idx.is_multiple_of(2) {
@@ -437,7 +438,30 @@ pub fn verify_layer(
         idx >>= 1;
     }
 
-    leaf_hash == expected_root
+    Some(leaf_hash)
+}
+
+/// Verify a single XMSS layer signature.
+/// Uses pk_root (hypertree root) for message digest.
+/// Checks that reconstructed root matches expected_root.
+#[allow(clippy::too_many_arguments)]
+pub fn verify_layer(
+    msg: &[u8],
+    sig: &XmssLayerSignature,
+    expected_root: &[u8],
+    pk_root: &[u8], // hypertree_root for message digest
+    pk_seed: &[u8; 32],
+    layer_idx: u32,
+    tree_idx: u64,
+    randomness: &[u8; 32],
+    params: &HypertreeParams,
+) -> bool {
+    match reconstruct_layer_root_v2(
+        msg, sig, pk_root, pk_seed, layer_idx, tree_idx, randomness, params,
+    ) {
+        Some(root) => root == expected_root,
+        None => false,
+    }
 }
 
 /// Full hypertree structure
@@ -488,12 +512,22 @@ impl Hypertree {
             return None;
         }
 
+        // Use top layer's root as pk_root for all layers (enables verification)
+        let hypertree_root = &self.layers.last()?.root;
+
         let mut layer_sigs = Vec::with_capacity(self.params.d as usize);
         let mut current_msg = msg.to_vec();
 
         for (i, layer) in self.layers.iter().enumerate() {
             let leaf_idx = leaf_indices[i];
-            let layer_sig = sign_layer(&current_msg, layer, leaf_idx, &self.pk_seed, randomness)?;
+            let layer_sig = sign_layer(
+                &current_msg,
+                layer,
+                leaf_idx,
+                &self.pk_seed,
+                randomness,
+                hypertree_root,
+            )?;
 
             // Message for next layer is this layer's root
             current_msg = layer.root.clone();
@@ -507,7 +541,10 @@ impl Hypertree {
     }
 }
 
-/// Verify a hypertree signature
+/// Verify a hypertree signature.
+/// Uses pk_root (hypertree root) as the pk_root for message digest in ALL layers.
+/// Verification is bottom-up: reconstruct each layer's root and use it as the
+/// message for the next layer. The final layer must reconstruct to pk_root.
 pub fn verify_hypertree(
     msg: &[u8],
     sig: &HypertreeSignature,
@@ -515,36 +552,41 @@ pub fn verify_hypertree(
     pk_seed: &[u8; 32],
     randomness: &[u8; 32],
 ) -> bool {
-    if sig.layer_sigs.len() != sig.params.d as usize {
+    let d = sig.params.d as usize;
+    if sig.layer_sigs.len() != d {
         return false;
     }
 
-    let current_msg = msg.to_vec();
+    // Layer 0 signs the original message (PORS hash passed in)
+    let mut current_msg = msg.to_vec();
 
-    for (i, layer_sig) in sig.layer_sigs.iter().enumerate() {
-        // For the last layer, expected root is the public key
-        // For other layers, we verify against the next layer's leaf
-        let expected_root = if i == sig.layer_sigs.len() - 1 {
-            pk_root.to_vec()
-        } else {
-            // Compute expected root from auth path
-            // This is a simplified check - full impl would verify chain
-            continue; // Skip intermediate verification for now
-        };
+    // Verify each layer bottom-up
+    for i in 0..d {
+        let layer_sig = &sig.layer_sigs[i];
 
-        let valid = verify_layer(
+        // Reconstruct this layer's root
+        let reconstructed_root = match reconstruct_layer_root_v2(
             &current_msg,
             layer_sig,
-            &expected_root,
+            pk_root, // Use hypertree root for all layers
             pk_seed,
             i as u32,
             0,
             randomness,
             &sig.params,
-        );
+        ) {
+            Some(root) => root,
+            None => return false, // WOTS counter verification failed
+        };
 
-        if !valid && i == sig.layer_sigs.len() - 1 {
-            return false;
+        if i == d - 1 {
+            // Last layer: reconstructed root must equal the public key root
+            if reconstructed_root != pk_root {
+                return false;
+            }
+        } else {
+            // Intermediate layer: reconstructed root becomes message for next layer
+            current_msg = reconstructed_root;
         }
     }
 
@@ -642,7 +684,8 @@ mod tests {
         let layer = build_xmss_layer(&sk_seed, &pk_seed, 0, 0, &params);
 
         let msg = b"test message for signing";
-        let sig = sign_layer(msg, &layer, 3, &pk_seed, &randomness);
+        // Use layer.root as hypertree_root for single-layer test
+        let sig = sign_layer(msg, &layer, 3, &pk_seed, &randomness, &layer.root);
 
         assert!(sig.is_some());
         let sig = sig.unwrap();

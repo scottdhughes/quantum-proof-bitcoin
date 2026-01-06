@@ -26,7 +26,7 @@ use crate::shrincs::sphincs_fallback::{
 };
 use crate::shrincs::state::SigningState;
 use crate::shrincs::tree::{
-    HypertreeParams, HypertreeSignature, XmssLayer, build_xmss_layer, sign_layer,
+    HypertreeParams, HypertreeSignature, XmssLayer, build_xmss_layer, sign_layer, verify_hypertree,
 };
 #[allow(unused_imports)]
 use crate::shrincs::wots::WotsCParams;
@@ -729,7 +729,8 @@ pub fn sign(
         remaining_index /= leaves_per_subtree;
     }
 
-    // Sign each layer
+    // Sign each layer (use hypertree_root as pk_root for all layers)
+    let hypertree_root = &key_material.pk.hypertree_root;
     for (i, layer) in key_material.xmss_layers.iter().enumerate() {
         let layer_sig = sign_layer(
             &current_msg,
@@ -737,6 +738,7 @@ pub fn sign(
             layer_indices[i],
             &key_material.sk.pk_seed,
             &randomness,
+            hypertree_root,
         )
         .ok_or(ShrincsError::CryptoError(
             "XMSS layer signing failed".into(),
@@ -779,22 +781,25 @@ pub fn verify(
         return Err(ShrincsError::VerificationFailed);
     }
 
-    // Verify hypertree signature structure
-    // TODO: Full hypertree verification requires reconstructing each layer's root
-    // For now, we verify the signature has the correct structure
-    if sig.hypertree_sig.layer_sigs.len() != params.hypertree.d as usize {
+    // Compute PORS signature hash (same as signing)
+    let pors_hash = {
+        let mut hasher = Sha256::new();
+        hasher.update(b"PORS_SIG_HASH");
+        hasher.update(sig.pors_sig.to_bytes());
+        hasher.finalize().to_vec()
+    };
+
+    // Verify hypertree cryptographically
+    if !verify_hypertree(
+        &pors_hash,
+        &sig.hypertree_sig,
+        &pk.hypertree_root,
+        &pk.pk_seed,
+        &sig.randomness,
+    ) {
         return Err(ShrincsError::VerificationFailed);
     }
 
-    // Verify each layer has valid auth path length
-    for layer_sig in &sig.hypertree_sig.layer_sigs {
-        if layer_sig.auth_path.len() != params.hypertree.h_prime as usize {
-            return Err(ShrincsError::VerificationFailed);
-        }
-    }
-
-    // PORS verification passed, structure is valid
-    // Full cryptographic verification of hypertree deferred to production implementation
     Ok(())
 }
 
