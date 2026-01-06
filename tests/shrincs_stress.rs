@@ -11,6 +11,7 @@
 use qpb_consensus::shrincs::{
     pors::PorsParams,
     shrincs::{ShrincsFullParams, keygen, sign, verify},
+    state::{FileStateManager, SigningState},
     tree::HypertreeParams,
     wots::WotsCParams,
 };
@@ -327,4 +328,152 @@ fn stress_benchmark_summary() {
         "Signature size: {} bytes (first)",
         signatures.first().map(|s| s.to_bytes().len()).unwrap_or(0)
     );
+}
+
+// ============================================================================
+// SEC-05: Edge Case Tests for Security Audit
+// ============================================================================
+
+#[test]
+fn sec05_state_exhaustion_at_boundary() {
+    // Test signing up to the exact max_leaves boundary
+    let mut state = SigningState::new(5);
+
+    // Should succeed for all 5 leaves
+    for i in 0..5 {
+        let leaf = state.allocate_leaf().expect("should allocate");
+        assert_eq!(leaf, i);
+    }
+
+    // 6th allocation should fail with StateExhausted
+    let result = state.allocate_leaf();
+    assert!(result.is_err(), "Should fail after exhaustion");
+    assert!(state.is_exhausted());
+}
+
+#[test]
+fn sec05_state_corruption_recovery() {
+    // Test that corrupted state bytes are rejected
+    let valid_state = SigningState::new(1000);
+    let valid_bytes = valid_state.to_bytes();
+
+    // Test 1: Truncated bytes
+    let truncated = &valid_bytes[..10];
+    let result = SigningState::from_bytes(truncated);
+    assert!(result.is_err(), "Truncated state should fail");
+
+    // Test 2: Invalid version byte
+    let mut bad_version = valid_bytes.clone();
+    bad_version[0] = 0xFF;
+    let result = SigningState::from_bytes(&bad_version);
+    assert!(result.is_err(), "Invalid version should fail");
+
+    // Test 3: Valid bytes should work
+    let restored = SigningState::from_bytes(&valid_bytes);
+    assert!(restored.is_ok(), "Valid bytes should deserialize");
+}
+
+#[test]
+fn sec05_leaf_reuse_prevention() {
+    // Ensure already-used leaves cannot be allocated again
+    let mut state = SigningState::new(100);
+
+    // Allocate first leaf
+    let leaf0 = state.allocate_leaf().expect("allocate 0");
+    assert_eq!(leaf0, 0);
+    assert!(state.is_used(0));
+
+    // Manually try to mark leaf 0 as used again (simulating recovery scenario)
+    let result = state.mark_used(0);
+    assert!(result.is_err(), "Double-marking should fail");
+
+    // Next allocation should be leaf 1, not 0
+    let leaf1 = state.allocate_leaf().expect("allocate 1");
+    assert_eq!(leaf1, 1);
+}
+
+#[test]
+fn sec05_force_fallback_blocks_allocation() {
+    let mut state = SigningState::new(100);
+
+    // Allocate one leaf successfully
+    assert!(state.allocate_leaf().is_ok());
+
+    // Force fallback mode (simulating corruption detection)
+    state.force_fallback_mode();
+
+    // Subsequent allocations should fail
+    let result = state.allocate_leaf();
+    assert!(result.is_err(), "Fallback mode should block allocation");
+}
+
+#[test]
+fn sec05_file_manager_concurrent_lock() {
+    let dir = tempfile::tempdir().expect("create temp dir");
+    let path = dir.path().join("state.bin");
+    let mgr = FileStateManager::new(&path);
+
+    // Acquire exclusive lock
+    let lock1 = mgr.lock().expect("first lock");
+
+    // Second lock attempt should block (use try_lock to test)
+    let lock2_result = mgr.try_lock().expect("try_lock");
+    assert!(lock2_result.is_none(), "Should not acquire lock while held");
+
+    // Release first lock
+    drop(lock1);
+
+    // Now should succeed
+    let lock3_result = mgr.try_lock().expect("try_lock after release");
+    assert!(lock3_result.is_some(), "Should acquire after release");
+}
+
+#[test]
+fn sec05_state_serialization_roundtrip_after_allocations() {
+    // Verify state integrity after multiple allocations and serialization
+    let mut state = SigningState::new(1000);
+
+    // Allocate several leaves
+    for _ in 0..10 {
+        state.allocate_leaf().expect("allocate");
+    }
+
+    // Serialize
+    let bytes = state.to_bytes();
+
+    // Deserialize
+    let restored = SigningState::from_bytes(&bytes).expect("deserialize");
+
+    // Verify integrity
+    assert_eq!(restored.next_leaf, 10);
+    assert_eq!(restored.used_leaves.len(), 10);
+    for i in 0..10 {
+        assert!(restored.is_used(i), "Leaf {} should be marked used", i);
+    }
+    assert!(!restored.is_used(10), "Leaf 10 should not be used yet");
+}
+
+#[test]
+fn sec05_layer_state_preservation() {
+    // Test v2 format with layer tracking
+    let mut state = SigningState::new_with_layers(1 << 16, 4, 4);
+
+    // Allocate some leaves
+    for _ in 0..20 {
+        state.allocate_leaf().expect("allocate");
+    }
+
+    // Verify layer stats exist
+    let stats = state.layer_stats().expect("layer stats");
+    assert_eq!(stats.len(), 4);
+
+    // Serialize and restore
+    let bytes = state.to_bytes();
+    let restored = SigningState::from_bytes(&bytes).expect("deserialize");
+
+    // Verify layer tracking preserved
+    assert!(restored.layer_states.is_some());
+    assert_eq!(restored.height_per_layer, 4);
+    let restored_stats = restored.layer_stats().expect("restored stats");
+    assert_eq!(restored_stats.len(), 4);
 }
