@@ -22,6 +22,7 @@ use crate::shrincs::wots::{
     self, Address, WotsCParams, WotsCPublicKey, WotsCSecretKey, WotsCSignature,
 };
 use sha2::{Digest, Sha256};
+use subtle::ConstantTimeEq;
 
 /// Hypertree parameters
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -545,6 +546,8 @@ impl Hypertree {
 /// Uses pk_root (hypertree root) as the pk_root for message digest in ALL layers.
 /// Verification is bottom-up: reconstruct each layer's root and use it as the
 /// message for the next layer. The final layer must reconstruct to pk_root.
+///
+/// Uses constant-time comparison for the final root check.
 pub fn verify_hypertree(
     msg: &[u8],
     sig: &HypertreeSignature,
@@ -559,6 +562,9 @@ pub fn verify_hypertree(
 
     // Layer 0 signs the original message (PORS hash passed in)
     let mut current_msg = msg.to_vec();
+
+    // Track validity using constant-time accumulator
+    let mut valid = subtle::Choice::from(1u8);
 
     // Verify each layer bottom-up
     for i in 0..d {
@@ -576,21 +582,19 @@ pub fn verify_hypertree(
             &sig.params,
         ) {
             Some(root) => root,
-            None => return false, // WOTS counter verification failed
+            None => return false, // WOTS counter verification failed (early exit acceptable)
         };
 
         if i == d - 1 {
-            // Last layer: reconstructed root must equal the public key root
-            if reconstructed_root != pk_root {
-                return false;
-            }
+            // Last layer: constant-time comparison with public key root
+            valid &= reconstructed_root.ct_eq(pk_root);
         } else {
             // Intermediate layer: reconstructed root becomes message for next layer
             current_msg = reconstructed_root;
         }
     }
 
-    true
+    bool::from(valid)
 }
 
 // Re-export helper for WOTS verification

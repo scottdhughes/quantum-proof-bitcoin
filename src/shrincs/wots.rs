@@ -18,6 +18,8 @@
 //! - Signature: 16 * 16 = 256 bytes + 4 byte counter = 260 bytes
 
 use sha2::{Digest, Sha256};
+use subtle::ConstantTimeEq;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// WOTS+C parameters
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -68,21 +70,13 @@ impl WotsCParams {
 }
 
 /// WOTS+C secret key: l seeds of n bytes each
-#[derive(Clone)]
+#[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct WotsCSecretKey {
     /// Secret seeds for each chain
     pub seeds: Vec<[u8; 32]>, // Using 32 bytes internally, truncate to n
     /// Parameters used
+    #[zeroize(skip)]
     pub params: WotsCParams,
-}
-
-impl Drop for WotsCSecretKey {
-    fn drop(&mut self) {
-        // Zeroize on drop
-        for seed in &mut self.seeds {
-            seed.fill(0);
-        }
-    }
 }
 
 /// WOTS+C public key: l chain tips of n bytes each
@@ -408,6 +402,7 @@ pub fn verify(
 ) -> bool {
     let params = &sig.params;
 
+    // Length checks can be non-constant-time (public information)
     if sig.sig_elements.len() != params.l || pk.chain_tips.len() != params.l {
         return false;
     }
@@ -415,12 +410,11 @@ pub fn verify(
     // Recompute message digest with the counter
     let (digits, sum) = message_digest_with_counter(randomness, pk_root, msg, sig.counter, params);
 
-    // Verify target sum
-    if sum != params.target_sum {
-        return false;
-    }
+    // Accumulate validity using constant-time operations
+    // Start with target sum check
+    let mut valid = subtle::Choice::from(u8::from(sum == params.target_sum));
 
-    // Verify each chain
+    // Verify each chain with constant-time comparison
     let mut chain_addr = addr;
     #[allow(clippy::needless_range_loop)]
     for i in 0..params.l {
@@ -436,12 +430,11 @@ pub fn verify(
             params.n,
         );
 
-        if tip != pk.chain_tips[i] {
-            return false;
-        }
+        // Constant-time comparison of chain tips
+        valid &= tip.ct_eq(&pk.chain_tips[i]);
     }
 
-    true
+    bool::from(valid)
 }
 
 #[cfg(test)]

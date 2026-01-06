@@ -20,6 +20,7 @@
 
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// PORS+FP parameters
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,21 +65,15 @@ impl PorsParams {
 }
 
 /// PORS secret key
-#[derive(Clone)]
+#[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct PorsSecretKey {
     /// Seed for deriving leaf secrets
     pub sk_seed: [u8; 32],
     /// Public seed for domain separation
     pub pk_seed: [u8; 32],
     /// Parameters
+    #[zeroize(skip)]
     pub params: PorsParams,
-}
-
-impl Drop for PorsSecretKey {
-    fn drop(&mut self) {
-        self.sk_seed.fill(0);
-        self.pk_seed.fill(0);
-    }
 }
 
 /// PORS public key (tree root)

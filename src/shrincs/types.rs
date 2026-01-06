@@ -4,6 +4,7 @@
 //! Actual cryptographic operations are pending reference implementation.
 
 use crate::shrincs::params::ShrincsParams;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// SHRINCS public key (64 bytes).
 ///
@@ -53,7 +54,7 @@ impl std::fmt::Debug for ShrincsPublicKey {
 /// - XMSS secret seed for deriving WOTS+ keys
 /// - SPHINCS+ secret key for fallback signing
 /// - PRF key for randomness generation
-#[derive(Clone)]
+#[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct ShrincsSecretKey {
     /// XMSS secret seed (32 bytes)
     pub xmss_seed: [u8; 32],
@@ -63,23 +64,6 @@ pub struct ShrincsSecretKey {
     pub sphincs_sk: Vec<u8>,
     /// PRF key for signature randomness (32 bytes)
     pub prf_key: [u8; 32],
-}
-
-impl ShrincsSecretKey {
-    /// Securely zeroize secret key material on drop.
-    /// Note: In production, use `zeroize` crate for secure erasure.
-    pub fn zeroize(&mut self) {
-        self.xmss_seed.fill(0);
-        self.xmss_pk_seed.fill(0);
-        self.sphincs_sk.fill(0);
-        self.prf_key.fill(0);
-    }
-}
-
-impl Drop for ShrincsSecretKey {
-    fn drop(&mut self) {
-        self.zeroize();
-    }
 }
 
 impl std::fmt::Debug for ShrincsSecretKey {
