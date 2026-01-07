@@ -310,7 +310,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             let n = params
                 .first()
                 .and_then(|v| v.as_u64())
-                .unwrap_or(1)
+                .ok_or_else(|| anyhow!("missing or invalid block count (must be 1-10)"))?
                 .clamp(1, 10) as usize;
             let address = params
                 .get(1)
@@ -564,6 +564,9 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 .get(1)
                 .and_then(|v| v.as_u64())
                 .ok_or_else(|| anyhow!("missing amount"))?;
+            if amount == 0 {
+                return Err(anyhow!("amount must be greater than 0"));
+            }
             let fee_rate = params.get(2).and_then(|v| v.as_u64()).unwrap_or(1); // default 1 sat/vB
             let rbf = params.get(3).and_then(|v| v.as_bool()).unwrap_or(true); // default RBF enabled
 
