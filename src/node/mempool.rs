@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use super::node::parse_transaction;
 use crate::activation::Network;
-use crate::constants::{INCREMENTAL_RELAY_FEE, MAX_REPLACEMENT_EVICTIONS};
+use crate::constants::{DUST_LIMIT, INCREMENTAL_RELAY_FEE, MAX_REPLACEMENT_EVICTIONS};
 use crate::types::{OutPoint, Prevout, Transaction};
 use crate::validation::validate_transaction_basic;
 
@@ -218,6 +218,19 @@ impl Mempool {
         }
         let fee = input_sum - output_sum;
 
+        // Check for dust outputs (outputs below minimum value)
+        // Zero-value outputs are allowed for OP_RETURN data outputs
+        for (i, output) in tx.vout.iter().enumerate() {
+            if output.value > 0 && output.value < DUST_LIMIT {
+                return Err(anyhow!(
+                    "output {} value {} sats is below dust limit {} sats",
+                    i,
+                    output.value,
+                    DUST_LIMIT
+                ));
+            }
+        }
+
         // Calculate weight/vsize
         let base_bytes = tx.serialize(false).len();
         let full_bytes = tx.serialize(true).len();
@@ -231,6 +244,13 @@ impl Mempool {
         } else {
             0
         };
+
+        // Reject zero fee rate transactions
+        if fee_rate_millionths == 0 {
+            return Err(anyhow!(
+                "transaction has zero fee rate; minimum is 1 sat/vB"
+            ));
+        }
 
         // Track mempool parents (inputs that come from other mempool txs)
         let mut mempool_parents = HashSet::new();

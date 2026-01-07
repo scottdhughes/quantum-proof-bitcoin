@@ -19,6 +19,34 @@ use crate::types::{Block, Prevout, Transaction};
 use crate::weight::{block_weight_wu, effective_median, max_allowed_weight, penalty};
 
 // ============================================================================
+// Transaction structure validation (CheckTransaction equivalent)
+// ============================================================================
+
+/// Check basic transaction structure (Bitcoin Core's CheckTransaction equivalent).
+///
+/// Validates:
+/// - Transaction version is 1 or 2
+/// - Transaction has at least one input
+/// - Transaction has at least one output
+///
+/// This should be called early in validation, before any expensive operations.
+pub fn check_transaction_structure(tx: &Transaction) -> Result<(), ConsensusError> {
+    // Version must be 1 or 2 (standard Bitcoin versions)
+    if tx.version < 1 || tx.version > 2 {
+        return Err(ConsensusError::InvalidVersion(tx.version));
+    }
+    // Must have at least one input
+    if tx.vin.is_empty() {
+        return Err(ConsensusError::EmptyInputs);
+    }
+    // Must have at least one output
+    if tx.vout.is_empty() {
+        return Err(ConsensusError::EmptyOutputs);
+    }
+    Ok(())
+}
+
+// ============================================================================
 // Locktime validation (BIP68/BIP113)
 // ============================================================================
 

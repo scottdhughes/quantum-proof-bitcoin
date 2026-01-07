@@ -77,6 +77,11 @@ pub const TAIL_EMISSION: u64 = 10_000_000; // 0.1 QPB
 /// This prevents spending coins from blocks that might be orphaned.
 pub const COINBASE_MATURITY: u32 = 100;
 
+// ---- Dust limit ----
+/// Minimum output value to avoid dust (same as Bitcoin P2PKH: 546 sats).
+/// Outputs below this value are uneconomical to spend and bloat the UTXO set.
+pub const DUST_LIMIT: u64 = 546;
+
 // ---- Locktime constants ----
 /// Threshold for interpreting nLockTime: below = block height, at or above = Unix timestamp.
 /// This value (500,000,000) corresponds to November 1985 as a timestamp, safely past

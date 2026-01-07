@@ -310,8 +310,11 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             let n = params
                 .first()
                 .and_then(|v| v.as_u64())
-                .ok_or_else(|| anyhow!("missing or invalid block count (must be 1-10)"))?
-                .clamp(1, 10) as usize;
+                .ok_or_else(|| anyhow!("missing or invalid block count"))?;
+            if n > 10 {
+                return Err(anyhow!("block count exceeds maximum of 10"));
+            }
+            let n = n as usize;
             let address = params
                 .get(1)
                 .and_then(|v| v.as_str())
@@ -336,7 +339,9 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 block_hash.copy_from_slice(&hash_bytes);
                 block_hashes_to_broadcast.push(block_hash);
             }
-            let val = if n == 1 {
+            let val = if hashes.is_empty() {
+                Value::Array(vec![])
+            } else if hashes.len() == 1 {
                 hashes.pop().unwrap()
             } else {
                 Value::Array(hashes)
@@ -569,7 +574,12 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             if amount == 0 {
                 return Err(anyhow!("amount must be greater than 0"));
             }
-            let fee_rate = params.get(2).and_then(|v| v.as_u64()).unwrap_or(1); // default 1 sat/vB
+            let fee_rate = match params.get(2) {
+                None => 1, // default 1 sat/vB
+                Some(v) => v.as_u64().ok_or_else(|| {
+                    anyhow!("invalid fee_rate: must be a positive integer (sat/vB)")
+                })?,
+            };
             let rbf = params.get(3).and_then(|v| v.as_bool()).unwrap_or(true); // default RBF enabled
 
             let wallet_path = node.datadir.join("wallet.json");
