@@ -518,9 +518,11 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 return Err(anyhow!("wallet not found, call createwallet first"));
             }
 
+            let current_height = node.height() as u32;
+
             // Use cached wallet if available (for encrypted wallets)
             let utxos = if let Some(wallet) = node.wallet() {
-                wallet.list_unspent(|| node.utxo_iter_all())?
+                wallet.list_unspent(|| node.utxo_iter_all(), current_height)?
             } else {
                 let wallet = Wallet::load(&wallet_path)?;
                 if wallet.is_encrypted() {
@@ -528,7 +530,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                         "wallet is locked; unlock with walletpassphrase first"
                     ));
                 }
-                wallet.list_unspent(|| node.utxo_iter_all())?
+                wallet.list_unspent(|| node.utxo_iter_all(), current_height)?
             };
             let val = serde_json::to_value(utxos).map_err(|e| anyhow!("{}", e))?;
             Ok((val, RpcAction::Continue))
