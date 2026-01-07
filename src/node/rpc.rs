@@ -52,17 +52,60 @@ pub fn handle_rpc(node: &mut Node, req_json: &str) -> String {
 }
 
 /// Returns (response_json, action).
+/// Supports both single JSON-RPC requests and batch requests (JSON arrays).
 pub fn handle_rpc_action(node: &mut Node, req_json: &str) -> (String, RpcAction) {
-    let parsed: RpcRequest = match serde_json::from_str(req_json) {
-        Ok(r) => r,
-        Err(_) => {
+    // Try parsing as single request first
+    if let Ok(parsed) = serde_json::from_str::<RpcRequest>(req_json) {
+        return handle_single_request(node, parsed);
+    }
+
+    // Try parsing as batch request (array)
+    if let Ok(batch) = serde_json::from_str::<Vec<RpcRequest>>(req_json) {
+        if batch.is_empty() {
             return (
-                ser_error(Value::Null, -32700, "parse error"),
+                ser_error(Value::Null, -32600, "empty batch request"),
                 RpcAction::Continue,
             );
         }
-    };
 
+        let mut responses = Vec::with_capacity(batch.len());
+        let mut combined_action = RpcAction::Continue;
+
+        for req in batch {
+            let (response_json, action) = handle_single_request(node, req);
+            responses.push(serde_json::from_str::<Value>(&response_json).unwrap_or(Value::Null));
+
+            // Collect any broadcast actions
+            match action {
+                RpcAction::BroadcastBlocks(blocks) => {
+                    if let RpcAction::BroadcastBlocks(ref mut existing) = combined_action {
+                        existing.extend(blocks);
+                    } else {
+                        combined_action = RpcAction::BroadcastBlocks(blocks);
+                    }
+                }
+                RpcAction::BroadcastTransaction(txid) => {
+                    combined_action = RpcAction::BroadcastTransaction(txid);
+                }
+                RpcAction::Stop => combined_action = RpcAction::Stop,
+                RpcAction::Continue => {}
+            }
+        }
+
+        return (
+            serde_json::to_string(&responses).unwrap_or_default(),
+            combined_action,
+        );
+    }
+
+    // Neither single nor batch - parse error
+    (
+        ser_error(Value::Null, -32700, "parse error"),
+        RpcAction::Continue,
+    )
+}
+
+fn handle_single_request(node: &mut Node, parsed: RpcRequest) -> (String, RpcAction) {
     if parsed.jsonrpc != "2.0" {
         return (
             ser_error(parsed.id, -32600, "invalid request"),
@@ -1147,6 +1190,72 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             });
             Ok((result, RpcAction::Continue))
         }
+        "gettransaction" => {
+            // gettransaction "txid"
+            // Returns details about a transaction by txid
+            let txid_hex = params
+                .first()
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow!("missing txid parameter"))?;
+
+            let txid_bytes = hex::decode(txid_hex).map_err(|_| anyhow!("invalid txid hex"))?;
+            if txid_bytes.len() != 32 {
+                return Err(anyhow!("txid must be 32 bytes"));
+            }
+            let mut txid = [0u8; 32];
+            txid.copy_from_slice(&txid_bytes);
+
+            // Check txindex first
+            if let Some(loc) = node.txindex_get(&txid) {
+                // Found in txindex - get the block and transaction
+                let block = node
+                    .get_block_parsed(&loc.block_hash)
+                    .ok_or_else(|| anyhow!("block not found: {}", loc.block_hash))?;
+
+                if loc.tx_position as usize >= block.txdata.len() {
+                    return Err(anyhow!("transaction index out of bounds"));
+                }
+
+                let tx = &block.txdata[loc.tx_position as usize];
+
+                // Get block height for confirmations
+                let block_height = node.get_block_height(&loc.block_hash).unwrap_or(0);
+                let confirmations = node.height().saturating_sub(block_height) + 1;
+
+                // Calculate total output value
+                let amount: i64 = tx.vout.iter().map(|o| o.value as i64).sum();
+
+                let result = serde_json::json!({
+                    "txid": txid_hex,
+                    "blockhash": loc.block_hash,
+                    "blockheight": block_height,
+                    "confirmations": confirmations,
+                    "time": block.header.time,
+                    "hex": hex::encode(tx.serialize(true)),
+                    "amount": amount,
+                });
+
+                Ok((result, RpcAction::Continue))
+            } else {
+                // Check mempool
+                if let Some(tx) = node.mempool_get(&txid) {
+                    let amount: i64 = tx.vout.iter().map(|o| o.value as i64).sum();
+
+                    let result = serde_json::json!({
+                        "txid": txid_hex,
+                        "confirmations": 0,
+                        "hex": hex::encode(tx.serialize(true)),
+                        "amount": amount,
+                    });
+
+                    Ok((result, RpcAction::Continue))
+                } else {
+                    Err(anyhow!(
+                        "transaction not found (requires --txindex or mempool)"
+                    ))
+                }
+            }
+        }
         "createrawtransaction" => {
             // createrawtransaction [{"txid":"...", "vout":n},...] {"address":amount,...} [locktime]
             // Creates an unsigned raw transaction
@@ -1200,6 +1309,15 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 } else {
                     return Err(anyhow!("invalid amount for address {}", addr));
                 };
+
+                // Validate output value (defense in depth - also checked at mempool entry)
+                // Allow zero for OP_RETURN (addr == "data"), but reject for regular outputs
+                if addr != "data" && value_sats == 0 {
+                    return Err(anyhow!(
+                        "output value must be greater than 0 for address {}",
+                        addr
+                    ));
+                }
 
                 // Handle special "data" key for OP_RETURN
                 let script_pubkey = if addr == "data" {
