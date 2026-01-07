@@ -19,6 +19,7 @@ services:
       - "127.0.0.1:38335:38335"    # RPC (localhost only - use SSH tunnel)
 
     command:
+      - "/usr/local/bin/qpb-node"
       - "--chain=testnet"
       - "--datadir=/data"
       - "--rpc-addr=0.0.0.0:38335"
@@ -26,6 +27,7 @@ services:
       - "--listen"
       - "--port=38334"
       - "--txindex"
+      - "--no-initial-sync"  # Seed node - no peers to sync from
       # Uncomment for RPC auth (both required if either is set):
       # - "--rpcuser=qpb"
       # - "--rpcpassword=CHANGE_ME"

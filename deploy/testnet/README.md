@@ -32,7 +32,7 @@ sudo apt-get install -y curl jq  # for status.sh
 ### 1) Create deployment directory (on server)
 
 ```bash
-sudo mkdir -p /opt/qpb-testnet/{data,scripts}
+sudo mkdir -p /opt/qpb-testnet/{data/docs/chain,scripts}
 sudo chown -R ubuntu:ubuntu /opt/qpb-testnet
 ```
 
@@ -50,6 +50,10 @@ cp .env.example .env
 nano .env   # Set QPB_IMAGE tag
 chmod 600 .env
 chmod +x scripts/*.sh
+
+# Create chainparams symlink (required - data mount shadows image's symlink)
+ln -sf /etc/qpb/chainparams.json data/docs/chain/chainparams.json
+sudo chown -R 1000:1000 data/
 ```
 
 ### 4) Install systemd unit
@@ -110,6 +114,15 @@ Or remove `user: "1000:1000"` from docker-compose.testnet.yml.
 **Container unhealthy:**
 ```bash
 docker logs qpb-testnet --tail=100
+```
+
+**"reading chainparams docs/chain/chainparams.json: No such file" error:**
+```bash
+# The data mount shadows the image's symlink - recreate it
+mkdir -p /opt/qpb-testnet/data/docs/chain
+ln -sf /etc/qpb/chainparams.json /opt/qpb-testnet/data/docs/chain/chainparams.json
+sudo chown -R 1000:1000 /opt/qpb-testnet/data
+sudo systemctl restart qpb-testnet
 ```
 
 ---
