@@ -90,6 +90,10 @@ struct Args {
     /// Enable transaction index for looking up confirmed transactions.
     #[arg(long = "txindex", default_value_t = false)]
     txindex: bool,
+
+    /// Skip initial P2P sync (for seed nodes with no peers yet).
+    #[arg(long = "no-initial-sync", default_value_t = false)]
+    no_initial_sync: bool,
 }
 
 /// RPC authentication configuration.
@@ -322,8 +326,8 @@ fn main() -> Result<()> {
         }
     }
 
-    // Sync with discovered peers
-    if !peer_addrs.is_empty() {
+    // Sync with discovered peers (unless --no-initial-sync)
+    if !peer_addrs.is_empty() && !args.no_initial_sync {
         let opts = SyncOpts {
             max_attempts_per_peer: args.p2p_attempts.max(1),
             initial_backoff_ms: args.p2p_backoff_ms,
@@ -331,6 +335,8 @@ fn main() -> Result<()> {
             total_deadline_ms: args.p2p_deadline_ms,
         };
         sync_with_retries(&mut node, net, &peer_addrs, &opts)?;
+    } else if args.no_initial_sync {
+        info!("skipping initial sync (--no-initial-sync)");
     }
 
     // Start inbound listener if enabled
