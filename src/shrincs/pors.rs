@@ -650,7 +650,7 @@ mod tests {
         let params = PorsParams::LEVEL1_2_30;
         let height = params.tree_height();
         // t = 163,840, so height should be 18 (2^18 = 262,144 >= 163,840)
-        assert!(height >= 17 && height <= 18);
+        assert!((17..=18).contains(&height));
     }
 
     #[test]
@@ -695,7 +695,7 @@ mod tests {
         let sk_seed = [1u8; 32];
         let pk_seed = [2u8; 32];
 
-        let (sk, pk, tree_levels) = keygen(sk_seed, pk_seed, params);
+        let (_sk, pk, tree_levels) = keygen(sk_seed, pk_seed, params);
 
         assert_eq!(pk.root.len(), params.n);
         assert!(!tree_levels.is_empty());

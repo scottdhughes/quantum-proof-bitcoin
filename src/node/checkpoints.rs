@@ -173,7 +173,7 @@ mod tests {
         let hash = make_hash(1);
 
         // No checkpoint at this height, should return Ok(false)
-        assert_eq!(verifier.verify(100, &hash).unwrap(), false);
+        assert!(!verifier.verify(100, &hash).unwrap());
     }
 
     #[test]
@@ -184,7 +184,7 @@ mod tests {
         verifier.max_height = 1000;
 
         // Matching checkpoint
-        assert_eq!(verifier.verify(1000, &hash).unwrap(), true);
+        assert!(verifier.verify(1000, &hash).unwrap());
     }
 
     #[test]
