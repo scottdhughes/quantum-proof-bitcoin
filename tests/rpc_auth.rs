@@ -16,7 +16,7 @@ fn start_node(
     rpc_user: Option<&str>,
     rpc_password: Option<&str>,
 ) -> Child {
-    let mut cmd = Command::new("./target/debug/qpb-node");
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_qpb-node"));
     cmd.arg("--chain=devnet")
         .arg(format!("--datadir={}", datadir.display()))
         .arg(format!("--rpc-addr=127.0.0.1:{}", rpc_port))
