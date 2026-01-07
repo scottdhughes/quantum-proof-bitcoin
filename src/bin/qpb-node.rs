@@ -820,12 +820,14 @@ fn start_rpc_server_shared(
                     shutdown.store(true, Ordering::SeqCst);
                     break;
                 }
-                RpcAction::BroadcastBlock(block_hash) => {
-                    // Queue block for relay to all peers (sender_id=0 for locally-mined)
+                RpcAction::BroadcastBlocks(block_hashes) => {
+                    // Queue ALL blocks for relay to all peers (sender_id=0 for locally-mined)
                     let node = shared.lock().unwrap();
                     if let Some(pm) = node.peer_manager() {
-                        pm.queue_block_relay(0, block_hash);
-                        debug!(?block_hash, "queued block for broadcast");
+                        for block_hash in &block_hashes {
+                            pm.queue_block_relay(0, *block_hash);
+                        }
+                        info!(count = block_hashes.len(), "queued blocks for broadcast");
                     }
                 }
                 RpcAction::BroadcastTransaction(txid) => {
