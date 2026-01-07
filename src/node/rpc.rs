@@ -555,7 +555,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             Ok((Value::Array(addresses), RpcAction::Continue))
         }
         "sendtoaddress" => {
-            // sendtoaddress <address> <amount> [fee_rate] [rbf]
+            // sendtoaddress <address> <amount> [fee_rate] [rbf=true]
             let address = params
                 .first()
                 .and_then(|v| v.as_str())
@@ -565,7 +565,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 .and_then(|v| v.as_u64())
                 .ok_or_else(|| anyhow!("missing amount"))?;
             let fee_rate = params.get(2).and_then(|v| v.as_u64()).unwrap_or(1); // default 1 sat/vB
-            let rbf = params.get(3).and_then(|v| v.as_bool()).unwrap_or(false); // default no RBF
+            let rbf = params.get(3).and_then(|v| v.as_bool()).unwrap_or(true); // default RBF enabled
 
             let wallet_path = node.datadir.join("wallet.json");
             if !wallet_path.exists() {
