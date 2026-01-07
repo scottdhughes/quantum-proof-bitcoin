@@ -1,8 +1,4 @@
-// TODO(activation): Update validation functions to accept block height and network
-// for proper activation checking. Currently uses feature flags which is sufficient
-// for devnet/testnet (immediate activation). Mainnet integration pending external audit.
-// See: src/activation.rs and AlgorithmId::from_byte_at_height()
-
+use crate::activation::Network;
 use crate::constants::{
     BIP68_MIN_VERSION, LOCKTIME_THRESHOLD, MAX_CONTROL_BLOCK_DEPTH, MAX_PQSIGCHECK_BUDGET,
     MAX_PQSIGCHECK_PER_TX, MAX_SCRIPT_SIZE, MAX_WITNESS_ITEM_BYTES, SCRIPT_LEAF_VERSION_V0,
@@ -251,6 +247,8 @@ pub fn validate_p2qpkh_input(
     tx: &Transaction,
     input_index: usize,
     prevouts: &[Prevout],
+    height: u32,
+    network: Network,
 ) -> Result<u32, ConsensusError> {
     let vin = &tx.vin[input_index];
 
@@ -274,7 +272,7 @@ pub fn validate_p2qpkh_input(
     if pk_ser.is_empty() {
         return Err(ConsensusError::InvalidPublicKey);
     }
-    let alg = AlgorithmId::from_byte(pk_ser[0])?;
+    let alg = AlgorithmId::from_byte_at_height(pk_ser[0], height, network)?;
     let pk_bytes = &pk_ser[1..];
 
     if sig_ser.is_empty() {
@@ -326,6 +324,8 @@ pub fn validate_p2qtsh_input(
     tx: &Transaction,
     input_index: usize,
     prevouts: &[Prevout],
+    height: u32,
+    network: Network,
 ) -> Result<u32, ConsensusError> {
     let vin = &tx.vin[input_index];
     if !vin.script_sig.is_empty() {
@@ -412,6 +412,8 @@ pub fn validate_p2qtsh_input(
         leaf_hash: Some(leaf_hash),
         pqsig_cost_acc: 0,
         pqsig_cost_limit: MAX_PQSIGCHECK_PER_TX,
+        height,
+        network,
     };
 
     execute_qscript(&script_with_witness, &mut ctx)?;
@@ -422,6 +424,8 @@ pub fn validate_p2qtsh_input(
 pub fn validate_transaction_basic(
     tx: &Transaction,
     prevouts: &[Prevout],
+    height: u32,
+    network: Network,
 ) -> Result<u32, ConsensusError> {
     if prevouts.len() != tx.vin.len() {
         return Err(ConsensusError::PrevoutsLengthMismatch);
@@ -432,7 +436,7 @@ pub fn validate_transaction_basic(
         let sc = parse_script_pubkey(&prevouts[idx].script_pubkey);
         match sc {
             ScriptType::P2QPKH(_) => {
-                let add = validate_p2qpkh_input(tx, idx, prevouts)?;
+                let add = validate_p2qpkh_input(tx, idx, prevouts, height, network)?;
                 cost = cost
                     .checked_add(add)
                     .ok_or(ConsensusError::PQSigCheckBudgetExceeded)?;
@@ -441,7 +445,7 @@ pub fn validate_transaction_basic(
                 }
             }
             ScriptType::P2QTSH(_) => {
-                let add = validate_p2qtsh_input(tx, idx, prevouts)?;
+                let add = validate_p2qtsh_input(tx, idx, prevouts, height, network)?;
                 cost = cost
                     .checked_add(add)
                     .ok_or(ConsensusError::PQSigCheckBudgetExceeded)?;
@@ -550,6 +554,7 @@ pub fn validate_witness_commitment(block: &Block) -> Result<(), ConsensusError> 
 /// * `check_pow` - Whether to validate proof-of-work
 /// * `height` - Height of this block
 /// * `mtp` - Median Time Past for time-based locktime validation (BIP113)
+/// * `network` - Network for activation checks
 /// * `get_mtp_at_height` - Function to get MTP at a specific height (for BIP68 time-based relative locks)
 #[allow(clippy::too_many_arguments)]
 pub fn validate_block_basic<F>(
@@ -560,6 +565,7 @@ pub fn validate_block_basic<F>(
     check_pow: bool,
     height: u32,
     mtp: u32,
+    network: Network,
     get_mtp_at_height: F,
 ) -> Result<(), ConsensusError>
 where
@@ -596,7 +602,7 @@ where
         // Validate relative locktimes (BIP68)
         check_sequence_locks(tx, prevs, height, mtp, &get_mtp_at_height)?;
 
-        let tx_cost = validate_transaction_basic(tx, prevs)?;
+        let tx_cost = validate_transaction_basic(tx, prevs, height, network)?;
         block_cost = block_cost
             .checked_add(tx_cost)
             .ok_or(ConsensusError::PQSigCheckBudgetExceeded)?;

@@ -1,8 +1,4 @@
-// TODO(activation): Update OP_CHECKPQSIG to use AlgorithmId::from_byte_at_height()
-// for proper activation checking. Currently uses feature flags which is sufficient
-// for devnet/testnet (immediate activation). Mainnet integration pending external audit.
-// See: src/activation.rs
-
+use crate::activation::Network;
 use crate::constants::{
     BIP68_MIN_VERSION, LOCKTIME_THRESHOLD, MAX_SCRIPT_OPS, MAX_SCRIPT_SIZE, MAX_STACK_ITEMS,
     MAX_WITNESS_ITEM_BYTES, OP_CHECKLOCKTIMEVERIFY, OP_CHECKPQSIG, OP_CHECKSEQUENCEVERIFY, OP_CTV,
@@ -147,6 +143,8 @@ pub struct QScriptCtx<'a> {
     pub leaf_hash: Option<[u8; 32]>,
     pub pqsig_cost_acc: u32,   // accumulated cost during this tx
     pub pqsig_cost_limit: u32, // per-tx cap
+    pub height: u32,           // block height for activation checks
+    pub network: Network,      // network for activation checks
 }
 
 pub fn execute_qscript(script: &[u8], ctx: &mut QScriptCtx) -> Result<(), ConsensusError> {
@@ -355,7 +353,8 @@ pub fn execute_qscript(script: &[u8], ctx: &mut QScriptCtx) -> Result<(), Consen
                 let (&sighash_type, sig_bytes) = sig_ser
                     .split_last()
                     .ok_or(ConsensusError::InvalidSignature)?;
-                let alg = match AlgorithmId::from_byte(pk_ser[0]) {
+                let alg = match AlgorithmId::from_byte_at_height(pk_ser[0], ctx.height, ctx.network)
+                {
                     Ok(a) => a,
                     Err(_) => {
                         stack.push(vec![0]);

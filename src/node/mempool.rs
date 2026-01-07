@@ -11,6 +11,7 @@ use anyhow::{Result, anyhow};
 use serde::{Deserialize, Serialize};
 
 use super::node::parse_transaction;
+use crate::activation::Network;
 use crate::constants::{INCREMENTAL_RELAY_FEE, MAX_REPLACEMENT_EVICTIONS};
 use crate::types::{OutPoint, Prevout, Transaction};
 use crate::validation::validate_transaction_basic;
@@ -163,6 +164,8 @@ impl Mempool {
     /// # Arguments
     /// * `tx` - The transaction to add
     /// * `prevouts` - Previous outputs for fee calculation
+    /// * `height` - Current chain height (for activation checks)
+    /// * `network` - Network type (for activation checks)
     /// * `utxo_lookup` - Function to lookup UTXOs (for prevouts not in mempool)
     ///
     /// # Returns
@@ -172,6 +175,8 @@ impl Mempool {
         &mut self,
         tx: Transaction,
         prevouts: Vec<Prevout>,
+        height: u32,
+        network: Network,
         _utxo_lookup: F,
     ) -> Result<[u8; 32]>
     where
@@ -203,7 +208,7 @@ impl Mempool {
         }
 
         // Validate transaction
-        validate_transaction_basic(&tx, &prevouts)?;
+        validate_transaction_basic(&tx, &prevouts, height, network)?;
 
         // Calculate fee
         let input_sum: u64 = prevouts.iter().map(|p| p.value).sum();
@@ -771,7 +776,12 @@ impl Mempool {
     /// # Returns
     /// * `Ok((mempool, stats))` with load statistics
     /// * `Err` on I/O or parse errors
-    pub fn load<F>(datadir: &Path, utxo_lookup: F) -> Result<(Self, MempoolLoadStats)>
+    pub fn load<F>(
+        datadir: &Path,
+        height: u32,
+        network: Network,
+        utxo_lookup: F,
+    ) -> Result<(Self, MempoolLoadStats)>
     where
         F: Fn(&[u8; 32], u32) -> Option<Prevout>,
     {
@@ -805,7 +815,7 @@ impl Mempool {
 
         // Reload each transaction
         for tx in sorted {
-            match mempool.try_reload_transaction(tx, &utxo_lookup) {
+            match mempool.try_reload_transaction(tx, height, network, &utxo_lookup) {
                 Ok(_) => stats.loaded += 1,
                 Err(_) => stats.invalid += 1,
             }
@@ -815,7 +825,13 @@ impl Mempool {
     }
 
     /// Internal: Try to reload a transaction, looking up prevouts from UTXO or mempool.
-    fn try_reload_transaction<F>(&mut self, tx: Transaction, utxo_lookup: &F) -> Result<[u8; 32]>
+    fn try_reload_transaction<F>(
+        &mut self,
+        tx: Transaction,
+        height: u32,
+        network: Network,
+        utxo_lookup: &F,
+    ) -> Result<[u8; 32]>
     where
         F: Fn(&[u8; 32], u32) -> Option<Prevout>,
     {
@@ -843,7 +859,7 @@ impl Mempool {
         }
 
         // Use existing add_transaction which rebuilds all computed fields
-        self.add_transaction(tx, prevouts, utxo_lookup)
+        self.add_transaction(tx, prevouts, height, network, utxo_lookup)
     }
 }
 

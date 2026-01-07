@@ -1,7 +1,7 @@
 use hex_literal::hex;
 use qpb_consensus::{
-    Block, BlockHeader, CHAIN_ID, OutPoint, Prevout, Transaction, TxIn, TxOut, bits_to_target,
-    block_weight_wu, build_p2qtsh, mldsa_keypair, mldsa_sign, penalty, qpb_sighash,
+    Block, BlockHeader, CHAIN_ID, OutPoint, Prevout, Transaction, TxIn, TxOut, activation::Network,
+    bits_to_target, block_weight_wu, build_p2qtsh, mldsa_keypair, mldsa_sign, penalty, qpb_sighash,
     validate_block_basic, validate_transaction_basic, validate_witness_commitment,
     witness_merkle_root,
 };
@@ -109,7 +109,7 @@ fn p2qpkh_sighash_and_validation() {
     tx.vin[0].witness = vec![sig_ser, pk_ser];
 
     // Validate tx (stub PQ verify).
-    let cost = validate_transaction_basic(&tx, &prevouts).unwrap();
+    let cost = validate_transaction_basic(&tx, &prevouts, 1, Network::Devnet).unwrap();
     assert_eq!(cost, 1);
 }
 
@@ -142,7 +142,7 @@ fn p2qpkh_shrincs_alg_is_rejected() {
         lock_time: 0,
     };
     let prevouts = vec![Prevout::regular(1_0000, spk)];
-    let res = validate_transaction_basic(&tx, &prevouts);
+    let res = validate_transaction_basic(&tx, &prevouts, 1, Network::Devnet);
     assert!(res.is_err(), "SHRINCS alg_id must be rejected at consensus");
 }
 
@@ -192,7 +192,8 @@ fn p2qpkh_shrincs_roundtrip() {
     tx.vin[0].witness = vec![sig_ser, pk_ser];
 
     // 6. Validate transaction
-    let cost = validate_transaction_basic(&tx, &prevouts).expect("validation should succeed");
+    let cost = validate_transaction_basic(&tx, &prevouts, 1, Network::Devnet)
+        .expect("validation should succeed");
 
     // SHRINCS costs 2 PQSigCheck units (vs 1 for ML-DSA-65)
     assert_eq!(cost, 2, "SHRINCS should cost 2 PQSigCheck units");
@@ -258,8 +259,8 @@ fn p2qpkh_shrincs_fallback_roundtrip() {
     tx.vin[0].witness = vec![sig_ser, ext_pk_ser];
 
     // 7. Validate transaction
-    let cost =
-        validate_transaction_basic(&tx, &prevouts).expect("fallback validation should succeed");
+    let cost = validate_transaction_basic(&tx, &prevouts, 1, Network::Devnet)
+        .expect("fallback validation should succeed");
 
     // SHRINCS fallback still costs 2 PQSigCheck units
     assert_eq!(cost, 2, "SHRINCS fallback should cost 2 PQSigCheck units");
@@ -293,7 +294,7 @@ fn p2qpkh_slh_alg_is_rejected() {
         lock_time: 0,
     };
     let prevouts = vec![Prevout::regular(1_0000, spk)];
-    let res = validate_transaction_basic(&tx, &prevouts);
+    let res = validate_transaction_basic(&tx, &prevouts, 1, Network::Devnet);
     assert!(res.is_err(), "SLH alg_id must be rejected at consensus");
 }
 
@@ -331,7 +332,7 @@ fn p2qtsh_validation_simple_true_script() {
     };
     let prevouts = vec![Prevout::regular(1_0000, spk)];
 
-    let cost = validate_transaction_basic(&tx, &prevouts).unwrap();
+    let cost = validate_transaction_basic(&tx, &prevouts, 1, Network::Devnet).unwrap();
     assert_eq!(cost, 0);
 }
 
@@ -479,5 +480,16 @@ fn block_validation_without_pow_check() {
 
     // MTP=0 since all transactions are final (lock_time=0, sequence=0xffffffff)
     // The closure returns 0 for any height since we don't need MTP lookups for final txs
-    validate_block_basic(&block, &prevouts, 4_000_000, 4_000_000, false, 1, 0, |_| 0).unwrap();
+    validate_block_basic(
+        &block,
+        &prevouts,
+        4_000_000,
+        4_000_000,
+        false,
+        1,
+        0,
+        Network::Devnet,
+        |_| 0,
+    )
+    .unwrap();
 }

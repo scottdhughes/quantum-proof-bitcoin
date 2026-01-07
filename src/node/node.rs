@@ -6,6 +6,7 @@ use anyhow::{Context, Result, anyhow};
 
 use std::collections::HashSet;
 
+use crate::activation::Network;
 use crate::constants::{COINBASE_MATURITY, MAX_REORG_DEPTH, WEIGHT_FLOOR_WU};
 use crate::node::blockstore;
 use crate::node::chain::{ChainIndex, UndoData};
@@ -130,7 +131,12 @@ impl Node {
         let mut utxo = UtxoSet::load(datadir)?;
 
         // Load mempool, validating transactions against current UTXO set
-        let (mempool, mempool_stats) = Mempool::load(datadir, |txid, vout| utxo.get(txid, vout))?;
+        let current_height = store.height() as u32;
+        let network = Network::parse(chain);
+        let (mempool, mempool_stats) =
+            Mempool::load(datadir, current_height, network, |txid, vout| {
+                utxo.get(txid, vout)
+            })?;
         if mempool_stats.loaded > 0 || mempool_stats.invalid > 0 {
             eprintln!(
                 "mempool: loaded {} txs ({} invalid, {} parse errors)",
@@ -484,8 +490,11 @@ impl Node {
 
         // Use a closure that captures our UTXO set for any additional lookups
         let utxo_ref = &self.utxo;
+        let network = Network::parse(&self.chain);
         self.mempool
-            .add_transaction(tx, prevouts, |txid, vout| utxo_ref.get(txid, vout))
+            .add_transaction(tx, prevouts, current_height, network, |txid, vout| {
+                utxo_ref.get(txid, vout)
+            })
     }
 
     /// Get mempool info.
@@ -640,8 +649,15 @@ impl Node {
 
         // Add to mempool
         let utxo_ref = &self.utxo;
+        let network = Network::parse(&self.chain);
         self.mempool
-            .add_transaction(tx.clone(), prevouts, |txid, vout| utxo_ref.get(txid, vout))
+            .add_transaction(
+                tx.clone(),
+                prevouts,
+                current_height,
+                network,
+                |txid, vout| utxo_ref.get(txid, vout),
+            )
             .map_err(|e| AddError::Other(e.to_string()))?;
 
         Ok(())
@@ -808,6 +824,7 @@ impl Node {
             !self.no_pow,
             new_height,
             mtp,
+            Network::parse(&self.chain),
             get_mtp_at_height,
         )?;
 
