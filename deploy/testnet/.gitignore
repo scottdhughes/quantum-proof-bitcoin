@@ -1,0 +1,6 @@
+# Runtime data (persisted on server)
+data/
+
+# Environment with secrets
+.env
+.env.bak.*
