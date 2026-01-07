@@ -471,6 +471,10 @@ impl Node {
             }
         }
 
+        // Check basic transaction structure (non-empty inputs/outputs, valid version)
+        crate::validation::check_transaction_structure(&tx)
+            .map_err(|e| anyhow::anyhow!("invalid transaction structure: {}", e))?;
+
         // Check absolute locktime before accepting into mempool (BIP113)
         // Use next block height and current MTP for evaluation
         let current_mtp = self.compute_mtp(self.store.height());
@@ -630,6 +634,10 @@ impl Node {
         if !missing.is_empty() {
             return Err(AddError::MissingInputs(missing));
         }
+
+        // Check basic transaction structure (non-empty inputs/outputs, valid version)
+        crate::validation::check_transaction_structure(tx)
+            .map_err(|e| AddError::Other(format!("invalid transaction structure: {}", e)))?;
 
         // Check absolute locktime
         let current_mtp = self.compute_mtp(self.store.height());

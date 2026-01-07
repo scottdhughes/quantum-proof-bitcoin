@@ -40,4 +40,10 @@ pub enum ConsensusError {
     LocktimeNotSatisfied,
     #[error("BIP68 relative locktime not satisfied")]
     SequenceLockNotSatisfied,
+    #[error("transaction has no inputs")]
+    EmptyInputs,
+    #[error("transaction has no outputs")]
+    EmptyOutputs,
+    #[error("invalid transaction version: {0}")]
+    InvalidVersion(i32),
 }
