@@ -15,7 +15,7 @@ use qpb_consensus::validation::{
 use qpb_consensus::{
     LOCKTIME_THRESHOLD, OP_CHECKLOCKTIMEVERIFY, OP_CHECKSEQUENCEVERIFY, OutPoint, Prevout,
     QScriptCtx, SEQUENCE_FINAL, SEQUENCE_LOCKTIME_DISABLE_FLAG, SEQUENCE_LOCKTIME_TYPE_FLAG,
-    Transaction, TxIn, TxOut, execute_qscript,
+    Transaction, TxIn, TxOut, activation::Network, execute_qscript,
 };
 
 fn rpc_call(node: &mut Node, method: &str, params: &str) -> serde_json::Value {
@@ -732,6 +732,8 @@ fn make_script_ctx<'a>(tx: &'a Transaction, prevouts: &'a [Prevout]) -> QScriptC
         leaf_hash: None,
         pqsig_cost_acc: 0,
         pqsig_cost_limit: 40,
+        height: 1,
+        network: Network::Devnet,
     }
 }
 

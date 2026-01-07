@@ -1717,7 +1717,7 @@ fn try_connect_outbound(
     ) {
         Ok(s) => s,
         Err(e) => {
-            debug!(%addr, error = %e, "outbound connect failed");
+            info!(%addr, error = %e, "outbound connect failed");
             return;
         }
     };

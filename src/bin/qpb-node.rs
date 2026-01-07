@@ -246,10 +246,45 @@ fn main() -> Result<()> {
 
     // 1. Manual --p2p-connect peers (highest priority)
     if let Some(peers) = args.p2p_connect.as_ref() {
+        use std::net::ToSocketAddrs;
+
         let manual_addrs: Vec<std::net::SocketAddr> = peers
             .iter()
-            .filter_map(|s| s.parse::<std::net::SocketAddr>().ok())
+            .filter_map(|s| {
+                // First try direct SocketAddr parse (e.g., "1.2.3.4:8333")
+                match s.parse::<std::net::SocketAddr>() {
+                    Ok(addr) => {
+                        info!(address = %s, "parsed --p2p-connect address");
+                        Some(addr)
+                    }
+                    Err(_) => {
+                        // Try DNS resolution for hostnames (e.g., "seed.example.com:8333")
+                        match s.to_socket_addrs() {
+                            Ok(mut addrs) => {
+                                if let Some(addr) = addrs.next() {
+                                    info!(input = %s, resolved = %addr, "resolved --p2p-connect hostname");
+                                    Some(addr)
+                                } else {
+                                    warn!(address = %s, "DNS resolution returned no addresses");
+                                    None
+                                }
+                            }
+                            Err(e) => {
+                                warn!(address = %s, error = %e, "failed to resolve --p2p-connect address");
+                                None
+                            }
+                        }
+                    }
+                }
+            })
             .collect();
+
+        if manual_addrs.is_empty() && !peers.is_empty() {
+            warn!(
+                count = peers.len(),
+                "all --p2p-connect addresses failed to parse/resolve"
+            );
+        }
 
         // Seed address manager with manual peers so OutboundManager can use them
         if !manual_addrs.is_empty() {

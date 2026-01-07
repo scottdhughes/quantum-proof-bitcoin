@@ -1,8 +1,9 @@
 use base64::{Engine as _, engine::general_purpose};
 use qpb_consensus::{
     Block, BlockHeader, OutPoint, Prevout, Transaction, TxIn, TxOut, WEIGHT_FLOOR_WU,
-    block_subsidy, build_p2qpkh, merkle_root, mine_header_parallel, mine_header_serial,
-    mldsa_keypair, mldsa_sign, qpb_sighash, qpkh32, validate_block_basic, witness_merkle_root,
+    activation::Network, block_subsidy, build_p2qpkh, merkle_root, mine_header_parallel,
+    mine_header_serial, mldsa_keypair, mldsa_sign, qpb_sighash, qpkh32, validate_block_basic,
+    witness_merkle_root,
 };
 use rand::{Rng, RngCore};
 use std::env;
@@ -534,8 +535,9 @@ fn main() {
             WEIGHT_FLOOR_WU,
             true,
             height,
-            0,     // MTP not needed for final transactions
-            |_| 0, // No MTP lookup needed for final transactions
+            0,               // MTP not needed for final transactions
+            Network::Devnet, // Use devnet for CLI tool (most permissive)
+            |_| 0,           // No MTP lookup needed for final transactions
         )
         .expect("block validation failed");
 

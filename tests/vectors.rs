@@ -5,8 +5,8 @@ use std::path::Path;
 use hex::FromHex;
 use qpb_consensus::varint::read_compact_size;
 use qpb_consensus::{
-    Prevout, Transaction, TxIn, TxOut, parse_script_pubkey, qpb_sighash, qtap_leaf_hash,
-    qtap_reconstruct_root, validate_transaction_basic,
+    Prevout, Transaction, TxIn, TxOut, activation::Network, parse_script_pubkey, qpb_sighash,
+    qtap_leaf_hash, qtap_reconstruct_root, validate_transaction_basic,
 };
 use serde::Deserialize;
 
@@ -141,7 +141,7 @@ fn run_vectors() {
             let tx = deserialize_tx(&vec.tx_hex);
             let prevouts = prevouts_from_json(&vec.prevouts);
 
-            let valid = validate_transaction_basic(&tx, &prevouts).is_ok();
+            let valid = validate_transaction_basic(&tx, &prevouts, 1, Network::Devnet).is_ok();
             assert_eq!(valid, vec.expected.valid, "{}", path.display());
 
             if let Some(msg_hex) = &vec.expected.msg32_hex {
