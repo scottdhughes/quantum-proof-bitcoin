@@ -72,16 +72,16 @@ USER qpb
 # Set working directory
 WORKDIR /data
 
-# Expose ports
-# P2P: 8333 (mainnet), 18333 (testnet), 28333 (devnet)
-# RPC: 8332 (mainnet), 18332 (testnet), 28332 (devnet)
-EXPOSE 8333 18333 28333
-EXPOSE 8332 18332 28332
+# Expose ports (from chainparams.json)
+# P2P: 38333 (devnet), 38334 (testnet), 38444 (regtest)
+# RPC: 38332 (devnet), 38335 (testnet), 38443 (regtest)
+EXPOSE 38333 38334 38444
+EXPOSE 38332 38335 38443
 
 # Default to devnet for safety
 ENV QPB_CHAIN=devnet
 ENV QPB_DATADIR=/data
-ENV QPB_RPC_ADDR=0.0.0.0:28332
+ENV QPB_RPC_ADDR=0.0.0.0:38332
 
 # Health check using the /health endpoint
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

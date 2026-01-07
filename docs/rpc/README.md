@@ -1,17 +1,17 @@
 # QPB JSON-RPC API Reference
 
-The QPB node exposes a JSON-RPC 2.0 API on the configured RPC port (default: 28332 for devnet).
+The QPB node exposes a JSON-RPC 2.0 API on the configured RPC port (default: 38332 for devnet).
 
 ## Connection
 
 ```bash
 # Basic request
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"METHOD","params":[...]}'
 
 # With authentication (if configured)
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -H "Content-Type: application/json" \
   -H "Authorization: Basic $(echo -n 'user:pass' | base64)" \
   -d '{"jsonrpc":"2.0","id":1,"method":"getblockcount","params":[]}'
@@ -21,7 +21,7 @@ curl -X POST http://localhost:28332 \
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/` | POST | JSON-RPC API |
+| `/rpc` | POST | JSON-RPC API |
 | `/health` | GET | Node health status |
 | `/metrics` | GET | Prometheus metrics |
 
@@ -39,7 +39,7 @@ Returns the height of the most-work fully-validated chain.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"getblockcount","params":[]}'
 ```
 
@@ -60,7 +60,7 @@ Returns the hash of the best (tip) block in the most-work fully-validated chain.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"getbestblockhash","params":[]}'
 ```
 
@@ -85,7 +85,7 @@ Returns raw block data for a given block hash.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"getblock","params":["00000000a1b2c3d4..."]}'
 ```
 
@@ -118,7 +118,7 @@ Returns block header information for a given block hash.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"getblockheader","params":["00000000a1b2c3d4..."]}'
 ```
 
@@ -143,7 +143,7 @@ Returns raw transaction data for a given transaction ID.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"getrawtransaction","params":["abc123...",true]}'
 ```
 
@@ -163,7 +163,7 @@ Submits a raw transaction to the network.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"sendrawtransaction","params":["0200000001..."]}'
 ```
 
@@ -185,7 +185,7 @@ Creates an unsigned raw transaction.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"createrawtransaction","params":[[{"txid":"abc...","vout":0}],{"qpbdev1q...":1.5}]}'
 ```
 
@@ -214,7 +214,7 @@ Decodes a raw transaction hex into JSON.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"decoderawtransaction","params":["0200000001..."]}'
 ```
 
@@ -243,7 +243,7 @@ Validates an address and returns information about it.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"validateaddress","params":["qpbdev1q..."]}'
 ```
 
@@ -266,7 +266,7 @@ Mines blocks to a specified address.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"generatetoaddress","params":[1,"qpbdev1q..."]}'
 ```
 
@@ -289,7 +289,7 @@ Returns data needed to construct a block.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"getblocktemplate","params":[]}'
 ```
 
@@ -327,7 +327,7 @@ Returns information about the memory pool.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"getmempoolinfo","params":[]}'
 ```
 
@@ -352,7 +352,7 @@ Estimates the fee rate for confirmation within n blocks.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"estimatesmartfee","params":[6]}'
 ```
 
@@ -389,7 +389,7 @@ Generates a new receiving address.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"getnewaddress","params":[]}'
 ```
 
@@ -410,7 +410,7 @@ Returns the wallet balance.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"getbalance","params":[]}'
 ```
 
@@ -433,7 +433,7 @@ Sends coins to an address.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"sendtoaddress","params":["qpbdev1q...",100000000,2,true]}'
 ```
 

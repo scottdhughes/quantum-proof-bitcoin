@@ -17,10 +17,10 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# RPC endpoints
-MINER_RPC="http://localhost:28332/rpc"
-NODE1_RPC="http://localhost:28342/rpc"
-NODE2_RPC="http://localhost:28352/rpc"
+# RPC endpoints (matching docker-compose.shrincs.yml)
+MINER_RPC="http://localhost:38332/rpc"
+NODE1_RPC="http://localhost:38342/rpc"
+NODE2_RPC="http://localhost:38352/rpc"
 
 # Test configuration
 LONG_TEST=false
