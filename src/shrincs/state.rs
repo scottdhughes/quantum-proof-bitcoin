@@ -709,7 +709,7 @@ mod tests {
         mgr.save(&state).unwrap();
 
         // Multiple updates
-        for i in 0..5 {
+        for _i in 0..5 {
             let lock = mgr.lock().unwrap();
             let mut current = mgr.load_with_lock(&lock).unwrap();
             current.allocate_leaf().unwrap();

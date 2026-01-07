@@ -597,7 +597,10 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             // Add to mempool
             node.add_to_mempool(tx)?;
 
-            Ok((Value::String(hex::encode(txid)), RpcAction::Continue))
+            Ok((
+                Value::String(hex::encode(txid)),
+                RpcAction::BroadcastTransaction(txid),
+            ))
         }
         "bumpfee" => {
             // bumpfee <txid> <new_fee_rate>
@@ -681,7 +684,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                     "fee": new_fee,
                     "errors": [],
                 }),
-                RpcAction::Continue,
+                RpcAction::BroadcastTransaction(new_txid),
             ))
         }
         // Wallet encryption RPCs
