@@ -12,12 +12,12 @@ use crate::node::node::{Node, parse_transaction};
 use crate::node::wallet::Wallet;
 use crate::script::parse_script_pubkey;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RpcAction {
     Continue,
     Stop,
-    /// Broadcast a newly-mined or accepted block to peers.
-    BroadcastBlock([u8; 32]),
+    /// Broadcast newly-mined blocks to peers.
+    BroadcastBlocks(Vec<[u8; 32]>),
     /// Broadcast a newly-accepted transaction to peers.
     BroadcastTransaction([u8; 32]),
 }
@@ -254,21 +254,25 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             let cp = load_chainparams(std::path::Path::new("docs/chain/chainparams.json"))?;
             let net = select_network(&cp, &node.chain)?;
             let mut hashes = Vec::with_capacity(n);
+            let mut block_hashes_to_broadcast = Vec::with_capacity(n);
             for _ in 0..n {
                 let bytes = mine_block_bytes(node, net, node.no_pow())?;
                 node.submit_block_bytes(&bytes)?;
-                hashes.push(Value::String(node.best_hash_hex().to_string()));
+                let best_hash = node.best_hash_hex();
+                hashes.push(Value::String(best_hash.to_string()));
+                // Collect block hash for broadcast
+                let hash_bytes = hex::decode(best_hash)?;
+                let mut block_hash = [0u8; 32];
+                block_hash.copy_from_slice(&hash_bytes);
+                block_hashes_to_broadcast.push(block_hash);
             }
             let val = if n == 1 {
                 hashes.pop().unwrap()
             } else {
                 Value::Array(hashes)
             };
-            // Broadcast the new tip to peers
-            let tip_hash = hex::decode(node.best_hash_hex())?;
-            let mut block_hash = [0u8; 32];
-            block_hash.copy_from_slice(&tip_hash);
-            Ok((val, RpcAction::BroadcastBlock(block_hash)))
+            // Broadcast ALL mined blocks to peers (not just tip)
+            Ok((val, RpcAction::BroadcastBlocks(block_hashes_to_broadcast)))
         }
         "generateblock" => {
             // Generate block including mempool transactions
@@ -280,21 +284,25 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             let cp = load_chainparams(std::path::Path::new("docs/chain/chainparams.json"))?;
             let net = select_network(&cp, &node.chain)?;
             let mut hashes = Vec::with_capacity(n);
+            let mut block_hashes_to_broadcast = Vec::with_capacity(n);
             for _ in 0..n {
                 let bytes = mine_block_bytes_with_mempool(node, net, node.no_pow(), true)?;
                 node.submit_block_bytes(&bytes)?;
-                hashes.push(Value::String(node.best_hash_hex().to_string()));
+                let best_hash = node.best_hash_hex();
+                hashes.push(Value::String(best_hash.to_string()));
+                // Collect block hash for broadcast
+                let hash_bytes = hex::decode(best_hash)?;
+                let mut block_hash = [0u8; 32];
+                block_hash.copy_from_slice(&hash_bytes);
+                block_hashes_to_broadcast.push(block_hash);
             }
             let val = if n == 1 {
                 hashes.pop().unwrap()
             } else {
                 Value::Array(hashes)
             };
-            // Broadcast the new tip to peers
-            let tip_hash = hex::decode(node.best_hash_hex())?;
-            let mut block_hash = [0u8; 32];
-            block_hash.copy_from_slice(&tip_hash);
-            Ok((val, RpcAction::BroadcastBlock(block_hash)))
+            // Broadcast ALL mined blocks to peers (not just tip)
+            Ok((val, RpcAction::BroadcastBlocks(block_hashes_to_broadcast)))
         }
         "generatetoaddress" => {
             // generatetoaddress <n> <address>
@@ -315,22 +323,26 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             let cp = load_chainparams(std::path::Path::new("docs/chain/chainparams.json"))?;
             let net = select_network(&cp, &node.chain)?;
             let mut hashes = Vec::with_capacity(n);
+            let mut block_hashes_to_broadcast = Vec::with_capacity(n);
             for _ in 0..n {
                 let bytes =
                     mine_block_to_address(node, net, decoded.script_pubkey.clone(), node.no_pow())?;
                 node.submit_block_bytes(&bytes)?;
-                hashes.push(Value::String(node.best_hash_hex().to_string()));
+                let best_hash = node.best_hash_hex();
+                hashes.push(Value::String(best_hash.to_string()));
+                // Collect block hash for broadcast
+                let hash_bytes = hex::decode(best_hash)?;
+                let mut block_hash = [0u8; 32];
+                block_hash.copy_from_slice(&hash_bytes);
+                block_hashes_to_broadcast.push(block_hash);
             }
             let val = if n == 1 {
                 hashes.pop().unwrap()
             } else {
                 Value::Array(hashes)
             };
-            // Broadcast the new tip to peers
-            let tip_hash = hex::decode(node.best_hash_hex())?;
-            let mut block_hash = [0u8; 32];
-            block_hash.copy_from_slice(&tip_hash);
-            Ok((val, RpcAction::BroadcastBlock(block_hash)))
+            // Broadcast ALL mined blocks to peers (not just tip)
+            Ok((val, RpcAction::BroadcastBlocks(block_hashes_to_broadcast)))
         }
         "getutxo" => {
             let txid_hex = params
