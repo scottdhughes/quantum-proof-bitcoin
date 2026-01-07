@@ -1,0 +1,102 @@
+# 3-node local devnet for testing reorgs and chain splits
+# Usage: docker-compose -f docker-compose.3node.yml up -d
+
+services:
+  # Miner node - primary block producer
+  miner:
+    build: .
+    container_name: qpb-miner
+    environment:
+      - QPB_CHAIN=devnet
+      - QPB_DATADIR=/data
+      - QPB_RPC_ADDR=0.0.0.0:28332
+    volumes:
+      - miner-data:/data
+    ports:
+      - "28332:28332"  # RPC
+      - "28333:28333"  # P2P
+    networks:
+      - qpb-local
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:28332/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  # Node 1 - follows miner
+  node1:
+    build: .
+    container_name: qpb-node1
+    environment:
+      - QPB_CHAIN=devnet
+      - QPB_DATADIR=/data
+      - QPB_RPC_ADDR=0.0.0.0:28342
+    command: >
+      /usr/local/bin/qpb-node
+      --chain=devnet
+      --datadir=/data
+      --rpc-addr=0.0.0.0:28342
+      --chainparams=/etc/qpb/chainparams.json
+      --listen
+      --port=28343
+      --p2p-connect=miner:28333
+    volumes:
+      - node1-data:/data
+    ports:
+      - "28342:28342"  # RPC
+      - "28343:28343"  # P2P
+    networks:
+      - qpb-local
+    depends_on:
+      miner:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:28342/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  # Node 2 - follows miner
+  node2:
+    build: .
+    container_name: qpb-node2
+    environment:
+      - QPB_CHAIN=devnet
+      - QPB_DATADIR=/data
+      - QPB_RPC_ADDR=0.0.0.0:28352
+    command: >
+      /usr/local/bin/qpb-node
+      --chain=devnet
+      --datadir=/data
+      --rpc-addr=0.0.0.0:28352
+      --chainparams=/etc/qpb/chainparams.json
+      --listen
+      --port=28353
+      --p2p-connect=miner:28333
+    volumes:
+      - node2-data:/data
+    ports:
+      - "28352:28352"  # RPC
+      - "28353:28353"  # P2P
+    networks:
+      - qpb-local
+    depends_on:
+      miner:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:28352/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  miner-data:
+  node1-data:
+  node2-data:
+
+networks:
+  qpb-local:
+    driver: bridge
