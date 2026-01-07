@@ -75,7 +75,7 @@ fn transaction_signals_rbf_with_rbf_flag() {
 }
 
 #[test]
-fn transaction_does_not_signal_rbf_by_default() {
+fn transaction_signals_rbf_by_default() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
 
@@ -89,7 +89,7 @@ fn transaction_does_not_signal_rbf_by_default() {
     // Mine blocks to get mature coins
     mine_to_address(&mut node, 101, &sender);
 
-    // Create transaction WITHOUT RBF flag (default)
+    // Create transaction WITHOUT explicit RBF flag (should default to true)
     let resp = rpc_call(
         &mut node,
         "sendtoaddress",
@@ -110,8 +110,49 @@ fn transaction_does_not_signal_rbf_by_default() {
         .mempool_get_entry(&txid)
         .expect("tx should be in mempool");
     assert!(
+        entry.signals_rbf,
+        "transaction should signal RBF by default"
+    );
+}
+
+#[test]
+fn transaction_does_not_signal_rbf_when_disabled() {
+    let dir = tempdir().unwrap();
+    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
+
+    // Setup wallet
+    rpc_call(&mut node, "createwallet", "[]");
+    let resp = rpc_call(&mut node, "getnewaddress", r#"["sender"]"#);
+    let sender = resp["result"].as_str().unwrap().to_string();
+    let resp = rpc_call(&mut node, "getnewaddress", r#"["recipient"]"#);
+    let recipient = resp["result"].as_str().unwrap().to_string();
+
+    // Mine blocks to get mature coins
+    mine_to_address(&mut node, 101, &sender);
+
+    // Create transaction with explicit rbf=false
+    let resp = rpc_call(
+        &mut node,
+        "sendtoaddress",
+        &format!(r#"["{}", 1000, 1, false]"#, recipient),
+    );
+    assert!(
+        resp.get("error").is_none() || resp["error"].is_null(),
+        "sendtoaddress failed: {:?}",
+        resp
+    );
+
+    let txid_hex = resp["result"].as_str().unwrap();
+    let txid_bytes = hex::decode(txid_hex).unwrap();
+    let mut txid = [0u8; 32];
+    txid.copy_from_slice(&txid_bytes);
+
+    let entry = node
+        .mempool_get_entry(&txid)
+        .expect("tx should be in mempool");
+    assert!(
         !entry.signals_rbf,
-        "transaction should NOT signal RBF by default"
+        "transaction should NOT signal RBF when explicitly disabled"
     );
 }
 
@@ -215,11 +256,11 @@ fn bumpfee_rejects_non_rbf_transaction() {
     // Mine blocks to get mature coins
     mine_to_address(&mut node, 101, &sender);
 
-    // Create transaction WITHOUT RBF
+    // Create transaction with explicit rbf=false
     let resp = rpc_call(
         &mut node,
         "sendtoaddress",
-        &format!(r#"["{}", 1000, 1]"#, recipient),
+        &format!(r#"["{}", 1000, 1, false]"#, recipient),
     );
     assert!(
         resp.get("error").is_none() || resp["error"].is_null(),
