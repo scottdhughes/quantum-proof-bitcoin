@@ -1341,7 +1341,8 @@ impl Wallet {
         let num_outputs = if selected.change > 0 { 2 } else { 1 };
         let total_weight =
             base_weight + (num_inputs * input_weight) + (num_outputs * output_weight);
-        let vsize = total_weight.div_ceil(4);
+        // +1 vbyte buffer to account for estimation variance vs actual serialization
+        let vsize = total_weight.div_ceil(4) + 1;
         let fee = vsize as u64 * fee_rate;
 
         // Verify we have enough
@@ -1626,7 +1627,8 @@ fn select_coins(
         let num_outputs = 2;
         let total_weight =
             base_weight + (num_inputs * input_weight) + (num_outputs * output_weight);
-        let vsize = total_weight.div_ceil(4);
+        // +1 vbyte buffer to account for estimation variance vs actual serialization
+        let vsize = total_weight.div_ceil(4) + 1;
         let fee = vsize as u64 * fee_rate;
 
         if total >= target + fee {
