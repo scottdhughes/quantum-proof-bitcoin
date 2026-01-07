@@ -97,12 +97,15 @@ SHRINCS (alg_id 0x30) is a hybrid stateful + stateless PQ signature scheme. Targ
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| 1. Core Primitives | Complete | WOTS+C, PORS+FP |
-| 2. Hypertree | Complete | XMSS^MT, state management |
-| 3. Orchestrator | Complete | Full signing, SPHINCS+ fallback |
-| 4. Consensus | Pending | Algorithm ID 0x30 activation |
+| 1. Core Primitives | ✅ Complete | WOTS+C, PORS+FP |
+| 2. Hypertree | ✅ Complete | XMSS^MT, state management |
+| 3. Orchestrator | ✅ Complete | Full signing, SPHINCS+ fallback |
+| 4. Consensus Wiring | ✅ Complete | Height/network activation context |
+| 5. Wallet Integration | ✅ Complete | SHRINCS key generation + signing |
+| 6. Mainnet Activation | Pending | Algorithm ID 0x30 soft-fork |
 
-**Strategy**: Consensus currently rejects alg_id 0x30. Integration pending security audit.
+**Current Status**: SHRINCS is fully implemented and testable with `--features shrincs-dev`.
+Activation heights: Devnet (0), Testnet (100), Mainnet (TBD after audit).
 
 See [SHRINCS Spec](docs/crypto/SHRINCS.md) for details.
 

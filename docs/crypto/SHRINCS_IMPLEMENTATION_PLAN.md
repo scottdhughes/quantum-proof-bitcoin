@@ -245,6 +245,18 @@
 - [x] Implement FileStateManager with atomic writes and file locking
 - [x] Add fallback P2QPKH integration test
 
+**Wallet Integration Complete (PR #63):**
+- [x] Extended WalletKey with alg_id and signing_state_hex fields
+- [x] Added generate_key_shrincs() for SHRINCS keypair generation
+- [x] Added sign_shrincs() with stateful signing state management
+- [x] Wallet version 3 migration support
+
+**Consensus Activation Wiring Complete (PR #63):**
+- [x] Thread height/network through validation call chain
+- [x] QScriptCtx extended with height and network fields
+- [x] AlgorithmId::from_byte_at_height() used throughout
+- [x] Mempool validation includes activation context
+
 **Phase 6 Next Steps:**
 - [ ] Security audit before activation height
 - [ ] Define hard fork activation parameters
