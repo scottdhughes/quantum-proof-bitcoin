@@ -1,0 +1,44 @@
+# QPB Testnet - Production deployment
+# Usage: docker compose -f docker-compose.testnet.yml up -d
+
+services:
+  qpb-testnet:
+    image: ${QPB_IMAGE:-qpb-node:latest}
+    container_name: qpb-testnet
+    restart: unless-stopped
+
+    # NOTE: Only keep if container runs as uid 1000 and ./data owned by 1000
+    user: "1000:1000"
+
+    volumes:
+      - ./data:/data
+      - ./chainparams.json:/etc/qpb/chainparams.json:ro
+
+    ports:
+      - "38334:38334"              # P2P (public)
+      - "127.0.0.1:38335:38335"    # RPC (localhost only - use SSH tunnel)
+
+    command:
+      - "--chain=testnet"
+      - "--datadir=/data"
+      - "--rpc-addr=0.0.0.0:38335"
+      - "--chainparams=/etc/qpb/chainparams.json"
+      - "--listen"
+      - "--port=38334"
+      - "--txindex"
+      # Uncomment for RPC auth (both required if either is set):
+      # - "--rpcuser=qpb"
+      # - "--rpcpassword=CHANGE_ME"
+
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:38335/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"

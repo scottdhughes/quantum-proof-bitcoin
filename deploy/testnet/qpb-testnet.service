@@ -1,0 +1,15 @@
+[Unit]
+Description=QPB Testnet (Docker Compose)
+After=network-online.target docker.service
+Wants=network-online.target docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+WorkingDirectory=/opt/qpb-testnet
+ExecStart=/usr/bin/docker compose -f docker-compose.testnet.yml up -d
+ExecStop=/usr/bin/docker compose -f docker-compose.testnet.yml down
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target
