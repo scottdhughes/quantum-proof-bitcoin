@@ -18,18 +18,18 @@ services:
     environment:
       - QPB_CHAIN=devnet
       - QPB_DATADIR=/data
-      - QPB_RPC_ADDR=0.0.0.0:28332
+      - QPB_RPC_ADDR=0.0.0.0:38332
       - RUST_LOG=info
     volumes:
       - qpb-miner-data:/data
     ports:
-      - "28333:28333"  # P2P
-      - "28332:28332"  # RPC
+      - "38333:38333"  # P2P
+      - "38332:38332"  # RPC
     networks:
       - shrincs-testnet
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:28332/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:38332/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -38,9 +38,9 @@ services:
       /usr/local/bin/qpb-node
       --chain=devnet
       --datadir=/data
-      --rpc-addr=0.0.0.0:28332
+      --rpc-addr=0.0.0.0:38332
       --bind=0.0.0.0
-      --port=28333
+      --port=38333
       --chainparams=/etc/qpb/chainparams.json
       --listen
       --no-pow
@@ -56,13 +56,13 @@ services:
     environment:
       - QPB_CHAIN=devnet
       - QPB_DATADIR=/data
-      - QPB_RPC_ADDR=0.0.0.0:28332
+      - QPB_RPC_ADDR=0.0.0.0:38332
       - RUST_LOG=info
     volumes:
       - qpb-node1-data:/data
     ports:
-      - "28334:28333"  # P2P (mapped to different host port)
-      - "28342:28332"  # RPC
+      - "38334:38333"  # P2P (mapped to different host port)
+      - "38342:38332"  # RPC
     networks:
       - shrincs-testnet
     depends_on:
@@ -73,13 +73,13 @@ services:
       /usr/local/bin/qpb-node
       --chain=devnet
       --datadir=/data
-      --rpc-addr=0.0.0.0:28332
+      --rpc-addr=0.0.0.0:38332
       --bind=0.0.0.0
-      --port=28333
+      --port=38333
       --chainparams=/etc/qpb/chainparams.json
       --listen
       --no-pow
-      --p2p-connect=qpb-miner:28333
+      --p2p-connect=qpb-miner:38333
 
   # Validator node 2
   qpb-node-2:
@@ -92,13 +92,13 @@ services:
     environment:
       - QPB_CHAIN=devnet
       - QPB_DATADIR=/data
-      - QPB_RPC_ADDR=0.0.0.0:28332
+      - QPB_RPC_ADDR=0.0.0.0:38332
       - RUST_LOG=info
     volumes:
       - qpb-node2-data:/data
     ports:
-      - "28335:28333"  # P2P
-      - "28352:28332"  # RPC
+      - "38335:38333"  # P2P
+      - "38352:38332"  # RPC
     networks:
       - shrincs-testnet
     depends_on:
@@ -109,14 +109,14 @@ services:
       /usr/local/bin/qpb-node
       --chain=devnet
       --datadir=/data
-      --rpc-addr=0.0.0.0:28332
+      --rpc-addr=0.0.0.0:38332
       --bind=0.0.0.0
-      --port=28333
+      --port=38333
       --chainparams=/etc/qpb/chainparams.json
       --listen
       --no-pow
-      --p2p-connect=qpb-miner:28333
-      --p2p-connect=qpb-node-1:28333
+      --p2p-connect=qpb-miner:38333
+      --p2p-connect=qpb-node-1:38333
 
 volumes:
   qpb-miner-data:

@@ -32,20 +32,25 @@ cargo build --release
 ### Using Docker
 
 ```bash
-# Build image
+# Build image locally
 docker build -t qpb-node .
 
-# Run container
+# Or pull pre-built image from GHCR
+docker pull ghcr.io/scottdhughes/qpb-node:latest
+
+# Run container (devnet)
 docker run -d \
   --name qpb-node \
-  -p 28332:28332 \
-  -p 28333:28333 \
+  -p 38332:38332 \
+  -p 38333:38333 \
   -v qpb-data:/data \
-  qpb-node
+  ghcr.io/scottdhughes/qpb-node:latest
 
 # Or use docker-compose
 docker compose up -d
 ```
+
+For production testnet deployment, see [Testnet Deployment Guide](../../deploy/testnet/README.md).
 
 ## Configuration
 
@@ -125,11 +130,12 @@ level = "info"
 
 ### Network Ports
 
-| Network | P2P Port | RPC Port |
-|---------|----------|----------|
-| mainnet | 8333 | 8332 |
-| testnet | 18333 | 18332 |
-| devnet | 28333 | 28332 |
+| Network | P2P Port | RPC Port | Address Prefix |
+|---------|----------|----------|----------------|
+| devnet | 38333 | 38332 | `qpb1...` |
+| testnet | 38334 | 38335 | `tqpb1...` |
+| regtest | 38444 | 38443 | `qpbreg1...` |
+| mainnet | TBD | TBD | TBD |
 
 ### Example Configurations
 
@@ -141,15 +147,14 @@ level = "info"
   --no-pow
 ```
 
-**Testnet Node (with P2P):**
+**Testnet Node (connect to live seed):**
 ```bash
 ./target/release/qpb-node \
   --chain=testnet \
   --datadir=/var/lib/qpb \
   --listen \
-  --port=18333 \
-  --p2p-connect=seed1.example.com:18333 \
-  --p2p-connect=seed2.example.com:18333
+  --port=38334 \
+  --p2p-connect=34.237.78.113:38334
 ```
 
 **Secured RPC:**
@@ -166,23 +171,25 @@ level = "info"
 ### Health Endpoint
 
 ```bash
-curl http://localhost:28332/health
+curl http://localhost:38332/health   # devnet
+curl http://localhost:38335/health   # testnet
 ```
 
 Response:
 ```json
 {
-  "status": "healthy",
+  "status": "ok",
   "chain": "devnet",
   "height": 150,
-  "peers": 3
+  "tip": "054c2c31...",
+  "peers": {"inbound": 0, "outbound": 0}
 }
 ```
 
 ### Prometheus Metrics
 
 ```bash
-curl http://localhost:28332/metrics
+curl http://localhost:38332/metrics
 ```
 
 Available metrics:
@@ -197,15 +204,15 @@ Available metrics:
 
 ```bash
 # Block height
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"getblockcount","params":[]}'
 
-# Network info
-curl -X POST http://localhost:28332 \
-  -d '{"jsonrpc":"2.0","id":1,"method":"getnetworkinfo","params":[]}'
+# Peer info
+curl -X POST http://localhost:38332/rpc \
+  -d '{"jsonrpc":"2.0","id":1,"method":"getpeerinfo","params":[]}'
 
 # Mempool info
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"getmempoolinfo","params":[]}'
 ```
 
@@ -227,8 +234,8 @@ curl -X POST http://localhost:28332 \
 
 1. **Check port availability:**
    ```bash
-   lsof -i :28332
-   lsof -i :28333
+   lsof -i :38332   # devnet RPC
+   lsof -i :38333   # devnet P2P
    ```
 
 2. **Verify chainparams file exists:**
@@ -245,8 +252,8 @@ curl -X POST http://localhost:28332 \
 
 1. **Check firewall rules:**
    ```bash
-   # Allow P2P port
-   sudo ufw allow 28333/tcp
+   # Allow P2P port (devnet example)
+   sudo ufw allow 38333/tcp
    ```
 
 2. **Verify DNS resolution:**
@@ -256,7 +263,7 @@ curl -X POST http://localhost:28332 \
 
 3. **Check peer info:**
    ```bash
-   curl -X POST http://localhost:28332 \
+   curl -X POST http://localhost:38332/rpc \
      -d '{"jsonrpc":"2.0","id":1,"method":"getpeerinfo","params":[]}'
    ```
 
@@ -270,7 +277,7 @@ curl -X POST http://localhost:28332 \
 
 1. **Verify credentials:**
    ```bash
-   curl -X POST http://localhost:28332 \
+   curl -X POST http://localhost:38332/rpc \
      -H "Authorization: Basic $(echo -n 'user:pass' | base64)" \
      -d '{"jsonrpc":"2.0","id":1,"method":"getblockcount","params":[]}'
    ```
@@ -283,7 +290,7 @@ curl -X POST http://localhost:28332 \
 
 ```bash
 # Via RPC
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"stop","params":[]}'
 
 # Via signal
@@ -314,7 +321,7 @@ ExecStart=/usr/local/bin/qpb-node \
   --chain=devnet \
   --datadir=/var/lib/qpb \
   --listen \
-  --rpc-addr=127.0.0.1:28332
+  --rpc-addr=127.0.0.1:38332
 Restart=on-failure
 RestartSec=10
 

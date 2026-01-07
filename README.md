@@ -1,10 +1,11 @@
 # Quantum Proof Bitcoin (QPB)
 
 [![CI](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/workflows/ci.yml/badge.svg)](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/workflows/ci.yml)
+[![Docker](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/workflows/docker.yml/badge.svg)](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/workflows/docker.yml)
 
 A post-quantum Bitcoin-derived consensus prototype with hash-first security guarantees.
 
-> **Status:** Devnet-ready. Not for production use.
+> **Status:** Testnet live. Devnet-ready. Not for production use.
 > INTERNAL: not an audit, not production security guidance, not legal/compliance advice.
 
 ## Features
@@ -21,15 +22,38 @@ A post-quantum Bitcoin-derived consensus prototype with hash-first security guar
 ### Using Docker
 
 ```bash
-# Build and run
+# Build and run (devnet)
 docker compose up -d
 
 # Check node status
-curl http://localhost:28332/health
+curl http://localhost:38332/health
 
 # View metrics
-curl http://localhost:28332/metrics
+curl http://localhost:38332/metrics
 ```
+
+### Pre-built Docker Images
+
+Pre-built images are available on GitHub Container Registry:
+
+```bash
+# Pull latest image
+docker pull ghcr.io/scottdhughes/qpb-node:latest
+
+# Or pin to a specific commit SHA
+docker pull ghcr.io/scottdhughes/qpb-node:c12f54e
+
+# Run testnet node
+docker run -d \
+  --name qpb-testnet \
+  -p 38334:38334 \
+  -p 127.0.0.1:38335:38335 \
+  -v qpb-data:/data \
+  ghcr.io/scottdhughes/qpb-node:latest \
+  /usr/local/bin/qpb-node --chain=testnet --datadir=/data --listen
+```
+
+See [Testnet Deployment](deploy/testnet/README.md) for production deployment guide.
 
 ### From Source
 
@@ -52,6 +76,7 @@ cargo test --all-features
 |----------|-------------|
 | [RPC Reference](docs/rpc/README.md) | JSON-RPC API methods and examples |
 | [Running a Node](docs/operations/running-a-node.md) | Installation, configuration, monitoring |
+| [Testnet Deployment](deploy/testnet/README.md) | Production testnet deployment on AWS |
 | [Architecture](docs/architecture/reference-node.md) | Node implementation phases |
 | [Whitepaper](docs/spec/QPB_Whitepaper_v1.1m.md) | Full consensus specification |
 | [Cryptography](docs/crypto/README.md) | ML-DSA-65, SLH-DSA, SHRINCS specs |
@@ -59,19 +84,19 @@ cargo test --all-features
 ## RPC Examples
 
 ```bash
-# Get blockchain info
-curl -X POST http://localhost:28332 \
+# Get blockchain info (devnet default port)
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"getblockcount","params":[]}'
 
 # Create wallet and get address
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"createwallet","params":[]}'
-curl -X POST http://localhost:28332 \
+curl -X POST http://localhost:38332/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"getnewaddress","params":[]}'
 
 # Mine blocks to address
-curl -X POST http://localhost:28332 \
-  -d '{"jsonrpc":"2.0","id":1,"method":"generatetoaddress","params":[1,"qpbdev1q..."]}'
+curl -X POST http://localhost:38332/rpc \
+  -d '{"jsonrpc":"2.0","id":1,"method":"generatetoaddress","params":[1,"qpb1..."]}'
 ```
 
 See [RPC Reference](docs/rpc/README.md) for complete API documentation.
