@@ -590,6 +590,8 @@ pub struct WalletUtxo {
     pub script_pubkey: String,
     /// Block height at which this output was created.
     pub height: u32,
+    /// Number of confirmations (current_height - height + 1).
+    pub confirmations: u32,
     /// True if this output is from a coinbase transaction.
     pub is_coinbase: bool,
 }
@@ -931,7 +933,7 @@ impl Wallet {
     /// List wallet UTXOs.
     ///
     /// For encrypted wallets, requires the wallet to be unlocked.
-    pub fn list_unspent<F>(&self, utxo_iter: F) -> Result<Vec<WalletUtxo>>
+    pub fn list_unspent<F>(&self, utxo_iter: F, current_height: u32) -> Result<Vec<WalletUtxo>>
     where
         F: FnOnce() -> Vec<(String, u32, Prevout)>,
     {
@@ -947,6 +949,11 @@ impl Wallet {
                     .map(|k| k.address)
                     .unwrap_or_default();
 
+                // Calculate confirmations: current_height - utxo_height
+                // This matches the codebase convention of "blocks built on top"
+                // Height 0 means unconfirmed (mempool), so confirmations = 0
+                let confirmations = current_height.saturating_sub(prevout.height);
+
                 wallet_utxos.push(WalletUtxo {
                     txid: txid_hex,
                     vout,
@@ -954,6 +961,7 @@ impl Wallet {
                     value: prevout.value,
                     script_pubkey: hex::encode(&prevout.script_pubkey),
                     height: prevout.height,
+                    confirmations,
                     is_coinbase: prevout.is_coinbase,
                 });
             }
@@ -1293,13 +1301,13 @@ impl Wallet {
         let recipient_spk = decoded.script_pubkey;
 
         // Get wallet UTXOs and filter out immature coinbase outputs
-        let all_wallet_utxos = self.list_unspent(|| utxos)?;
+        let all_wallet_utxos = self.list_unspent(|| utxos, current_height)?;
         let wallet_utxos: Vec<WalletUtxo> = all_wallet_utxos
             .into_iter()
             .filter(|u| {
                 if u.is_coinbase {
-                    let confirmations = current_height.saturating_sub(u.height);
-                    confirmations >= COINBASE_MATURITY
+                    // Use pre-computed confirmations from list_unspent
+                    u.confirmations >= COINBASE_MATURITY
                 } else {
                     true
                 }
