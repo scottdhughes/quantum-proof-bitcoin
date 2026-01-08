@@ -6,11 +6,14 @@ use std::fs::{File, create_dir_all};
 use std::io::Write;
 use std::path::Path;
 
+#[cfg(feature = "shrincs-dev")]
 use hex::encode as hex_encode;
+#[cfg(feature = "shrincs-dev")]
 use qpb_consensus::{
     OutPoint, Prevout, Transaction, TxIn, TxOut, build_p2qpkh, build_p2qtsh, qpb_sighash, qpkh32,
     qtap_leaf_hash, qtap_reconstruct_root,
 };
+#[cfg(feature = "shrincs-dev")]
 use serde_json::json;
 
 #[cfg(feature = "shrincs-dev")]
@@ -20,6 +23,7 @@ use qpb_consensus::pq::{shrincs_keypair, shrincs_sign};
 #[allow(dead_code)]
 const SHRINCS_ALG_ID: u8 = 0x30;
 
+#[cfg(feature = "shrincs-dev")]
 fn write_vec(name: &str, value: serde_json::Value) {
     let dir = Path::new("vectors");
     create_dir_all(dir).expect("create vectors dir");
@@ -60,7 +64,7 @@ fn p2qpkh_vectors() {
 
     let sighash_type = 0x01u8;
     let msg = qpb_sighash(&base_tx, 0, &prevouts, sighash_type, 0x00, None).unwrap();
-    let msg_hex = hex_encode(&msg);
+    let msg_hex = hex_encode(msg);
 
     // Sign with SHRINCS (signature includes type prefix, full_pk, sig_data, and sighash byte)
     let sig = shrincs_sign(&key_material, &mut signing_state, &msg, sighash_type)
@@ -260,7 +264,7 @@ fn shrincs_size_vectors() {
         sizes.push(json!({
             "q": q,
             "signature_size_bytes": sig.len(),
-            "msg_hex": hex_encode(&msg),
+            "msg_hex": hex_encode(msg),
         }));
     }
 

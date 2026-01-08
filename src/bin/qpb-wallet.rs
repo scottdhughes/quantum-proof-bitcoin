@@ -229,7 +229,7 @@ fn sign_p2qpkh(
         .map_err(|e| anyhow::anyhow!("SHRINCS sign failed: {:?}", e))?;
 
     println!("algorithm=SHRINCS");
-    println!("msg32_hex={}", hex::encode(&msg32));
+    println!("msg32_hex={}", hex::encode(msg32));
     println!("sig_hex={}", hex::encode(&sig[..sig.len() - 1])); // Without sighash byte
     println!("sig_ser_hex={}", hex::encode(&sig));
     println!("pk_ser_hex={}", hex::encode(&pk_ser));

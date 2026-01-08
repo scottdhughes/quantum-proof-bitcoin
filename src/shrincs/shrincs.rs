@@ -116,7 +116,7 @@ impl ShrincsFullPublicKey {
     pub fn to_commitment(&self) -> [u8; 16] {
         let mut hasher = Sha256::new();
         hasher.update(b"SHRINCS_PK_COMMIT");
-        hasher.update(&self.pk_seed);
+        hasher.update(self.pk_seed);
         hasher.update(&self.pors_root);
         hasher.update(&self.hypertree_root);
         let hash: [u8; 32] = hasher.finalize().into();

@@ -20,9 +20,6 @@ use std::env;
 use std::fs::OpenOptions;
 use std::io::{self, Write};
 
-#[cfg(feature = "cli-vectors")]
-use serde::Serialize;
-
 /// SHRINCS algorithm ID (used for documentation/reference)
 #[allow(dead_code)]
 const SHRINCS_ALG_ID: u8 = 0x30;
@@ -135,7 +132,7 @@ fn emit_vectors_mode(args: &[String]) {
             lines.push(format!("pk_ser={}", pk_enc));
             lines.push(format!("sig_ser={}", sig_enc));
             lines.push(format!("msg32={}", hex::encode(msg32)));
-            lines.push(format!("algorithm=SHRINCS"));
+            lines.push("algorithm=SHRINCS".to_string());
         }
 
         if let Some(file) = out_handle.as_mut() {

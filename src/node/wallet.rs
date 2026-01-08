@@ -470,7 +470,10 @@ impl WalletFile {
             #[cfg(feature = "shrincs-dev")]
             SHRINCS_ALG_ID => self.sign_shrincs(key_idx, msg32),
             #[cfg(not(feature = "shrincs-dev"))]
-            SHRINCS_ALG_ID => Err(anyhow!("SHRINCS signing requires shrincs-dev feature")),
+            SHRINCS_ALG_ID => {
+                let _ = msg32;
+                Err(anyhow!("SHRINCS signing requires shrincs-dev feature"))
+            }
             _ => Err(anyhow!("Unknown algorithm ID: 0x{:02x}", alg_id)),
         }
     }
@@ -969,7 +972,10 @@ impl Wallet {
             #[cfg(feature = "shrincs-dev")]
             SHRINCS_ALG_ID => self.sign_shrincs_encrypted(&key, msg32),
             #[cfg(not(feature = "shrincs-dev"))]
-            SHRINCS_ALG_ID => Err(anyhow!("SHRINCS signing requires shrincs-dev feature")),
+            SHRINCS_ALG_ID => {
+                let _ = msg32;
+                Err(anyhow!("SHRINCS signing requires shrincs-dev feature"))
+            }
             _ => Err(anyhow!("Unknown algorithm ID: 0x{:02x}", key.alg_id)),
         }
     }
