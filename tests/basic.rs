@@ -60,6 +60,7 @@ fn bits_to_target_bitcoin_example() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
 fn p2qpkh_sighash_and_validation() {
     // Minimal single-input, single-output tx.
     let prev_txid = [0u8; 32];
@@ -149,6 +150,7 @@ fn p2qpkh_shrincs_alg_is_rejected() {
 /// Test P2QPKH with SHRINCS signature (only when shrincs-dev feature is enabled).
 #[test]
 #[cfg(feature = "shrincs-dev")]
+#[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
 fn p2qpkh_shrincs_roundtrip() {
     // 1. Generate SHRINCS keypair
     let (pk_ser, key_material, mut state) = shrincs_keypair().expect("shrincs keygen");
@@ -202,6 +204,7 @@ fn p2qpkh_shrincs_roundtrip() {
 /// Test P2QPKH with SHRINCS fallback signature (SPHINCS+ mode).
 #[test]
 #[cfg(feature = "shrincs-dev")]
+#[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
 fn p2qpkh_shrincs_fallback_roundtrip() {
     // 1. Generate SHRINCS keypair with SPHINCS+ fallback capability
     let (pk_ser, sphincs_pk, ext_key, _state) =

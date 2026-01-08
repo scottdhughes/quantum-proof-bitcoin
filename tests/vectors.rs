@@ -129,6 +129,7 @@ fn prevouts_from_json(v: &[PrevoutJson]) -> Vec<Prevout> {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Validates against Dilithium FFI
 fn run_vectors() {
     let dir = Path::new("vectors");
     let entries = fs::read_dir(dir).expect("vectors dir");

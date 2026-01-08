@@ -45,6 +45,7 @@ fn make_child_tx(parent_txid: [u8; 32], vout: u32, value: u64) -> Transaction {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn orphan_added_when_parent_missing() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
@@ -75,6 +76,7 @@ fn orphan_added_when_parent_missing() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn orphan_resolved_when_parent_arrives() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
@@ -162,6 +164,7 @@ fn orphan_resolved_when_parent_arrives() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn orphan_eviction_on_limit() {
     use qpb_consensus::constants::MAX_ORPHAN_TRANSACTIONS;
 
@@ -207,6 +210,7 @@ fn orphan_eviction_on_limit() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn orphan_per_peer_limit() {
     use qpb_consensus::constants::MAX_ORPHANS_PER_PEER;
 
@@ -253,6 +257,7 @@ fn orphan_per_peer_limit() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn orphan_removed_for_disconnected_peer() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
@@ -283,6 +288,7 @@ fn orphan_removed_for_disconnected_peer() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn direct_mempool_add_still_works() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();

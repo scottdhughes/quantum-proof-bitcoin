@@ -8,6 +8,7 @@
 use qpb_consensus::pq::{AlgorithmId, shrincs_keypair, shrincs_sign, verify_pq};
 
 #[test]
+#[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
 fn shrincs_sign_verify_roundtrip() {
     // Generate real SHRINCS keypair
     let (pk_ser, key_material, mut state) = shrincs_keypair().expect("shrincs keygen");
@@ -25,6 +26,7 @@ fn shrincs_sign_verify_roundtrip() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
 fn shrincs_wrong_message_fails() {
     // Generate keypair
     let (pk_ser, key_material, mut state) = shrincs_keypair().expect("shrincs keygen");
@@ -44,6 +46,7 @@ fn shrincs_wrong_message_fails() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
 fn shrincs_state_advances_on_each_sign() {
     // Generate keypair
     let (_pk_ser, key_material, mut state) = shrincs_keypair().expect("shrincs keygen");

@@ -92,6 +92,7 @@ fn start_mock_peer(magic: [u8; 4], genesis_hash: String) -> (String, thread::Joi
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Network test uses sockets
 fn p2p_headers_first_sync_tip_only() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();

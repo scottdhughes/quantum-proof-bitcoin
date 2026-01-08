@@ -31,6 +31,7 @@ fn rpc_err(node: &mut Node, method: &str, params: &str) -> String {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn encryptwallet_basic() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -66,6 +67,7 @@ fn encryptwallet_basic() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn encryptwallet_cannot_encrypt_twice() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -81,6 +83,7 @@ fn encryptwallet_cannot_encrypt_twice() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn walletpassphrase_unlocks_wallet() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -113,6 +116,7 @@ fn walletpassphrase_unlocks_wallet() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn walletpassphrase_wrong_password_fails() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -131,6 +135,7 @@ fn walletpassphrase_wrong_password_fails() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn walletlock_locks_wallet() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -157,6 +162,7 @@ fn walletlock_locks_wallet() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn walletpassphrasechange_changes_password() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -186,6 +192,7 @@ fn walletpassphrasechange_changes_password() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn generate_address_after_unlock() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -218,6 +225,7 @@ fn generate_address_after_unlock() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn encrypted_wallet_unencrypted_functions() {
     // Test that balance and other read operations don't work when locked
     let dir = tempdir().unwrap();
@@ -255,6 +263,7 @@ fn encrypted_wallet_unencrypted_functions() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn walletpassphrase_on_unencrypted_wallet_fails() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -272,6 +281,7 @@ fn walletpassphrase_on_unencrypted_wallet_fails() {
 // ============================================================================
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn backupwallet_creates_copy() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -297,6 +307,7 @@ fn backupwallet_creates_copy() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn backupwallet_works_on_encrypted() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -323,6 +334,7 @@ fn backupwallet_works_on_encrypted() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn dumpwallet_exports_keys() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -350,6 +362,7 @@ fn dumpwallet_exports_keys() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn dumpwallet_requires_unlock_for_encrypted() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -376,6 +389,7 @@ fn dumpwallet_requires_unlock_for_encrypted() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn importwallet_imports_keys() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -415,6 +429,7 @@ fn importwallet_imports_keys() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn importwallet_skips_existing_keys() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();

@@ -150,6 +150,7 @@ fn mine_to_address(node: &mut Node, count: u32, address: &str) {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Creates wallet which calls Dilithium FFI
 fn template_includes_mempool_transactions() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
@@ -188,6 +189,7 @@ fn template_includes_mempool_transactions() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Creates wallet which calls Dilithium FFI
 fn template_coinbase_includes_fees() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
@@ -226,6 +228,7 @@ fn template_coinbase_includes_fees() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Creates wallet which calls Dilithium FFI
 fn template_orders_by_fee_rate() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
@@ -324,6 +327,7 @@ fn template_orders_by_fee_rate() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Creates wallet which calls Dilithium FFI
 fn template_topological_order() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();

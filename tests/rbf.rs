@@ -28,6 +28,7 @@ fn mine_to_address(node: &mut Node, count: u32, address: &str) {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn transaction_signals_rbf_with_rbf_flag() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
@@ -75,6 +76,7 @@ fn transaction_signals_rbf_with_rbf_flag() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn transaction_signals_rbf_by_default() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
@@ -116,6 +118,7 @@ fn transaction_signals_rbf_by_default() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn transaction_does_not_signal_rbf_when_disabled() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
@@ -157,6 +160,7 @@ fn transaction_does_not_signal_rbf_when_disabled() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn bumpfee_increases_fee_and_replaces() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
@@ -242,6 +246,7 @@ fn bumpfee_increases_fee_and_replaces() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn bumpfee_rejects_non_rbf_transaction() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
@@ -285,6 +290,7 @@ fn bumpfee_rejects_non_rbf_transaction() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn rbf_replacement_requires_higher_fee() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
@@ -340,6 +346,7 @@ fn rbf_replacement_requires_higher_fee() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn bumpfee_reuses_same_inputs() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
@@ -431,6 +438,7 @@ fn bumpfee_reuses_same_inputs() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn signals_rbf_method_on_transaction() {
     use qpb_consensus::types::{OutPoint, Transaction, TxIn, TxOut};
 

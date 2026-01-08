@@ -111,6 +111,7 @@ fn start_good_peer(magic: [u8; 4], genesis_hash: String) -> String {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Network test uses sockets
 fn p2p_multi_peer_fallback_succeeds() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();

@@ -24,6 +24,7 @@ fn rpc_call(node: &mut Node, method: &str, params: &str) -> serde_json::Value {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn mine_to_wallet_updates_balance() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -68,6 +69,7 @@ fn mine_to_wallet_updates_balance() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn mine_multiple_blocks_accumulates_balance() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -107,6 +109,7 @@ fn mine_multiple_blocks_accumulates_balance() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn send_transaction_and_mine() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -185,6 +188,7 @@ fn send_transaction_and_mine() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn full_transaction_lifecycle() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -268,6 +272,7 @@ fn full_transaction_lifecycle() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn balance_persists_across_restart() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -308,6 +313,7 @@ fn balance_persists_across_restart() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn coinbase_maturity_enforced() {
     // Test that coinbase outputs cannot be spent until they have 100 confirmations
     let dir = tempdir().unwrap();

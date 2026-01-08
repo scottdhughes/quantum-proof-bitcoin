@@ -459,6 +459,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // WOTS keygen involves many SHA-256 chains - too slow for Miri
     fn test_keygen_sign_verify() {
         let params = WotsCParams::LEVEL1;
         let mut rng = rand::thread_rng();
@@ -523,6 +524,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // Counter grinding does up to 2^20 hashes - far too slow for Miri
     fn test_counter_grinding() {
         let params = WotsCParams::LEVEL1;
         let randomness = [0u8; 32];
