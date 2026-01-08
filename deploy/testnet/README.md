@@ -1,10 +1,10 @@
 # QPB Testnet Deployment (AWS Lightsail)
 
 This deploy package runs a single QPB node on **testnet** in Docker, with:
-- **P2P exposed publicly** (38334/tcp)
-- **RPC bound to localhost only** (38335/tcp - access via SSH tunnel)
+- **P2P exposed publicly** (38334/tcp, IPv4 only)
+- **RPC bound to localhost only** (38335/tcp) with **authentication required**
 
-> **Security:** Do NOT expose RPC to the public internet.
+> **Security:** RPC requires Basic Auth. Do NOT expose RPC to the public internet.
 
 ---
 
@@ -32,7 +32,7 @@ sudo apt-get install -y curl jq  # for status.sh
 ### 1) Create deployment directory (on server)
 
 ```bash
-sudo mkdir -p /opt/qpb-testnet/{data/docs/chain,scripts}
+sudo mkdir -p /opt/qpb-testnet/{data,scripts}
 sudo chown -R ubuntu:ubuntu /opt/qpb-testnet
 ```
 
@@ -47,12 +47,14 @@ scp -r deploy/testnet/* ubuntu@34.237.78.113:/opt/qpb-testnet/
 ```bash
 cd /opt/qpb-testnet
 cp .env.example .env
-nano .env   # Set QPB_IMAGE tag
+
+# Generate random RPC password and set image tag
+RPC_PASS=$(openssl rand -base64 24 | tr -d '/+=')
+sed -i "s/CHANGE_ME_RANDOM_PASSWORD/$RPC_PASS/" .env
+nano .env   # Verify QPB_IMAGE tag
+
 chmod 600 .env
 chmod +x scripts/*.sh
-
-# Create chainparams symlink (required - data mount shadows image's symlink)
-ln -sf /etc/qpb/chainparams.json data/docs/chain/chainparams.json
 sudo chown -R 1000:1000 data/
 ```
 
@@ -88,16 +90,20 @@ sudo systemctl start qpb-testnet
 
 ---
 
-## RPC Access (SSH tunnel)
+## RPC Access (SSH tunnel + auth)
 
-RPC listens only on localhost. To access from your laptop:
+RPC listens only on localhost and requires Basic Auth. To access from your laptop:
 
 ```bash
 # Open tunnel
 ssh -L 38335:127.0.0.1:38335 ubuntu@34.237.78.113
 
-# Then call RPC (in another terminal)
-curl -s http://127.0.0.1:38335/rpc \
+# Get credentials (on server)
+source /opt/qpb-testnet/.env
+echo "User: $RPC_USER  Pass: $RPC_PASS"
+
+# Then call RPC with auth (in another terminal)
+curl -s -u qpb:YOUR_PASSWORD http://127.0.0.1:38335/rpc \
   -d '{"jsonrpc":"2.0","id":1,"method":"getblockcount","params":[]}'
 ```
 
@@ -114,15 +120,6 @@ Or remove `user: "1000:1000"` from docker-compose.testnet.yml.
 **Container unhealthy:**
 ```bash
 docker logs qpb-testnet --tail=100
-```
-
-**"reading chainparams docs/chain/chainparams.json: No such file" error:**
-```bash
-# The data mount shadows the image's symlink - recreate it
-mkdir -p /opt/qpb-testnet/data/docs/chain
-ln -sf /etc/qpb/chainparams.json /opt/qpb-testnet/data/docs/chain/chainparams.json
-sudo chown -R 1000:1000 /opt/qpb-testnet/data
-sudo systemctl restart qpb-testnet
 ```
 
 ---
@@ -150,8 +147,9 @@ deploy/
 
 | Decision | Rationale |
 |----------|-----------|
-| RPC on localhost only | Security - requires SSH tunnel for remote access |
+| RPC on localhost + auth | Defense in depth - requires SSH tunnel AND credentials |
+| P2P IPv4-only binding | Avoids unintended IPv6 exposure (cloud firewalls may not cover IPv6) |
 | Ports 38334/38335 | Match chainparams.json testnet config |
 | systemd manages compose | Clean start/stop, survives reboots |
-| .env pins image tag | Deterministic upgrades/rollbacks |
+| .env pins image + secrets | Deterministic upgrades, secrets out of compose file |
 | `/health` for healthcheck | No auth needed, returns chain status |
