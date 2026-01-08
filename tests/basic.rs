@@ -1,7 +1,7 @@
 use hex_literal::hex;
 use qpb_consensus::{
     Block, BlockHeader, CHAIN_ID, OutPoint, Prevout, Transaction, TxIn, TxOut, activation::Network,
-    bits_to_target, block_weight_wu, build_p2qtsh, mldsa_keypair, mldsa_sign, penalty, qpb_sighash,
+    bits_to_target, block_weight_wu, build_p2qtsh, penalty, qpb_sighash,
     validate_block_basic, validate_transaction_basic, validate_witness_commitment,
     witness_merkle_root,
 };
@@ -59,7 +59,10 @@ fn bits_to_target_bitcoin_example() {
     );
 }
 
+/// Test P2QPKH sighash computation (only when shrincs-dev feature is enabled).
+/// This is a basic sighash validation test using SHRINCS signatures.
 #[test]
+#[cfg(feature = "shrincs-dev")]
 #[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
 fn p2qpkh_sighash_and_validation() {
     // Minimal single-input, single-output tx.
@@ -69,11 +72,8 @@ fn p2qpkh_sighash_and_validation() {
         vout: 0,
     };
 
-    // pk_ser = alg_id || ML-DSA-65 pk
-    let (pk_bytes, sk_bytes) = mldsa_keypair();
-    let mut pk_ser = Vec::with_capacity(1 + pk_bytes.len());
-    pk_ser.push(0x11);
-    pk_ser.extend_from_slice(&pk_bytes);
+    // Generate SHRINCS keypair
+    let (pk_ser, key_material, mut state) = shrincs_keypair().expect("shrincs keygen");
 
     // scriptPubKey = OP_3 PUSH32(qpkh)
     let qpkh = qpb_consensus::qpkh32(&pk_ser);
@@ -104,47 +104,13 @@ fn p2qpkh_sighash_and_validation() {
     let msg = qpb_sighash(&tx, 0, &prevouts, 0x01, 0x00, None).unwrap();
     assert_eq!(msg.len(), 32);
 
-    // Produce a valid ML-DSA signature bound to msg.
-    let mut sig_ser = mldsa_sign(&sk_bytes, &msg).expect("ml-dsa sign");
-    sig_ser.push(0x01); // SIGHASH_ALL
+    // Produce a valid SHRINCS signature bound to msg.
+    let sig_ser = shrincs_sign(&key_material, &mut state, &msg, 0x01).expect("shrincs sign");
     tx.vin[0].witness = vec![sig_ser, pk_ser];
 
-    // Validate tx (stub PQ verify).
+    // Validate tx - SHRINCS costs 2 PQSigCheck units.
     let cost = validate_transaction_basic(&tx, &prevouts, 1, Network::Devnet).unwrap();
-    assert_eq!(cost, 1);
-}
-
-#[test]
-#[cfg(not(feature = "shrincs-dev"))]
-fn p2qpkh_shrincs_alg_is_rejected() {
-    // Build a tx that uses alg_id 0x30 (reserved) and ensure validation fails.
-    let prevout = OutPoint {
-        txid: [0u8; 32],
-        vout: 0,
-    };
-    let pk = [0u8; 64];
-    let mut pk_ser = Vec::with_capacity(1 + pk.len());
-    pk_ser.push(0x30);
-    pk_ser.extend_from_slice(&pk);
-    let spk = qpb_consensus::build_p2qpkh(qpb_consensus::qpkh32(&pk_ser));
-
-    let tx = Transaction {
-        version: 1,
-        vin: vec![TxIn {
-            prevout,
-            script_sig: Vec::new(),
-            sequence: 0xffff_ffff,
-            witness: vec![vec![0u8; 325], pk_ser.clone()], // bogus sig len+1
-        }],
-        vout: vec![TxOut {
-            value: 1_0000,
-            script_pubkey: spk.clone(),
-        }],
-        lock_time: 0,
-    };
-    let prevouts = vec![Prevout::regular(1_0000, spk)];
-    let res = validate_transaction_basic(&tx, &prevouts, 1, Network::Devnet);
-    assert!(res.is_err(), "SHRINCS alg_id must be rejected at consensus");
+    assert_eq!(cost, 2);
 }
 
 /// Test P2QPKH with SHRINCS signature (only when shrincs-dev feature is enabled).
@@ -210,9 +176,9 @@ fn p2qpkh_shrincs_fallback_roundtrip() {
     let (pk_ser, sphincs_pk, ext_key, _state) =
         shrincs_keypair_with_fallback().expect("shrincs keygen with fallback");
 
-    // pk_ser is [alg_id(1) || base_pk(64)] = 65 bytes
-    assert_eq!(pk_ser.len(), 65, "base pk_ser should be 65 bytes");
-    // sphincs_pk is the full SPHINCS+ public key (32 bytes)
+    // pk_ser is [alg_id(1) || pk_commitment(16)] = 17 bytes (Level 1 params)
+    assert_eq!(pk_ser.len(), 17, "base pk_ser should be 17 bytes");
+    // sphincs_pk is the full SPHINCS+ public key (32 bytes for SHA2-128s)
     assert_eq!(sphincs_pk.len(), 32, "sphincs_pk should be 32 bytes");
 
     // 2. Create P2QPKH output using base public key (fallback uses same address!)
@@ -253,10 +219,10 @@ fn p2qpkh_shrincs_fallback_roundtrip() {
     // Verify signature starts with fallback type prefix
     assert_eq!(sig_ser[0], 0x01, "fallback sig should start with 0x01");
 
-    // 6. Build extended pk_ser for witness: [alg_id(1) || base_pk(64) || sphincs_pk(32)]
+    // 6. Build extended pk_ser for witness: [alg_id(1) || pk_commitment(16) || sphincs_pk(32)]
     let mut ext_pk_ser = pk_ser.clone();
     ext_pk_ser.extend_from_slice(&sphincs_pk);
-    assert_eq!(ext_pk_ser.len(), 97, "extended pk_ser should be 97 bytes");
+    assert_eq!(ext_pk_ser.len(), 49, "extended pk_ser should be 49 bytes");
 
     // Update witness with fallback signature and extended pk
     tx.vin[0].witness = vec![sig_ser, ext_pk_ser];

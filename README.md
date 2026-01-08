@@ -10,7 +10,7 @@ A post-quantum Bitcoin-derived consensus prototype with hash-first security guar
 
 ## Features
 
-- **Post-Quantum Cryptography**: ML-DSA-65 (Dilithium3) signatures at genesis
+- **Post-Quantum Cryptography**: SHRINCS stateful hash-based signatures (sole algorithm)
 - **Memory-Hard PoW**: Argon2id proof-of-work (non-SHA256)
 - **QScript VM**: 7-opcode stack-based script execution
 - **Full Node**: P2P networking, mempool, UTXO management, wallet
@@ -79,7 +79,7 @@ cargo test --all-features
 | [Testnet Deployment](deploy/testnet/README.md) | Production testnet deployment on AWS |
 | [Architecture](docs/architecture/reference-node.md) | Node implementation phases |
 | [Whitepaper](docs/spec/QPB_Whitepaper_v1.1m.md) | Full consensus specification |
-| [Cryptography](docs/crypto/README.md) | ML-DSA-65, SLH-DSA, SHRINCS specs |
+| [Cryptography](docs/crypto/README.md) | SHRINCS signature scheme specifications |
 
 ## RPC Examples
 
@@ -116,23 +116,21 @@ cargo run --bin qpb-cli -- --blocks=5 --fresh-key
 cargo run --bin qpb-cli -- --blocks=5 --claim-fees --parallel
 ```
 
-## SHRINCS Roadmap
+## SHRINCS Signature Scheme
 
-SHRINCS (alg_id 0x30) is a hybrid stateful + stateless PQ signature scheme. Target: NIST Level 3, ~636 byte signatures.
+SHRINCS (alg_id 0x30) is the **sole post-quantum signature algorithm** in QPB. It's a hybrid stateful + stateless scheme providing NIST Level 1 security.
 
-| Phase | Status | Description |
-|-------|--------|-------------|
-| 1. Core Primitives | ✅ Complete | WOTS+C, PORS+FP |
-| 2. Hypertree | ✅ Complete | XMSS^MT, state management |
-| 3. Orchestrator | ✅ Complete | Full signing, SPHINCS+ fallback |
-| 4. Consensus Wiring | ✅ Complete | Height/network activation context |
-| 5. Wallet Integration | ✅ Complete | SHRINCS key generation + signing |
-| 6. Mainnet Activation | Pending | Algorithm ID 0x30 soft-fork |
+| Parameter | Value |
+|-----------|-------|
+| Public Key | 16 bytes (composite hash) |
+| Signature | ~308-340 bytes typical |
+| SPHINCS+ Fallback | ~7,856 bytes (for state recovery) |
+| Security Level | NIST Level 1 |
+| PQSigCheck Cost | 2 units |
 
-**Current Status**: SHRINCS is fully implemented and testable with `--features shrincs-dev`.
-Activation heights: Devnet (0), Testnet (100), Mainnet (TBD after audit).
+**Status**: ✅ Active on all networks (Devnet, Testnet, Mainnet).
 
-See [SHRINCS Spec](docs/crypto/SHRINCS.md) for details.
+See [SHRINCS Spec](docs/crypto/SHRINCS.md) for implementation details.
 
 ## Development
 
@@ -162,7 +160,7 @@ cargo +nightly miri test --lib
 cargo +nightly miri test --lib consensus
 ```
 
-> **Note:** Tests using FFI (Dilithium/SPHINCS+ C libraries) are annotated with `#[cfg_attr(miri, ignore)]` since Miri cannot interpret foreign code. This enables Miri verification of all pure-Rust logic including SHRINCS, script execution, and transaction validation.
+> **Note:** Tests using FFI (SPHINCS+ C library) are annotated with `#[cfg_attr(miri, ignore)]` since Miri cannot interpret foreign code. This enables Miri verification of all pure-Rust logic including SHRINCS, script execution, and transaction validation.
 
 ## Project Structure
 
@@ -170,13 +168,27 @@ cargo +nightly miri test --lib consensus
 src/
   bin/           # qpb-node, qpb-cli, qpb-wallet binaries
   node/          # Node implementation (rpc, mempool, p2p, wallet)
-  crypto/        # ML-DSA-65, hashing, signatures
+  crypto/        # SHRINCS, hashing, signatures
 docs/
   rpc/           # RPC API reference
   operations/    # Node operator guides
   crypto/        # Cryptography specifications
   spec/          # Consensus whitepaper
 ```
+
+## Known Limitations
+
+### Wallet Key Import
+
+SHRINCS is a **stateful signature scheme**—each signing operation advances an internal state to prevent key reuse. This creates a limitation:
+
+- `dumpwallet` / `importwallet` currently do **not** export/import signing state
+- Importing keys without state could lead to signature reuse (security risk)
+- **Workaround**: Generate fresh keys on the destination wallet instead
+
+Future work may add stateful key export or a "fallback-only" import mode.
+
+See [SHRINCS Spec](docs/crypto/SHRINCS.md) for technical details on state management.
 
 ## Contributing
 

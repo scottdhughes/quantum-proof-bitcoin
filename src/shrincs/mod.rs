@@ -3,34 +3,33 @@
 //!
 //! A hybrid post-quantum signature scheme combining:
 //! - **Stateful path**: Unbalanced XMSS tree with WOTS+C one-time signatures
-//! - **Stateless fallback**: SPHINCS+ variant for emergency recovery
+//! - **Stateless fallback**: SPHINCS+-128s for emergency recovery
 //!
 //! # Security Level
 //!
-//! This implementation targets **NIST Level 3 (192-bit)** post-quantum security:
-//! - Hash output: 24 bytes (n = 24)
+//! This implementation targets **NIST Level 1 (128-bit)** post-quantum security
+//! per the Delving Bitcoin SHRINCS spec:
+//! - Hash output: 16 bytes (n = 16)
 //! - Winternitz parameter: w = 256
-//! - Chains: l = 24
+//! - Chains: l = 16
+//! - Public key: 16 bytes (composite hash commitment)
 //!
 //! # Signature Sizes
 //!
 //! Stateful signatures grow with usage:
-//! - First signature (q=1): 636 bytes
-//! - Tenth signature (q=10): 852 bytes
-//! - Formula: `612 + q × 24` bytes
+//! - First signature (q=1): 308 bytes
+//! - Second signature (q=2): 324 bytes (matches proposal title!)
+//! - Formula: `292 + q × 16` bytes
 //!
-//! # Status
+//! Fallback signatures: ~7,856 bytes (SPHINCS+-128s)
 //!
-//! **PENDING REFERENCE IMPLEMENTATION**
+//! # Reference
 //!
-//! This module defines the API and types for SHRINCS integration.
-//! Actual cryptographic operations await Jonas Nick's reference implementation.
 //! See: <https://delvingbitcoin.org/t/shrincs-324-byte-stateful-post-quantum-signatures-with-static-backups/2158>
 //!
 //! # Consensus
 //!
-//! SHRINCS (alg_id 0x30) is **reserved but inactive** at genesis.
-//! Activation requires a coordinated hard fork after security audit.
+//! SHRINCS (alg_id 0x30) is the sole post-quantum algorithm, active from genesis.
 
 pub mod api;
 pub mod error;
@@ -46,6 +45,6 @@ pub mod wots;
 // Re-exports for convenient access
 pub use api::{ShrincsSign, ShrincsVerify};
 pub use error::ShrincsError;
-pub use params::{LEVEL3, ShrincsParams};
+pub use params::{LEVEL1, ShrincsParams};
 pub use state::{SigningState, StateManager};
 pub use types::{ShrincsPublicKey, ShrincsSecretKey, ShrincsSignature};

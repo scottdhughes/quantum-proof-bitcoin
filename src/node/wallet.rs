@@ -10,6 +10,10 @@
 //!
 //! - **Version 1**: Legacy unencrypted format (keys stored as plaintext hex)
 //! - **Version 2**: Supports both encrypted and unencrypted modes
+//!
+//! ## Signature Algorithm
+//!
+//! SHRINCS is the sole post-quantum signature algorithm per the Delving Bitcoin spec.
 
 use std::collections::HashSet;
 use std::fs;
@@ -22,8 +26,6 @@ use aes_gcm::{
 };
 use anyhow::{Result, anyhow};
 use argon2::{Algorithm, Argon2, Params, Version};
-use pqcrypto_dilithium::dilithium3::{SecretKey, detached_sign, keypair, secret_key_bytes};
-use pqcrypto_traits::sign::{DetachedSignature, PublicKey as PKTrait, SecretKey as SKTrait};
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 
@@ -33,11 +35,7 @@ use crate::script::build_p2qpkh;
 use crate::sighash::qpb_sighash;
 use crate::types::{OutPoint, Prevout, Transaction, TxIn, TxOut};
 
-/// Algorithm ID for ML-DSA-65 (Dilithium3).
-const MLDSA_ALG_ID: u8 = 0x11;
-
-/// Algorithm ID for SHRINCS.
-#[cfg(feature = "shrincs-dev")]
+/// Algorithm ID for SHRINCS (sole post-quantum algorithm).
 const SHRINCS_ALG_ID: u8 = 0x30;
 
 /// Current wallet format version.
@@ -61,29 +59,29 @@ const NONCE_LEN: usize = 12;
 /// A key entry in the wallet.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalletKey {
-    /// Serialized public key (alg_id || pk).
+    /// Serialized public key (alg_id || pk_commitment).
+    /// Format: [0x30 || 16-byte commitment]
     pub pk_ser_hex: String,
     /// Secret key (hex encoded). Stored encrypted when wallet is locked.
-    /// For ML-DSA: raw secret key bytes.
-    /// For SHRINCS: sk_seed(32) || pk_seed(32) || prf_key(32) = 96 bytes.
+    /// SHRINCS format: sk_seed(32) || pk_seed(32) || prf_key(32) = 96 bytes.
     pub sk_hex: String,
     /// Derived P2QPKH address.
     pub address: String,
     /// Label for the key (optional).
     #[serde(default)]
     pub label: String,
-    /// Algorithm ID (0x11 = ML-DSA, 0x30 = SHRINCS). Defaults to ML-DSA for v2 wallets.
+    /// Algorithm ID (0x30 = SHRINCS).
     #[serde(default = "default_alg_id")]
     pub alg_id: u8,
-    /// SHRINCS signing state (hex encoded, only for SHRINCS keys).
+    /// SHRINCS signing state (hex encoded).
     /// Must be persisted after each signature to prevent key reuse.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub signing_state_hex: Option<String>,
 }
 
-/// Default algorithm ID for backward compatibility with v2 wallets.
+/// Default algorithm ID (SHRINCS is the sole algorithm).
 fn default_alg_id() -> u8 {
-    MLDSA_ALG_ID
+    SHRINCS_ALG_ID
 }
 
 /// Encryption metadata for encrypted wallets.
@@ -349,42 +347,11 @@ impl WalletFile {
         Ok(())
     }
 
-    /// Generate a new ML-DSA key and add it to the wallet.
-    pub fn generate_key(&mut self, label: &str) -> Result<String> {
-        self.generate_key_mldsa(label)
-    }
-
-    /// Generate a new ML-DSA-65 key.
-    fn generate_key_mldsa(&mut self, label: &str) -> Result<String> {
-        let (pk, sk) = keypair();
-        let pk_bytes = pk.as_bytes();
-        let sk_bytes = sk.as_bytes();
-
-        // Serialize public key with algorithm ID prefix
-        let mut pk_ser = Vec::with_capacity(1 + pk_bytes.len());
-        pk_ser.push(MLDSA_ALG_ID);
-        pk_ser.extend_from_slice(pk_bytes);
-
-        // Compute address
-        let qpkh = qpkh32(&pk_ser);
-        let address = encode_address(&self.hrp, 3, &qpkh).map_err(|e| anyhow!("{}", e))?;
-
-        let key = WalletKey {
-            pk_ser_hex: hex::encode(&pk_ser),
-            sk_hex: hex::encode(sk_bytes),
-            address: address.clone(),
-            label: label.to_string(),
-            alg_id: MLDSA_ALG_ID,
-            signing_state_hex: None,
-        };
-
-        self.keys.push(key);
-        Ok(address)
-    }
-
     /// Generate a new SHRINCS key and add it to the wallet.
+    ///
+    /// SHRINCS is the sole post-quantum signature algorithm.
     #[cfg(feature = "shrincs-dev")]
-    pub fn generate_key_shrincs(&mut self, label: &str) -> Result<String> {
+    pub fn generate_key(&mut self, label: &str) -> Result<String> {
         use crate::pq::shrincs_keypair;
 
         let (pk_ser, key_material, signing_state) =
@@ -416,14 +383,18 @@ impl WalletFile {
         Ok(address)
     }
 
+    /// Generate key (stub when shrincs-dev is disabled).
+    #[cfg(not(feature = "shrincs-dev"))]
+    pub fn generate_key(&mut self, _label: &str) -> Result<String> {
+        Err(anyhow!("Key generation requires shrincs-dev feature"))
+    }
+
     /// Generate a new key with specified algorithm.
     pub fn generate_key_with_algorithm(&mut self, label: &str, algorithm: &str) -> Result<String> {
         match algorithm.to_lowercase().as_str() {
-            "mldsa" | "ml-dsa" | "dilithium" => self.generate_key_mldsa(label),
-            #[cfg(feature = "shrincs-dev")]
-            "shrincs" => self.generate_key_shrincs(label),
+            "shrincs" => self.generate_key(label),
             _ => Err(anyhow!(
-                "Unknown algorithm: {}. Supported: mldsa, shrincs",
+                "Unknown algorithm: {}. SHRINCS is the only supported algorithm.",
                 algorithm
             )),
         }
@@ -466,24 +437,15 @@ impl WalletFile {
     }
 
     /// Sign a message with the key for a given address.
-    /// Note: For SHRINCS keys, use sign_mut() instead as it updates signing state.
-    pub fn sign(&self, address: &str, msg32: &[u8; 32]) -> Result<Vec<u8>> {
+    ///
+    /// SHRINCS is stateful and requires mutable access - use `sign_mut()` instead.
+    /// This method exists for API compatibility but will error for SHRINCS keys.
+    pub fn sign(&self, address: &str, _msg32: &[u8; 32]) -> Result<Vec<u8>> {
         let key = self
             .find_key(address)
             .ok_or_else(|| anyhow!("address not in wallet"))?;
 
         match key.alg_id {
-            MLDSA_ALG_ID | 0 => {
-                // ML-DSA signing (stateless)
-                let sk_bytes = hex::decode(&key.sk_hex)?;
-                if sk_bytes.len() != secret_key_bytes() {
-                    return Err(anyhow!("invalid ML-DSA secret key length"));
-                }
-                let sk = SecretKey::from_bytes(&sk_bytes).map_err(|e| anyhow!("{:?}", e))?;
-                let sig = detached_sign(msg32, &sk);
-                Ok(sig.as_bytes().to_vec())
-            }
-            #[cfg(feature = "shrincs-dev")]
             SHRINCS_ALG_ID => Err(anyhow!(
                 "SHRINCS signing requires mutable wallet access - use sign_mut()"
             )),
@@ -492,6 +454,8 @@ impl WalletFile {
     }
 
     /// Sign a message with the key for a given address (mutable version for SHRINCS).
+    ///
+    /// SHRINCS is stateful - this method updates the signing state after each signature.
     pub fn sign_mut(&mut self, address: &str, msg32: &[u8; 32]) -> Result<Vec<u8>> {
         // Find key index first to avoid borrow issues
         let key_idx = self
@@ -503,18 +467,10 @@ impl WalletFile {
         let alg_id = self.keys[key_idx].alg_id;
 
         match alg_id {
-            MLDSA_ALG_ID | 0 => {
-                // ML-DSA signing (stateless) - delegate to immutable version
-                let sk_bytes = hex::decode(&self.keys[key_idx].sk_hex)?;
-                if sk_bytes.len() != secret_key_bytes() {
-                    return Err(anyhow!("invalid ML-DSA secret key length"));
-                }
-                let sk = SecretKey::from_bytes(&sk_bytes).map_err(|e| anyhow!("{:?}", e))?;
-                let sig = detached_sign(msg32, &sk);
-                Ok(sig.as_bytes().to_vec())
-            }
             #[cfg(feature = "shrincs-dev")]
             SHRINCS_ALG_ID => self.sign_shrincs(key_idx, msg32),
+            #[cfg(not(feature = "shrincs-dev"))]
+            SHRINCS_ALG_ID => Err(anyhow!("SHRINCS signing requires shrincs-dev feature")),
             _ => Err(anyhow!("Unknown algorithm ID: 0x{:02x}", alg_id)),
         }
     }
@@ -776,39 +732,45 @@ impl Wallet {
         self.file.save(&self.path)
     }
 
-    /// Generate a new address.
+    /// Generate a new SHRINCS address.
     ///
     /// For encrypted wallets, this requires the wallet to be unlocked.
     /// The new key is added to both the in-memory unlocked keys and
     /// re-encrypted to the on-disk ciphertext.
+    #[cfg(feature = "shrincs-dev")]
     pub fn get_new_address(&mut self, label: &str) -> Result<String> {
+        use crate::pq::shrincs_keypair;
+
         if self.file.encrypted && self.unlocked_keys.is_none() {
             return Err(anyhow!(
                 "wallet is locked; unlock first to generate new address"
             ));
         }
 
-        // Generate the new key
-        let (pk, sk) = keypair();
-        let pk_bytes = pk.as_bytes();
-        let sk_bytes = sk.as_bytes();
+        // Generate SHRINCS key
+        let (pk_ser, key_material, signing_state) =
+            shrincs_keypair().map_err(|e| anyhow!("SHRINCS keygen failed: {:?}", e))?;
 
-        // Serialize public key with algorithm ID prefix
-        let mut pk_ser = Vec::with_capacity(1 + pk_bytes.len());
-        pk_ser.push(MLDSA_ALG_ID);
-        pk_ser.extend_from_slice(pk_bytes);
+        // Serialize secret key seeds: sk_seed || pk_seed || prf_key = 96 bytes
+        let mut sk_bytes = Vec::with_capacity(96);
+        sk_bytes.extend_from_slice(&key_material.sk.sk_seed);
+        sk_bytes.extend_from_slice(&key_material.sk.pk_seed);
+        sk_bytes.extend_from_slice(&key_material.sk.prf_key);
 
-        // Compute address
+        // Serialize signing state
+        let state_bytes = signing_state.to_bytes();
+
+        // Compute address from serialized pk (alg_id || commitment)
         let qpkh = qpkh32(&pk_ser);
         let address = encode_address(&self.file.hrp, 3, &qpkh).map_err(|e| anyhow!("{}", e))?;
 
         let key = WalletKey {
             pk_ser_hex: hex::encode(&pk_ser),
-            sk_hex: hex::encode(sk_bytes),
+            sk_hex: hex::encode(&sk_bytes),
             address: address.clone(),
             label: label.to_string(),
-            alg_id: MLDSA_ALG_ID,
-            signing_state_hex: None,
+            alg_id: SHRINCS_ALG_ID,
+            signing_state_hex: Some(hex::encode(&state_bytes)),
         };
 
         if self.file.encrypted {
@@ -823,6 +785,12 @@ impl Wallet {
 
         self.save()?;
         Ok(address)
+    }
+
+    /// Generate a new address (stub when shrincs-dev is disabled).
+    #[cfg(not(feature = "shrincs-dev"))]
+    pub fn get_new_address(&mut self, _label: &str) -> Result<String> {
+        Err(anyhow!("Key generation requires shrincs-dev feature"))
     }
 
     /// Sync unlocked keys back to encrypted ciphertext.
@@ -973,23 +941,13 @@ impl Wallet {
     /// Sign a message with a wallet key.
     ///
     /// For encrypted wallets, requires the wallet to be unlocked.
-    /// Note: For SHRINCS keys, use sign_mut() instead as it updates signing state.
-    pub fn sign(&self, address: &str, msg32: &[u8; 32]) -> Result<Vec<u8>> {
+    /// SHRINCS is stateful and requires mutable access - use `sign_mut()` instead.
+    pub fn sign(&self, address: &str, _msg32: &[u8; 32]) -> Result<Vec<u8>> {
         let keys = self.get_active_keys()?;
         let key = Self::find_key_by_address(keys, address)
             .ok_or_else(|| anyhow!("address not in wallet"))?;
 
         match key.alg_id {
-            MLDSA_ALG_ID | 0 => {
-                let sk_bytes = hex::decode(&key.sk_hex)?;
-                if sk_bytes.len() != secret_key_bytes() {
-                    return Err(anyhow!("invalid ML-DSA secret key length"));
-                }
-                let sk = SecretKey::from_bytes(&sk_bytes).map_err(|e| anyhow!("{:?}", e))?;
-                let sig = detached_sign(msg32, &sk);
-                Ok(sig.as_bytes().to_vec())
-            }
-            #[cfg(feature = "shrincs-dev")]
             SHRINCS_ALG_ID => Err(anyhow!(
                 "SHRINCS signing requires mutable wallet access - use sign_mut()"
             )),
@@ -1000,7 +958,7 @@ impl Wallet {
     /// Sign a message with a wallet key (mutable version for SHRINCS).
     ///
     /// For encrypted wallets, requires the wallet to be unlocked.
-    /// For SHRINCS keys, updates and persists signing state.
+    /// SHRINCS is stateful - this method updates and persists signing state.
     pub fn sign_mut(&mut self, address: &str, msg32: &[u8; 32]) -> Result<Vec<u8>> {
         let keys = self.get_active_keys()?;
         let key = Self::find_key_by_address(keys, address)
@@ -1008,17 +966,10 @@ impl Wallet {
             .clone(); // Clone to avoid borrow issues
 
         match key.alg_id {
-            MLDSA_ALG_ID | 0 => {
-                let sk_bytes = hex::decode(&key.sk_hex)?;
-                if sk_bytes.len() != secret_key_bytes() {
-                    return Err(anyhow!("invalid ML-DSA secret key length"));
-                }
-                let sk = SecretKey::from_bytes(&sk_bytes).map_err(|e| anyhow!("{:?}", e))?;
-                let sig = detached_sign(msg32, &sk);
-                Ok(sig.as_bytes().to_vec())
-            }
             #[cfg(feature = "shrincs-dev")]
             SHRINCS_ALG_ID => self.sign_shrincs_encrypted(&key, msg32),
+            #[cfg(not(feature = "shrincs-dev"))]
+            SHRINCS_ALG_ID => Err(anyhow!("SHRINCS signing requires shrincs-dev feature")),
             _ => Err(anyhow!("Unknown algorithm ID: 0x{:02x}", key.alg_id)),
         }
     }
@@ -1180,6 +1131,15 @@ impl Wallet {
     /// For encrypted wallets, this requires the wallet to be unlocked.
     /// Keys that already exist (by address) are skipped.
     ///
+    /// # SHRINCS Import Format
+    /// SHRINCS keys require signing state for import:
+    /// `secretkey pubkey address label [signing_state]`
+    ///
+    /// Where:
+    /// - secretkey: 96 bytes hex (sk_seed || pk_seed || prf_key)
+    /// - pubkey: 17 bytes hex (alg_id || commitment)
+    /// - signing_state: hex-encoded state (required for SHRINCS)
+    ///
     /// Returns the number of keys imported.
     pub fn import_dump(&mut self, dump_content: &str) -> Result<usize> {
         let mut imported = 0;
@@ -1192,8 +1152,8 @@ impl Wallet {
                 continue;
             }
 
-            // Parse: secretkey pubkey address [label]
-            let parts: Vec<&str> = line.splitn(4, ' ').collect();
+            // Parse: secretkey pubkey address label [signing_state]
+            let parts: Vec<&str> = line.splitn(5, ' ').collect();
             if parts.len() < 3 {
                 continue; // Skip malformed lines
             }
@@ -1202,27 +1162,62 @@ impl Wallet {
             let pk_ser_hex = parts[1];
             let address = parts[2];
             let label = parts.get(3).unwrap_or(&"imported");
+            let signing_state_hex = parts.get(4);
 
-            // Verify the secret key is valid hex and correct length
+            // Verify the secret key is valid hex
             let sk_bytes = hex::decode(sk_hex)
                 .map_err(|_| anyhow!("invalid secret key hex for address {}", address))?;
-
-            if sk_bytes.len() != pqcrypto_dilithium::dilithium3::secret_key_bytes() {
-                return Err(anyhow!(
-                    "invalid secret key length for address {} (expected {}, got {})",
-                    address,
-                    pqcrypto_dilithium::dilithium3::secret_key_bytes(),
-                    sk_bytes.len()
-                ));
-            }
-
-            // Verify the secret key parses correctly
-            let _ = pqcrypto_dilithium::dilithium3::SecretKey::from_bytes(&sk_bytes)
-                .map_err(|e| anyhow!("invalid secret key: {:?}", e))?;
 
             // Verify the public key
             let pk_ser = hex::decode(pk_ser_hex)
                 .map_err(|_| anyhow!("invalid public key hex for address {}", address))?;
+
+            // Check algorithm ID from public key prefix
+            if pk_ser.is_empty() {
+                return Err(anyhow!("empty public key for address {}", address));
+            }
+
+            let alg_id = pk_ser[0];
+
+            // Validate based on algorithm
+            match alg_id {
+                SHRINCS_ALG_ID => {
+                    // SHRINCS: sk is 96 bytes (sk_seed || pk_seed || prf_key)
+                    if sk_bytes.len() != 96 {
+                        return Err(anyhow!(
+                            "invalid SHRINCS secret key length for {}: expected 96, got {}",
+                            address,
+                            sk_bytes.len()
+                        ));
+                    }
+                    // SHRINCS pk is 17 bytes (alg_id + 16-byte commitment)
+                    if pk_ser.len() != 17 {
+                        return Err(anyhow!(
+                            "invalid SHRINCS public key length for {}: expected 17, got {}",
+                            address,
+                            pk_ser.len()
+                        ));
+                    }
+                    // SHRINCS requires signing state
+                    if signing_state_hex.is_none() {
+                        return Err(anyhow!(
+                            "SHRINCS key import requires signing_state for address {}",
+                            address
+                        ));
+                    }
+                    // Validate signing state hex
+                    let _ = hex::decode(signing_state_hex.unwrap()).map_err(|_| {
+                        anyhow!("invalid signing_state hex for address {}", address)
+                    })?;
+                }
+                _ => {
+                    return Err(anyhow!(
+                        "unknown algorithm ID 0x{:02x} for address {}",
+                        alg_id,
+                        address
+                    ));
+                }
+            }
 
             // Verify address matches the public key
             let qpkh = qpkh32(&pk_ser);
@@ -1243,14 +1238,14 @@ impl Wallet {
                 continue; // Skip existing keys
             }
 
-            // Add the key (imported keys are ML-DSA by default)
+            // Add the key
             let new_key = WalletKey {
                 pk_ser_hex: pk_ser_hex.to_string(),
                 sk_hex: sk_hex.to_string(),
                 address: address.to_string(),
                 label: label.to_string(),
-                alg_id: MLDSA_ALG_ID,
-                signing_state_hex: None,
+                alg_id,
+                signing_state_hex: signing_state_hex.map(|s| s.to_string()),
             };
 
             if self.file.encrypted {
@@ -1427,13 +1422,13 @@ impl Wallet {
             lock_time: 0,
         };
 
-        // Sign each input
+        // Sign each input (SHRINCS is stateful, requires sign_mut)
         for (i, address) in input_addresses.iter().enumerate() {
             let sighash_type = 0x01u8; // SIGHASH_ALL
             let msg32 = qpb_sighash(&tx, i, &prevouts, sighash_type, 0x00, None)
                 .map_err(|e| anyhow!("sighash failed: {:?}", e))?;
 
-            let sig = self.sign(address, &msg32)?;
+            let sig = self.sign_mut(address, &msg32)?;
             let pk_ser = self.get_pk_ser(address)?;
 
             // Witness: [sig || sighash_type, pk_ser]
@@ -1460,7 +1455,7 @@ impl Wallet {
     /// * Signed replacement transaction
     /// * Error if change is insufficient to cover new fee
     pub fn create_replacement_transaction(
-        &self,
+        &mut self,
         original_tx: &Transaction,
         original_prevouts: &[Prevout],
         new_fee_rate: u64,
@@ -1568,13 +1563,13 @@ impl Wallet {
             lock_time: original_tx.lock_time,
         };
 
-        // Sign each input
+        // Sign each input (SHRINCS is stateful, requires sign_mut)
         for (i, address) in input_addresses.iter().enumerate() {
             let sighash_type = 0x01u8; // SIGHASH_ALL
             let msg32 = qpb_sighash(&tx, i, original_prevouts, sighash_type, 0x00, None)
                 .map_err(|e| anyhow!("sighash failed: {:?}", e))?;
 
-            let sig = self.sign(address, &msg32)?;
+            let sig = self.sign_mut(address, &msg32)?;
             let pk_ser = self.get_pk_ser(address)?;
 
             let mut sig_ser = sig;
@@ -1661,7 +1656,7 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
-    #[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
+    #[cfg(feature = "shrincs-dev")]
     fn wallet_create_and_keygen() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("wallet.json");
@@ -1672,6 +1667,8 @@ mod tests {
         let addr1 = wallet.get_new_address("test1").unwrap();
         assert!(addr1.starts_with("qpbdev"));
         assert_eq!(wallet.file.keys.len(), 1);
+        // Verify SHRINCS key has signing state
+        assert!(wallet.file.keys[0].signing_state_hex.is_some());
 
         let addr2 = wallet.get_new_address("test2").unwrap();
         assert_ne!(addr1, addr2);
@@ -1679,7 +1676,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
+    #[cfg(feature = "shrincs-dev")]
     fn wallet_persistence() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("wallet.json");
@@ -1694,10 +1691,12 @@ mod tests {
         let wallet2 = Wallet::load(&path).unwrap();
         assert_eq!(wallet2.file.keys.len(), 1);
         assert_eq!(wallet2.file.keys[0].label, "persist-test");
+        // Verify SHRINCS signing state persisted
+        assert!(wallet2.file.keys[0].signing_state_hex.is_some());
     }
 
     #[test]
-    #[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
+    #[cfg(feature = "shrincs-dev")]
     fn wallet_sign_roundtrip() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("wallet.json");
@@ -1706,9 +1705,12 @@ mod tests {
         let addr = wallet.get_new_address("sign-test").unwrap();
 
         let msg = [0x42u8; 32];
-        let sig = wallet.sign(&addr, &msg).unwrap();
+        // SHRINCS is stateful, must use sign_mut()
+        let sig = wallet.sign_mut(&addr, &msg).unwrap();
 
-        // Verify signature length (ML-DSA-65 signature is 3309 bytes)
-        assert_eq!(sig.len(), 3309);
+        // SHRINCS signature format: type(1) || full_pk(64) || sig_data || sighash(1)
+        // Minimum size: 1 + 64 + ~308 + 1 = ~374 bytes for q=1
+        assert!(sig.len() >= 300, "SHRINCS signature too small: {}", sig.len());
+        assert_eq!(sig[0], 0x00); // Stateful signature type
     }
 }

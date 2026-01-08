@@ -2,29 +2,30 @@ Quantum Proof Bitcoin (QPB)
 
 Consensus Specification for a Post-Quantum Secure Chain
 
-Version 1.1m (Genesis Draft) — INTERNAL
+Version 1.2 (SHRINCS Genesis) — INTERNAL
 
-**Date:** 2025-12-26  
+**Date:** 2025-01
 **Authors:** Internal Design Team
 
 Internal note: This document is an implementable consensus specification for a new Bitcoin-derived chain that is post-quantum secure from genesis. It is not a security audit, nor legal/compliance advice. It assumes standard Bitcoin node best-practices (including pruning) remain available.
 
-**Changelog (from v1.1)**
+**Changelog (from v1.1m)**
 
-This revision aligns the written spec with the reference implementation’s “ML‑DSA‑only genesis” posture:
+This revision aligns the written spec with the reference implementation's "SHRINCS-only genesis" posture:
 
-- Genesis PQ suite is **ML‑DSA‑65** (alg_id = 0x11, FIPS 204 / Dilithium3). It is the **only** consensus‑active signature algorithm at genesis.
-- **SLH‑DSA** (alg_id = 0x21, FIPS 205) and **SHRINCS** (alg_id = 0x30, research composite) are **RESERVED/INACTIVE** at genesis and **MUST be rejected** by consensus until activated by a future hard fork.
-- Updated size constants to match ML‑DSA‑65: pk_bytes = 1952, sig_bytes = 3309 (pk_ser = 1953, sig_ser = 3310 including the sighash type byte).
-- PQSigCheck cost units updated: 0x11 cost = 1 (active). Other costs remain placeholders while inactive.
+- Genesis PQ suite is **SHRINCS** (alg_id = 0x30). It is the **only** consensus‑active signature algorithm.
+- **ML‑DSA‑65** (alg_id = 0x11) has been deprecated and removed from consensus.
+- **SLH‑DSA** (alg_id = 0x21, FIPS 205) remains **RESERVED/INACTIVE**.
+- Updated size constants to match SHRINCS: pk_bytes = 16 (composite hash), sig_bytes = ~308-340 (stateful) or ~7,856 (SPHINCS+ fallback).
+- PQSigCheck cost units updated: 0x30 cost = 2 (active).
 
-All other rules in this document are unchanged from v1.1.
+All other rules in this document are unchanged from v1.1m.
 
 Non-consensus clarifications:
 
 - Threat model updated for Grover on PoW (energy/centralization risks).
 
-- Survivability: Crypto is anchored on NIST‑standard ML‑DSA‑65 at genesis; hash‑based SLH‑DSA and composite SHRINCS are reserved for potential future activation. Systems 85% (bounded growth/DoS, 200 GB/year at 0.5 TPS).
+- Survivability: Crypto is anchored on hash-based SHRINCS from genesis; provides stateful efficiency with stateless fallback. Systems 85% (bounded growth/DoS, 200 GB/year at 0.5 TPS).
 
 0. Notation and Conventions (Normative)
 
@@ -36,7 +37,7 @@ Unless otherwise specified, serialization is identical to Bitcoin Core's "consen
 
 1. Abstract
 
-QPB forks Bitcoin to require post‑quantum signatures from block 0. At genesis, the only consensus‑active signature algorithm is **ML‑DSA‑65** (FIPS 204 / Dilithium3; 1952‑byte public keys, 3309‑byte signatures). SHRINCS (0x30) and SLH‑DSA (0x21) are reserved/inactive and MUST be rejected until activated by a future hard fork. UTXO model intact; PoW Argon2. Two outputs: P2QPKH (key hash), P2QTSH (script tree, no key spend). Sighash: 32B digest, chain‑replay proof. Weights: Adaptive median (100/100k blocks), 1.4x growth, quadratic penalty. Bounds: 8MB bytes, 32M WU, 500 PQSigCheck cost units/block. Goal: Sustain 0.5 TPS at 200 GB/year growth; quantum survival via PQ signatures + hashes + economics.
+QPB forks Bitcoin to require post‑quantum signatures from block 0. The sole consensus‑active signature algorithm is **SHRINCS** (alg_id 0x30; 16‑byte public keys, ~308-340 byte stateful signatures with ~7,856 byte SPHINCS+ fallback). ML‑DSA‑65 (0x11) has been deprecated; SLH‑DSA (0x21) remains reserved. UTXO model intact; PoW Argon2. Two outputs: P2QPKH (key hash), P2QTSH (script tree, no key spend). Sighash: 32B digest, chain‑replay proof. Weights: Adaptive median (100/100k blocks), 1.4x growth, quadratic penalty. Bounds: 8MB bytes, 32M WU, 500 PQSigCheck cost units/block. Goal: Sustain 0.5 TPS at 200 GB/year growth; quantum survival via PQ signatures + hashes + economics.
 
 2. Scope and Non-Goals (Informative)
 
@@ -96,7 +97,7 @@ No Key-Path Spending: script-tree commitments avoid long-exposure pubkey risk, f
 
 Bounded Validation: any attacker-controlled field is bounded (bytes, ops, sig verification budget).
 
-Lean Genesis: begin with one PQ signature primitive that is widely implemented and testable today (ML‑DSA‑65), and reserve additional primitives (SLH‑DSA, SHRINCS) for hard forks once justified by audit and operational need.
+Hash-First Genesis: begin with SHRINCS, a stateful hash-based signature scheme with SPHINCS+ fallback, providing hash-only security assumptions from genesis.
 
 5. Consensus Constants (Normative)
 
@@ -126,24 +127,23 @@ where HASH256(x) = SHA256(SHA256(x)).
 
 5.3 PQ Algorithm Registry (Genesis)
 
-Algorithm identifiers are one byte (alg_id). At genesis, the only ACTIVE algorithm identifier is alg_id = 0x11. All other alg_id values MUST be rejected until activated by a future hard fork.
+Algorithm identifiers are one byte (alg_id). At genesis, the only ACTIVE algorithm identifier is alg_id = 0x30 (SHRINCS). All other alg_id values MUST be rejected.
 
-| alg_id | Algorithm           | Status @ Genesis    | NIST Cat | Public Key Bytes | Signature Bytes |
-| ------ | ------------------- | ------------------- | -------- | ---------------- | --------------- |
-| 0x11   | ML-DSA-65           | ACTIVE              | 3        | 1952             | 3309            |
-| 0x21   | SLH-DSA-SHA2-192s   | RESERVED (inactive) | 3        | 48               | 16224           |
-| 0x30   | SHRINCS (composite) | RESERVED (inactive) | -        | 64               | 324             |
+| alg_id | Algorithm           | Status @ Genesis      | Security   | Public Key Bytes | Signature Bytes           |
+| ------ | ------------------- | --------------------- | ---------- | ---------------- | ------------------------- |
+| 0x30   | SHRINCS (composite) | ACTIVE                | Level 1    | 16               | ~308-340 or ~7,856        |
+| 0x11   | ML-DSA-65           | DEPRECATED (removed)  | (Level 3)  | -                | -                         |
+| 0x21   | SLH-DSA-SHA2-192s   | RESERVED (inactive)   | (Level 3)  | 48               | 16224                     |
 
 
-All other alg_id values are unassigned at genesis and MUST be rejected.
+All other alg_id values are unassigned and MUST be rejected.
 
 5.4 PQSigCheck Cost Units (Genesis)
 
 | alg_id              | Cost Units                        |
 | ------------------- | --------------------------------- |
-| 0x11 (ML-DSA-65)    | 1                                 |
+| 0x30 (SHRINCS)      | 2                                 |
 | 0x21 (SLH-DSA-192s) | 8 (reserved; inactive at genesis) |
-| 0x30 (SHRINCS)      | 1 (reserved; inactive at genesis) |
 
 
 6. SegWit From Genesis (Normative)
@@ -397,13 +397,13 @@ As in 8.1.1.
 
 11.1 pk_ser and sig_ser Parsing
 
-pk_ser := alg_id || pk_bytes (fixed per alg_id)  
-sig_ser := sig_bytes (fixed) || sighash_type  
-For alg_id=0x11, pk_bytes MUST be 1952 bytes and sig_bytes MUST be 3309 bytes. Any other length is invalid.
+pk_ser := alg_id || pk_bytes (fixed per alg_id)
+sig_ser := sig_bytes (variable) || sighash_type
+For alg_id=0x30, pk_bytes MUST be 16 bytes. sig_bytes is variable: ~308-340 bytes for stateful signatures, ~7,856 bytes for SPHINCS+ fallback.
 
 11.2 Verification
 
-PQVerify(0x11, pk, msg32, sig): ML‑DSA‑65.Verify (Dilithium3). Failure invalidates spend.
+PQVerify(0x30, pk, msg32, sig): SHRINCS.Verify. Accepts both stateful and fallback signatures. Failure invalidates spend.
 
 12. Appendix A — Consensus Rule Checklist (Implementers)
 
@@ -425,12 +425,12 @@ A.2 Block
 
 13. Appendix B — Test Vector Schema (Normative Recommendation)
 
-tx_hex: [TBD hex]  
-prevout: value=100000, scriptPubKey=OP_3 PUSH32(qpkh32)  
-witness: sig_ser (3310B), pk_ser (1953B)  
+tx_hex: [TBD hex]
+prevout: value=100000, scriptPubKey=OP_3 PUSH32(qpkh32)
+witness: sig_ser (~309-341B), pk_ser (17B)
 Expected: Valid; msg32=[32B hash]
 
-Example Vector 2: Invalid Sig (P2QPKH)  
+Example Vector 2: Invalid Sig (P2QPKH)
 [Similar; flip bit in sig; Expected: Invalid]
 
 Example Vector 3: P2QTSH with OP_CTV  
@@ -438,9 +438,7 @@ Example Vector 3: P2QTSH with OP_CTV
 
 14. References (Informative)
 
-- NIST FIPS 204 (ML-DSA).
-
-- NIST FIPS 205 (SLH-DSA).
+- NIST FIPS 205 (SLH-DSA / SPHINCS+).
 
 - BIP 360, 347, 141, 119.
 
@@ -448,7 +446,7 @@ Example Vector 3: P2QTSH with OP_CTV
 
 - Chaincode Labs Quantum Report.
 
-- SHRINCS Research (Delving Bitcoin, Dec 2025) (reserved / research track).
+- SHRINCS Research (Delving Bitcoin, Dec 2025) — https://delvingbitcoin.org/t/shrincs-324-byte-stateful-post-quantum-signatures-with-static-backups/2158
 
 - NIST IR 8545 (HQC KEM selection, March 2025).
 

@@ -701,7 +701,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 &node.chain,
                 Some(std::path::Path::new("docs/chain/chainparams.json")),
             );
-            let wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
+            let mut wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
 
             // Get the original transaction
             let original_tx = &original_entry.tx;

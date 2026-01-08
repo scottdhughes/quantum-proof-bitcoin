@@ -1,6 +1,7 @@
 # SHRINCS Implementation Plan
 
-> Generated: 2026-01-04
+> **STATUS: COMPLETE** — SHRINCS is now the sole active signature algorithm.
+>
 > Reference: Jonas Nick & Mikhail Kudinov paper (2025-2203.pdf, Blockstream Research, Rev 2025-12-05)
 
 ---
@@ -15,15 +16,14 @@
 - BIP68/113 locktime support integrated
 
 ### Active Signature Scheme
-- **ML-DSA-65** (FIPS 204 / Dilithium3) - lattice-based
-- Algorithm ID: `0x11`
-- Public key: 1,952 bytes
-- Signature: 3,309 bytes
-- Verification cost: 5 PQSigCheck units
+- **SHRINCS** (alg_id 0x30) - hybrid stateful/stateless hash-based
+- Public key: 16 bytes (composite hash)
+- Signature: ~308-340 bytes (stateful) or ~7,856 bytes (fallback)
+- Verification cost: 2 PQSigCheck units
 
-### Reserved (Consensus-Rejected Until Activation)
-- `SLH-DSA (0x21)` - FIPS 205 hash-based
-- `SHRINCS (0x30)` - Hybrid stateful/stateless (this plan)
+### Deprecated / Reserved
+- `ML-DSA-65 (0x11)` - DEPRECATED, removed from consensus
+- `SLH-DSA (0x21)` - RESERVED (for future activation)
 
 ---
 

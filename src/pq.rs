@@ -1,9 +1,14 @@
+//! Post-quantum signature verification.
+//!
+//! This module implements SHRINCS as the sole post-quantum signature scheme,
+//! following the Delving Bitcoin specification:
+//! https://delvingbitcoin.org/t/shrincs-324-byte-stateful-post-quantum-signatures-with-static-backups/2158
+
 use crate::activation::{Network, is_algorithm_active};
-use crate::constants::{MLDSA65_ALG_ID, MLDSA65_PUBKEY_LEN, MLDSA65_SIG_LEN};
+use crate::constants::SHRINCS_ALG_ID;
 #[cfg(feature = "shrincs-dev")]
-use crate::constants::{SHRINCS_ALG_ID, SHRINCS_PUBKEY_LEN};
+use crate::constants::SHRINCS_PUBKEY_LEN;
 use crate::errors::ConsensusError;
-use pqcrypto_traits::sign::{DetachedSignature, PublicKey, SecretKey};
 
 #[cfg(feature = "shrincs-ffi")]
 use libloading::Library;
@@ -16,8 +21,7 @@ use std::path::Path;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AlgorithmId {
-    MLDSA65,
-    #[cfg(feature = "shrincs-dev")]
+    /// SHRINCS: Hybrid stateful/stateless hash-based signatures
     SHRINCS,
 }
 
@@ -27,8 +31,6 @@ impl AlgorithmId {
     /// Use `from_byte_at_height` for consensus validation with activation checks.
     pub fn from_byte(b: u8) -> Result<Self, ConsensusError> {
         match b {
-            MLDSA65_ALG_ID => Ok(AlgorithmId::MLDSA65),
-            #[cfg(feature = "shrincs-dev")]
             SHRINCS_ALG_ID => Ok(AlgorithmId::SHRINCS),
             _ => Err(ConsensusError::InactiveAlgorithm),
         }
@@ -54,20 +56,16 @@ impl AlgorithmId {
 
     pub fn as_byte(self) -> u8 {
         match self {
-            AlgorithmId::MLDSA65 => MLDSA65_ALG_ID,
-            #[cfg(feature = "shrincs-dev")]
             AlgorithmId::SHRINCS => SHRINCS_ALG_ID,
         }
     }
 }
 
-/// PQSigCheck cost units per algorithm (genesis).
-/// Hash-based signatures are more expensive to verify than lattice-based.
+/// PQSigCheck cost units per algorithm.
+/// Hash-based signatures have higher verification cost.
 pub fn pqsig_cost(alg: AlgorithmId) -> u32 {
     match alg {
-        AlgorithmId::MLDSA65 => 1,
-        #[cfg(feature = "shrincs-dev")]
-        AlgorithmId::SHRINCS => 2, // ~2x slower than ML-DSA-65
+        AlgorithmId::SHRINCS => 2,
     }
 }
 
@@ -145,6 +143,9 @@ fn load_shrincs() -> Option<&'static ShrincsFfi> {
         .as_ref()
 }
 
+/// Verify a post-quantum signature.
+///
+/// Currently only supports SHRINCS (alg_id 0x30).
 pub fn verify_pq(
     alg: AlgorithmId,
     pk: &[u8],
@@ -152,33 +153,30 @@ pub fn verify_pq(
     sig: &[u8],
 ) -> Result<(), ConsensusError> {
     match alg {
-        AlgorithmId::MLDSA65 => {
-            if msg32.len() != 32 {
-                return Err(ConsensusError::InvalidSignature);
+        AlgorithmId::SHRINCS => {
+            #[cfg(feature = "shrincs-dev")]
+            {
+                verify_shrincs(pk, msg32, sig)
             }
-            if pk.len() != MLDSA65_PUBKEY_LEN || sig.len() != MLDSA65_SIG_LEN {
-                return Err(ConsensusError::InvalidSignature);
+            #[cfg(not(feature = "shrincs-dev"))]
+            {
+                let _ = (pk, msg32, sig);
+                Err(ConsensusError::InactiveAlgorithm)
             }
-            let pk_obj = pqcrypto_dilithium::dilithium3::PublicKey::from_bytes(pk)
-                .map_err(|_| ConsensusError::InvalidPublicKey)?;
-            let sig_obj = pqcrypto_dilithium::dilithium3::DetachedSignature::from_bytes(sig)
-                .map_err(|_| ConsensusError::InvalidSignature)?;
-            pqcrypto_dilithium::dilithium3::verify_detached_signature(&sig_obj, msg32, &pk_obj)
-                .map_err(|_| ConsensusError::PQSignatureInvalid)
         }
-        #[cfg(feature = "shrincs-dev")]
-        AlgorithmId::SHRINCS => verify_shrincs(pk, msg32, sig),
-    }?;
-
-    #[allow(unreachable_code)]
-    Ok(())
+    }
 }
 
 /// Verify a SHRINCS signature (stateful or fallback).
 ///
-/// Signature format: [type_prefix(1) || sig_data]
-/// - 0x00: Stateful signature - pk must be 64 bytes (base pk)
-/// - 0x01: Fallback signature - pk must be 96 bytes (base pk + SPHINCS+ pk)
+/// # Signature Formats
+///
+/// **Stateful (0x00):** `[type(1) || full_pk(64) || sig_data]`
+/// - full_pk: `[pk_seed(32) || pors_root(16) || hypertree_root(16)]`
+/// - Verification checks that `H(full_pk)` matches the 16-byte on-chain commitment
+///
+/// **Fallback (0x01):** `[type(1) || reserved(4) || sphincs_sig]`
+/// - pk must be 48 bytes: `[commitment(16) || sphincs_pk(32)]`
 #[cfg(feature = "shrincs-dev")]
 fn verify_shrincs(pk: &[u8], msg32: &[u8], sig: &[u8]) -> Result<(), ConsensusError> {
     use crate::constants::{SHRINCS_FALLBACK_PUBKEY_LEN, SPHINCS_PK_LEN};
@@ -200,16 +198,34 @@ fn verify_shrincs(pk: &[u8], msg32: &[u8], sig: &[u8]) -> Result<(), ConsensusEr
     // Parse and verify based on signature type prefix
     match sig[0] {
         0x00 => {
-            // Stateful signature - pk must be exactly 64 bytes
+            // Stateful signature
+            // pk is 16-byte on-chain commitment
+            // sig contains full_pk (64 bytes) + sig_data
             if pk.len() != SHRINCS_PUBKEY_LEN {
                 return Err(ConsensusError::InvalidPublicKey);
             }
 
-            let full_pk = ShrincsFullPublicKey::from_bytes(pk, params)
+            // Signature must contain full_pk (64 bytes) after type prefix
+            let full_pk_len = 32 + params.n * 2; // pk_seed(32) + roots(2n)
+            if sig.len() < 1 + full_pk_len {
+                return Err(ConsensusError::InvalidSignature);
+            }
+
+            // Extract full_pk from signature
+            let full_pk_bytes = &sig[1..1 + full_pk_len];
+            let full_pk = ShrincsFullPublicKey::from_bytes(full_pk_bytes, params)
                 .ok_or(ConsensusError::InvalidPublicKey)?;
 
-            // Parse signature data after type prefix
-            let sig_data = &sig[1..];
+            // Verify the commitment matches the on-chain pk
+            let commitment: [u8; 16] = pk
+                .try_into()
+                .map_err(|_| ConsensusError::InvalidPublicKey)?;
+            if !full_pk.matches_commitment(&commitment) {
+                return Err(ConsensusError::InvalidPublicKey);
+            }
+
+            // Parse signature data after full_pk
+            let sig_data = &sig[1 + full_pk_len..];
             let full_sig =
                 crate::shrincs::shrincs::ShrincsFullSignature::from_bytes(sig_data, params)
                     .ok_or(ConsensusError::InvalidSignature)?;
@@ -217,23 +233,14 @@ fn verify_shrincs(pk: &[u8], msg32: &[u8], sig: &[u8]) -> Result<(), ConsensusEr
             verify(&msg, &full_sig, &full_pk).map_err(|_| ConsensusError::PQSignatureInvalid)
         }
         0x01 => {
-            // Fallback signature - pk must be extended (64 + 32 = 96 bytes)
-            // Extended pk format: [base_pk(64) || sphincs_pk(32)]
-            // Note: The sphincs_pk_hash commitment is stored in ShrincsExtendedPublicKey
-            // which appends it after the base pk, not inside it.
+            // Fallback signature - pk must be extended (16 + 32 = 48 bytes)
+            // Extended pk format: [composite_hash(16) || sphincs_pk(32)]
             if pk.len() != SHRINCS_FALLBACK_PUBKEY_LEN {
                 return Err(ConsensusError::InvalidPublicKey);
             }
 
             // Extract SPHINCS+ pk from extended pk (last 32 bytes)
             let sphincs_pk = &pk[SHRINCS_PUBKEY_LEN..SHRINCS_PUBKEY_LEN + SPHINCS_PK_LEN];
-
-            // Note: We rely on the qpkh32 commitment (computed from base pk only)
-            // to prevent SPHINCS+ pk substitution. The validation layer ensures
-            // the base pk matches the address, and keygen binds sphincs_pk to base pk
-            // via the sphincs_pk_hash stored in the ShrincsExtendedPublicKey.
-            // For full security, wallets should verify the sphincs_pk matches
-            // the expected hash when loading extended keys.
 
             // Parse SPHINCS+ signature (skip type prefix and reserved bytes)
             // Fallback sig format: [type(1) || reserved(4) || sphincs_sig]
@@ -250,39 +257,15 @@ fn verify_shrincs(pk: &[u8], msg32: &[u8], sig: &[u8]) -> Result<(), ConsensusEr
     }
 }
 
-/// Dev-only SHRINCS verifier (wraps verify_shrincs for backward compatibility).
-#[cfg(feature = "shrincs-dev")]
-#[deprecated(note = "Use verify_pq(AlgorithmId::SHRINCS, ...) instead")]
-pub fn verify_shrincs_dev(pk: &[u8], msg32: &[u8], sig: &[u8]) -> Result<(), ConsensusError> {
-    verify_shrincs(pk, msg32, sig)
-}
-
-/// ML-DSA keypair helper for dev/CLI.
-pub fn mldsa_keypair() -> (Vec<u8>, Vec<u8>) {
-    let (pk, sk) = pqcrypto_dilithium::dilithium3::keypair();
-    (pk.as_bytes().to_vec(), sk.as_bytes().to_vec())
-}
-
-/// ML-DSA sign helper (deterministic).
-pub fn mldsa_sign(sk: &[u8], msg32: &[u8]) -> Result<Vec<u8>, ConsensusError> {
-    if msg32.len() != 32 {
-        return Err(ConsensusError::InvalidSignature);
-    }
-    if sk.len() != pqcrypto_dilithium::dilithium3::secret_key_bytes() {
-        return Err(ConsensusError::InvalidSignature);
-    }
-    let sk_obj = pqcrypto_dilithium::dilithium3::SecretKey::from_bytes(sk)
-        .map_err(|_| ConsensusError::InvalidSignature)?;
-    let sig = pqcrypto_dilithium::dilithium3::detached_sign(msg32, &sk_obj);
-    Ok(sig.as_bytes().to_vec())
-}
-
 /// SHRINCS keypair generation (returns serialized pk with algorithm prefix).
 ///
 /// Returns:
-/// - `pk_ser`: Algorithm-prefixed public key (1 + 64 bytes)
-/// - `key_material`: Stateful key material for signing
+/// - `pk_ser`: Algorithm-prefixed public key commitment (1 + 16 bytes)
+/// - `key_material`: Stateful key material for signing (includes full pk)
 /// - `state`: Signing state (must be persisted to prevent key reuse)
+///
+/// The on-chain public key is a 16-byte commitment: H(full_pk).
+/// The full pk (64 bytes) is included in signatures for verification.
 #[cfg(feature = "shrincs-dev")]
 pub fn shrincs_keypair() -> Result<
     (
@@ -297,15 +280,16 @@ pub fn shrincs_keypair() -> Result<
     let params = ShrincsFullParams::LEVEL1_2_30;
     let (key_material, state) = keygen(params).map_err(|_| ConsensusError::InvalidSignature)?;
 
-    // Serialize pk with algorithm prefix
+    // Serialize 16-byte pk commitment with algorithm prefix
+    let commitment = key_material.pk.to_commitment();
     let mut pk_ser = Vec::with_capacity(1 + SHRINCS_PUBKEY_LEN);
     pk_ser.push(SHRINCS_ALG_ID);
-    pk_ser.extend_from_slice(&key_material.pk.to_bytes());
+    pk_ser.extend_from_slice(&commitment);
 
     Ok((pk_ser, key_material, state))
 }
 
-/// SHRINCS signing (prepends type byte, appends sighash type byte).
+/// SHRINCS signing (prepends type byte, includes full pk, appends sighash type byte).
 ///
 /// # Arguments
 /// - `key_material`: Key material from `shrincs_keypair()`
@@ -314,8 +298,9 @@ pub fn shrincs_keypair() -> Result<
 /// - `sighash_type`: Sighash type byte to append
 ///
 /// # Returns
-/// Serialized signature: [type_prefix(1) || sig_data || sighash(1)]
-/// where type_prefix is 0x00 for stateful signatures
+/// Serialized signature: `[type(1) || full_pk(64) || sig_data || sighash(1)]`
+/// - type = 0x00 for stateful signatures
+/// - full_pk = `[pk_seed(32) || pors_root(16) || hypertree_root(16)]`
 #[cfg(feature = "shrincs-dev")]
 pub fn shrincs_sign(
     key_material: &crate::shrincs::shrincs::ShrincsKeyMaterial,
@@ -332,10 +317,12 @@ pub fn shrincs_sign(
     let sig = sign(&msg, key_material, state).map_err(|_| ConsensusError::InvalidSignature)?;
 
     let sig_bytes = sig.to_bytes();
+    let pk_bytes = key_material.pk.to_bytes();
 
-    // Format: type_prefix(1) || sig_data || sighash(1)
-    let mut sig_ser = Vec::with_capacity(1 + sig_bytes.len() + 1);
+    // Format: type_prefix(1) || full_pk(64) || sig_data || sighash(1)
+    let mut sig_ser = Vec::with_capacity(1 + pk_bytes.len() + sig_bytes.len() + 1);
     sig_ser.push(0x00); // Stateful signature type prefix
+    sig_ser.extend_from_slice(&pk_bytes); // Full pk for verification
     sig_ser.extend_from_slice(&sig_bytes);
     sig_ser.push(sighash_type);
 
@@ -345,10 +332,12 @@ pub fn shrincs_sign(
 /// SHRINCS keypair generation with SPHINCS+ fallback keys.
 ///
 /// Returns:
-/// - `pk_ser`: Algorithm-prefixed base public key (1 + 64 bytes)
+/// - `pk_ser`: Algorithm-prefixed 16-byte commitment (1 + 16 bytes)
 /// - `sphincs_pk`: Full SPHINCS+ public key (32 bytes) for witness extension
 /// - `ext_key`: Extended key material (stateful + SPHINCS+ fallback)
 /// - `state`: Signing state (must be persisted to prevent key reuse)
+///
+/// For fallback signatures, the witness pk must be 48 bytes: `[commitment(16) || sphincs_pk(32)]`
 #[cfg(feature = "shrincs-dev")]
 pub fn shrincs_keypair_with_fallback() -> Result<
     (
@@ -365,10 +354,11 @@ pub fn shrincs_keypair_with_fallback() -> Result<
     let (ext_key, state, _ext_pk) =
         keygen_with_fallback(params).map_err(|_| ConsensusError::InvalidSignature)?;
 
-    // Serialize base pk with algorithm prefix
+    // Serialize 16-byte pk commitment with algorithm prefix
+    let commitment = ext_key.base.pk.to_commitment();
     let mut pk_ser = Vec::with_capacity(1 + SHRINCS_PUBKEY_LEN);
     pk_ser.push(SHRINCS_ALG_ID);
-    pk_ser.extend_from_slice(&ext_key.base.pk.to_bytes());
+    pk_ser.extend_from_slice(&commitment);
 
     // Return the full SPHINCS+ pk separately (needed for extended witness)
     let sphincs_pk = ext_key.sphincs_pk.clone();

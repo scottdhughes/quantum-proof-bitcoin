@@ -127,11 +127,11 @@ impl ShrincsVerify for ShrincsPlaceholder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shrincs::params::LEVEL3;
+    use crate::shrincs::params::LEVEL1;
 
     #[test]
     fn placeholder_returns_not_implemented() {
-        let result = ShrincsPlaceholder::keygen(&LEVEL3);
+        let result = ShrincsPlaceholder::keygen(&LEVEL1);
         assert!(matches!(result, Err(ShrincsError::NotImplemented(_))));
     }
 }

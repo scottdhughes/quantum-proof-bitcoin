@@ -81,42 +81,17 @@ impl ShrincsParams {
     }
 }
 
-/// NIST Level 3 (192-bit security) parameter set.
-///
-/// This is the recommended parameter set for production use.
-///
-/// # Parameters
-/// - n = 24 bytes (hash output)
-/// - w = 256 (Winternitz parameter)
-/// - l = 24 chains
-/// - Signature: 612 + q×24 bytes
-/// - Public key: 64 bytes
-pub const LEVEL3: ShrincsParams = ShrincsParams {
-    name: "SHRINCS-Level3",
-    security_level: 3,
-    n: 24,
-    w: 256,
-    wots_chains: 24,     // 192/8 = 24
-    wots_sig_bytes: 576, // 24 chains × 24 bytes
-    wots_overhead: 36,   // 32-byte randomness + 4-byte counter
-    auth_node_bytes: 24, // One hash per depth level
-    pk_bytes: 64,        // 32B XMSS root + 32B SPHINCS+ hash
-    sig_base_bytes: 636, // 576 + 36 + 24 (first auth node)
-    hash: HashFunction::Sha256,
-    alg_id: 0x30,
-};
-
 /// NIST Level 1 (128-bit security) parameter set.
 ///
-/// Smaller signatures but lower security margin.
-/// Use only if signature size is critical.
+/// This is the production parameter set per the Delving Bitcoin SHRINCS spec.
+/// https://delvingbitcoin.org/t/shrincs-324-byte-stateful-post-quantum-signatures-with-static-backups/2158
 ///
 /// # Parameters
 /// - n = 16 bytes (hash output)
 /// - w = 256 (Winternitz parameter)
 /// - l = 16 chains
-/// - Signature: 292 + q×16 bytes
-/// - Public key: 64 bytes
+/// - Signature: 292 + q×16 bytes (324 bytes @ q=2)
+/// - Public key: 16 bytes (H(pk_stateful || pk_stateless) truncated)
 pub const LEVEL1: ShrincsParams = ShrincsParams {
     name: "SHRINCS-Level1",
     security_level: 1,
@@ -126,7 +101,7 @@ pub const LEVEL1: ShrincsParams = ShrincsParams {
     wots_sig_bytes: 256, // 16 chains × 16 bytes
     wots_overhead: 36,   // 32-byte randomness + 4-byte counter
     auth_node_bytes: 16, // One hash per depth level
-    pk_bytes: 64,        // 32B XMSS root + 32B SPHINCS+ hash
+    pk_bytes: 16,        // H(pk_stateful || pk_stateless) truncated
     sig_base_bytes: 308, // 256 + 36 + 16 (first auth node)
     hash: HashFunction::Sha256,
     alg_id: 0x30,
@@ -137,27 +112,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn level3_signature_sizes() {
-        // First signature
-        assert_eq!(LEVEL3.signature_size(1), 636);
-        // Second signature (one more auth node)
-        assert_eq!(LEVEL3.signature_size(2), 636 + 24);
-        // Tenth signature
-        assert_eq!(LEVEL3.signature_size(10), 636 + 9 * 24);
-        assert_eq!(LEVEL3.signature_size(10), 852);
-    }
-
-    #[test]
     fn level1_signature_sizes() {
-        // First signature
+        // First signature (q=1): 308 bytes
         assert_eq!(LEVEL1.signature_size(1), 308);
-        // Tenth signature
+        // Second signature (q=2): 324 bytes (matches SHRINCS proposal title!)
+        assert_eq!(LEVEL1.signature_size(2), 324);
+        // Tenth signature (q=10): 308 + 9×16 = 452 bytes
         assert_eq!(LEVEL1.signature_size(10), 308 + 9 * 16);
+        assert_eq!(LEVEL1.signature_size(10), 452);
     }
 
     #[test]
     fn pk_size_constant() {
-        assert_eq!(LEVEL3.pk_bytes, 64);
-        assert_eq!(LEVEL1.pk_bytes, 64);
+        // Per SHRINCS spec: pk = H(pk_stateful || pk_stateless) truncated to 16 bytes
+        assert_eq!(LEVEL1.pk_bytes, 16);
     }
 }
