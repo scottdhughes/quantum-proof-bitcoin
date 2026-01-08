@@ -1,5 +1,6 @@
 //! Integration tests for BIP125 Replace-by-Fee (RBF).
 
+use std::path::Path;
 use tempfile::tempdir;
 
 use qpb_consensus::node::node::Node;
@@ -31,7 +32,14 @@ fn mine_to_address(node: &mut Node, count: u32, address: &str) {
 #[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn transaction_signals_rbf_with_rbf_flag() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
 
     // Setup wallet
     rpc_call(&mut node, "createwallet", "[]");
@@ -79,7 +87,14 @@ fn transaction_signals_rbf_with_rbf_flag() {
 #[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn transaction_signals_rbf_by_default() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
 
     // Setup wallet
     rpc_call(&mut node, "createwallet", "[]");
@@ -121,7 +136,14 @@ fn transaction_signals_rbf_by_default() {
 #[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn transaction_does_not_signal_rbf_when_disabled() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
 
     // Setup wallet
     rpc_call(&mut node, "createwallet", "[]");
@@ -163,7 +185,14 @@ fn transaction_does_not_signal_rbf_when_disabled() {
 #[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn bumpfee_increases_fee_and_replaces() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
 
     // Setup wallet
     rpc_call(&mut node, "createwallet", "[]");
@@ -249,7 +278,14 @@ fn bumpfee_increases_fee_and_replaces() {
 #[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn bumpfee_rejects_non_rbf_transaction() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
 
     // Setup wallet
     rpc_call(&mut node, "createwallet", "[]");
@@ -293,7 +329,14 @@ fn bumpfee_rejects_non_rbf_transaction() {
 #[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn rbf_replacement_requires_higher_fee() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
 
     // Setup wallet
     rpc_call(&mut node, "createwallet", "[]");
@@ -349,7 +392,14 @@ fn rbf_replacement_requires_higher_fee() {
 #[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn bumpfee_reuses_same_inputs() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
 
     // Setup wallet
     rpc_call(&mut node, "createwallet", "[]");

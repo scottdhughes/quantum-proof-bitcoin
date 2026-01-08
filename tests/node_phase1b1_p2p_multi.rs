@@ -1,5 +1,6 @@
 use std::io::Write;
 use std::net::TcpListener;
+use std::path::Path;
 use std::thread;
 
 use hex::FromHex;
@@ -120,7 +121,14 @@ fn p2p_multi_peer_fallback_succeeds() {
     let net = select_network(&params, "devnet").unwrap();
     let magic = hex::decode(&net.p2p_magic).unwrap().try_into().unwrap();
 
-    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     let bad = start_bad_peer(magic);
     let good = start_good_peer(magic, node.best_hash_hex().to_string());
 

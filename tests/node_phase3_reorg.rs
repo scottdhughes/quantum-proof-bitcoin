@@ -1,6 +1,7 @@
 //! Phase 3: Block reorganization tests.
 
 use hex::FromHex;
+use std::path::Path;
 use tempfile::tempdir;
 
 use qpb_consensus::node::node::Node;
@@ -90,7 +91,14 @@ fn competing_block_at_same_height() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     let genesis_hash = get_tip_hash(&node);
 
     // Build first block on genesis
@@ -115,7 +123,14 @@ fn longer_chain_triggers_reorg() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     let genesis_hash = get_tip_hash(&node);
 
     // Build main chain: genesis -> block1
@@ -153,7 +168,14 @@ fn reorg_persists_across_restart() {
     let genesis_hash;
     let block2b_hash;
     {
-        let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+        let mut node = Node::open_or_init(
+            "devnet",
+            datadir,
+            Path::new("docs/chain/chainparams.json"),
+            true,
+            false,
+        )
+        .unwrap();
         genesis_hash = get_tip_hash(&node);
 
         // Main chain: genesis -> block1
@@ -173,7 +195,14 @@ fn reorg_persists_across_restart() {
     }
 
     // Reload and verify state persisted
-    let node2 = Node::open_or_init("devnet", datadir, true, false).unwrap();
+    let node2 = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     assert_eq!(node2.height(), 2);
     assert_eq!(get_tip_hash(&node2), block2b_hash);
 }
@@ -191,7 +220,14 @@ fn mempool_restoration_after_reorg() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
 
     // Create wallet and addresses
     rpc_call(&mut node, "createwallet", "[]");
@@ -302,7 +338,14 @@ fn reorg_does_not_duplicate_confirmed_txs() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     let genesis_hash = get_tip_hash(&node);
 
     // Build main chain: genesis -> block1
@@ -349,7 +392,14 @@ fn deep_reorg_rejected() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     let genesis_hash = get_tip_hash(&node);
 
     // Build main chain: genesis -> block1 -> ... -> block(MAX_REORG_DEPTH + 5)
@@ -402,7 +452,14 @@ fn multiple_consecutive_reorgs() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     let genesis_hash = get_tip_hash(&node);
 
     // Initial chain: genesis -> A

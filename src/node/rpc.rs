@@ -294,7 +294,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 .and_then(|v| v.as_u64())
                 .unwrap_or(1)
                 .clamp(1, 10) as usize;
-            let cp = load_chainparams(std::path::Path::new("docs/chain/chainparams.json"))?;
+            let cp = load_chainparams(&node.params_path)?;
             let net = select_network(&cp, &node.chain)?;
             let mut hashes = Vec::with_capacity(n);
             let mut block_hashes_to_broadcast = Vec::with_capacity(n);
@@ -324,7 +324,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 .and_then(|v| v.as_u64())
                 .unwrap_or(1)
                 .clamp(1, 10) as usize;
-            let cp = load_chainparams(std::path::Path::new("docs/chain/chainparams.json"))?;
+            let cp = load_chainparams(&node.params_path)?;
             let net = select_network(&cp, &node.chain)?;
             let mut hashes = Vec::with_capacity(n);
             let mut block_hashes_to_broadcast = Vec::with_capacity(n);
@@ -366,7 +366,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             // Decode address to get script_pubkey
             let decoded = decode_address(address).map_err(|e| anyhow!("invalid address: {}", e))?;
 
-            let cp = load_chainparams(std::path::Path::new("docs/chain/chainparams.json"))?;
+            let cp = load_chainparams(&node.params_path)?;
             let net = select_network(&cp, &node.chain)?;
             let mut hashes = Vec::with_capacity(n);
             let mut block_hashes_to_broadcast = Vec::with_capacity(n);
@@ -493,7 +493,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             ))
         }
         "getblocktemplate" => {
-            let cp = load_chainparams(std::path::Path::new("docs/chain/chainparams.json"))?;
+            let cp = load_chainparams(&node.params_path)?;
             let net = select_network(&cp, &node.chain)?;
             let template = build_block_template(node, net)?;
             let val = serde_json::to_value(template).map_err(|e| anyhow!("{}", e))?;
@@ -502,10 +502,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
         // Wallet RPCs
         "createwallet" => {
             let wallet_path = node.datadir.join("wallet.json");
-            let hrp = load_hrp(
-                &node.chain,
-                Some(std::path::Path::new("docs/chain/chainparams.json")),
-            );
+            let hrp = load_hrp(&node.chain, Some(&node.params_path));
             let _wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
             Ok((
                 serde_json::json!({
@@ -523,10 +520,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             let address = if let Some(wallet) = node.wallet_mut() {
                 wallet.get_new_address(label)?
             } else {
-                let hrp = load_hrp(
-                    &node.chain,
-                    Some(std::path::Path::new("docs/chain/chainparams.json")),
-                );
+                let hrp = load_hrp(&node.chain, Some(&node.params_path));
                 let mut wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
                 let addr = wallet.get_new_address(label)?;
                 // If encrypted, warn the user (they should use walletpassphrase first)
@@ -638,10 +632,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             let tx = if let Some(wallet) = node.wallet_mut() {
                 wallet.create_transaction(address, amount, fee_rate, utxos, current_height, rbf)?
             } else {
-                let hrp = load_hrp(
-                    &node.chain,
-                    Some(std::path::Path::new("docs/chain/chainparams.json")),
-                );
+                let hrp = load_hrp(&node.chain, Some(&node.params_path));
                 let mut wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
                 if wallet.is_encrypted() {
                     return Err(anyhow!(
@@ -697,10 +688,7 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
             if !wallet_path.exists() {
                 return Err(anyhow!("wallet not found, call createwallet first"));
             }
-            let hrp = load_hrp(
-                &node.chain,
-                Some(std::path::Path::new("docs/chain/chainparams.json")),
-            );
+            let hrp = load_hrp(&node.chain, Some(&node.params_path));
             let mut wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
 
             // Get the original transaction

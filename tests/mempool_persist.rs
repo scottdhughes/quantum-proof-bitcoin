@@ -3,6 +3,7 @@
 //! Tests that mempool transactions are properly saved and restored
 //! across node restarts.
 
+use std::path::Path;
 use tempfile::tempdir;
 
 use qpb_consensus::node::node::Node;
@@ -31,7 +32,14 @@ fn mempool_persists_across_restart() {
     // Phase 1: Create node, wallet, mine coins, send transaction
     let tx_to_persist: String;
     {
-        let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+        let mut node = Node::open_or_init(
+            "devnet",
+            datadir,
+            Path::new("docs/chain/chainparams.json"),
+            true,
+            false,
+        )
+        .unwrap();
 
         // Create wallet and get addresses
         rpc_call(&mut node, "createwallet", "[]");
@@ -87,7 +95,14 @@ fn mempool_persists_across_restart() {
 
     // Phase 2: Restart node and verify mempool was restored
     {
-        let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+        let mut node = Node::open_or_init(
+            "devnet",
+            datadir,
+            Path::new("docs/chain/chainparams.json"),
+            true,
+            false,
+        )
+        .unwrap();
 
         // Verify transaction is still in mempool after restart
         let resp = rpc_call(&mut node, "getmempoolinfo", "[]");
@@ -115,7 +130,14 @@ fn mempool_drops_confirmed_transactions_on_load() {
 
     // Phase 1: Create node, send tx, save
     {
-        let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+        let mut node = Node::open_or_init(
+            "devnet",
+            datadir,
+            Path::new("docs/chain/chainparams.json"),
+            true,
+            false,
+        )
+        .unwrap();
 
         // Create wallet and addresses
         rpc_call(&mut node, "createwallet", "[]");
@@ -171,7 +193,14 @@ fn mempool_drops_confirmed_transactions_on_load() {
     // Phase 2: Restart - the saved mempool.json still has the tx,
     // but it should be dropped because its inputs are spent
     {
-        let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+        let mut node = Node::open_or_init(
+            "devnet",
+            datadir,
+            Path::new("docs/chain/chainparams.json"),
+            true,
+            false,
+        )
+        .unwrap();
 
         // Mempool should be empty because the tx was confirmed
         let resp = rpc_call(&mut node, "getmempoolinfo", "[]");

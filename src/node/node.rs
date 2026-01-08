@@ -85,8 +85,7 @@ pub struct Node {
     orphan_pool: OrphanPool,
     chain_index: ChainIndex,
     fee_estimator: FeeEstimator,
-    #[allow(dead_code)]
-    params_path: PathBuf,
+    pub params_path: PathBuf,
     no_pow: bool,
     /// Checkpoint verifier for chain validation.
     checkpoint_verifier: CheckpointVerifier,
@@ -103,8 +102,14 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn open_or_init(chain: &str, datadir: &Path, no_pow: bool, txindex: bool) -> Result<Self> {
-        let params_path = PathBuf::from("docs/chain/chainparams.json");
+    pub fn open_or_init(
+        chain: &str,
+        datadir: &Path,
+        params_path: &Path,
+        no_pow: bool,
+        txindex: bool,
+    ) -> Result<Self> {
+        let params_path = params_path.to_path_buf();
         let params = load_chainparams(&params_path)?;
         let net = select_network(&params, chain)?;
         let genesis = net

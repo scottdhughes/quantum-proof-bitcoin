@@ -4,6 +4,7 @@ use qpb_consensus::node::node::Node;
 use qpb_consensus::node::rpc::handle_rpc;
 use qpb_consensus::types::Transaction;
 use serde_json::json;
+use std::path::Path;
 use tempfile::TempDir;
 
 /// Parse a block hex and extract the first transaction's txid (coinbase).
@@ -151,7 +152,14 @@ fn rpc(node: &mut Node, method: &str, params: serde_json::Value) -> serde_json::
 #[test]
 fn gettxindexinfo_disabled_by_default() {
     let dir = TempDir::new().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
 
     let result = rpc(&mut node, "gettxindexinfo", json!([]));
     assert_eq!(result["result"]["enabled"], false);
@@ -161,7 +169,14 @@ fn gettxindexinfo_disabled_by_default() {
 #[test]
 fn gettxindexinfo_enabled_when_flag_set() {
     let dir = TempDir::new().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, true).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        true,
+    )
+    .unwrap();
 
     let result = rpc(&mut node, "gettxindexinfo", json!([]));
     assert_eq!(result["result"]["enabled"], true);
@@ -173,7 +188,14 @@ fn gettxindexinfo_enabled_when_flag_set() {
 #[test]
 fn getrawtransaction_error_when_txindex_disabled() {
     let dir = TempDir::new().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
 
     // Use a random txid that won't be in mempool
     let fake_txid = "0000000000000000000000000000000000000000000000000000000000000001";
@@ -186,7 +208,14 @@ fn getrawtransaction_error_when_txindex_disabled() {
 #[test]
 fn getrawtransaction_finds_confirmed_tx_with_txindex() {
     let dir = TempDir::new().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, true).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        true,
+    )
+    .unwrap();
 
     // Mine a block to create a coinbase transaction
     let mine_result = rpc(&mut node, "generatenextblock", json!([1]));
@@ -217,7 +246,14 @@ fn getrawtransaction_finds_confirmed_tx_with_txindex() {
 #[test]
 fn getrawtransaction_nonverbose_returns_hex() {
     let dir = TempDir::new().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, true).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        true,
+    )
+    .unwrap();
 
     // Mine a block
     let mine_result = rpc(&mut node, "generatenextblock", json!([1]));
@@ -247,7 +283,14 @@ fn getrawtransaction_nonverbose_returns_hex() {
 #[test]
 fn txindex_count_increases_with_blocks() {
     let dir = TempDir::new().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, true).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        true,
+    )
+    .unwrap();
 
     let info1 = rpc(&mut node, "gettxindexinfo", json!([]));
     let count1 = info1["result"]["txcount"].as_u64().unwrap();
@@ -271,7 +314,14 @@ fn txindex_persists_across_restart() {
 
     // First session: mine some blocks with txindex enabled
     {
-        let mut node = Node::open_or_init("devnet", datadir, true, true).unwrap();
+        let mut node = Node::open_or_init(
+            "devnet",
+            datadir,
+            Path::new("docs/chain/chainparams.json"),
+            true,
+            true,
+        )
+        .unwrap();
         rpc(&mut node, "generatenextblock", json!([3]));
 
         let info = rpc(&mut node, "gettxindexinfo", json!([]));
@@ -284,7 +334,14 @@ fn txindex_persists_across_restart() {
 
     // Second session: verify txindex persisted
     {
-        let mut node = Node::open_or_init("devnet", datadir, true, true).unwrap();
+        let mut node = Node::open_or_init(
+            "devnet",
+            datadir,
+            Path::new("docs/chain/chainparams.json"),
+            true,
+            true,
+        )
+        .unwrap();
 
         let info = rpc(&mut node, "gettxindexinfo", json!([]));
         // Should still have the same tx count

@@ -1,4 +1,5 @@
 use serde_json::json;
+use std::path::Path;
 use tempfile::tempdir;
 
 use qpb_consensus::node::node::Node;
@@ -25,7 +26,14 @@ fn rpc(
 fn rpc_stop_returns_action() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
-    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     let (resp, action) = rpc(1, "stop", json!([]), &mut node);
     assert_eq!(action, RpcAction::Stop);
     assert_eq!(resp["result"].as_str().unwrap(), "stopping");

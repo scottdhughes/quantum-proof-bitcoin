@@ -1,5 +1,7 @@
 //! Transaction relay protocol tests.
 
+use std::path::Path;
+
 use qpb_consensus::node::p2p::{
     InvEntry, MSG_TX, RelayManager, parse_inv, ser_getdata_tx, ser_inv_tx,
 };
@@ -207,7 +209,14 @@ fn get_mempool_tx(node: &Node, txid: &[u8; 32]) -> Option<Transaction> {
 #[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn node_handle_tx_inv_filters_unknown() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
 
     // Create a tx via wallet (handles mining, signing, etc.)
     let txid = create_tx_via_wallet(&mut node);
@@ -227,7 +236,14 @@ fn node_handle_tx_inv_filters_unknown() {
 #[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn node_handle_tx_getdata_returns_mempool_txs() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
 
     // Create a tx via wallet
     let txid = create_tx_via_wallet(&mut node);
@@ -252,8 +268,22 @@ fn node_handle_incoming_tx_adds_to_mempool() {
     let dir_a = tempdir().unwrap();
     let dir_b = tempdir().unwrap();
 
-    let mut node_a = Node::open_or_init("devnet", dir_a.path(), true, false).unwrap();
-    let mut node_b = Node::open_or_init("devnet", dir_b.path(), true, false).unwrap();
+    let mut node_a = Node::open_or_init(
+        "devnet",
+        dir_a.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
+    let mut node_b = Node::open_or_init(
+        "devnet",
+        dir_b.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
 
     // Create wallet and get addresses on node_a
     rpc_call(&mut node_a, "createwallet", "[]");
@@ -317,8 +347,22 @@ fn tx_relay_simulation_between_nodes() {
     let dir_a = tempdir().unwrap();
     let dir_b = tempdir().unwrap();
 
-    let mut node_a = Node::open_or_init("devnet", dir_a.path(), true, false).unwrap();
-    let mut node_b = Node::open_or_init("devnet", dir_b.path(), true, false).unwrap();
+    let mut node_a = Node::open_or_init(
+        "devnet",
+        dir_a.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
+    let mut node_b = Node::open_or_init(
+        "devnet",
+        dir_b.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
 
     // Create wallet and get addresses on node_a
     rpc_call(&mut node_a, "createwallet", "[]");
@@ -384,7 +428,14 @@ fn tx_relay_simulation_between_nodes() {
 #[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn tx_relay_rejects_invalid_transaction() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
 
     // Create an invalid transaction (spending non-existent output)
     let invalid_tx = Transaction {
