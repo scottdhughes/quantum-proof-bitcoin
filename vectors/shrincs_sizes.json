@@ -2,7 +2,7 @@
   "algorithm": "SHRINCS",
   "description": "SHRINCS signature size progression (grows with q)",
   "note": "Signature size = 292 + q*16 bytes (plus type prefix, full_pk, sighash byte)",
-  "pk_ser_hex": "307e1ccc99bdcbc02ccf43ed20f7b3375f",
+  "pk_ser_hex": "30d147ecd9c9afdcaa8d71adbbfbae1732",
   "pk_size_bytes": 17,
   "signatures": [
     {
@@ -13,22 +13,22 @@
     {
       "msg_hex": "0202020202020202020202020202020202020202020202020202020202020202",
       "q": 2,
-      "signature_size_bytes": 3845
+      "signature_size_bytes": 3781
     },
     {
       "msg_hex": "0303030303030303030303030303030303030303030303030303030303030303",
       "q": 3,
-      "signature_size_bytes": 3829
+      "signature_size_bytes": 3765
     },
     {
       "msg_hex": "0404040404040404040404040404040404040404040404040404040404040404",
       "q": 4,
-      "signature_size_bytes": 3781
+      "signature_size_bytes": 3829
     },
     {
       "msg_hex": "0505050505050505050505050505050505050505050505050505050505050505",
       "q": 5,
-      "signature_size_bytes": 3829
+      "signature_size_bytes": 3797
     }
   ]
 }

@@ -17,7 +17,32 @@ use qpb_consensus::{
 use serde_json::json;
 
 #[cfg(feature = "shrincs-dev")]
-use qpb_consensus::pq::{shrincs_keypair, shrincs_sign};
+use qpb_consensus::pq::shrincs_sign;
+#[cfg(feature = "shrincs-dev")]
+use qpb_consensus::shrincs::shrincs::{ShrincsFullParams, ShrincsKeyMaterial, keygen_from_seeds};
+#[cfg(feature = "shrincs-dev")]
+use qpb_consensus::shrincs::state::SigningState;
+
+/// Generate a deterministic keypair with fixed seeds for reproducible test vectors.
+#[cfg(feature = "shrincs-dev")]
+fn deterministic_keypair(seed_variant: u8) -> (Vec<u8>, ShrincsKeyMaterial, SigningState) {
+    // Use fixed seeds with variant byte to get different but reproducible keys
+    let sk_seed = [seed_variant; 32];
+    let pk_seed = [seed_variant.wrapping_add(1); 32];
+    let prf_key = [seed_variant.wrapping_add(2); 32];
+    let params = ShrincsFullParams::LEVEL1_2_30;
+
+    let (key_material, state) =
+        keygen_from_seeds(sk_seed, pk_seed, prf_key, params).expect("deterministic keygen failed");
+
+    // Serialize 16-byte pk commitment with algorithm prefix
+    let commitment = key_material.pk.to_commitment();
+    let mut pk_ser = Vec::with_capacity(1 + 16);
+    pk_ser.push(SHRINCS_ALG_ID);
+    pk_ser.extend_from_slice(&commitment);
+
+    (pk_ser, key_material, state)
+}
 
 /// SHRINCS algorithm ID (used for documentation/reference)
 #[allow(dead_code)]
@@ -36,9 +61,8 @@ fn write_vec(name: &str, value: serde_json::Value) {
 
 #[cfg(feature = "shrincs-dev")]
 fn p2qpkh_vectors() {
-    // Generate SHRINCS keypair
-    let (pk_ser, key_material, mut signing_state) =
-        shrincs_keypair().expect("SHRINCS keygen failed");
+    // Generate deterministic SHRINCS keypair for reproducible vectors
+    let (pk_ser, key_material, mut signing_state) = deterministic_keypair(0x10);
 
     let prevout = OutPoint {
         txid: [1u8; 32],
@@ -184,8 +208,8 @@ fn p2qpkh_vectors() {
 
 #[cfg(feature = "shrincs-dev")]
 fn p2qtsh_vectors() {
-    // Generate a SHRINCS keypair for the output
-    let (pk_ser, _key_material, _signing_state) = shrincs_keypair().expect("SHRINCS keygen failed");
+    // Generate deterministic SHRINCS keypair for reproducible vectors
+    let (pk_ser, _key_material, _signing_state) = deterministic_keypair(0x20);
 
     let leaf_script = vec![0x51]; // OP_1
     let control_block = vec![0x01]; // parity=1, leaf_version=0x00, no merkle path
@@ -251,9 +275,8 @@ fn p2qtsh_vectors() {
 
 #[cfg(feature = "shrincs-dev")]
 fn shrincs_size_vectors() {
-    // Generate multiple signatures to demonstrate size growth
-    let (pk_ser, key_material, mut signing_state) =
-        shrincs_keypair().expect("SHRINCS keygen failed");
+    // Generate deterministic keypair for reproducible vectors
+    let (pk_ser, key_material, mut signing_state) = deterministic_keypair(0x30);
 
     let mut sizes = Vec::new();
     for q in 1..=5 {
