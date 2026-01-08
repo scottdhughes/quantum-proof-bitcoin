@@ -185,8 +185,7 @@ fn p2qpkh_vectors() {
 #[cfg(feature = "shrincs-dev")]
 fn p2qtsh_vectors() {
     // Generate a SHRINCS keypair for the output
-    let (pk_ser, _key_material, _signing_state) =
-        shrincs_keypair().expect("SHRINCS keygen failed");
+    let (pk_ser, _key_material, _signing_state) = shrincs_keypair().expect("SHRINCS keygen failed");
 
     let leaf_script = vec![0x51]; // OP_1
     let control_block = vec![0x01]; // parity=1, leaf_version=0x00, no merkle path

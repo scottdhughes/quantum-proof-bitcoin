@@ -26,19 +26,13 @@ pub struct ActivationHeights {
 
 impl ActivationHeights {
     /// Devnet: SHRINCS active from genesis.
-    pub const DEVNET: Self = Self {
-        slh_dsa: None,
-    };
+    pub const DEVNET: Self = Self { slh_dsa: None };
 
     /// Testnet: SHRINCS active from genesis.
-    pub const TESTNET: Self = Self {
-        slh_dsa: None,
-    };
+    pub const TESTNET: Self = Self { slh_dsa: None };
 
     /// Mainnet: SHRINCS active from genesis.
-    pub const MAINNET: Self = Self {
-        slh_dsa: None,
-    };
+    pub const MAINNET: Self = Self { slh_dsa: None };
 }
 
 /// Network type for activation checks.
@@ -127,7 +121,11 @@ mod tests {
     #[test]
     fn shrincs_always_active() {
         assert!(is_algorithm_active(SHRINCS_ALG_ID, 0, Network::Mainnet));
-        assert!(is_algorithm_active(SHRINCS_ALG_ID, 1_000_000, Network::Mainnet));
+        assert!(is_algorithm_active(
+            SHRINCS_ALG_ID,
+            1_000_000,
+            Network::Mainnet
+        ));
         assert!(is_algorithm_active(SHRINCS_ALG_ID, 0, Network::Testnet));
         assert!(is_algorithm_active(SHRINCS_ALG_ID, 0, Network::Devnet));
     }
@@ -160,6 +158,9 @@ mod tests {
         assert!(should_accept_shrincs_to_mempool(0, Network::Devnet));
         assert!(should_accept_shrincs_to_mempool(100, Network::Devnet));
         assert!(should_accept_shrincs_to_mempool(0, Network::Mainnet));
-        assert!(should_accept_shrincs_to_mempool(1_000_000, Network::Mainnet));
+        assert!(should_accept_shrincs_to_mempool(
+            1_000_000,
+            Network::Mainnet
+        ));
     }
 }

@@ -9,13 +9,9 @@
 
 use qpb_consensus::{
     OutPoint, Prevout, Transaction, TxIn, TxOut,
-    activation::{
-        Network, is_algorithm_active,
-        should_accept_shrincs_to_mempool,
-    },
+    activation::{Network, is_algorithm_active, should_accept_shrincs_to_mempool},
     constants::SHRINCS_ALG_ID,
-    qpb_sighash, shrincs_keypair, shrincs_sign,
-    validate_transaction_basic,
+    qpb_sighash, shrincs_keypair, shrincs_sign, validate_transaction_basic,
 };
 
 // ============================================================================
@@ -72,7 +68,12 @@ fn test_shrincs_accepted_on_all_networks() {
     let (tx, prevouts) = create_shrincs_tx();
 
     // SHRINCS is the genesis algorithm - should succeed on all networks at any height
-    for network in [Network::Devnet, Network::Testnet, Network::Mainnet, Network::Regtest] {
+    for network in [
+        Network::Devnet,
+        Network::Testnet,
+        Network::Mainnet,
+        Network::Regtest,
+    ] {
         for height in [0, 1, 100, 1000, 1_000_000] {
             let result = validate_transaction_basic(&tx, &prevouts, height, network);
             assert!(
@@ -143,7 +144,12 @@ fn test_shrincs_accepted_on_mainnet() {
 #[test]
 fn test_is_algorithm_active_shrincs_all_networks() {
     // SHRINCS is active from genesis on all networks
-    for network in [Network::Devnet, Network::Testnet, Network::Mainnet, Network::Regtest] {
+    for network in [
+        Network::Devnet,
+        Network::Testnet,
+        Network::Mainnet,
+        Network::Regtest,
+    ] {
         assert!(
             is_algorithm_active(SHRINCS_ALG_ID, 0, network),
             "SHRINCS should be active at height 0 on {:?}",
@@ -187,7 +193,12 @@ fn test_unknown_algorithms_rejected() {
 #[test]
 fn test_mempool_always_accepts_shrincs() {
     // SHRINCS is the genesis algorithm - mempool always accepts it
-    for network in [Network::Devnet, Network::Testnet, Network::Mainnet, Network::Regtest] {
+    for network in [
+        Network::Devnet,
+        Network::Testnet,
+        Network::Mainnet,
+        Network::Regtest,
+    ] {
         assert!(
             should_accept_shrincs_to_mempool(0, network),
             "Mempool should accept SHRINCS at height 0 on {:?}",

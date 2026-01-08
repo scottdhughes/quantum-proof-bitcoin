@@ -3,18 +3,17 @@
 //! This tool requires the `shrincs-dev` feature for signing functionality.
 
 use base64::{Engine as _, engine::general_purpose};
-use qpb_consensus::{
-    Block, BlockHeader, OutPoint, Prevout, Transaction, TxIn, TxOut, WEIGHT_FLOOR_WU,
-    activation::Network, block_subsidy, build_p2qpkh, merkle_root, mine_header_parallel,
-    mine_header_serial, qpb_sighash, qpkh32, validate_block_basic,
-    witness_merkle_root,
-};
-#[cfg(feature = "shrincs-dev")]
-use qpb_consensus::{shrincs_keypair, shrincs_sign};
 #[cfg(feature = "shrincs-dev")]
 use qpb_consensus::shrincs::shrincs::ShrincsKeyMaterial;
 #[cfg(feature = "shrincs-dev")]
 use qpb_consensus::shrincs::state::SigningState;
+use qpb_consensus::{
+    Block, BlockHeader, OutPoint, Prevout, Transaction, TxIn, TxOut, WEIGHT_FLOOR_WU,
+    activation::Network, block_subsidy, build_p2qpkh, merkle_root, mine_header_parallel,
+    mine_header_serial, qpb_sighash, qpkh32, validate_block_basic, witness_merkle_root,
+};
+#[cfg(feature = "shrincs-dev")]
+use qpb_consensus::{shrincs_keypair, shrincs_sign};
 use rand::RngCore;
 use std::env;
 use std::fs::OpenOptions;
@@ -293,14 +292,22 @@ fn main() {
             fee_for_block = prev_coin_value.max(fee);
         }
         coinbase.vout.push(TxOut {
-            value: subsidy + if claim_fees && do_spends { fee_for_block } else { 0 },
+            value: subsidy
+                + if claim_fees && do_spends {
+                    fee_for_block
+                } else {
+                    0
+                },
             script_pubkey: p2qpkh_spk.clone(),
         });
         txs.push(coinbase);
         prevouts_for_block.push(vec![]);
 
         if height > 0 && do_spends {
-            let prev_out = prev_coin_outpoint.as_ref().cloned().expect("prev coinbase missing");
+            let prev_out = prev_coin_outpoint
+                .as_ref()
+                .cloned()
+                .expect("prev coinbase missing");
             let (prev_pos, prev_utxo) = utxos
                 .iter()
                 .enumerate()
@@ -407,7 +414,12 @@ fn main() {
 
         let header = mined.expect("no valid nonce found");
         prev_hash = header.hash();
-        prev_coin_value = subsidy + if claim_fees && do_spends { fee_for_block } else { 0 };
+        prev_coin_value = subsidy
+            + if claim_fees && do_spends {
+                fee_for_block
+            } else {
+                0
+            };
         prev_coin_outpoint = Some(OutPoint {
             txid: coinbase_txid,
             vout: 0,

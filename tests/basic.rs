@@ -1,9 +1,8 @@
 use hex_literal::hex;
 use qpb_consensus::{
     Block, BlockHeader, CHAIN_ID, OutPoint, Prevout, Transaction, TxIn, TxOut, activation::Network,
-    bits_to_target, block_weight_wu, build_p2qtsh, penalty, qpb_sighash,
-    validate_block_basic, validate_transaction_basic, validate_witness_commitment,
-    witness_merkle_root,
+    bits_to_target, block_weight_wu, build_p2qtsh, penalty, qpb_sighash, validate_block_basic,
+    validate_transaction_basic, validate_witness_commitment, witness_merkle_root,
 };
 #[cfg(feature = "shrincs-dev")]
 use qpb_consensus::{

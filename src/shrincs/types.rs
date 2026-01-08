@@ -52,7 +52,11 @@ impl ShrincsPublicKey {
 
 impl std::fmt::Debug for ShrincsPublicKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ShrincsPublicKey({:02x}{:02x}...)", self.bytes[0], self.bytes[1])
+        write!(
+            f,
+            "ShrincsPublicKey({:02x}{:02x}...)",
+            self.bytes[0], self.bytes[1]
+        )
     }
 }
 

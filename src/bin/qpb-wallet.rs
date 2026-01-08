@@ -123,8 +123,8 @@ fn main() -> Result<()> {
 
 #[cfg(feature = "shrincs-dev")]
 fn keygen(network: &str, chainparams: Option<PathBuf>) -> Result<()> {
-    let (pk_ser, key_material, _signing_state) = shrincs_keypair()
-        .map_err(|e| anyhow::anyhow!("SHRINCS keygen failed: {:?}", e))?;
+    let (pk_ser, key_material, _signing_state) =
+        shrincs_keypair().map_err(|e| anyhow::anyhow!("SHRINCS keygen failed: {:?}", e))?;
 
     // Serialize key material for storage
     let sk_bytes = serialize_shrincs_key(&key_material);
@@ -147,7 +147,9 @@ fn keygen(network: &str, chainparams: Option<PathBuf>) -> Result<()> {
 
 #[cfg(not(feature = "shrincs-dev"))]
 fn keygen(_network: &str, _chainparams: Option<PathBuf>) -> Result<()> {
-    bail!("Keygen requires shrincs-dev feature. Run with: cargo run --features shrincs-dev --bin qpb-wallet")
+    bail!(
+        "Keygen requires shrincs-dev feature. Run with: cargo run --features shrincs-dev --bin qpb-wallet"
+    )
 }
 
 #[cfg(feature = "shrincs-dev")]
@@ -168,7 +170,11 @@ fn addr_p2qpkh(pk_ser_hex: &str, network: &str, chainparams: Option<PathBuf>) ->
     }
     // SHRINCS pk_ser: alg_id(1) + commitment(16) = 17 bytes
     if pk_ser.len() != 1 + SHRINCS_PUBKEY_LEN {
-        bail!("pk_ser length mismatch: expected {} bytes, got {}", 1 + SHRINCS_PUBKEY_LEN, pk_ser.len());
+        bail!(
+            "pk_ser length mismatch: expected {} bytes, got {}",
+            1 + SHRINCS_PUBKEY_LEN,
+            pk_ser.len()
+        );
     }
     let qpkh = qpkh32(&pk_ser);
     let hrp = load_hrp(network, chainparams.as_deref());
@@ -205,8 +211,8 @@ fn sign_p2qpkh(
 ) -> Result<()> {
     // Generate a fresh keypair for signing (simplified for CLI tool)
     // In production, you would load the key material from storage
-    let (pk_ser, key_material, mut signing_state) = shrincs_keypair()
-        .map_err(|e| anyhow::anyhow!("SHRINCS keygen failed: {:?}", e))?;
+    let (pk_ser, key_material, mut signing_state) =
+        shrincs_keypair().map_err(|e| anyhow::anyhow!("SHRINCS keygen failed: {:?}", e))?;
 
     let tx_bytes = Vec::from_hex(tx_hex).context("tx_hex decode")?;
     let tx = parse_tx(&tx_bytes).context("parse tx")?;
@@ -248,7 +254,9 @@ fn sign_p2qpkh(
     _pk_hex: &str,
     _sighash_hex: &str,
 ) -> Result<()> {
-    bail!("Signing requires shrincs-dev feature. Run with: cargo run --features shrincs-dev --bin qpb-wallet")
+    bail!(
+        "Signing requires shrincs-dev feature. Run with: cargo run --features shrincs-dev --bin qpb-wallet"
+    )
 }
 
 fn parse_tx(data: &[u8]) -> Result<Transaction> {

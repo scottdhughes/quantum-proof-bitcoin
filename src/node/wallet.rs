@@ -1716,7 +1716,11 @@ mod tests {
 
         // SHRINCS signature format: type(1) || full_pk(64) || sig_data || sighash(1)
         // Minimum size: 1 + 64 + ~308 + 1 = ~374 bytes for q=1
-        assert!(sig.len() >= 300, "SHRINCS signature too small: {}", sig.len());
+        assert!(
+            sig.len() >= 300,
+            "SHRINCS signature too small: {}",
+            sig.len()
+        );
         assert_eq!(sig[0], 0x00); // Stateful signature type
     }
 }

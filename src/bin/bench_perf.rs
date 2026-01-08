@@ -12,7 +12,7 @@ use qpb_consensus::sighash::qpb_sighash;
 use qpb_consensus::types::{OutPoint, Prevout, Transaction, TxIn, TxOut};
 
 #[cfg(feature = "shrincs-dev")]
-use qpb_consensus::pq::{shrincs_keypair, shrincs_sign, AlgorithmId, verify_pq};
+use qpb_consensus::pq::{AlgorithmId, shrincs_keypair, shrincs_sign, verify_pq};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -38,8 +38,8 @@ fn main() -> Result<()> {
 
     // Sign a test message
     let msg = [0u8; 32];
-    let sig = shrincs_sign(&key_material, &mut signing_state, &msg, 0x01)
-        .expect("SHRINCS sign failed");
+    let sig =
+        shrincs_sign(&key_material, &mut signing_state, &msg, 0x01).expect("SHRINCS sign failed");
 
     // Extract the on-chain pk (without algorithm prefix)
     let pk_bytes = &pk_ser[1..]; // Skip alg_id byte
@@ -87,7 +87,10 @@ fn main() -> Result<()> {
         msg32_sighash.encode_hex::<String>()
     );
     println!("\nSHRINCS signature size: {} bytes", sig.len());
-    println!("SHRINCS public key size: {} bytes (on-chain commitment)", pk_bytes.len());
+    println!(
+        "SHRINCS public key size: {} bytes (on-chain commitment)",
+        pk_bytes.len()
+    );
 
     Ok(())
 }
