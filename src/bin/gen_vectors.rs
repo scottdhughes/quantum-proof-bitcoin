@@ -60,6 +60,17 @@ fn write_vec(name: &str, value: serde_json::Value) {
 }
 
 #[cfg(feature = "shrincs-dev")]
+fn write_doc(name: &str, value: serde_json::Value) {
+    let dir = Path::new("docs/crypto");
+    create_dir_all(dir).expect("create docs/crypto dir");
+    let path = dir.join(name);
+    let mut f = File::create(&path).expect("create doc file");
+    let s = serde_json::to_string_pretty(&value).expect("serialize json");
+    f.write_all(s.as_bytes()).expect("write json");
+    println!("Wrote {}", path.display());
+}
+
+#[cfg(feature = "shrincs-dev")]
 fn p2qpkh_vectors() {
     // Generate deterministic SHRINCS keypair for reproducible vectors
     let (pk_ser, key_material, mut signing_state) = deterministic_keypair(0x10);
@@ -298,7 +309,7 @@ fn shrincs_size_vectors() {
         "note": "Signature size = 292 + q*16 bytes (plus type prefix, full_pk, sighash byte)",
         "signatures": sizes,
     });
-    write_vec("shrincs_sizes.json", vec);
+    write_doc("shrincs_sizes.json", vec);
 
     println!("SHRINCS size vectors generated");
 }
