@@ -147,6 +147,23 @@ cargo run --bin gen_vectors
 cargo test --features "shrincs-dev,shrincs-ffi"
 ```
 
+### Miri (Undefined Behavior Detection)
+
+[Miri](https://github.com/rust-lang/miri) is a Rust interpreter that detects undefined behavior, memory leaks, and data races in pure Rust code.
+
+```bash
+# Install Miri (requires nightly)
+rustup +nightly component add miri
+
+# Run Miri tests (FFI tests auto-skipped)
+cargo +nightly miri test --lib
+
+# Verify no UB in consensus-critical code
+cargo +nightly miri test --lib consensus
+```
+
+> **Note:** Tests using FFI (Dilithium/SPHINCS+ C libraries) are annotated with `#[cfg_attr(miri, ignore)]` since Miri cannot interpret foreign code. This enables Miri verification of all pure-Rust logic including SHRINCS, script execution, and transaction validation.
+
 ## Project Structure
 
 ```
