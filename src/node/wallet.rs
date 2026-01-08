@@ -1661,6 +1661,7 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
+    #[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
     fn wallet_create_and_keygen() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("wallet.json");
@@ -1678,6 +1679,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
     fn wallet_persistence() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("wallet.json");
@@ -1695,6 +1697,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
     fn wallet_sign_roundtrip() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("wallet.json");

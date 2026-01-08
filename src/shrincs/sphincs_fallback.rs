@@ -172,6 +172,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "shrincs-dev")]
+    #[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
     fn test_sphincs_keygen() {
         let (pk, sk) = sphincs_keygen().expect("keygen should succeed");
         assert_eq!(pk.len(), SPHINCS_PK_BYTES);
@@ -180,6 +181,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "shrincs-dev")]
+    #[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
     fn test_sphincs_sign_verify_roundtrip() {
         let (pk, sk) = sphincs_keygen().unwrap();
         let msg = [0xABu8; 32];
@@ -193,6 +195,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "shrincs-dev")]
+    #[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
     fn test_sphincs_wrong_message_fails() {
         let (pk, sk) = sphincs_keygen().unwrap();
         let msg = [0xABu8; 32];
@@ -206,6 +209,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "shrincs-dev")]
+    #[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
     fn test_sphincs_wrong_key_fails() {
         let (pk1, sk1) = sphincs_keygen().unwrap();
         let (pk2, _sk2) = sphincs_keygen().unwrap();
@@ -224,6 +228,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "shrincs-dev")]
+    #[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
     fn test_sphincs_invalid_sk_size() {
         let msg = [0xABu8; 32];
         let bad_sk = vec![0u8; 32]; // Wrong size
@@ -234,6 +239,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "shrincs-dev")]
+    #[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
     fn test_sphincs_invalid_pk_size() {
         let msg = [0xABu8; 32];
         let sig = vec![0u8; SPHINCS_SIG_BYTES];

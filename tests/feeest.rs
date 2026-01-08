@@ -77,6 +77,7 @@ fn estimate_with_empty_mempool_uses_default() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Creates wallet which calls Dilithium FFI
 fn estimate_uses_mempool_data() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
@@ -122,6 +123,7 @@ fn estimate_uses_mempool_data() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Creates wallet which calls Dilithium FFI
 fn estimate_uses_historical_data() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();

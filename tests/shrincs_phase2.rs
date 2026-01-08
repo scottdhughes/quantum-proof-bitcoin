@@ -41,6 +41,7 @@ fn test_params() -> ShrincsFullParams {
 // ============================================================================
 
 #[test]
+#[cfg_attr(miri, ignore)] // SHRINCS crypto operations too slow for Miri
 fn pors_fp_integration() {
     let params = PorsParams {
         n: 16,
@@ -77,6 +78,7 @@ fn pors_fp_integration() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // SHRINCS crypto operations too slow for Miri
 fn pors_octopus_auth_size() {
     // Test that octopus auth produces minimal auth sets
     let params = PorsParams {
@@ -113,6 +115,7 @@ fn pors_octopus_auth_size() {
 // ============================================================================
 
 #[test]
+#[cfg_attr(miri, ignore)] // SHRINCS crypto operations too slow for Miri
 fn shrincs_full_keygen() {
     let params = test_params();
 
@@ -127,6 +130,7 @@ fn shrincs_full_keygen() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // SHRINCS crypto operations too slow for Miri
 fn shrincs_deterministic_keygen() {
     let params = test_params();
     let sk_seed = [1u8; 32];
@@ -149,6 +153,7 @@ fn shrincs_deterministic_keygen() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // SHRINCS crypto operations too slow for Miri
 fn shrincs_full_sign_verify() {
     let params = test_params();
     let sk_seed = [1u8; 32];
@@ -171,6 +176,7 @@ fn shrincs_full_sign_verify() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // SHRINCS crypto operations too slow for Miri
 fn shrincs_multiple_signatures() {
     let params = test_params();
     let sk_seed = [10u8; 32];
@@ -200,6 +206,7 @@ fn shrincs_multiple_signatures() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // SHRINCS crypto operations too slow for Miri
 fn shrincs_wrong_message_fails() {
     let params = test_params();
     let sk_seed = [5u8; 32];
@@ -222,6 +229,7 @@ fn shrincs_wrong_message_fails() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // SHRINCS crypto operations too slow for Miri
 fn shrincs_state_progression() {
     let params = test_params();
     let sk_seed = [11u8; 32];
@@ -248,6 +256,7 @@ fn shrincs_state_progression() {
 // ============================================================================
 
 #[test]
+#[cfg_attr(miri, ignore)] // SHRINCS crypto operations too slow for Miri
 fn state_v2_roundtrip() {
     let mut state = SigningState::new_with_layers(1 << 16, 4, 4);
 
@@ -272,6 +281,7 @@ fn state_v2_roundtrip() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // SHRINCS crypto operations too slow for Miri
 fn state_backward_compatibility() {
     // V1 format (no layers)
     let state_v1 = SigningState::new(1000);
@@ -288,6 +298,7 @@ fn state_backward_compatibility() {
 // ============================================================================
 
 #[test]
+#[cfg_attr(miri, ignore)] // SHRINCS crypto operations too slow for Miri
 fn hypertree_layer_build() {
     let params = HypertreeParams {
         h: 8,
@@ -305,6 +316,7 @@ fn hypertree_layer_build() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // SHRINCS crypto operations too slow for Miri
 fn hypertree_params_consistency() {
     let params = HypertreeParams {
         h: 32,
@@ -321,6 +333,7 @@ fn hypertree_params_consistency() {
 // ============================================================================
 
 #[test]
+#[cfg_attr(miri, ignore)] // SHRINCS crypto operations too slow for Miri
 fn signature_size_bounds() {
     let params = test_params();
     let sk_seed = [1u8; 32];
@@ -349,6 +362,7 @@ fn signature_size_bounds() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // SHRINCS crypto operations too slow for Miri
 fn signature_serialization_roundtrip() {
     let params = test_params();
     let sk_seed = [42u8; 32];

@@ -15,6 +15,7 @@ fn rpc_call(node: &mut Node, method: &str, params: &str) -> serde_json::Value {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn createwallet_creates_file() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -31,6 +32,7 @@ fn createwallet_creates_file() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn getnewaddress_generates_address() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -50,6 +52,7 @@ fn getnewaddress_generates_address() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn getnewaddress_creates_wallet_if_missing() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -65,6 +68,7 @@ fn getnewaddress_creates_wallet_if_missing() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn getbalance_returns_zero_for_empty_wallet() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -84,6 +88,7 @@ fn getbalance_returns_zero_for_empty_wallet() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn listunspent_returns_empty_for_new_wallet() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -103,6 +108,7 @@ fn listunspent_returns_empty_for_new_wallet() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn listaddresses_returns_generated_addresses() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -144,6 +150,7 @@ fn listaddresses_returns_generated_addresses() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn getbalance_requires_wallet() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -160,6 +167,7 @@ fn getbalance_requires_wallet() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn wallet_persists_across_reloads() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -191,6 +199,7 @@ fn wallet_persists_across_reloads() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn sendtoaddress_requires_wallet() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -211,6 +220,7 @@ fn sendtoaddress_requires_wallet() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn sendtoaddress_fails_with_no_utxos() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -249,6 +259,7 @@ fn sendtoaddress_fails_with_no_utxos() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn sendtoaddress_validates_address() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();

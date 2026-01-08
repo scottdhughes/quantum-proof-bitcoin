@@ -631,6 +631,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // Builds 16 WOTS keypairs with SHA-256 - too slow for Miri
     fn test_build_xmss_layer_small() {
         // Use smaller parameters for testing
         let params = HypertreeParams {
@@ -651,6 +652,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // Builds XMSS layer - too slow for Miri
     fn test_auth_path() {
         let params = HypertreeParams {
             h: 8,
@@ -669,6 +671,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // Builds XMSS layer - too slow for Miri
     fn test_sign_layer_small() {
         let params = HypertreeParams {
             h: 8,

@@ -23,6 +23,7 @@ fn hex_to_txid(hex: &str) -> [u8; 32] {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn mempool_persists_across_restart() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -107,6 +108,7 @@ fn mempool_persists_across_restart() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn mempool_drops_confirmed_transactions_on_load() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();

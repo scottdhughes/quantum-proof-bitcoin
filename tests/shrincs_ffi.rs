@@ -15,6 +15,7 @@ use std::fs;
 /// This test is skipped unless SHRINCS_LIB_PATH points to an existing file.
 /// The FFI path is intended for Jonas Nick's reference C implementation.
 #[test]
+#[cfg_attr(miri, ignore)] // Miri cannot execute through pqcrypto C FFI boundary
 fn shrincs_ffi_loads_and_verifies() {
     let path = match env::var("SHRINCS_LIB_PATH") {
         Ok(p) => p,

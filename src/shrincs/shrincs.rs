@@ -823,6 +823,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // Builds XMSS tree with thousands of SHA-256 ops - too slow for Miri
     fn test_keygen() {
         let params = test_params();
         let result = keygen(params);
@@ -835,6 +836,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // Builds XMSS tree - too slow for Miri
     fn test_keygen_deterministic() {
         let params = test_params();
         let sk_seed = [1u8; 32];
@@ -849,6 +851,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // Builds XMSS tree - too slow for Miri
     fn test_sign() {
         let params = test_params();
         let (key_material, mut state) = keygen(params).unwrap();
@@ -863,6 +866,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // Builds XMSS tree - too slow for Miri
     fn test_sign_verify_roundtrip() {
         let params = test_params();
         let (key_material, mut state) = keygen(params).unwrap();
@@ -875,6 +879,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // Builds XMSS tree - too slow for Miri
     fn test_wrong_message_fails() {
         let params = test_params();
         let (key_material, mut state) = keygen(params).unwrap();
@@ -888,6 +893,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // Builds XMSS tree - too slow for Miri
     fn test_multiple_signatures() {
         let params = test_params();
         let (key_material, mut state) = keygen(params).unwrap();
@@ -916,6 +922,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // Builds XMSS tree - too slow for Miri
     fn test_signature_serialization() {
         let params = test_params();
         let (key_material, mut state) = keygen(params).unwrap();
@@ -932,6 +939,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // Builds XMSS tree - too slow for Miri
     fn test_public_key_serialization() {
         let params = test_params();
         let (key_material, _) = keygen(params).unwrap();

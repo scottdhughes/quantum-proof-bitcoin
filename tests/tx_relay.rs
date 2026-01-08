@@ -26,6 +26,7 @@ fn make_test_tx(version: i32) -> Transaction {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn inv_serialization_roundtrip() {
     let txid1 = [0x11u8; 32];
     let txid2 = [0x22u8; 32];
@@ -45,6 +46,7 @@ fn inv_serialization_roundtrip() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn getdata_serialization_roundtrip() {
     let txid = [0xabu8; 32];
 
@@ -59,6 +61,7 @@ fn getdata_serialization_roundtrip() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn transaction_serialize_parse_roundtrip() {
     // Create a test transaction
     let tx = make_test_tx(1);
@@ -81,6 +84,7 @@ fn transaction_serialize_parse_roundtrip() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn relay_manager_tracks_known_txids() {
     let mut manager = RelayManager::new();
 
@@ -102,12 +106,14 @@ fn relay_manager_tracks_known_txids() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn relay_manager_starts_with_no_peers() {
     let manager = RelayManager::new();
     assert_eq!(manager.peer_count(), 0);
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn empty_inv_parses_correctly() {
     let payload = ser_inv_tx(&[]);
     let entries = parse_inv(&payload).unwrap();
@@ -115,6 +121,7 @@ fn empty_inv_parses_correctly() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn inv_entry_equality() {
     let entry1 = InvEntry {
         inv_type: MSG_TX,
@@ -197,6 +204,7 @@ fn get_mempool_tx(node: &Node, txid: &[u8; 32]) -> Option<Transaction> {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn node_handle_tx_inv_filters_unknown() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
@@ -216,6 +224,7 @@ fn node_handle_tx_inv_filters_unknown() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn node_handle_tx_getdata_returns_mempool_txs() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
@@ -235,6 +244,7 @@ fn node_handle_tx_getdata_returns_mempool_txs() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn node_handle_incoming_tx_adds_to_mempool() {
     // This test verifies that handle_incoming_tx correctly adds txs to mempool.
     // We create a tx on node_a, then relay it to node_b which has the same chain state.
@@ -300,6 +310,7 @@ fn node_handle_incoming_tx_adds_to_mempool() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn tx_relay_simulation_between_nodes() {
     // Simulate tx relay: Node A creates tx, Node B receives INV, requests, and accepts
 
@@ -370,6 +381,7 @@ fn tx_relay_simulation_between_nodes() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn tx_relay_rejects_invalid_transaction() {
     let dir = tempdir().unwrap();
     let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();

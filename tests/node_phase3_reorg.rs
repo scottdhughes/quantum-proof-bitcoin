@@ -84,6 +84,7 @@ fn get_block_hash_at_height(node: &mut Node, height: u64) -> [u8; 32] {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn competing_block_at_same_height() {
     // Test that a competing block at the same height is stored but doesn't become tip
     let dir = tempdir().unwrap();
@@ -108,6 +109,7 @@ fn competing_block_at_same_height() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn longer_chain_triggers_reorg() {
     // Test that a longer competing chain triggers a reorganization
     let dir = tempdir().unwrap();
@@ -142,6 +144,7 @@ fn longer_chain_triggers_reorg() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn reorg_persists_across_restart() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -183,6 +186,7 @@ fn reorg_persists_across_restart() {
 /// 3. Builds a longer competing chain (blocks 102b, 103b, 104b) from block 101
 /// 4. After reorg, verifies the transaction returns to the mempool
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn mempool_restoration_after_reorg() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -293,6 +297,7 @@ fn mempool_restoration_after_reorg() {
 /// If the same transaction exists in both the old and new chain, it should
 /// not be added to the mempool (since it's already confirmed).
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn reorg_does_not_duplicate_confirmed_txs() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
@@ -337,6 +342,7 @@ fn reorg_does_not_duplicate_confirmed_txs() {
 ///
 /// This protects against deep reorg attacks and avoids excessive resource usage.
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn deep_reorg_rejected() {
     use qpb_consensus::constants::MAX_REORG_DEPTH;
 
@@ -391,6 +397,7 @@ fn deep_reorg_rejected() {
 ///
 /// This tests state consistency when reorgs happen in rapid succession.
 #[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
 fn multiple_consecutive_reorgs() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();

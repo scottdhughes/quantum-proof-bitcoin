@@ -103,6 +103,7 @@ fn rpc_request(
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Network test uses sockets
 fn rpc_without_auth_when_auth_not_configured() {
     let tmpdir = TempDir::new().unwrap();
     let port = 38400 + (std::process::id() % 100) as u16;
@@ -128,6 +129,7 @@ fn rpc_without_auth_when_auth_not_configured() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Network test uses sockets
 fn rpc_without_auth_when_auth_required_returns_401() {
     let tmpdir = TempDir::new().unwrap();
     let port = 38410 + (std::process::id() % 100) as u16;
@@ -160,6 +162,7 @@ fn rpc_without_auth_when_auth_required_returns_401() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Network test uses sockets
 fn rpc_with_wrong_credentials_returns_401() {
     let tmpdir = TempDir::new().unwrap();
     let port = 38420 + (std::process::id() % 100) as u16;
@@ -187,6 +190,7 @@ fn rpc_with_wrong_credentials_returns_401() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // Network test uses sockets
 fn rpc_with_correct_credentials_returns_200() {
     let tmpdir = TempDir::new().unwrap();
     let port = 38430 + (std::process::id() % 100) as u16;

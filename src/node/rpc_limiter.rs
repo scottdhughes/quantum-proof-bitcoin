@@ -175,6 +175,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(miri, ignore)] // Miri time simulation causes non-deterministic token refills
     fn default_rpc_limiter_uses_constants() {
         let limiter = RpcRateLimiter::default_rpc();
         let ip = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
