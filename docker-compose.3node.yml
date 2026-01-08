@@ -10,6 +10,14 @@ services:
       - QPB_CHAIN=devnet
       - QPB_DATADIR=/data
       - QPB_RPC_ADDR=0.0.0.0:38332
+    command: >
+      /usr/local/bin/qpb-node
+      --chain=devnet
+      --datadir=/data
+      --rpc-addr=0.0.0.0:38332
+      --chainparams=/etc/qpb/chainparams.json
+      --listen
+      --port=38333
     volumes:
       - miner-data:/data
     ports:
