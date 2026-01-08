@@ -5,11 +5,19 @@
 use qpb_consensus::node::node::Node;
 use qpb_consensus::node::rpc::handle_rpc;
 use serde_json::{Value, json};
+use std::path::Path;
 use tempfile::TempDir;
 
 fn setup_node() -> (Node, TempDir) {
     let tmpdir = TempDir::new().unwrap();
-    let node = Node::open_or_init("devnet", tmpdir.path(), true, false).unwrap();
+    let node = Node::open_or_init(
+        "devnet",
+        tmpdir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     (node, tmpdir)
 }
 
@@ -153,7 +161,14 @@ fn ban_list_persists_across_node_restart() {
 
     // Create node and add ban
     {
-        let mut node = Node::open_or_init("devnet", tmpdir.path(), true, false).unwrap();
+        let mut node = Node::open_or_init(
+            "devnet",
+            tmpdir.path(),
+            Path::new("docs/chain/chainparams.json"),
+            true,
+            false,
+        )
+        .unwrap();
         rpc_call(
             &mut node,
             "setban",
@@ -168,7 +183,14 @@ fn ban_list_persists_across_node_restart() {
 
     // Reopen node
     {
-        let mut node = Node::open_or_init("devnet", tmpdir.path(), true, false).unwrap();
+        let mut node = Node::open_or_init(
+            "devnet",
+            tmpdir.path(),
+            Path::new("docs/chain/chainparams.json"),
+            true,
+            false,
+        )
+        .unwrap();
 
         // Ban should still exist
         let resp = rpc_call(&mut node, "listbanned", vec![]);

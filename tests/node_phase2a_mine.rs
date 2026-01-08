@@ -1,4 +1,5 @@
 use serde_json::json;
+use std::path::Path;
 use tempfile::tempdir;
 
 use qpb_consensus::node::node::Node;
@@ -19,7 +20,14 @@ fn rpc(id: i32, method: &str, params: serde_json::Value, node: &mut Node) -> ser
 fn rpc_generate_next_block_increments_tip() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
-    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     let tip0 = node.best_hash_hex().to_string();
     let r = rpc(1, "generatenextblock", json!([]), &mut node);
     let tip1 = r["result"].as_str().unwrap().to_string();

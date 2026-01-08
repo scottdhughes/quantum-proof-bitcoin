@@ -1,5 +1,6 @@
 //! Tests for the getblocktemplate RPC.
 
+use std::path::Path;
 use tempfile::tempdir;
 
 use qpb_consensus::node::chainparams::{load_chainparams, select_network};
@@ -18,7 +19,14 @@ fn template_empty_mempool() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+    let node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     let net = load_devnet_params();
 
     let template = build_block_template(&node, &net).unwrap();
@@ -48,7 +56,14 @@ fn template_has_correct_prev_hash() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+    let node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     let net = load_devnet_params();
 
     // Get genesis hash
@@ -65,7 +80,14 @@ fn template_height_increments_after_block() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     let net = load_devnet_params();
 
     // Template for block 1
@@ -89,7 +111,14 @@ fn template_coinbase_value_includes_subsidy() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+    let node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     let net = load_devnet_params();
 
     let template = build_block_template(&node, &net).unwrap();
@@ -104,7 +133,14 @@ fn template_serializes_to_json() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+    let node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     let net = load_devnet_params();
 
     let template = build_block_template(&node, &net).unwrap();
@@ -153,7 +189,14 @@ fn mine_to_address(node: &mut Node, count: u32, address: &str) {
 #[cfg_attr(miri, ignore)] // Creates wallet which calls Dilithium FFI
 fn template_includes_mempool_transactions() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     let net = load_devnet_params();
 
     // Create wallet and get addresses
@@ -192,7 +235,14 @@ fn template_includes_mempool_transactions() {
 #[cfg_attr(miri, ignore)] // Creates wallet which calls Dilithium FFI
 fn template_coinbase_includes_fees() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     let net = load_devnet_params();
 
     // Create wallet and get addresses
@@ -231,7 +281,14 @@ fn template_coinbase_includes_fees() {
 #[cfg_attr(miri, ignore)] // Creates wallet which calls Dilithium FFI
 fn template_orders_by_fee_rate() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     let net = load_devnet_params();
 
     // Create wallet
@@ -330,7 +387,14 @@ fn template_orders_by_fee_rate() {
 #[cfg_attr(miri, ignore)] // Creates wallet which calls Dilithium FFI
 fn template_topological_order() {
     let dir = tempdir().unwrap();
-    let mut node = Node::open_or_init("devnet", dir.path(), true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        dir.path(),
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
     let net = load_devnet_params();
 
     // Create wallet and addresses

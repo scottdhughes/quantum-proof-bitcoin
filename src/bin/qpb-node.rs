@@ -229,7 +229,13 @@ fn main() -> Result<()> {
         anyhow::bail!("genesis chain_id mismatch for {}", args.chain);
     }
 
-    let mut node = Node::open_or_init(&args.chain, &args.datadir, args.no_pow, args.txindex)?;
+    let mut node = Node::open_or_init(
+        &args.chain,
+        &args.datadir,
+        &args.chainparams,
+        args.no_pow,
+        args.txindex,
+    )?;
 
     if args.txindex {
         info!(

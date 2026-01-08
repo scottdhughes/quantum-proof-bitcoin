@@ -3,6 +3,7 @@
 //! Tests for nLockTime, sequence finality, Median Time Past (BIP113), BIP68 relative locktimes,
 //! and CLTV/CSV script opcodes (BIP65/BIP112).
 
+use std::path::Path;
 use tempfile::tempdir;
 
 use qpb_consensus::node::node::Node;
@@ -315,7 +316,14 @@ fn mempool_rejects_future_height_locktime() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
 
     // Create wallet and mine coins
     rpc_call(&mut node, "createwallet", "[]");
@@ -348,7 +356,14 @@ fn normal_transactions_with_final_sequence_succeed() {
     let dir = tempdir().unwrap();
     let datadir = dir.path();
 
-    let mut node = Node::open_or_init("devnet", datadir, true, false).unwrap();
+    let mut node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
 
     // Create wallet and mine coins
     rpc_call(&mut node, "createwallet", "[]");
