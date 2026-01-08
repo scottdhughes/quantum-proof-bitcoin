@@ -1,14 +1,18 @@
+//! Performance benchmarking for SHRINCS signature verification.
+//!
+//! Requires the `shrincs-dev` feature for signing/verification functionality.
+
 use std::time::Instant;
 
 use anyhow::Result;
 use clap::Parser;
 use hex::ToHex;
-use pqcrypto_dilithium::dilithium3::{detached_sign, keypair, verify_detached_signature};
-use pqcrypto_traits::sign::{DetachedSignature as SigTrait, PublicKey as PKTrait};
 use qpb_consensus::constants::{MAX_PQSIGCHECK_BUDGET, MAX_PQSIGCHECK_PER_TX};
-use qpb_consensus::pq::{AlgorithmId, verify_pq};
 use qpb_consensus::sighash::qpb_sighash;
 use qpb_consensus::types::{OutPoint, Prevout, Transaction, TxIn, TxOut};
+
+#[cfg(feature = "shrincs-dev")]
+use qpb_consensus::pq::{AlgorithmId, shrincs_keypair, shrincs_sign, verify_pq};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -22,35 +26,38 @@ struct Args {
     warmup: u64,
 }
 
+#[cfg(feature = "shrincs-dev")]
 fn main() -> Result<()> {
     let args = Args::parse();
     println!("iters={} warmup={}", args.iters, args.warmup);
+    println!("Benchmarking SHRINCS (stateful hash-based signatures)\n");
 
-    // Deterministic key/sig/msg.
-    let (pk, sk) = keypair();
+    // Generate SHRINCS keypair (stateful)
+    let (pk_ser, key_material, mut signing_state) =
+        shrincs_keypair().expect("SHRINCS keygen failed");
+
+    // Sign a test message
     let msg = [0u8; 32];
-    let sig = detached_sign(&msg, &sk);
-    let pk_bytes = pk.as_bytes().to_vec();
-    let sig_bytes = sig.as_bytes().to_vec();
+    let sig =
+        shrincs_sign(&key_material, &mut signing_state, &msg, 0x01).expect("SHRINCS sign failed");
 
-    // Sample tx + prevouts for sighash bench.
-    let bench_tx = build_sample_tx(&pk_bytes);
-    let prevouts = sample_prevouts(&pk_bytes);
+    // Extract the on-chain pk (without algorithm prefix)
+    let pk_bytes = &pk_ser[1..]; // Skip alg_id byte
+
+    // Sample tx + prevouts for sighash bench
+    let bench_tx = build_sample_tx(pk_bytes);
+    let prevouts = sample_prevouts(pk_bytes);
     let sighash_type: u8 = 0x01;
     let msg32_sighash = qpb_sighash(&bench_tx, 0, &prevouts, sighash_type, 0x00, None)?;
 
-    bench(
-        "MLDSA verify (raw pqcrypto)",
-        args.warmup,
-        args.iters,
-        || verify_detached_signature(&sig, &msg, &pk).unwrap(),
-    );
+    // Benchmark verification (strip sighash byte for verify)
+    let sig_for_verify = &sig[..sig.len() - 1];
 
     bench(
-        "MLDSA verify (consensus path)",
+        "SHRINCS verify (consensus path)",
         args.warmup,
         args.iters,
-        || verify_pq(AlgorithmId::MLDSA65, &pk_bytes, &msg, &sig_bytes).unwrap(),
+        || verify_pq(AlgorithmId::SHRINCS, pk_bytes, &msg, sig_for_verify).unwrap(),
     );
 
     bench(
@@ -62,9 +69,9 @@ fn main() -> Result<()> {
         },
     );
 
-    // Derived budget guidance (no consensus change).
+    // Derived budget guidance
     let ns_total = bench_once(
-        || verify_pq(AlgorithmId::MLDSA65, &pk_bytes, &msg, &sig_bytes).unwrap(),
+        || verify_pq(AlgorithmId::SHRINCS, pk_bytes, &msg, sig_for_verify).unwrap(),
         args.warmup,
         args.iters,
     );
@@ -72,15 +79,27 @@ fn main() -> Result<()> {
     let per_block = (ns_per * MAX_PQSIGCHECK_BUDGET as f64) / 1e9;
     let per_tx = (ns_per * MAX_PQSIGCHECK_PER_TX as f64) / 1e9;
     println!(
-        "Derived (ns/verify = {:.1}): block budget {:.4} s, tx budget {:.4} s",
+        "\nDerived (ns/verify = {:.1}): block budget {:.4} s, tx budget {:.4} s",
         ns_per, per_block, per_tx
     );
     println!(
         "sample sighash msg32={}",
         msg32_sighash.encode_hex::<String>()
     );
+    println!("\nSHRINCS signature size: {} bytes", sig.len());
+    println!(
+        "SHRINCS public key size: {} bytes (on-chain commitment)",
+        pk_bytes.len()
+    );
 
     Ok(())
+}
+
+#[cfg(not(feature = "shrincs-dev"))]
+fn main() -> Result<()> {
+    eprintln!("bench_perf requires the shrincs-dev feature for signature benchmarking");
+    eprintln!("Run with: cargo run --features shrincs-dev --bin bench_perf");
+    std::process::exit(1);
 }
 
 fn bench<F: FnMut()>(label: &str, warmup: u64, iters: u64, mut f: F) {
@@ -116,7 +135,7 @@ fn bench_once<F: FnMut()>(mut f: F, warmup: u64, iters: u64) -> f64 {
 
 fn build_sample_tx(pk_bytes: &[u8]) -> Transaction {
     let mut pk_ser = Vec::with_capacity(1 + pk_bytes.len());
-    pk_ser.push(0x11);
+    pk_ser.push(0x30); // SHRINCS algorithm ID
     pk_ser.extend_from_slice(pk_bytes);
     let qpkh = qpb_consensus::address::qpkh32(&pk_ser);
     let spk = build_spk_v3(&qpkh);
@@ -148,7 +167,7 @@ fn build_sample_tx(pk_bytes: &[u8]) -> Transaction {
 
 fn sample_prevouts(pk_bytes: &[u8]) -> Vec<Prevout> {
     let mut pk_ser = Vec::with_capacity(1 + pk_bytes.len());
-    pk_ser.push(0x11);
+    pk_ser.push(0x30); // SHRINCS algorithm ID
     pk_ser.extend_from_slice(pk_bytes);
     let qpkh = qpb_consensus::address::qpkh32(&pk_ser);
     let spk = build_spk_v3(&qpkh);

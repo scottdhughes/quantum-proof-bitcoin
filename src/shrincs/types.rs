@@ -1,50 +1,62 @@
 //! SHRINCS key and signature types.
 //!
 //! These types define the wire format for SHRINCS keys and signatures.
-//! Actual cryptographic operations are pending reference implementation.
+//! Per Delving Bitcoin SHRINCS spec:
+//! https://delvingbitcoin.org/t/shrincs-324-byte-stateful-post-quantum-signatures-with-static-backups/2158
 
 use crate::shrincs::params::ShrincsParams;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
-/// SHRINCS public key (64 bytes).
+/// SHRINCS on-chain public key (16 bytes).
 ///
-/// Structure:
-/// - bytes[0..32]: XMSS root hash (stateful component)
-/// - bytes[32..64]: SPHINCS+ public key hash (stateless fallback)
+/// This is the composite hash commitment:
+/// `H(pk_stateful || pk_stateless)` truncated to 16 bytes.
+///
+/// For verification, the full public key components must be provided
+/// separately (typically in the witness).
 #[derive(Clone, PartialEq, Eq)]
 pub struct ShrincsPublicKey {
-    /// Raw public key bytes
-    pub bytes: [u8; 64],
+    /// Composite hash commitment (16 bytes)
+    pub bytes: [u8; 16],
 }
 
 impl ShrincsPublicKey {
-    /// Public key size in bytes.
-    pub const SIZE: usize = 64;
+    /// Public key size in bytes (on-chain commitment).
+    pub const SIZE: usize = 16;
 
     /// Create from raw bytes.
-    pub fn from_bytes(bytes: [u8; 64]) -> Self {
+    pub fn from_bytes(bytes: [u8; 16]) -> Self {
         Self { bytes }
     }
 
-    /// Get the XMSS root hash (stateful component).
-    pub fn xmss_root(&self) -> &[u8; 32] {
-        self.bytes[0..32].try_into().unwrap()
-    }
-
-    /// Get the SPHINCS+ public key hash (stateless fallback).
-    pub fn sphincs_pk_hash(&self) -> &[u8; 32] {
-        self.bytes[32..64].try_into().unwrap()
+    /// Create from slice (returns None if wrong length).
+    pub fn from_slice(bytes: &[u8]) -> Option<Self> {
+        if bytes.len() != 16 {
+            return None;
+        }
+        let mut arr = [0u8; 16];
+        arr.copy_from_slice(bytes);
+        Some(Self { bytes: arr })
     }
 
     /// Serialize to bytes.
-    pub fn to_bytes(&self) -> [u8; 64] {
+    pub fn to_bytes(&self) -> [u8; 16] {
         self.bytes
+    }
+
+    /// Get as slice.
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.bytes
     }
 }
 
 impl std::fmt::Debug for ShrincsPublicKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ShrincsPublicKey({:?}...)", &self.bytes[..8])
+        write!(
+            f,
+            "ShrincsPublicKey({:02x}{:02x}...)",
+            self.bytes[0], self.bytes[1]
+        )
     }
 }
 
@@ -196,13 +208,22 @@ mod tests {
 
     #[test]
     fn pubkey_structure() {
-        let mut bytes = [0u8; 64];
-        bytes[0..32].copy_from_slice(&[1u8; 32]);
-        bytes[32..64].copy_from_slice(&[2u8; 32]);
-
+        // 16-byte commitment per SHRINCS spec
+        let bytes = [0xABu8; 16];
         let pk = ShrincsPublicKey::from_bytes(bytes);
-        assert_eq!(pk.xmss_root(), &[1u8; 32]);
-        assert_eq!(pk.sphincs_pk_hash(), &[2u8; 32]);
+        assert_eq!(pk.to_bytes(), bytes);
+        assert_eq!(pk.as_bytes().len(), 16);
+    }
+
+    #[test]
+    fn pubkey_from_slice() {
+        let bytes = [0xCDu8; 16];
+        let pk = ShrincsPublicKey::from_slice(&bytes).unwrap();
+        assert_eq!(pk.to_bytes(), bytes);
+
+        // Wrong size should fail
+        assert!(ShrincsPublicKey::from_slice(&[0u8; 15]).is_none());
+        assert!(ShrincsPublicKey::from_slice(&[0u8; 17]).is_none());
     }
 
     #[test]

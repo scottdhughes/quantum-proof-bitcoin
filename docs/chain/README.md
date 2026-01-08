@@ -13,9 +13,10 @@ This directory carries a deterministic `chainparams.json` describing network IDs
     - `block_hash_hex` (Argon2 PoW hash)
     - `chain_id_hex`  (double-SHA256 of header)
 
-## Current status (v1.1m)
-- Genesis-active PQ algorithm: alg_id **0x11 (ML-DSA-65 / Dilithium3) only**.
-- Reserved/inactive (rejected by consensus): alg_id **0x21 (SLH-DSA)** and **0x30 (SHRINCS)**.
+## Current status (v1.2)
+- Genesis-active PQ algorithm: alg_id **0x30 (SHRINCS)** — sole active algorithm.
+- Deprecated (rejected by consensus): alg_id **0x11 (ML-DSA-65)** — removed.
+- Reserved/inactive (rejected by consensus): alg_id **0x21 (SLH-DSA)**.
 - Devnet and regtest genesis blocks are fully specified here with easy PoW (`bits=0x207fffff`).
 - Testnet genesis is TBD; entry is present with `genesis: null` to keep the schema stable.
 

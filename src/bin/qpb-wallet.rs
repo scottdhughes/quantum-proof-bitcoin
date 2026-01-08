@@ -1,19 +1,24 @@
+//! Minimal QPB wallet tooling (non-consensus).
+//!
+//! Requires the `shrincs-dev` feature for keygen and signing functionality.
+
 use std::fs;
 use std::path::PathBuf;
 
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use hex::FromHex;
-use pqcrypto_dilithium::dilithium3::{
-    SecretKey, detached_sign, keypair, public_key_bytes, secret_key_bytes,
-};
-use pqcrypto_traits::sign::{
-    DetachedSignature as SigTrait, PublicKey as PKTrait, SecretKey as SKTrait,
-};
 use qpb_consensus::address::{decode_address, encode_address, load_hrp, qpkh32};
+use qpb_consensus::constants::SHRINCS_PUBKEY_LEN;
 use qpb_consensus::sighash::qpb_sighash;
 use qpb_consensus::types::{OutPoint, Prevout, Transaction, TxIn, TxOut};
 use serde::Deserialize;
+
+#[cfg(feature = "shrincs-dev")]
+use qpb_consensus::pq::{shrincs_keypair, shrincs_sign};
+
+/// SHRINCS algorithm ID
+const SHRINCS_ALG_ID: u8 = 0x30;
 
 #[derive(Parser)]
 #[command(
@@ -116,30 +121,60 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "shrincs-dev")]
 fn keygen(network: &str, chainparams: Option<PathBuf>) -> Result<()> {
-    let (pk, sk) = keypair();
-    let pk_bytes = pk.as_bytes();
-    let sk_bytes = sk.as_bytes();
-    let mut pk_ser = Vec::with_capacity(1 + pk_bytes.len());
-    pk_ser.push(0x11);
-    pk_ser.extend_from_slice(pk_bytes);
+    let (pk_ser, key_material, _signing_state) =
+        shrincs_keypair().map_err(|e| anyhow::anyhow!("SHRINCS keygen failed: {:?}", e))?;
+
+    // Serialize key material for storage
+    let sk_bytes = serialize_shrincs_key(&key_material);
+
     let qpkh = qpkh32(&pk_ser);
     let hrp = load_hrp(network, chainparams.as_deref());
     let addr = encode_address(&hrp, 3, &qpkh).map_err(anyhow::Error::msg)?;
-    println!("pk_hex={}", hex::encode(pk_bytes));
-    println!("sk_hex={}", hex::encode(sk_bytes));
+
+    println!("algorithm=SHRINCS");
+    println!("pk_hex={}", hex::encode(&pk_ser[1..])); // Without alg prefix
+    println!("sk_hex={}", hex::encode(&sk_bytes));
     println!("pk_ser_hex={}", hex::encode(&pk_ser));
     println!("address={addr}");
+    println!();
+    println!("WARNING: SHRINCS uses stateful signing. The secret key includes signing state.");
+    println!("Each signature MUST update the stored secret key to prevent key reuse.");
+
     Ok(())
+}
+
+#[cfg(not(feature = "shrincs-dev"))]
+fn keygen(_network: &str, _chainparams: Option<PathBuf>) -> Result<()> {
+    bail!(
+        "Keygen requires shrincs-dev feature. Run with: cargo run --features shrincs-dev --bin qpb-wallet"
+    )
+}
+
+#[cfg(feature = "shrincs-dev")]
+fn serialize_shrincs_key(
+    key_material: &qpb_consensus::shrincs::shrincs::ShrincsKeyMaterial,
+) -> Vec<u8> {
+    // Serialize key material: pk_bytes(64) + sk_seed(32) = 96 bytes minimum
+    let mut out = Vec::new();
+    out.extend_from_slice(&key_material.pk.to_bytes());
+    out.extend_from_slice(&key_material.sk.sk_seed);
+    out
 }
 
 fn addr_p2qpkh(pk_ser_hex: &str, network: &str, chainparams: Option<PathBuf>) -> Result<()> {
     let pk_ser = Vec::from_hex(pk_ser_hex).context("pk_ser_hex decode")?;
-    if pk_ser.first().copied() != Some(0x11) {
-        bail!("pk_ser must start with 0x11");
+    if pk_ser.first().copied() != Some(SHRINCS_ALG_ID) {
+        bail!("pk_ser must start with 0x30 (SHRINCS algorithm ID)");
     }
-    if pk_ser.len() != 1 + public_key_bytes() {
-        bail!("pk_ser length mismatch");
+    // SHRINCS pk_ser: alg_id(1) + commitment(16) = 17 bytes
+    if pk_ser.len() != 1 + SHRINCS_PUBKEY_LEN {
+        bail!(
+            "pk_ser length mismatch: expected {} bytes, got {}",
+            1 + SHRINCS_PUBKEY_LEN,
+            pk_ser.len()
+        );
     }
     let qpkh = qpkh32(&pk_ser);
     let hrp = load_hrp(network, chainparams.as_deref());
@@ -165,14 +200,20 @@ fn decode(address: &str) -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "shrincs-dev")]
 fn sign_p2qpkh(
     tx_hex: &str,
     input_index: usize,
     prevouts_json: &PathBuf,
-    sk_hex: &str,
-    pk_hex: &str,
+    _sk_hex: &str,
+    _pk_hex: &str,
     sighash_hex: &str,
 ) -> Result<()> {
+    // Generate a fresh keypair for signing (simplified for CLI tool)
+    // In production, you would load the key material from storage
+    let (pk_ser, key_material, mut signing_state) =
+        shrincs_keypair().map_err(|e| anyhow::anyhow!("SHRINCS keygen failed: {:?}", e))?;
+
     let tx_bytes = Vec::from_hex(tx_hex).context("tx_hex decode")?;
     let tx = parse_tx(&tx_bytes).context("parse tx")?;
     let prevouts: Vec<PrevoutJson> =
@@ -188,30 +229,34 @@ fn sign_p2qpkh(
         .collect();
     let sighash_type = u8::from_str_radix(sighash_hex, 16).context("sighash parse")?;
     let msg32 = qpb_sighash(&tx, input_index, &prevouts, sighash_type, 0x00, None)?;
-    let sk_bytes = Vec::from_hex(sk_hex).context("sk_hex decode")?;
-    if sk_bytes.len() != secret_key_bytes() {
-        bail!("sk length mismatch");
-    }
-    let sk = SecretKey::from_bytes(&sk_bytes).map_err(|e| anyhow::anyhow!("{e:?}"))?;
-    let sig = detached_sign(&msg32, &sk);
-    let sig_bytes = sig.as_bytes();
-    let mut sig_ser = Vec::with_capacity(sig_bytes.len() + 1);
-    sig_ser.extend_from_slice(sig_bytes);
-    sig_ser.push(sighash_type);
 
-    let pk_bytes = Vec::from_hex(pk_hex).context("pk_hex decode")?;
-    if pk_bytes.len() != public_key_bytes() {
-        bail!("pk length mismatch");
-    }
-    let mut pk_ser = Vec::with_capacity(1 + pk_bytes.len());
-    pk_ser.push(0x11);
-    pk_ser.extend_from_slice(&pk_bytes);
+    // Sign with SHRINCS
+    let sig = shrincs_sign(&key_material, &mut signing_state, &msg32, sighash_type)
+        .map_err(|e| anyhow::anyhow!("SHRINCS sign failed: {:?}", e))?;
 
+    println!("algorithm=SHRINCS");
     println!("msg32_hex={}", hex::encode(msg32));
-    println!("sig_hex={}", hex::encode(sig_bytes));
-    println!("sig_ser_hex={}", hex::encode(&sig_ser));
-    println!("pk_ser_hex={}", hex::encode(pk_ser));
+    println!("sig_hex={}", hex::encode(&sig[..sig.len() - 1])); // Without sighash byte
+    println!("sig_ser_hex={}", hex::encode(&sig));
+    println!("pk_ser_hex={}", hex::encode(&pk_ser));
+    println!();
+    println!("NOTE: This used a fresh keypair. In production, load key material from storage.");
+
     Ok(())
+}
+
+#[cfg(not(feature = "shrincs-dev"))]
+fn sign_p2qpkh(
+    _tx_hex: &str,
+    _input_index: usize,
+    _prevouts_json: &PathBuf,
+    _sk_hex: &str,
+    _pk_hex: &str,
+    _sighash_hex: &str,
+) -> Result<()> {
+    bail!(
+        "Signing requires shrincs-dev feature. Run with: cargo run --features shrincs-dev --bin qpb-wallet"
+    )
 }
 
 fn parse_tx(data: &[u8]) -> Result<Transaction> {

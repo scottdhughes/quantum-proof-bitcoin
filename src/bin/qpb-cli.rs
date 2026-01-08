@@ -1,49 +1,43 @@
+//! Development CLI for mining and testing QPB blocks.
+//!
+//! This tool requires the `shrincs-dev` feature for signing functionality.
+
 use base64::{Engine as _, engine::general_purpose};
+#[cfg(feature = "shrincs-dev")]
+use qpb_consensus::shrincs::shrincs::ShrincsKeyMaterial;
+#[cfg(feature = "shrincs-dev")]
+use qpb_consensus::shrincs::state::SigningState;
 use qpb_consensus::{
     Block, BlockHeader, OutPoint, Prevout, Transaction, TxIn, TxOut, WEIGHT_FLOOR_WU,
     activation::Network, block_subsidy, build_p2qpkh, merkle_root, mine_header_parallel,
-    mine_header_serial, mldsa_keypair, mldsa_sign, qpb_sighash, qpkh32, validate_block_basic,
-    witness_merkle_root,
+    mine_header_serial, qpb_sighash, qpkh32, validate_block_basic, witness_merkle_root,
 };
-use rand::{Rng, RngCore};
+#[cfg(feature = "shrincs-dev")]
+use qpb_consensus::{shrincs_keypair, shrincs_sign};
+use rand::RngCore;
 use std::env;
 use std::fs::OpenOptions;
 use std::io::{self, Write};
 
-#[cfg(feature = "cli-vectors")]
-use serde::Serialize;
+/// SHRINCS algorithm ID (used for documentation/reference)
+#[allow(dead_code)]
+const SHRINCS_ALG_ID: u8 = 0x30;
 
 fn parse_bits(s: &str) -> u32 {
     u32::from_str_radix(s.trim_start_matches("0x"), 16).unwrap_or(0x207fffff)
 }
 
-#[cfg(feature = "cli-vectors")]
-#[allow(dead_code)]
-fn emit_vectors(pk_ser: &[u8], sig_ser: &[u8], msg32: &[u8], force_slh: bool) {
-    let vector = serde_json::json!({
-        "pk_ser": hex::encode(pk_ser),
-        "sig_ser": hex::encode(sig_ser),
-        "msg32": hex::encode(msg32),
-        "force_slh": force_slh,
-    });
-    println!("{}", serde_json::to_string_pretty(&vector).unwrap());
-}
-
+#[cfg(feature = "shrincs-dev")]
 fn emit_vectors_mode(args: &[String]) {
-    let mut force_slh = false;
     let mut msg: Option<Vec<u8>> = None;
     let mut batch: usize = 1;
-    let mut q_sim: usize = 0;
-    let mut state_index: u32 = 0;
-    let mut custom_pad: usize = 0;
     let mut pk_sig_only = false;
     let mut random_msg = false;
-    let mut sig_format = String::from("hex"); // hex|base64|raw
+    let mut sig_format = String::from("hex");
     let mut output_file: Option<String> = None;
-    let mut sim_prob: f64 = 0.0; // probability to force SLH fallback per item
+
     for a in args.iter().skip(2) {
         match a.as_str() {
-            "--force-slh" => force_slh = true,
             "--pk-sig-only" => pk_sig_only = true,
             "--random-msg" => random_msg = true,
             _ if a.starts_with("--msg=") => {
@@ -56,35 +50,16 @@ fn emit_vectors_mode(args: &[String]) {
                     batch = v.max(1);
                 }
             }
-            _ if a.starts_with("--q=") => {
-                if let Ok(v) = a["--q=".len()..].parse::<usize>() {
-                    q_sim = v;
-                }
-            }
-            _ if a.starts_with("--state-index=") => {
-                if let Ok(v) = a["--state-index=".len()..].parse::<u32>() {
-                    state_index = v;
-                }
-            }
-            _ if a.starts_with("--custom-pad=") => {
-                if let Ok(v) = a["--custom-pad=".len()..].parse::<usize>() {
-                    custom_pad = v;
-                }
-            }
             _ if a.starts_with("--sig-format=") => {
                 sig_format = a["--sig-format=".len()..].to_ascii_lowercase();
             }
             _ if a.starts_with("--output-file=") => {
                 output_file = Some(a["--output-file=".len()..].to_string());
             }
-            _ if a.starts_with("--sim-fallback-prob=") => {
-                if let Ok(v) = a["--sim-fallback-prob=".len()..].parse::<f64>() {
-                    sim_prob = v.clamp(0.0, 1.0);
-                }
-            }
             _ => {}
         }
     }
+
     let msg32_template = {
         let m = msg.unwrap_or_else(|| vec![0u8; 32]);
         let mut out = [0u8; 32];
@@ -112,34 +87,19 @@ fn emit_vectors_mode(args: &[String]) {
         } else {
             msg32_template
         };
-        // Generate key and sig via ML-DSA
-        let (pk_bytes, sk_bytes) = mldsa_keypair();
-        let mut pk_ser = Vec::with_capacity(1 + pk_bytes.len());
-        pk_ser.push(0x11);
-        pk_ser.extend_from_slice(&pk_bytes);
-        let mut sig = mldsa_sign(&sk_bytes, &msg32).expect("mldsa sign");
-        let random_fallback = sim_prob > 0.0 && rng.gen_range(0.0..1.0) < sim_prob;
-        let applied_force_slh = force_slh || random_fallback;
-        if applied_force_slh {
-            sig[0] ^= 0xff; // perturb sig
-        }
-        // override state index if requested (big-endian in sig[0..4]) when not forcing SLH
-        // (no-op for ML-DSA; kept for interface compatibility)
-        let mut sig_ser = sig.to_vec();
-        if q_sim > 0 {
-            // add 16 bytes per simulated auth level (arbitrary pad to mimic growth)
-            sig_ser.extend(std::iter::repeat_n(0u8, 16 * q_sim));
-        }
-        if custom_pad > 0 {
-            sig_ser.extend(std::iter::repeat_n(0u8, custom_pad));
-        }
-        sig_ser.push(0x01); // SIGHASH_ALL marker for consistency
 
-        // encoding helpers
+        // Generate SHRINCS key
+        let (pk_ser, key_material, mut signing_state) =
+            shrincs_keypair().expect("SHRINCS keygen failed");
+
+        // Sign with SHRINCS
+        let sig_ser = shrincs_sign(&key_material, &mut signing_state, &msg32, 0x01)
+            .expect("SHRINCS sign failed");
+
         let encode = |data: &[u8], fmt: &str| -> String {
             match fmt {
                 "base64" => general_purpose::STANDARD.encode(data),
-                "raw" => String::new(), // handled separately
+                "raw" => String::new(),
                 _ => hex::encode(data),
             }
         };
@@ -167,39 +127,11 @@ fn emit_vectors_mode(args: &[String]) {
             lines.push(format!("pk_ser={}", pk_enc));
             lines.push(format!("sig_ser={}", sig_enc));
         } else {
-            #[cfg(feature = "cli-vectors")]
-            {
-                let vector = serde_json::json!({
-                    "batch_index": idx,
-                    "pk_ser": pk_enc,
-                    "sig_ser": sig_enc,
-                    "msg32": hex::encode(msg32),
-                    "force_slh": applied_force_slh,
-                    "forced_by_prob": random_fallback,
-                    "q_sim": q_sim,
-                    "state_index": state_index,
-                    "custom_pad": custom_pad,
-                    "sig_format": sig_format,
-                    "random_msg": random_msg,
-                    "sim_fallback_prob": sim_prob,
-                });
-                lines.push(serde_json::to_string_pretty(&vector).unwrap());
-            }
-            #[cfg(not(feature = "cli-vectors"))]
-            {
-                lines.push(format!("batch_index={}", idx));
-                lines.push(format!("pk_ser={}", pk_enc));
-                lines.push(format!("sig_ser={}", sig_enc));
-                lines.push(format!("msg32={}", hex::encode(msg32)));
-                lines.push(format!("force_slh={}", applied_force_slh));
-                lines.push(format!("forced_by_prob={}", random_fallback));
-                lines.push(format!("q_sim={}", q_sim));
-                lines.push(format!("state_index={}", state_index));
-                lines.push(format!("custom_pad={}", custom_pad));
-                lines.push(format!("sig_format={}", sig_format));
-                lines.push(format!("random_msg={}", random_msg));
-                lines.push(format!("sim_fallback_prob={}", sim_prob));
-            }
+            lines.push(format!("batch_index={}", idx));
+            lines.push(format!("pk_ser={}", pk_enc));
+            lines.push(format!("sig_ser={}", sig_enc));
+            lines.push(format!("msg32={}", hex::encode(msg32)));
+            lines.push("algorithm=SHRINCS".to_string());
         }
 
         if let Some(file) = out_handle.as_mut() {
@@ -213,6 +145,12 @@ fn emit_vectors_mode(args: &[String]) {
             }
         }
     }
+}
+
+#[cfg(not(feature = "shrincs-dev"))]
+fn emit_vectors_mode(_args: &[String]) {
+    eprintln!("Vector generation requires shrincs-dev feature");
+    std::process::exit(1);
 }
 
 fn build_coinbase(height: u32, message: &[u8]) -> Transaction {
@@ -231,17 +169,47 @@ fn build_coinbase(height: u32, message: &[u8]) -> Transaction {
             },
             script_sig,
             sequence: 0xffff_ffff,
-            witness: vec![vec![0u8; 32]], // witness_reserved_value
+            witness: vec![vec![0u8; 32]],
         }],
         vout: vec![],
         lock_time: 0,
     }
 }
 
+/// SHRINCS key material for CLI mining.
+#[cfg(feature = "shrincs-dev")]
+struct CliKeyMaterial {
+    pk_ser: Vec<u8>,
+    key_material: ShrincsKeyMaterial,
+    signing_state: SigningState,
+}
+
+#[cfg(feature = "shrincs-dev")]
+impl CliKeyMaterial {
+    fn new() -> Self {
+        let (pk_ser, key_material, signing_state) =
+            shrincs_keypair().expect("SHRINCS keygen failed");
+        Self {
+            pk_ser,
+            key_material,
+            signing_state,
+        }
+    }
+
+    fn sign(&mut self, msg32: &[u8; 32]) -> Vec<u8> {
+        shrincs_sign(&self.key_material, &mut self.signing_state, msg32, 0x01)
+            .expect("SHRINCS sign failed")
+    }
+
+    fn pk_ser(&self) -> &[u8] {
+        &self.pk_ser
+    }
+}
+
+#[cfg(feature = "shrincs-dev")]
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    // Vector-only mode: emit pk/sig/msg without mining
     if args.get(1).map(|s| s.as_str()) == Some("vectors") {
         emit_vectors_mode(&args);
         return;
@@ -253,29 +221,16 @@ fn main() {
     let mut do_spends = true;
     let mut fresh_key_each = false;
     let mut claim_fees = false;
-    let mut force_slh = false;
-    let mut emit_vectors: Option<String> = None;
-    let mut target_count: usize = 0;
     let mut burn_spend = false;
-    let mut witness_only = false; // spend to OP_RETURN to avoid UTXO growth
+    let mut witness_only = false;
     let mut emit_wallet = false;
 
-    // Parse: [blocks] [bits] [--parallel] [--no-spend] [--blocks=N] [--bits=HEX]
     for (idx, a) in args.iter().enumerate().skip(1) {
         match a.as_str() {
             "--parallel" => parallel = true,
             "--no-spend" => do_spends = false,
             "--fresh-key" => fresh_key_each = true,
             "--claim-fees" => claim_fees = true,
-            "--force-slh" => force_slh = true,
-            _ if a.starts_with("--emit-vectors=") => {
-                emit_vectors = Some(a["--emit-vectors=".len()..].to_string());
-            }
-            _ if a.starts_with("--targets=") => {
-                if let Ok(v) = a["--targets=".len()..].parse() {
-                    target_count = v;
-                }
-            }
             "--burn-spend" => burn_spend = true,
             "--witness-only" => witness_only = true,
             "--emit-wallet" => emit_wallet = true,
@@ -301,38 +256,20 @@ fn main() {
 
     let message = b"QPB dev mine";
 
-    // Dev key material (can refresh per block with --fresh-key)
-    let (mut current_pk_bytes, mut current_sk_bytes) = mldsa_keypair();
-    let mut current_pk_ser = {
-        let mut v = Vec::with_capacity(1 + current_pk_bytes.len());
-        v.push(0x11);
-        v.extend_from_slice(&current_pk_bytes);
-        v
-    };
-    let mut p2qpkh_spk = build_p2qpkh(qpkh32(&current_pk_ser));
-    // Track last coinbase material for spending in the next block.
-    let mut last_coin_pk_ser = current_pk_ser.clone();
-    let mut last_coin_spk = p2qpkh_spk.clone();
-    let mut last_coin_sk = current_sk_bytes.clone();
+    // SHRINCS key material (stateful)
+    let mut current_key = CliKeyMaterial::new();
+    let mut p2qpkh_spk = build_p2qpkh(qpkh32(current_key.pk_ser()));
 
-    // Optional target set for varied outputs
-    let mut targets: Vec<Vec<u8>> = Vec::new();
-    for i in 0..target_count {
-        let (pkb, _skb) = mldsa_keypair();
-        let mut pk = pkb;
-        // simple variation: xor first byte with index
-        pk[0] ^= i as u8;
-        let mut pkser = Vec::with_capacity(1 + pk.len());
-        pkser.push(0x11);
-        pkser.extend_from_slice(&pk);
-        targets.push(build_p2qpkh(qpkh32(&pkser)));
-    }
+    // Track last coinbase key for spending
+    let mut last_coin_pk_ser = current_key.pk_ser().to_vec();
+    let mut last_coin_spk = p2qpkh_spk.clone();
+    let mut last_coin_key = CliKeyMaterial::new(); // Separate key for spending
 
     if emit_wallet {
-        eprintln!("wallet_pk_ser={}", hex::encode(&current_pk_ser));
+        eprintln!("wallet_pk_ser={}", hex::encode(current_key.pk_ser()));
     }
-    let fee: u64 = 1_000;
 
+    let fee: u64 = 1_000;
     let mut prev_hash = [0u8; 32];
     let mut prev_coin_value: u64 = 0;
     let mut prev_coin_outpoint: Option<OutPoint> = None;
@@ -341,28 +278,18 @@ fn main() {
     for height in 0..nblocks {
         let subsidy = block_subsidy(height);
 
-        // Rotate key for the new coinbase if requested
         if fresh_key_each {
-            let (pkb, skb) = mldsa_keypair();
-            current_pk_bytes = pkb;
-            current_sk_bytes = skb;
-            current_pk_ser = {
-                let mut v = Vec::with_capacity(1 + current_pk_bytes.len());
-                v.push(0x11);
-                v.extend_from_slice(&current_pk_bytes);
-                v
-            };
-            p2qpkh_spk = build_p2qpkh(qpkh32(&current_pk_ser));
+            current_key = CliKeyMaterial::new();
+            p2qpkh_spk = build_p2qpkh(qpkh32(current_key.pk_ser()));
         }
 
         let mut txs: Vec<Transaction> = Vec::new();
         let mut prevouts_for_block: Vec<Vec<Prevout>> = Vec::new();
 
-        // Coinbase with spendable output to our static key; commitment added later.
         let mut coinbase = build_coinbase(height, message);
         let mut fee_for_block = fee;
         if burn_spend {
-            fee_for_block = prev_coin_value.max(fee); // burn entire previous coinbase if spend occurs
+            fee_for_block = prev_coin_value.max(fee);
         }
         coinbase.vout.push(TxOut {
             value: subsidy
@@ -374,10 +301,9 @@ fn main() {
             script_pubkey: p2qpkh_spk.clone(),
         });
         txs.push(coinbase);
-        prevouts_for_block.push(vec![]); // coinbase
+        prevouts_for_block.push(vec![]);
 
         if height > 0 && do_spends {
-            // Spend previous block's coinbase vout 0 (p2qpkh)
             let prev_out = prev_coin_outpoint
                 .as_ref()
                 .cloned()
@@ -388,6 +314,7 @@ fn main() {
                 .find(|(_, (op, _))| *op == prev_out)
                 .map(|(i, (_, u))| (i, u.clone()))
                 .expect("prev coinbase utxo missing");
+
             let spend_in = TxIn {
                 prevout: OutPoint {
                     txid: prev_out.txid,
@@ -395,54 +322,45 @@ fn main() {
                 },
                 script_sig: Vec::new(),
                 sequence: 0xffff_ffff,
-                witness: vec![], // fill after signing
+                witness: vec![],
             };
+
             let mut spend_outputs = Vec::new();
             if !burn_spend {
                 if witness_only {
                     spend_outputs.push(TxOut {
                         value: 0,
-                        script_pubkey: vec![0x6a, 0x00], // OP_RETURN 0-byte push
+                        script_pubkey: vec![0x6a, 0x00],
                     });
-                } else if targets.is_empty() {
+                } else {
                     spend_outputs.push(TxOut {
                         value: prev_utxo.value.saturating_sub(fee_for_block),
                         script_pubkey: last_coin_spk.clone(),
                     });
-                } else {
-                    let each = prev_utxo.value.saturating_sub(fee_for_block) / targets.len() as u64;
-                    for spk in &targets {
-                        spend_outputs.push(TxOut {
-                            value: each,
-                            script_pubkey: spk.clone(),
-                        });
-                    }
                 }
             }
+
             let mut spend_tx = Transaction {
                 version: 1,
                 vin: vec![spend_in],
                 vout: spend_outputs,
                 lock_time: 0,
             };
+
             let spend_prevouts = vec![prev_utxo.clone()];
             let sighash_type = 0x01u8;
             let msg = qpb_sighash(&spend_tx, 0, &spend_prevouts, sighash_type, 0x00, None)
                 .expect("sighash");
-            let mut sig_ser = mldsa_sign(&last_coin_sk, &msg).expect("ml-dsa sign");
-            if force_slh {
-                sig_ser[0] ^= 0x01; // simple perturbation for path testing
-            }
-            sig_ser.push(sighash_type);
+
+            let sig_ser = last_coin_key.sign(&msg);
             spend_tx.vin[0].witness = vec![sig_ser, last_coin_pk_ser.clone()];
             txs.push(spend_tx);
             prevouts_for_block.push(spend_prevouts);
 
-            // Remove spent UTXO
             utxos.remove(prev_pos);
         }
 
-        // Compute witness commitment and add to coinbase outputs
+        // Compute witness commitment
         let wroot = witness_merkle_root(&Block {
             header: BlockHeader {
                 version: 1,
@@ -456,7 +374,7 @@ fn main() {
         });
         let mut buf = Vec::new();
         buf.extend_from_slice(&wroot);
-        buf.extend_from_slice(&txs[0].vin[0].witness[0]); // reserved value
+        buf.extend_from_slice(&txs[0].vin[0].witness[0]);
         let commitment_hash = qpb_consensus::hash256(&buf);
         let commitment_spk = {
             let mut spk = Vec::with_capacity(38);
@@ -469,7 +387,6 @@ fn main() {
             script_pubkey: commitment_spk,
         });
 
-        // Now recompute txids and merkle root
         let txids: Vec<[u8; 32]> = txs.iter().map(|tx| tx.txid()).collect();
         let merkle = merkle_root(&txids);
         let coinbase_txid = txids[0];
@@ -478,7 +395,7 @@ fn main() {
             version: 1,
             prev_blockhash: prev_hash,
             merkle_root: merkle,
-            time: 1_735_171_200 + height, // dev default: 2025-12-25 + height seconds
+            time: 1_735_171_200 + height,
             bits,
             nonce: 0,
         };
@@ -487,9 +404,7 @@ fn main() {
             match mine_header_parallel(&header, 0..u32::MAX as u64) {
                 Some(h) => Some(h),
                 None => {
-                    eprintln!(
-                        "parallel mining unavailable or no nonce found; falling back to serial"
-                    );
+                    eprintln!("parallel mining unavailable; falling back to serial");
                     mine_header_serial(header.clone(), 0, u32::MAX as u64)
                 }
             }
@@ -497,7 +412,7 @@ fn main() {
             mine_header_serial(header.clone(), 0, u32::MAX as u64)
         };
 
-        let header = mined.expect("no valid nonce found in range");
+        let header = mined.expect("no valid nonce found");
         prev_hash = header.hash();
         prev_coin_value = subsidy
             + if claim_fees && do_spends {
@@ -510,24 +425,21 @@ fn main() {
             vout: 0,
         });
 
-        // Record coinbase UTXO for next block's spend
         utxos.push((
             prev_coin_outpoint.as_ref().cloned().unwrap(),
             Prevout::regular(prev_coin_value, p2qpkh_spk.clone()),
         ));
-        // Track coinbase key used this height for next spend
-        last_coin_pk_ser = current_pk_ser.clone();
-        last_coin_spk = p2qpkh_spk.clone();
-        last_coin_sk = current_sk_bytes.clone();
 
-        // Build block object for validation
+        // Track key for next spend
+        last_coin_pk_ser = current_key.pk_ser().to_vec();
+        last_coin_spk = p2qpkh_spk.clone();
+        last_coin_key = CliKeyMaterial::new(); // Fresh key for each coinbase
+
         let block = Block {
             header: header.clone(),
             txdata: txs.clone(),
         };
 
-        // MTP is 0 since all transactions in this CLI tool are final
-        // (lock_time=0 and all inputs have sequence=0xffffffff)
         validate_block_basic(
             &block,
             &prevouts_for_block,
@@ -535,66 +447,27 @@ fn main() {
             WEIGHT_FLOOR_WU,
             true,
             height,
-            0,               // MTP not needed for final transactions
-            Network::Devnet, // Use devnet for CLI tool (most permissive)
-            |_| 0,           // No MTP lookup needed for final transactions
+            0,
+            Network::Devnet,
+            |_| 0,
         )
         .expect("block validation failed");
 
-        #[cfg(feature = "cli-vectors")]
-        {
-            if let Some(path) = emit_vectors.as_ref()
-                && height > 0
-                && do_spends
-            {
-                let spend = &txs[1];
-                let spend_prevouts = &prevouts_for_block[1];
-                let sighash_type = 0x01u8;
-                let msg = qpb_sighash(spend, 0, spend_prevouts, sighash_type, 0x00, None)
-                    .expect("sighash");
-                let sig = &spend.vin[0].witness[0]; // sig_ser (sig||sighash_type)
-                let pkser = &spend.vin[0].witness[1];
-                #[derive(Serialize)]
-                struct Vector<'a> {
-                    height: u32,
-                    txid: String,
-                    pk_ser: String,
-                    sig_ser: String,
-                    msg32: String,
-                    force_slh: bool,
-                    path: &'a str,
-                }
-                let vector = Vector {
-                    height,
-                    txid: hex::encode(spend.txid()),
-                    pk_ser: hex::encode(pkser),
-                    sig_ser: hex::encode(sig),
-                    msg32: hex::encode(msg),
-                    force_slh,
-                    path,
-                };
-                std::fs::write(path, serde_json::to_string_pretty(&vector).unwrap())
-                    .expect("write vector");
-            }
-        }
-
         println!(
-            "height={} nonce={} block_hash={} merkle={} subsidy={} txs={} fee_claimed={} targets={} burn_spend={} witness_only={}{}",
+            "height={} nonce={} block_hash={} merkle={} subsidy={} txs={} algorithm=SHRINCS",
             height,
             header.nonce,
             hex::encode(prev_hash),
             hex::encode(merkle),
             subsidy,
             txs.len(),
-            claim_fees && do_spends,
-            target_count,
-            burn_spend,
-            witness_only,
-            if let Some(p) = emit_vectors.as_ref() {
-                format!(" vectors={}", p)
-            } else {
-                "".to_string()
-            }
         );
     }
+}
+
+#[cfg(not(feature = "shrincs-dev"))]
+fn main() {
+    eprintln!("qpb-cli requires the shrincs-dev feature for signing operations");
+    eprintln!("Run with: cargo run --features shrincs-dev --bin qpb-cli");
+    std::process::exit(1);
 }

@@ -97,7 +97,10 @@ pub struct ShrincsFullPublicKey {
 }
 
 impl ShrincsFullPublicKey {
-    /// Serialize to bytes
+    /// Serialize to bytes (full representation for verification).
+    ///
+    /// Format: [pk_seed(32) || pors_root(n) || hypertree_root(n)]
+    /// For n=16, this is 64 bytes.
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut out = Vec::with_capacity(32 + self.params.n * 2);
         out.extend_from_slice(&self.pk_seed);
@@ -106,7 +109,28 @@ impl ShrincsFullPublicKey {
         out
     }
 
-    /// Deserialize from bytes
+    /// Compute 16-byte on-chain commitment.
+    ///
+    /// Per SHRINCS spec: pk = H(pk_seed || pors_root || hypertree_root) truncated to 16 bytes.
+    /// This is the value stored in scriptPubKey.
+    pub fn to_commitment(&self) -> [u8; 16] {
+        let mut hasher = Sha256::new();
+        hasher.update(b"SHRINCS_PK_COMMIT");
+        hasher.update(self.pk_seed);
+        hasher.update(&self.pors_root);
+        hasher.update(&self.hypertree_root);
+        let hash: [u8; 32] = hasher.finalize().into();
+        let mut commitment = [0u8; 16];
+        commitment.copy_from_slice(&hash[..16]);
+        commitment
+    }
+
+    /// Verify that this public key matches a 16-byte commitment.
+    pub fn matches_commitment(&self, commitment: &[u8; 16]) -> bool {
+        self.to_commitment() == *commitment
+    }
+
+    /// Deserialize from bytes (full representation).
     pub fn from_bytes(bytes: &[u8], params: ShrincsFullParams) -> Option<Self> {
         let n = params.n;
         if bytes.len() < 32 + n * 2 {

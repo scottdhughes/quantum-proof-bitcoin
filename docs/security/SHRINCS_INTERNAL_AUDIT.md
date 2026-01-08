@@ -1,5 +1,7 @@
 # SHRINCS Internal Security Audit Report
 
+> **Note**: SHRINCS (alg_id 0x30) is now the **sole active** post-quantum signature algorithm in QPB. ML-DSA-65 has been removed.
+
 ## Audit Scope
 
 | Field | Value |

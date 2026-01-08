@@ -6,47 +6,33 @@
 //!
 //! # Design
 //!
-//! - **Devnet/Regtest:** Immediate activation (height 0) for development
-//! - **Testnet:** Immediate activation for testing
-//! - **Mainnet:** Pending external audit (currently disabled)
+//! SHRINCS is the sole post-quantum signature algorithm, active from genesis.
+//! Per the Delving Bitcoin specification:
+//! https://delvingbitcoin.org/t/shrincs-324-byte-stateful-post-quantum-signatures-with-static-backups/2158
 //!
-//! # SHRINCS Special Case
+//! # SHRINCS Fallback
 //!
 //! SHRINCS has a SPHINCS+ stateless fallback that is always valid. This allows
-//! emergency recovery even before SHRINCS activation, since the fallback uses
-//! a different algorithm ID embedded in the signature prefix.
+//! emergency recovery when stateful signing state is corrupted or lost.
 
-#[cfg(feature = "shrincs-dev")]
-use crate::constants::SHRINCS_ALG_ID;
-use crate::constants::{MLDSA65_ALG_ID, SLH_DSA_ALG_ID};
+use crate::constants::{SHRINCS_ALG_ID, SLH_DSA_ALG_ID};
 
 /// Activation heights for signature algorithms on a specific network.
 #[derive(Debug, Clone, Copy)]
 pub struct ActivationHeights {
-    /// SHRINCS (0x30) activation height (None = never active)
-    pub shrincs: Option<u32>,
-    /// SLH-DSA (0x21) activation height (None = never active)
+    /// SLH-DSA (0x21) activation height (None = never active, reserved for future)
     pub slh_dsa: Option<u32>,
 }
 
 impl ActivationHeights {
-    /// Devnet: immediate activation for development.
-    pub const DEVNET: Self = Self {
-        shrincs: Some(0), // Active from genesis
-        slh_dsa: None,
-    };
+    /// Devnet: SHRINCS active from genesis.
+    pub const DEVNET: Self = Self { slh_dsa: None };
 
-    /// Testnet: immediate activation for testing.
-    pub const TESTNET: Self = Self {
-        shrincs: Some(0), // Active from genesis (per design decision)
-        slh_dsa: None,
-    };
+    /// Testnet: SHRINCS active from genesis.
+    pub const TESTNET: Self = Self { slh_dsa: None };
 
-    /// Mainnet: TBD after external audit.
-    pub const MAINNET: Self = Self {
-        shrincs: None, // Not yet scheduled - requires audit
-        slh_dsa: None,
-    };
+    /// Mainnet: SHRINCS active from genesis.
+    pub const MAINNET: Self = Self { slh_dsa: None };
 }
 
 /// Network type for activation checks.
@@ -87,7 +73,7 @@ impl Network {
 /// Check if an algorithm is active at a given block height.
 ///
 /// # Arguments
-/// - `alg_id`: Algorithm identifier byte (e.g., 0x11 for ML-DSA-65, 0x30 for SHRINCS)
+/// - `alg_id`: Algorithm identifier byte (0x30 for SHRINCS)
 /// - `height`: Block height at which to check activation
 /// - `network`: Network type
 ///
@@ -97,14 +83,10 @@ pub fn is_algorithm_active(alg_id: u8, height: u32, network: Network) -> bool {
     let heights = network.activation_heights();
 
     match alg_id {
-        // ML-DSA-65 is always active (genesis algorithm)
-        MLDSA65_ALG_ID => true,
+        // SHRINCS is always active (genesis algorithm)
+        SHRINCS_ALG_ID => true,
 
-        // SHRINCS requires activation check
-        #[cfg(feature = "shrincs-dev")]
-        SHRINCS_ALG_ID => heights.shrincs.is_some_and(|h| height >= h),
-
-        // SLH-DSA requires activation check
+        // SLH-DSA requires activation check (reserved for future)
         SLH_DSA_ALG_ID => heights.slh_dsa.is_some_and(|h| height >= h),
 
         // Unknown algorithms are never active
@@ -115,9 +97,8 @@ pub fn is_algorithm_active(alg_id: u8, height: u32, network: Network) -> bool {
 /// Check if SPHINCS+ fallback signatures are valid.
 ///
 /// By design decision, SPHINCS+ fallback signatures (signature type 0x01) are
-/// always valid, even before SHRINCS activation. This provides emergency
-/// recovery capability for wallets that have exhausted their stateful key pool
-/// before activation.
+/// always valid. This provides emergency recovery capability for wallets that
+/// have lost their stateful signing state.
 ///
 /// Note: This function always returns true per the design decision.
 #[inline]
@@ -125,29 +106,12 @@ pub const fn is_fallback_valid(_height: u32, _network: Network) -> bool {
     true
 }
 
-/// Mempool policy: blocks before activation at which to start accepting txs.
+/// Mempool policy: SHRINCS is always accepted (genesis algorithm).
 ///
-/// Transactions spending SHRINCS outputs are only accepted into the mempool
-/// when the current tip is within this many blocks of the activation height.
-/// This prevents premature mempool flooding while allowing tx propagation
-/// before activation.
-pub const MEMPOOL_PRE_ACTIVATION_BLOCKS: u32 = 100;
-
-/// Check if SHRINCS-spending transactions should be accepted to mempool.
-///
-/// Policy is more restrictive than consensus: we reject until close to activation
-/// to prevent mempool from filling with currently-invalid transactions.
-pub fn should_accept_shrincs_to_mempool(current_height: u32, network: Network) -> bool {
-    let heights = network.activation_heights();
-
-    match heights.shrincs {
-        Some(0) => true, // Already active from genesis
-        Some(activation) => {
-            // Accept if within pre-activation window
-            current_height + MEMPOOL_PRE_ACTIVATION_BLOCKS >= activation
-        }
-        None => false, // Never active on this network
-    }
+/// Unlike soft-fork activations, SHRINCS doesn't need a pre-activation window
+/// since it's valid from block 0.
+pub fn should_accept_shrincs_to_mempool(_current_height: u32, _network: Network) -> bool {
+    true
 }
 
 #[cfg(test)]
@@ -155,41 +119,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn mldsa65_always_active() {
-        assert!(is_algorithm_active(MLDSA65_ALG_ID, 0, Network::Mainnet));
+    fn shrincs_always_active() {
+        assert!(is_algorithm_active(SHRINCS_ALG_ID, 0, Network::Mainnet));
         assert!(is_algorithm_active(
-            MLDSA65_ALG_ID,
-            1_000_000,
-            Network::Mainnet
-        ));
-        assert!(is_algorithm_active(MLDSA65_ALG_ID, 0, Network::Testnet));
-        assert!(is_algorithm_active(MLDSA65_ALG_ID, 0, Network::Devnet));
-    }
-
-    #[cfg(feature = "shrincs-dev")]
-    #[test]
-    fn shrincs_devnet_immediate() {
-        assert!(is_algorithm_active(SHRINCS_ALG_ID, 0, Network::Devnet));
-        assert!(is_algorithm_active(SHRINCS_ALG_ID, 100, Network::Devnet));
-    }
-
-    #[cfg(feature = "shrincs-dev")]
-    #[test]
-    fn shrincs_testnet_immediate() {
-        assert!(is_algorithm_active(SHRINCS_ALG_ID, 0, Network::Testnet));
-        assert!(is_algorithm_active(SHRINCS_ALG_ID, 100, Network::Testnet));
-    }
-
-    #[cfg(feature = "shrincs-dev")]
-    #[test]
-    fn shrincs_mainnet_inactive() {
-        // Mainnet has no SHRINCS activation height yet
-        assert!(!is_algorithm_active(SHRINCS_ALG_ID, 0, Network::Mainnet));
-        assert!(!is_algorithm_active(
             SHRINCS_ALG_ID,
             1_000_000,
             Network::Mainnet
         ));
+        assert!(is_algorithm_active(SHRINCS_ALG_ID, 0, Network::Testnet));
+        assert!(is_algorithm_active(SHRINCS_ALG_ID, 0, Network::Devnet));
     }
 
     #[test]
@@ -203,6 +141,7 @@ mod tests {
     fn unknown_algorithm_inactive() {
         assert!(!is_algorithm_active(0xFF, 0, Network::Devnet));
         assert!(!is_algorithm_active(0x00, 100, Network::Mainnet));
+        assert!(!is_algorithm_active(0x11, 0, Network::Mainnet)); // Old ML-DSA-65 ID
     }
 
     #[test]
@@ -214,20 +153,12 @@ mod tests {
         assert_eq!(Network::parse("unknown"), Network::Mainnet); // Default
     }
 
-    #[cfg(feature = "shrincs-dev")]
     #[test]
-    fn mempool_policy_devnet() {
-        // Devnet has immediate activation (height 0)
+    fn mempool_always_accepts_shrincs() {
         assert!(should_accept_shrincs_to_mempool(0, Network::Devnet));
         assert!(should_accept_shrincs_to_mempool(100, Network::Devnet));
-    }
-
-    #[cfg(feature = "shrincs-dev")]
-    #[test]
-    fn mempool_policy_mainnet() {
-        // Mainnet has no activation - never accept
-        assert!(!should_accept_shrincs_to_mempool(0, Network::Mainnet));
-        assert!(!should_accept_shrincs_to_mempool(
+        assert!(should_accept_shrincs_to_mempool(0, Network::Mainnet));
+        assert!(should_accept_shrincs_to_mempool(
             1_000_000,
             Network::Mainnet
         ));

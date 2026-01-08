@@ -29,25 +29,20 @@ pub const MAX_STACK_ITEMS: usize = 1000;
 pub const MAX_CONTROL_BLOCK_DEPTH: usize = 128;
 
 // ---- PQ algorithms ----
-// Active at genesis
-pub const MLDSA65_ALG_ID: u8 = 0x11;
-// ML-DSA-65 (Dilithium3) sizes
-pub const MLDSA65_PUBKEY_LEN: usize = 1952;
-pub const MLDSA65_SIG_LEN: usize = 3309;
-// Reserved/inactive (require feature flags or hard fork)
-pub const SLH_DSA_ALG_ID: u8 = 0x21;
-
-// SHRINCS: Hybrid stateful/stateless hash-based signatures
-// Variable signature sizes: stateful path is smaller, fallback is larger
+// SHRINCS: Hybrid stateful/stateless hash-based signatures (sole PQ algorithm)
+// Per Delving Bitcoin spec: https://delvingbitcoin.org/t/shrincs-324-byte-stateful-post-quantum-signatures-with-static-backups/2158
 pub const SHRINCS_ALG_ID: u8 = 0x30;
-pub const SHRINCS_PUBKEY_LEN: usize = 64; // 32B XMSS root + 32B SPHINCS+ pk hash
-pub const SHRINCS_SIG_MIN: usize = 3_400; // Minimum stateful signature (~3.4KB)
+pub const SHRINCS_PUBKEY_LEN: usize = 16; // H(pk_stateful || pk_stateless) truncated
+pub const SHRINCS_SIG_MIN: usize = 308; // Level 1: 292 + q×16 bytes (q=1)
 pub const SHRINCS_SIG_FALLBACK: usize = 7_856; // SPHINCS+-128s fallback signature
-pub const SHRINCS_CAPACITY: u32 = 1 << 30; // 2^30 stateful signatures before fallback
+pub const SHRINCS_CAPACITY: u32 = 1 << 20; // ~1M stateful signatures before fallback
 
 // SHRINCS fallback witness: extended pk includes full SPHINCS+ public key
 pub const SPHINCS_PK_LEN: usize = 32; // SPHINCS+-128s public key size
-pub const SHRINCS_FALLBACK_PUBKEY_LEN: usize = 96; // 64B base + 32B SPHINCS+ pk
+pub const SHRINCS_FALLBACK_PUBKEY_LEN: usize = 48; // 16B base + 32B SPHINCS+ pk
+
+// Reserved for future algorithms (require hard fork)
+pub const SLH_DSA_ALG_ID: u8 = 0x21;
 
 // ---- Witness versions & script ----
 pub const P2QTSH_VERSION: u8 = 0x02; // OP_2 PUSH32

@@ -1,28 +1,33 @@
-# Quantum Proof Bitcoin — Consensus Notes (v1.0m, 2025-12-26)
+# Quantum Proof Bitcoin — Consensus Notes (v1.1, 2025-01)
 
 **Scope:** Consensus-facing parameters for the current prototype. INTERNAL; not an audit, not legal/compliance advice.
 
 ## Algorithm registry @ genesis
-- **Active:** alg_id `0x11` — ML-DSA-65 (Dilithium3), NIST Cat 3
-  - PK bytes: 1952
-  - Sig bytes: 3309
-  - PQSigCheck cost: 1
+- **Active:** alg_id `0x30` — SHRINCS (stateful hash-based), NIST Level 1
+  - PK bytes: 16 (composite hash)
+  - Sig bytes: ~308-340 (stateful), ~7,856 (SPHINCS+ fallback)
+  - PQSigCheck cost: 2
 - **Reserved / Inactive:**
-  - alg_id `0x21` — SLH-DSA-SHA2-192s (reserved)
-  - alg_id `0x30` — SHRINCS (dev-only; consensus rejects)
+  - alg_id `0x11` — ML-DSA-65 (deprecated, removed from consensus)
+  - alg_id `0x21` — SLH-DSA-SHA2-192s (reserved for future use)
 - All other alg_id values: rejected.
-- Crypto provenance and validation invariants: see `docs/crypto/MLDSA-65.md`.
+- Crypto provenance and validation invariants: see `docs/crypto/SHRINCS.md`.
 
 ## Consensus enforcement (summary)
-- AlgorithmId parser accepts only `0x11`; anything else -> `InactiveAlgorithm`.
-- Signature verification enforces `msg32` length 32, pk/sig lengths exact, and uses Dilithium3 verify.
-- SHRINCS helpers exist behind `shrincs-dev` feature only and are never consensus-active.
+- AlgorithmId parser accepts only `0x30`; anything else -> `InactiveAlgorithm`.
+- Signature verification:
+  - Validates 16-byte composite public key
+  - Accepts both stateful (~308-340 bytes) and SPHINCS+ fallback (~7,856 bytes) signatures
+  - Verifies against appropriate algorithm based on signature length
+- SHRINCS is consensus-active on all networks (Devnet, Testnet, Mainnet).
 
 ## PQSigCheck
-- Cost units: MLDSA65 = 1. Block/tx budgets unchanged (500/block, 40/tx).
+- Cost units: SHRINCS = 2. Block/tx budgets unchanged (500/block, 40/tx).
 
 ## Vectors
-- Deterministic ML-DSA vectors live in `vectors/` and are regenerated with `cargo run --bin gen_vectors`.
+- Deterministic SHRINCS vectors live in `vectors/` and are regenerated with `cargo run --bin gen_vectors`.
+- Size metadata in `vectors/metadata/shrincs_sizes.json`.
 
-## Activation stance
-- SHRINCS and SLH-DSA remain reserved until a future hard fork and published, audited implementations.
+## Known Limitations
+- Wallet import (`dumpwallet`/`importwallet`) does not export signing state
+- See README.md "Known Limitations" section for details
