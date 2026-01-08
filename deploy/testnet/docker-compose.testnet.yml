@@ -15,7 +15,7 @@ services:
       - ./chainparams.json:/etc/qpb/chainparams.json:ro
 
     ports:
-      - "38334:38334"              # P2P (public)
+      - "0.0.0.0:38334:38334"              # P2P (public)
       - "127.0.0.1:38335:38335"    # RPC (localhost only - use SSH tunnel)
 
     command:
@@ -28,9 +28,8 @@ services:
       - "--port=38334"
       - "--txindex"
       - "--no-initial-sync"  # Seed node - no peers to sync from
-      # Uncomment for RPC auth (both required if either is set):
-      # - "--rpcuser=qpb"
-      # - "--rpcpassword=CHANGE_ME"
+      - "--rpcuser=${RPC_USER}"
+      - "--rpcpassword=${RPC_PASS}"
 
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://127.0.0.1:38335/health"]
