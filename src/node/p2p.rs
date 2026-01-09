@@ -731,8 +731,9 @@ fn sync_headers_and_blocks_impl(node: &mut Node, net: &NetworkParams, addr: &str
         }
 
         // Find where headers connect to our chain
+        // Genesis block's prev_hash is all zeros - accept that as a valid connection point
         let first_prev = headers[0].prev_blockhash;
-        if !node.has_block(&first_prev) {
+        if first_prev != [0u8; 32] && !node.has_block(&first_prev) {
             // This is NOT fatal — just means this peer can't help us
             return Err(anyhow!(
                 "headers do not connect: first_prev={} not in our chain",
@@ -1481,12 +1482,14 @@ impl InboundListener {
                 let node_clone = node.clone();
                 let peer_manager_clone = peer_manager.clone();
                 let shutdown_clone = shutdown.clone();
+                let peer_height = peer_version.start_height;
 
                 thread::spawn(move || {
                     if let Err(e) = handle_inbound_messages(
                         stream,
                         magic,
                         peer_id,
+                        Some(peer_height),
                         node_clone,
                         peer_manager_clone.clone(),
                         shutdown_clone,
@@ -1517,14 +1520,44 @@ impl InboundListener {
 }
 
 /// Handle messages from an inbound peer.
+/// If `peer_start_height` is provided and higher than our chain, initiate sync.
 fn handle_inbound_messages(
     mut stream: TcpStream,
     magic: [u8; 4],
     peer_id: u64,
+    peer_start_height: Option<i32>,
     node: Arc<Mutex<Node>>,
     peer_manager: Arc<PeerManager>,
     shutdown: Arc<AtomicBool>,
 ) -> Result<()> {
+    // Check if peer has a longer chain and initiate sync if so
+    if let Some(peer_height) = peer_start_height {
+        let our_height = {
+            let node_guard = node.lock().unwrap();
+            node_guard.height() as i32
+        };
+
+        if peer_height > our_height {
+            info!(
+                peer_id,
+                peer_height, our_height, "peer has longer chain, initiating sync"
+            );
+
+            // Build block locator and send GETHEADERS
+            let locator = {
+                let node_guard = node.lock().unwrap();
+                build_block_locator(&node_guard)
+            };
+
+            if !locator.is_empty() {
+                let gh_payload = ser_getheaders(locator);
+                if let Err(e) = write_message(&mut stream, magic, CMD_GETHEADERS, &gh_payload) {
+                    debug!(peer_id, error = %e, "failed to send initial GETHEADERS");
+                }
+            }
+        }
+    }
+
     loop {
         if shutdown.load(Ordering::SeqCst) {
             break;
@@ -1714,7 +1747,14 @@ fn handle_inbound_messages(
                             && let Ok(header) =
                                 parse_header_bytes(msg.payload[..80].try_into().unwrap())
                         {
-                            let block_hash = header.hash();
+                            // Use pow_hash (Argon2id) for block identifier, not header.hash() (SHA256d)
+                            let block_hash = match pow_hash(&header) {
+                                Ok(h) => h,
+                                Err(_) => {
+                                    drop(node_guard);
+                                    continue;
+                                }
+                            };
                             drop(node_guard);
                             // Relay to other peers (excluding sender)
                             peer_manager.queue_block_relay(peer_id, block_hash);
@@ -1723,7 +1763,92 @@ fn handle_inbound_messages(
                     }
                     Err(e) => {
                         // Block rejected - could penalize peer, but log for now
-                        debug!(peer_id, error = %e, "rejected block from peer");
+                        warn!(peer_id, error = %e, "rejected block from peer");
+                    }
+                }
+            }
+            CMD_HEADERS => {
+                // Received headers (typically in response to our GETHEADERS)
+                // Parse headers and request any blocks we don't have
+                match parse_headers(&msg.payload) {
+                    Ok(headers) => {
+                        if headers.is_empty() {
+                            info!(peer_id, "received empty headers - synced with peer");
+                            continue;
+                        }
+
+                        info!(peer_id, count = headers.len(), "received headers from peer");
+
+                        // Check if headers connect to our chain
+                        // Genesis block's prev_hash is all zeros - accept that as a valid connection point
+                        let first_prev = headers[0].prev_blockhash;
+                        let headers_connect = {
+                            let node_guard = node.lock().unwrap();
+                            first_prev == [0u8; 32] || node_guard.has_block(&first_prev)
+                        };
+
+                        if !headers_connect {
+                            // Headers don't connect - peer on different chain
+                            info!(
+                                peer_id,
+                                first_prev = %hex::encode(first_prev),
+                                "headers don't connect to our chain"
+                            );
+                            continue;
+                        }
+
+                        // Request blocks for headers we don't have
+                        let mut blocks_requested = 0;
+                        for header in &headers {
+                            // Use pow_hash for block identifier (Argon2id), not header.hash() (SHA256d)
+                            let block_hash = match pow_hash(header) {
+                                Ok(h) => h,
+                                Err(e) => {
+                                    debug!(peer_id, error = %e, "failed to compute block hash");
+                                    continue;
+                                }
+                            };
+
+                            let have_block = {
+                                let node_guard = node.lock().unwrap();
+                                node_guard.has_block(&block_hash)
+                            };
+
+                            if !have_block {
+                                let payload = ser_getdata_block(block_hash);
+                                if let Err(e) =
+                                    write_message(&mut stream, magic, CMD_GETDATA, &payload)
+                                {
+                                    debug!(
+                                        peer_id,
+                                        error = %e,
+                                        "failed to request block"
+                                    );
+                                    break;
+                                }
+                                blocks_requested += 1;
+                            }
+                        }
+
+                        if blocks_requested > 0 {
+                            info!(peer_id, blocks_requested, "requested blocks from headers");
+                        }
+
+                        // If we got 2000 headers (max batch), request more
+                        if headers.len() >= 2000 {
+                            let locator = {
+                                let node_guard = node.lock().unwrap();
+                                build_block_locator(&node_guard)
+                            };
+                            if !locator.is_empty() {
+                                let gh_payload = ser_getheaders(locator);
+                                let _ =
+                                    write_message(&mut stream, magic, CMD_GETHEADERS, &gh_payload);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        warn!(peer_id, error = %e, "failed to parse headers");
                     }
                 }
             }
@@ -2082,12 +2207,14 @@ fn try_connect_outbound(
     let peer_manager_clone = peer_manager.clone();
     let shutdown_clone = shutdown.clone();
     let magic = config.magic;
+    let peer_height = peer_version.start_height;
 
     thread::spawn(move || {
         if let Err(e) = handle_inbound_messages(
             stream,
             magic,
             peer_id,
+            Some(peer_height),
             node_clone,
             peer_manager_clone.clone(),
             shutdown_clone,
