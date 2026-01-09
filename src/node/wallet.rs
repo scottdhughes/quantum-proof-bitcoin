@@ -1460,6 +1460,218 @@ impl Wallet {
         Ok(tx)
     }
 
+    /// Create a fanout transaction that splits one UTXO into many outputs.
+    ///
+    /// This creates `count` outputs, each with `amount_per_output` sats,
+    /// all sent to newly generated addresses in this wallet.
+    /// Useful for creating many confirmed spendable UTXOs for testing.
+    ///
+    /// # Arguments
+    /// * `count` - Number of outputs to create (1-500)
+    /// * `amount_per_output` - Amount in sats for each output (must be > dust limit)
+    /// * `fee_rate` - Fee rate in sat/vB
+    /// * `utxos` - Available UTXOs (already filtered for mempool-spent)
+    /// * `current_height` - Current blockchain height
+    ///
+    /// # Returns
+    /// * Signed transaction with `count` outputs to self
+    pub fn create_fanout_transaction(
+        &mut self,
+        count: u32,
+        amount_per_output: u64,
+        fee_rate: u64,
+        utxos: Vec<(String, u32, Prevout)>,
+        current_height: u32,
+    ) -> Result<Transaction> {
+        // Validate count
+        if count == 0 {
+            return Err(anyhow!("count must be at least 1"));
+        }
+        if count > 500 {
+            return Err(anyhow!("count must be at most 500"));
+        }
+
+        // Validate amount (must be above dust limit)
+        const DUST_LIMIT: u64 = 546;
+        if amount_per_output < DUST_LIMIT {
+            return Err(anyhow!(
+                "amount_per_output {} is below dust limit {}",
+                amount_per_output,
+                DUST_LIMIT
+            ));
+        }
+
+        let total_output_amount = (count as u64) * amount_per_output;
+
+        // Get wallet UTXOs and filter out immature coinbase outputs
+        let all_wallet_utxos = self.list_unspent(|| utxos, current_height)?;
+
+        let mut immature_coinbase_count = 0usize;
+        let wallet_utxos: Vec<WalletUtxo> = all_wallet_utxos
+            .into_iter()
+            .filter(|u| {
+                if u.is_coinbase && u.confirmations < COINBASE_MATURITY {
+                    immature_coinbase_count += 1;
+                    false
+                } else {
+                    true
+                }
+            })
+            .collect();
+
+        if wallet_utxos.is_empty() {
+            if immature_coinbase_count > 0 {
+                return Err(anyhow!(
+                    "no confirmed spendable UTXOs available (confirmed-only policy); \
+                     {} immature coinbase outputs need {} more confirmations",
+                    immature_coinbase_count,
+                    COINBASE_MATURITY
+                ));
+            }
+            return Err(anyhow!(
+                "no confirmed spendable UTXOs available (confirmed-only policy)"
+            ));
+        }
+
+        // Estimate transaction size for fee calculation
+        let input_weight = 41 * 4 + (3310 + 1953 + 10); // ~5314 WU per input
+        let output_weight = 43 * 4; // 172 WU per output
+        let base_weight = 10 * 4; // 40 WU
+
+        // Select coins for total_output_amount + estimated fee
+        // We may need change output too, so estimate conservatively
+        let selected = select_coins(
+            &wallet_utxos,
+            total_output_amount,
+            fee_rate,
+            input_weight,
+            output_weight,
+            base_weight,
+        )?;
+
+        // Calculate fee based on actual selection
+        let num_inputs = selected.utxos.len();
+        // We'll have `count` outputs plus potentially 1 change output
+        let num_outputs_without_change = count as usize;
+        let total_weight_without_change = base_weight
+            + (num_inputs * input_weight)
+            + (num_outputs_without_change * output_weight);
+        let vsize_without_change = total_weight_without_change.div_ceil(4) + 1;
+        let fee_without_change = vsize_without_change as u64 * fee_rate;
+
+        // Check if we need change
+        let remaining = selected
+            .total
+            .saturating_sub(total_output_amount + fee_without_change);
+        let has_change = remaining > DUST_LIMIT;
+
+        let (num_outputs, fee) = if has_change {
+            let total_weight = base_weight
+                + (num_inputs * input_weight)
+                + ((num_outputs_without_change + 1) * output_weight);
+            let vsize = total_weight.div_ceil(4) + 1;
+            (num_outputs_without_change + 1, vsize as u64 * fee_rate)
+        } else {
+            (num_outputs_without_change, fee_without_change)
+        };
+
+        // Verify we have enough
+        if selected.total < total_output_amount + fee {
+            return Err(anyhow!(
+                "insufficient funds: have {}, need {} + {} fee",
+                selected.total,
+                total_output_amount,
+                fee
+            ));
+        }
+
+        let change = selected.total - total_output_amount - fee;
+
+        // Build transaction inputs
+        let mut vin = Vec::with_capacity(num_inputs);
+        let mut prevouts = Vec::with_capacity(num_inputs);
+        let mut input_addresses = Vec::with_capacity(num_inputs);
+
+        for utxo in &selected.utxos {
+            let mut txid = [0u8; 32];
+            let txid_bytes = hex::decode(&utxo.txid)?;
+            txid.copy_from_slice(&txid_bytes);
+
+            vin.push(TxIn {
+                prevout: OutPoint {
+                    txid,
+                    vout: utxo.vout,
+                },
+                script_sig: Vec::new(),
+                sequence: SEQUENCE_RBF_ENABLED, // Always RBF for fanout
+                witness: Vec::new(),
+            });
+
+            prevouts.push(Prevout {
+                value: utxo.value,
+                script_pubkey: hex::decode(&utxo.script_pubkey)?,
+                height: utxo.height,
+                is_coinbase: utxo.is_coinbase,
+            });
+
+            input_addresses.push(utxo.address.clone());
+        }
+
+        // Build transaction outputs - generate fresh addresses for each
+        let mut vout = Vec::with_capacity(num_outputs);
+
+        for i in 0..count {
+            let label = format!("fanout-{}", i);
+            let address = self.get_new_address(&label)?;
+            let decoded =
+                decode_address(&address).map_err(|e| anyhow!("invalid fanout address: {}", e))?;
+            vout.push(TxOut {
+                value: amount_per_output,
+                script_pubkey: decoded.script_pubkey,
+            });
+        }
+
+        // Add change output if needed
+        if change > DUST_LIMIT {
+            let keys = self.get_active_keys()?;
+            let change_address = if keys.is_empty() {
+                self.get_new_address("fanout-change")?
+            } else {
+                keys[0].address.clone()
+            };
+            let change_decoded = decode_address(&change_address)
+                .map_err(|e| anyhow!("invalid change address: {}", e))?;
+            vout.push(TxOut {
+                value: change,
+                script_pubkey: change_decoded.script_pubkey,
+            });
+        }
+
+        let mut tx = Transaction {
+            version: 1,
+            vin,
+            vout,
+            lock_time: 0,
+        };
+
+        // Sign each input
+        for (i, address) in input_addresses.iter().enumerate() {
+            let sighash_type = 0x01u8; // SIGHASH_ALL
+            let msg32 = qpb_sighash(&tx, i, &prevouts, sighash_type, 0x00, None)
+                .map_err(|e| anyhow!("sighash failed: {:?}", e))?;
+
+            let sig = self.sign_mut(address, &msg32)?;
+            let pk_ser = self.get_pk_ser(address)?;
+
+            let mut sig_ser = sig;
+            sig_ser.push(sighash_type);
+
+            tx.vin[i].witness = vec![sig_ser, pk_ser];
+        }
+
+        Ok(tx)
+    }
+
     /// Create a replacement transaction for RBF fee bumping.
     ///
     /// Reuses the same inputs as the original transaction to guarantee
