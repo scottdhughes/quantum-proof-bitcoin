@@ -323,11 +323,14 @@ fn sendtoaddress_fails_with_no_utxos() {
         &format!(r#"["{}", 1000]"#, recipient_addr),
     );
 
-    // Should fail - no UTXOs or no mature UTXOs
+    // Should fail - no UTXOs or no confirmed spendable UTXOs
     assert!(resp["error"].is_object());
     let msg = resp["error"]["message"].as_str().unwrap();
     assert!(
-        msg.contains("no UTXOs") || msg.contains("no mature UTXOs") || msg.contains("insufficient"),
+        msg.contains("no UTXOs")
+            || msg.contains("no mature UTXOs")
+            || msg.contains("no confirmed spendable UTXOs")
+            || msg.contains("insufficient"),
         "unexpected error: {}",
         msg
     );

@@ -434,6 +434,29 @@ impl Node {
         self.utxo.iter_all()
     }
 
+    /// Iterate over all UTXOs with typed OutPoints.
+    /// Converts txid_hex + vout into OutPoint in one place.
+    pub fn utxo_iter_all_outpoints(&self) -> Vec<(OutPoint, Prevout)> {
+        self.utxo
+            .iter_all()
+            .into_iter()
+            .filter_map(|(txid_hex, vout, prevout)| {
+                let txid_bytes = hex::decode(&txid_hex).ok()?;
+                if txid_bytes.len() != 32 {
+                    return None;
+                }
+                let mut txid = [0u8; 32];
+                txid.copy_from_slice(&txid_bytes);
+                Some((OutPoint { txid, vout }, prevout))
+            })
+            .collect()
+    }
+
+    /// Get a reference to the mempool.
+    pub fn mempool_ref(&self) -> &Mempool {
+        &self.mempool
+    }
+
     pub fn no_pow(&self) -> bool {
         self.no_pow
     }

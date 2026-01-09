@@ -399,8 +399,8 @@ fn coinbase_maturity_enforced() {
         resp["error"]["message"]
             .as_str()
             .unwrap()
-            .contains("no mature UTXOs"),
-        "Expected 'no mature UTXOs' error, got: {:?}",
+            .contains("no confirmed spendable UTXOs"),
+        "Expected 'no confirmed spendable UTXOs' error, got: {:?}",
         resp["error"]["message"]
     );
 
@@ -422,4 +422,126 @@ fn coinbase_maturity_enforced() {
     );
     let txid = resp["result"].as_str().unwrap();
     assert!(!txid.is_empty());
+}
+
+/// Regression test for Issue #86: Rapid sends should fail with clear error message.
+///
+/// When a wallet has only one confirmed UTXO and sends a transaction, that UTXO
+/// is consumed by the mempool tx. A second send (without mining) should fail with
+/// a clear "no confirmed spendable UTXOs" error, NOT with a misleading
+/// "insufficient fee" error from failed RBF.
+///
+/// Before fix: Second send attempted to spend the same UTXO → RBF check failed
+/// with "insufficient fee: need 1458 sats, have 1457 sats" (misleading).
+///
+/// After fix: Mempool-spent UTXOs are filtered before coin selection, so the
+/// wallet correctly reports no spendable UTXOs.
+#[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
+fn rapid_sends_no_double_spend_misleading_error() {
+    let dir = tempdir().unwrap();
+    let datadir = dir.path();
+
+    let mut node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
+
+    // Create wallet
+    let resp = rpc_call(&mut node, "createwallet", "[]");
+    assert!(resp["error"].is_null(), "createwallet failed: {:?}", resp);
+    let resp = rpc_call(&mut node, "getnewaddress", r#"["miner"]"#);
+    assert!(
+        resp["error"].is_null(),
+        "getnewaddress(miner) failed: {:?}",
+        resp
+    );
+    let miner_addr = resp["result"].as_str().unwrap().to_string();
+    let resp = rpc_call(&mut node, "getnewaddress", r#"["recipient"]"#);
+    assert!(
+        resp["error"].is_null(),
+        "getnewaddress(recipient) failed: {:?}",
+        resp
+    );
+    let recipient_addr = resp["result"].as_str().unwrap().to_string();
+
+    // Mine 1 block to wallet (this gives us exactly 1 UTXO)
+    rpc_call(
+        &mut node,
+        "generatetoaddress",
+        &format!(r#"[1, "{}"]"#, miner_addr),
+    );
+
+    // Mine 100 more blocks to mature the coinbase (COINBASE_MATURITY = 100)
+    for _ in 0..10 {
+        rpc_call(&mut node, "generatenextblock", "[10]");
+    }
+
+    // Verify we have exactly 1 spendable UTXO
+    let resp = rpc_call(&mut node, "listunspent", "[]");
+    let utxos = resp["result"].as_array().unwrap();
+    assert_eq!(utxos.len(), 1, "Should have exactly 1 spendable UTXO");
+
+    // First send: should succeed, consuming the UTXO
+    let resp = rpc_call(
+        &mut node,
+        "sendtoaddress",
+        &format!(r#"["{}", 1000]"#, recipient_addr),
+    );
+    assert!(
+        resp["error"].is_null(),
+        "First sendtoaddress should succeed: {:?}",
+        resp["error"]
+    );
+    let first_txid = resp["result"].as_str().unwrap().to_string();
+    assert!(!first_txid.is_empty());
+
+    // Verify tx is in mempool
+    let resp = rpc_call(&mut node, "getmempoolinfo", "[]");
+    assert_eq!(
+        resp["result"]["size"].as_u64().unwrap(),
+        1,
+        "Should have exactly 1 tx in mempool"
+    );
+
+    // Second send WITHOUT mining: should fail with clear error
+    let resp = rpc_call(
+        &mut node,
+        "sendtoaddress",
+        &format!(r#"["{}", 1000]"#, recipient_addr),
+    );
+
+    // Assert: should have an error
+    assert!(
+        resp["error"].is_object(),
+        "Second sendtoaddress should fail"
+    );
+
+    let error_msg = resp["error"]["message"].as_str().unwrap();
+
+    // Assert: error should contain "no confirmed spendable UTXOs" (confirmed-only policy)
+    assert!(
+        error_msg.contains("no confirmed spendable UTXOs") || error_msg.contains("no mature UTXOs"),
+        "Expected 'no confirmed spendable UTXOs' error, got: {}",
+        error_msg
+    );
+
+    // Assert: error should NOT contain "insufficient fee" (the old misleading error)
+    assert!(
+        !error_msg.contains("insufficient fee"),
+        "Should NOT have 'insufficient fee' error (regression for #86), got: {}",
+        error_msg
+    );
+
+    // Assert: mempool should still have exactly 1 tx (no RBF attempt was made)
+    let resp = rpc_call(&mut node, "getmempoolinfo", "[]");
+    assert_eq!(
+        resp["result"]["size"].as_u64().unwrap(),
+        1,
+        "Should still have exactly 1 tx in mempool (no double-spend attempt)"
+    );
 }
