@@ -1746,7 +1746,14 @@ fn handle_inbound_messages(
                             && let Ok(header) =
                                 parse_header_bytes(msg.payload[..80].try_into().unwrap())
                         {
-                            let block_hash = header.hash();
+                            // Use pow_hash (Argon2id) for block identifier, not header.hash() (SHA256d)
+                            let block_hash = match pow_hash(&header) {
+                                Ok(h) => h,
+                                Err(_) => {
+                                    drop(node_guard);
+                                    continue;
+                                }
+                            };
                             drop(node_guard);
                             // Relay to other peers (excluding sender)
                             peer_manager.queue_block_relay(peer_id, block_hash);
@@ -1755,7 +1762,7 @@ fn handle_inbound_messages(
                     }
                     Err(e) => {
                         // Block rejected - could penalize peer, but log for now
-                        debug!(peer_id, error = %e, "rejected block from peer");
+                        warn!(peer_id, error = %e, "rejected block from peer");
                     }
                 }
             }
@@ -1765,11 +1772,11 @@ fn handle_inbound_messages(
                 match parse_headers(&msg.payload) {
                     Ok(headers) => {
                         if headers.is_empty() {
-                            debug!(peer_id, "received empty headers - synced with peer");
+                            info!(peer_id, "received empty headers - synced with peer");
                             continue;
                         }
 
-                        debug!(peer_id, count = headers.len(), "received headers from peer");
+                        info!(peer_id, count = headers.len(), "received headers from peer");
 
                         // Check if headers connect to our chain
                         let first_prev = headers[0].prev_blockhash;
@@ -1780,7 +1787,7 @@ fn handle_inbound_messages(
 
                         if !headers_connect {
                             // Headers don't connect - peer on different chain
-                            debug!(
+                            info!(
                                 peer_id,
                                 first_prev = %hex::encode(first_prev),
                                 "headers don't connect to our chain"
@@ -1822,7 +1829,7 @@ fn handle_inbound_messages(
                         }
 
                         if blocks_requested > 0 {
-                            debug!(peer_id, blocks_requested, "requested blocks from headers");
+                            info!(peer_id, blocks_requested, "requested blocks from headers");
                         }
 
                         // If we got 2000 headers (max batch), request more
@@ -1839,7 +1846,7 @@ fn handle_inbound_messages(
                         }
                     }
                     Err(e) => {
-                        debug!(peer_id, error = %e, "failed to parse headers");
+                        warn!(peer_id, error = %e, "failed to parse headers");
                     }
                 }
             }
