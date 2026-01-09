@@ -640,7 +640,14 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
 
             // Use cached wallet if available (for encrypted wallets)
             let tx = if let Some(wallet) = node.wallet_mut() {
-                wallet.create_transaction(address, amount, fee_rate, utxos.clone(), current_height, rbf)?
+                wallet.create_transaction(
+                    address,
+                    amount,
+                    fee_rate,
+                    utxos.clone(),
+                    current_height,
+                    rbf,
+                )?
             } else {
                 let hrp = load_hrp(&node.chain, Some(&node.params_path));
                 let mut wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;

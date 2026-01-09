@@ -453,11 +453,7 @@ fn rapid_sends_no_double_spend_misleading_error() {
 
     // Create wallet
     let resp = rpc_call(&mut node, "createwallet", "[]");
-    assert!(
-        resp["error"].is_null(),
-        "createwallet failed: {:?}",
-        resp
-    );
+    assert!(resp["error"].is_null(), "createwallet failed: {:?}", resp);
     let resp = rpc_call(&mut node, "getnewaddress", r#"["miner"]"#);
     assert!(
         resp["error"].is_null(),
@@ -529,8 +525,7 @@ fn rapid_sends_no_double_spend_misleading_error() {
 
     // Assert: error should contain "no confirmed spendable UTXOs" (confirmed-only policy)
     assert!(
-        error_msg.contains("no confirmed spendable UTXOs")
-            || error_msg.contains("no mature UTXOs"),
+        error_msg.contains("no confirmed spendable UTXOs") || error_msg.contains("no mature UTXOs"),
         "Expected 'no confirmed spendable UTXOs' error, got: {}",
         error_msg
     );
