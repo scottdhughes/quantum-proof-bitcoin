@@ -1,3 +1,7 @@
+[workspace]
+members = [".", "tools/faucet"]
+resolver = "2"
+
 [package]
 name = "qpb-consensus"
 version = "0.1.0"
