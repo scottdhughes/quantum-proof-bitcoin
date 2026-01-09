@@ -1303,12 +1303,15 @@ impl Wallet {
 
         // Get wallet UTXOs and filter out immature coinbase outputs
         let all_wallet_utxos = self.list_unspent(|| utxos, current_height)?;
+
+        // Count UTXO categories for better error messages
+        let mut immature_coinbase_count = 0usize;
         let wallet_utxos: Vec<WalletUtxo> = all_wallet_utxos
             .into_iter()
             .filter(|u| {
-                if u.is_coinbase {
-                    // Use pre-computed confirmations from list_unspent
-                    u.confirmations >= COINBASE_MATURITY
+                if u.is_coinbase && u.confirmations < COINBASE_MATURITY {
+                    immature_coinbase_count += 1;
+                    false
                 } else {
                     true
                 }
@@ -1316,7 +1319,17 @@ impl Wallet {
             .collect();
 
         if wallet_utxos.is_empty() {
-            return Err(anyhow!("no mature UTXOs available"));
+            if immature_coinbase_count > 0 {
+                return Err(anyhow!(
+                    "no confirmed spendable UTXOs available (confirmed-only policy); \
+                     {} immature coinbase outputs need {} more confirmations",
+                    immature_coinbase_count,
+                    COINBASE_MATURITY
+                ));
+            }
+            return Err(anyhow!(
+                "no confirmed spendable UTXOs available (confirmed-only policy)"
+            ));
         }
 
         // Estimate transaction size for fee calculation

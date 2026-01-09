@@ -11,6 +11,7 @@ use crate::node::miner::{
 use crate::node::node::{Node, parse_transaction};
 use crate::node::wallet::Wallet;
 use crate::script::parse_script_pubkey;
+use crate::types::Prevout;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RpcAction {
@@ -624,13 +625,22 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 return Err(anyhow!("wallet not found, call createwallet first"));
             }
 
-            // Get all UTXOs for coin selection
-            let utxos = node.utxo_iter_all();
+            // Get all UTXOs with typed OutPoints
+            let all_utxos = node.utxo_iter_all_outpoints();
+
+            // Filter out UTXOs already spent in mempool (confirmed-only policy)
+            let mempool = node.mempool_ref();
+            let utxos: Vec<(String, u32, Prevout)> = all_utxos
+                .into_iter()
+                .filter(|(outpoint, _)| !mempool.is_spent(outpoint))
+                .map(|(op, prevout)| (hex::encode(op.txid), op.vout, prevout))
+                .collect();
+
             let current_height = node.height() as u32;
 
             // Use cached wallet if available (for encrypted wallets)
             let tx = if let Some(wallet) = node.wallet_mut() {
-                wallet.create_transaction(address, amount, fee_rate, utxos, current_height, rbf)?
+                wallet.create_transaction(address, amount, fee_rate, utxos.clone(), current_height, rbf)?
             } else {
                 let hrp = load_hrp(&node.chain, Some(&node.params_path));
                 let mut wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
