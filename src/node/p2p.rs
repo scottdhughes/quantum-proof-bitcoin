@@ -731,8 +731,9 @@ fn sync_headers_and_blocks_impl(node: &mut Node, net: &NetworkParams, addr: &str
         }
 
         // Find where headers connect to our chain
+        // Genesis block's prev_hash is all zeros - accept that as a valid connection point
         let first_prev = headers[0].prev_blockhash;
-        if !node.has_block(&first_prev) {
+        if first_prev != [0u8; 32] && !node.has_block(&first_prev) {
             // This is NOT fatal — just means this peer can't help us
             return Err(anyhow!(
                 "headers do not connect: first_prev={} not in our chain",
@@ -1779,10 +1780,11 @@ fn handle_inbound_messages(
                         info!(peer_id, count = headers.len(), "received headers from peer");
 
                         // Check if headers connect to our chain
+                        // Genesis block's prev_hash is all zeros - accept that as a valid connection point
                         let first_prev = headers[0].prev_blockhash;
                         let headers_connect = {
                             let node_guard = node.lock().unwrap();
-                            node_guard.has_block(&first_prev)
+                            first_prev == [0u8; 32] || node_guard.has_block(&first_prev)
                         };
 
                         if !headers_connect {
