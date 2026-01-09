@@ -365,3 +365,151 @@ fn sendtoaddress_validates_address() {
     let msg = resp["error"]["message"].as_str().unwrap();
     assert!(msg.contains("invalid address") || msg.contains("address"));
 }
+
+#[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
+fn fanout_creates_multiple_utxos() {
+    let dir = tempdir().unwrap();
+    let datadir = dir.path();
+
+    let mut node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
+
+    // Create wallet
+    let resp = rpc_call(&mut node, "createwallet", "[]");
+    assert!(
+        resp.get("error").is_none() || resp["error"].is_null(),
+        "createwallet failed: {:?}",
+        resp
+    );
+
+    let resp = rpc_call(&mut node, "getnewaddress", r#"["miner"]"#);
+    assert!(
+        resp.get("error").is_none() || resp["error"].is_null(),
+        "getnewaddress failed: {:?}",
+        resp
+    );
+    let miner_addr = resp["result"].as_str().unwrap().to_string();
+
+    // Mine to maturity (101 blocks for coinbase maturity)
+    // generatetoaddress has a limit of 10 blocks per call, so we loop
+    for i in 0..11 {
+        let count = if i < 10 { 10 } else { 1 }; // 10*10 + 1 = 101
+        let resp = rpc_call(
+            &mut node,
+            "generatetoaddress",
+            &format!(r#"[{}, "{}"]"#, count, miner_addr),
+        );
+        assert!(
+            resp.get("error").is_none() || resp["error"].is_null(),
+            "generatetoaddress batch {} failed: {:?}",
+            i,
+            resp
+        );
+    }
+
+    // Call fanout to create 20 outputs of 1 QPB each (100_000_000 sats)
+    let resp = rpc_call(&mut node, "fanout", "[20, 100000000]");
+    assert!(
+        resp.get("error").is_none() || resp["error"].is_null(),
+        "fanout failed: {:?}",
+        resp
+    );
+
+    let outputs_created = resp["result"]["outputs_created"].as_u64().unwrap();
+    // Fanout creates count outputs + possibly 1 change output
+    assert!(
+        outputs_created >= 20,
+        "should create at least 20 outputs, got {}",
+        outputs_created
+    );
+
+    // Mine 1 block to confirm the fanout transaction
+    let resp = rpc_call(
+        &mut node,
+        "generatetoaddress",
+        &format!(r#"[1, "{}"]"#, miner_addr),
+    );
+    assert!(resp.get("error").is_none() || resp["error"].is_null());
+
+    // Now immediately call sendtoaddress 10 times without mining between
+    // Each send should succeed because fanout created confirmed UTXOs
+    let recipient = rpc_call(&mut node, "getnewaddress", r#"["recipient"]"#)["result"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    for i in 0..10 {
+        let resp = rpc_call(
+            &mut node,
+            "sendtoaddress",
+            // Send 0.1 QPB (10_000_000 sats) each time
+            &format!(r#"["{}", 10000000]"#, recipient),
+        );
+        assert!(
+            resp.get("error").is_none() || resp["error"].is_null(),
+            "sendtoaddress {} failed: {:?}",
+            i + 1,
+            resp
+        );
+    }
+
+    // All 10 sends succeeded - proves fanout created confirmed spendable UTXOs
+}
+
+#[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
+fn fanout_validates_count_limits() {
+    let dir = tempdir().unwrap();
+    let datadir = dir.path();
+
+    let mut node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
+
+    // Create wallet
+    rpc_call(&mut node, "createwallet", "[]");
+
+    // Try count=0 - should fail
+    let resp = rpc_call(&mut node, "fanout", "[0, 100000000]");
+    assert!(resp["error"].is_object(), "count=0 should fail");
+
+    // Try count > 500 - should fail
+    let resp = rpc_call(&mut node, "fanout", "[501, 100000000]");
+    assert!(resp["error"].is_object(), "count>500 should fail");
+}
+
+#[test]
+#[cfg_attr(miri, ignore)] // Integration test uses wallet FFI
+fn fanout_requires_wallet() {
+    let dir = tempdir().unwrap();
+    let datadir = dir.path();
+
+    let mut node = Node::open_or_init(
+        "devnet",
+        datadir,
+        Path::new("docs/chain/chainparams.json"),
+        true,
+        false,
+    )
+    .unwrap();
+
+    // Try to fanout without creating wallet
+    let resp = rpc_call(&mut node, "fanout", "[10, 100000000]");
+
+    // Should fail - no wallet
+    assert!(resp["error"].is_object());
+    let msg = resp["error"]["message"].as_str().unwrap();
+    assert!(msg.contains("wallet not found"));
+}

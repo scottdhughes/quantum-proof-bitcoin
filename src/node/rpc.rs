@@ -668,6 +668,100 @@ fn dispatch(node: &mut Node, method: &str, params: &[Value]) -> Result<(Value, R
                 RpcAction::BroadcastTransaction(txid),
             ))
         }
+        "fanout" => {
+            // fanout <count> <amount_per_output> [fee_rate]
+            // Creates a transaction with many outputs to self for UTXO fan-out
+            let count = params
+                .first()
+                .and_then(|v| v.as_u64())
+                .ok_or_else(|| anyhow!("missing count"))?;
+            if count == 0 || count > 500 {
+                return Err(anyhow!("count must be between 1 and 500"));
+            }
+            let amount_per_output = params
+                .get(1)
+                .and_then(|v| v.as_u64())
+                .ok_or_else(|| anyhow!("missing amount_per_output"))?;
+            let fee_rate = params.get(2).and_then(|v| v.as_u64()).unwrap_or(1);
+
+            let wallet_path = node.datadir.join("wallet.json");
+            if !wallet_path.exists() {
+                return Err(anyhow!("wallet not found, call createwallet first"));
+            }
+
+            // Get all UTXOs with typed OutPoints
+            let all_utxos = node.utxo_iter_all_outpoints();
+
+            // Filter out UTXOs already spent in mempool (confirmed-only policy)
+            let mempool = node.mempool_ref();
+            let utxos: Vec<(String, u32, Prevout)> = all_utxos
+                .into_iter()
+                .filter(|(outpoint, _)| !mempool.is_spent(outpoint))
+                .map(|(op, prevout)| (hex::encode(op.txid), op.vout, prevout))
+                .collect();
+
+            let current_height = node.height() as u32;
+
+            // Use cached wallet if available (for encrypted wallets)
+            let tx = if let Some(wallet) = node.wallet_mut() {
+                wallet.create_fanout_transaction(
+                    count as u32,
+                    amount_per_output,
+                    fee_rate,
+                    utxos.clone(),
+                    current_height,
+                )?
+            } else {
+                let hrp = load_hrp(&node.chain, Some(&node.params_path));
+                let mut wallet = Wallet::open_or_create(&wallet_path, &node.chain, &hrp)?;
+                if wallet.is_encrypted() {
+                    return Err(anyhow!(
+                        "wallet is locked; unlock with walletpassphrase first"
+                    ));
+                }
+                wallet.create_fanout_transaction(
+                    count as u32,
+                    amount_per_output,
+                    fee_rate,
+                    utxos,
+                    current_height,
+                )?
+            };
+
+            let txid = tx.txid();
+            let outputs_created = tx.vout.len();
+            let total_output: u64 = tx.vout.iter().map(|o| o.value).sum();
+
+            // Calculate fee from inputs vs outputs
+            // We need input values - get them from prevouts we passed
+            let input_total: u64 = {
+                let all_utxos = node.utxo_iter_all_outpoints();
+                tx.vin
+                    .iter()
+                    .filter_map(|vin| {
+                        all_utxos
+                            .iter()
+                            .find(|(op, _)| {
+                                op.txid == vin.prevout.txid && op.vout == vin.prevout.vout
+                            })
+                            .map(|(_, prevout)| prevout.value)
+                    })
+                    .sum()
+            };
+            let fee = input_total.saturating_sub(total_output);
+
+            // Add to mempool
+            node.add_to_mempool(tx)?;
+
+            let result = serde_json::json!({
+                "txid": hex::encode(txid),
+                "outputs_created": outputs_created,
+                "total": total_output,
+                "fee": fee
+            });
+
+            Ok((result, RpcAction::BroadcastTransaction(txid)))
+        }
         "bumpfee" => {
             // bumpfee <txid> <new_fee_rate>
             // Creates a replacement transaction with higher fee
