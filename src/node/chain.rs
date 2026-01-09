@@ -219,6 +219,11 @@ impl ChainIndex {
             .unwrap_or(0)
     }
 
+    /// Get genesis block hash.
+    pub fn genesis(&self) -> Option<[u8; 32]> {
+        self.genesis
+    }
+
     /// Check if a block is known.
     pub fn contains(&self, hash: &[u8; 32]) -> bool {
         self.blocks.contains_key(hash)
