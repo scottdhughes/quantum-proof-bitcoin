@@ -27,6 +27,7 @@ pub const CMD_INV: &str = "inv";
 pub const CMD_TX: &str = "tx";
 pub const CMD_GETADDR: &str = "getaddr";
 pub const CMD_ADDR: &str = "addr";
+pub const CMD_NOTFOUND: &str = "notfound";
 
 /// Inventory type for transactions.
 pub const MSG_TX: u32 = 1;
@@ -483,7 +484,221 @@ pub fn ser_getaddr() -> Vec<u8> {
     Vec::new()
 }
 
-pub fn sync_headers_and_blocks(node: &mut Node, net: &NetworkParams, addr: &str) -> Result<()> {
+// ─────────────────────────────────────────────────────────────────────────────
+// Fork-tolerant sync helpers (issue #87)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MAX_HANDSHAKE_MESSAGES: usize = 20;
+const MAX_IGNORED_MESSAGES: usize = 50;
+const MAX_HEADERS_PER_MSG: usize = 2000;
+const MAX_SYNC_ROUNDS: usize = 100;
+
+/// Outcome of a single sync attempt with a peer.
+/// Errors here do NOT crash the node — they just mean "try another peer".
+#[derive(Debug)]
+enum SyncOutcome {
+    /// Successfully synced (may have made progress or already in sync)
+    Ok,
+    /// Peer sent headers that don't connect to our chain
+    HeadersDisconnected,
+    /// Network/protocol error with this peer
+    PeerError(String),
+}
+
+/// Perform P2P handshake, tolerating interleaved messages.
+/// Loops until both VERSION and VERACK are observed from peer.
+fn perform_handshake(stream: &mut TcpStream, magic_bytes: [u8; 4], our_height: i32) -> Result<()> {
+    // Send our version
+    let version_payload = ser_version(our_height);
+    write_message(stream, magic_bytes, CMD_VERSION, &version_payload)?;
+
+    let mut got_version = false;
+    let mut got_verack = false;
+    let mut sent_verack = false;
+
+    for _ in 0..MAX_HANDSHAKE_MESSAGES {
+        if got_version && got_verack {
+            return Ok(());
+        }
+
+        let msg = read_message(stream, magic_bytes)?;
+        match msg.command.as_str() {
+            CMD_VERSION => {
+                got_version = true;
+                // Send verack in response to their version
+                if !sent_verack {
+                    write_message(stream, magic_bytes, CMD_VERACK, &[])?;
+                    sent_verack = true;
+                }
+            }
+            CMD_VERACK => {
+                got_verack = true;
+            }
+            CMD_PING => {
+                // Respond with pong
+                let _ = write_message(stream, magic_bytes, CMD_PONG, &msg.payload);
+            }
+            _ => {
+                // Ignore addr, inv, headers, etc. during handshake
+                tracing::trace!(cmd = %msg.command, "ignoring message during handshake");
+            }
+        }
+    }
+
+    Err(anyhow!(
+        "handshake failed: exceeded max messages without completing"
+    ))
+}
+
+/// Build a Bitcoin-style block locator chain for GETHEADERS.
+/// Uses exponential backoff: tip, tip-1, tip-2, tip-4, tip-8, ...
+/// Always includes genesis hash to guarantee finding common ancestor.
+fn build_block_locator(node: &Node) -> Vec<[u8; 32]> {
+    let mut locator = Vec::new();
+    let chain_index = node.chain_index();
+
+    let mut current = match chain_index.tip() {
+        Some(h) => h,
+        None => return locator,
+    };
+
+    let genesis = chain_index.genesis();
+    let mut step = 1u64;
+    let mut height = chain_index.tip_height();
+
+    loop {
+        locator.push(current);
+
+        if height == 0 {
+            break;
+        }
+
+        // Walk back `step` blocks
+        let target_height = height.saturating_sub(step);
+        while let Some(meta) = chain_index.get(&current) {
+            if meta.height <= target_height || meta.height == 0 {
+                break;
+            }
+            current = meta.prev_hash;
+            if let Some(m) = chain_index.get(&current) {
+                height = m.height;
+            } else {
+                break;
+            }
+        }
+
+        if chain_index.get(&current).is_none() {
+            break;
+        }
+
+        // Exponential backoff after first 10 entries
+        if locator.len() >= 10 {
+            step *= 2;
+        }
+    }
+
+    // Ensure genesis is always included (critical for fork detection)
+    if let Some(g) = genesis
+        && locator.last() != Some(&g)
+    {
+        locator.push(g);
+    }
+
+    locator
+}
+
+/// Read messages until we get HEADERS, ignoring other message types.
+/// Returns Err only on connection/timeout errors, not on unexpected messages.
+fn read_headers_message(stream: &mut TcpStream, magic_bytes: [u8; 4]) -> Result<Message> {
+    for _ in 0..MAX_IGNORED_MESSAGES {
+        let msg = read_message(stream, magic_bytes)?;
+        match msg.command.as_str() {
+            CMD_HEADERS => return Ok(msg),
+            CMD_PING => {
+                let _ = write_message(stream, magic_bytes, CMD_PONG, &msg.payload);
+            }
+            _ => {
+                tracing::trace!(
+                    cmd = %msg.command,
+                    "ignoring interleaved message waiting for headers"
+                );
+            }
+        }
+    }
+    Err(anyhow!("exceeded max ignored messages waiting for headers"))
+}
+
+/// Read messages until we get the expected BLOCK, ignoring other message types.
+/// Handles NOTFOUND and verifies the received block matches requested hash.
+fn read_block_message(
+    stream: &mut TcpStream,
+    magic_bytes: [u8; 4],
+    expected_hash: [u8; 32],
+) -> Result<Message> {
+    for _ in 0..MAX_IGNORED_MESSAGES {
+        let msg = read_message(stream, magic_bytes)?;
+        match msg.command.as_str() {
+            CMD_BLOCK => {
+                // Verify we got the block we requested
+                if msg.payload.len() < 80 {
+                    return Err(anyhow!("block payload too short"));
+                }
+                let header_bytes: [u8; 80] = msg.payload[..80]
+                    .try_into()
+                    .map_err(|_| anyhow!("header slice conversion failed"))?;
+                let header = parse_header_bytes(&header_bytes)?;
+                let received_hash = pow_hash(&header)?;
+                if received_hash != expected_hash {
+                    tracing::warn!(
+                        expected = %hex::encode(expected_hash),
+                        received = %hex::encode(received_hash),
+                        "received unexpected block, ignoring"
+                    );
+                    continue; // Keep looking for the right block
+                }
+                return Ok(msg);
+            }
+            CMD_NOTFOUND => {
+                return Err(anyhow!(
+                    "peer does not have block {}",
+                    hex::encode(expected_hash)
+                ));
+            }
+            CMD_PING => {
+                let _ = write_message(stream, magic_bytes, CMD_PONG, &msg.payload);
+            }
+            _ => {
+                tracing::trace!(
+                    cmd = %msg.command,
+                    "ignoring interleaved message waiting for block"
+                );
+            }
+        }
+    }
+    Err(anyhow!("exceeded max ignored messages waiting for block"))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fork-tolerant sync implementation
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Sync headers and blocks from a peer. Returns SyncOutcome, never crashes.
+fn sync_headers_and_blocks_inner(node: &mut Node, net: &NetworkParams, addr: &str) -> SyncOutcome {
+    let result = sync_headers_and_blocks_impl(node, net, addr);
+    match result {
+        Ok(()) => SyncOutcome::Ok,
+        Err(e) => {
+            let msg = e.to_string();
+            if msg.contains("headers do not connect") {
+                SyncOutcome::HeadersDisconnected
+            } else {
+                SyncOutcome::PeerError(msg)
+            }
+        }
+    }
+}
+
+fn sync_headers_and_blocks_impl(node: &mut Node, net: &NetworkParams, addr: &str) -> Result<()> {
     let magic_bytes = hex::decode(&net.p2p_magic)?
         .try_into()
         .map_err(|_| anyhow!("bad magic"))?;
@@ -491,92 +706,171 @@ pub fn sync_headers_and_blocks(node: &mut Node, net: &NetworkParams, addr: &str)
     stream.set_read_timeout(Some(Duration::from_millis(DEFAULT_READ_TIMEOUT_MS)))?;
     stream.set_write_timeout(Some(Duration::from_millis(DEFAULT_WRITE_TIMEOUT_MS)))?;
 
-    // handshake
-    let version_payload = ser_version(node.height() as i32);
-    write_message(&mut stream, magic_bytes, CMD_VERSION, &version_payload)?;
-    // expect peer version then verack
-    let msg = read_message(&mut stream, magic_bytes)?;
-    if msg.command != CMD_VERSION {
-        return Err(anyhow!("expected version"));
-    }
-    write_message(&mut stream, magic_bytes, CMD_VERACK, &[])?;
-    let _ = read_message(&mut stream, magic_bytes)?; // peer verack or version; tolerate one extra
+    // Handshake — tolerates interleaved messages
+    perform_handshake(&mut stream, magic_bytes, node.height() as i32)?;
 
-    // getheaders with locator = tip
-    let tip_hash = hex::decode(node.best_hash_hex())?;
-    let mut h = [0u8; 32];
-    h.copy_from_slice(&tip_hash);
-    let gh_payload = ser_getheaders(vec![h]);
-    write_message(&mut stream, magic_bytes, CMD_GETHEADERS, &gh_payload)?;
+    // Iterative header sync loop
+    for round in 0..MAX_SYNC_ROUNDS {
+        let locator = build_block_locator(node);
+        if locator.is_empty() {
+            return Err(anyhow!("no local chain to sync from"));
+        }
 
-    let headers_msg = read_message(&mut stream, magic_bytes)?;
-    if headers_msg.command != CMD_HEADERS {
-        return Err(anyhow!("expected headers"));
-    }
-    let headers = parse_headers(&headers_msg.payload)?;
+        // Request headers
+        let gh_payload = ser_getheaders(locator);
+        write_message(&mut stream, magic_bytes, CMD_GETHEADERS, &gh_payload)?;
 
-    for header in headers {
-        if hex::encode(header.prev_blockhash) != node.best_hash_hex() {
-            return Err(anyhow!("header does not extend tip"));
+        // Read headers, tolerating interleaved messages
+        let headers_msg = read_headers_message(&mut stream, magic_bytes)?;
+        let headers = parse_headers(&headers_msg.payload)?;
+
+        if headers.is_empty() {
+            // Synced with this peer
+            tracing::debug!(rounds = round + 1, "header sync complete");
+            return Ok(());
         }
-        let block_hash = pow_hash(&header)?;
-        let block_hash_hex = hex::encode(block_hash);
-        let gd_payload = ser_getdata_block(block_hash);
-        write_message(&mut stream, magic_bytes, CMD_GETDATA, &gd_payload)?;
-        let blk_msg = read_message(&mut stream, magic_bytes)?;
-        if blk_msg.command != CMD_BLOCK {
-            return Err(anyhow!("expected block"));
+
+        // Find where headers connect to our chain
+        let first_prev = headers[0].prev_blockhash;
+        if !node.has_block(&first_prev) {
+            // This is NOT fatal — just means this peer can't help us
+            return Err(anyhow!(
+                "headers do not connect: first_prev={} not in our chain",
+                hex::encode(first_prev)
+            ));
         }
-        node.submit_block_bytes(&blk_msg.payload)?;
-        // ensure tip advanced
-        if node.best_hash_hex() != block_hash_hex {
-            return Err(anyhow!("submit did not advance tip"));
+
+        let is_fork = hex::encode(first_prev) != node.best_hash_hex();
+        if is_fork {
+            tracing::info!(
+                fork_point = %hex::encode(first_prev),
+                local_tip = %node.best_hash_hex(),
+                peer_headers = headers.len(),
+                "syncing divergent chain (will trigger reorg)"
+            );
         }
+
+        // Download and submit each block
+        for header in &headers {
+            let block_hash = pow_hash(header)?;
+
+            // Request block
+            let gd_payload = ser_getdata_block(block_hash);
+            write_message(&mut stream, magic_bytes, CMD_GETDATA, &gd_payload)?;
+
+            // Read block, tolerating interleaved messages, validating hash
+            let blk_msg = read_block_message(&mut stream, magic_bytes, block_hash)?;
+
+            // Submit block — reorg logic is in submit_block_bytes()
+            if let Err(e) = node.submit_block_bytes(&blk_msg.payload) {
+                tracing::warn!(
+                    block = %hex::encode(block_hash),
+                    error = %e,
+                    "block submission failed, continuing"
+                );
+                // Don't abort — might be orphan or temporary issue
+            }
+        }
+
+        // If we got fewer than max headers, we're probably done
+        if headers.len() < MAX_HEADERS_PER_MSG {
+            tracing::debug!(
+                rounds = round + 1,
+                final_batch = headers.len(),
+                "header sync complete (partial batch)"
+            );
+            return Ok(());
+        }
+
+        // Otherwise continue to next round with updated locator
     }
-    Ok(())
+
+    tracing::warn!("reached max sync rounds without completing");
+    Ok(()) // Still return Ok — we made progress
 }
 
+/// Legacy wrapper for backward compatibility with existing call sites.
+/// Uses the new fork-tolerant implementation internally.
+pub fn sync_headers_and_blocks(node: &mut Node, net: &NetworkParams, addr: &str) -> Result<()> {
+    match sync_headers_and_blocks_inner(node, net, addr) {
+        SyncOutcome::Ok => Ok(()),
+        SyncOutcome::HeadersDisconnected => Err(anyhow!("headers do not connect to our chain")),
+        SyncOutcome::PeerError(msg) => Err(anyhow!("{}", msg)),
+    }
+}
+
+/// Attempt to sync with any available peer. Returns Ok if any progress made.
+/// NEVER returns an error that should terminate the node.
 pub fn sync_with_retries(
     node: &mut Node,
     net: &NetworkParams,
     peers: &[std::net::SocketAddr],
     opts: &SyncOpts,
 ) -> Result<()> {
+    if peers.is_empty() {
+        tracing::warn!("no peers available for sync");
+        return Ok(()); // Not an error — just no peers yet
+    }
+
     let deadline = Instant::now()
         .checked_add(Duration::from_millis(opts.total_deadline_ms))
         .unwrap_or_else(Instant::now);
+
+    let mut any_success = false;
+
     for peer in peers {
+        if Instant::now() >= deadline {
+            break;
+        }
+
         let mut backoff = Duration::from_millis(opts.initial_backoff_ms);
+
         for attempt in 0..opts.max_attempts_per_peer {
             if Instant::now() >= deadline {
-                return Err(anyhow!("p2p sync deadline exceeded"));
+                break;
             }
-            let remaining = deadline.saturating_duration_since(Instant::now());
+
             let addr_str = peer.to_string();
-            match sync_headers_and_blocks(node, net, &addr_str) {
-                Ok(()) => return Ok(()),
-                Err(e) => {
+            match sync_headers_and_blocks_inner(node, net, &addr_str) {
+                SyncOutcome::Ok => {
+                    any_success = true;
+                    // Successfully synced with this peer, continue to check others
+                    // or break if we only need one
+                    break;
+                }
+                SyncOutcome::HeadersDisconnected => {
+                    tracing::info!(
+                        peer = %addr_str,
+                        "peer headers don't connect, trying next peer"
+                    );
+                    break; // Don't retry this peer
+                }
+                SyncOutcome::PeerError(e) => {
                     tracing::debug!(
                         peer = %addr_str,
                         attempt = attempt + 1,
                         error = %e,
                         "sync attempt failed"
                     );
-                    // last attempt or deadline exceeded
-                    if attempt + 1 == opts.max_attempts_per_peer {
-                        break;
+                    if attempt + 1 < opts.max_attempts_per_peer {
+                        let remaining = deadline.saturating_duration_since(Instant::now());
+                        let sleep_dur = backoff.min(remaining);
+                        std::thread::sleep(sleep_dur);
+                        backoff = std::cmp::min(
+                            Duration::from_millis(opts.max_backoff_ms),
+                            backoff.saturating_mul(2),
+                        );
                     }
-                    let sleep_dur = backoff.min(remaining);
-                    std::thread::sleep(sleep_dur);
-                    backoff = std::cmp::min(
-                        Duration::from_millis(opts.max_backoff_ms),
-                        backoff.saturating_mul(2),
-                    );
                 }
             }
         }
     }
-    Err(anyhow!("p2p sync failed for all peers"))
+
+    if !any_success {
+        tracing::warn!("no peers synced successfully, will retry later");
+    }
+
+    Ok(()) // NEVER return Err that crashes the node
 }
 
 // ============================================================================

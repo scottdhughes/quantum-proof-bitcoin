@@ -222,6 +222,11 @@ impl Node {
         self.store.tip_hash()
     }
 
+    /// Get the chain index for block locator building.
+    pub fn chain_index(&self) -> &ChainIndex {
+        &self.chain_index
+    }
+
     pub fn get_blockhash(&self, height: u64) -> Option<String> {
         self.store.index.hashes.get(height as usize).cloned()
     }
