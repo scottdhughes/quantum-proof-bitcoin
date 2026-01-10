@@ -15,10 +15,12 @@ WORKDIR /build
 # Copy manifests first for better layer caching
 COPY Cargo.toml Cargo.lock ./
 
-# Create dummy src to cache dependencies
-RUN mkdir -p src/bin && \
+# Create dummy src and workspace members to cache dependencies
+RUN mkdir -p src/bin tools/faucet/src && \
     echo 'fn main() {}' > src/bin/qpb-node.rs && \
-    echo 'pub fn dummy() {}' > src/lib.rs
+    echo 'pub fn dummy() {}' > src/lib.rs && \
+    echo '[package]\nname = "qpb-faucet"\nversion = "0.1.0"\nedition = "2024"\n\n[lib]\npath = "src/lib.rs"' > tools/faucet/Cargo.toml && \
+    echo '' > tools/faucet/src/lib.rs
 
 # Build arg to enable SHRINCS (default: enabled for testing)
 ARG ENABLE_SHRINCS=true
