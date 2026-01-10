@@ -1555,25 +1555,26 @@ impl Wallet {
         let single_input_fee = single_input_vsize as u64 * fee_rate;
         let min_single_utxo_value = total_output_amount + single_input_fee;
 
-        let selected = if let Some(large_utxo) = select_one_large_utxo(&wallet_utxos, min_single_utxo_value) {
-            // Fast-path succeeded - use single UTXO
-            let change = large_utxo.value - total_output_amount - single_input_fee;
-            CoinSelection {
-                total: large_utxo.value,
-                utxos: vec![large_utxo],
-                change,
-            }
-        } else {
-            // Fall back to full coin selection
-            select_coins(
-                &wallet_utxos,
-                total_output_amount,
-                fee_rate,
-                input_weight,
-                output_weight,
-                base_weight,
-            )?
-        };
+        let selected =
+            if let Some(large_utxo) = select_one_large_utxo(&wallet_utxos, min_single_utxo_value) {
+                // Fast-path succeeded - use single UTXO
+                let change = large_utxo.value - total_output_amount - single_input_fee;
+                CoinSelection {
+                    total: large_utxo.value,
+                    utxos: vec![large_utxo],
+                    change,
+                }
+            } else {
+                // Fall back to full coin selection
+                select_coins(
+                    &wallet_utxos,
+                    total_output_amount,
+                    fee_rate,
+                    input_weight,
+                    output_weight,
+                    base_weight,
+                )?
+            };
 
         tracing::debug!(
             elapsed_ms = t_start.elapsed().as_millis() as u64,
