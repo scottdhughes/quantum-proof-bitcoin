@@ -1503,6 +1503,9 @@ impl Wallet {
 
         let total_output_amount = (count as u64) * amount_per_output;
 
+        // Start timing for performance diagnostics
+        let t_start = Instant::now();
+
         // Get wallet UTXOs and filter out immature coinbase outputs
         let all_wallet_utxos = self.list_unspent(|| utxos, current_height)?;
 
@@ -1533,21 +1536,50 @@ impl Wallet {
             ));
         }
 
+        tracing::debug!(
+            elapsed_ms = t_start.elapsed().as_millis() as u64,
+            utxo_count = wallet_utxos.len(),
+            "fanout: utxo filtering complete"
+        );
+
         // Estimate transaction size for fee calculation
         let input_weight = 41 * 4 + (3310 + 1953 + 10); // ~5314 WU per input
         let output_weight = 43 * 4; // 172 WU per output
         let base_weight = 10 * 4; // 40 WU
 
-        // Select coins for total_output_amount + estimated fee
-        // We may need change output too, so estimate conservatively
-        let selected = select_coins(
-            &wallet_utxos,
-            total_output_amount,
-            fee_rate,
-            input_weight,
-            output_weight,
-            base_weight,
-        )?;
+        // Fast-path: try to find a single UTXO that covers everything
+        // This avoids sorting all UTXOs when one large one suffices
+        let num_outputs_max = count as usize + 1; // outputs + potential change
+        let single_input_weight = base_weight + input_weight + (num_outputs_max * output_weight);
+        let single_input_vsize = single_input_weight.div_ceil(4) + 1;
+        let single_input_fee = single_input_vsize as u64 * fee_rate;
+        let min_single_utxo_value = total_output_amount + single_input_fee;
+
+        let selected = if let Some(large_utxo) = select_one_large_utxo(&wallet_utxos, min_single_utxo_value) {
+            // Fast-path succeeded - use single UTXO
+            let change = large_utxo.value - total_output_amount - single_input_fee;
+            CoinSelection {
+                total: large_utxo.value,
+                utxos: vec![large_utxo],
+                change,
+            }
+        } else {
+            // Fall back to full coin selection
+            select_coins(
+                &wallet_utxos,
+                total_output_amount,
+                fee_rate,
+                input_weight,
+                output_weight,
+                base_weight,
+            )?
+        };
+
+        tracing::debug!(
+            elapsed_ms = t_start.elapsed().as_millis() as u64,
+            inputs = selected.utxos.len(),
+            "fanout: coin selection complete"
+        );
 
         // Calculate fee based on actual selection
         let num_inputs = selected.utxos.len();
@@ -1617,17 +1649,18 @@ impl Wallet {
             input_addresses.push(utxo.address.clone());
         }
 
-        // Build transaction outputs - generate fresh addresses for each
+        // Build transaction outputs - reuse single address for efficiency
+        // Multiple outputs to the same address are still distinct UTXOs (different outpoints)
         let mut vout = Vec::with_capacity(num_outputs);
 
-        for i in 0..count {
-            let label = format!("fanout-{}", i);
-            let address = self.get_new_address(&label)?;
-            let decoded =
-                decode_address(&address).map_err(|e| anyhow!("invalid fanout address: {}", e))?;
+        let fanout_address = self.get_new_address("fanout")?;
+        let decoded = decode_address(&fanout_address)
+            .map_err(|e| anyhow!("invalid fanout address: {}", e))?;
+
+        for _ in 0..count {
             vout.push(TxOut {
                 value: amount_per_output,
-                script_pubkey: decoded.script_pubkey,
+                script_pubkey: decoded.script_pubkey.clone(),
             });
         }
 
@@ -1646,6 +1679,12 @@ impl Wallet {
                 script_pubkey: change_decoded.script_pubkey,
             });
         }
+
+        tracing::debug!(
+            elapsed_ms = t_start.elapsed().as_millis() as u64,
+            outputs = vout.len(),
+            "fanout: outputs built"
+        );
 
         let mut tx = Transaction {
             version: 1,
@@ -1668,6 +1707,12 @@ impl Wallet {
 
             tx.vin[i].witness = vec![sig_ser, pk_ser];
         }
+
+        tracing::debug!(
+            elapsed_ms = t_start.elapsed().as_millis() as u64,
+            inputs = tx.vin.len(),
+            "fanout: signing complete"
+        );
 
         Ok(tx)
     }
@@ -1822,6 +1867,14 @@ struct CoinSelection {
     total: u64,
     /// Change amount (may be 0).
     change: u64,
+}
+
+/// Fast-path coin selection: finds first UTXO >= min_value without sorting.
+///
+/// This is O(n) best-case vs O(n log n) for full coin selection.
+/// Returns None if no single UTXO is large enough.
+fn select_one_large_utxo(available: &[WalletUtxo], min_value: u64) -> Option<WalletUtxo> {
+    available.iter().find(|u| u.value >= min_value).cloned()
 }
 
 /// Select coins using largest-first algorithm.
