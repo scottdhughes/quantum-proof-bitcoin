@@ -10,13 +10,14 @@ COPY Cargo.toml Cargo.lock ./
 COPY tools/faucet tools/faucet
 
 # Create dummy src for the main crate to satisfy workspace
-RUN mkdir -p src/bin && \
+RUN mkdir -p src/bin benches && \
     echo "fn main() {}" > src/bin/qpb-cli.rs && \
     echo "fn main() {}" > src/bin/gen_vectors.rs && \
     echo "fn main() {}" > src/bin/gen_chainparams.rs && \
     echo "fn main() {}" > src/bin/qpb-wallet.rs && \
     echo "fn main() {}" > src/bin/bench_perf.rs && \
-    echo "" > src/lib.rs
+    echo "" > src/lib.rs && \
+    echo "fn main() {}" > benches/shrincs_bench.rs
 
 # Build faucet in release mode
 RUN cargo build --release -p qpb-faucet
