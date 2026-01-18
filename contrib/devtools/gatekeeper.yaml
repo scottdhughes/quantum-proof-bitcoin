@@ -1,5 +1,5 @@
 # Gatekeeper Rules — PQBTC Freeze-Gate Enforcement
-# 
+#
 # These rules enforce the docs-first invariant (I3): frozen specs must exist
 # on the base branch before consensus-critical code can be modified.
 #
