@@ -1,0 +1,156 @@
+# Gatekeeper Rules — PQBTC Freeze-Gate Enforcement
+# 
+# These rules enforce the docs-first invariant (I3): frozen specs must exist
+# on the base branch before consensus-critical code can be modified.
+#
+# Rule structure:
+#   - where: base   → check origin/main (default for frozen specs)
+#   - where: head   → check PR working tree (for vectors/ref impl in same PR)
+#   - contains: []  → required substrings (e.g., FROZEN headers)
+#
+# STRICT POSTURE: No script/** changes until ALL Gate 3 prerequisites exist.
+# The "surface rules only" exception was identified as a trap — the gatekeeper
+# cannot distinguish surface gating from PQSig integration edits.
+
+rules:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Gate 1: Chain identity + genesis
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: "Chain identity requires frozen GENESIS spec"
+    paths:
+      - "src/kernel/chainparams*"
+      - "src/chainparams*"
+      - "src/chainparamsseeds.h"
+      - "contrib/genesis/**"
+    requires:
+      - where: base
+        file: "docs/GENESIS.md"
+        contains:
+          - "## Status: FROZEN"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Gate 2: PQSig cryptography (standalone module)
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: "PQSig crypto requires frozen PQSIG specs + vectors"
+    paths:
+      - "src/crypto/pqsig/**"
+    requires:
+      - where: base
+        file: "docs/PQSIG_INTERNALS.md"
+        contains:
+          - "## Status: FROZEN"
+      - where: base
+        file: "docs/PQSIG_WIRE_FORMAT.md"
+        contains:
+          - "## Status: FROZEN"
+      - where: head
+        directory: "contrib/pqsig-ref"
+        min_files: 1
+      - where: head
+        directory: "src/test/data/pqsig"
+        min_files: 1
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Gate 3: Script integration (STRICT — no early script edits)
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: "Script/validation changes require full frozen spec chain + vectors"
+    paths:
+      - "src/script/**"
+      - "src/validation.cpp"
+    requires:
+      - where: base
+        file: "docs/CONSENSUS_SURFACE.md"
+        contains:
+          - "## Status: FROZEN"
+      - where: base
+        file: "docs/SIGHASH.md"
+        contains:
+          - "## Status: FROZEN"
+      - where: base
+        file: "docs/PQSIG_INTERNALS.md"
+        contains:
+          - "## Status: FROZEN"
+      - where: base
+        file: "docs/PQSIG_WIRE_FORMAT.md"
+        contains:
+          - "## Status: FROZEN"
+      - where: base
+        file: "docs/CONSENSUS_DIFFS.md"
+        contains:
+          - "## Status: FROZEN"
+      - where: base
+        file: "docs/SCRIPT_SEMANTICS.md"
+        contains:
+          - "## Status: FROZEN"
+      - where: head
+        directory: "src/test/data/pqsig"
+        min_files: 1
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Gate 4: Policy + limits
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: "Policy changes require frozen POLICY_LIMITS spec"
+    paths:
+      - "src/policy/**"
+      - "src/consensus/consensus.h"
+    requires:
+      - where: base
+        file: "docs/POLICY_LIMITS.md"
+        contains:
+          - "## Status: FROZEN"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Gate 4.5: Networking limits
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: "Networking changes require frozen NET_LIMITS spec"
+    paths:
+      - "src/net.h"
+      - "src/net.cpp"
+      - "src/net_processing.cpp"
+      - "src/blockencodings.cpp"
+    requires:
+      - where: base
+        file: "docs/NET_LIMITS.md"
+        contains:
+          - "## Status: FROZEN"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Gate 5: External signer
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: "External signer requires frozen PSBT_STRATEGY spec"
+    paths:
+      - "contrib/pqsign/**"
+    requires:
+      - where: base
+        file: "docs/PSBT_STRATEGY.md"
+        contains:
+          - "## Status: FROZEN"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Gate 6: Wallet integration
+  # ─────────────────────────────────────────────────────────────────────────
+  - name: "Wallet changes require frozen WALLET spec"
+    paths:
+      - "src/wallet/**"
+    requires:
+      - where: base
+        file: "docs/WALLET.md"
+        contains:
+          - "## Status: FROZEN"
+
+# Frozen-doc contract enforcement (applied to all frozen specs):
+# - Files with "## Status: FROZEN" must include all required headers:
+#   - ## Status: FROZEN
+#   - ## Spec-ID: <identifier>
+#   - ## Frozen-By: <gate-tag>
+#   - ## Consensus-Relevant: YES|NO
+# - No TBD or TODO tokens allowed in frozen docs
+frozen_doc_contract:
+  required_headers:
+    - "## Status: FROZEN"
+    - "## Spec-ID:"
+    - "## Frozen-By:"
+    - "## Consensus-Relevant:"
+  forbidden_tokens:
+    - "TBD"
+    - "TODO"

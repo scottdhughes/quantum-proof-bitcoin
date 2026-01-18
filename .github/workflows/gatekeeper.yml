@@ -1,0 +1,29 @@
+name: Gatekeeper
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  gatekeeper:
+    name: "Freeze-gate enforcement"
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.base_ref }}
+
+      - name: Install dependencies
+        run: pip3 install pyyaml
+
+      - name: Run gatekeeper
+        run: |
+          python3 contrib/devtools/gatekeeper.py \
+            --rules contrib/devtools/gatekeeper.yaml \
+            --base origin/${{ github.base_ref }} \
+            --head HEAD
