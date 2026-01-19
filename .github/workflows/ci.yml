@@ -504,6 +504,18 @@ jobs:
     steps:
       - *CHECKOUT
 
+      - name: Free disk space
+        if: ${{ runner.os == 'Linux' }}
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false      # Keep tool cache for ccache
+          android: true          # Remove Android SDK (~10GB)
+          dotnet: true           # Remove .NET SDK (~2GB)
+          haskell: true          # Remove Haskell (~5GB)
+          large-packages: true   # Remove large packages (~5GB)
+          docker-images: false   # Keep Docker images (needed for CI)
+          swap-storage: false    # Keep swap
+
       - name: Configure environment
         uses: ./.github/actions/configure-environment
 
