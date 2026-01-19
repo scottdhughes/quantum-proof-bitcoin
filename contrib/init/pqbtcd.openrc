@@ -1,0 +1,93 @@
+#!/sbin/openrc-run
+
+# backward compatibility for existing gentoo layout
+#
+if [ -d "/var/lib/pqbtc/.pqbtc" ]; then
+	PQBTCD_DEFAULT_DATADIR="/var/lib/pqbtc/.pqbtc"
+else
+	PQBTCD_DEFAULT_DATADIR="/var/lib/pqbtcd"
+fi
+
+PQBTCD_CONFIGFILE=${PQBTCD_CONFIGFILE:-/etc/pqbtc/pqbtc.conf}
+PQBTCD_PIDDIR=${PQBTCD_PIDDIR:-/var/run/pqbtcd}
+PQBTCD_PIDFILE=${PQBTCD_PIDFILE:-${PQBTCD_PIDDIR}/pqbtcd.pid}
+PQBTCD_DATADIR=${PQBTCD_DATADIR:-${PQBTCD_DEFAULT_DATADIR}}
+PQBTCD_USER=${PQBTCD_USER:-${PQBTC_USER:-pqbtc}}
+PQBTCD_GROUP=${PQBTCD_GROUP:-pqbtc}
+PQBTCD_BIN=${PQBTCD_BIN:-/usr/bin/pqbtcd}
+PQBTCD_NICE=${PQBTCD_NICE:-${NICELEVEL:-0}}
+PQBTCD_OPTS="${PQBTCD_OPTS:-${PQBTC_OPTS}}"
+
+name="PQBTC Core Daemon"
+description="PQBTC cryptocurrency P2P network daemon"
+
+command="/usr/bin/pqbtcd"
+command_args="-pid=\"${PQBTCD_PIDFILE}\" \
+		-conf=\"${PQBTCD_CONFIGFILE}\" \
+		-datadir=\"${PQBTCD_DATADIR}\" \
+		-daemon \
+		${PQBTCD_OPTS}"
+
+required_files="${PQBTCD_CONFIGFILE}"
+start_stop_daemon_args="-u ${PQBTCD_USER} \
+			-N ${PQBTCD_NICE} -w 2000"
+pidfile="${PQBTCD_PIDFILE}"
+
+# The retry schedule to use when stopping the daemon. Could be either
+# a timeout in seconds or multiple signal/timeout pairs (like
+# "SIGKILL/180 SIGTERM/300")
+retry="${PQBTCD_SIGTERM_TIMEOUT}"
+
+depend() {
+	need localmount net
+}
+
+# verify
+# 1) that the datadir exists and is writable (or create it)
+# 2) that a directory for the pid exists and is writable
+# 3) ownership and permissions on the config file
+start_pre() {
+	checkpath \
+	-d \
+	--mode 0750 \
+	--owner "${PQBTCD_USER}:${PQBTCD_GROUP}" \
+	"${PQBTCD_DATADIR}"
+
+	checkpath \
+	-d \
+	--mode 0755 \
+	--owner "${PQBTCD_USER}:${PQBTCD_GROUP}" \
+	"${PQBTCD_PIDDIR}"
+
+	checkpath -f \
+	-o "${PQBTCD_USER}:${PQBTCD_GROUP}" \
+	-m 0660 \
+	"${PQBTCD_CONFIGFILE}"
+
+	checkconfig || return 1
+}
+
+checkconfig()
+{
+	if grep -qs '^rpcuser=' "${PQBTCD_CONFIGFILE}" && \
+		! grep -qs '^rpcpassword=' "${PQBTCD_CONFIGFILE}" ; then
+		eerror ""
+		eerror "ERROR: You must set a secure rpcpassword to run pqbtcd."
+		eerror "The setting must appear in ${PQBTCD_CONFIGFILE}"
+		eerror ""
+		eerror "This password is security critical to securing wallets "
+		eerror "and must not be the same as the rpcuser setting."
+		eerror "You can generate a suitable random password using the following "
+		eerror "command from the shell:"
+		eerror ""
+		eerror "bash -c 'tr -dc a-zA-Z0-9 < /dev/urandom | head -c32 && echo'"
+		eerror ""
+		eerror "It is recommended that you also set alertnotify so you are "
+		eerror "notified of problems:"
+		eerror ""
+		eerror "ie: alertnotify=echo %%s | mail -s \"PQBTC Alert\"" \
+			"admin@foo.com"
+		eerror ""
+		return 1
+	fi
+}
