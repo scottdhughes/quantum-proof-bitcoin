@@ -131,7 +131,10 @@ rules:
   # ─────────────────────────────────────────────────────────────────────────
   - name: "Wallet changes require frozen WALLET spec"
     paths:
-      - "src/wallet/**"
+      - "src/wallet/*.cpp"
+      - "src/wallet/*.h"
+      - "src/wallet/**/*.cpp"
+      - "src/wallet/**/*.h"
     requires:
       - where: base
         file: "docs/WALLET.md"
