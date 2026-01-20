@@ -23,7 +23,7 @@ function(add_maintenance_targets)
     return()
   endif()
 
-  foreach(target IN ITEMS bitcoin bitcoind bitcoin-node pqbtc-qt pqbtc-gui bitcoin-cli bitcoin-tx bitcoin-util bitcoin-wallet test_bitcoin bench_bitcoin)
+  foreach(target IN ITEMS pqbtc pqbtcd pqbtc-node pqbtc-qt pqbtc-gui pqbtc-cli pqbtc-tx pqbtc-util pqbtc-wallet test_pqbtc bench_pqbtc)
     if(TARGET ${target})
       list(APPEND executables $<TARGET_FILE:${target}>)
     endif()

@@ -46,7 +46,7 @@ Obviously, it is important to build and run the tests at appropriate times -- bu
 ```sh
 cmake --build build --target bitcoind bitcoin-cli
 cmake --build build --target bitcoin-qt
-cmake --build build --target bench_bitcoin
+cmake --build build --target bench_pqbtc
 ```
 
 (You can and should combine this with `-j`, as above, for a parallel build.)
