@@ -43,7 +43,7 @@ function(add_maintenance_targets)
 endfunction()
 
 function(add_windows_deploy_target)
-  if(MINGW AND TARGET bitcoin AND TARGET pqbtc-qt AND TARGET bitcoind AND TARGET bitcoin-cli AND TARGET bitcoin-tx AND TARGET bitcoin-wallet AND TARGET bitcoin-util AND TARGET test_bitcoin)
+  if(MINGW AND TARGET pqbtc AND TARGET pqbtc-qt AND TARGET pqbtcd AND TARGET pqbtc-cli AND TARGET pqbtc-tx AND TARGET pqbtc-wallet AND TARGET pqbtc-util AND TARGET test_pqbtc)
     find_program(MAKENSIS_EXECUTABLE makensis)
     if(NOT MAKENSIS_EXECUTABLE)
       add_custom_target(deploy
@@ -57,20 +57,20 @@ function(add_windows_deploy_target)
     include(GenerateSetupNsi)
     generate_setup_nsi()
     add_custom_command(
-      OUTPUT ${PROJECT_BINARY_DIR}/bitcoin-win64-setup.exe
+      OUTPUT ${PROJECT_BINARY_DIR}/pqbtc-win64-setup.exe
       COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/release
-      COMMAND ${CMAKE_STRIP} $<TARGET_FILE:bitcoin> -o ${PROJECT_BINARY_DIR}/release/$<TARGET_FILE_NAME:bitcoin>
+      COMMAND ${CMAKE_STRIP} $<TARGET_FILE:pqbtc> -o ${PROJECT_BINARY_DIR}/release/$<TARGET_FILE_NAME:pqbtc>
       COMMAND ${CMAKE_STRIP} $<TARGET_FILE:pqbtc-qt> -o ${PROJECT_BINARY_DIR}/release/$<TARGET_FILE_NAME:pqbtc-qt>
-      COMMAND ${CMAKE_STRIP} $<TARGET_FILE:bitcoind> -o ${PROJECT_BINARY_DIR}/release/$<TARGET_FILE_NAME:bitcoind>
-      COMMAND ${CMAKE_STRIP} $<TARGET_FILE:bitcoin-cli> -o ${PROJECT_BINARY_DIR}/release/$<TARGET_FILE_NAME:bitcoin-cli>
-      COMMAND ${CMAKE_STRIP} $<TARGET_FILE:bitcoin-tx> -o ${PROJECT_BINARY_DIR}/release/$<TARGET_FILE_NAME:bitcoin-tx>
-      COMMAND ${CMAKE_STRIP} $<TARGET_FILE:bitcoin-wallet> -o ${PROJECT_BINARY_DIR}/release/$<TARGET_FILE_NAME:bitcoin-wallet>
-      COMMAND ${CMAKE_STRIP} $<TARGET_FILE:bitcoin-util> -o ${PROJECT_BINARY_DIR}/release/$<TARGET_FILE_NAME:bitcoin-util>
-      COMMAND ${CMAKE_STRIP} $<TARGET_FILE:test_bitcoin> -o ${PROJECT_BINARY_DIR}/release/$<TARGET_FILE_NAME:test_bitcoin>
-      COMMAND ${MAKENSIS_EXECUTABLE} -V2 ${PROJECT_BINARY_DIR}/bitcoin-win64-setup.nsi
+      COMMAND ${CMAKE_STRIP} $<TARGET_FILE:pqbtcd> -o ${PROJECT_BINARY_DIR}/release/$<TARGET_FILE_NAME:pqbtcd>
+      COMMAND ${CMAKE_STRIP} $<TARGET_FILE:pqbtc-cli> -o ${PROJECT_BINARY_DIR}/release/$<TARGET_FILE_NAME:pqbtc-cli>
+      COMMAND ${CMAKE_STRIP} $<TARGET_FILE:pqbtc-tx> -o ${PROJECT_BINARY_DIR}/release/$<TARGET_FILE_NAME:pqbtc-tx>
+      COMMAND ${CMAKE_STRIP} $<TARGET_FILE:pqbtc-wallet> -o ${PROJECT_BINARY_DIR}/release/$<TARGET_FILE_NAME:pqbtc-wallet>
+      COMMAND ${CMAKE_STRIP} $<TARGET_FILE:pqbtc-util> -o ${PROJECT_BINARY_DIR}/release/$<TARGET_FILE_NAME:pqbtc-util>
+      COMMAND ${CMAKE_STRIP} $<TARGET_FILE:test_pqbtc> -o ${PROJECT_BINARY_DIR}/release/$<TARGET_FILE_NAME:test_pqbtc>
+      COMMAND ${MAKENSIS_EXECUTABLE} -V2 ${PROJECT_BINARY_DIR}/pqbtc-win64-setup.nsi
       VERBATIM
     )
-    add_custom_target(deploy DEPENDS ${PROJECT_BINARY_DIR}/bitcoin-win64-setup.exe)
+    add_custom_target(deploy DEPENDS ${PROJECT_BINARY_DIR}/pqbtc-win64-setup.exe)
   endif()
 endfunction()
 
