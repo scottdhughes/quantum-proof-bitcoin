@@ -282,15 +282,15 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
 
         paths = types.SimpleNamespace()
         binaries = {
-            "bitcoin": "BITCOIN_BIN",
-            "bitcoind": "BITCOIND",
-            "bitcoin-cli": "BITCOINCLI",
-            "bitcoin-util": "BITCOINUTIL",
-            "bitcoin-tx": "BITCOINTX",
-            "bitcoin-chainstate": "BITCOINCHAINSTATE",
-            "bitcoin-wallet": "BITCOINWALLET",
+            "pqbtc": "BITCOIN_BIN",
+            "pqbtcd": "BITCOIND",
+            "pqbtc-cli": "BITCOINCLI",
+            "pqbtc-util": "BITCOINUTIL",
+            "pqbtc-tx": "BITCOINTX",
+            "pqbtc-chainstate": "BITCOINCHAINSTATE",
+            "pqbtc-wallet": "BITCOINWALLET",
         }
-        # Set paths to bitcoin core binaries allowing overrides with environment
+        # Set paths to PQBTC binaries allowing overrides with environment
         # variables.
         for binary, env_variable_name in binaries.items():
             default_filename = os.path.join(
