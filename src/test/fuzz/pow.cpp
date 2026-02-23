@@ -99,11 +99,10 @@ FUZZ_TARGET(pow_transition, .init = initialize_pow)
     uint32_t nbits{fuzzed_data_provider.ConsumeIntegral<uint32_t>()};
 
     const arith_uint256 pow_limit = UintToArith256(consensus_params.powLimit);
-    arith_uint256 old_target;
-    old_target.SetCompact(nbits);
-    if (old_target > pow_limit) {
-        nbits = pow_limit.GetCompact();
-    }
+    // Canonicalize fuzzed nBits so transition checks compare valid compact
+    // encodings instead of malformed inputs.
+    arith_uint256 old_target = DeriveTarget(nbits, consensus_params.powLimit).value_or(pow_limit);
+    nbits = old_target.GetCompact();
     // Create one difficulty adjustment period worth of headers
     for (int height = 0; height < consensus_params.DifficultyAdjustmentInterval(); ++height) {
         CBlockHeader header;
