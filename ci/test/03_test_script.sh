@@ -239,6 +239,16 @@ if [ "$RUN_FUNCTIONAL_TESTS" = "true" ]; then
     # parses TEST_RUNNER_EXTRA as an array which allows for multiple arguments such as TEST_RUNNER_EXTRA='--exclude "rpc_bind.py --ipv6"'
     eval "TEST_RUNNER_EXTRA=($TEST_RUNNER_EXTRA)"
     if [ "${PQBTC_ENABLE_LEGACY_FUNCTIONAL_TESTS}" != "true" ]; then
+      if printf '%s\0' "${TEST_RUNNER_EXTRA[@]}" | grep -Fxz -- "--coverage" >/dev/null 2>&1; then
+        echo "Disabling RPC coverage in PQ-only functional profile"
+        FILTERED_TEST_RUNNER_EXTRA=()
+        for arg in "${TEST_RUNNER_EXTRA[@]}"; do
+          if [ "$arg" != "--coverage" ]; then
+            FILTERED_TEST_RUNNER_EXTRA+=("$arg")
+          fi
+        done
+        TEST_RUNNER_EXTRA=("${FILTERED_TEST_RUNNER_EXTRA[@]}")
+      fi
       if [ -z "${PQBTC_FUNCTIONAL_TESTS}" ]; then
         PQBTC_FUNCTIONAL_TESTS="feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py feature_pq_reorg.py feature_pq_block_limits.py"
       fi
