@@ -47,7 +47,7 @@ cmake --build build -j "$(sysctl -n hw.ncpu)"
 ### Unit Tests
 
 ```bash
-./build/bin/test_bitcoin --run_test=crypto_tests,key_tests,script_tests
+./build/bin/test_pqbtc --run_test=crypto_tests,pqsig_tests,pqsig_script_tests
 ```
 
 **Result**: `*** No errors detected`
@@ -61,7 +61,7 @@ Suites run:
 
 ```bash
 ulimit -n 4096  # Required on macOS
-python3 test/functional/test_runner.py wallet_basic.py
+python3 build/test/functional/test_runner.py wallet_basic.py
 ```
 
 **Result**: `wallet_basic.py | Passed | 16 s`
