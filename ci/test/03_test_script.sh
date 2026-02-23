@@ -189,15 +189,23 @@ resolve_gatekeeper_base_ref() {
 }
 
 if [ "${RUN_GATEKEEPER}" = "true" ]; then
+  gatekeeper_ready="true"
   if ! python3 -c "import yaml" >/dev/null 2>&1; then
-    python3 -m pip install --disable-pip-version-check --break-system-packages pyyaml \
-      || python3 -m pip install --disable-pip-version-check pyyaml
+    if python3 -m pip --version >/dev/null 2>&1; then
+      python3 -m pip install --disable-pip-version-check --break-system-packages pyyaml \
+        || python3 -m pip install --disable-pip-version-check pyyaml
+    else
+      echo "Skipping gatekeeper in this CI job: python3 pip is unavailable and PyYAML is missing"
+      gatekeeper_ready="false"
+    fi
   fi
-  GATEKEEPER_BASE_REF="$(resolve_gatekeeper_base_ref)"
-  python3 "${BASE_ROOT_DIR}/contrib/devtools/gatekeeper.py" \
-    --rules "${BASE_ROOT_DIR}/contrib/devtools/gatekeeper.yaml" \
-    --base "${GATEKEEPER_BASE_REF}" \
-    --head HEAD
+  if [ "${gatekeeper_ready}" = "true" ]; then
+    GATEKEEPER_BASE_REF="$(resolve_gatekeeper_base_ref)"
+    python3 "${BASE_ROOT_DIR}/contrib/devtools/gatekeeper.py" \
+      --rules "${BASE_ROOT_DIR}/contrib/devtools/gatekeeper.yaml" \
+      --base "${GATEKEEPER_BASE_REF}" \
+      --head HEAD
+  fi
 fi
 
 if [ "$RUN_CHECK_DEPS" = "true" ]; then
