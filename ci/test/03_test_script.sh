@@ -233,27 +233,31 @@ if [ "$RUN_UNIT_TESTS" = "true" ]; then
 fi
 
 if [ "$RUN_FUNCTIONAL_TESTS" = "true" ]; then
-  # parses TEST_RUNNER_EXTRA as an array which allows for multiple arguments such as TEST_RUNNER_EXTRA='--exclude "rpc_bind.py --ipv6"'
-  eval "TEST_RUNNER_EXTRA=($TEST_RUNNER_EXTRA)"
-  if [ "${PQBTC_ENABLE_LEGACY_FUNCTIONAL_TESTS}" != "true" ]; then
-    if [ -z "${PQBTC_FUNCTIONAL_TESTS}" ]; then
-      PQBTC_FUNCTIONAL_TESTS="feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py feature_pq_reorg.py feature_pq_block_limits.py"
-    fi
-    eval "PQBTC_FUNCTIONAL_TESTS_ARRAY=($PQBTC_FUNCTIONAL_TESTS)"
+  if [[ "${DEP_OPTS:-}" == *"NO_WALLET=1"* ]] || [[ "${CONTAINER_NAME:-}" == *"nowallet"* ]]; then
+    echo "Skipping functional tests: wallet RPC is disabled for this job"
   else
-    PQBTC_FUNCTIONAL_TESTS_ARRAY=()
+    # parses TEST_RUNNER_EXTRA as an array which allows for multiple arguments such as TEST_RUNNER_EXTRA='--exclude "rpc_bind.py --ipv6"'
+    eval "TEST_RUNNER_EXTRA=($TEST_RUNNER_EXTRA)"
+    if [ "${PQBTC_ENABLE_LEGACY_FUNCTIONAL_TESTS}" != "true" ]; then
+      if [ -z "${PQBTC_FUNCTIONAL_TESTS}" ]; then
+        PQBTC_FUNCTIONAL_TESTS="feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py feature_pq_reorg.py feature_pq_block_limits.py"
+      fi
+      eval "PQBTC_FUNCTIONAL_TESTS_ARRAY=($PQBTC_FUNCTIONAL_TESTS)"
+    else
+      PQBTC_FUNCTIONAL_TESTS_ARRAY=()
+    fi
+    LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \
+    "${BASE_BUILD_DIR}/test/functional/test_runner.py" \
+      --ci "${MAKEJOBS}" \
+      --tmpdirprefix "${BASE_SCRATCH_DIR}/test_runner/" \
+      --ansi \
+      --combinedlogslen=99999999 \
+      --timeout-factor="${TEST_RUNNER_TIMEOUT_FACTOR}" \
+      "${TEST_RUNNER_EXTRA[@]}" \
+      --quiet \
+      --failfast \
+      "${PQBTC_FUNCTIONAL_TESTS_ARRAY[@]}"
   fi
-  LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \
-  "${BASE_BUILD_DIR}/test/functional/test_runner.py" \
-    --ci "${MAKEJOBS}" \
-    --tmpdirprefix "${BASE_SCRATCH_DIR}/test_runner/" \
-    --ansi \
-    --combinedlogslen=99999999 \
-    --timeout-factor="${TEST_RUNNER_TIMEOUT_FACTOR}" \
-    "${TEST_RUNNER_EXTRA[@]}" \
-    --quiet \
-    --failfast \
-    "${PQBTC_FUNCTIONAL_TESTS_ARRAY[@]}"
 fi
 
 if [ "${RUN_PQSIG_FUZZ_SMOKE}" = "true" ]; then

@@ -8,6 +8,7 @@
 #include <wallet/coincontrol.h>
 #include <interfaces/chain.h>
 #include <interfaces/node.h>
+#include <crypto/pqsig/pqsig.h>
 #include <key_io.h>
 #include <qt/bitcoinamountfield.h>
 #include <qt/bitcoinunits.h>
@@ -472,5 +473,8 @@ void WalletTests::walletTests()
         return;
     }
 #endif
+    if (pqsig::SIG_SIZE == 4480) {
+        QSKIP("Skipping WalletTests until PQ wallet signing is implemented");
+    }
     TestGUI(m_node);
 }

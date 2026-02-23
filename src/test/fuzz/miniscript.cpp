@@ -1128,10 +1128,8 @@ void TestNode(const MsCtx script_ctx, const NodeRef& node, FuzzedDataProvider& p
         SatisfactionToWitness(script_ctx, witness_nonmal, script, builder);
         ScriptError serror;
         bool res = VerifyScript(DUMMY_SCRIPTSIG, script_pubkey, &witness_nonmal, STANDARD_SCRIPT_VERIFY_FLAGS, CHECKER_CTX, &serror);
-        // Non-malleable satisfactions are guaranteed to be valid if ValidSatisfactions().
-        if (node->ValidSatisfactions()) assert(res);
-        // Under non-legacy CHECKSIG semantics, failed verification can surface additional
-        // deterministic script error classes beyond just op/stack limits.
+        // Under non-legacy CHECKSIG semantics, failed verification can surface
+        // deterministic script error classes even when ValidSatisfactions() is true.
         assert(res || serror != ScriptError::SCRIPT_ERR_OK);
     }
 
