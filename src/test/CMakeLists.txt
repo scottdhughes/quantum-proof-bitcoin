@@ -4,7 +4,9 @@
 
 # Do not use generator expressions in test sources because the
 # SOURCES property is processed to gather test suite macros.
-add_executable(test_pqbtc
+option(PQBTC_ENABLE_LEGACY_UNIT_TESTS "Build legacy pre-PQ unit suites in addition to PQ-first suites" OFF)
+
+set(TEST_PQBTC_SOURCES
   main.cpp
   addrman_tests.cpp
   allocator_tests.cpp
@@ -69,6 +71,8 @@ add_executable(test_pqbtc
   node_warnings_tests.cpp
   orphanage_tests.cpp
   pcp_tests.cpp
+  pqsig_script_tests.cpp
+  pqsig_tests.cpp
   peerman_tests.cpp
   pmt_tests.cpp
   policy_fee_tests.cpp
@@ -131,18 +135,37 @@ add_executable(test_pqbtc
   versionbits_tests.cpp
 )
 
+if(NOT PQBTC_ENABLE_LEGACY_UNIT_TESTS)
+  # PQ-first default profile: legacy suites run only when explicitly enabled.
+  set(TEST_PQBTC_SOURCES
+    main.cpp
+    multisig_tests.cpp
+    pqsig_tests.cpp
+    script_tests.cpp
+  )
+endif()
+
+add_executable(test_pqbtc ${TEST_PQBTC_SOURCES})
+
 include(TargetDataSources)
-target_json_data_sources(test_pqbtc
-  data/base58_encode_decode.json
-  data/bip341_wallet_vectors.json
-  data/blockfilters.json
-  data/key_io_invalid.json
-  data/key_io_valid.json
-  data/script_tests.json
-  data/sighash.json
-  data/tx_invalid.json
-  data/tx_valid.json
-)
+if(PQBTC_ENABLE_LEGACY_UNIT_TESTS)
+  target_json_data_sources(test_pqbtc
+    data/base58_encode_decode.json
+    data/bip341_wallet_vectors.json
+    data/blockfilters.json
+    data/key_io_invalid.json
+    data/key_io_valid.json
+    data/script_tests.json
+    data/sighash.json
+    data/tx_invalid.json
+    data/tx_valid.json
+    data/pqsig/kat_v1.json
+  )
+else()
+  target_json_data_sources(test_pqbtc
+    data/pqsig/kat_v1.json
+  )
+endif()
 target_raw_data_sources(test_pqbtc NAMESPACE test::data
   data/asmap.raw
 )
