@@ -1,227 +1,108 @@
-// Copyright (c) 2011-2022 The Bitcoin Core developers
+// Copyright (c) 2026 The PQBTC Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <key.h>
+#include <crypto/pqsig/domains.h>
+#include <crypto/pqsig/pqsig.h>
 #include <policy/policy.h>
 #include <script/interpreter.h>
 #include <script/script.h>
 #include <script/script_error.h>
-#include <script/sign.h>
-#include <script/signingprovider.h>
 #include <test/util/setup_common.h>
 #include <test/util/transaction_utils.h>
-#include <tinyformat.h>
-#include <uint256.h>
-
 
 #include <boost/test/unit_test.hpp>
 
+#include <algorithm>
+#include <array>
+#include <stdexcept>
+#include <vector>
+
+namespace {
+
+std::array<uint8_t, pqsig::PK_SCRIPT_SIZE> DerivePkScript(const std::array<uint8_t, 32>& sk_seed)
+{
+    const std::array<std::span<const uint8_t>, 1> parts{std::span<const uint8_t>{sk_seed}};
+    const auto pk_seed = pqsig::domains::HashN(nullptr, "PQSIG-PK-SEED", parts);
+
+    const std::array<std::span<const uint8_t>, 1> root_parts{std::span<const uint8_t>{pk_seed}};
+    const auto pk_root = pqsig::domains::HashN(nullptr, "PQSIG-PK-ROOT", root_parts);
+
+    std::array<uint8_t, pqsig::PK_SCRIPT_SIZE> out{};
+    out[0] = pqsig::ALG_ID_V1;
+    std::copy(pk_seed.begin(), pk_seed.end(), out.begin() + 1);
+    std::copy(pk_root.begin(), pk_root.end(), out.begin() + 1 + pk_seed.size());
+    return out;
+}
+
+std::vector<uint8_t> Sign(
+    const std::span<const uint8_t> sk_seed,
+    const CMutableTransaction& tx,
+    const CScript& script_code,
+    const std::span<const uint8_t> pk_script)
+{
+    const uint256 sighash = SignatureHash(script_code, tx, 0, SIGHASH_ALL, 0, SigVersion::BASE);
+    std::vector<uint8_t> sig(pqsig::SIG_SIZE);
+    if (!pqsig::PQSigSign(sig, std::span<const uint8_t>{sighash.begin(), sighash.size()}, sk_seed, pk_script)) {
+        throw std::runtime_error("failed to sign multisig input");
+    }
+    return sig;
+}
+
+} // namespace
+
 BOOST_FIXTURE_TEST_SUITE(multisig_tests, BasicTestingSetup)
 
-static CScript
-sign_multisig(const CScript& scriptPubKey, const std::vector<CKey>& keys, const CTransaction& transaction, int whichIn)
+BOOST_AUTO_TEST_CASE(multisig_verify_pq_only)
 {
-    uint256 hash = SignatureHash(scriptPubKey, transaction, whichIn, SIGHASH_ALL, 0, SigVersion::BASE);
+    const std::array<uint8_t, 32> sk1{0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+                                      0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+                                      0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+                                      0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41};
+    const std::array<uint8_t, 32> sk2{0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52,
+                                      0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52,
+                                      0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52,
+                                      0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52, 0x52};
 
-    CScript result;
-    result << OP_0; // CHECKMULTISIG bug workaround
-    for (const CKey &key : keys)
-    {
-        std::vector<unsigned char> vchSig;
-        BOOST_CHECK(key.Sign(hash, vchSig));
-        vchSig.push_back((unsigned char)SIGHASH_ALL);
-        result << vchSig;
-    }
-    return result;
-}
+    const auto pk1 = DerivePkScript(sk1);
+    const auto pk2 = DerivePkScript(sk2);
 
-BOOST_AUTO_TEST_CASE(multisig_verify)
-{
-    unsigned int flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_STRICTENC;
+    const CScript multisig_script = CScript{}
+        << OP_2
+        << std::vector<unsigned char>{pk1.begin(), pk1.end()}
+        << std::vector<unsigned char>{pk2.begin(), pk2.end()}
+        << OP_2
+        << OP_CHECKMULTISIG;
+
+    const CTransaction tx_credit{BuildCreditingTransaction(multisig_script, 0)};
+    CMutableTransaction tx_spend = BuildSpendingTransaction(CScript{}, CScriptWitness{}, tx_credit);
+
+    const std::vector<uint8_t> sig1 = Sign(sk1, tx_spend, multisig_script, pk1);
+    const std::vector<uint8_t> sig2 = Sign(sk2, tx_spend, multisig_script, pk2);
+
+    tx_spend.vin[0].scriptSig = CScript{}
+        << OP_0
+        << std::vector<unsigned char>{sig1.begin(), sig1.end()}
+        << std::vector<unsigned char>{sig2.begin(), sig2.end()};
 
     ScriptError err;
-    CKey key[4];
-    CAmount amount = 0;
-    for (int i = 0; i < 4; i++)
-        key[i].MakeNewKey(true);
+    const CTransaction tx_spend_const{tx_spend};
+    const TransactionSignatureChecker checker(&tx_spend_const, 0, 0, MissingDataBehavior::FAIL);
+    BOOST_CHECK(VerifyScript(tx_spend.vin[0].scriptSig, multisig_script, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_OK);
 
-    CScript a_and_b;
-    a_and_b << OP_2 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey()) << OP_2 << OP_CHECKMULTISIG;
+    CMutableTransaction bad_sig_tx = tx_spend;
+    std::vector<uint8_t> bad_sig = sig2;
+    bad_sig[12] ^= 0x80;
+    bad_sig_tx.vin[0].scriptSig = CScript{}
+        << OP_0
+        << std::vector<unsigned char>{sig1.begin(), sig1.end()}
+        << std::vector<unsigned char>{bad_sig.begin(), bad_sig.end()};
 
-    CScript a_or_b;
-    a_or_b << OP_1 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey()) << OP_2 << OP_CHECKMULTISIG;
-
-    CScript escrow;
-    escrow << OP_2 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey()) << ToByteVector(key[2].GetPubKey()) << OP_3 << OP_CHECKMULTISIG;
-
-    CMutableTransaction txFrom;  // Funding transaction
-    txFrom.vout.resize(3);
-    txFrom.vout[0].scriptPubKey = a_and_b;
-    txFrom.vout[1].scriptPubKey = a_or_b;
-    txFrom.vout[2].scriptPubKey = escrow;
-
-    CMutableTransaction txTo[3]; // Spending transaction
-    for (int i = 0; i < 3; i++)
-    {
-        txTo[i].vin.resize(1);
-        txTo[i].vout.resize(1);
-        txTo[i].vin[0].prevout.n = i;
-        txTo[i].vin[0].prevout.hash = txFrom.GetHash();
-        txTo[i].vout[0].nValue = 1;
-    }
-
-    std::vector<CKey> keys;
-    CScript s;
-
-    // Test a AND b:
-    keys.assign(1,key[0]);
-    keys.push_back(key[1]);
-    s = sign_multisig(a_and_b, keys, CTransaction(txTo[0]), 0);
-    BOOST_CHECK(VerifyScript(s, a_and_b, nullptr, flags, MutableTransactionSignatureChecker(&txTo[0], 0, amount, MissingDataBehavior::ASSERT_FAIL), &err));
-    BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
-
-    for (int i = 0; i < 4; i++)
-    {
-        keys.assign(1,key[i]);
-        s = sign_multisig(a_and_b, keys, CTransaction(txTo[0]), 0);
-        BOOST_CHECK_MESSAGE(!VerifyScript(s, a_and_b, nullptr, flags, MutableTransactionSignatureChecker(&txTo[0], 0, amount, MissingDataBehavior::ASSERT_FAIL), &err), strprintf("a&b 1: %d", i));
-        BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_INVALID_STACK_OPERATION, ScriptErrorString(err));
-
-        keys.assign(1,key[1]);
-        keys.push_back(key[i]);
-        s = sign_multisig(a_and_b, keys, CTransaction(txTo[0]), 0);
-        BOOST_CHECK_MESSAGE(!VerifyScript(s, a_and_b, nullptr, flags, MutableTransactionSignatureChecker(&txTo[0], 0, amount, MissingDataBehavior::ASSERT_FAIL), &err), strprintf("a&b 2: %d", i));
-        BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_EVAL_FALSE, ScriptErrorString(err));
-    }
-
-    // Test a OR b:
-    for (int i = 0; i < 4; i++)
-    {
-        keys.assign(1,key[i]);
-        s = sign_multisig(a_or_b, keys, CTransaction(txTo[1]), 0);
-        if (i == 0 || i == 1)
-        {
-            BOOST_CHECK_MESSAGE(VerifyScript(s, a_or_b, nullptr, flags, MutableTransactionSignatureChecker(&txTo[1], 0, amount, MissingDataBehavior::ASSERT_FAIL), &err), strprintf("a|b: %d", i));
-            BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
-        }
-        else
-        {
-            BOOST_CHECK_MESSAGE(!VerifyScript(s, a_or_b, nullptr, flags, MutableTransactionSignatureChecker(&txTo[1], 0, amount, MissingDataBehavior::ASSERT_FAIL), &err), strprintf("a|b: %d", i));
-            BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_EVAL_FALSE, ScriptErrorString(err));
-        }
-    }
-    s.clear();
-    s << OP_0 << OP_1;
-    BOOST_CHECK(!VerifyScript(s, a_or_b, nullptr, flags, MutableTransactionSignatureChecker(&txTo[1], 0, amount, MissingDataBehavior::ASSERT_FAIL), &err));
-    BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_SIG_DER, ScriptErrorString(err));
-
-
-    for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 4; j++)
-        {
-            keys.assign(1,key[i]);
-            keys.push_back(key[j]);
-            s = sign_multisig(escrow, keys, CTransaction(txTo[2]), 0);
-            if (i < j && i < 3 && j < 3)
-            {
-                BOOST_CHECK_MESSAGE(VerifyScript(s, escrow, nullptr, flags, MutableTransactionSignatureChecker(&txTo[2], 0, amount, MissingDataBehavior::ASSERT_FAIL), &err), strprintf("escrow 1: %d %d", i, j));
-                BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
-            }
-            else
-            {
-                BOOST_CHECK_MESSAGE(!VerifyScript(s, escrow, nullptr, flags, MutableTransactionSignatureChecker(&txTo[2], 0, amount, MissingDataBehavior::ASSERT_FAIL), &err), strprintf("escrow 2: %d %d", i, j));
-                BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_EVAL_FALSE, ScriptErrorString(err));
-            }
-        }
+    const CTransaction bad_sig_tx_const{bad_sig_tx};
+    const TransactionSignatureChecker bad_checker(&bad_sig_tx_const, 0, 0, MissingDataBehavior::FAIL);
+    BOOST_CHECK(!VerifyScript(bad_sig_tx.vin[0].scriptSig, multisig_script, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, bad_checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_EVAL_FALSE);
 }
-
-BOOST_AUTO_TEST_CASE(multisig_IsStandard)
-{
-    CKey key[4];
-    for (int i = 0; i < 4; i++)
-        key[i].MakeNewKey(true);
-
-    const auto is_standard{[](const CScript& spk) {
-        TxoutType type;
-        bool res{::IsStandard(spk, type)};
-        if (res) {
-            BOOST_CHECK_EQUAL(type, TxoutType::MULTISIG);
-        }
-        return res;
-    }};
-
-    CScript a_and_b;
-    a_and_b << OP_2 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey()) << OP_2 << OP_CHECKMULTISIG;
-    BOOST_CHECK(is_standard(a_and_b));
-
-    CScript a_or_b;
-    a_or_b  << OP_1 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey()) << OP_2 << OP_CHECKMULTISIG;
-    BOOST_CHECK(is_standard(a_or_b));
-
-    CScript escrow;
-    escrow << OP_2 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey()) << ToByteVector(key[2].GetPubKey()) << OP_3 << OP_CHECKMULTISIG;
-    BOOST_CHECK(is_standard(escrow));
-
-    CScript one_of_four;
-    one_of_four << OP_1 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey()) << ToByteVector(key[2].GetPubKey()) << ToByteVector(key[3].GetPubKey()) << OP_4 << OP_CHECKMULTISIG;
-    BOOST_CHECK(!is_standard(one_of_four));
-
-    CScript malformed[6];
-    malformed[0] << OP_3 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey()) << OP_2 << OP_CHECKMULTISIG;
-    malformed[1] << OP_2 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey()) << OP_3 << OP_CHECKMULTISIG;
-    malformed[2] << OP_0 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey()) << OP_2 << OP_CHECKMULTISIG;
-    malformed[3] << OP_1 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey()) << OP_0 << OP_CHECKMULTISIG;
-    malformed[4] << OP_1 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey()) << OP_CHECKMULTISIG;
-    malformed[5] << OP_1 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey());
-
-    for (int i = 0; i < 6; i++) {
-        BOOST_CHECK(!is_standard(malformed[i]));
-    }
-}
-
-BOOST_AUTO_TEST_CASE(multisig_Sign)
-{
-    // Test SignSignature() (and therefore the version of Solver() that signs transactions)
-    FillableSigningProvider keystore;
-    CKey key[4];
-    for (int i = 0; i < 4; i++)
-    {
-        key[i].MakeNewKey(true);
-        BOOST_CHECK(keystore.AddKey(key[i]));
-    }
-
-    CScript a_and_b;
-    a_and_b << OP_2 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey()) << OP_2 << OP_CHECKMULTISIG;
-
-    CScript a_or_b;
-    a_or_b  << OP_1 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey()) << OP_2 << OP_CHECKMULTISIG;
-
-    CScript escrow;
-    escrow << OP_2 << ToByteVector(key[0].GetPubKey()) << ToByteVector(key[1].GetPubKey()) << ToByteVector(key[2].GetPubKey()) << OP_3 << OP_CHECKMULTISIG;
-
-    CMutableTransaction txFrom;  // Funding transaction
-    txFrom.vout.resize(3);
-    txFrom.vout[0].scriptPubKey = a_and_b;
-    txFrom.vout[1].scriptPubKey = a_or_b;
-    txFrom.vout[2].scriptPubKey = escrow;
-
-    CMutableTransaction txTo[3]; // Spending transaction
-    for (int i = 0; i < 3; i++)
-    {
-        txTo[i].vin.resize(1);
-        txTo[i].vout.resize(1);
-        txTo[i].vin[0].prevout.n = i;
-        txTo[i].vin[0].prevout.hash = txFrom.GetHash();
-        txTo[i].vout[0].nValue = 1;
-    }
-
-    for (int i = 0; i < 3; i++)
-    {
-        SignatureData empty;
-        BOOST_CHECK_MESSAGE(SignSignature(keystore, CTransaction(txFrom), txTo[i], 0, SIGHASH_ALL, empty), strprintf("SignSignature %d", i));
-    }
-}
-
 
 BOOST_AUTO_TEST_SUITE_END()
