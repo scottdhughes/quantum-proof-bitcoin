@@ -10,7 +10,7 @@ This project implements a Bitcoin-like UTXO chain using hash-based post-quantum 
 
 | Property | Value |
 |----------|-------|
-| Signature scheme | PQSig v0 (WOTS+C + PORS+FP) |
+| Signature scheme | PQSig v1 (WOTS+C + PORS+FP) |
 | Signature size | 4,480 bytes |
 | Public key size | 33 bytes (1-byte ALG_ID + 32-byte core) |
 | Max signatures/key | 2^40 |
@@ -25,7 +25,13 @@ This project implements a Bitcoin-like UTXO chain using hash-based post-quantum 
 
 ## Status
 
-**Early development** - Specification phase.
+**v1 RC preparation** - node + consensus delivery with PQ-first CI gating.
+
+## RC Documentation
+
+- [v1.0.0-rc1 Release Notes](RELEASE_V1_RC1.md)
+- [v1.0.0-rc1 Runbook](RUNBOOK_V1_RC1.md)
+- [Post-RC Epic Tracker](POST_RC_EPICS.md)
 
 ## License
 

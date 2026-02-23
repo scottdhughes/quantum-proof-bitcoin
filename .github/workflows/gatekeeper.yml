@@ -3,20 +3,34 @@ name: Gatekeeper
 on:
   pull_request:
     branches: [main]
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
+  workflow_dispatch:
 
 jobs:
   gatekeeper:
     name: "Freeze-gate enforcement"
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout PR head
-        uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || '' }}
           fetch-depth: 0
 
-      - name: Fetch base branch
-        run: git fetch origin ${{ github.base_ref }}
+      - name: Resolve base ref
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin "${{ github.base_ref }}"
+            echo "GATEKEEPER_BASE=origin/${{ github.base_ref }}" >> "$GITHUB_ENV"
+          elif git rev-parse --verify --quiet HEAD~1 >/dev/null; then
+            echo "GATEKEEPER_BASE=HEAD~1" >> "$GITHUB_ENV"
+          else
+            echo "GATEKEEPER_BASE=HEAD" >> "$GITHUB_ENV"
+          fi
 
       - name: Install dependencies
         run: pip3 install pyyaml
@@ -25,5 +39,5 @@ jobs:
         run: |
           python3 contrib/devtools/gatekeeper.py \
             --rules contrib/devtools/gatekeeper.yaml \
-            --base origin/${{ github.base_ref }} \
+            --base "${GATEKEEPER_BASE}" \
             --head HEAD
