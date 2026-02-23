@@ -89,6 +89,11 @@ EXTENDED_SCRIPTS = [
 BASE_SCRIPTS = [
     # Scripts that are run by default.
     # Longest test should go first, to favor running tests in parallel
+    'feature_pqsig_basic.py',
+    'feature_pqsig_multisig.py',
+    'mempool_pq_limits.py',
+    'feature_pq_reorg.py',
+    'feature_pq_block_limits.py',
     # vv Tests less than 5m vv
     'feature_fee_estimation.py',
     'feature_taproot.py',
