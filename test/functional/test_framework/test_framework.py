@@ -467,6 +467,7 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         """Override this method to customize test node setup"""
         self.add_nodes(self.num_nodes, self.extra_args)
         self.start_nodes()
+        self._align_mocktime_to_genesis()
         if self.uses_wallet:
             self.import_deterministic_coinbase_privkeys()
         if not self.setup_clean_chain:
@@ -482,6 +483,17 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
                 chain_info = n.getblockchaininfo()
                 assert_equal(chain_info["blocks"], 200)
                 assert_equal(chain_info["initialblockdownload"], False)
+
+    def _align_mocktime_to_genesis(self):
+        """If chain genesis is in the future relative to wall-clock, pin mocktime above it."""
+        for n in self.nodes:
+            self._align_node_mocktime_to_genesis(n)
+
+    def _align_node_mocktime_to_genesis(self, node):
+        now = int(time.time())
+        genesis_time = node.getblockheader(node.getblockhash(0))['time']
+        if now <= genesis_time:
+            node.setmocktime(genesis_time + 1)
 
     def import_deterministic_coinbase_privkeys(self):
         for i in range(self.num_nodes):
@@ -599,6 +611,10 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
 
         node.start(*args, **kwargs)
         node.wait_for_rpc_connection()
+        if node.mocktime is not None:
+            node.setmocktime(node.mocktime)
+        else:
+            self._align_node_mocktime_to_genesis(node)
 
         if self.options.coveragedir is not None:
             coverage.write_all_rpc_commands(self.options.coveragedir, node._rpc)
@@ -613,6 +629,10 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
             node.start(extra_args[i], *args, **kwargs)
         for node in self.nodes:
             node.wait_for_rpc_connection()
+            if node.mocktime is not None:
+                node.setmocktime(node.mocktime)
+            else:
+                self._align_node_mocktime_to_genesis(node)
 
         if self.options.coveragedir is not None:
             for node in self.nodes:
