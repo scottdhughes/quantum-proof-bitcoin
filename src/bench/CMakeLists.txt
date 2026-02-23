@@ -41,6 +41,7 @@ add_executable(bench_pqbtc
   peer_eviction.cpp
   poly1305.cpp
   pool.cpp
+  pqsig.cpp
   prevector.cpp
   random.cpp
   readwriteblock.cpp
