@@ -261,7 +261,7 @@ jobs:
       - name: Build
         working-directory: build
         run: |
-          cmake --build . -j $NUMBER_OF_PROCESSORS --config Release
+          cmake --build . -j $NUMBER_OF_PROCESSORS --config Release --clean-first
 
       - name: Get pqbtcd manifest
         if: matrix.job-type == 'standard'
@@ -291,7 +291,8 @@ jobs:
           BITCOINUTIL: '${{ github.workspace }}\build\bin\Release\pqbtc-util.exe'
           BITCOINWALLET: '${{ github.workspace }}\build\bin\Release\pqbtc-wallet.exe'
           TEST_RUNNER_EXTRA: ${{ github.event_name != 'pull_request' && '--extended' || '' }}
-        run: py -3 test/functional/test_runner.py --jobs $NUMBER_OF_PROCESSORS --ci --quiet --tmpdirprefix="${RUNNER_TEMP}" --combinedlogslen=99999999 --timeout-factor=${TEST_RUNNER_TIMEOUT_FACTOR} ${TEST_RUNNER_EXTRA}
+          PQBTC_FUNCTIONAL_TESTS: 'feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py feature_pq_reorg.py feature_pq_block_limits.py'
+        run: py -3 test/functional/test_runner.py --jobs $NUMBER_OF_PROCESSORS --ci --quiet --tmpdirprefix="${RUNNER_TEMP}" --combinedlogslen=99999999 --timeout-factor=${TEST_RUNNER_TIMEOUT_FACTOR} ${TEST_RUNNER_EXTRA} ${PQBTC_FUNCTIONAL_TESTS}
 
       - name: Clone corpora
         if: matrix.job-type == 'fuzz'
@@ -395,7 +396,17 @@ jobs:
           ./src/univalue/unitester.exe
 
       - name: Run benchmarks
-        run: ./bin/bench_pqbtc.exe -sanity-check
+        run: |
+          ./bin/bench_pqbtc.exe -sanity-check
+          py -3 ci/test/check_pqsig_bench.py --bench ./bin/bench_pqbtc.exe --repeat 3 --baseline-out "${RUNNER_TEMP}/pqsig_bench_baseline_windows.json"
+
+      - name: Verify deterministic artifacts
+        run: py -3 ci/test/check_deterministic_artifacts.py
+
+      - name: Run PQSig fuzz smoke
+        run: |
+          mkdir -p ./pqsig_fuzz_smoke
+          FUZZ=pqsig_verify ./bin/fuzz.exe ./pqsig_fuzz_smoke
 
       - name: Adjust paths in test/config.ini
         shell: pwsh
@@ -417,7 +428,8 @@ jobs:
           # feature_unsupported_utxo_db.py fails on windows because of emojis in the test data directory
           EXCLUDE: '--exclude wallet_multiwallet.py,feature_unsupported_utxo_db.py'
           TEST_RUNNER_EXTRA: ${{ github.event_name != 'pull_request' && '--extended' || '' }}
-        run: py -3 test/functional/test_runner.py --jobs $NUMBER_OF_PROCESSORS --ci --quiet --tmpdirprefix="$RUNNER_TEMP" --combinedlogslen=99999999 --timeout-factor=$TEST_RUNNER_TIMEOUT_FACTOR $EXCLUDE $TEST_RUNNER_EXTRA
+          PQBTC_FUNCTIONAL_TESTS: 'feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py feature_pq_reorg.py feature_pq_block_limits.py'
+        run: py -3 test/functional/test_runner.py --jobs $NUMBER_OF_PROCESSORS --ci --quiet --tmpdirprefix="$RUNNER_TEMP" --combinedlogslen=99999999 --timeout-factor=$TEST_RUNNER_TIMEOUT_FACTOR $EXCLUDE $TEST_RUNNER_EXTRA $PQBTC_FUNCTIONAL_TESTS
 
   ci-matrix:
     name: ${{ matrix.name }}

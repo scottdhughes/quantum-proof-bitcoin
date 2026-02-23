@@ -1,185 +1,95 @@
 # CI/CD Documentation
 
-This document describes the CI infrastructure for PQBTC, including build/test workflows and the Gatekeeper freeze-gate enforcement system.
+This document describes the PQBTC v1 CI posture for RC stabilization.
 
 ## Overview
 
-PQBTC uses two GitHub Actions workflows:
+PQC-facing CI enforcement is split across two workflows:
 
 | Workflow | Purpose |
-|----------|---------|
-| `ci.yml` | Multi-platform build + tests + sanitizers (inherited from Bitcoin Core) |
-| `gatekeeper.yml` | Freeze-gate enforcement (docs-first) |
+|---|---|
+| `ci.yml` | Build, tests, benchmarks, fuzz, and PQ gating across platforms |
+| `gatekeeper.yml` | Docs-first freeze-gate checks against the selected base ref |
 
-## CI Build Matrix
+## RC Stabilization Controls
 
-The CI workflow (inherited from Bitcoin Core v30.2) provides comprehensive coverage:
+The following controls are part of the v1 RC posture:
 
-### Core Jobs
+1. Clean rebuilds are required in CI build jobs (`cmake --build ... --clean-first`) to avoid stale binary drift.
+2. Gatekeeper runs in dedicated workflow and blocks drift against frozen docs.
+3. Deterministic artifact checks run in CI:
+   - `contrib/genesis/generated_constants.json`
+   - `src/test/data/pqsig/kat_v1.json`
+4. PQ bench envelope checks run with repeated samples and baseline output capture.
+5. `pqsig_verify` fuzz smoke runs in CI in addition to existing fuzz jobs.
 
-| Job | Platform | Compiler | Tests |
-|-----|----------|----------|-------|
-| macOS native | macOS 14 arm64 | Apple Clang | full suite |
-| Windows native | Windows 2022 | MSVC | full suite |
-| Linux cross-compile | Ubuntu 24.04 | GCC/Clang | varies by job |
+## CI Control Interfaces
 
-### Sanitizer Jobs
+These interfaces are intentionally stable for v1:
 
-| Job | Sanitizers | Purpose |
-|-----|------------|---------|
-| ASan + LSan + UBSan | Address, Leak, Undefined | Memory safety |
-| TSan | Thread | Data race detection |
-| MSan | Memory | Uninitialized memory |
+- `PQBTC_FUNCTIONAL_TESTS`
+  - Explicit test list for PQ-first functional gating.
+  - Default: `feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py feature_pq_reorg.py feature_pq_block_limits.py`
+- `PQBTC_ENABLE_LEGACY_FUNCTIONAL_TESTS`
+  - `true` enables legacy functional profile explicitly.
+  - Default keeps legacy non-gating.
+- `RUN_GATEKEEPER`
+  - Enables gatekeeper execution in container CI script.
+  - Default: `true`.
+- `RUN_PQSIG_FUZZ_SMOKE`
+  - Enables direct `FUZZ=pqsig_verify` smoke run.
+  - Default: `true`.
+- `PQSIG_BENCH_REPEATS`
+  - Number of repeated bench-envelope checks.
+  - Default: `3`.
 
-### Fuzz Testing
+## Bench and Determinism Checks
 
-Fuzz targets are run with ASan/UBSan on both Linux and macOS.
-
-## Gatekeeper (Freeze-Gate Enforcement)
-
-The Gatekeeper enforces the docs-first invariant (I3): **frozen specs must exist on the base branch before consensus-critical code can be modified.**
-
-### How It Works
-
-1. On every PR, Gatekeeper runs `git diff --name-only origin/main...HEAD`
-2. Changed files are matched against rule patterns in `contrib/devtools/gatekeeper.yaml`
-3. For matching files, Gatekeeper verifies required artifacts exist **on `origin/main`** (not in the PR)
-4. Required docs must contain `## Status: FROZEN` header
-
-### Why Check `origin/main`?
-
-Checking the **base branch** (not the PR tree) mechanically enforces docs-first:
-- A spec PR must be merged to `main` first
-- Only then can a code PR modifying that area pass Gatekeeper
-- This prevents "spec + code in same PR" which defeats the safety mechanism
-
-### Gate Rules Summary
-
-| Gate | Protected Paths | Required Artifacts |
-|------|-----------------|-------------------|
-| 1 | `chainparams*`, `contrib/genesis/**` | `docs/GENESIS.md` *(FROZEN)* |
-| 2 | `src/crypto/pqsig/**` | `docs/PQSIG_*.md` *(FROZEN)* + vectors |
-| 3 | `src/script/**`, `src/validation.cpp` | 6 frozen specs + vectors |
-| 4 | `src/policy/**`, `consensus.h` | `docs/POLICY_LIMITS.md` *(FROZEN)* |
-| 4.5 | `src/net*`, `blockencodings.cpp` | `docs/NET_LIMITS.md` *(FROZEN)* |
-| 5 | `contrib/pqsign/**` | `docs/PSBT_STRATEGY.md` *(FROZEN)* |
-| 6 | `src/wallet/**` | `docs/WALLET.md` *(FROZEN)* |
-
-### STRICT Posture for Script
-
-The Gatekeeper uses a **strict posture** for `src/script/**`:
-- No "surface rules only" exception
-- ALL 6 Gate 3 prerequisites must exist before any script changes
-- This prevents premature consensus drift
-
-## Local Reproduction
-
-### Run Gatekeeper Locally
+Bench enforcement script:
 
 ```bash
-# Install dependencies
-pip3 install pyyaml
+python3 ci/test/check_pqsig_bench.py \
+  --bench build/bin/bench_pqbtc \
+  --repeat 3 \
+  --baseline-out /tmp/pqsig_bench_baseline.json
+```
 
-# Run gatekeeper (from repo root)
+Deterministic artifact check:
+
+```bash
+python3 ci/test/check_deterministic_artifacts.py
+```
+
+## Gatekeeper Reproduction
+
+```bash
+pip3 install pyyaml
 python3 contrib/devtools/gatekeeper.py \
   --rules contrib/devtools/gatekeeper.yaml \
   --base origin/main \
   --head HEAD
 ```
 
-### Run Build + Unit Tests
+## Local PQ RC Validation
 
 ```bash
-# macOS
-cmake -S . -B build -GNinja \
-  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-  -DBUILD_GUI=OFF -DBUILD_BENCH=OFF -DENABLE_WALLET=ON
-cmake --build build --parallel $(sysctl -n hw.ncpu)
-./build/bin/test_bitcoin --run_test=crypto_tests,key_tests,script_tests
+cmake --build build --clean-first -j8 --target test_pqbtc bench_pqbtc fuzz
+build/bin/test_pqbtc --run_test=pqsig_tests,pqsig_script_tests,script_tests,multisig_tests
+python3 ci/test/check_pqsig_bench.py --bench build/bin/bench_pqbtc --repeat 3
+python3 ci/test/check_deterministic_artifacts.py
 
-# Linux (Ubuntu 22.04+)
-sudo apt-get install -y cmake ninja-build libboost-dev libevent-dev libsqlite3-dev
-cmake -S . -B build -GNinja \
-  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-  -DBUILD_GUI=OFF -DBUILD_BENCH=OFF -DENABLE_WALLET=ON
-cmake --build build --parallel $(nproc)
-./build/bin/test_bitcoin
+tmpdir=$(mktemp -d)
+FUZZ=pqsig_verify build-fuzz/bin/fuzz "$tmpdir"
+rm -rf "$tmpdir"
 ```
 
-### Run Functional Tests
+Functional PQ suites:
 
 ```bash
-# Increase file descriptor limit (required on macOS)
-ulimit -n 4096
-
-# Run specific test
-python3 test/functional/test_runner.py wallet_basic.py
-
-# Run all tests (takes longer)
-python3 test/functional/test_runner.py --jobs $(nproc)
+build/test/functional/test_runner.py --jobs=1 \
+  feature_pqsig_basic.py \
+  feature_pqsig_multisig.py \
+  mempool_pq_limits.py \
+  feature_pq_reorg.py \
+  feature_pq_block_limits.py
 ```
-
-### Run with Sanitizers
-
-```bash
-# ASan + UBSan build
-cmake -S . -B build-asan -GNinja \
-  -DCMAKE_BUILD_TYPE=Debug \
-  -DCMAKE_C_COMPILER=clang \
-  -DCMAKE_CXX_COMPILER=clang++ \
-  -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
-  -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
-  -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined" \
-  -DBUILD_GUI=OFF -DBUILD_BENCH=OFF
-
-cmake --build build-asan --parallel
-
-# Run with sanitizer options
-ASAN_OPTIONS="detect_leaks=1:halt_on_error=1" \
-UBSAN_OPTIONS="halt_on_error=1:print_stacktrace=1" \
-./build-asan/bin/test_bitcoin
-```
-
-## Frozen Doc Contract
-
-Any document marked `## Status: FROZEN` must include:
-
-```markdown
-## Status: FROZEN
-## Spec-ID: <stable-identifier>
-## Frozen-By: <gate-tag>
-## Consensus-Relevant: YES|NO
-```
-
-Frozen docs may not contain `TBD` or `TODO` tokens.
-
-### Change Control
-
-- **Errata** (typos, clarifications): allowed, must note in changelog
-- **Semantic changes**: treated as hardfork, requires new Spec-ID version
-
-## CI Maintenance Notes
-
-### Test Suite Evolution
-
-As PQBTC diverges from Bitcoin Core (Gate 1+), some upstream functional tests will become irrelevant. Track decisions here:
-
-| Test Category | Status | Notes |
-|---------------|--------|-------|
-| `crypto_tests` | Must pass | Core cryptography |
-| `key_tests` | Evolve | Will need PQ key tests |
-| `script_tests` | Evolve | Will need PQ script tests |
-| `wallet_basic.py` | Must pass until Gate 6 | Then PQ wallet tests |
-
-### Adding New CI Jobs
-
-When adding PQ-specific CI jobs:
-1. Add to `.github/workflows/ci.yml`
-2. Document in this file
-3. Ensure job names are descriptive
-
-## Related Documentation
-
-- [UPSTREAM.md](UPSTREAM.md) — Bitcoin Core baseline
-- [CORE_DIFF_PLAN.md](CORE_DIFF_PLAN.md) — Implementation phases
-- Plan file — Gate execution checklist
