@@ -32,7 +32,7 @@ from test_framework.crypto.siphash import siphash256
 from test_framework.util import assert_equal
 
 MAX_LOCATOR_SZ = 101
-MAX_BLOCK_WEIGHT = 4000000
+MAX_BLOCK_WEIGHT = 16000000
 DEFAULT_BLOCK_RESERVED_WEIGHT = 8000
 MINIMUM_BLOCK_RESERVED_WEIGHT = 2000
 MAX_BLOOM_FILTER_SIZE = 36000
@@ -84,9 +84,9 @@ TX_MIN_STANDARD_VERSION = 1
 TX_MAX_STANDARD_VERSION = 3
 
 MAGIC_BYTES = {
-    "mainnet": b"\xf9\xbe\xb4\xd9",
+    "mainnet": b"\x85\x92\xa7\xad",
     "testnet4": b"\x1c\x16\x3f\x28",
-    "regtest": b"\xfa\xbf\xb5\xda",
+    "regtest": b"\x96\xbd\x87\x9e",
     "signet": b"\x0a\x03\xcf\x40",
 }
 

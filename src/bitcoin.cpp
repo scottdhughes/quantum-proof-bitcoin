@@ -21,26 +21,26 @@ const TranslateFn G_TRANSLATION_FUN{nullptr};
 static constexpr auto HELP_USAGE = R"(Usage: %s [OPTIONS] COMMAND...
 
 Options:
-  -m, --multiprocess     Run multiprocess binaries bitcoin-node, bitcoin-gui.
-  -M, --monolithic       Run monolithic binaries bitcoind, bitcoin-qt. (Default behavior)
+  -m, --multiprocess     Run multiprocess binaries pqbtc-node, pqbtc-gui.
+  -M, --monolithic       Run monolithic binaries pqbtcd, pqbtc-qt. (Default behavior)
   -v, --version          Show version information
   -h, --help             Show full help message
 
 Commands:
-  gui [ARGS]     Start GUI, equivalent to running 'bitcoin-qt [ARGS]' or 'bitcoin-gui [ARGS]'.
-  node [ARGS]    Start node, equivalent to running 'bitcoind [ARGS]' or 'bitcoin-node [ARGS]'.
-  rpc [ARGS]     Call RPC method, equivalent to running 'bitcoin-cli -named [ARGS]'.
-  wallet [ARGS]  Call wallet command, equivalent to running 'bitcoin-wallet [ARGS]'.
-  tx [ARGS]      Manipulate hex-encoded transactions, equivalent to running 'bitcoin-tx [ARGS]'.
+  gui [ARGS]     Start GUI, equivalent to running 'pqbtc-qt [ARGS]' or 'pqbtc-gui [ARGS]'.
+  node [ARGS]    Start node, equivalent to running 'pqbtcd [ARGS]' or 'pqbtc-node [ARGS]'.
+  rpc [ARGS]     Call RPC method, equivalent to running 'pqbtc-cli -named [ARGS]'.
+  wallet [ARGS]  Call wallet command, equivalent to running 'pqbtc-wallet [ARGS]'.
+  tx [ARGS]      Manipulate hex-encoded transactions, equivalent to running 'pqbtc-tx [ARGS]'.
   help           Show full help message.
 )";
 
 static constexpr auto HELP_FULL = R"(
 Additional less commonly used commands:
-  bench [ARGS]      Run bench command, equivalent to running 'bench_bitcoin [ARGS]'.
-  chainstate [ARGS] Run bitcoin kernel chainstate util, equivalent to running 'bitcoin-chainstate [ARGS]'.
-  test [ARGS]       Run unit tests, equivalent to running 'test_bitcoin [ARGS]'.
-  test-gui [ARGS]   Run GUI unit tests, equivalent to running 'test_bitcoin-qt [ARGS]'.
+  bench [ARGS]      Run bench command, equivalent to running 'bench_pqbtc [ARGS]'.
+  chainstate [ARGS] Run pqbtc kernel chainstate util, equivalent to running 'pqbtc-chainstate [ARGS]'.
+  test [ARGS]       Run unit tests, equivalent to running 'test_pqbtc [ARGS]'.
+  test-gui [ARGS]   Run GUI unit tests, equivalent to running 'test_pqbtc-qt [ARGS]'.
 )";
 
 static constexpr auto HELP_SHORT = R"(
@@ -80,12 +80,12 @@ int main(int argc, char* argv[])
                 return EXIT_FAILURE;
             }
         } else if (cmd.command == "gui") {
-            args.emplace_back(UseMultiprocess(cmd) ? "bitcoin-gui" : "bitcoin-qt");
+            args.emplace_back(UseMultiprocess(cmd) ? "pqbtc-gui" : "pqbtc-qt");
         } else if (cmd.command == "node") {
-            args.emplace_back(UseMultiprocess(cmd) ? "bitcoin-node" : "bitcoind");
+            args.emplace_back(UseMultiprocess(cmd) ? "pqbtc-node" : "pqbtcd");
         } else if (cmd.command == "rpc") {
-            args.emplace_back("bitcoin-cli");
-            // Since "bitcoin rpc" is a new interface that doesn't need to be
+            args.emplace_back("pqbtc-cli");
+            // Since "pqbtc rpc" is a new interface that doesn't need to be
             // backward compatible, enable -named by default so it is convenient
             // for callers to use a mix of named and unnamed parameters. Callers
             // can override this by specifying -nonamed, but should not need to
@@ -93,19 +93,19 @@ int main(int argc, char* argv[])
             // as unnamed parameters.
             args.emplace_back("-named");
         } else if (cmd.command == "wallet") {
-            args.emplace_back("bitcoin-wallet");
+            args.emplace_back("pqbtc-wallet");
         } else if (cmd.command == "tx") {
-            args.emplace_back("bitcoin-tx");
+            args.emplace_back("pqbtc-tx");
         } else if (cmd.command == "bench") {
-            args.emplace_back("bench_bitcoin");
+            args.emplace_back("bench_pqbtc");
         } else if (cmd.command == "chainstate") {
-            args.emplace_back("bitcoin-chainstate");
+            args.emplace_back("pqbtc-chainstate");
         } else if (cmd.command == "test") {
-            args.emplace_back("test_bitcoin");
+            args.emplace_back("test_pqbtc");
         } else if (cmd.command == "test-gui") {
-            args.emplace_back("test_bitcoin-qt");
+            args.emplace_back("test_pqbtc-qt");
         } else if (cmd.command == "util") {
-            args.emplace_back("bitcoin-util");
+            args.emplace_back("pqbtc-util");
         } else {
             throw std::runtime_error(strprintf("Unrecognized command: '%s'", cmd.command));
         }

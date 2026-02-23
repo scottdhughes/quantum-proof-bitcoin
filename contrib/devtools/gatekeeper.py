@@ -72,20 +72,30 @@ def git_ls_tree(ref: str, path: str) -> list[str]:
 
 def path_matches_patterns(path: str, patterns: list[str]) -> bool:
     """Check if path matches any of the glob patterns."""
+    path_parts = tuple(part for part in path.split("/") if part)
+
+    def match_parts(p_parts: tuple[str, ...], g_parts: tuple[str, ...]) -> bool:
+        if not g_parts:
+            return not p_parts
+        head = g_parts[0]
+        if head == "**":
+            # '**' matches zero or more full path segments.
+            return match_parts(p_parts, g_parts[1:]) or (
+                bool(p_parts) and match_parts(p_parts[1:], g_parts)
+            )
+        return bool(p_parts) and fnmatch.fnmatchcase(p_parts[0], head) and match_parts(
+            p_parts[1:], g_parts[1:]
+        )
+
     for pattern in patterns:
-        # Handle ** for recursive matching
-        if "**" in pattern:
-            # Convert ** glob to regex
-            regex_pattern = pattern.replace(".", r"\.").replace("**", ".*").replace("*", "[^/]*")
-            if re.match(regex_pattern, path):
-                return True
-        elif fnmatch.fnmatch(path, pattern):
+        pattern_parts = tuple(part for part in pattern.split("/") if part)
+        if match_parts(path_parts, pattern_parts):
             return True
     return False
 
 
 def check_file_requirement(
-    req: dict[str, Any], base_ref: str, head_ref: str
+    req: dict[str, Any], base_ref: str, head_ref: str, frozen_contract: dict[str, Any]
 ) -> tuple[bool, str]:
     """Check a file requirement. Returns (passed, error_message)."""
     where = req.get("where", "base")
@@ -102,6 +112,17 @@ def check_file_requirement(
         for substring in contains:
             if substring not in content:
                 return False, f"File '{file_path}' on {where} branch missing required content: '{substring}'"
+
+        # If a frozen status is required, enforce the full frozen-doc contract
+        # on the referenced ref (typically base branch docs-first gating).
+        if "## Status: FROZEN" in contains:
+            if not is_frozen_doc(content):
+                return False, (
+                    f"File '{file_path}' on {where} branch must contain a proper "
+                    f"'## Status: FROZEN' heading in the first 30 lines"
+                )
+            for violation in check_frozen_doc_contract(content, file_path, frozen_contract):
+                return False, violation
 
         return True, ""
 
@@ -230,7 +251,7 @@ def run_gatekeeper(rules_path: str, base_ref: str, head_ref: str) -> int:
         # Check all requirements
         for req in requirements:
             if "file" in req:
-                passed, error = check_file_requirement(req, base_ref, head_ref)
+                passed, error = check_file_requirement(req, base_ref, head_ref, frozen_contract)
                 if not passed:
                     rule_violations.append(error)
             elif "directory" in req:

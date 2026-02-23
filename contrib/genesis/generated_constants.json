@@ -1,0 +1,104 @@
+{
+  "networks": [
+    {
+      "base58_pubkey": 188,
+      "base58_script": 112,
+      "base58_secret": 227,
+      "bech32_hrp": "pq",
+      "bits": 545259519,
+      "ext_public_key": [
+        70,
+        238,
+        60,
+        233
+      ],
+      "ext_secret_key": [
+        232,
+        156,
+        209,
+        5
+      ],
+      "genesis_hash": "2af71da20e6e03bfdfc2347edffbbb4087796678c8d57cacbccbd10eee7b31e4",
+      "merkle_root": "f586d6aae001c2f2fc69588582695650a8247bf628a2c21c40c334d527398838",
+      "message_start": [
+        133,
+        146,
+        167,
+        173
+      ],
+      "name": "main",
+      "nonce": 4185130280,
+      "p2p_port": 22833,
+      "rpc_port": 22832,
+      "time": 1772116563,
+      "version": 1
+    },
+    {
+      "base58_pubkey": 191,
+      "base58_script": 187,
+      "base58_secret": 64,
+      "bech32_hrp": "tq",
+      "bits": 545259519,
+      "ext_public_key": [
+        149,
+        138,
+        123,
+        144
+      ],
+      "ext_secret_key": [
+        146,
+        100,
+        134,
+        147
+      ],
+      "genesis_hash": "2b6939c6a048aa840a962d19ee680879c0bcbbeeff6e258fd049b5a6a947a979",
+      "merkle_root": "d3bf22ef43098736f11406c5bff808e933df335705f4c8c022dcffaa0d26164a",
+      "message_start": [
+        167,
+        226,
+        156,
+        247
+      ],
+      "name": "test",
+      "nonce": 2499947721,
+      "p2p_port": 23833,
+      "rpc_port": 23832,
+      "time": 1772119544,
+      "version": 1
+    },
+    {
+      "base58_pubkey": 121,
+      "base58_script": 197,
+      "base58_secret": 115,
+      "bech32_hrp": "rq",
+      "bits": 545259519,
+      "ext_public_key": [
+        153,
+        13,
+        180,
+        18
+      ],
+      "ext_secret_key": [
+        61,
+        100,
+        33,
+        230
+      ],
+      "genesis_hash": "36cc1172b59a75d055126cfb7a1d3b5d37eebc57bec9791fccfa48af6bbd15e2",
+      "merkle_root": "eff22c74638125519d38bab3d58d460f93ff0d5ef57dfbabc9514353bdb458cb",
+      "message_start": [
+        150,
+        189,
+        135,
+        158
+      ],
+      "name": "regtest",
+      "nonce": 17489643,
+      "p2p_port": 24833,
+      "rpc_port": 24832,
+      "time": 1772086429,
+      "version": 1
+    }
+  ],
+  "seed": "PqbtcGenesis/v1/2026-02-22"
+}

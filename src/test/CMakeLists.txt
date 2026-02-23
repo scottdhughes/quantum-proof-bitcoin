@@ -4,7 +4,9 @@
 
 # Do not use generator expressions in test sources because the
 # SOURCES property is processed to gather test suite macros.
-add_executable(test_bitcoin
+option(PQBTC_ENABLE_LEGACY_UNIT_TESTS "Build legacy pre-PQ unit suites in addition to PQ-first suites" OFF)
+
+set(TEST_PQBTC_SOURCES
   main.cpp
   addrman_tests.cpp
   allocator_tests.cpp
@@ -69,6 +71,8 @@ add_executable(test_bitcoin
   node_warnings_tests.cpp
   orphanage_tests.cpp
   pcp_tests.cpp
+  pqsig_script_tests.cpp
+  pqsig_tests.cpp
   peerman_tests.cpp
   pmt_tests.cpp
   policy_fee_tests.cpp
@@ -131,25 +135,44 @@ add_executable(test_bitcoin
   versionbits_tests.cpp
 )
 
+if(NOT PQBTC_ENABLE_LEGACY_UNIT_TESTS)
+  # PQ-first default profile: legacy suites run only when explicitly enabled.
+  set(TEST_PQBTC_SOURCES
+    main.cpp
+    multisig_tests.cpp
+    pqsig_tests.cpp
+    script_tests.cpp
+  )
+endif()
+
+add_executable(test_pqbtc ${TEST_PQBTC_SOURCES})
+
 include(TargetDataSources)
-target_json_data_sources(test_bitcoin
-  data/base58_encode_decode.json
-  data/bip341_wallet_vectors.json
-  data/blockfilters.json
-  data/key_io_invalid.json
-  data/key_io_valid.json
-  data/script_tests.json
-  data/sighash.json
-  data/tx_invalid.json
-  data/tx_valid.json
-)
-target_raw_data_sources(test_bitcoin NAMESPACE test::data
+if(PQBTC_ENABLE_LEGACY_UNIT_TESTS)
+  target_json_data_sources(test_pqbtc
+    data/base58_encode_decode.json
+    data/bip341_wallet_vectors.json
+    data/blockfilters.json
+    data/key_io_invalid.json
+    data/key_io_valid.json
+    data/script_tests.json
+    data/sighash.json
+    data/tx_invalid.json
+    data/tx_valid.json
+    data/pqsig/kat_v1.json
+  )
+else()
+  target_json_data_sources(test_pqbtc
+    data/pqsig/kat_v1.json
+  )
+endif()
+target_raw_data_sources(test_pqbtc NAMESPACE test::data
   data/asmap.raw
 )
 
-add_windows_application_manifest(test_bitcoin)
+add_windows_application_manifest(test_pqbtc)
 
-target_link_libraries(test_bitcoin
+target_link_libraries(test_pqbtc
   core_interface
   test_util
   bitcoin_cli
@@ -173,11 +196,11 @@ if(ENABLE_IPC)
       Boost::headers
   )
 
-  target_sources(test_bitcoin
+  target_sources(test_pqbtc
     PRIVATE
       ipc_tests.cpp
   )
-  target_link_libraries(test_bitcoin bitcoin_ipc_test bitcoin_ipc)
+  target_link_libraries(test_pqbtc bitcoin_ipc_test bitcoin_ipc)
 endif()
 
 function(add_boost_test source_file)
@@ -195,7 +218,7 @@ function(add_boost_test source_file)
   )
   foreach(test_suite_name IN LISTS test_suite_macro)
     add_test(NAME ${test_suite_name}
-      COMMAND test_bitcoin --run_test=${test_suite_name} --catch_system_error=no --log_level=test_suite -- DEBUG_LOG_OUT
+      COMMAND test_pqbtc --run_test=${test_suite_name} --catch_system_error=no --log_level=test_suite -- DEBUG_LOG_OUT
     )
     set_property(TEST ${test_suite_name} PROPERTY
       SKIP_REGULAR_EXPRESSION
@@ -207,8 +230,8 @@ function(add_boost_test source_file)
 endfunction()
 
 function(add_all_test_targets)
-  get_target_property(test_source_dir test_bitcoin SOURCE_DIR)
-  get_target_property(test_sources test_bitcoin SOURCES)
+  get_target_property(test_source_dir test_pqbtc SOURCE_DIR)
+  get_target_property(test_sources test_pqbtc SOURCES)
   foreach(test_source ${test_sources})
     cmake_path(IS_RELATIVE test_source result)
     if(result)
@@ -220,4 +243,4 @@ endfunction()
 
 add_all_test_targets()
 
-install_binary_component(test_bitcoin INTERNAL)
+install_binary_component(test_pqbtc INTERNAL)

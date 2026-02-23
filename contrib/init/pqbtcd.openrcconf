@@ -1,0 +1,33 @@
+# /etc/conf.d/pqbtcd: config file for /etc/init.d/pqbtcd
+
+# Config file location
+#PQBTCD_CONFIGFILE="/etc/pqbtc/pqbtc.conf"
+
+# What directory to write pidfile to?  (created and owned by $PQBTCD_USER)
+#PQBTCD_PIDDIR="/var/run/pqbtcd"
+
+# What filename to give the pidfile
+#PQBTCD_PIDFILE="${PQBTCD_PIDDIR}/pqbtcd.pid"
+
+# Where to write pqbtcd data (be mindful that the blockchain is large)
+#PQBTCD_DATADIR="/var/lib/pqbtcd"
+
+# User and group to own pqbtcd process
+#PQBTCD_USER="pqbtc"
+#PQBTCD_GROUP="pqbtc"
+
+# Path to pqbtcd executable
+#PQBTCD_BIN="/usr/bin/pqbtcd"
+
+# Nice value to run pqbtcd under
+#PQBTCD_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+#PQBTCD_OPTS=""
+
+# The timeout in seconds OpenRC will wait for pqbtcd to terminate
+# after a SIGTERM has been raised.
+# Note that this will be mapped as argument to start-stop-daemon's
+# '--retry' option, which means you can specify a retry schedule
+# here. For more information see man 8 start-stop-daemon.
+PQBTCD_SIGTERM_TIMEOUT=600

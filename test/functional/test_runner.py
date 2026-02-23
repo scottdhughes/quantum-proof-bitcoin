@@ -89,6 +89,11 @@ EXTENDED_SCRIPTS = [
 BASE_SCRIPTS = [
     # Scripts that are run by default.
     # Longest test should go first, to favor running tests in parallel
+    'feature_pqsig_basic.py',
+    'feature_pqsig_multisig.py',
+    'mempool_pq_limits.py',
+    'feature_pq_reorg.py',
+    'feature_pq_block_limits.py',
     # vv Tests less than 5m vv
     'feature_fee_estimation.py',
     'feature_taproot.py',
@@ -550,11 +555,11 @@ def main():
 def run_tests(*, test_list, build_dir, tmpdir, jobs=1, enable_coverage=False, args=None, combined_logs_len=0, failfast=False, use_term_control, results_filepath=None):
     args = args or []
 
-    # Warn if bitcoind is already running
+    # Warn if pqbtcd is already running
     try:
         # pgrep exits with code zero when one or more matching processes found
-        if subprocess.run(["pgrep", "-x", "bitcoind"], stdout=subprocess.DEVNULL).returncode == 0:
-            print("%sWARNING!%s There is already a bitcoind process running on this system. Tests may fail unexpectedly due to resource contention!" % (BOLD[1], BOLD[0]))
+        if subprocess.run(["pgrep", "-x", "pqbtcd"], stdout=subprocess.DEVNULL).returncode == 0:
+            print("%sWARNING!%s There is already a pqbtcd process running on this system. Tests may fail unexpectedly due to resource contention!" % (BOLD[1], BOLD[0]))
     except OSError:
         # pgrep not supported
         pass

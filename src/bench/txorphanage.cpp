@@ -205,15 +205,17 @@ static void OrphanageEraseAll(benchmark::Bench& bench, bool block_or_disconnect)
     // Divide the block's inputs evenly among the peers.
     constexpr unsigned int INPUTS_PER_PEER = NUM_BLOCK_INPUTS / NUM_PEERS;
     static_assert(INPUTS_PER_PEER > 0);
-    // All the block inputs are spent by the orphanage transactions. Each peer is assigned 76 of them.
-    // Each peer has 24 transactions spending 9 inputs each, so jumping by 3 ensures we cover all of the inputs.
-    static_assert(7 * NUM_TXNS_PER_PEER + INPUTS_PER_TX - 1 >= INPUTS_PER_PEER);
+    // Choose an input stride that covers each peer's assigned range under the active block-weight limit.
+    constexpr unsigned int INPUT_STRIDE = (INPUTS_PER_PEER > INPUTS_PER_TX)
+        ? ((INPUTS_PER_PEER - INPUTS_PER_TX + NUM_TXNS_PER_PEER) / NUM_TXNS_PER_PEER)
+        : 1;
+    static_assert(INPUT_STRIDE * NUM_TXNS_PER_PEER + INPUTS_PER_TX - 1 >= INPUTS_PER_PEER);
 
     for (NodeId peer{0}; peer < NUM_PEERS; ++peer) {
         int64_t weight_left_for_peer{node::DEFAULT_RESERVED_ORPHAN_WEIGHT_PER_PEER};
         for (unsigned int txnum{0}; txnum < node::DEFAULT_MAX_ORPHANAGE_LATENCY_SCORE / NUM_PEERS; ++txnum) {
             // Transactions must be unique since they use different (though overlapping) inputs.
-            const unsigned int start_input = peer * INPUTS_PER_PEER + txnum * 7;
+            const unsigned int start_input = peer * INPUTS_PER_PEER + txnum * INPUT_STRIDE;
 
             // Note that we shouldn't be able to hit the weight limit with these small transactions.
             const int64_t weight_limit{std::min<int64_t>(weight_left_for_peer, MAX_STANDARD_TX_WEIGHT)};

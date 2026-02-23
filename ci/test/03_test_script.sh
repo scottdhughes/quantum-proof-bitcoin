@@ -138,10 +138,10 @@ bash -c "cmake -S $BASE_ROOT_DIR -B ${BASE_BUILD_DIR} $BITCOIN_CONFIG_ALL $BITCO
 )
 
 # shellcheck disable=SC2086
-cmake --build "${BASE_BUILD_DIR}" "$MAKEJOBS" --target all $GOAL || (
+cmake --build "${BASE_BUILD_DIR}" "$MAKEJOBS" --clean-first --target all $GOAL || (
   echo "Build failure. Verbose build follows."
   # shellcheck disable=SC2086
-  cmake --build "${BASE_BUILD_DIR}" -j1 --target all $GOAL --verbose
+  cmake --build "${BASE_BUILD_DIR}" -j1 --clean-first --target all $GOAL --verbose
   false
 )
 
@@ -163,6 +163,40 @@ if [ -n "$USE_VALGRIND" ]; then
   "${BASE_ROOT_DIR}/ci/test/wrap-valgrind.sh"
 fi
 
+resolve_gatekeeper_base_ref() {
+  if [ -n "${GATEKEEPER_BASE_REF:-}" ]; then
+    echo "${GATEKEEPER_BASE_REF}"
+    return
+  fi
+
+  if [ -n "${GITHUB_BASE_REF:-}" ]; then
+    git fetch --no-tags --depth=1 origin "${GITHUB_BASE_REF}" >/dev/null 2>&1 || true
+    if git rev-parse --verify --quiet "origin/${GITHUB_BASE_REF}" >/dev/null; then
+      echo "origin/${GITHUB_BASE_REF}"
+      return
+    fi
+    if git rev-parse --verify --quiet "${GITHUB_BASE_REF}" >/dev/null; then
+      echo "${GITHUB_BASE_REF}"
+      return
+    fi
+  fi
+
+  if git rev-parse --verify --quiet HEAD~1 >/dev/null; then
+    echo "HEAD~1"
+  else
+    echo "HEAD"
+  fi
+}
+
+if [ "${RUN_GATEKEEPER}" = "true" ]; then
+  python3 -c "import yaml" >/dev/null 2>&1 || python3 -m pip install pyyaml
+  GATEKEEPER_BASE_REF="$(resolve_gatekeeper_base_ref)"
+  python3 "${BASE_ROOT_DIR}/contrib/devtools/gatekeeper.py" \
+    --rules "${BASE_ROOT_DIR}/contrib/devtools/gatekeeper.yaml" \
+    --base "${GATEKEEPER_BASE_REF}" \
+    --head HEAD
+fi
+
 if [ "$RUN_CHECK_DEPS" = "true" ]; then
   "${BASE_ROOT_DIR}/contrib/devtools/check-deps.sh" "${BASE_BUILD_DIR}"
 fi
@@ -175,11 +209,29 @@ if [ "$RUN_UNIT_TESTS" = "true" ]; then
     --stop-on-failure \
     "${MAKEJOBS}" \
     --timeout $(( TEST_RUNNER_TIMEOUT_FACTOR * 60 ))
+
+  PQSIG_BENCH_BASELINE="${BASE_SCRATCH_DIR}/pqsig_bench_baseline.json"
+  LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \
+  python3 "${BASE_ROOT_DIR}/ci/test/check_pqsig_bench.py" \
+    --bench "${BASE_BUILD_DIR}/bin/bench_pqbtc" \
+    --repeat "${PQSIG_BENCH_REPEATS}" \
+    --baseline-out "${PQSIG_BENCH_BASELINE}"
+  cat "${PQSIG_BENCH_BASELINE}"
+
+  python3 "${BASE_ROOT_DIR}/ci/test/check_deterministic_artifacts.py"
 fi
 
 if [ "$RUN_FUNCTIONAL_TESTS" = "true" ]; then
   # parses TEST_RUNNER_EXTRA as an array which allows for multiple arguments such as TEST_RUNNER_EXTRA='--exclude "rpc_bind.py --ipv6"'
   eval "TEST_RUNNER_EXTRA=($TEST_RUNNER_EXTRA)"
+  if [ "${PQBTC_ENABLE_LEGACY_FUNCTIONAL_TESTS}" != "true" ]; then
+    if [ -z "${PQBTC_FUNCTIONAL_TESTS}" ]; then
+      PQBTC_FUNCTIONAL_TESTS="feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py feature_pq_reorg.py feature_pq_block_limits.py"
+    fi
+    eval "PQBTC_FUNCTIONAL_TESTS_ARRAY=($PQBTC_FUNCTIONAL_TESTS)"
+  else
+    PQBTC_FUNCTIONAL_TESTS_ARRAY=()
+  fi
   LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \
   "${BASE_BUILD_DIR}/test/functional/test_runner.py" \
     --ci "${MAKEJOBS}" \
@@ -189,7 +241,20 @@ if [ "$RUN_FUNCTIONAL_TESTS" = "true" ]; then
     --timeout-factor="${TEST_RUNNER_TIMEOUT_FACTOR}" \
     "${TEST_RUNNER_EXTRA[@]}" \
     --quiet \
-    --failfast
+    --failfast \
+    "${PQBTC_FUNCTIONAL_TESTS_ARRAY[@]}"
+fi
+
+if [ "${RUN_PQSIG_FUZZ_SMOKE}" = "true" ]; then
+  if [ -x "${BASE_BUILD_DIR}/bin/fuzz" ]; then
+    PQSIG_FUZZ_SMOKE_DIR="${BASE_SCRATCH_DIR}/pqsig_fuzz_smoke"
+    rm -rf "${PQSIG_FUZZ_SMOKE_DIR}"
+    mkdir -p "${PQSIG_FUZZ_SMOKE_DIR}"
+    LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \
+    FUZZ=pqsig_verify "${BASE_BUILD_DIR}/bin/fuzz" "${PQSIG_FUZZ_SMOKE_DIR}"
+  else
+    echo "Skipping pqsig_verify fuzz smoke: ${BASE_BUILD_DIR}/bin/fuzz not found"
+  fi
 fi
 
 if [ "${RUN_TIDY}" = "true" ]; then
