@@ -35,7 +35,8 @@ FUZZ_TARGET(utxo_total_supply)
             },
         },
     };
-    const int64_t min_mock_time{std::max<int64_t>(1296688602, test_setup.m_node.chainman->GetParams().GenesisBlock().Time())};
+    const int64_t genesis_time{count_seconds(test_setup.m_node.chainman->GetParams().GenesisBlock().Time())};
+    const int64_t min_mock_time{std::max<int64_t>(1296688602, genesis_time)};
     SetMockTime(ConsumeTime(fuzzed_data_provider, /*min=*/min_mock_time));
     // Create chainstate
     test_setup.LoadVerifyActivateChainstate();
