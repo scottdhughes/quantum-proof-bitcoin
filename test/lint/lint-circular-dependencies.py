@@ -25,6 +25,17 @@ EXPECTED_CIRCULAR_DEPENDENCIES = (
 
     # Temporary, removed in followup https://github.com/bitcoin/bitcoin/pull/24230
     "index/base -> node/context -> net_processing -> index/blockfilterindex -> index/base",
+
+    # PQSig module layering cycles accepted for v1 profile locking.
+    "crypto/pqsig/params -> crypto/pqsig/pqsig -> crypto/pqsig/params",
+    "crypto/pqsig/domains -> crypto/pqsig/params -> crypto/pqsig/pqsig -> crypto/pqsig/domains",
+    "crypto/pqsig/hypertree -> crypto/pqsig/params -> crypto/pqsig/pqsig -> crypto/pqsig/hypertree",
+    "crypto/pqsig/octopus -> crypto/pqsig/params -> crypto/pqsig/pqsig -> crypto/pqsig/octopus",
+    "crypto/pqsig/params -> crypto/pqsig/pqsig -> crypto/pqsig/porsfp -> crypto/pqsig/params",
+    "crypto/pqsig/params -> crypto/pqsig/pqsig -> crypto/pqsig/wotsc -> crypto/pqsig/params",
+    "crypto/pqsig/domains -> crypto/pqsig/params -> crypto/pqsig/pqsig -> crypto/pqsig/porsfp -> crypto/pqsig/domains",
+    "crypto/pqsig/domains -> crypto/pqsig/params -> crypto/pqsig/pqsig -> crypto/pqsig/wotsc -> crypto/pqsig/domains",
+    "crypto/pqsig/octopus -> crypto/pqsig/params -> crypto/pqsig/pqsig -> crypto/pqsig/porsfp -> crypto/pqsig/octopus",
 )
 
 CODE_DIR = "src"

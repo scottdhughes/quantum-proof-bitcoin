@@ -34,7 +34,7 @@ REF_DIR = REPO_ROOT / "contrib" / "pqsig-ref"
 if str(REF_DIR) not in sys.path:
     sys.path.insert(0, str(REF_DIR))
 
-from pqsig_ref import derive_pk_script, pqsig_sign  # noqa: E402
+from pqsig_ref import derive_pk_script, pqsig_sign  # noqa: E402  # type: ignore[import-not-found]
 
 
 def build_pq_keypair(sk_seed: bytes) -> tuple[bytes, bytes]:
