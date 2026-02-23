@@ -189,7 +189,10 @@ resolve_gatekeeper_base_ref() {
 }
 
 if [ "${RUN_GATEKEEPER}" = "true" ]; then
-  python3 -c "import yaml" >/dev/null 2>&1 || python3 -m pip install pyyaml
+  if ! python3 -c "import yaml" >/dev/null 2>&1; then
+    python3 -m pip install --disable-pip-version-check --break-system-packages pyyaml \
+      || python3 -m pip install --disable-pip-version-check pyyaml
+  fi
   GATEKEEPER_BASE_REF="$(resolve_gatekeeper_base_ref)"
   python3 "${BASE_ROOT_DIR}/contrib/devtools/gatekeeper.py" \
     --rules "${BASE_ROOT_DIR}/contrib/devtools/gatekeeper.yaml" \
@@ -246,12 +249,18 @@ if [ "$RUN_FUNCTIONAL_TESTS" = "true" ]; then
 fi
 
 if [ "${RUN_PQSIG_FUZZ_SMOKE}" = "true" ]; then
-  if [ -x "${BASE_BUILD_DIR}/bin/fuzz" ]; then
+  build_for_fuzzing=""
+  if [ -f "${BASE_BUILD_DIR}/CMakeCache.txt" ]; then
+    build_for_fuzzing="$(sed -n 's/^BUILD_FOR_FUZZING:BOOL=//p' "${BASE_BUILD_DIR}/CMakeCache.txt" | tail -1)"
+  fi
+  if [ "${build_for_fuzzing}" = "ON" ] && [ -x "${BASE_BUILD_DIR}/bin/fuzz" ]; then
     PQSIG_FUZZ_SMOKE_DIR="${BASE_SCRATCH_DIR}/pqsig_fuzz_smoke"
     rm -rf "${PQSIG_FUZZ_SMOKE_DIR}"
     mkdir -p "${PQSIG_FUZZ_SMOKE_DIR}"
     LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \
     FUZZ=pqsig_verify "${BASE_BUILD_DIR}/bin/fuzz" "${PQSIG_FUZZ_SMOKE_DIR}"
+  elif [ -x "${BASE_BUILD_DIR}/bin/fuzz" ]; then
+    echo "Skipping pqsig_verify fuzz smoke: BUILD_FOR_FUZZING is not enabled"
   else
     echo "Skipping pqsig_verify fuzz smoke: ${BASE_BUILD_DIR}/bin/fuzz not found"
   fi

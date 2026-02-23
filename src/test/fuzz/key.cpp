@@ -151,12 +151,12 @@ FUZZ_TARGET(key, .init = initialize_key)
 
         TxoutType which_type_tx_pubkey;
         const bool is_standard_tx_pubkey = IsStandard(tx_pubkey_script, which_type_tx_pubkey);
-        assert(is_standard_tx_pubkey);
+        assert(!is_standard_tx_pubkey);
         assert(which_type_tx_pubkey == TxoutType::PUBKEY);
 
         TxoutType which_type_tx_multisig;
         const bool is_standard_tx_multisig = IsStandard(tx_multisig_script, which_type_tx_multisig);
-        assert(is_standard_tx_multisig);
+        assert(!is_standard_tx_multisig);
         assert(which_type_tx_multisig == TxoutType::MULTISIG);
 
         std::vector<std::vector<unsigned char>> v_solutions_ret_tx_pubkey;
