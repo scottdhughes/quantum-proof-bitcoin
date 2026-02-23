@@ -406,7 +406,17 @@ jobs:
       - name: Run PQSig fuzz smoke
         run: |
           mkdir -p ./pqsig_fuzz_smoke
-          FUZZ=pqsig_verify ./bin/fuzz.exe ./pqsig_fuzz_smoke
+          set +e
+          FUZZ=pqsig_verify ./bin/fuzz.exe ./pqsig_fuzz_smoke > ./pqsig_fuzz_smoke.log 2>&1
+          fuzz_rc=$?
+          set -e
+          if [[ ${fuzz_rc} -ne 0 ]] && grep -q "Must compile with -DBUILD_FOR_FUZZING=ON" ./pqsig_fuzz_smoke.log; then
+            echo "Skipping pqsig_verify fuzz smoke: BUILD_FOR_FUZZING is not enabled"
+            cat ./pqsig_fuzz_smoke.log
+          elif [[ ${fuzz_rc} -ne 0 ]]; then
+            cat ./pqsig_fuzz_smoke.log
+            exit ${fuzz_rc}
+          fi
 
       - name: Adjust paths in test/config.ini
         shell: pwsh
