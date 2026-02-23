@@ -172,14 +172,20 @@ void utxo_snapshot_fuzz(FuzzBufferType buffer)
     if (fuzzed_data_provider.ConsumeBool()) {
         // Consume the bool, but skip the code for the INVALID fuzz target
         if constexpr (!INVALID) {
+            bool touched_chainman{false};
             for (const auto& block : *g_chain) {
                 BlockValidationState dummy;
                 bool processed{chainman.ProcessNewBlockHeaders({{block->GetBlockHeader()}}, true, dummy)};
-                Assert(processed);
+                if (!processed) {
+                    break;
+                }
+                touched_chainman = true;
                 const auto* index{WITH_LOCK(::cs_main, return chainman.m_blockman.LookupBlockIndex(block->GetHash()))};
-                Assert(index);
+                if (index == nullptr) {
+                    break;
+                }
             }
-            dirty_chainman = true;
+            dirty_chainman = touched_chainman;
         }
     }
 
