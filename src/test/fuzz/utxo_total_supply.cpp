@@ -26,6 +26,9 @@ FUZZ_TARGET(utxo_total_supply)
 {
     SeedRandomStateForTest(SeedRand::ZEROS);
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
+    // Set a deterministic mocktime before any setup code can observe wall clock time.
+    constexpr int64_t kInitialMockTime{2'000'000'000};
+    SetMockTime(kInitialMockTime);
     /** The testing setup that creates a chainman only (no chainstate) */
     ChainTestingSetup test_setup{
         ChainType::REGTEST,
@@ -36,7 +39,7 @@ FUZZ_TARGET(utxo_total_supply)
         },
     };
     const int64_t genesis_time{static_cast<int64_t>(test_setup.m_node.chainman->GetParams().GenesisBlock().nTime)};
-    const int64_t min_mock_time{std::max<int64_t>(1296688602, genesis_time)};
+    const int64_t min_mock_time{std::max<int64_t>(kInitialMockTime, genesis_time)};
     SetMockTime(ConsumeTime(fuzzed_data_provider, /*min=*/min_mock_time));
     // Create chainstate
     test_setup.LoadVerifyActivateChainstate();
