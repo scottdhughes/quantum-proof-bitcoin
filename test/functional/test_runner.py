@@ -494,7 +494,10 @@ def main():
 
         def print_warning_missing_test(test_name):
             print("{}WARNING!{} Test '{}' not found in current test list. Check the --exclude list.".format(BOLD[1], BOLD[0], test_name))
-            if fail_on_warn:
+            # When an explicit script subset is provided (e.g. PQ-only CI
+            # profile), excludes may legitimately reference tests outside that
+            # subset.
+            if fail_on_warn and not tests:
                 sys.exit(1)
 
         def remove_tests(exclude_list):

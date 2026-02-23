@@ -6,7 +6,9 @@
 
 from __future__ import annotations
 
+import configparser
 from decimal import Decimal
+import os
 from pathlib import Path
 import sys
 
@@ -29,8 +31,39 @@ from test_framework.script import (
 )
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-REF_DIR = REPO_ROOT / "contrib" / "pqsig-ref"
+def _resolve_ref_dir() -> Path:
+    candidate_roots = []
+    for env_name in ("SRCDIR", "BASE_ROOT_DIR"):
+        env_value = os.environ.get(env_name)
+        if env_value:
+            candidate_roots.append(Path(env_value))
+
+    # Functional tests executed from the build tree provide source paths in
+    # build/test/config.ini.
+    config_path = Path(__file__).resolve().parents[2] / "config.ini"
+    if config_path.is_file():
+        config = configparser.ConfigParser()
+        config.read(config_path)
+        srcdir = config.get("environment", "SRCDIR", fallback="")
+        if srcdir:
+            candidate_roots.append(Path(srcdir))
+
+    candidate_roots.extend(Path(__file__).resolve().parents)
+
+    seen = set()
+    for root in candidate_roots:
+        root = root.resolve()
+        if root in seen:
+            continue
+        seen.add(root)
+        ref_dir = root / "contrib" / "pqsig-ref"
+        if (ref_dir / "pqsig_ref.py").is_file():
+            return ref_dir
+
+    raise ModuleNotFoundError("Unable to locate contrib/pqsig-ref/pqsig_ref.py")
+
+
+REF_DIR = _resolve_ref_dir()
 if str(REF_DIR) not in sys.path:
     sys.path.insert(0, str(REF_DIR))
 
@@ -60,7 +93,7 @@ def _ensure_pq_funding_utxos(node):
         return utxos
 
     descriptor = descsum_create("raw(51)")  # OP_TRUE
-    block_hashes = node._rpc.generatetodescriptor(101, descriptor)
+    block_hashes = node.generatetodescriptor(101, descriptor, called_by_framework=True)
     for block_hash in block_hashes:
         block = node.getblock(block_hash, 2)
         coinbase = block["tx"][0]

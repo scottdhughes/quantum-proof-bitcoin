@@ -44,7 +44,7 @@ FUZZ_TARGET(p2p_handshake, .init = ::initialize)
 
     auto& connman = static_cast<ConnmanTestMsg&>(*g_setup->m_node.connman);
     auto& chainman = static_cast<TestChainstateManager&>(*g_setup->m_node.chainman);
-    SetMockTime(1610000000); // any time to successfully reset ibd
+    SetMockTime(2'000'000'000); // Keep "now" well ahead of future-dated genesis tip.
     chainman.ResetIbd();
 
     node::Warnings warnings{};
