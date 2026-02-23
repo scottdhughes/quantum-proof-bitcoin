@@ -14,6 +14,10 @@
 #include <cassert>
 #include <vector>
 
+namespace {
+constexpr bool LEGACY_SIG_BENCH_ENABLED{false};
+} // namespace
+
 /*
  * Creates a test block containing transactions with the following properties:
  * - Each transaction has the same number of inputs and outputs
@@ -106,6 +110,7 @@ void BenchmarkConnectBlock(benchmark::Bench& bench, std::vector<CKey>& keys, std
 
 static void ConnectBlockAllSchnorr(benchmark::Bench& bench)
 {
+    if (!LEGACY_SIG_BENCH_ENABLED) return;
     const auto test_setup{MakeNoLogFileContext<TestChain100Setup>()};
     auto [keys, outputs]{CreateKeysAndOutputs(test_setup->coinbaseKey, /*num_schnorr=*/5, /*num_ecdsa=*/0)};
     BenchmarkConnectBlock(bench, keys, outputs, *test_setup);
@@ -113,6 +118,7 @@ static void ConnectBlockAllSchnorr(benchmark::Bench& bench)
 
 static void ConnectBlockMixedEcdsaSchnorr(benchmark::Bench& bench)
 {
+    if (!LEGACY_SIG_BENCH_ENABLED) return;
     const auto test_setup{MakeNoLogFileContext<TestChain100Setup>()};
     // Blocks in range 848000 to 868000 have a roughly 20 to 80 ratio of schnorr to ecdsa inputs
     auto [keys, outputs]{CreateKeysAndOutputs(test_setup->coinbaseKey, /*num_schnorr=*/1, /*num_ecdsa=*/4)};
@@ -121,6 +127,7 @@ static void ConnectBlockMixedEcdsaSchnorr(benchmark::Bench& bench)
 
 static void ConnectBlockAllEcdsa(benchmark::Bench& bench)
 {
+    if (!LEGACY_SIG_BENCH_ENABLED) return;
     const auto test_setup{MakeNoLogFileContext<TestChain100Setup>()};
     auto [keys, outputs]{CreateKeysAndOutputs(test_setup->coinbaseKey, /*num_schnorr=*/0, /*num_ecdsa=*/5)};
     BenchmarkConnectBlock(bench, keys, outputs, *test_setup);

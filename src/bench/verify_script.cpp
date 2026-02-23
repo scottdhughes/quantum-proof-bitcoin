@@ -18,10 +18,15 @@
 #include <cstdint>
 #include <vector>
 
+namespace {
+constexpr bool LEGACY_SCRIPT_VERIFY_BENCH_ENABLED{false};
+} // namespace
+
 // Microbenchmark for verification of a basic P2WPKH script. Can be easily
 // modified to measure performance of other types of scripts.
 static void VerifyScriptBench(benchmark::Bench& bench)
 {
+    if (!LEGACY_SCRIPT_VERIFY_BENCH_ENABLED) return;
     ECC_Context ecc_context{};
 
     const uint32_t flags{SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH};

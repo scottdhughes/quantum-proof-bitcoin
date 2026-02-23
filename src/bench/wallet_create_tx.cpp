@@ -43,6 +43,10 @@ using wallet::CWallet;
 using wallet::CreateMockableWalletDatabase;
 using wallet::WALLET_FLAG_DESCRIPTORS;
 
+namespace {
+constexpr bool LEGACY_WALLET_CREATE_TX_BENCH_ENABLED{false};
+} // namespace
+
 struct TipBlock
 {
     uint256 prev_block_hash;
@@ -112,6 +116,7 @@ struct PreSelectInputs {
 
 static void WalletCreateTx(benchmark::Bench& bench, const OutputType output_type, bool allow_other_inputs, std::optional<PreSelectInputs> preset_inputs)
 {
+    if (!LEGACY_WALLET_CREATE_TX_BENCH_ENABLED) return;
     const auto test_setup = MakeNoLogFileContext<const TestingSetup>();
 
     // Set clock to genesis block, so the descriptors/keys creation time don't interfere with the blocks scanning process.

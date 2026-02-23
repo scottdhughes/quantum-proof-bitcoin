@@ -12,8 +12,10 @@
 #include <test/util/mining.h>
 #include <test/util/script.h>
 #include <test/util/setup_common.h>
+#include <util/time.h>
 #include <validation.h>
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cstddef>
@@ -25,6 +27,8 @@ using node::BlockAssembler;
 static void AssembleBlock(benchmark::Bench& bench)
 {
     const auto test_setup = MakeNoLogFileContext<const TestingSetup>();
+    const int64_t genesis_time = test_setup->m_node.chainman->GetParams().GenesisBlock().nTime;
+    SetMockTime(std::max<int64_t>(GetTime(), genesis_time));
 
     CScriptWitness witness;
     witness.stack.push_back(WITNESS_STACK_ELEM_OP_TRUE);
@@ -54,6 +58,8 @@ static void AssembleBlock(benchmark::Bench& bench)
     bench.run([&] {
         PrepareBlock(test_setup->m_node, options);
     });
+
+    SetMockTime(0);
 }
 static void BlockAssemblerAddPackageTxns(benchmark::Bench& bench)
 {

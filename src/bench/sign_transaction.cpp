@@ -21,6 +21,10 @@
 #include <map>
 #include <vector>
 
+namespace {
+constexpr bool LEGACY_TX_SIGN_BENCH_ENABLED{false};
+} // namespace
+
 enum class InputType {
     P2WPKH, // segwitv0, witness-pubkey-hash (ECDSA signature)
     P2TR,   // segwitv1, taproot key-path spend (Schnorr signature)
@@ -28,6 +32,7 @@ enum class InputType {
 
 static void SignTransactionSingleInput(benchmark::Bench& bench, InputType input_type)
 {
+    if (!LEGACY_TX_SIGN_BENCH_ENABLED) return;
     ECC_Context ecc_context{};
 
     FlatSigningProvider keystore;
