@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(pqsig_invalid_corpus_vectors)
         std::vector<uint8_t> pk = ParseHex(base_obj.find_value("pk_script33").get_str());
         std::vector<uint8_t> sig = ParseHex(base_obj.find_value("sig4480").get_str());
 
-        const UniValue mutations = invalid_obj.find_value("mutations");
+        const UniValue& mutations = invalid_obj.find_value("mutations");
         BOOST_REQUIRE(mutations.isArray());
         for (unsigned int j = 0; j < mutations.get_array().size(); ++j) {
             ApplyMutation(msg, pk, sig, mutations.get_array()[j].get_obj());

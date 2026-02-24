@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(checksig_accepts_valid_pqsig)
     tx.vin[0].scriptSig = CScript{} << std::vector<unsigned char>{sig.begin(), sig.end()};
 
     const CTransaction tx_const{tx};
-    const TransactionSignatureChecker checker(&tx_const, /*nIn=*/0, /*amount=*/0, MissingDataBehavior::FAIL);
+    const TransactionSignatureChecker checker(&tx_const, /*nInIn=*/0, /*amountIn=*/0, MissingDataBehavior::FAIL);
 
     ScriptError err;
     BOOST_CHECK(VerifyScript(tx.vin[0].scriptSig, script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(checksig_rejects_wrong_sig_size_and_alg_id)
     const std::vector<uint8_t> good_sig = SignForScript(tx, good_script_pubkey, pk_script);
 
     const CTransaction tx_const{tx};
-    const TransactionSignatureChecker checker(&tx_const, /*nIn=*/0, /*amount=*/0, MissingDataBehavior::FAIL);
+    const TransactionSignatureChecker checker(&tx_const, /*nInIn=*/0, /*amountIn=*/0, MissingDataBehavior::FAIL);
 
     ScriptError err;
 
@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE(checkmultisig_accepts_valid_and_rejects_wrong_sighash)
     tx.vin[0].scriptSig = CScript{} << OP_0 << std::vector<unsigned char>{sig.begin(), sig.end()};
 
     const CTransaction tx_const{tx};
-    const TransactionSignatureChecker checker(&tx_const, /*nIn=*/0, /*amount=*/0, MissingDataBehavior::FAIL);
+    const TransactionSignatureChecker checker(&tx_const, /*nInIn=*/0, /*amountIn=*/0, MissingDataBehavior::FAIL);
     ScriptError err;
 
     BOOST_CHECK(VerifyScript(tx.vin[0].scriptSig, multisig_script, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_CASE(checkmultisig_accepts_valid_and_rejects_wrong_sighash)
     CMutableTransaction mutated_tx{tx};
     mutated_tx.vout[0].nValue -= 1;
     const CTransaction mutated_tx_const{mutated_tx};
-    const TransactionSignatureChecker mutated_checker(&mutated_tx_const, /*nIn=*/0, /*amount=*/0, MissingDataBehavior::FAIL);
+    const TransactionSignatureChecker mutated_checker(&mutated_tx_const, /*nInIn=*/0, /*amountIn=*/0, MissingDataBehavior::FAIL);
 
     BOOST_CHECK(!VerifyScript(mutated_tx.vin[0].scriptSig, multisig_script, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, mutated_checker, &err));
     BOOST_CHECK_EQUAL(err, SCRIPT_ERR_EVAL_FALSE);
