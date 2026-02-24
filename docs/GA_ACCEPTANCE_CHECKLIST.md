@@ -7,7 +7,18 @@
 
 ## Purpose
 
-Define hard release gates for promoting from `v1.0.0-rc1` to `v1.0.0`.
+Define hard, evidence-backed release gates for promoting from `v1.0.0-rc1` to `v1.0.0`.
+
+## Scope Rebaseline (Safety-Only GA)
+
+Date: 2026-02-24
+
+`v1.0.0-ga` blockers are restricted to node/consensus safety work:
+
+1. Retained GA P1 issue: `#30` (long-run soak harness under PQ traffic).
+2. New GA safety P1 set: `#36`, `#37`, `#38`, `#39`, `#40`.
+3. Deferred from GA to post-v1 milestone: `#18`, `#21`, `#24`, `#27`, `#33`.
+4. `MAX_BLOCK_WEIGHT` remains fixed at `16,000,000` WU for this GA window.
 
 ## Hard Gates (Must All Pass)
 
@@ -25,11 +36,15 @@ Define hard release gates for promoting from `v1.0.0-rc1` to `v1.0.0`.
 3. Unit suites pass:
    - `build/bin/test_pqbtc --run_test=pqsig_tests,pqsig_script_tests,script_tests,multisig_tests`
 4. PQ functional suite pass:
-   - `build/test/functional/test_runner.py --jobs=1 feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py feature_pq_reorg.py feature_pq_block_limits.py`
+   - `build/test/functional/test_runner.py --jobs=1 feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py mempool_pq_stress.py feature_pq_reorg.py feature_pq_block_limits.py`
 5. Fuzz smoke pass:
    - `FUZZ=pqsig_verify build-fuzz/bin/fuzz <tmpdir>`
 6. Gatekeeper pass on merge commit:
    - `.github/workflows/gatekeeper.yml` successful for `main`.
+7. Rollback trigger review completed with no trigger breach:
+   - no consensus acceptance widening from malformed PQ signatures
+   - no crash/hang/assertion under relay/mempool stress campaign
+   - no restart/reorg reconciliation regression under PQ-heavy traffic
 
 ## Decision Record
 
@@ -39,4 +54,3 @@ Define hard release gates for promoting from `v1.0.0-rc1` to `v1.0.0`.
   - [ ] Promote to `v1.0.0`
   - [ ] Hold and cut `v1.0.0-rc2`
 - Notes:
-

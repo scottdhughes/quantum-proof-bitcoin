@@ -54,6 +54,7 @@ build/test/functional/test_runner.py --jobs=1 \
   feature_pqsig_basic.py \
   feature_pqsig_multisig.py \
   mempool_pq_limits.py \
+  mempool_pq_stress.py \
   feature_pq_reorg.py \
   feature_pq_block_limits.py
 ```
@@ -68,6 +69,18 @@ FUZZ=pqsig_verify build-fuzz/bin/fuzz "$tmpdir"
 rm -rf "$tmpdir"
 ```
 
+## GA Rollback Triggers (Safety-Only Window)
+
+The GA burn-in window (2026-02-24 through 2026-03-09) uses strict rollback triggers:
+
+1. Any open `priority:P0` or `priority:P1` issue in milestone `v1.0.0-ga` at decision time.
+2. Any deterministic artifact drift (`contrib/genesis/generated_constants.json` or `src/test/data/pqsig/kat_v1.json`).
+3. Any acceptance widening bug where malformed PQ payloads are accepted in consensus paths.
+4. Any crash, assert, hang, or persistent restart/reorg inconsistency under PQ relay/mempool stress.
+5. Any required branch-protection context failing on the merge commit.
+
+If any trigger is hit, hold GA and continue on `v1.0.0-rc2` path.
+
 ## Failure Handling
 
 1. Signature NULLFAIL rejects on expected-valid spends:
@@ -76,6 +89,10 @@ rm -rf "$tmpdir"
    - capture output baseline and compare against frozen expected constants.
 3. Deterministic artifact drift:
    - regenerate and investigate seed/profile drift before merge.
+4. Relay/mempool stress instability:
+   - capture repro tx set, rollback to last known-good `main`, and track under GA safety issues before proceeding.
+5. Consensus acceptance widening:
+   - block release, add regression test/fuzz seed, and require merged fix plus clean rerun of full GA sequence.
 
 ## Out of Scope for v1 RC
 

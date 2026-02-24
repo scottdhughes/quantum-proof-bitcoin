@@ -7,7 +7,7 @@
 
 ## Window
 
-- Start: 2026-02-23
+- Start: 2026-02-24
 - End: 2026-03-09
 - Cadence: weekly checkpoints
 
@@ -71,4 +71,3 @@
   - [ ] Promote to `v1.0.0`
   - [ ] Hold and cut `v1.0.0-rc2`
 - Decision notes:
-
