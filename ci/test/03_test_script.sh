@@ -279,9 +279,16 @@ if [ "${RUN_PQSIG_FUZZ_SMOKE}" = "true" ]; then
     PQSIG_FUZZ_SMOKE_DIR="${BASE_SCRATCH_DIR}/pqsig_fuzz_smoke"
     rm -rf "${PQSIG_FUZZ_SMOKE_DIR}"
     mkdir -p "${PQSIG_FUZZ_SMOKE_DIR}"
-    pqsig_fuzz_smoke_args=("-max_total_time=${PQSIG_FUZZ_SMOKE_MAX_TOTAL_TIME:-30}")
-    if [ -n "${PQSIG_FUZZ_SMOKE_MAX_RUNS:-}" ]; then
-      pqsig_fuzz_smoke_args+=("-runs=${PQSIG_FUZZ_SMOKE_MAX_RUNS}")
+    pqsig_fuzz_smoke_args=()
+    fuzz_links_without_main=""
+    if [ -f "${BASE_BUILD_DIR}/CMakeCache.txt" ]; then
+      fuzz_links_without_main="$(sed -n 's/^FUZZ_BINARY_LINKS_WITHOUT_MAIN_FUNCTION:INTERNAL=//p' "${BASE_BUILD_DIR}/CMakeCache.txt" | tail -1)"
+    fi
+    if [ "${fuzz_links_without_main}" = "TRUE" ] || [ "${fuzz_links_without_main}" = "ON" ] || [ "${fuzz_links_without_main}" = "1" ] || [ "${fuzz_links_without_main}" = "YES" ]; then
+      pqsig_fuzz_smoke_args=("-max_total_time=${PQSIG_FUZZ_SMOKE_MAX_TOTAL_TIME:-30}")
+      if [ -n "${PQSIG_FUZZ_SMOKE_MAX_RUNS:-}" ]; then
+        pqsig_fuzz_smoke_args+=("-runs=${PQSIG_FUZZ_SMOKE_MAX_RUNS}")
+      fi
     fi
     LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \
     FUZZ=pqsig_verify "${BASE_BUILD_DIR}/bin/fuzz" "${pqsig_fuzz_smoke_args[@]}" "${PQSIG_FUZZ_SMOKE_DIR}"

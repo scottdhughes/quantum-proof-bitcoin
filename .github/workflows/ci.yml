@@ -407,7 +407,7 @@ jobs:
         run: |
           mkdir -p ./pqsig_fuzz_smoke
           set +e
-          FUZZ=pqsig_verify ./bin/fuzz.exe -max_total_time=30 -runs=100000 ./pqsig_fuzz_smoke > ./pqsig_fuzz_smoke.log 2>&1
+          FUZZ=pqsig_verify ./bin/fuzz.exe ./pqsig_fuzz_smoke > ./pqsig_fuzz_smoke.log 2>&1
           fuzz_rc=$?
           set -e
           if [[ ${fuzz_rc} -ne 0 ]] && grep -q "Must compile with -DBUILD_FOR_FUZZING=ON" ./pqsig_fuzz_smoke.log; then
