@@ -153,9 +153,25 @@ jobs:
         env:
           HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
         run: |
+          retry_brew_install() {
+            local max_attempts=4
+            local attempt=1
+            while true; do
+              if brew install --quiet "$@"; then
+                return 0
+              fi
+              if [[ "${attempt}" -ge "${max_attempts}" ]]; then
+                return 1
+              fi
+              echo "brew install failed for '$*' (attempt ${attempt}/${max_attempts}), retrying..."
+              attempt=$((attempt + 1))
+              sleep $((attempt * 15))
+            done
+          }
+
           # A workaround for "The `brew link` step did not complete successfully" error.
-          brew install --quiet python@3 || brew link --overwrite python@3
-          brew install --quiet coreutils ninja pkgconf gnu-getopt ccache boost libevent zeromq qt@6 qrencode capnp
+          retry_brew_install python@3 || brew link --overwrite python@3
+          retry_brew_install coreutils ninja pkgconf gnu-getopt ccache boost libevent zeromq qt@6 qrencode capnp
 
       - name: Install Python packages
         run: |
