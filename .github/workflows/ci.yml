@@ -308,7 +308,7 @@ jobs:
           BITCOINUTIL: '${{ github.workspace }}\build\bin\Release\pqbtc-util.exe'
           BITCOINWALLET: '${{ github.workspace }}\build\bin\Release\pqbtc-wallet.exe'
           TEST_RUNNER_EXTRA: ${{ github.event_name != 'pull_request' && '--extended' || '' }}
-          PQBTC_FUNCTIONAL_TESTS: 'feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py feature_pq_reorg.py feature_pq_block_limits.py'
+          PQBTC_FUNCTIONAL_TESTS: 'feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py mempool_pq_stress.py feature_pq_reorg.py feature_pq_block_limits.py'
         run: py -3 test/functional/test_runner.py --jobs $NUMBER_OF_PROCESSORS --ci --quiet --tmpdirprefix="${RUNNER_TEMP}" --combinedlogslen=99999999 --timeout-factor=${TEST_RUNNER_TIMEOUT_FACTOR} ${TEST_RUNNER_EXTRA} ${PQBTC_FUNCTIONAL_TESTS}
 
       - name: Clone corpora
@@ -423,6 +423,10 @@ jobs:
       - name: Run PQSig fuzz smoke
         run: |
           mkdir -p ./pqsig_fuzz_smoke
+          if [ -d ./src/test/data/pqsig/fuzz/pqsig_verify ]; then
+            cp ./src/test/data/pqsig/fuzz/pqsig_verify/* ./pqsig_fuzz_smoke/ || true
+            rm -f ./pqsig_fuzz_smoke/README.md
+          fi
           set +e
           FUZZ=pqsig_verify ./bin/fuzz.exe ./pqsig_fuzz_smoke > ./pqsig_fuzz_smoke.log 2>&1
           fuzz_rc=$?
@@ -455,7 +459,7 @@ jobs:
           # feature_unsupported_utxo_db.py fails on windows because of emojis in the test data directory
           EXCLUDE: '--exclude wallet_multiwallet.py,feature_unsupported_utxo_db.py'
           TEST_RUNNER_EXTRA: ${{ github.event_name != 'pull_request' && '--extended' || '' }}
-          PQBTC_FUNCTIONAL_TESTS: 'feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py feature_pq_reorg.py feature_pq_block_limits.py'
+          PQBTC_FUNCTIONAL_TESTS: 'feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py mempool_pq_stress.py feature_pq_reorg.py feature_pq_block_limits.py'
         run: py -3 test/functional/test_runner.py --jobs $NUMBER_OF_PROCESSORS --ci --quiet --tmpdirprefix="$RUNNER_TEMP" --combinedlogslen=99999999 --timeout-factor=$TEST_RUNNER_TIMEOUT_FACTOR $EXCLUDE $TEST_RUNNER_EXTRA $PQBTC_FUNCTIONAL_TESTS
 
   ci-matrix:

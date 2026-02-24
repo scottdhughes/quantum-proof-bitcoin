@@ -29,7 +29,7 @@ These interfaces are intentionally stable for v1:
 
 - `PQBTC_FUNCTIONAL_TESTS`
   - Explicit test list for PQ-first functional gating.
-  - Default: `feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py feature_pq_reorg.py feature_pq_block_limits.py`
+  - Default: `feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py mempool_pq_stress.py feature_pq_reorg.py feature_pq_block_limits.py`
 - `PQBTC_ENABLE_LEGACY_FUNCTIONAL_TESTS`
   - `true` enables legacy functional profile explicitly.
   - Default keeps legacy non-gating.
@@ -90,6 +90,7 @@ build/test/functional/test_runner.py --jobs=1 \
   feature_pqsig_basic.py \
   feature_pqsig_multisig.py \
   mempool_pq_limits.py \
+  mempool_pq_stress.py \
   feature_pq_reorg.py \
   feature_pq_block_limits.py
 ```

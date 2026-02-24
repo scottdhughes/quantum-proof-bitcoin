@@ -92,6 +92,7 @@ BASE_SCRIPTS = [
     'feature_pqsig_basic.py',
     'feature_pqsig_multisig.py',
     'mempool_pq_limits.py',
+    'mempool_pq_stress.py',
     'feature_pq_reorg.py',
     'feature_pq_block_limits.py',
     # vv Tests less than 5m vv
