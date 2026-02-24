@@ -1,0 +1,36 @@
+{
+  "profile": "pqsig-v1-invalid",
+  "vectors": [
+    {
+      "name": "invalid_alg_id",
+      "base": "kat_01",
+      "mutations": [
+        {"field": "pk_script33", "offset": 0, "op": "set", "value": "01"}
+      ]
+    },
+    {
+      "name": "pk_root_mismatch",
+      "base": "kat_01",
+      "mutations": [
+        {"field": "pk_script33", "offset": 17, "op": "xor", "value": "80"}
+      ]
+    },
+    {
+      "name": "layer0_count_mismatch",
+      "base": "kat_01",
+      "mutations": [
+        {"field": "sig4480", "offset": 2400, "op": "xor", "value": "01"}
+      ]
+    },
+    {
+      "name": "layer3_count_overflow",
+      "base": "kat_01",
+      "mutations": [
+        {"field": "sig4480", "offset": 4476, "op": "set", "value": "ff"},
+        {"field": "sig4480", "offset": 4477, "op": "set", "value": "ff"},
+        {"field": "sig4480", "offset": 4478, "op": "set", "value": "ff"},
+        {"field": "sig4480", "offset": 4479, "op": "set", "value": "ff"}
+      ]
+    }
+  ]
+}

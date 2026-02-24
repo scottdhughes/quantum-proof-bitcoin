@@ -140,6 +140,7 @@ if(NOT PQBTC_ENABLE_LEGACY_UNIT_TESTS)
   set(TEST_PQBTC_SOURCES
     main.cpp
     multisig_tests.cpp
+    pqsig_script_tests.cpp
     pqsig_tests.cpp
     script_tests.cpp
   )
@@ -160,10 +161,12 @@ if(PQBTC_ENABLE_LEGACY_UNIT_TESTS)
     data/tx_invalid.json
     data/tx_valid.json
     data/pqsig/kat_v1.json
+    data/pqsig/invalid_vectors.json
   )
 else()
   target_json_data_sources(test_pqbtc
     data/pqsig/kat_v1.json
+    data/pqsig/invalid_vectors.json
   )
 endif()
 target_raw_data_sources(test_pqbtc NAMESPACE test::data

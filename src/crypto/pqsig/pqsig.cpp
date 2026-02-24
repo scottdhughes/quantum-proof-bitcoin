@@ -292,6 +292,12 @@ bool PQSigSign(
 {
     PQSigMetrics metrics{};
 
+    // v1 signer/search bounds are frozen for deterministic tooling behavior.
+    if (max_counter == 0 || max_counter > params::SIGN_COUNTER_MAX) {
+        PublishMetrics(metrics);
+        return false;
+    }
+
     if (out_sig4480.size() != SIG_SIZE || msg32.size() != MSG32_SIZE || sk_seed.empty()) {
         PublishMetrics(metrics);
         return false;

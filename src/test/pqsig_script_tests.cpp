@@ -3,6 +3,8 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <consensus/amount.h>
+#include <crypto/pqsig/domains.h>
+#include <crypto/pqsig/params.h>
 #include <crypto/pqsig/pqsig.h>
 #include <policy/policy.h>
 #include <primitives/transaction.h>
@@ -12,16 +14,31 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <algorithm>
 #include <array>
+#include <stdexcept>
 #include <vector>
 
 namespace {
 
+constexpr std::array<uint8_t, 32> TEST_SK_SEED{
+    0x07, 0x11, 0x13, 0x17, 0x19, 0x23, 0x29, 0x31,
+    0x07, 0x11, 0x13, 0x17, 0x19, 0x23, 0x29, 0x31,
+    0x07, 0x11, 0x13, 0x17, 0x19, 0x23, 0x29, 0x31,
+    0x07, 0x11, 0x13, 0x17, 0x19, 0x23, 0x29, 0x31,
+};
+
 std::array<uint8_t, pqsig::PK_SCRIPT_SIZE> MakePkScript()
 {
+    const std::array<std::span<const uint8_t>, 1> parts{std::span<const uint8_t>{TEST_SK_SEED}};
+    const auto pk_seed = pqsig::domains::HashN(nullptr, "PQSIG-PK-SEED", parts);
+    const std::array<std::span<const uint8_t>, 1> root_parts{std::span<const uint8_t>{pk_seed}};
+    const auto pk_root = pqsig::domains::HashN(nullptr, "PQSIG-PK-ROOT", root_parts);
+
     std::array<uint8_t, pqsig::PK_SCRIPT_SIZE> out{};
     out[0] = pqsig::ALG_ID_V1;
-    for (size_t i = 1; i < out.size(); ++i) out[i] = static_cast<uint8_t>(i);
+    std::copy(pk_seed.begin(), pk_seed.end(), out.begin() + 1);
+    std::copy(pk_root.begin(), pk_root.end(), out.begin() + 1 + pk_seed.size());
     return out;
 }
 
@@ -29,11 +46,17 @@ std::vector<uint8_t> SignForScript(const CMutableTransaction& tx, const CScript&
 {
     const uint256 sighash = SignatureHash(script_code, tx, /*nIn=*/0, SIGHASH_ALL, /*amount=*/0, SigVersion::BASE);
     std::vector<uint8_t> sig(pqsig::SIG_SIZE);
-    const std::vector<uint8_t> sk_seed{7, 11, 13, 17, 19, 23, 29, 31};
-    if (!pqsig::PQSigSign(sig, std::span<const uint8_t>{sighash.begin(), sighash.size()}, sk_seed, pk_script)) {
+    if (!pqsig::PQSigSign(sig, std::span<const uint8_t>{sighash.begin(), sighash.size()}, TEST_SK_SEED, pk_script)) {
         throw std::runtime_error("failed to produce deterministic test signature");
     }
     return sig;
+}
+
+void MutateLayerCounter(std::vector<uint8_t>& sig, const size_t layer)
+{
+    const size_t layer_offset = pqsig::params::HT_OFFSET + layer * pqsig::params::HT_LAYER_SIZE;
+    const size_t count_offset = layer_offset + pqsig::params::HT_AUTH_SIZE + pqsig::params::HT_WOTS_SIZE;
+    sig[count_offset] ^= 0x01;
 }
 
 CMutableTransaction BuildSpendingTx()
@@ -88,6 +111,13 @@ BOOST_AUTO_TEST_CASE(checksig_rejects_wrong_sig_size_and_alg_id)
     BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, good_script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
     BOOST_CHECK_EQUAL(err, SCRIPT_ERR_SIG_DER);
 
+    // Wrong pubkey script length is rejected deterministically.
+    std::vector<unsigned char> short_pk{pk_script.begin(), pk_script.end() - 1};
+    const CScript short_pk_script_pubkey = CScript{} << short_pk << OP_CHECKSIG;
+    tx.vin[0].scriptSig = CScript{} << std::vector<unsigned char>{good_sig.begin(), good_sig.end()};
+    BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, short_pk_script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUBKEYTYPE);
+
     // Wrong algorithm identifier in the pubkey script is rejected deterministically.
     auto bad_pk_script = pk_script;
     bad_pk_script[0] = 0x01;
@@ -112,6 +142,16 @@ BOOST_AUTO_TEST_CASE(checkmultisig_accepts_valid_and_rejects_wrong_sighash)
 
     BOOST_CHECK(VerifyScript(tx.vin[0].scriptSig, multisig_script, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
     BOOST_CHECK_EQUAL(err, SCRIPT_ERR_OK);
+
+    // Mutating a layer counter triggers strict internal signature rejection.
+    std::vector<uint8_t> malformed_sig = sig;
+    MutateLayerCounter(malformed_sig, 0);
+    tx.vin[0].scriptSig = CScript{} << OP_0 << std::vector<unsigned char>{malformed_sig.begin(), malformed_sig.end()};
+    BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, multisig_script, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_EVAL_FALSE);
+
+    // Restore valid scriptSig before sighash mismatch check.
+    tx.vin[0].scriptSig = CScript{} << OP_0 << std::vector<unsigned char>{sig.begin(), sig.end()};
 
     // Mutate the transaction after signing to force a sighash mismatch.
     CMutableTransaction mutated_tx{tx};
