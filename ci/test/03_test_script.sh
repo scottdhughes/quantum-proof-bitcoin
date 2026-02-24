@@ -279,8 +279,12 @@ if [ "${RUN_PQSIG_FUZZ_SMOKE}" = "true" ]; then
     PQSIG_FUZZ_SMOKE_DIR="${BASE_SCRATCH_DIR}/pqsig_fuzz_smoke"
     rm -rf "${PQSIG_FUZZ_SMOKE_DIR}"
     mkdir -p "${PQSIG_FUZZ_SMOKE_DIR}"
+    pqsig_fuzz_smoke_args=("-max_total_time=${PQSIG_FUZZ_SMOKE_MAX_TOTAL_TIME:-30}")
+    if [ -n "${PQSIG_FUZZ_SMOKE_MAX_RUNS:-}" ]; then
+      pqsig_fuzz_smoke_args+=("-runs=${PQSIG_FUZZ_SMOKE_MAX_RUNS}")
+    fi
     LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \
-    FUZZ=pqsig_verify "${BASE_BUILD_DIR}/bin/fuzz" "${PQSIG_FUZZ_SMOKE_DIR}"
+    FUZZ=pqsig_verify "${BASE_BUILD_DIR}/bin/fuzz" "${PQSIG_FUZZ_SMOKE_DIR}" "${pqsig_fuzz_smoke_args[@]}"
   elif [ -x "${BASE_BUILD_DIR}/bin/fuzz" ]; then
     echo "Skipping pqsig_verify fuzz smoke: BUILD_FOR_FUZZING is not enabled"
   else
