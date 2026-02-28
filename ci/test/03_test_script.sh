@@ -250,7 +250,7 @@ if [ "$RUN_FUNCTIONAL_TESTS" = "true" ]; then
         TEST_RUNNER_EXTRA=("${FILTERED_TEST_RUNNER_EXTRA[@]}")
       fi
       if [ -z "${PQBTC_FUNCTIONAL_TESTS}" ]; then
-        PQBTC_FUNCTIONAL_TESTS="feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py feature_pq_reorg.py feature_pq_block_limits.py"
+        PQBTC_FUNCTIONAL_TESTS="feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py mempool_pq_stress.py feature_pq_reorg.py feature_pq_block_limits.py"
       fi
       eval "PQBTC_FUNCTIONAL_TESTS_ARRAY=($PQBTC_FUNCTIONAL_TESTS)"
     else
@@ -279,6 +279,11 @@ if [ "${RUN_PQSIG_FUZZ_SMOKE}" = "true" ]; then
     PQSIG_FUZZ_SMOKE_DIR="${BASE_SCRATCH_DIR}/pqsig_fuzz_smoke"
     rm -rf "${PQSIG_FUZZ_SMOKE_DIR}"
     mkdir -p "${PQSIG_FUZZ_SMOKE_DIR}"
+    PQSIG_FUZZ_SEED_DIR="${BASE_ROOT_DIR}/src/test/data/pqsig/fuzz/pqsig_verify"
+    if [ -d "${PQSIG_FUZZ_SEED_DIR}" ]; then
+      cp -f "${PQSIG_FUZZ_SEED_DIR}"/* "${PQSIG_FUZZ_SMOKE_DIR}/" >/dev/null 2>&1 || true
+      rm -f "${PQSIG_FUZZ_SMOKE_DIR}/README.md"
+    fi
     pqsig_fuzz_smoke_args=()
     fuzz_links_without_main=""
     if [ -f "${BASE_BUILD_DIR}/CMakeCache.txt" ]; then
