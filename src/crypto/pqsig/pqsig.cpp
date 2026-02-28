@@ -22,6 +22,29 @@ namespace {
 
 thread_local PQSigMetrics g_last_metrics{};
 
+constexpr bool ConsensusProfileLocked()
+{
+    return PK_SCRIPT_SIZE == 33 &&
+           PK_CORE_SIZE == 32 &&
+           MSG32_SIZE == 32 &&
+           SIG_SIZE == 4480 &&
+           ALG_ID_V1 == 0x00 &&
+           params::N == 16 &&
+           params::QS_LOG2 == 40 &&
+           params::H == 44 &&
+           params::D == 4 &&
+           params::A == 16 &&
+           params::K == 8 &&
+           params::W == 16 &&
+           params::L == 32 &&
+           params::SWN == 240 &&
+           params::PORS_MMAX == 97 &&
+           params::SIGN_COUNTER_MAX == 1048576 &&
+           params::EXPECTED_SIG_SIZE == SIG_SIZE;
+}
+
+static_assert(ConsensusProfileLocked(), "PQSIG v1 consensus profile drifted");
+
 void PublishMetrics(const PQSigMetrics& metrics)
 {
     g_last_metrics = metrics;
@@ -65,6 +88,7 @@ bool ParsePkScript(
     std::array<uint8_t, params::N>& pk_root,
     PQSigMetrics* metrics)
 {
+    if (!ConsensusProfileLocked()) return false;
     if (!IsValidPkScript(pk_script)) return false;
     std::copy_n(pk_script.begin() + 1, params::N, pk_seed.begin());
     std::copy_n(pk_script.begin() + 1 + params::N, params::N, pk_root.begin());
@@ -197,6 +221,9 @@ bool VerifySignatureStructure(
     const std::span<const uint8_t> pk_root,
     PQSigMetrics* metrics)
 {
+    if (!ConsensusProfileLocked()) return false;
+    if (sig4480.size() != SIG_SIZE || msg32.size() != MSG32_SIZE || pk_script.size() != PK_SCRIPT_SIZE) return false;
+
     const auto r = sig4480.first(params::SIG_R_SIZE);
     const auto reveals = sig4480.subspan(params::PORS_REVEAL_OFFSET, params::PORS_REVEAL_SIZE);
     const auto auth_pad = sig4480.subspan(params::PORS_AUTH_OFFSET, params::PORS_AUTH_PAD_SIZE);
@@ -262,7 +289,7 @@ bool PQSigVerify(
 {
     PQSigMetrics metrics{};
 
-    if (sig4480.size() != SIG_SIZE || msg32.size() != MSG32_SIZE) {
+    if (!ConsensusProfileLocked() || sig4480.size() != SIG_SIZE || msg32.size() != MSG32_SIZE) {
         PublishMetrics(metrics);
         return false;
     }
@@ -298,7 +325,7 @@ bool PQSigSign(
         return false;
     }
 
-    if (out_sig4480.size() != SIG_SIZE || msg32.size() != MSG32_SIZE || sk_seed.empty()) {
+    if (!ConsensusProfileLocked() || out_sig4480.size() != SIG_SIZE || msg32.size() != MSG32_SIZE || sk_seed.size() != MSG32_SIZE) {
         PublishMetrics(metrics);
         return false;
     }

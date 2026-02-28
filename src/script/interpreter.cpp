@@ -17,6 +17,15 @@ typedef std::vector<unsigned char> valtype;
 
 namespace {
 
+static_assert(pqsig::PK_SCRIPT_SIZE == 33, "PQSIG v1 pubkey script size drifted");
+static_assert(pqsig::SIG_SIZE == 4480, "PQSIG v1 signature size drifted");
+static_assert(pqsig::ALG_ID_V1 == 0x00, "PQSIG v1 ALG_ID drifted");
+
+constexpr bool IsPreTaprootPQSigVersion(const SigVersion sigversion)
+{
+    return sigversion == SigVersion::BASE || sigversion == SigVersion::WITNESS_V0;
+}
+
 inline bool set_success(ScriptError* ret)
 {
     if (ret)
@@ -178,6 +187,7 @@ public:
 static bool EvalChecksigPreTapscript(const valtype& vchSig, const valtype& vchPubKey, CScript::const_iterator pbegincodehash, CScript::const_iterator pend, unsigned int flags, const BaseSignatureChecker& checker, SigVersion sigversion, ScriptError* serror, bool& fSuccess)
 {
     assert(sigversion == SigVersion::BASE || sigversion == SigVersion::WITNESS_V0);
+    if (!IsPreTaprootPQSigVersion(sigversion)) return set_error(serror, SCRIPT_ERR_SIG_DER);
 
     // Subset of script starting at the most recent codeseparator
     CScript scriptCode(pbegincodehash, pend);
@@ -1544,8 +1554,7 @@ bool GenericTransactionSignatureChecker<T>::VerifySchnorrSignature(std::span<con
 template <class T>
 bool GenericTransactionSignatureChecker<T>::CheckECDSASignature(const std::vector<unsigned char>& vchSigIn, const std::vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion) const
 {
-    // v1 consensus scope: pre-taproot CHECKSIG/CHECKMULTISIG only.
-    if (sigversion != SigVersion::BASE && sigversion != SigVersion::WITNESS_V0) return false;
+    if (!IsPreTaprootPQSigVersion(sigversion)) return false;
     if (vchSigIn.empty()) return false;
     if (vchSigIn.size() != pqsig::SIG_SIZE) return false;
     if (!pqsig::IsValidPkScript(vchPubKey)) return false;
