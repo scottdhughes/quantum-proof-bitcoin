@@ -45,6 +45,22 @@ Date: 2026-02-24
    - no consensus acceptance widening from malformed PQ signatures
    - no crash/hang/assertion under relay/mempool stress campaign
    - no restart/reorg reconciliation regression under PQ-heavy traffic
+   - witness item `10,001` bytes remains rejected with stable reject reason before/after restart
+   - RBF churn campaign (five sequential replacements with large witnesses) completes with no orphaned mempool state
+
+## Activation/Rollback State Machine
+
+1. `PRECHECK`:
+   - required gate commands run clean on candidate merge commit
+2. `BURNIN_ACTIVE`:
+   - burn-in findings triaged into `priority:P0/P1/P2`
+   - any rollback trigger breach transitions immediately to `ROLLBACK_HOLD`
+3. `GA_READY`:
+   - zero open `priority:P0` and `priority:P1` in milestone `v1.0.0-ga`
+   - all hard gates and required evidence are current
+4. `ROLLBACK_HOLD`:
+   - GA promotion blocked
+   - proceed via `v1.0.0-rc2` path until all blockers are resolved and PRECHECK is rerun
 
 ## Decision Record
 

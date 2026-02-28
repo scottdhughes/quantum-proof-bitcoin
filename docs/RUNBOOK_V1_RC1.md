@@ -81,6 +81,24 @@ The GA burn-in window (2026-02-24 through 2026-03-09) uses strict rollback trigg
 
 If any trigger is hit, hold GA and continue on `v1.0.0-rc2` path.
 
+## Activation/Rollback State Machine
+
+Use the following immutable state machine for GA operations:
+
+1. `PRECHECK`
+   - Run required validation sequence on the candidate merge commit.
+   - Transition to `BURNIN_ACTIVE` only if all required commands pass.
+2. `BURNIN_ACTIVE`
+   - Execute burn-in checkpoints and triage all findings to `priority:P0/P1/P2`.
+   - Transition to `ROLLBACK_HOLD` immediately on any rollback trigger breach.
+   - Transition to `GA_READY` only when no P0/P1 remain and all required evidence is current.
+3. `GA_READY`
+   - Approver records release decision in `GA_ACCEPTANCE_CHECKLIST.md`.
+   - Promote to `v1.0.0` only from this state.
+4. `ROLLBACK_HOLD`
+   - GA promotion is blocked.
+   - Apply fixes on `main`, cut `v1.0.0-rc2`, and restart from `PRECHECK`.
+
 ## Failure Handling
 
 1. Signature NULLFAIL rejects on expected-valid spends:
