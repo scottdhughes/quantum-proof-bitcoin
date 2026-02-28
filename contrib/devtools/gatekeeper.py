@@ -33,12 +33,22 @@ except ImportError:
 
 def git_diff_files(base: str, head: str) -> list[str]:
     """Get list of files changed between base and head."""
-    result = subprocess.run(
-        ["git", "diff", "--name-only", f"{base}...{head}"],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "diff", "--name-only", f"{base}...{head}"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError:
+        # In shallow or stacked CI refs, merge-base can be temporarily unavailable.
+        # Fall back to two-dot diff so gatekeeper can still evaluate head changes.
+        result = subprocess.run(
+            ["git", "diff", "--name-only", f"{base}..{head}"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
     return [line.strip() for line in result.stdout.strip().split("\n") if line.strip()]
 
 
