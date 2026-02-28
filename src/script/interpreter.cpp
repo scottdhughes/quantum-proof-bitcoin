@@ -1544,6 +1544,8 @@ bool GenericTransactionSignatureChecker<T>::VerifySchnorrSignature(std::span<con
 template <class T>
 bool GenericTransactionSignatureChecker<T>::CheckECDSASignature(const std::vector<unsigned char>& vchSigIn, const std::vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion) const
 {
+    // v1 consensus scope: pre-taproot CHECKSIG/CHECKMULTISIG only.
+    if (sigversion != SigVersion::BASE && sigversion != SigVersion::WITNESS_V0) return false;
     if (vchSigIn.empty()) return false;
     if (vchSigIn.size() != pqsig::SIG_SIZE) return false;
     if (!pqsig::IsValidPkScript(vchPubKey)) return false;
@@ -1553,6 +1555,7 @@ bool GenericTransactionSignatureChecker<T>::CheckECDSASignature(const std::vecto
 
     // v1 locks pre-taproot CHECKSIG/CHECKMULTISIG to a fixed SIGHASH_ALL policy.
     constexpr int32_t nHashType = SIGHASH_ALL;
+    static_assert(SIGHASH_ALL == 1, "SIGHASH_ALL must remain consensus-locked");
     const uint256 sighash = SignatureHash(scriptCode, *txTo, nIn, nHashType, amount, sigversion, this->txdata, &m_sighash_cache);
     return pqsig::PQSigVerify(vchSigIn, std::span<const uint8_t>{sighash.begin(), sighash.size()}, vchPubKey);
 }
