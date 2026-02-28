@@ -69,6 +69,17 @@ FUZZ=pqsig_verify build-fuzz/bin/fuzz "$tmpdir"
 rm -rf "$tmpdir"
 ```
 
+4. Relay/mempool soak artifact run (GA safety track):
+
+```bash
+RUNS=10 JOBS=1 contrib/soak/run_pq_mempool_soak.sh
+```
+
+Required artifact outputs:
+- `build/soak-artifacts/<stamp>/summary.json`
+- `build/soak-artifacts/<stamp>/results.tsv`
+- `build/soak-artifacts/<stamp>/run_*.log`
+
 ## GA Rollback Triggers (Safety-Only Window)
 
 The GA burn-in window (2026-02-24 through 2026-03-09) uses strict rollback triggers:

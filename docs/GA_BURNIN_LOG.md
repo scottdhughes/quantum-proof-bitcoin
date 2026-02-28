@@ -17,6 +17,8 @@
 - Commit / tag under test:
 - Environment:
 - Summary:
+- Soak artifacts path:
+- Soak summary (`runs/passed/failed`):
 - Findings:
   - `priority:P0`:
   - `priority:P1`:
@@ -36,6 +38,8 @@
 - Commit / tag under test:
 - Environment:
 - Summary:
+- Soak artifacts path:
+- Soak summary (`runs/passed/failed`):
 - Findings:
   - `priority:P0`:
   - `priority:P1`:
@@ -55,6 +59,8 @@
 - Commit / tag under test:
 - Environment:
 - Summary:
+- Soak artifacts path:
+- Soak summary (`runs/passed/failed`):
 - Findings:
   - `priority:P0`:
   - `priority:P1`:
