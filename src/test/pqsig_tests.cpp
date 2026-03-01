@@ -228,6 +228,8 @@ BOOST_AUTO_TEST_CASE(pqsig_signer_counter_bounds)
     const std::vector<uint8_t> pk = ParseHex(obj.find_value("pk_script33").get_str());
     std::vector<uint8_t> sig(pqsig::SIG_SIZE);
 
+    std::vector<uint8_t> short_sk(pqsig::MSG32_SIZE - 1, 0x42);
+    BOOST_CHECK(!pqsig::PQSigSign(sig, msg, short_sk, pk));
     BOOST_CHECK(!pqsig::PQSigSign(sig, msg, sk, pk, 0));
     BOOST_CHECK(!pqsig::PQSigSign(sig, msg, sk, pk, pqsig::params::SIGN_COUNTER_MAX + 1));
 }
