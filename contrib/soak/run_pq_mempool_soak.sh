@@ -3,6 +3,8 @@
 # PQBTC GA soak harness for relay/mempool witness-heavy traffic.
 # Runs mempool_pq_stress.py repeatedly and emits deterministic artifacts.
 
+export LC_ALL=C
+
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
