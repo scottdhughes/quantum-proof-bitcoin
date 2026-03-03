@@ -44,16 +44,48 @@ class MempoolPQStressTest(BitcoinTestFramework):
         self.generateblock(node0, output="raw(51)", transactions=fund_hex)
         self.sync_all()
 
-        def build_witness_heavy_spend(*, fund_txid: str, amount: int, payload_size: int, fee_sat: int) -> CTransaction:
+        def build_witness_heavy_spend(
+            *,
+            fund_txid: str,
+            amount: int,
+            payload_size: int,
+            fee_sat: int,
+            sequence: int = SEQUENCE_FINAL - 1,
+        ) -> CTransaction:
             tx = CTransaction()
-            tx.vin = [CTxIn(COutPoint(int(fund_txid, 16), 0), b"", SEQUENCE_FINAL - 1)]
+            tx.vin = [CTxIn(COutPoint(int(fund_txid, 16), 0), b"", sequence)]
             tx.vout = [CTxOut(amount - fee_sat, dest_spk)]
             tx.wit.vtxinwit = [CTxInWitness()]
             tx.wit.vtxinwit[0].scriptWitness.stack = [b"S" * payload_size, bytes(witness_script)]
             return tx
 
-        spend_txids = []
-        for idx, (fund_tx, fund_txid) in enumerate(fund_txs):
+        # RBF churn on one UTXO with large witness payloads.
+        rbf_fund, rbf_fund_txid = fund_txs[0]
+        rbf_fees = [22_000, 28_000, 34_000, 40_000, 46_000]
+        rbf_last_txid = None
+        for fee_sat in rbf_fees:
+            replacement = build_witness_heavy_spend(
+                fund_txid=rbf_fund_txid,
+                amount=rbf_fund.vout[0].nValue,
+                payload_size=9_500,
+                fee_sat=fee_sat,
+                sequence=SEQUENCE_FINAL - 2,
+            )
+            replacement_hex = replacement.serialize().hex()
+            accepted0 = node0.testmempoolaccept([replacement_hex])[0]
+            accepted1 = node1.testmempoolaccept([replacement_hex])[0]
+            assert accepted0["allowed"], accepted0
+            assert accepted1["allowed"], accepted1
+            txid = node0.sendrawtransaction(replacement_hex)
+            self.wait_until(lambda txid=txid: txid in node0.getrawmempool(False))
+            self.wait_until(lambda txid=txid: txid in node1.getrawmempool(False))
+            if rbf_last_txid is not None:
+                self.wait_until(lambda txid=rbf_last_txid: txid not in node0.getrawmempool(False))
+                self.wait_until(lambda txid=rbf_last_txid: txid not in node1.getrawmempool(False))
+            rbf_last_txid = txid
+
+        spend_txids = [rbf_last_txid] if rbf_last_txid is not None else []
+        for idx, (fund_tx, fund_txid) in enumerate(fund_txs[1:]):
             spend = build_witness_heavy_spend(
                 fund_txid=fund_txid,
                 amount=fund_tx.vout[0].nValue,
