@@ -127,7 +127,16 @@ class MempoolPQLimitsTest(BitcoinTestFramework):
         reject2 = node.testmempoolaccept([oversized.serialize().hex()])[0]
         assert not reject1["allowed"]
         assert not reject2["allowed"]
-        assert reject1.get("reject-reason", "") == reject2.get("reject-reason", "")
+        reject_reason = reject1.get("reject-reason", "")
+        assert reject_reason != ""
+        assert reject_reason == reject2.get("reject-reason", "")
+
+        # Reject reason must remain stable across restart.
+        self.restart_node(0)
+        node = self.nodes[0]
+        reject3 = node.testmempoolaccept([oversized.serialize().hex()])[0]
+        assert not reject3["allowed"]
+        assert reject_reason == reject3.get("reject-reason", "")
 
         # RBF churn with large witness payloads.
         replacement_fees = [3_000, 5_000, 7_000, 9_000, 11_000]
