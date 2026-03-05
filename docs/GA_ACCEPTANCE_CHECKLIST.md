@@ -20,12 +20,33 @@ Date: 2026-02-24
 3. Deferred from GA to post-v1 milestone: `#18`, `#21`, `#24`, `#27`, `#33`.
 4. `MAX_BLOCK_WEIGHT` remains fixed at `16,000,000` WU for this GA window.
 
+## Consensus Verify-Path Change Control
+
+Files under explicit GA change control:
+
+1. `src/crypto/pqsig/pqsig.cpp`
+2. `src/script/interpreter.cpp`
+3. `src/crypto/pqsig/params.h`
+4. `src/script/script.h`
+
+Rules:
+
+1. No patch during the GA window may widen the accepted set of PQ signatures without an explicit governance override.
+2. Any PR touching the files above must attach:
+   - a before/after accepted-set impact statement
+   - a fresh burn-in checkpoint entry in `docs/GA_BURNIN_LOG.md`
+   - a fresh Crypto Falsification Court verdict
+   - a rerun of the full required evidence bundle below
+3. "Quick fix" or "low-risk cleanup" language does not waive this control.
+4. If the accepted/rejected-set impact is unknown, the default state is `ROLLBACK_HOLD` until re-adjudicated.
+
 ## Hard Gates (Must All Pass)
 
 1. No open issues labeled `priority:P0` in milestone `v1.0.0-ga`.
 2. No open issues labeled `priority:P1` in milestone `v1.0.0-ga`.
 3. Required branch protection checks pass on merge commit to `main`.
 4. Required technical evidence is attached and current.
+5. No unreviewed consensus verify-path changes are present in the GA window.
 
 ## Required Evidence
 
@@ -38,7 +59,7 @@ Date: 2026-02-24
 4. PQ functional suite pass:
    - `build/test/functional/test_runner.py --jobs=1 feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py mempool_pq_stress.py feature_pq_reorg.py feature_pq_block_limits.py`
 5. Fuzz smoke pass:
-   - `FUZZ=pqsig_verify build-fuzz/bin/fuzz <tmpdir>`
+   - `cp src/test/data/pqsig/fuzz/pqsig_verify/* <tmpdir>/ && rm -f <tmpdir>/README.md && FUZZ=pqsig_verify build-fuzz/bin/fuzz <tmpdir>`
 6. Gatekeeper pass on merge commit:
    - `.github/workflows/gatekeeper.yml` successful for `main`.
 7. Rollback trigger review completed with no trigger breach:
@@ -47,11 +68,17 @@ Date: 2026-02-24
    - no restart/reorg reconciliation regression under PQ-heavy traffic
    - witness item `10,001` bytes remains rejected with stable reject reason before/after restart
    - RBF churn campaign (five sequential replacements with large witnesses) completes with no orphaned mempool state
+8. Consensus verify-path control review pass (required if files in the controlled set changed):
+   - touched-file list recorded in `docs/GA_BURNIN_LOG.md`
+   - accepted-set impact statement attached
+   - fresh Crypto Falsification Court verdict attached
+   - full evidence bundle rerun on the candidate commit
 
 ## Activation/Rollback State Machine
 
 1. `PRECHECK`:
    - required gate commands run clean on candidate merge commit
+   - verify-path diff review completed for any touch to the controlled file set
 2. `BURNIN_ACTIVE`:
    - burn-in findings triaged into `priority:P0/P1/P2`
    - any rollback trigger breach transitions immediately to `ROLLBACK_HOLD`
@@ -69,4 +96,7 @@ Date: 2026-02-24
 - Release decision:
   - [ ] Promote to `v1.0.0`
   - [ ] Hold and cut `v1.0.0-rc2`
+- Verify-path files touched during GA window:
+  - [ ] No
+  - [ ] Yes (CFC verdict and accepted-set impact statement attached)
 - Notes:
