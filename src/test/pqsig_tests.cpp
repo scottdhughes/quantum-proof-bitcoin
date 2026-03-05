@@ -7,6 +7,7 @@
 #include <crypto/pqsig/params.h>
 #include <test/data/pqsig/invalid_vectors.json.h>
 #include <test/data/pqsig/kat_v1.json.h>
+#include <tinyformat.h>
 #include <util/strencodings.h>
 
 #include <boost/test/unit_test.hpp>
@@ -381,7 +382,7 @@ BOOST_AUTO_TEST_CASE(pqsig_selected_structural_mutations_fail)
         XorByte(mutated_msg, offset);
         BOOST_CHECK_MESSAGE(
             !pqsig::PQSigVerify(testcase.sig, mutated_msg, testcase.pk),
-            "message mutation offset " + std::to_string(offset) + " unexpectedly verified");
+            strprintf("message mutation offset %u unexpectedly verified", static_cast<unsigned int>(offset)));
     }
 
     for (const size_t offset : StructuredPkOffsets()) {
@@ -389,7 +390,7 @@ BOOST_AUTO_TEST_CASE(pqsig_selected_structural_mutations_fail)
         XorByte(mutated_pk, offset);
         BOOST_CHECK_MESSAGE(
             !pqsig::PQSigVerify(testcase.sig, testcase.msg, mutated_pk),
-            "pk mutation offset " + std::to_string(offset) + " unexpectedly verified");
+            strprintf("pk mutation offset %u unexpectedly verified", static_cast<unsigned int>(offset)));
     }
 
     for (const size_t offset : StructuredSigOffsets()) {
@@ -397,7 +398,7 @@ BOOST_AUTO_TEST_CASE(pqsig_selected_structural_mutations_fail)
         XorByte(mutated_sig, offset);
         BOOST_CHECK_MESSAGE(
             !pqsig::PQSigVerify(mutated_sig, testcase.msg, testcase.pk),
-            "signature mutation offset " + std::to_string(offset) + " unexpectedly verified");
+            strprintf("signature mutation offset %u unexpectedly verified", static_cast<unsigned int>(offset)));
     }
 }
 

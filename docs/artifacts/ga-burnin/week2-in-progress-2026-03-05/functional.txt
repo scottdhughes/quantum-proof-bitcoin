@@ -16,6 +16,5 @@ feature_pqsig_multisig.py  | ✓ Passed  | 1 s
 mempool_pq_limits.py       | ✓ Passed  | 2 s
 mempool_pq_stress.py       | ✓ Passed  | 27 s
 
-ALL                        | ✓ Passed  | 33 s (accumulated) 
+ALL                        | ✓ Passed  | 33 s (accumulated)
 Runtime: 33 s
-
