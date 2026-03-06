@@ -9,6 +9,12 @@
 
 Define hard, evidence-backed release gates for promoting from `v1.0.0-rc1` to `v1.0.0`.
 
+## Release Posture Update (2026-03-06)
+
+1. `v1.0.0` GA on the original `ALG_ID=0x00` profile is held.
+2. The active mitigation path is `v1.0.0-rc2`.
+3. rc2 retires `ALG_ID=0x00`, introduces `ALG_ID=0x01`, and resets burn-in because the controlled verify path changed.
+
 ## Scope Rebaseline (Safety-Only GA)
 
 Date: 2026-02-24
@@ -95,8 +101,8 @@ Rules:
 - Approver:
 - Release decision:
   - [ ] Promote to `v1.0.0`
-  - [ ] Hold and cut `v1.0.0-rc2`
+  - [x] Hold and cut `v1.0.0-rc2`
 - Verify-path files touched during GA window:
   - [ ] No
-  - [ ] Yes (CFC verdict and accepted-set impact statement attached)
-- Notes:
+  - [x] Yes (CFC verdict and accepted-set impact statement attached)
+- Notes: `2026-03-06` posture change for issue `#48`: old profile held, rc2 exact-root reprofile active, and fresh burn-in evidence required before any blocker closure.

@@ -35,8 +35,8 @@ and define the concrete work required for a full-and-complete post-v1 program.
   - either full PQ migration of all legacy suites
   - or permanent dual-profile guarantees with documented compatibility boundaries
 
-### 4. Fixed v1 wire/profile
-- v1 state: `ALG_ID=0x00`, `PK_script` fixed at 33 bytes, signature fixed at 4480 bytes.
+### 4. Fixed rc2 wire/profile
+- rc2 state: `ALG_ID=0x01`, `PK_script` fixed at 33 bytes, signature fixed at 4480 bytes, and `PK.root` is exact-root bound.
 - deferred: multi-algorithm evolution path.
 - full-complete delta:
   - `ALG_ID` registry and governance

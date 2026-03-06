@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate frozen PQSig v1 KAT vectors."""
+"""Generate frozen PQSig rc2 KAT vectors."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ def main() -> None:
         make_vector("kat_03", "3b" * 32, "00" * 31 + "7f"),
     ]
     out = {
-        "profile": "pqsig-v1-2^40-4480",
+        "profile": "pqsig-rc2-2^40-4480",
         "vectors": vectors,
     }
 

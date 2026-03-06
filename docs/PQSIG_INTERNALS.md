@@ -1,12 +1,12 @@
 # PQSig Internals
 
-## Status: FROZEN
-## Spec-ID: PQSIG-INTERNALS-v1
-## Frozen-By: gate-v1-bootstrap-20260222
+## Status: TRACKED
+## Spec-ID: PQSIG-INTERNALS-rc2
+## Frozen-By: issue-48-rc2-reprofile-20260306
 ## Consensus-Relevant: YES
 
 ## Scope
-Consensus-locked internal parameterization for PQSig v1 in PQBTC.
+Consensus-locked internal parameterization for the PQSig rc2 profile in PQBTC.
 
 ## Fixed Parameter Set
 - `q_s = 2^40`
@@ -26,10 +26,19 @@ Consensus-locked internal parameterization for PQSig v1 in PQBTC.
 - Domain separation is mandatory across all internal hash invocations.
 
 ## Deterministic Signing Rule
-- Signing uses deterministic grinding with an explicit counter inside PRFmsg input derivation.
-- Counter evolution is monotonic and bounded.
-- Exceeding the configured bound is a hard signing failure.
+- Signing is deterministic and exact-root bound.
+- `R = Hash32("PQSIG-PRFMSG", sk_seed, msg32, pk_script33)`.
+- The 4-byte per-layer count field is reserved and MUST be all-zero in rc2.
+- `max_counter` remains a signer API bound, but signing no longer grinds for acceptance.
+
+## Exact Public-Root Binding
+- `PK.root` is the exact message-independent public root derived from the fixed top hypertree layer.
+- WOTS signatures reconstruct fixed leaf public keys from the signature, message nibble schedule, `pk_seed`, `layer`, and `leaf_index`.
+- Hypertree auth paths bind those leaf public keys to an exact Merkle root.
+- Verification succeeds only when the reconstructed final layer root matches `PK.root` byte-for-byte.
 
 ## Safety Properties
 - Parser treats signature and key inputs as hostile.
 - Parameter values are immutable consensus constants.
+- Unknown `ALG_ID` is invalid.
+- Any nonzero count field is invalid.

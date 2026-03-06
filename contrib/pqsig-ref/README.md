@@ -1,11 +1,12 @@
-# PQSig v1 Reference Helpers
+# PQSig rc2 Reference Helpers
 
-This directory contains a deterministic reference model for the locked PQSig v1
-wire/profile implementation used in PQBTC v1:
+This directory contains a deterministic reference model for the locked PQSig rc2
+wire/profile implementation used on the `v1.0.0-rc2` track:
 
 - fixed 33-byte `PK_script` (`ALG_ID || PK_seed || PK_root`)
 - fixed 4480-byte signature layout
-- deterministic counter grind + structured WOTS+C/PORS+FP/hypertree fields
+- deterministic exact-root signing and verification for the structured
+  WOTS+C/PORS+FP/hypertree fields
 
 ## Files
 

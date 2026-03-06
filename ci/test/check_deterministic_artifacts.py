@@ -45,7 +45,7 @@ def check_kat() -> str:
     committed = json.loads(KAT_PATH.read_text(encoding="utf-8"))
 
     regenerated = {
-        "profile": "pqsig-v1-2^40-4480",
+        "profile": "pqsig-rc2-2^40-4480",
         "vectors": [
             gen_kat.make_vector("kat_01", "1f" * 32, "42" * 32),
             gen_kat.make_vector("kat_02", "2a" * 32, "11" * 32),

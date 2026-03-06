@@ -17,9 +17,9 @@ typedef std::vector<unsigned char> valtype;
 
 namespace {
 
-static_assert(pqsig::PK_SCRIPT_SIZE == 33, "PQSIG v1 pubkey script size drifted");
-static_assert(pqsig::SIG_SIZE == 4480, "PQSIG v1 signature size drifted");
-static_assert(pqsig::ALG_ID_V1 == 0x00, "PQSIG v1 ALG_ID drifted");
+static_assert(pqsig::PK_SCRIPT_SIZE == 33, "PQSIG rc2 pubkey script size drifted");
+static_assert(pqsig::SIG_SIZE == 4480, "PQSIG rc2 signature size drifted");
+static_assert(pqsig::ALG_ID_RC2 == 0x01, "PQSIG rc2 ALG_ID drifted");
 
 constexpr bool IsPreTaprootPQSigVersion(const SigVersion sigversion)
 {

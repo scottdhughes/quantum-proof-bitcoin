@@ -16,9 +16,10 @@ inline constexpr size_t PK_SCRIPT_SIZE{33};
 inline constexpr size_t PK_CORE_SIZE{32};
 inline constexpr size_t MSG32_SIZE{32};
 inline constexpr size_t SIG_SIZE{4480};
-inline constexpr uint8_t ALG_ID_V1{0x00};
+inline constexpr uint8_t ALG_ID_RC2{0x01};
 
 bool IsValidPkScript(std::span<const uint8_t> pk_script33);
+bool DerivePkScript(std::span<uint8_t> out_pk_script33, std::span<const uint8_t> sk_seed);
 
 bool PQSigVerify(std::span<const uint8_t> sig4480,
                  std::span<const uint8_t> msg32,

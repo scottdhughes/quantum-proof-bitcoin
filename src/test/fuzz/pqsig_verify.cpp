@@ -3,7 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <crypto/pqsig/pqsig.h>
-#include <crypto/pqsig/domains.h>
 #include <crypto/pqsig/params.h>
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
@@ -38,18 +37,13 @@ std::vector<uint8_t> ConsumeVariableBytes(FuzzedDataProvider& provider, const si
 
 std::vector<uint8_t> BuildValidPkScript(FuzzedDataProvider& provider)
 {
-    std::array<uint8_t, pqsig::params::N> pk_seed{};
-    for (uint8_t& b : pk_seed) {
+    std::array<uint8_t, pqsig::MSG32_SIZE> sk_seed{};
+    for (uint8_t& b : sk_seed) {
         b = provider.ConsumeIntegral<uint8_t>();
     }
 
-    const std::array<std::span<const uint8_t>, 1> parts{std::span<const uint8_t>{pk_seed}};
-    const auto pk_root = pqsig::domains::HashN(nullptr, "PQSIG-PK-ROOT", parts);
-
     std::vector<uint8_t> pk(pqsig::PK_SCRIPT_SIZE);
-    pk[0] = pqsig::ALG_ID_V1;
-    std::copy(pk_seed.begin(), pk_seed.end(), pk.begin() + 1);
-    std::copy(pk_root.begin(), pk_root.end(), pk.begin() + 1 + pk_seed.size());
+    assert(pqsig::DerivePkScript(pk, sk_seed));
     return pk;
 }
 
@@ -137,7 +131,7 @@ void ApplyDeterministicRejectMutation(
 {
     switch (provider.ConsumeIntegralInRange<int>(0, 6)) {
     case 0:
-        pk[0] = static_cast<uint8_t>(pqsig::ALG_ID_V1 + 1);
+        pk[0] = 0x00;
         break;
     case 1:
         XorByte(pk, 1 + provider.ConsumeIntegralInRange<size_t>(0, pqsig::params::N - 1), provider.ConsumeIntegralInRange<uint8_t>(1, 255));

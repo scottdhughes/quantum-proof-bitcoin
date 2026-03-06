@@ -51,10 +51,10 @@ static_assert(EXPECTED_SIG_SIZE == pqsig::SIG_SIZE);
 
 inline constexpr uint32_t WOTS_COUNT_MAX{4096};
 
-inline constexpr uint32_t BENCH_VERIFY_COMPRESSIONS{1292};
-inline constexpr uint32_t BENCH_SIGN_HASHES{6027717};
-inline constexpr uint32_t BENCH_SIGN_COMPRESSIONS{6869634};
-inline constexpr uint32_t BENCH_SIGN_OUTER_SEARCH{244170};
+inline constexpr uint32_t BENCH_VERIFY_COMPRESSIONS{2309};
+inline constexpr uint32_t BENCH_SIGN_HASHES{5265659};
+inline constexpr uint32_t BENCH_SIGN_COMPRESSIONS{10603073};
+inline constexpr uint32_t BENCH_SIGN_OUTER_SEARCH{1};
 inline constexpr uint32_t SIGN_COUNTER_MAX{1048576};
 
 // Consensus/profile locks for v1. Any change here requires explicit governance.
@@ -68,7 +68,7 @@ static_assert(L == 32);
 static_assert(SWN == 240);
 static_assert(pqsig::PK_SCRIPT_SIZE == 33);
 static_assert(pqsig::SIG_SIZE == 4480);
-static_assert(pqsig::ALG_ID_V1 == 0x00);
+static_assert(pqsig::ALG_ID_RC2 == 0x01);
 static_assert(SIGN_COUNTER_MAX == 1048576);
 
 } // namespace params

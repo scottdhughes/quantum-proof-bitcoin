@@ -3,7 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <bench/bench.h>
-#include <crypto/pqsig/domains.h>
 #include <crypto/pqsig/pqsig.h>
 #include <crypto/pqsig/pqsig_internal.h>
 #include <crypto/pqsig/params.h>
@@ -16,20 +15,6 @@
 #include <vector>
 
 namespace {
-
-std::array<uint8_t, pqsig::PK_SCRIPT_SIZE> DerivePkScript(const std::span<const uint8_t> sk_seed)
-{
-    const std::array<std::span<const uint8_t>, 1> parts{sk_seed};
-    const auto pk_seed = pqsig::domains::HashN(nullptr, "PQSIG-PK-SEED", parts);
-    const std::array<std::span<const uint8_t>, 1> root_parts{std::span<const uint8_t>{pk_seed}};
-    const auto pk_root = pqsig::domains::HashN(nullptr, "PQSIG-PK-ROOT", root_parts);
-
-    std::array<uint8_t, pqsig::PK_SCRIPT_SIZE> out{};
-    out[0] = pqsig::ALG_ID_V1;
-    std::copy(pk_seed.begin(), pk_seed.end(), out.begin() + 1);
-    std::copy(pk_root.begin(), pk_root.end(), out.begin() + 1 + pk_seed.size());
-    return out;
-}
 
 void CheckEnvelopeAndPrint(
     const pqsig::PQSigMetrics& sign_metrics,
@@ -58,7 +43,8 @@ static void PQSigBenchEnvelope(benchmark::Bench& bench)
                                           0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a,
                                           0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a,
                                           0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a, 0x7a};
-    const auto pk_script = DerivePkScript(sk_seed);
+    std::array<uint8_t, pqsig::PK_SCRIPT_SIZE> pk_script{};
+    assert(pqsig::DerivePkScript(pk_script, sk_seed));
 
     std::array<uint8_t, pqsig::MSG32_SIZE> msg{};
     msg[0] = 0x42;
@@ -87,7 +73,8 @@ static void PQSigVerifyBench(benchmark::Bench& bench)
                                           0x6b, 0x6b, 0x6b, 0x6b, 0x6b, 0x6b, 0x6b, 0x6b,
                                           0x6b, 0x6b, 0x6b, 0x6b, 0x6b, 0x6b, 0x6b, 0x6b,
                                           0x6b, 0x6b, 0x6b, 0x6b, 0x6b, 0x6b, 0x6b, 0x6b};
-    const auto pk_script = DerivePkScript(sk_seed);
+    std::array<uint8_t, pqsig::PK_SCRIPT_SIZE> pk_script{};
+    assert(pqsig::DerivePkScript(pk_script, sk_seed));
 
     std::array<uint8_t, pqsig::MSG32_SIZE> msg{};
     msg.fill(0x11);

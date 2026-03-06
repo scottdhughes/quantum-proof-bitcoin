@@ -11,6 +11,21 @@
 - End: 2026-03-09
 - Cadence: weekly checkpoints
 
+## RC2 Reset (2026-03-06)
+
+1. `v1.0.0` GA on the original `ALG_ID=0x00` profile is held.
+2. The active release path is now `v1.0.0-rc2`.
+3. The controlled verify path changed on `2026-03-06`:
+   - `src/crypto/pqsig/pqsig.cpp`
+   - `src/crypto/pqsig/pqsig.h`
+   - `src/crypto/pqsig/wotsc.h`
+   - `src/crypto/pqsig/hypertree.h`
+   - `src/crypto/pqsig/params.h`
+   - `src/script/interpreter.cpp`
+4. Because those files changed, the March 5 burn-in checkpoint is retained only as historical evidence for the retired profile.
+5. Fresh deterministic, bench, unit, functional, fuzz, soak, and merge-commit gatekeeper evidence is required before issue `#48` can close on the rc2 track.
+6. Local rc2 evidence snapshot: `docs/artifacts/ga-burnin/rc2-local-evidence-2026-03-06.md`.
+
 ## Checkpoint Completion Rules
 
 1. A checkpoint is incomplete until every required evidence field below is populated with a concrete artifact path, run link, or command output summary.
@@ -149,23 +164,22 @@
 - Verify-path review:
   - touched files: no verify-path source files changed during the capture window; review targeted the locked v1 verify path
   - CFC verdict / review link: `docs/artifacts/ga-burnin/offset-3272-analysis-2026-03-05.md`, `docs/artifacts/ga-burnin/issue-48-waiver-vs-mitigation-2026-03-06.md`, GitHub blocker `#48`, and `/Users/scott/satoshi-reports/reports/2026/03/2026-03-05_144815_deep-repo-review.md`
-  - acceptance-set impact summary: bounded March 6 sweep shows targeted auth-path windows reject, targeted count-field bytes reject, and the surviving known mutation remains offset `3272` at the first byte of the layer-2 WOTS region
+  - acceptance-set impact summary: historical only; this checkpoint applies to the retired `ALG_ID=0x00` profile and is invalidated for rc2 by the 2026-03-06 verify-path reprofile
 - Rollback trigger review:
-  - malformed-PQ acceptance widening: blocked by open `priority:P1` offset-`3272` accepted-mutation finding in GitHub issue `#48`; treat as unresolved GA risk
+  - malformed-PQ acceptance widening: historical blocker for the retired profile; rc2 requires a fresh rerun before the blocker can close
   - crash/hang/assert under stress: none in the March 5 clean rerun; excluded February 28 batch failed before test execution due RPC bind contention
   - restart/reorg reconciliation regression: none observed in `docs/artifacts/ga-burnin/week1-backfill-2026-03-05/functional.txt`
   - witness `10,001` byte reject stability: maintained in `mempool_pq_limits.py`
   - RBF churn stability: maintained in `mempool_pq_stress.py` and the 10/10 soak window
 - Findings:
   - `priority:P0`: none
-  - `priority:P1`: offset `3272` layer-2 WOTS byte mutation still verifies; tracked in `docs/artifacts/ga-burnin/offset-3272-analysis-2026-03-05.md` and GitHub issue `#48`
+  - `priority:P1`: historical offset `3272` layer-2 WOTS acceptance bug on the retired profile; rc2 mitigation evidence pending rerun
   - `priority:P2`: current candidate lacks merge-commit gatekeeper evidence because the capture was taken from a dirty local working tree
 - Actions opened:
-  - hold GA promotion
-  - require explicit sign-off or mitigation for the offset-`3272` accepted mutation
-  - use `docs/artifacts/ga-burnin/issue-48-waiver-vs-mitigation-2026-03-06.md` as the March 7 disposition memo
-  - keep GitHub issue `#48` open until mitigation lands or an accepted-set waiver is approved
-  - rerun gatekeeper on an actual merge commit before any GA decision
+  - hold GA promotion on the old profile
+  - run rc2 mitigation evidence on the reprofiled verify path
+  - keep GitHub issue `#48` open until rc2 evidence closes the old offset-`3272` case
+  - rerun gatekeeper on an actual merge commit before any rc2 release decision
 - Gate status:
   - [x] deterministic artifacts
   - [x] bench envelope
@@ -202,23 +216,22 @@
 - Verify-path review:
   - touched files: no additional verify-path changes since the March 5 backfill snapshot
   - CFC verdict / review link: `docs/artifacts/ga-burnin/offset-3272-analysis-2026-03-05.md`, `docs/artifacts/ga-burnin/issue-48-waiver-vs-mitigation-2026-03-06.md`, GitHub blocker `#48`, and `/Users/scott/satoshi-reports/reports/2026/03/2026-03-05_144815_deep-repo-review.md`
-  - acceptance-set impact summary: unchanged blocker; bounded March 6 sweep still isolates the surviving targeted mutation to WOTS offset `3272` while targeted auth/count boundary bytes reject
+  - acceptance-set impact summary: snapshot invalidated for rc2; a fresh targeted sweep is required on the reprofiled branch
 - Rollback trigger review:
-  - malformed-PQ acceptance widening: still blocked by the open offset-`3272` finding in GitHub issue `#48`
+  - malformed-PQ acceptance widening: old-profile blocker retained historically; rc2 evidence not yet attached in this log entry
   - crash/hang/assert under stress: none in the March 5 clean rerun
   - restart/reorg reconciliation regression: none observed
   - witness `10,001` byte reject stability: maintained
   - RBF churn stability: maintained
 - Findings:
   - `priority:P0`: none
-  - `priority:P1`: offset `3272` layer-2 WOTS byte mutation still verifies; tracked in GitHub issue `#48`
+  - `priority:P1`: old-profile offset `3272` finding remains open until rc2 evidence closes it
   - `priority:P2`: Week 2 window still open; merge-commit gatekeeper evidence not yet current
 - Actions opened:
-  - keep GA decision unset
-  - refresh the checkpoint on or after 2026-03-09 with current merge-commit evidence
-  - use `docs/artifacts/ga-burnin/issue-48-waiver-vs-mitigation-2026-03-06.md` for the pre-March 9 disposition decision
-  - keep GitHub issue `#48` open until mitigation lands or an accepted-set waiver is approved
-  - resolve or explicitly sign off the offset-`3272` blocker before promotion
+  - keep the old-profile GA decision closed as `hold and cut rc2`
+  - refresh the checkpoint with current rc2 merge-commit evidence
+  - keep GitHub issue `#48` open until rc2 mitigation evidence lands and the old offset-`3272` case is closed
+  - do not promote any release without fresh rc2 evidence
 - Gate status:
   - [x] deterministic artifacts
   - [x] bench envelope
@@ -228,6 +241,6 @@
   - [ ] gatekeeper on merge commit
 - Decision:
   - [ ] Promote to `v1.0.0`
-  - [ ] Hold and cut `v1.0.0-rc2`
+  - [x] Hold and cut `v1.0.0-rc2`
 - Decision notes:
-  - GA decision intentionally left unset on 2026-03-05 because the dated Week 2 checkpoint is still in progress and the offset-`3272` `priority:P1` blocker in GitHub issue `#48` remains open.
+  - `2026-03-06`: old-profile GA held. Burn-in reset on the rc2 verify-path reprofile and fresh evidence is required before issue `#48` can close.

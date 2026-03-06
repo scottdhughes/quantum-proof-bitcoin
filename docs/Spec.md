@@ -126,42 +126,42 @@ v0 rule:
 To allow future agility, Script-layer pubkeys MUST be tagged:
 - PK_script MUST be 33 bytes:
   - PK_script = ALG_ID (1 byte) || PK_core (32 bytes)
-- v0 ALG_ID = 0x00
+- rc2 ALG_ID = 0x01
 
 #### 4.6.3 Signature encoding (SIG)
-- SIG MUST be exactly 4480 bytes for PQSig v0.
+- SIG MUST be exactly 4480 bytes for PQSig rc2.
 - Any other length MUST fail script verification.
 
-Note: SIG is parsed according to PQSig v0's internal layout (including R and any padded
+Note: SIG is parsed according to PQSig rc2's internal layout (including R and any padded
 authentication set elements). For Script, SIG is treated as an opaque 4480-byte blob.
 
 ---
 
-## 5. Script System (v0)
+## 5. Script System (rc2)
 
 ### 5.1 Script Limits (Consensus)
 To support 4480-byte signatures, the script element size limit MUST be increased.
 
 - MAX_SCRIPT_ELEMENT_SIZE MUST be >= 10,000 bytes.
 
-### 5.2 Signature Verification Opcodes (v0)
-v0 defines PQ-only semantics.
+### 5.2 Signature Verification Opcodes (rc2)
+rc2 defines PQ-only semantics.
 
 Option A (recommended for a new chain): Repurpose existing opcodes:
-- OP_CHECKSIG verifies PQSig v0 (ALG_ID 0x00) for a PK_script.
-- OP_CHECKMULTISIG verifies M-of-N PQSig v0 signatures.
+- OP_CHECKSIG verifies PQSig rc2 (ALG_ID 0x01) for a PK_script.
+- OP_CHECKMULTISIG verifies M-of-N PQSig rc2 signatures.
 
 Option B (more explicit): Introduce new opcodes OP_PQCHECKSIG / OP_PQCHECKMULTISIG.
 (If implemented, Option B is preferred for long-term clarity, but Option A reduces surface area.)
 
-v0 MUST choose exactly one option and implement it consistently across all script contexts.
+rc2 MUST choose exactly one option and implement it consistently across all script contexts.
 
 ### 5.3 Sighash
-v0 uses Bitcoin-style sighash computation.
+rc2 uses Bitcoin-style sighash computation.
 
 Policy guidance (non-consensus):
-- v0 wallets SHOULD default to SIGHASH_ALL.
-- v0 MAY restrict supported sighash flags in standardness policy to reduce complexity.
+- rc2 wallets SHOULD default to SIGHASH_ALL.
+- rc2 MAY restrict supported sighash flags in standardness policy to reduce complexity.
 
 ---
 

@@ -9,12 +9,21 @@
 
 `v1.0.0-rc1` is the PQ-first release candidate for node/consensus delivery.
 
+## Release Posture Update (2026-03-06)
+
+`v1.0.0` GA on the original profile is held.
+
+Reason:
+1. issue `#48` exposed an accepted-set weakness in the old `ALG_ID=0x00` profile.
+2. the active release path is now `v1.0.0-rc2`.
+3. rc2 retires `ALG_ID=0x00` before GA and introduces the exact public-root profile under `ALG_ID=0x01`.
+
 ## Locked v1 Decisions
 
 1. PQSig profile is fixed to `2^40 / 4480B` (`WOTS+C + PORS+FP + hypertree`).
 2. `OP_CHECKSIG` and `OP_CHECKMULTISIG` are PQ-only semantics on this chain.
 3. Taproot activation remains disabled (`NEVER_ACTIVE`) for v1.
-4. Wire formats are fixed:
+4. Wire formats are fixed for rc1 history:
    - `PK_script = 33 bytes` (`ALG_ID=0x00` + 32-byte core)
    - `SIG = 4480 bytes`
 5. Pre-taproot sighash remains fixed `SIGHASH_ALL`.

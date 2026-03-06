@@ -3,7 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <consensus/amount.h>
-#include <crypto/pqsig/domains.h>
 #include <crypto/pqsig/params.h>
 #include <crypto/pqsig/pqsig.h>
 #include <policy/policy.h>
@@ -30,15 +29,10 @@ constexpr std::array<uint8_t, 32> TEST_SK_SEED{
 
 std::array<uint8_t, pqsig::PK_SCRIPT_SIZE> MakePkScript()
 {
-    const std::array<std::span<const uint8_t>, 1> parts{std::span<const uint8_t>{TEST_SK_SEED}};
-    const auto pk_seed = pqsig::domains::HashN(nullptr, "PQSIG-PK-SEED", parts);
-    const std::array<std::span<const uint8_t>, 1> root_parts{std::span<const uint8_t>{pk_seed}};
-    const auto pk_root = pqsig::domains::HashN(nullptr, "PQSIG-PK-ROOT", root_parts);
-
     std::array<uint8_t, pqsig::PK_SCRIPT_SIZE> out{};
-    out[0] = pqsig::ALG_ID_V1;
-    std::copy(pk_seed.begin(), pk_seed.end(), out.begin() + 1);
-    std::copy(pk_root.begin(), pk_root.end(), out.begin() + 1 + pk_seed.size());
+    if (!pqsig::DerivePkScript(out, TEST_SK_SEED)) {
+        throw std::runtime_error("failed to derive deterministic test pk script");
+    }
     return out;
 }
 
@@ -120,7 +114,7 @@ BOOST_AUTO_TEST_CASE(checksig_rejects_wrong_sig_size_and_alg_id)
 
     // Wrong algorithm identifier in the pubkey script is rejected deterministically.
     auto bad_pk_script = pk_script;
-    bad_pk_script[0] = 0x01;
+    bad_pk_script[0] = 0x00;
     const CScript bad_script_pubkey = CScript{} << std::vector<unsigned char>{bad_pk_script.begin(), bad_pk_script.end()} << OP_CHECKSIG;
     tx.vin[0].scriptSig = CScript{} << std::vector<unsigned char>{good_sig.begin(), good_sig.end()};
     BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, bad_script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
