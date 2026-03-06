@@ -1,91 +1,178 @@
 {
-  "profile": "pqsig-v1-invalid",
+  "profile": "pqsig-rc2-invalid",
   "vectors": [
     {
       "name": "invalid_alg_id",
       "base": "kat_01",
       "mutations": [
-        {"field": "pk_script33", "offset": 0, "op": "set", "value": "01"}
+        {
+          "field": "pk_script33",
+          "offset": 0,
+          "op": "set",
+          "value": "00"
+        }
       ]
     },
     {
       "name": "pk_root_mismatch",
       "base": "kat_01",
       "mutations": [
-        {"field": "pk_script33", "offset": 17, "op": "xor", "value": "80"}
+        {
+          "field": "pk_script33",
+          "offset": 17,
+          "op": "xor",
+          "value": "80"
+        }
       ]
     },
     {
       "name": "pk_seed_mismatch",
       "base": "kat_01",
       "mutations": [
-        {"field": "pk_script33", "offset": 1, "op": "xor", "value": "01"}
+        {
+          "field": "pk_script33",
+          "offset": 1,
+          "op": "xor",
+          "value": "01"
+        }
       ]
     },
     {
       "name": "msg_prefix_flip",
       "base": "kat_01",
       "mutations": [
-        {"field": "msg32", "offset": 0, "op": "xor", "value": "01"}
+        {
+          "field": "msg32",
+          "offset": 0,
+          "op": "xor",
+          "value": "01"
+        }
       ]
     },
     {
       "name": "msg_suffix_flip",
       "base": "kat_01",
       "mutations": [
-        {"field": "msg32", "offset": 31, "op": "xor", "value": "80"}
+        {
+          "field": "msg32",
+          "offset": 31,
+          "op": "xor",
+          "value": "80"
+        }
       ]
     },
     {
       "name": "r_byte_flip",
       "base": "kat_01",
       "mutations": [
-        {"field": "sig4480", "offset": 0, "op": "xor", "value": "01"}
+        {
+          "field": "sig4480",
+          "offset": 0,
+          "op": "xor",
+          "value": "01"
+        }
       ]
     },
     {
       "name": "pors_reveal_flip",
       "base": "kat_01",
       "mutations": [
-        {"field": "sig4480", "offset": 32, "op": "xor", "value": "01"}
+        {
+          "field": "sig4480",
+          "offset": 32,
+          "op": "xor",
+          "value": "01"
+        }
       ]
     },
     {
       "name": "pors_auth_flip",
       "base": "kat_01",
       "mutations": [
-        {"field": "sig4480", "offset": 160, "op": "xor", "value": "01"}
+        {
+          "field": "sig4480",
+          "offset": 160,
+          "op": "xor",
+          "value": "01"
+        }
       ]
     },
     {
       "name": "layer0_auth_flip",
       "base": "kat_01",
       "mutations": [
-        {"field": "sig4480", "offset": 1712, "op": "xor", "value": "01"}
+        {
+          "field": "sig4480",
+          "offset": 1712,
+          "op": "xor",
+          "value": "01"
+        }
       ]
     },
     {
       "name": "layer1_wots_flip",
       "base": "kat_01",
       "mutations": [
-        {"field": "sig4480", "offset": 2580, "op": "xor", "value": "01"}
+        {
+          "field": "sig4480",
+          "offset": 2580,
+          "op": "xor",
+          "value": "01"
+        }
+      ]
+    },
+    {
+      "name": "layer2_wots_offset_3272",
+      "base": "kat_01",
+      "mutations": [
+        {
+          "field": "sig4480",
+          "offset": 3272,
+          "op": "xor",
+          "value": "01"
+        }
       ]
     },
     {
       "name": "layer0_count_mismatch",
       "base": "kat_01",
       "mutations": [
-        {"field": "sig4480", "offset": 2400, "op": "xor", "value": "01"}
+        {
+          "field": "sig4480",
+          "offset": 2400,
+          "op": "xor",
+          "value": "01"
+        }
       ]
     },
     {
       "name": "layer3_count_overflow",
       "base": "kat_01",
       "mutations": [
-        {"field": "sig4480", "offset": 4476, "op": "set", "value": "ff"},
-        {"field": "sig4480", "offset": 4477, "op": "set", "value": "ff"},
-        {"field": "sig4480", "offset": 4478, "op": "set", "value": "ff"},
-        {"field": "sig4480", "offset": 4479, "op": "set", "value": "ff"}
+        {
+          "field": "sig4480",
+          "offset": 4476,
+          "op": "set",
+          "value": "ff"
+        },
+        {
+          "field": "sig4480",
+          "offset": 4477,
+          "op": "set",
+          "value": "ff"
+        },
+        {
+          "field": "sig4480",
+          "offset": 4478,
+          "op": "set",
+          "value": "ff"
+        },
+        {
+          "field": "sig4480",
+          "offset": 4479,
+          "op": "set",
+          "value": "ff"
+        }
       ]
     }
   ]

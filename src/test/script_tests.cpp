@@ -3,7 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <consensus/amount.h>
-#include <crypto/pqsig/domains.h>
 #include <crypto/pqsig/pqsig.h>
 #include <policy/policy.h>
 #include <script/interpreter.h>
@@ -23,16 +22,10 @@ namespace {
 
 std::array<uint8_t, pqsig::PK_SCRIPT_SIZE> DerivePkScript(const std::span<const uint8_t> sk_seed)
 {
-    const std::array<std::span<const uint8_t>, 1> parts{sk_seed};
-    const auto pk_seed = pqsig::domains::HashN(nullptr, "PQSIG-PK-SEED", parts);
-
-    const std::array<std::span<const uint8_t>, 1> root_parts{std::span<const uint8_t>{pk_seed}};
-    const auto pk_root = pqsig::domains::HashN(nullptr, "PQSIG-PK-ROOT", root_parts);
-
     std::array<uint8_t, pqsig::PK_SCRIPT_SIZE> out{};
-    out[0] = pqsig::ALG_ID_V1;
-    std::copy(pk_seed.begin(), pk_seed.end(), out.begin() + 1);
-    std::copy(pk_root.begin(), pk_root.end(), out.begin() + 1 + pk_seed.size());
+    if (!pqsig::DerivePkScript(out, sk_seed)) {
+        throw std::runtime_error("failed to derive pk script");
+    }
     return out;
 }
 

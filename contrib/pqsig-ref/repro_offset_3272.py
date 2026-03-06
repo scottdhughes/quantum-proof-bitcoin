@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reproduce the accepted layer-2 WOTS mutation at offset 3272."""
+"""Confirm the former offset-3272 WOTS mutation now rejects under rc2."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ def main() -> None:
     print("region=layer-2-wots-first-byte")
     print(f"original_verify={pqsig_verify(bytes(sig), msg, pk)}")
     print(f"mutated_verify={pqsig_verify(bytes(mutated), msg, pk)}")
-    print("root_cause=final acceptance remains gated by final_digest[0] == pk_root[0]")
+    print("root_cause=exact public-root binding rejects the mutated layer-2 WOTS byte")
 
 
 if __name__ == "__main__":

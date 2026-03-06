@@ -5,6 +5,13 @@
 This memo covers the March 7 to March 9, 2026 release decision for GitHub issue `#48` (`GA Blocker: offset 3272 layer-2 WOTS mutation still verifies`).
 The question is narrow: can the current finding be waived for `v1.0.0`, or does it require mitigation before any GA promotion?
 
+## Decision Update (2026-03-06)
+
+1. The waiver path is no longer the active release posture.
+2. `v1.0.0` on the original `ALG_ID=0x00` profile is held.
+3. The active mitigation path is `v1.0.0-rc2` with the exact public-root profile under `ALG_ID=0x01`.
+4. issue `#48` stays open until fresh rc2 evidence shows the former offset-`3272` mutation no longer verifies across the required gate set.
+
 ## Current Evidence
 
 1. `python3 contrib/pqsig-ref/repro_offset_3272.py` still reproduces `mutated_verify=True` for the layer-2 WOTS byte at offset `3272`.
