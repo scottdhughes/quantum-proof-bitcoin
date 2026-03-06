@@ -1,0 +1,3 @@
+Deterministic artifacts verified
+  genesis_sha256=264b33774915c5c8b5860b9b1675b6f46407cf0a7d06906acef7754e72bc5bf0
+  pqsig_kat_sha256=bb7e12c2c98909c40e06de54e210947d36337ec94382792f3a67e32355fc33d0

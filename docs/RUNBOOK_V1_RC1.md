@@ -65,6 +65,8 @@ build/test/functional/test_runner.py --jobs=1 \
 python3 ci/test/check_pqsig_bench.py --bench build/bin/bench_pqbtc --repeat 3
 
 tmpdir=$(mktemp -d)
+cp src/test/data/pqsig/fuzz/pqsig_verify/* "$tmpdir"/
+rm -f "$tmpdir"/README.md
 FUZZ=pqsig_verify build-fuzz/bin/fuzz "$tmpdir"
 rm -rf "$tmpdir"
 ```

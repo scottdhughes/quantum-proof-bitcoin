@@ -1,0 +1,8 @@
+{
+  "runs": 10,
+  "passed": 10,
+  "failed": 0,
+  "jobs": 1,
+  "test": "mempool_pq_stress.py",
+  "results_tsv": "results.tsv"
+}
