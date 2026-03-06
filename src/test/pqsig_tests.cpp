@@ -12,6 +12,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <stdexcept>
@@ -150,6 +151,71 @@ std::vector<size_t> StructuredSigOffsets()
     }
 
     return offsets;
+}
+
+std::vector<size_t> LeadingTrailingOffsets(const size_t start, const size_t size, const size_t window)
+{
+    const size_t span = std::min(window, size);
+    std::vector<size_t> offsets;
+    offsets.reserve(span * 2);
+
+    for (size_t i = 0; i < span; ++i) {
+        offsets.push_back(start + i);
+    }
+    for (size_t i = size - span; i < size; ++i) {
+        offsets.push_back(start + i);
+    }
+
+    std::sort(offsets.begin(), offsets.end());
+    offsets.erase(std::unique(offsets.begin(), offsets.end()), offsets.end());
+    return offsets;
+}
+
+std::vector<size_t> TargetedHypertreeAuthOffsets()
+{
+    std::vector<size_t> offsets;
+    for (size_t layer = 0; layer < pqsig::params::D; ++layer) {
+        const size_t layer_offset = pqsig::params::HT_OFFSET + layer * pqsig::params::HT_LAYER_SIZE;
+        const std::vector<size_t> window = LeadingTrailingOffsets(layer_offset, pqsig::params::HT_AUTH_SIZE, 8);
+        offsets.insert(offsets.end(), window.begin(), window.end());
+    }
+    return offsets;
+}
+
+std::vector<size_t> TargetedHypertreeWotsOffsets()
+{
+    std::vector<size_t> offsets;
+    for (size_t layer = 0; layer < pqsig::params::D; ++layer) {
+        const size_t wots_offset = pqsig::params::HT_OFFSET + layer * pqsig::params::HT_LAYER_SIZE + pqsig::params::HT_AUTH_SIZE;
+        const std::vector<size_t> window = LeadingTrailingOffsets(wots_offset, pqsig::params::HT_WOTS_SIZE, 8);
+        offsets.insert(offsets.end(), window.begin(), window.end());
+    }
+    return offsets;
+}
+
+std::vector<size_t> TargetedHypertreeCountOffsets()
+{
+    std::vector<size_t> offsets;
+    for (size_t layer = 0; layer < pqsig::params::D; ++layer) {
+        const size_t count_offset = pqsig::params::HT_OFFSET + layer * pqsig::params::HT_LAYER_SIZE +
+            pqsig::params::HT_AUTH_SIZE + pqsig::params::HT_WOTS_SIZE;
+        for (size_t i = 0; i < pqsig::params::HT_COUNTER_SIZE; ++i) {
+            offsets.push_back(count_offset + i);
+        }
+    }
+    return offsets;
+}
+
+std::string JoinOffsets(const std::vector<size_t>& offsets)
+{
+    if (offsets.empty()) return "none";
+
+    std::string out;
+    for (size_t i = 0; i < offsets.size(); ++i) {
+        if (!out.empty()) out += ", ";
+        out += strprintf("%u", static_cast<unsigned int>(offsets[i]));
+    }
+    return out;
 }
 
 void ApplyMutation(
@@ -400,6 +466,58 @@ BOOST_AUTO_TEST_CASE(pqsig_selected_structural_mutations_fail)
             !pqsig::PQSigVerify(mutated_sig, testcase.msg, testcase.pk),
             strprintf("signature mutation offset %u unexpectedly verified", static_cast<unsigned int>(offset)));
     }
+}
+
+BOOST_AUTO_TEST_CASE(pqsig_targeted_hypertree_region_mutation_sweep)
+{
+    const PQSigCase testcase = LoadKatCase(FindKatVectorByName("kat_01").get_obj());
+    BOOST_REQUIRE(pqsig::PQSigVerify(testcase.sig, testcase.msg, testcase.pk));
+
+    std::vector<size_t> accepted_auth_offsets;
+    for (const size_t offset : TargetedHypertreeAuthOffsets()) {
+        std::vector<uint8_t> mutated_sig = testcase.sig;
+        XorByte(mutated_sig, offset);
+        if (pqsig::PQSigVerify(mutated_sig, testcase.msg, testcase.pk)) {
+            accepted_auth_offsets.push_back(offset);
+        }
+    }
+
+    std::vector<size_t> accepted_wots_offsets;
+    for (const size_t offset : TargetedHypertreeWotsOffsets()) {
+        std::vector<uint8_t> mutated_sig = testcase.sig;
+        XorByte(mutated_sig, offset);
+        if (pqsig::PQSigVerify(mutated_sig, testcase.msg, testcase.pk)) {
+            accepted_wots_offsets.push_back(offset);
+        }
+    }
+
+    std::vector<size_t> accepted_count_offsets;
+    for (const size_t offset : TargetedHypertreeCountOffsets()) {
+        std::vector<uint8_t> mutated_sig = testcase.sig;
+        XorByte(mutated_sig, offset);
+        if (pqsig::PQSigVerify(mutated_sig, testcase.msg, testcase.pk)) {
+            accepted_count_offsets.push_back(offset);
+        }
+    }
+
+    constexpr size_t EXPECTED_ISSUE_48_OFFSET =
+        pqsig::params::HT_OFFSET + 2 * pqsig::params::HT_LAYER_SIZE + pqsig::params::HT_AUTH_SIZE;
+    const std::vector<size_t> targeted_wots_offsets = TargetedHypertreeWotsOffsets();
+
+    BOOST_CHECK_MESSAGE(
+        std::find(targeted_wots_offsets.begin(), targeted_wots_offsets.end(), EXPECTED_ISSUE_48_OFFSET) != targeted_wots_offsets.end(),
+        strprintf("targeted WOTS sweep omitted known issue-48 offset %u", static_cast<unsigned int>(EXPECTED_ISSUE_48_OFFSET)));
+
+    BOOST_TEST_MESSAGE(strprintf("targeted auth accepted offsets: %s", JoinOffsets(accepted_auth_offsets)));
+    BOOST_TEST_MESSAGE(strprintf("targeted wots accepted offsets: %s", JoinOffsets(accepted_wots_offsets)));
+    BOOST_TEST_MESSAGE(strprintf("targeted count accepted offsets: %s", JoinOffsets(accepted_count_offsets)));
+
+    BOOST_CHECK_MESSAGE(
+        accepted_auth_offsets.empty(),
+        strprintf("auth-path mutation offsets unexpectedly verified: %s", JoinOffsets(accepted_auth_offsets)));
+    BOOST_CHECK_MESSAGE(
+        accepted_count_offsets.empty(),
+        strprintf("count-field mutation offsets unexpectedly verified: %s", JoinOffsets(accepted_count_offsets)));
 }
 
 BOOST_AUTO_TEST_CASE(pqsig_signer_counter_bounds)

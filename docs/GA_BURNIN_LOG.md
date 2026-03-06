@@ -148,8 +148,8 @@
   - resource envelope: soak durations ranged `15s` to `46s` across the March 5 window (`docs/artifacts/ga-burnin/week1-backfill-2026-03-05/results.tsv`)
 - Verify-path review:
   - touched files: no verify-path source files changed during the capture window; review targeted the locked v1 verify path
-  - CFC verdict / review link: `docs/artifacts/ga-burnin/offset-3272-analysis-2026-03-05.md`, GitHub blocker `#48`, and `/Users/scott/satoshi-reports/reports/2026/03/2026-03-05_144815_deep-repo-review.md`
-  - acceptance-set impact summary: a one-byte mutation at signature offset `3272` (first byte of the layer-2 WOTS region) still verifies in the current reference model
+  - CFC verdict / review link: `docs/artifacts/ga-burnin/offset-3272-analysis-2026-03-05.md`, `docs/artifacts/ga-burnin/issue-48-waiver-vs-mitigation-2026-03-06.md`, GitHub blocker `#48`, and `/Users/scott/satoshi-reports/reports/2026/03/2026-03-05_144815_deep-repo-review.md`
+  - acceptance-set impact summary: bounded March 6 sweep shows targeted auth-path windows reject, targeted count-field bytes reject, and the surviving known mutation remains offset `3272` at the first byte of the layer-2 WOTS region
 - Rollback trigger review:
   - malformed-PQ acceptance widening: blocked by open `priority:P1` offset-`3272` accepted-mutation finding in GitHub issue `#48`; treat as unresolved GA risk
   - crash/hang/assert under stress: none in the March 5 clean rerun; excluded February 28 batch failed before test execution due RPC bind contention
@@ -163,6 +163,7 @@
 - Actions opened:
   - hold GA promotion
   - require explicit sign-off or mitigation for the offset-`3272` accepted mutation
+  - use `docs/artifacts/ga-burnin/issue-48-waiver-vs-mitigation-2026-03-06.md` as the March 7 disposition memo
   - keep GitHub issue `#48` open until mitigation lands or an accepted-set waiver is approved
   - rerun gatekeeper on an actual merge commit before any GA decision
 - Gate status:
@@ -200,8 +201,8 @@
   - resource envelope: current soak durations remain within the March 5 `15s` to `46s` window
 - Verify-path review:
   - touched files: no additional verify-path changes since the March 5 backfill snapshot
-  - CFC verdict / review link: `docs/artifacts/ga-burnin/offset-3272-analysis-2026-03-05.md`, GitHub blocker `#48`, and `/Users/scott/satoshi-reports/reports/2026/03/2026-03-05_144815_deep-repo-review.md`
-  - acceptance-set impact summary: unchanged open offset-`3272` acceptance-boundary smell
+  - CFC verdict / review link: `docs/artifacts/ga-burnin/offset-3272-analysis-2026-03-05.md`, `docs/artifacts/ga-burnin/issue-48-waiver-vs-mitigation-2026-03-06.md`, GitHub blocker `#48`, and `/Users/scott/satoshi-reports/reports/2026/03/2026-03-05_144815_deep-repo-review.md`
+  - acceptance-set impact summary: unchanged blocker; bounded March 6 sweep still isolates the surviving targeted mutation to WOTS offset `3272` while targeted auth/count boundary bytes reject
 - Rollback trigger review:
   - malformed-PQ acceptance widening: still blocked by the open offset-`3272` finding in GitHub issue `#48`
   - crash/hang/assert under stress: none in the March 5 clean rerun
@@ -215,6 +216,7 @@
 - Actions opened:
   - keep GA decision unset
   - refresh the checkpoint on or after 2026-03-09 with current merge-commit evidence
+  - use `docs/artifacts/ga-burnin/issue-48-waiver-vs-mitigation-2026-03-06.md` for the pre-March 9 disposition decision
   - keep GitHub issue `#48` open until mitigation lands or an accepted-set waiver is approved
   - resolve or explicitly sign off the offset-`3272` blocker before promotion
 - Gate status:

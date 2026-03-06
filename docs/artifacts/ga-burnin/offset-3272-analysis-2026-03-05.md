@@ -51,6 +51,41 @@ mutated_verify=True
 root_cause=final acceptance remains gated by final_digest[0] == pk_root[0]
 ```
 
+## Targeted Boundary Sweep (2026-03-06)
+
+Command:
+
+```bash
+./build/bin/test_pqbtc --run_test=pqsig_tests/pqsig_targeted_hypertree_region_mutation_sweep --log_level=message
+```
+
+Observed output:
+
+```text
+targeted auth accepted offsets: none
+targeted wots accepted offsets: 3272
+targeted count accepted offsets: none
+```
+
+Interpretation:
+
+- The current bounded sweep does not show accepted mutations in the targeted auth-path windows or any of the layer counter fields.
+- The currently demonstrated accepted mutation remains isolated to the known WOTS boundary byte at offset `3272` within this sweep.
+- That narrows the visible symptom, but it does not neutralize the root cause because the surviving WOTS byte is still consumed by the verifier before final acceptance.
+
+## Why Count and Auth Checks Do Not Close the Gap
+
+- `src/crypto/pqsig/pqsig.cpp` derives `layer_counts` from `hmsg` and rejects any decoded counter field that exceeds `SWN` or disagrees with the derived per-layer count.
+- `src/crypto/pqsig/pqsig.cpp` and `src/crypto/pqsig/hypertree.h` still feed the auth-path bytes into `PQSIG-HT-NODE`, so auth-path rejection in the targeted sweep is expected and does not explain the surviving WOTS mutation.
+- `src/crypto/pqsig/wotsc.h` hashes the full WOTS span inside `wotsc::CommitLayerSignature(...)`, which means the surviving offset `3272` mutation is not a parser blind spot or an unused byte.
+- The gap remains at the terminal acceptance rule: after the layer roots are recomputed, acceptance still collapses to the one-byte predicate `final_digest[0] == pk_root[0]`.
+
+## Consensus Classification
+
+- This is not currently evidence of a chain split. Nodes running the same code are expected to agree on the same accept/reject result.
+- This is still consensus-critical because it widens the authorization set at the consensus layer. If the accepted set is too broad, ownership integrity fails even without node disagreement.
+- The targeted sweep result changes the shape of the immediate symptom from "boundary region broadly unstable" to "known WOTS byte survives while neighboring auth/count windows reject." It does not make the release risk acceptable for GA.
+
 ## Acceptance Explanation
 
 - The mutated byte is not ignored. It flows through the layer-2 WOTS commit and into the recomputed hypertree path.
@@ -60,6 +95,7 @@ root_cause=final acceptance remains gated by final_digest[0] == pk_root[0]
 ## Decision Statement
 
 - Offset `3272` remains an open `priority:P1` GA blocker on 2026-03-05.
-- March 9, 2026 cannot promote to GA unless this is either mitigated or explicitly waived with a stronger accepted-set rationale.
+- The new bounded sweep evidence is strong enough to reject a casual waiver, but not strong enough to justify GA promotion on a one-byte terminal predicate.
+- March 9, 2026 cannot promote to GA unless this is either mitigated or explicitly waived with a stronger accepted-set rationale than is currently available.
 - No edits to `src/crypto/pqsig/pqsig.cpp` or `src/script/interpreter.cpp` are part of this package.
 - GitHub issue `#48` is the canonical remote blocker record for release governance.
