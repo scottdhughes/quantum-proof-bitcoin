@@ -28,7 +28,7 @@ constexpr bool ConsensusProfileLocked()
            PK_CORE_SIZE == 32 &&
            MSG32_SIZE == 32 &&
            SIG_SIZE == 4480 &&
-           ALG_ID_V1 == 0x00 &&
+           ALG_ID_RC2 == 0x01 &&
            params::N == 16 &&
            params::QS_LOG2 == 40 &&
            params::H == 44 &&
@@ -43,37 +43,11 @@ constexpr bool ConsensusProfileLocked()
            params::EXPECTED_SIG_SIZE == SIG_SIZE;
 }
 
-static_assert(ConsensusProfileLocked(), "PQSIG v1 consensus profile drifted");
+static_assert(ConsensusProfileLocked(), "PQSIG rc2 consensus profile drifted");
 
 void PublishMetrics(const PQSigMetrics& metrics)
 {
     g_last_metrics = metrics;
-}
-
-void PublishSignEnvelopeMetrics()
-{
-    PQSigMetrics envelope{};
-    envelope.hash_calls = params::BENCH_SIGN_HASHES;
-    envelope.compression_calls = params::BENCH_SIGN_COMPRESSIONS;
-    envelope.outer_search_iters = params::BENCH_SIGN_OUTER_SEARCH;
-    envelope.wots_search_iters_total = params::SWN;
-    PublishMetrics(envelope);
-}
-
-void PublishVerifyEnvelopeMetrics()
-{
-    PQSigMetrics envelope{};
-    envelope.hash_calls = 0;
-    envelope.compression_calls = params::BENCH_VERIFY_COMPRESSIONS;
-    envelope.outer_search_iters = 0;
-    envelope.wots_search_iters_total = 0;
-    PublishMetrics(envelope);
-}
-
-std::array<uint8_t, params::N> DerivePkRoot(const std::span<const uint8_t> pk_seed, PQSigMetrics* metrics)
-{
-    const std::array<std::span<const uint8_t>, 1> parts{pk_seed};
-    return domains::HashN(metrics, "PQSIG-PK-ROOT", parts);
 }
 
 std::array<uint8_t, params::N> DerivePkSeed(const std::span<const uint8_t> sk_seed, PQSigMetrics* metrics)
@@ -85,32 +59,22 @@ std::array<uint8_t, params::N> DerivePkSeed(const std::span<const uint8_t> sk_se
 bool ParsePkScript(
     const std::span<const uint8_t> pk_script,
     std::array<uint8_t, params::N>& pk_seed,
-    std::array<uint8_t, params::N>& pk_root,
-    PQSigMetrics* metrics)
+    std::array<uint8_t, params::N>& pk_root)
 {
     if (!ConsensusProfileLocked()) return false;
     if (!IsValidPkScript(pk_script)) return false;
     std::copy_n(pk_script.begin() + 1, params::N, pk_seed.begin());
     std::copy_n(pk_script.begin() + 1 + params::N, params::N, pk_root.begin());
-
-    const auto derived_root = DerivePkRoot(std::span<const uint8_t>{pk_seed}, metrics);
-    return std::equal(derived_root.begin(), derived_root.end(), pk_root.begin());
+    return true;
 }
 
 std::array<uint8_t, 32> ComputeR(
     const std::span<const uint8_t> sk_seed,
     const std::span<const uint8_t> msg32,
     const std::span<const uint8_t> pk_script,
-    const uint32_t counter,
     PQSigMetrics* metrics)
 {
-    const auto counter_le = domains::U32ToLE(counter);
-    const std::array<std::span<const uint8_t>, 4> parts{
-        sk_seed,
-        msg32,
-        pk_script,
-        std::span<const uint8_t>{counter_le},
-    };
+    const std::array<std::span<const uint8_t>, 3> parts{sk_seed, msg32, pk_script};
     return domains::Hash32(metrics, "PQSIG-PRFMSG", parts);
 }
 
@@ -122,6 +86,11 @@ std::array<uint8_t, 64> ComputeHmsg(
 {
     const std::array<std::span<const uint8_t>, 3> parts{r, msg32, pk_script};
     return domains::Hash64(metrics, "PQSIG-HMSG", parts);
+}
+
+bool CountFieldIsZero(const std::span<const uint8_t> count_field)
+{
+    return std::all_of(count_field.begin(), count_field.end(), [](const uint8_t b) { return b == 0; });
 }
 
 bool EncodeSignatureCandidate(
@@ -155,12 +124,9 @@ bool EncodeSignatureCandidate(
         pk_seed,
         metrics);
 
-    const auto layer_counts = hypertree::DeriveLayerCounts(std::span<const uint8_t>{hmsg});
     const auto leaf_indices = hypertree::DeriveLeafIndices(std::span<const uint8_t>{hmsg});
 
     for (size_t layer = 0; layer < params::D; ++layer) {
-        metrics->wots_search_iters_total += layer_counts[layer];
-
         const size_t layer_offset = params::HT_OFFSET + layer * params::HT_LAYER_SIZE;
         auto auth = sig4480.subspan(layer_offset, params::HT_AUTH_SIZE);
         auto wots = sig4480.subspan(layer_offset + params::HT_AUTH_SIZE, params::HT_WOTS_SIZE);
@@ -172,45 +138,35 @@ bool EncodeSignatureCandidate(
             pk_seed,
             std::span<const uint8_t>{layer_message},
             static_cast<uint32_t>(layer),
-            layer_counts[layer],
-            std::span<const uint8_t>{r},
+            leaf_indices[layer],
             metrics);
 
-        hypertree::FillAuthPath(
-            auth,
+        const auto expected_root = hypertree::BuildRootAndAuthPath(
             sk_seed,
             pk_seed,
-            std::span<const uint8_t>{layer_message},
             static_cast<uint32_t>(layer),
             leaf_indices[layer],
-            std::span<const uint8_t>{r},
+            auth,
             metrics);
 
-        const auto count_le = domains::U32ToLE(layer_counts[layer]);
-        std::copy(count_le.begin(), count_le.end(), count_field.begin());
+        std::fill(count_field.begin(), count_field.end(), 0x00);
 
-        layer_message = hypertree::ComputeLayerRoot(
+        const auto verified_root = hypertree::ComputeLayerRoot(
             std::span<const uint8_t>{layer_message},
             wots,
             auth,
             static_cast<uint32_t>(layer),
             leaf_indices[layer],
-            layer_counts[layer],
-            std::span<const uint8_t>{r},
             pk_seed,
             metrics);
+
+        if (!std::equal(expected_root.begin(), expected_root.end(), verified_root.begin())) {
+            return false;
+        }
+        layer_message = expected_root;
     }
 
-    const std::array<std::span<const uint8_t>, 4> final_parts{
-        std::span<const uint8_t>{layer_message},
-        std::span<const uint8_t>{r},
-        msg32,
-        pk_script,
-    };
-    const auto final_digest = domains::HashN(metrics, "PQSIG-FINAL", final_parts);
-
-    // Deterministic grind criterion. This is consensus-locked for v1.
-    return final_digest[0] == pk_root[0];
+    return std::equal(layer_message.begin(), layer_message.end(), pk_root.begin());
 }
 
 bool VerifySignatureStructure(
@@ -230,7 +186,6 @@ bool VerifySignatureStructure(
 
     const auto hmsg = ComputeHmsg(r, msg32, pk_script, metrics);
     const auto pors_indices = porsfp::DeriveIndices(hmsg);
-    const auto layer_counts = hypertree::DeriveLayerCounts(std::span<const uint8_t>{hmsg});
     const auto leaf_indices = hypertree::DeriveLeafIndices(std::span<const uint8_t>{hmsg});
 
     std::array<uint8_t, params::N> layer_message = porsfp::ComputeRoot(
@@ -248,8 +203,7 @@ bool VerifySignatureStructure(
         const auto wots = sig4480.subspan(layer_offset + params::HT_AUTH_SIZE, params::HT_WOTS_SIZE);
         const auto count_field = sig4480.subspan(layer_offset + params::HT_AUTH_SIZE + params::HT_WOTS_SIZE, params::HT_COUNTER_SIZE);
 
-        const uint32_t count = domains::U32FromLE(count_field.data());
-        if (count > params::SWN || count != layer_counts[layer]) {
+        if (!CountFieldIsZero(count_field)) {
             return false;
         }
 
@@ -259,27 +213,34 @@ bool VerifySignatureStructure(
             auth,
             static_cast<uint32_t>(layer),
             leaf_indices[layer],
-            count,
-            r,
             pk_seed,
             metrics);
     }
 
-    const std::array<std::span<const uint8_t>, 4> final_parts{
-        std::span<const uint8_t>{layer_message},
-        r,
-        msg32,
-        pk_script,
-    };
-    const auto final_digest = domains::HashN(metrics, "PQSIG-FINAL", final_parts);
-    return final_digest[0] == pk_root[0];
+    return std::equal(layer_message.begin(), layer_message.end(), pk_root.begin());
 }
 
 } // namespace
 
 bool IsValidPkScript(const std::span<const uint8_t> pk_script33)
 {
-    return pk_script33.size() == PK_SCRIPT_SIZE && pk_script33[0] == ALG_ID_V1;
+    return pk_script33.size() == PK_SCRIPT_SIZE && pk_script33[0] == ALG_ID_RC2;
+}
+
+bool DerivePkScript(const std::span<uint8_t> out_pk_script33, const std::span<const uint8_t> sk_seed)
+{
+    if (!ConsensusProfileLocked() || out_pk_script33.size() != PK_SCRIPT_SIZE || sk_seed.size() != MSG32_SIZE) {
+        return false;
+    }
+
+    PQSigMetrics metrics{};
+    const auto pk_seed = DerivePkSeed(sk_seed, &metrics);
+    const auto pk_root = hypertree::DerivePublicRoot(sk_seed, std::span<const uint8_t>{pk_seed}, &metrics);
+
+    out_pk_script33[0] = ALG_ID_RC2;
+    std::copy(pk_seed.begin(), pk_seed.end(), out_pk_script33.begin() + 1);
+    std::copy(pk_root.begin(), pk_root.end(), out_pk_script33.begin() + 1 + pk_seed.size());
+    return true;
 }
 
 bool PQSigVerify(
@@ -296,7 +257,7 @@ bool PQSigVerify(
 
     std::array<uint8_t, params::N> pk_seed{};
     std::array<uint8_t, params::N> pk_root{};
-    if (!ParsePkScript(pk_script33, pk_seed, pk_root, &metrics)) {
+    if (!ParsePkScript(pk_script33, pk_seed, pk_root)) {
         PublishMetrics(metrics);
         return false;
     }
@@ -306,7 +267,7 @@ bool PQSigVerify(
         return false;
     }
 
-    PublishVerifyEnvelopeMetrics();
+    PublishMetrics(metrics);
     return true;
 }
 
@@ -319,7 +280,6 @@ bool PQSigSign(
 {
     PQSigMetrics metrics{};
 
-    // v1 signer/search bounds are frozen for deterministic tooling behavior.
     if (max_counter == 0 || max_counter > params::SIGN_COUNTER_MAX) {
         PublishMetrics(metrics);
         return false;
@@ -332,7 +292,7 @@ bool PQSigSign(
 
     std::array<uint8_t, params::N> pk_seed{};
     std::array<uint8_t, params::N> pk_root{};
-    if (!ParsePkScript(pk_script33, pk_seed, pk_root, &metrics)) {
+    if (!ParsePkScript(pk_script33, pk_seed, pk_root)) {
         PublishMetrics(metrics);
         return false;
     }
@@ -343,29 +303,34 @@ bool PQSigSign(
         return false;
     }
 
-    for (uint32_t counter = 0; counter < max_counter; ++counter) {
-        metrics.outer_search_iters = static_cast<uint64_t>(counter) + 1;
+    const auto expected_pk_root = hypertree::DerivePublicRoot(sk_seed, std::span<const uint8_t>{pk_seed}, &metrics);
+    if (!std::equal(expected_pk_root.begin(), expected_pk_root.end(), pk_root.begin())) {
+        PublishMetrics(metrics);
+        return false;
+    }
 
-        const auto r = ComputeR(sk_seed, msg32, pk_script33, counter, &metrics);
-        const auto hmsg = ComputeHmsg(std::span<const uint8_t>{r}, msg32, pk_script33, &metrics);
+    metrics.outer_search_iters = 1;
+    metrics.wots_search_iters_total = 0;
 
-        if (EncodeSignatureCandidate(
-                out_sig4480,
-                sk_seed,
-                msg32,
-                pk_script33,
-                std::span<const uint8_t>{pk_seed},
-                std::span<const uint8_t>{pk_root},
-                r,
-                hmsg,
-                &metrics)) {
-            PublishSignEnvelopeMetrics();
-            return true;
-        }
+    const auto r = ComputeR(sk_seed, msg32, pk_script33, &metrics);
+    const auto hmsg = ComputeHmsg(std::span<const uint8_t>{r}, msg32, pk_script33, &metrics);
+
+    if (!EncodeSignatureCandidate(
+            out_sig4480,
+            sk_seed,
+            msg32,
+            pk_script33,
+            std::span<const uint8_t>{pk_seed},
+            std::span<const uint8_t>{pk_root},
+            r,
+            hmsg,
+            &metrics)) {
+        PublishMetrics(metrics);
+        return false;
     }
 
     PublishMetrics(metrics);
-    return false;
+    return true;
 }
 
 PQSigMetrics GetLastPQSigMetrics()

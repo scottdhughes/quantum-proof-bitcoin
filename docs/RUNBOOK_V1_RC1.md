@@ -9,6 +9,12 @@
 
 Operational checklist for validating and operating the v1 release candidate.
 
+## Release Posture Update (2026-03-06)
+
+1. `v1.0.0` GA on the rc1 profile is held.
+2. Active mitigation work proceeds on `v1.0.0-rc2`.
+3. rc2 retires `ALG_ID=0x00` and introduces the exact-root profile under `ALG_ID=0x01`.
+
 ## Preconditions
 
 1. Build from a clean tree and clean build directory.
@@ -37,7 +43,7 @@ build/bin/pqbtcd -regtest -daemon -mocktime=1772086500
 3. PQ wire constraints are strict:
    - pubkey script push: 33 bytes
    - signature push: 4480 bytes
-   - `ALG_ID=0x00`
+   - `ALG_ID=0x01` on the rc2 path
 
 ## Required Validation Sequence
 

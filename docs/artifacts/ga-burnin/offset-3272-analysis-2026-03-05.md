@@ -6,6 +6,13 @@ The byte at offset `3272` is reproducibly accepted after mutation in the current
 This is a GA-blocking consensus-risk smell because the mutation lands in the layer-2 WOTS region but still passes final verification.
 Remote blocker tracking lives in GitHub issue `#48` (`GA Blocker: offset 3272 layer-2 WOTS mutation still verifies`).
 
+## RC2 Mitigation Addendum (2026-03-06)
+
+- The findings below describe the retired `ALG_ID=0x00` profile that triggered the GA hold.
+- The active `v1.0.0-rc2` branch replaces the terminal one-byte acceptance rule with exact public-root binding under `ALG_ID=0x01`.
+- On the rc2 branch, `python3 contrib/pqsig-ref/repro_offset_3272.py` now reports `mutated_verify=False`.
+- A fresh C++ sweep is still required before the blocker can close on the rc2 track.
+
 ## Offset Layout Proof
 
 - `3272 = HT_OFFSET + 2 * HT_LAYER_SIZE + HT_AUTH_SIZE`

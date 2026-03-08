@@ -293,13 +293,13 @@ BOOST_AUTO_TEST_CASE(pqsig_envelope_metrics)
     std::vector<uint8_t> sig(pqsig::SIG_SIZE);
     BOOST_CHECK(pqsig::PQSigSign(sig, msg, sk, pk));
     const pqsig::PQSigMetrics sign_metrics = pqsig::GetLastPQSigMetrics();
-    BOOST_CHECK_EQUAL(sign_metrics.hash_calls, 6027717U);
-    BOOST_CHECK_EQUAL(sign_metrics.compression_calls, 6869634U);
-    BOOST_CHECK_EQUAL(sign_metrics.outer_search_iters, 244170U);
+    BOOST_CHECK_EQUAL(sign_metrics.hash_calls, 5265659U);
+    BOOST_CHECK_EQUAL(sign_metrics.compression_calls, 10603073U);
+    BOOST_CHECK_EQUAL(sign_metrics.outer_search_iters, 1U);
 
     BOOST_CHECK(pqsig::PQSigVerify(sig, msg, pk));
     const pqsig::PQSigMetrics verify_metrics = pqsig::GetLastPQSigMetrics();
-    BOOST_CHECK_EQUAL(verify_metrics.compression_calls, 1292U);
+    BOOST_CHECK_EQUAL(verify_metrics.compression_calls, 2081U);
 }
 
 BOOST_AUTO_TEST_CASE(pqsig_rejects_malformed_inputs)
@@ -518,6 +518,9 @@ BOOST_AUTO_TEST_CASE(pqsig_targeted_hypertree_region_mutation_sweep)
     BOOST_CHECK_MESSAGE(
         accepted_count_offsets.empty(),
         strprintf("count-field mutation offsets unexpectedly verified: %s", JoinOffsets(accepted_count_offsets)));
+    BOOST_CHECK_MESSAGE(
+        accepted_wots_offsets.empty(),
+        strprintf("WOTS mutation offsets unexpectedly verified: %s", JoinOffsets(accepted_wots_offsets)));
 }
 
 BOOST_AUTO_TEST_CASE(pqsig_signer_counter_bounds)
