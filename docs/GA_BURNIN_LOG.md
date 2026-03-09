@@ -193,54 +193,56 @@
 - Status:
   - [ ] complete
   - [x] incomplete
-- Date (UTC): 2026-03-05 snapshot for the 2026-03-09 checkpoint
-- Commit / tag under test: `8bd1e97bda` + local working tree snapshot
+- Date (UTC): 2026-03-09
+- Commit / tag under test: `91d2f1851fb0f80aa286afc943056f3832bfff5c` (`main` merge commit from PR #50)
 - Previous checkpoint / merge-base: `docs/artifacts/ga-burnin/week1-backfill-2026-03-05`
-- Environment: local macOS workspace, reusing the March 5 clean-host evidence bundle
-- Reviewer / approver: Scott local operator snapshot; GA approver pending
+- Environment: merged rc2 path on `main`, using the March 6 local rc2 evidence bundle plus March 8/9 push-context merge-commit CI and Gatekeeper runs
+- Reviewer / approver: Scott local operator capture; GA approver pending final March 9 release call
 - Summary:
-  - Current Week 2 entry intentionally reuses the fresh March 5 evidence bundle while the dated checkpoint remains in the future.
-  - The entry is incomplete until the burn-in window closes on 2026-03-09, merge-commit gatekeeper evidence is current, and the open offset-`3272` `priority:P1` blocker in GitHub issue `#48` is resolved or explicitly signed off.
+  - PR #50 merged the rc2 exact-root reprofile to `main` on 2026-03-08, producing merge commit `91d2f1851fb0f80aa286afc943056f3832bfff5c`.
+  - Push-context merge-commit CI and Gatekeeper are green for the shipped rc2 path.
+  - The historical offset-`3272` `priority:P1` blocker from issue `#48` is resolved on the rc2 path, but GA promotion still remains outside this closeout and is not granted by this checkpoint update.
 - Evidence bundle:
   - deterministic artifacts artifact/run: `docs/artifacts/ga-burnin/week2-in-progress-2026-03-05/deterministic.txt`
   - bench envelope artifact/run: `docs/artifacts/ga-burnin/week2-in-progress-2026-03-05/bench.txt`
   - unit suites artifact/run: `docs/artifacts/ga-burnin/week2-in-progress-2026-03-05/unit.txt`
   - functional suites artifact/run: `docs/artifacts/ga-burnin/week2-in-progress-2026-03-05/functional.txt`
   - fuzz smoke artifact/run: `docs/artifacts/ga-burnin/week2-in-progress-2026-03-05/fuzz.txt`
-  - gatekeeper run link: latest protected main baseline run remains `https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/22612154206` (not current for the local dirty candidate)
+  - merge-commit CI run link: `https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/22831211922`
+  - gatekeeper run link: `https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/22831211923`
 - Soak artifacts path: `build/soak-artifacts/pq-mempool-20260305T204116Z`
 - Soak summary (`runs/passed/failed`): `10 / 10 / 0` (`docs/artifacts/ga-burnin/week2-in-progress-2026-03-05/soak-summary.json`, `docs/artifacts/ga-burnin/week2-in-progress-2026-03-05/results.tsv`)
 - SLO summary:
-  - relay / restart / reorg: current snapshot remains clean; no regressions observed in the reused March 5 functional and soak bundle
+  - relay / restart / reorg: local rc2 evidence remained clean, and the shipped merge commit cleared the protected CI and Gatekeeper paths
   - resource envelope: current soak durations remain within the March 5 `15s` to `46s` window
 - Verify-path review:
-  - touched files: no additional verify-path changes since the March 5 backfill snapshot
-  - CFC verdict / review link: `docs/artifacts/ga-burnin/offset-3272-analysis-2026-03-05.md`, `docs/artifacts/ga-burnin/issue-48-waiver-vs-mitigation-2026-03-06.md`, GitHub blocker `#48`, and `/Users/scott/satoshi-reports/reports/2026/03/2026-03-05_144815_deep-repo-review.md`
-  - acceptance-set impact summary: snapshot invalidated for rc2; a fresh targeted sweep is required on the reprofiled branch
+  - touched files: `src/crypto/pqsig/pqsig.cpp`, `src/crypto/pqsig/pqsig.h`, `src/crypto/pqsig/wotsc.h`, `src/crypto/pqsig/hypertree.h`, `src/crypto/pqsig/params.h`, and `src/script/interpreter.cpp` shipped via PR #50
+  - CFC verdict / review link: PR #50, `docs/artifacts/ga-burnin/offset-3272-analysis-2026-03-05.md`, `docs/artifacts/ga-burnin/issue-48-waiver-vs-mitigation-2026-03-06.md`, `docs/artifacts/ga-burnin/rc2-local-evidence-2026-03-06.md`, GitHub blocker `#48`, and `/Users/scott/satoshi-reports/reports/2026/03/2026-03-05_144815_deep-repo-review.md`
+  - acceptance-set impact summary: rc2 retires `ALG_ID=0x00`, ships `ALG_ID=0x01`, and the exact public-root binding path rejects the historical offset-`3272` mutation (`original_verify=True`, `mutated_verify=False`)
 - Rollback trigger review:
-  - malformed-PQ acceptance widening: old-profile blocker retained historically; rc2 evidence not yet attached in this log entry
-  - crash/hang/assert under stress: none in the March 5 clean rerun
-  - restart/reorg reconciliation regression: none observed
-  - witness `10,001` byte reject stability: maintained
-  - RBF churn stability: maintained
+  - malformed-PQ acceptance widening: no known widening on the shipped rc2 path; the historical old-profile blocker is resolved by PR #50 and merge-commit evidence
+  - crash/hang/assert under stress: none in the March 6 local rc2 evidence bundle or the protected merge-commit CI/Gatekeeper runs
+  - restart/reorg reconciliation regression: none observed in local rc2 evidence
+  - witness `10,001` byte reject stability: maintained in the rc2 local evidence bundle
+  - RBF churn stability: maintained in the rc2 local evidence bundle and supporting soak artifacts
 - Findings:
   - `priority:P0`: none
-  - `priority:P1`: old-profile offset `3272` finding remains open until rc2 evidence closes it
-  - `priority:P2`: Week 2 window still open; merge-commit gatekeeper evidence not yet current
+  - `priority:P1`: none; historical offset-`3272` blocker resolved on the shipped rc2 path
+  - `priority:P2`: final GA disposition remains pending separate March 9 burn-in close and release signoff
 - Actions opened:
   - keep the old-profile GA decision closed as `hold and cut rc2`
-  - refresh the checkpoint with current rc2 merge-commit evidence
-  - keep GitHub issue `#48` open until rc2 mitigation evidence lands and the old offset-`3272` case is closed
-  - do not promote any release without fresh rc2 evidence
+  - close GitHub issue `#48` after this burn-in record lands
+  - do not promote any release without a separate March 9 GA decision
 - Gate status:
   - [x] deterministic artifacts
   - [x] bench envelope
   - [x] unit suites
   - [x] functional suites
   - [x] fuzz smoke
-  - [ ] gatekeeper on merge commit
+  - [x] gatekeeper on merge commit
 - Decision:
   - [ ] Promote to `v1.0.0`
   - [x] Hold and cut `v1.0.0-rc2`
 - Decision notes:
-  - `2026-03-06`: old-profile GA held. Burn-in reset on the rc2 verify-path reprofile and fresh evidence is required before issue `#48` can close.
+  - `2026-03-06`: old-profile GA held. Burn-in reset on the rc2 verify-path reprofile.
+  - `2026-03-09`: merge-commit CI and Gatekeeper are green on `91d2f1851fb0f80aa286afc943056f3832bfff5c`, and issue `#48` is resolved on the rc2 path. This checkpoint update does not by itself promote GA.
