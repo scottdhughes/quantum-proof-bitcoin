@@ -97,12 +97,12 @@ Rules:
 
 ## Decision Record
 
-- Decision date (UTC):
-- Approver:
+- Decision date (UTC): 2026-03-09
+- Approver: Scott Hughes
 - Release decision:
-  - [ ] Promote to `v1.0.0`
-  - [x] Hold and cut `v1.0.0-rc2`
+  - [x] Promote to `v1.0.0`
+  - [ ] Hold and cut `v1.0.0-rc2`
 - Verify-path files touched during GA window:
   - [ ] No
   - [x] Yes (CFC verdict and accepted-set impact statement attached)
-- Notes: `2026-03-06` posture change for issue `#48`: old profile held, rc2 exact-root reprofile active, and fresh burn-in evidence required before any blocker closure.
+- Notes: `2026-03-06` posture change for issue `#48`: old profile held, rc2 exact-root reprofile active, and fresh burn-in evidence required before any blocker closure. `2026-03-09`: merge-commit CI and Gatekeeper are green on the shipped rc2 path, issue `#48` is closed, and the GA call is promote from current `main`.
