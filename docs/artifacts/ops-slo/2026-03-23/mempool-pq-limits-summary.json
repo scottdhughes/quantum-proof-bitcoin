@@ -1,0 +1,10 @@
+{
+  "crash_assert_hang": false,
+  "duration_s": 5.214,
+  "mempool_after_restart": 8,
+  "mempool_before_restart": 8,
+  "notes": "witness_10001_reject_reason=bad-witness-nonstandard",
+  "pass": true,
+  "reorg_result": "not-applicable",
+  "scenario": "mempool_pq_limits"
+}

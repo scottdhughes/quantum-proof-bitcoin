@@ -4,6 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Policy boundary checks for PQSig and large witness elements."""
 
+from test_framework.pqbtc_slo import PQBTCSLORecorder
 from test_framework.messages import (
     COutPoint,
     CTransaction,
@@ -35,12 +36,25 @@ class MempoolPQLimitsTest(BitcoinTestFramework):
         self.uses_wallet = True
 
     def run_test(self):
-        node = self.nodes[0]
-        self.generate(node, 101)
+        recorder = PQBTCSLORecorder("mempool_pq_limits")
+        try:
+            node = self.nodes[0]
+            self.generate(node, 101)
 
-        self._check_pqsig_signature_size_boundaries(node)
-        self._check_witness_item_boundaries(node)
-        self._check_churn_and_rbf_under_large_witness(node)
+            self._check_pqsig_signature_size_boundaries(node)
+            self._check_witness_item_boundaries(node)
+            mempool_before_restart, mempool_after_restart, reject_reason = self._check_churn_and_rbf_under_large_witness(node)
+
+            recorder.update(
+                mempool_before_restart=mempool_before_restart,
+                mempool_after_restart=mempool_after_restart,
+                reorg_result="not-applicable",
+            )
+            recorder.add_note(f"witness_10001_reject_reason={reject_reason}")
+            recorder.success()
+        except Exception as exc:
+            recorder.failure(str(exc))
+            raise
 
     def _check_pqsig_signature_size_boundaries(self, node):
         sk_seed, pk_script = build_pq_keypair(bytes.fromhex("31" * 32))
@@ -183,14 +197,18 @@ class MempoolPQLimitsTest(BitcoinTestFramework):
         for txid in churn_txids:
             self.wait_until(lambda txid=txid: txid in node.getrawmempool(False))
 
+        mempool_before_restart = len(node.getrawmempool(False))
         self.restart_node(0)
         node = self.nodes[0]
         for txid in churn_txids:
             self.wait_until(lambda txid=txid: txid in node.getrawmempool(False))
+        mempool_after_restart = len(node.getrawmempool(False))
 
         self.generate(node, 1)
         for txid in churn_txids:
             assert txid not in node.getrawmempool(False)
+
+        return mempool_before_restart, mempool_after_restart, reject_reason
 
 
 if __name__ == "__main__":

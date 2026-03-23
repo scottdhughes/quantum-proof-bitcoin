@@ -1,0 +1,10 @@
+{
+  "crash_assert_hang": false,
+  "duration_s": 4.983,
+  "mempool_after_restart": null,
+  "mempool_before_restart": null,
+  "notes": "restart_node0_before_reconnect=true",
+  "pass": true,
+  "reorg_result": "competing-branch-reinserted-then-remined",
+  "scenario": "feature_pq_reorg"
+}

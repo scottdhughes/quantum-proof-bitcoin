@@ -96,3 +96,30 @@ build/test/functional/test_runner.py --jobs=1 \
   feature_pq_reorg.py \
   feature_pq_block_limits.py
 ```
+
+## Post-v1 Ops SLO Capture
+
+Post-v1 operational hardening tracks machine-readable summaries in `docs/artifacts/ops-slo/`.
+
+Operator/local capture:
+
+```bash
+contrib/soak/capture_ops_slo_evidence.sh
+```
+
+The helper writes tracked summaries under `docs/artifacts/ops-slo/<date>/` and raw logs under `build/ops-slo/<date>/`.
+
+CI-runner style invocation:
+
+```bash
+STAMP=$(date -u +%Y-%m-%d) contrib/soak/capture_ops_slo_evidence.sh
+```
+
+Expected local wall-clock time for the full capture is roughly 5-10 minutes on current developer hardware, depending on soak durations.
+
+The capture includes:
+
+1. `mempool_pq_limits.py`
+2. `mempool_pq_stress.py`
+3. `feature_pq_reorg.py`
+4. `RUNS=10 JOBS=1 contrib/soak/run_pq_mempool_soak.sh`
