@@ -9,6 +9,7 @@ PQC-facing CI enforcement is split across two workflows:
 | Workflow | Purpose |
 |---|---|
 | `ci.yml` | Build, tests, benchmarks, fuzz, and PQ gating across platforms |
+| `measured-bench.yml` | Dedicated runtime variance gate for PQSig bench performance |
 | `gatekeeper.yml` | Docs-first freeze-gate checks against the selected base ref |
 
 ## RC Stabilization Controls
@@ -42,6 +43,9 @@ These interfaces are intentionally stable for v1:
 - `PQSIG_BENCH_REPEATS`
   - Number of repeated bench-envelope checks.
   - Default: `3`.
+- `PQSIG_BENCH_POLICY`
+  - Checked-in bench policy file for exact counters and measured-bench runtime bands.
+  - Default: `ci/test/pqsig_bench_policy.json`.
 
 ## Bench and Determinism Checks
 
@@ -58,7 +62,24 @@ Checked-in policy file:
 
 - `ci/test/pqsig_bench_policy.json`
 - current default CI uses the `exact_counters` block
-- `variance_bands` are reserved for the later dedicated measured-bench runner
+- `variance_bands` are enforced only by `measured-bench.yml`
+
+Dedicated measured-bench workflow:
+
+```bash
+python3 ci/test/check_pqsig_bench.py \
+  --bench build-measured-bench/bin/bench_pqbtc \
+  --repeat 8 \
+  --enforce-variance \
+  --baseline-out /tmp/pqsig_measured_bench_baseline.json
+```
+
+Measured-bench rollout:
+
+1. `measured-bench.yml` runs on pull requests, pushes to `main`, weekly schedule, and manual dispatch.
+2. The workflow uses the checked-in `variance_bands` block from `ci/test/pqsig_bench_policy.json`.
+3. Branch protection should only add the `measured-bench` status after at least one green PR run and one green `main` run.
+4. Expected wall-clock budget for the dedicated job is under 15 minutes on `ubuntu-24.04`.
 
 Deterministic artifact check:
 
@@ -89,6 +110,37 @@ cp src/test/data/pqsig/fuzz/pqsig_verify/* "$tmpdir"/
 rm -f "$tmpdir"/README.md
 FUZZ=pqsig_verify build-fuzz/bin/fuzz "$tmpdir"
 rm -rf "$tmpdir"
+```
+
+Local measured-bench reproduction:
+
+```bash
+cmake -S . -B build-measured-bench -GNinja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_BENCH=ON \
+  -DBUILD_BITCOIN_BIN=OFF \
+  -DBUILD_DAEMON=OFF \
+  -DBUILD_CLI=OFF \
+  -DBUILD_TX=OFF \
+  -DBUILD_UTIL=OFF \
+  -DBUILD_UTIL_CHAINSTATE=OFF \
+  -DBUILD_KERNEL_LIB=OFF \
+  -DBUILD_TESTS=OFF \
+  -DBUILD_GUI=OFF \
+  -DBUILD_GUI_TESTS=OFF \
+  -DBUILD_FUZZ_BINARY=OFF \
+  -DENABLE_WALLET=OFF \
+  -DENABLE_IPC=OFF \
+  -DWITH_ZMQ=OFF \
+  -DWITH_USDT=OFF \
+  -DENABLE_EXTERNAL_SIGNER=OFF \
+  -DWERROR=ON
+cmake --build build-measured-bench --clean-first -j3 --target bench_pqbtc
+python3 ci/test/check_pqsig_bench.py \
+  --bench build-measured-bench/bin/bench_pqbtc \
+  --repeat 8 \
+  --enforce-variance \
+  --baseline-out /tmp/pqsig_measured_bench_baseline.json
 ```
 
 Functional PQ suites:

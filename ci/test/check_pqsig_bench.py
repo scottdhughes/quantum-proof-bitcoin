@@ -75,11 +75,9 @@ def load_policy(path: Path) -> dict[str, object]:
     return data
 
 
-def validate_envelope(envelope: dict[str, float | int], policy: dict[str, object], output: str) -> int:
+def validate_exact_counters(envelope: dict[str, float | int], policy: dict[str, object], output: str) -> int:
     exact_counters = policy["exact_counters"]
     assert isinstance(exact_counters, dict)
-    variance_bands = policy.get("variance_bands", {})
-    assert isinstance(variance_bands, dict)
 
     for key, expected in exact_counters.items():
         if key not in envelope:
@@ -91,19 +89,56 @@ def validate_envelope(envelope: dict[str, float | int], policy: dict[str, object
         else:
             if int(actual) != int(expected):
                 return fail(f"{key} mismatch: expected {expected}, got {actual}", output)
+    return 0
 
+
+def summarize_runs(envelopes: list[dict[str, float | int]]) -> dict[str, dict[str, float]]:
+    summary: dict[str, dict[str, float]] = {}
+    if not envelopes:
+        return summary
+
+    for key in sorted(envelopes[0].keys()):
+        values = [float(envelope[key]) for envelope in envelopes if key in envelope]
+        if not values:
+            continue
+        summary[key] = {
+            "mean": sum(values) / len(values),
+            "min": min(values),
+            "max": max(values),
+        }
+    return summary
+
+
+def validate_variance_bands(
+    envelopes: list[dict[str, float | int]],
+    policy: dict[str, object],
+) -> int:
+    variance_bands = policy.get("variance_bands", {})
+    assert isinstance(variance_bands, dict)
+    if not variance_bands:
+        return 0
+
+    summary = summarize_runs(envelopes)
     for key, bounds in variance_bands.items():
-        if key not in envelope:
-            return fail(f"bench output missing variance metric {key}", output)
+        if key not in summary:
+            return fail(f"bench output missing variance metric {key}")
         if not isinstance(bounds, dict):
-            return fail(f"variance band for {key} must be an object", output)
+            return fail(f"variance band for {key} must be an object")
         lower = bounds.get("min")
         upper = bounds.get("max")
-        actual = float(envelope[key])
-        if lower is not None and actual < float(lower):
-            return fail(f"{key} below minimum: min {lower}, got {actual}", output)
-        if upper is not None and actual > float(upper):
-            return fail(f"{key} above maximum: max {upper}, got {actual}", output)
+        actual_mean = summary[key]["mean"]
+        actual_min = summary[key]["min"]
+        actual_max = summary[key]["max"]
+        if lower is not None and actual_mean < float(lower):
+            return fail(
+                f"{key} mean below minimum: min {lower}, observed mean {actual_mean:.2f}, "
+                f"run min {actual_min:.2f}, run max {actual_max:.2f}"
+            )
+        if upper is not None and actual_mean > float(upper):
+            return fail(
+                f"{key} mean above maximum: max {upper}, observed mean {actual_mean:.2f}, "
+                f"run min {actual_min:.2f}, run max {actual_max:.2f}"
+            )
     return 0
 
 
@@ -113,6 +148,11 @@ def main() -> int:
     parser.add_argument("--repeat", type=int, default=1, help="Number of repeated bench envelope checks")
     parser.add_argument("--policy", default=str(DEFAULT_POLICY_PATH), help="Path to checked-in bench policy JSON")
     parser.add_argument("--baseline-out", help="Optional output path for JSON baseline summary")
+    parser.add_argument(
+        "--enforce-variance",
+        action="store_true",
+        help="Validate runtime variance bands from the checked-in policy file",
+    )
     args = parser.parse_args()
 
     if args.repeat < 1:
@@ -129,10 +169,15 @@ def main() -> int:
             envelope, output = run_bench(args.bench)
         except RuntimeError as exc:
             return fail(str(exc))
-        result = validate_envelope(envelope, policy, output)
+        result = validate_exact_counters(envelope, policy, output)
         if result != 0:
             return result
         envelopes.append(envelope)
+
+    if args.enforce_variance:
+        result = validate_variance_bands(envelopes, policy)
+        if result != 0:
+            return result
 
     if args.baseline_out:
         baseline_path = Path(args.baseline_out)
@@ -143,10 +188,14 @@ def main() -> int:
             "repeat": args.repeat,
             "expected": policy,
             "runs": envelopes,
+            "summary": summarize_runs(envelopes),
         }
         baseline_path.write_text(json.dumps(baseline, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
-    print(f"PQSIG bench envelope check passed ({args.repeat} run(s))")
+    if args.enforce_variance:
+        print(f"PQSIG bench envelope and variance check passed ({args.repeat} run(s))")
+    else:
+        print(f"PQSIG bench envelope check passed ({args.repeat} run(s))")
     return 0
 
 
