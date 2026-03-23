@@ -11,11 +11,7 @@ import re
 import subprocess
 import sys
 
-EXPECTED_VERIFY_COMPRESSIONS = 2309
-EXPECTED_SIGN_HASHES = 5265659
-EXPECTED_SIGN_COMPRESSIONS = 10603073
-EXPECTED_OUTER_SEARCH_ITERS = 1
-EXPECTED_PER_BYTE = EXPECTED_VERIFY_COMPRESSIONS / 4480.0
+DEFAULT_POLICY_PATH = Path(__file__).with_name("pqsig_bench_policy.json")
 
 LINE_RE = re.compile(
     r"PQSIG_BENCH_ENVELOPE\s+"
@@ -24,6 +20,10 @@ LINE_RE = re.compile(
     r"sign_hashes=(?P<sign_hashes>\d+)\s+"
     r"sign_compressions=(?P<sign_compressions>\d+)\s+"
     r"outer_search_iters=(?P<outer>\d+)"
+)
+NS_PER_OP_RE = re.compile(
+    r"\|\s*(?P<ns>[0-9][0-9,]*(?:\.[0-9]+)?)\s*\|"
+    r"[^\n]*\|\s*`PQSigBenchEnvelope`"
 )
 
 
@@ -60,25 +60,50 @@ def run_bench(bench_exe: str) -> tuple[dict[str, float | int], str]:
         "sign_compressions": sign_compressions,
         "outer_search_iters": outer,
     }
+    ns_match = NS_PER_OP_RE.search(output)
+    if ns_match:
+        envelope["ns_per_op"] = float(ns_match.group("ns").replace(",", ""))
     return envelope, output
 
 
-def validate_envelope(envelope: dict[str, float | int], output: str) -> int:
-    verify = int(envelope["verify_compressions"])
-    per_byte = float(envelope["verify_compressions_per_byte"])
-    sign_hashes = int(envelope["sign_hashes"])
-    sign_compressions = int(envelope["sign_compressions"])
-    outer = int(envelope["outer_search_iters"])
-    if verify != EXPECTED_VERIFY_COMPRESSIONS:
-        return fail(f"verify_compressions mismatch: expected {EXPECTED_VERIFY_COMPRESSIONS}, got {verify}", output)
-    if sign_hashes != EXPECTED_SIGN_HASHES:
-        return fail(f"sign_hashes mismatch: expected {EXPECTED_SIGN_HASHES}, got {sign_hashes}", output)
-    if sign_compressions != EXPECTED_SIGN_COMPRESSIONS:
-        return fail(f"sign_compressions mismatch: expected {EXPECTED_SIGN_COMPRESSIONS}, got {sign_compressions}", output)
-    if outer != EXPECTED_OUTER_SEARCH_ITERS:
-        return fail(f"outer_search_iters mismatch: expected {EXPECTED_OUTER_SEARCH_ITERS}, got {outer}", output)
-    if not math.isclose(per_byte, EXPECTED_PER_BYTE, rel_tol=0.0, abs_tol=1e-6):
-        return fail(f"verify_compressions_per_byte mismatch: expected {EXPECTED_PER_BYTE}, got {per_byte}", output)
+def load_policy(path: Path) -> dict[str, object]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if "exact_counters" not in data:
+        raise RuntimeError(f"policy file missing exact_counters: {path}")
+    if "variance_bands" not in data:
+        data["variance_bands"] = {}
+    return data
+
+
+def validate_envelope(envelope: dict[str, float | int], policy: dict[str, object], output: str) -> int:
+    exact_counters = policy["exact_counters"]
+    assert isinstance(exact_counters, dict)
+    variance_bands = policy.get("variance_bands", {})
+    assert isinstance(variance_bands, dict)
+
+    for key, expected in exact_counters.items():
+        if key not in envelope:
+            return fail(f"bench output missing required metric {key}", output)
+        actual = envelope[key]
+        if isinstance(expected, float):
+            if not math.isclose(float(actual), expected, rel_tol=0.0, abs_tol=1e-6):
+                return fail(f"{key} mismatch: expected {expected}, got {actual}", output)
+        else:
+            if int(actual) != int(expected):
+                return fail(f"{key} mismatch: expected {expected}, got {actual}", output)
+
+    for key, bounds in variance_bands.items():
+        if key not in envelope:
+            return fail(f"bench output missing variance metric {key}", output)
+        if not isinstance(bounds, dict):
+            return fail(f"variance band for {key} must be an object", output)
+        lower = bounds.get("min")
+        upper = bounds.get("max")
+        actual = float(envelope[key])
+        if lower is not None and actual < float(lower):
+            return fail(f"{key} below minimum: min {lower}, got {actual}", output)
+        if upper is not None and actual > float(upper):
+            return fail(f"{key} above maximum: max {upper}, got {actual}", output)
     return 0
 
 
@@ -86,11 +111,17 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Check PQSig bench envelopes")
     parser.add_argument("--bench", required=True, help="Path to bench_pqbtc executable")
     parser.add_argument("--repeat", type=int, default=1, help="Number of repeated bench envelope checks")
+    parser.add_argument("--policy", default=str(DEFAULT_POLICY_PATH), help="Path to checked-in bench policy JSON")
     parser.add_argument("--baseline-out", help="Optional output path for JSON baseline summary")
     args = parser.parse_args()
 
     if args.repeat < 1:
         return fail(f"--repeat must be >= 1 (got {args.repeat})")
+
+    try:
+        policy = load_policy(Path(args.policy))
+    except RuntimeError as exc:
+        return fail(str(exc))
 
     envelopes: list[dict[str, float | int]] = []
     for _ in range(args.repeat):
@@ -98,7 +129,7 @@ def main() -> int:
             envelope, output = run_bench(args.bench)
         except RuntimeError as exc:
             return fail(str(exc))
-        result = validate_envelope(envelope, output)
+        result = validate_envelope(envelope, policy, output)
         if result != 0:
             return result
         envelopes.append(envelope)
@@ -108,14 +139,9 @@ def main() -> int:
         baseline_path.parent.mkdir(parents=True, exist_ok=True)
         baseline = {
             "bench": args.bench,
+            "policy": args.policy,
             "repeat": args.repeat,
-            "expected": {
-                "verify_compressions": EXPECTED_VERIFY_COMPRESSIONS,
-                "verify_compressions_per_byte": EXPECTED_PER_BYTE,
-                "sign_hashes": EXPECTED_SIGN_HASHES,
-                "sign_compressions": EXPECTED_SIGN_COMPRESSIONS,
-                "outer_search_iters": EXPECTED_OUTER_SEARCH_ITERS,
-            },
+            "expected": policy,
             "runs": envelopes,
         }
         baseline_path.write_text(json.dumps(baseline, indent=2, sort_keys=True) + "\n", encoding="utf-8")

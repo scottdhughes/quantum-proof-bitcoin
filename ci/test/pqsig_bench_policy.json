@@ -1,0 +1,11 @@
+{
+  "exact_counters": {
+    "outer_search_iters": 1,
+    "sign_compressions": 10603073,
+    "sign_hashes": 5265659,
+    "verify_compressions": 2309,
+    "verify_compressions_per_byte": 0.5154017857142857
+  },
+  "variance_bands": {},
+  "notes": "Default CI currently enforces exact counter equality only. Runtime variance bands are reserved for a dedicated measured-bench runner."
+}

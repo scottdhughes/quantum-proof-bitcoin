@@ -54,6 +54,12 @@ python3 ci/test/check_pqsig_bench.py \
   --baseline-out /tmp/pqsig_bench_baseline.json
 ```
 
+Checked-in policy file:
+
+- `ci/test/pqsig_bench_policy.json`
+- current default CI uses the `exact_counters` block
+- `variance_bands` are reserved for the later dedicated measured-bench runner
+
 Deterministic artifact check:
 
 ```bash
