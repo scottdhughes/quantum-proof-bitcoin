@@ -309,12 +309,10 @@ bool PQSigSign(
         return false;
     }
 
-    metrics.outer_search_iters = 1;
-    metrics.wots_search_iters_total = 0;
-
     const auto r = ComputeR(sk_seed, msg32, pk_script33, &metrics);
     const auto hmsg = ComputeHmsg(std::span<const uint8_t>{r}, msg32, pk_script33, &metrics);
 
+    ++metrics.outer_search_iters;
     if (!EncodeSignatureCandidate(
             out_sig4480,
             sk_seed,

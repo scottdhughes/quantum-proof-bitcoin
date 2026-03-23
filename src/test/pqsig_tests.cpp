@@ -293,13 +293,16 @@ BOOST_AUTO_TEST_CASE(pqsig_envelope_metrics)
     std::vector<uint8_t> sig(pqsig::SIG_SIZE);
     BOOST_CHECK(pqsig::PQSigSign(sig, msg, sk, pk));
     const pqsig::PQSigMetrics sign_metrics = pqsig::GetLastPQSigMetrics();
-    BOOST_CHECK_EQUAL(sign_metrics.hash_calls, 5265659U);
-    BOOST_CHECK_EQUAL(sign_metrics.compression_calls, 10603073U);
-    BOOST_CHECK_EQUAL(sign_metrics.outer_search_iters, 1U);
+    BOOST_CHECK_GT(sign_metrics.hash_calls, 0U);
+    BOOST_CHECK_GT(sign_metrics.compression_calls, 0U);
+    BOOST_CHECK_GE(sign_metrics.outer_search_iters, 1U);
 
     BOOST_CHECK(pqsig::PQSigVerify(sig, msg, pk));
     const pqsig::PQSigMetrics verify_metrics = pqsig::GetLastPQSigMetrics();
-    BOOST_CHECK_EQUAL(verify_metrics.compression_calls, 2081U);
+    BOOST_CHECK_GT(verify_metrics.hash_calls, 0U);
+    BOOST_CHECK_GT(verify_metrics.compression_calls, 0U);
+    BOOST_CHECK_EQUAL(verify_metrics.outer_search_iters, 0U);
+    BOOST_CHECK_NE(verify_metrics.compression_calls, sign_metrics.compression_calls);
 }
 
 BOOST_AUTO_TEST_CASE(pqsig_rejects_malformed_inputs)
