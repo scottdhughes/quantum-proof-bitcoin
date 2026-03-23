@@ -1,0 +1,80 @@
+# Copyright (c) 2026-present The PQBTC Core developers
+# Distributed under the MIT software license, see the accompanying
+# file COPYING or https://opensource.org/license/mit.
+
+name: measured-bench
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 3 * * 1'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  measured-bench:
+    name: measured-bench
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      BUILD_DIR: ${{ github.workspace }}/build-measured-bench
+      PQSIG_BENCH_REPEATS: 8
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --no-upgrade -y \
+            build-essential \
+            bison \
+            ccache \
+            cmake \
+            e2fsprogs \
+            git \
+            libboost-dev \
+            libevent-dev \
+            ninja-build \
+            pkgconf \
+            python3
+
+      - name: Configure bench-only build
+        run: |
+          cmake -S . -B "${BUILD_DIR}" -GNinja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_BENCH=ON \
+            -DBUILD_BITCOIN_BIN=OFF \
+            -DBUILD_DAEMON=OFF \
+            -DBUILD_CLI=OFF \
+            -DBUILD_TX=OFF \
+            -DBUILD_UTIL=OFF \
+            -DBUILD_UTIL_CHAINSTATE=OFF \
+            -DBUILD_KERNEL_LIB=OFF \
+            -DBUILD_TESTS=OFF \
+            -DBUILD_GUI=OFF \
+            -DBUILD_GUI_TESTS=OFF \
+            -DBUILD_FUZZ_BINARY=OFF \
+            -DENABLE_WALLET=OFF \
+            -DENABLE_IPC=OFF \
+            -DWITH_ZMQ=OFF \
+            -DWITH_USDT=OFF \
+            -DENABLE_EXTERNAL_SIGNER=OFF \
+            -DWERROR=ON
+
+      - name: Build bench_pqbtc
+        run: cmake --build "${BUILD_DIR}" --clean-first --parallel 3 --target bench_pqbtc
+
+      - name: Run measured bench gate
+        run: |
+          python3 ci/test/check_pqsig_bench.py \
+            --bench "${BUILD_DIR}/bin/bench_pqbtc" \
+            --repeat "${PQSIG_BENCH_REPEATS}" \
+            --enforce-variance \
+            --baseline-out "${RUNNER_TEMP}/pqsig_measured_bench_baseline.json"
+          cat "${RUNNER_TEMP}/pqsig_measured_bench_baseline.json"

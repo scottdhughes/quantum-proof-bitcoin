@@ -6,6 +6,12 @@
     "verify_compressions": 2309,
     "verify_compressions_per_byte": 0.5154017857142857
   },
-  "variance_bands": {},
-  "notes": "Default CI currently enforces exact counter equality only. Runtime variance bands are reserved for a dedicated measured-bench runner."
+  "variance_bands": {
+    "ns_per_op": {
+      "min": 30000,
+      "max": 250000
+    }
+  },
+  "runner_environment": "Initial conservative bands for the dedicated ubuntu-24.04 measured-bench workflow.",
+  "notes": "Default CI enforces exact counter equality only. Runtime variance bands are enforced by the separate measured-bench workflow."
 }
