@@ -4,6 +4,7 @@
 
 #include <script/descriptor.h>
 
+#include <crypto/pqsig/pqsig.h>
 #include <hash.h>
 #include <key_io.h>
 #include <pubkey.h>
@@ -23,6 +24,7 @@
 #include <util/vector.h>
 
 #include <algorithm>
+#include <array>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -998,6 +1000,34 @@ public:
     virtual std::unique_ptr<DescriptorImpl> Clone() const = 0;
 };
 
+static bool ParsePqPkScript(std::span<const char> expr, std::array<unsigned char, pqsig::PK_SCRIPT_SIZE>& out_pk_script, std::string& error)
+{
+    const std::string pk_script_hex(expr.begin(), expr.end());
+    if (!IsHex(pk_script_hex)) {
+        error = "PK_script must be valid hex";
+        return false;
+    }
+    const auto pk_script = ParseHex(pk_script_hex);
+    if (pk_script.size() != pqsig::PK_SCRIPT_SIZE) {
+        error = strprintf("PK_script must be exactly %u bytes", static_cast<unsigned>(pqsig::PK_SCRIPT_SIZE));
+        return false;
+    }
+    std::copy(pk_script.begin(), pk_script.end(), out_pk_script.begin());
+    if (!pqsig::IsValidPkScript(out_pk_script)) {
+        error = strprintf("PK_script must use ALG_ID=0x%02x", pqsig::ALG_ID_RC2);
+        return false;
+    }
+    return true;
+}
+
+static bool MatchPQSingleSigWitnessScript(const CScript& script, std::array<unsigned char, pqsig::PK_SCRIPT_SIZE>& out_pk_script)
+{
+    if (script.size() != 1 + pqsig::PK_SCRIPT_SIZE + 1) return false;
+    if (script[0] != pqsig::PK_SCRIPT_SIZE || script.back() != OP_CHECKSIG) return false;
+    std::copy(script.begin() + 1, script.begin() + 1 + pqsig::PK_SCRIPT_SIZE, out_pk_script.begin());
+    return pqsig::IsValidPkScript(out_pk_script);
+}
+
 /** A parsed addr(A) descriptor. */
 class AddressDescriptor final : public DescriptorImpl
 {
@@ -1088,6 +1118,57 @@ public:
     std::unique_ptr<DescriptorImpl> Clone() const override
     {
         return std::make_unique<PKDescriptor>(m_pubkey_args.at(0)->Clone(), m_xonly);
+    }
+};
+
+/** A parsed pq(PK_script) descriptor. */
+class PQDescriptor final : public DescriptorImpl
+{
+private:
+    const std::array<unsigned char, pqsig::PK_SCRIPT_SIZE> m_pk_script;
+
+    CScript MakeWitnessScript() const
+    {
+        return CScript() << std::vector<unsigned char>(m_pk_script.begin(), m_pk_script.end()) << OP_CHECKSIG;
+    }
+
+protected:
+    std::string ToStringExtra() const override { return HexStr(std::span{m_pk_script}); }
+
+    std::vector<CScript> MakeScripts(const std::vector<CPubKey>&, std::span<const CScript>, FlatSigningProvider& out) const override
+    {
+        const CScript witness_script = MakeWitnessScript();
+        out.scripts.emplace(CScriptID(witness_script), witness_script);
+        return Vector(GetScriptForDestination(WitnessV0ScriptHash(witness_script)));
+    }
+
+public:
+    explicit PQDescriptor(std::array<unsigned char, pqsig::PK_SCRIPT_SIZE> pk_script) : DescriptorImpl({}, "pq"), m_pk_script(pk_script) {}
+
+    bool IsSingleType() const final { return true; }
+
+    bool ToPrivateString(const SigningProvider&, std::string&) const final { return false; }
+
+    std::optional<OutputType> GetOutputType() const override { return OutputType::BECH32; }
+
+    std::optional<int64_t> ScriptSize() const override { return 1 + 1 + 32; }
+
+    std::optional<int64_t> MaxSatSize(bool) const override
+    {
+        const auto witness_script_size = MakeWitnessScript().size();
+        return GetSizeOfCompactSize(pqsig::SIG_SIZE) + pqsig::SIG_SIZE + GetSizeOfCompactSize(witness_script_size) + witness_script_size;
+    }
+
+    std::optional<int64_t> MaxSatisfactionWeight(bool use_max_sig) const override
+    {
+        return MaxSatSize(use_max_sig);
+    }
+
+    std::optional<int64_t> MaxSatisfactionElems() const override { return 2; }
+
+    std::unique_ptr<DescriptorImpl> Clone() const override
+    {
+        return std::make_unique<PQDescriptor>(m_pk_script);
     }
 };
 
@@ -2285,6 +2366,18 @@ std::vector<std::unique_ptr<DescriptorImpl>> ParseScript(uint32_t& key_exp_index
         error = "Can only have wpkh() at top level or inside sh()";
         return {};
     }
+    if (ctx == ParseScriptContext::TOP && Func("pq", expr)) {
+        std::array<unsigned char, pqsig::PK_SCRIPT_SIZE> pk_script;
+        if (!ParsePqPkScript(expr, pk_script, error)) {
+            error = strprintf("pq(): %s", error);
+            return {};
+        }
+        ret.emplace_back(std::make_unique<PQDescriptor>(pk_script));
+        return ret;
+    } else if (Func("pq", expr)) {
+        error = "Can only have pq() at top level";
+        return {};
+    }
     if (ctx == ParseScriptContext::TOP && Func("sh", expr)) {
         auto descs = ParseScript(key_exp_index, expr, ParseScriptContext::P2SH, out, error);
         if (descs.empty() || expr.size()) return {};
@@ -2624,6 +2717,12 @@ std::unique_ptr<DescriptorImpl> InferScript(const CScript& script, ParseScriptCo
         CScriptID scriptid{RIPEMD160(data[0])};
         CScript subscript;
         if (provider.GetCScript(scriptid, subscript)) {
+            if (ctx == ParseScriptContext::TOP) {
+                std::array<unsigned char, pqsig::PK_SCRIPT_SIZE> pk_script;
+                if (MatchPQSingleSigWitnessScript(subscript, pk_script)) {
+                    return std::make_unique<PQDescriptor>(pk_script);
+                }
+            }
             auto sub = InferScript(subscript, ParseScriptContext::P2WSH, provider);
             if (sub) return std::make_unique<WSHDescriptor>(std::move(sub));
         }

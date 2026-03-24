@@ -170,6 +170,8 @@ static UniValue ProcessDescriptorImport(CWallet& wallet, const UniValue& data, c
         int64_t range_start = 0, range_end = 1, next_index = 0;
         if (!parsed_descs.at(0)->IsRange() && data.exists("range")) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Range should not be specified for an un-ranged descriptor");
+        } else if (!parsed_descs.at(0)->IsRange() && data.exists("next_index")) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "next_index should not be specified for an un-ranged descriptor");
         } else if (parsed_descs.at(0)->IsRange()) {
             if (data.exists("range")) {
                 auto range = ParseDescriptorRange(data["range"]);
