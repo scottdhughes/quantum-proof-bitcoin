@@ -1,6 +1,6 @@
 # PQSig Wire Format
 
-## Status: TRACKED
+## Status: FROZEN
 ## Spec-ID: PQSIG-WIRE-rc2
 ## Frozen-By: issue-48-rc2-reprofile-20260306
 ## Consensus-Relevant: YES
