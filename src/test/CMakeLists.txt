@@ -42,6 +42,7 @@ set(TEST_PQBTC_SOURCES
   dbwrapper_tests.cpp
   denialofservice_tests.cpp
   descriptor_tests.cpp
+  pq_descriptor_tests.cpp
   disconnected_transactions.cpp
   feefrac_tests.cpp
   flatfile_tests.cpp
@@ -140,6 +141,7 @@ if(NOT PQBTC_ENABLE_LEGACY_UNIT_TESTS)
   set(TEST_PQBTC_SOURCES
     main.cpp
     multisig_tests.cpp
+    pq_descriptor_tests.cpp
     pqsig_script_tests.cpp
     pqsig_tests.cpp
     script_tests.cpp
