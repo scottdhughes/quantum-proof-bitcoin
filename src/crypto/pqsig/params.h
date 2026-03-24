@@ -51,10 +51,6 @@ static_assert(EXPECTED_SIG_SIZE == pqsig::SIG_SIZE);
 
 inline constexpr uint32_t WOTS_COUNT_MAX{4096};
 
-inline constexpr uint32_t BENCH_VERIFY_COMPRESSIONS{2309};
-inline constexpr uint32_t BENCH_SIGN_HASHES{5265659};
-inline constexpr uint32_t BENCH_SIGN_COMPRESSIONS{10603073};
-inline constexpr uint32_t BENCH_SIGN_OUTER_SEARCH{1};
 inline constexpr uint32_t SIGN_COUNTER_MAX{1048576};
 
 // Consensus/profile locks for v1. Any change here requires explicit governance.

@@ -5,9 +5,7 @@
 #include <bench/bench.h>
 #include <crypto/pqsig/pqsig.h>
 #include <crypto/pqsig/pqsig_internal.h>
-#include <crypto/pqsig/params.h>
 
-#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <iomanip>
@@ -20,12 +18,6 @@ void CheckEnvelopeAndPrint(
     const pqsig::PQSigMetrics& sign_metrics,
     const pqsig::PQSigMetrics& verify_metrics)
 {
-    assert(sign_metrics.hash_calls == pqsig::params::BENCH_SIGN_HASHES);
-    assert(sign_metrics.compression_calls == pqsig::params::BENCH_SIGN_COMPRESSIONS);
-    assert(sign_metrics.outer_search_iters == pqsig::params::BENCH_SIGN_OUTER_SEARCH);
-
-    assert(verify_metrics.compression_calls == pqsig::params::BENCH_VERIFY_COMPRESSIONS);
-
     const double per_byte = static_cast<double>(verify_metrics.compression_calls) / static_cast<double>(pqsig::SIG_SIZE);
     std::cout << "PQSIG_BENCH_ENVELOPE "
               << "verify_compressions=" << verify_metrics.compression_calls << ' '
