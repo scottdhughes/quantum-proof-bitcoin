@@ -14,10 +14,12 @@ and define the concrete work required for a full-and-complete post-v1 program.
 ### 1. Node + consensus first
 - v1 state: node validation, script semantics, policy/relay, fuzz/bench, and PQ-first CI are implemented.
 - post-v1 update: fixed watch-only `pq(<PK_script>)` descriptor import/list/inference is implemented for standard single-sig PQ P2WSH outputs.
+- post-v1 update: `#19` validates backup/recovery of statically imported bounded PQ descriptor batches only.
 - deferred: wallet/keypool UX and end-user signing flows.
 - full-complete delta:
-  - active/ranged PQ descriptor support for keypool-driven address generation
-  - wallet keypool generation/backup/recovery invariants
+  - real PQ keypool generation/backup/recovery invariants
+  - private ranged descriptors (`pqpriv(...)`)
+  - active managers and PQ address generation
   - PSBT construction/finalization for PQ scripts
   - wallet RPC parity and wallet functional coverage
 

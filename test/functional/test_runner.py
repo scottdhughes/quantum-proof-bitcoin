@@ -285,6 +285,7 @@ BASE_SCRIPTS = [
     'mempool_expiry.py',
     'wallet_importdescriptors.py',
     'wallet_pq_descriptors.py',
+    'wallet_pq_backup_recovery.py',
     'wallet_crosschain.py',
     'mining_basic.py',
     'mining_mainnet.py',
