@@ -15,13 +15,12 @@ and define the concrete work required for a full-and-complete post-v1 program.
 - v1 state: node validation, script semantics, policy/relay, fuzz/bench, and PQ-first CI are implemented.
 - post-v1 update: fixed watch-only `pq(<PK_script>)` descriptor import/list/inference is implemented for standard single-sig PQ P2WSH outputs.
 - post-v1 update: `#19` validates backup/recovery of statically imported bounded PQ descriptor batches only.
+- post-v1 update: active ranged private `pqpriv(...)` receive/change managers are implemented with dedicated PQ address generation and private export.
 - deferred: wallet/keypool UX and end-user signing flows.
 - full-complete delta:
-  - real PQ keypool generation/backup/recovery invariants
-  - private ranged descriptors (`pqpriv(...)`)
-  - active managers and PQ address generation
   - PSBT construction/finalization for PQ scripts
   - wallet RPC parity and wallet functional coverage
+  - spendability/signing parity for generated PQ outputs
 
 ### 2. Taproot disabled for v1
 - v1 state: taproot activation remains `NEVER_ACTIVE` on PQBTC deployment tracks.

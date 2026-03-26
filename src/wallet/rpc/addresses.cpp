@@ -114,6 +114,64 @@ RPCHelpMan getrawchangeaddress()
     };
 }
 
+RPCHelpMan getnewpqaddress()
+{
+    return RPCHelpMan{
+        "getnewpqaddress",
+        "Returns a new active PQ receive address.\n",
+                {
+                    {"label", RPCArg::Type::STR, RPCArg::Default{""}, "The label name for the address to be linked to."},
+                },
+                RPCResult{
+                    RPCResult::Type::STR, "address", "The new PQ receive address"
+                },
+                RPCExamples{
+                    HelpExampleCli("getnewpqaddress", "")
+            + HelpExampleRpc("getnewpqaddress", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!pwallet) return UniValue::VNULL;
+
+    const std::string label{LabelFromValue(request.params[0])};
+    auto op_dest = pwallet->GetNewPQDestination(label);
+    if (!op_dest) {
+        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, util::ErrorString(op_dest).original);
+    }
+    return EncodeDestination(*op_dest);
+},
+    };
+}
+
+RPCHelpMan getrawpqchangeaddress()
+{
+    return RPCHelpMan{
+        "getrawpqchangeaddress",
+        "Returns a new active PQ change address.\n"
+                "This is for use with raw transactions, NOT normal use.\n",
+                {},
+                RPCResult{
+                    RPCResult::Type::STR, "address", "The PQ change address"
+                },
+                RPCExamples{
+                    HelpExampleCli("getrawpqchangeaddress", "")
+            + HelpExampleRpc("getrawpqchangeaddress", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!pwallet) return UniValue::VNULL;
+
+    auto op_dest = pwallet->GetNewPQChangeDestination();
+    if (!op_dest) {
+        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, util::ErrorString(op_dest).original);
+    }
+    return EncodeDestination(*op_dest);
+},
+    };
+}
+
 
 RPCHelpMan setlabel()
 {

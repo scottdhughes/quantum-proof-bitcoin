@@ -1020,6 +1020,45 @@ static bool ParsePqPkScript(std::span<const char> expr, std::array<unsigned char
     return true;
 }
 
+static std::string MakePQPrivateDescriptorString(std::span<const unsigned char> root_seed, const bool internal)
+{
+    return strprintf("pqpriv(%s/%u/*)", HexStr(root_seed), internal ? 1 : 0);
+}
+
+static bool ParsePQPrivateDescriptor(std::span<const char> expr, PQPrivateDescriptorInfo& out_info, std::string& error)
+{
+    const std::string descriptor(expr.begin(), expr.end());
+    const size_t slash = descriptor.find('/');
+    if (slash == std::string::npos) {
+        error = "descriptor must end with /0/* or /1/*";
+        return false;
+    }
+
+    const std::string root_hex = descriptor.substr(0, slash);
+    if (!IsHex(root_hex)) {
+        error = "root seed must be valid hex";
+        return false;
+    }
+    const auto root_seed = ParseHex(root_hex);
+    if (root_seed.size() != 32) {
+        error = "root seed must be exactly 32 bytes";
+        return false;
+    }
+
+    const std::string suffix = descriptor.substr(slash);
+    if (suffix == "/0/*") {
+        out_info.internal = false;
+    } else if (suffix == "/1/*") {
+        out_info.internal = true;
+    } else {
+        error = "descriptor must end with /0/* or /1/*";
+        return false;
+    }
+
+    std::copy(root_seed.begin(), root_seed.end(), out_info.root_seed.begin());
+    return true;
+}
+
 static bool MatchPQSingleSigWitnessScript(const CScript& script, std::array<unsigned char, pqsig::PK_SCRIPT_SIZE>& out_pk_script)
 {
     if (script.size() != 1 + pqsig::PK_SCRIPT_SIZE + 1) return false;
@@ -1170,6 +1209,63 @@ public:
     {
         return std::make_unique<PQDescriptor>(m_pk_script);
     }
+};
+
+class PQPrivDescriptor final : public Descriptor
+{
+private:
+    const std::array<unsigned char, 32> m_root_seed;
+    const bool m_internal;
+
+    CScript MakeWitnessScript(const int pos) const
+    {
+        std::array<unsigned char, pqsig::PK_SCRIPT_SIZE> pk_script{};
+        const bool derived = pqsig::DeriveWalletPkScript(pk_script, m_root_seed, m_internal, pos);
+        assert(derived);
+        return CScript() << std::vector<unsigned char>(pk_script.begin(), pk_script.end()) << OP_CHECKSIG;
+    }
+
+    bool ExpandImpl(const int pos, std::vector<CScript>& output_scripts, FlatSigningProvider& out) const
+    {
+        const CScript witness_script = MakeWitnessScript(pos);
+        out.scripts.emplace(CScriptID(witness_script), witness_script);
+        output_scripts = Vector(GetScriptForDestination(WitnessV0ScriptHash(witness_script)));
+        return true;
+    }
+
+public:
+    explicit PQPrivDescriptor(std::array<unsigned char, 32> root_seed, bool internal) : m_root_seed(root_seed), m_internal(internal) {}
+
+    bool IsRange() const override { return true; }
+    bool IsSolvable() const override { return true; }
+    std::string ToString(bool) const override { return AddChecksum(MakePQPrivateDescriptorString(m_root_seed, m_internal)); }
+    bool IsSingleType() const override { return true; }
+    bool ToPrivateString(const SigningProvider&, std::string& out) const override
+    {
+        out = ToString(/*compat_format=*/false);
+        return true;
+    }
+    bool ToNormalizedString(const SigningProvider&, std::string&, const DescriptorCache*) const override { return false; }
+    bool Expand(int pos, const SigningProvider&, std::vector<CScript>& output_scripts, FlatSigningProvider& out, DescriptorCache*) const override
+    {
+        return ExpandImpl(pos, output_scripts, out);
+    }
+    bool ExpandFromCache(int pos, const DescriptorCache&, std::vector<CScript>& output_scripts, FlatSigningProvider& out) const override
+    {
+        return ExpandImpl(pos, output_scripts, out);
+    }
+    void ExpandPrivate(int, const SigningProvider&, FlatSigningProvider&) const override {}
+    std::optional<OutputType> GetOutputType() const override { return OutputType::BECH32; }
+    std::optional<int64_t> ScriptSize() const override { return 34; }
+    std::optional<int64_t> MaxSatisfactionWeight(bool) const override
+    {
+        const auto witness_script_size = MakeWitnessScript(0).size();
+        return GetSizeOfCompactSize(pqsig::SIG_SIZE) + pqsig::SIG_SIZE + GetSizeOfCompactSize(witness_script_size) + witness_script_size;
+    }
+    std::optional<int64_t> MaxSatisfactionElems() const override { return 2; }
+    void GetPubKeys(std::set<CPubKey>&, std::set<CExtPubKey>&) const override {}
+
+    PQPrivateDescriptorInfo GetInfo() const { return PQPrivateDescriptorInfo{m_root_seed, m_internal}; }
 };
 
 /** A parsed pkh(P) descriptor. */
@@ -2378,6 +2474,10 @@ std::vector<std::unique_ptr<DescriptorImpl>> ParseScript(uint32_t& key_exp_index
         error = "Can only have pq() at top level";
         return {};
     }
+    if (Func("pqpriv", expr)) {
+        error = "Can only have pqpriv() at top level";
+        return {};
+    }
     if (ctx == ParseScriptContext::TOP && Func("sh", expr)) {
         auto descs = ParseScript(key_exp_index, expr, ParseScriptContext::P2SH, out, error);
         if (descs.empty() || expr.size()) return {};
@@ -2838,6 +2938,17 @@ std::vector<std::unique_ptr<Descriptor>> Parse(const std::string& descriptor, Fl
 {
     std::span<const char> sp{descriptor};
     if (!CheckChecksum(sp, require_checksum, error)) return {};
+    std::span<const char> pqpriv_expr = sp;
+    if (script::Func("pqpriv", pqpriv_expr)) {
+        PQPrivateDescriptorInfo info{};
+        if (!ParsePQPrivateDescriptor(pqpriv_expr, info, error)) {
+            error = strprintf("pqpriv(): %s", error);
+            return {};
+        }
+        std::vector<std::unique_ptr<Descriptor>> descs;
+        descs.emplace_back(std::make_unique<PQPrivDescriptor>(info.root_seed, info.internal));
+        return descs;
+    }
     uint32_t key_exp_index = 0;
     auto ret = ParseScript(key_exp_index, sp, ParseScriptContext::TOP, out, error);
     if (sp.size() == 0 && !ret.empty()) {
@@ -2863,6 +2974,19 @@ std::string GetDescriptorChecksum(const std::string& descriptor)
 std::unique_ptr<Descriptor> InferDescriptor(const CScript& script, const SigningProvider& provider)
 {
     return InferScript(script, ParseScriptContext::TOP, provider);
+}
+
+std::optional<PQPrivateDescriptorInfo> GetPQPrivateDescriptorInfo(const Descriptor& descriptor)
+{
+    const auto* pqpriv = dynamic_cast<const PQPrivDescriptor*>(&descriptor);
+    if (!pqpriv) return std::nullopt;
+    return pqpriv->GetInfo();
+}
+
+std::string GetPQPrivateDescriptorString(const std::array<unsigned char, 32>& root_seed, const bool internal, const bool with_checksum)
+{
+    const std::string descriptor = MakePQPrivateDescriptorString(root_seed, internal);
+    return with_checksum ? AddChecksum(descriptor) : descriptor;
 }
 
 uint256 DescriptorID(const Descriptor& desc)

@@ -25,13 +25,16 @@
 
 #include <atomic>
 #include <optional>
+#include <set>
 #include <string>
 
 namespace wallet {
 namespace DBKeys {
 const std::string ACENTRY{"acentry"};
 const std::string ACTIVEEXTERNALSPK{"activeexternalspk"};
+const std::string ACTIVEEXTERNALPQSPK{"activeexternalpqspk"};
 const std::string ACTIVEINTERNALSPK{"activeinternalspk"};
+const std::string ACTIVEINTERNALPQSPK{"activeinternalpqspk"};
 const std::string BESTBLOCK_NOMERKLE{"bestblock_nomerkle"};
 const std::string BESTBLOCK{"bestblock"};
 const std::string CRYPTED_KEY{"ckey"};
@@ -58,6 +61,10 @@ const std::string WALLETDESCRIPTORCACHE{"walletdescriptorcache"};
 const std::string WALLETDESCRIPTORLHCACHE{"walletdescriptorlhcache"};
 const std::string WALLETDESCRIPTORCKEY{"walletdescriptorckey"};
 const std::string WALLETDESCRIPTORKEY{"walletdescriptorkey"};
+const std::string PQWALLETDESCRIPTOR{"pqwalletdescriptor"};
+const std::string PQWALLETDESCRIPTORCACHE{"pqwalletdescriptorcache"};
+const std::string PQWALLETDESCRIPTORCKEY{"pqwalletdescriptorckey"};
+const std::string PQWALLETDESCRIPTORKEY{"pqwalletdescriptorkey"};
 const std::string WATCHMETA{"watchmeta"};
 const std::string WATCHS{"watchs"};
 const std::unordered_set<std::string> LEGACY_TYPES{CRYPTED_KEY, CSCRIPT, DEFAULTKEY, HDCHAIN, KEYMETA, KEY, OLD_KEY, POOL, WATCHMETA, WATCHS};
@@ -211,6 +218,18 @@ bool WalletBatch::EraseActiveScriptPubKeyMan(uint8_t type, bool internal)
     return EraseIC(make_pair(key, type));
 }
 
+bool WalletBatch::WriteActivePQScriptPubKeyMan(const uint256& id, bool internal)
+{
+    const std::string key{internal ? DBKeys::ACTIVEINTERNALPQSPK : DBKeys::ACTIVEEXTERNALPQSPK};
+    return WriteIC(key, id);
+}
+
+bool WalletBatch::EraseActivePQScriptPubKeyMan(bool internal)
+{
+    const std::string key{internal ? DBKeys::ACTIVEINTERNALPQSPK : DBKeys::ACTIVEEXTERNALPQSPK};
+    return EraseIC(key);
+}
+
 bool WalletBatch::WriteDescriptorKey(const uint256& desc_id, const CPubKey& pubkey, const CPrivKey& privkey)
 {
     // hash pubkey/privkey to accelerate wallet load
@@ -234,6 +253,34 @@ bool WalletBatch::WriteCryptedDescriptorKey(const uint256& desc_id, const CPubKe
 bool WalletBatch::WriteDescriptor(const uint256& desc_id, const WalletDescriptor& descriptor)
 {
     return WriteIC(make_pair(DBKeys::WALLETDESCRIPTOR, desc_id), descriptor);
+}
+
+bool WalletBatch::WritePQDescriptor(const uint256& desc_id, const PQWalletDescriptor& descriptor)
+{
+    return WriteIC(make_pair(DBKeys::PQWALLETDESCRIPTOR, desc_id), descriptor);
+}
+
+bool WalletBatch::WritePQDescriptorSeed(const uint256& desc_id, const std::vector<unsigned char>& root_seed)
+{
+    if (!WriteIC(std::make_pair(DBKeys::PQWALLETDESCRIPTORKEY, desc_id), root_seed)) {
+        return false;
+    }
+    EraseIC(std::make_pair(DBKeys::PQWALLETDESCRIPTORCKEY, desc_id));
+    return true;
+}
+
+bool WalletBatch::WriteCryptedPQDescriptorSeed(const uint256& desc_id, const std::vector<unsigned char>& crypted_root_seed)
+{
+    if (!WriteIC(std::make_pair(DBKeys::PQWALLETDESCRIPTORCKEY, desc_id), crypted_root_seed)) {
+        return false;
+    }
+    EraseIC(std::make_pair(DBKeys::PQWALLETDESCRIPTORKEY, desc_id));
+    return true;
+}
+
+bool WalletBatch::WritePQDescriptorCache(const uint256& desc_id, int32_t index, const std::vector<unsigned char>& pk_script)
+{
+    return WriteIC(std::make_pair(std::make_pair(DBKeys::PQWALLETDESCRIPTORCACHE, desc_id), index), pk_script);
 }
 
 bool WalletBatch::WriteDescriptorDerivedCache(const CExtPubKey& xpub, const uint256& desc_id, uint32_t key_exp_index, uint32_t der_index)
@@ -926,6 +973,85 @@ static DBErrors LoadDescriptorWalletRecords(CWallet* pwallet, DatabaseBatch& bat
     return desc_res.m_result;
 }
 
+static DBErrors LoadPQDescriptorWalletRecords(CWallet* pwallet, DatabaseBatch& batch) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
+{
+    AssertLockHeld(pwallet->cs_wallet);
+
+    LoadResult desc_res = LoadRecords(pwallet, batch, DBKeys::PQWALLETDESCRIPTOR,
+        [&batch] (CWallet* pwallet, DataStream& key, DataStream& value, std::string& strErr) {
+        DBErrors result = DBErrors::LOAD_OK;
+
+        uint256 id;
+        key >> id;
+        PQWalletDescriptor desc;
+        value >> desc;
+
+        pwallet->LoadPQDescriptorScriptPubKeyMan(id, desc);
+
+        DataStream prefix = PrefixStream(DBKeys::PQWALLETDESCRIPTORCACHE, id);
+        LoadResult cache_res = LoadRecords(pwallet, batch, DBKeys::PQWALLETDESCRIPTORCACHE, prefix,
+            [&id] (CWallet* pwallet, DataStream& key, DataStream& value, std::string& err) {
+            uint256 desc_id;
+            int32_t index;
+            key >> desc_id;
+            assert(desc_id == id);
+            key >> index;
+            std::vector<unsigned char> pk_script;
+            value >> pk_script;
+            if (!pwallet->LoadPQDescriptorCacheEntry(id, index, pk_script)) {
+                err = "Error reading wallet database: invalid PQ descriptor cache entry";
+                return DBErrors::CORRUPT;
+            }
+            return DBErrors::LOAD_OK;
+        });
+        result = std::max(result, cache_res.m_result);
+
+        prefix = PrefixStream(DBKeys::PQWALLETDESCRIPTORKEY, id);
+        LoadResult seed_res = LoadRecords(pwallet, batch, DBKeys::PQWALLETDESCRIPTORKEY, prefix,
+            [&id] (CWallet* pwallet, DataStream& key, DataStream& value, std::string& err) {
+            uint256 desc_id;
+            key >> desc_id;
+            assert(desc_id == id);
+            std::vector<unsigned char> root_seed;
+            value >> root_seed;
+            if (!pwallet->LoadPQDescriptorRootSeed(id, root_seed)) {
+                err = "Error reading wallet database: invalid PQ descriptor root seed";
+                return DBErrors::CORRUPT;
+            }
+            return DBErrors::LOAD_OK;
+        });
+        result = std::max(result, seed_res.m_result);
+
+        prefix = PrefixStream(DBKeys::PQWALLETDESCRIPTORCKEY, id);
+        LoadResult cseed_res = LoadRecords(pwallet, batch, DBKeys::PQWALLETDESCRIPTORCKEY, prefix,
+            [&id] (CWallet* pwallet, DataStream& key, DataStream& value, std::string& err) {
+            uint256 desc_id;
+            key >> desc_id;
+            assert(desc_id == id);
+            std::vector<unsigned char> crypted_root_seed;
+            value >> crypted_root_seed;
+            if (!pwallet->LoadCryptedPQDescriptorRootSeed(id, crypted_root_seed)) {
+                err = "Error reading wallet database: invalid encrypted PQ descriptor root seed";
+                return DBErrors::CORRUPT;
+            }
+            return DBErrors::LOAD_OK;
+        });
+        result = std::max(result, cseed_res.m_result);
+
+        ScriptPubKeyMan* spk_man = pwallet->GetScriptPubKeyMan(id);
+        if (spk_man == nullptr) {
+            strErr = "Error reading wallet database: missing PQ scriptpubkey manager";
+            return DBErrors::CORRUPT;
+        }
+        std::set<CScript> cached_spks;
+        for (const auto& spk : spk_man->GetScriptPubKeys()) cached_spks.insert(spk);
+        pwallet->CacheNewScriptPubKeys(cached_spks, spk_man);
+        return result;
+    });
+
+    return desc_res.m_result;
+}
+
 static DBErrors LoadAddressBookRecords(CWallet* pwallet, DatabaseBatch& batch) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
 {
     AssertLockHeld(pwallet->cs_wallet);
@@ -1091,6 +1217,25 @@ static DBErrors LoadActiveSPKMs(CWallet* pwallet, DatabaseBatch& batch) EXCLUSIV
     return result;
 }
 
+static DBErrors LoadActivePQSPKMs(CWallet* pwallet, DatabaseBatch& batch) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
+{
+    AssertLockHeld(pwallet->cs_wallet);
+    DBErrors result = DBErrors::LOAD_OK;
+
+    for (const auto& spk_key : {DBKeys::ACTIVEEXTERNALPQSPK, DBKeys::ACTIVEINTERNALPQSPK}) {
+        LoadResult spkm_res = LoadRecords(pwallet, batch, spk_key,
+            [&spk_key] (CWallet* pwallet, DataStream&, DataStream& value, std::string&) {
+            uint256 id;
+            value >> id;
+            const bool internal = spk_key == DBKeys::ACTIVEINTERNALPQSPK;
+            pwallet->LoadActivePQScriptPubKeyMan(id, internal);
+            return DBErrors::LOAD_OK;
+        });
+        result = std::max(result, spkm_res.m_result);
+    }
+    return result;
+}
+
 static DBErrors LoadDecryptionKeys(CWallet* pwallet, DatabaseBatch& batch) EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)
 {
     AssertLockHeld(pwallet->cs_wallet);
@@ -1135,6 +1280,7 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
 
         // Load descriptors
         result = std::max(LoadDescriptorWalletRecords(pwallet, *m_batch, last_client), result);
+        result = std::max(LoadPQDescriptorWalletRecords(pwallet, *m_batch), result);
         // Early return if there are unknown descriptors. Later loading of ACTIVEINTERNALSPK and ACTIVEEXTERNALEXPK
         // may reference the unknown descriptor's ID which can result in a misleading corruption error
         // when in reality the wallet is simply too new.
@@ -1145,6 +1291,7 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
 
         // Load SPKMs
         result = std::max(LoadActiveSPKMs(pwallet, *m_batch), result);
+        result = std::max(LoadActivePQSPKMs(pwallet, *m_batch), result);
 
         // Load decryption keys
         result = std::max(LoadDecryptionKeys(pwallet, *m_batch), result);
