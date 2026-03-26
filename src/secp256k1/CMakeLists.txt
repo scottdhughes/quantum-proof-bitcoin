@@ -216,7 +216,9 @@ else()
   # Keep the following commands ordered lexicographically.
   try_append_c_flags(-pedantic)
   try_append_c_flags(-Wcast-align) # GCC >= 2.95.
-  try_append_c_flags(-Wcast-align=strict) # GCC >= 8.0.
+  if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    try_append_c_flags(-Wcast-align=strict) # GCC >= 8.0.
+  endif()
   try_append_c_flags(-Wconditional-uninitialized) # Clang >= 3.0 only.
   try_append_c_flags(-Wextra) # GCC >= 3.4, this is the newer name of -W, which we don't use because older GCCs will warn about unused functions.
   try_append_c_flags(-Wnested-externs)
