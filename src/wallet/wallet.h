@@ -790,6 +790,7 @@ public:
     util::Result<CTxDestination> GetNewChangeDestination(const OutputType type);
     util::Result<CTxDestination> GetNewPQDestination(const std::string& label);
     util::Result<CTxDestination> GetNewPQChangeDestination();
+    ScriptPubKeyMan* GetChangeScriptPubKeyMan(const OutputType& type) const;
 
     bool IsMine(const CTxDestination& dest) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool IsMine(const CScript& script) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);

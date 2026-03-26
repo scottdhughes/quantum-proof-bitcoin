@@ -476,8 +476,36 @@ configure_file(cmake/script/CoverageInclude.cmake.in CoverageInclude.cmake USE_S
 configure_file(cmake/script/cov_tool_wrapper.sh.in cov_tool_wrapper.sh.in USE_SOURCE_PERMISSIONS COPYONLY)
 configure_file(contrib/filter-lcov.py filter-lcov.py USE_SOURCE_PERMISSIONS COPYONLY)
 
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" CMAKE_SYSTEM_PROCESSOR_LOWER)
+set(BUILD_SYSTEM_IS_DARWIN FALSE)
+set(BUILD_SYSTEM_IS_DARWIN_ARM64 FALSE)
+set(BUILD_SYSTEM_IS_X86 FALSE)
+set(BUILD_SYSTEM_IS_GNU FALSE)
+set(BUILD_SYSTEM_IS_MINGW_PE FALSE)
+set(BUILD_SYSTEM_IS_ELF FALSE)
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  set(BUILD_SYSTEM_IS_DARWIN TRUE)
+endif()
+if(CMAKE_SYSTEM_PROCESSOR_LOWER MATCHES "^(arm64|aarch64)$" AND BUILD_SYSTEM_IS_DARWIN)
+  set(BUILD_SYSTEM_IS_DARWIN_ARM64 TRUE)
+endif()
+if(CMAKE_SYSTEM_PROCESSOR_LOWER MATCHES "^(x86_64|amd64|i[3-6]86|x86)$")
+  set(BUILD_SYSTEM_IS_X86 TRUE)
+endif()
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set(BUILD_SYSTEM_IS_GNU TRUE)
+endif()
+if(MINGW)
+  set(BUILD_SYSTEM_IS_MINGW_PE TRUE)
+endif()
+if(UNIX AND NOT BUILD_SYSTEM_IS_DARWIN AND NOT BUILD_SYSTEM_IS_MINGW_PE)
+  set(BUILD_SYSTEM_IS_ELF TRUE)
+endif()
+
 # Don't allow extended (non-ASCII) symbols in identifiers. This is easier for code review.
-try_append_cxx_flags("-fno-extended-identifiers" TARGET core_interface SKIP_LINK)
+if(NOT BUILD_SYSTEM_IS_DARWIN_ARM64)
+  try_append_cxx_flags("-fno-extended-identifiers" TARGET core_interface SKIP_LINK)
+endif()
 
 # Avoiding the `-ffile-prefix-map` compiler option because it implies
 # `-fcoverage-prefix-map` on Clang or `-fprofile-prefix-map` on GCC,
@@ -495,7 +523,9 @@ try_append_cxx_flags("-fmacro-prefix-map=A=B" TARGET core_interface SKIP_LINK
 # gccbug_90348 test case (only reproduces on GCC 11 and earlier) and
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=111843. To work around that, set
 # -fstack-reuse=none for all gcc builds. (Only gcc understands this flag).
-try_append_cxx_flags("-fstack-reuse=none" TARGET core_interface)
+if(BUILD_SYSTEM_IS_GNU)
+  try_append_cxx_flags("-fstack-reuse=none" TARGET core_interface)
+endif()
 
 if(MSVC)
   try_append_linker_flag("/DYNAMICBASE" TARGET core_interface)
@@ -523,12 +553,14 @@ else()
 
   try_append_cxx_flags("-Wstack-protector" TARGET core_interface SKIP_LINK)
   try_append_cxx_flags("-fstack-protector-all" TARGET core_interface)
-  try_append_cxx_flags("-fcf-protection=full" TARGET core_interface)
+  if(BUILD_SYSTEM_IS_X86)
+    try_append_cxx_flags("-fcf-protection=full" TARGET core_interface)
+  endif()
 
-  if(MINGW)
+  if(BUILD_SYSTEM_IS_MINGW_PE)
     # stack-clash-protection is a no-op for Windows.
     # See https://gcc.gnu.org/bugzilla/show_bug.cgi?id=90458 for more details.
-  else()
+  elseif(NOT BUILD_SYSTEM_IS_DARWIN)
     try_append_cxx_flags("-fstack-clash-protection" TARGET core_interface)
   endif()
 
@@ -540,33 +572,39 @@ else()
     endif()
   endif()
 
-  try_append_linker_flag("-Wl,--enable-reloc-section" TARGET core_interface)
-  try_append_linker_flag("-Wl,--dynamicbase" TARGET core_interface)
-  try_append_linker_flag("-Wl,--nxcompat" TARGET core_interface)
-  try_append_linker_flag("-Wl,--high-entropy-va" TARGET core_interface)
-  try_append_linker_flag("-Wl,-z,relro" TARGET core_interface)
-  try_append_linker_flag("-Wl,-z,now" TARGET core_interface)
-  # TODO: This can be dropped once Bitcoin Core no longer supports
-  #       NetBSD 10.0 or if upstream fix is backported.
-  # NetBSD's dynamic linker ld.elf_so < 11.0 supports exactly 2
-  # `PT_LOAD` segments and binaries linked with `-z separate-code`
-  # have 4 `PT_LOAD` segments.
-  # Relevant discussions:
-  # - https://github.com/bitcoin/bitcoin/pull/28724#issuecomment-2589347934
-  # - https://mail-index.netbsd.org/tech-userlevel/2023/01/05/msg013666.html
-  if(CMAKE_SYSTEM_NAME STREQUAL "NetBSD" AND CMAKE_SYSTEM_VERSION VERSION_LESS 11.0)
-    try_append_linker_flag("-Wl,-z,noseparate-code" TARGET core_interface)
-  else()
-    try_append_linker_flag("-Wl,-z,separate-code" TARGET core_interface)
+  if(BUILD_SYSTEM_IS_MINGW_PE)
+    try_append_linker_flag("-Wl,--enable-reloc-section" TARGET core_interface)
+    try_append_linker_flag("-Wl,--dynamicbase" TARGET core_interface)
+    try_append_linker_flag("-Wl,--nxcompat" TARGET core_interface)
+    try_append_linker_flag("-Wl,--high-entropy-va" TARGET core_interface)
   endif()
-  if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  if(BUILD_SYSTEM_IS_ELF)
+    try_append_linker_flag("-Wl,-z,relro" TARGET core_interface)
+    try_append_linker_flag("-Wl,-z,now" TARGET core_interface)
+    # TODO: This can be dropped once Bitcoin Core no longer supports
+    #       NetBSD 10.0 or if upstream fix is backported.
+    # NetBSD's dynamic linker ld.elf_so < 11.0 supports exactly 2
+    # `PT_LOAD` segments and binaries linked with `-z separate-code`
+    # have 4 `PT_LOAD` segments.
+    # Relevant discussions:
+    # - https://github.com/bitcoin/bitcoin/pull/28724#issuecomment-2589347934
+    # - https://mail-index.netbsd.org/tech-userlevel/2023/01/05/msg013666.html
+    if(CMAKE_SYSTEM_NAME STREQUAL "NetBSD" AND CMAKE_SYSTEM_VERSION VERSION_LESS 11.0)
+      try_append_linker_flag("-Wl,-z,noseparate-code" TARGET core_interface)
+    else()
+      try_append_linker_flag("-Wl,-z,separate-code" TARGET core_interface)
+    endif()
+  endif()
+  if(BUILD_SYSTEM_IS_DARWIN)
     try_append_linker_flag("-Wl,-fixup_chains" TARGET core_interface)
   endif()
 endif()
 
 if(REDUCE_EXPORTS)
   set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-  try_append_linker_flag("-Wl,--exclude-libs,ALL" TARGET core_interface)
+  if(BUILD_SYSTEM_IS_ELF)
+    try_append_linker_flag("-Wl,--exclude-libs,ALL" TARGET core_interface)
+  endif()
   try_append_linker_flag("-Wl,-no_exported_symbols" VAR CMAKE_EXE_LINKER_FLAGS)
 endif()
 

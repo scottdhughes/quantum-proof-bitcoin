@@ -9,6 +9,16 @@
 include(CheckCXXSourceCompiles)
 include(CheckSourceCompilesWithFlags)
 
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" _crc32c_processor_lower)
+set(_crc32c_is_x86 FALSE)
+set(_crc32c_is_arm64 FALSE)
+if(_crc32c_processor_lower MATCHES "^(x86_64|amd64|i[3-6]86|x86)$")
+  set(_crc32c_is_x86 TRUE)
+endif()
+if(_crc32c_processor_lower MATCHES "^(arm64|aarch64)$")
+  set(_crc32c_is_arm64 TRUE)
+endif()
+
 # Check for __builtin_prefetch support in the compiler.
 check_cxx_source_compiles("
   int main() {
@@ -20,66 +30,78 @@ check_cxx_source_compiles("
   " HAVE_BUILTIN_PREFETCH
 )
 
-# Check for _mm_prefetch support in the compiler.
-check_cxx_source_compiles("
-  #if defined(_MSC_VER)
-  #include <intrin.h>
-  #else
-  #include <xmmintrin.h>
-  #endif
+if(_crc32c_is_x86)
+  # Check for _mm_prefetch support in the compiler.
+  check_cxx_source_compiles("
+    #if defined(_MSC_VER)
+    #include <intrin.h>
+    #else
+    #include <xmmintrin.h>
+    #endif
 
-  int main() {
-    char data = 0;
-    const char* address = &data;
-    _mm_prefetch(address, _MM_HINT_NTA);
-    return 0;
-  }
-  " HAVE_MM_PREFETCH
-)
-
-# Check for SSE4.2 support in the compiler.
-if(MSVC)
-  set(SSE42_CXXFLAGS /arch:AVX)
+    int main() {
+      char data = 0;
+      const char* address = &data;
+      _mm_prefetch(address, _MM_HINT_NTA);
+      return 0;
+    }
+    " HAVE_MM_PREFETCH
+  )
 else()
-  set(SSE42_CXXFLAGS -msse4.2)
+  set(HAVE_MM_PREFETCH FALSE)
 endif()
-check_cxx_source_compiles_with_flags("
-  #include <cstdint>
-  #if defined(_MSC_VER)
-  #include <intrin.h>
-  #elif defined(__GNUC__) && defined(__SSE4_2__)
-  #include <nmmintrin.h>
-  #endif
 
-  int main() {
-    uint64_t l = 0;
-    l = _mm_crc32_u8(l, 0);
-    l = _mm_crc32_u32(l, 0);
-    l = _mm_crc32_u64(l, 0);
-    return l;
-  }
-  " HAVE_SSE42
-  CXXFLAGS ${SSE42_CXXFLAGS}
-)
+if(_crc32c_is_x86)
+  # Check for SSE4.2 support in the compiler.
+  if(MSVC)
+    set(SSE42_CXXFLAGS /arch:AVX)
+  else()
+    set(SSE42_CXXFLAGS -msse4.2)
+  endif()
+  check_cxx_source_compiles_with_flags("
+    #include <cstdint>
+    #if defined(_MSC_VER)
+    #include <intrin.h>
+    #elif defined(__GNUC__) && defined(__SSE4_2__)
+    #include <nmmintrin.h>
+    #endif
+
+    int main() {
+      uint64_t l = 0;
+      l = _mm_crc32_u8(l, 0);
+      l = _mm_crc32_u32(l, 0);
+      l = _mm_crc32_u64(l, 0);
+      return l;
+    }
+    " HAVE_SSE42
+    CXXFLAGS ${SSE42_CXXFLAGS}
+  )
+else()
+  set(HAVE_SSE42 FALSE)
+endif()
 
 # Check for ARMv8 w/ CRC and CRYPTO extensions support in the compiler.
-set(ARM64_CRC_CXXFLAGS -march=armv8-a+crc+crypto)
-check_cxx_source_compiles_with_flags("
-  #include <arm_acle.h>
-  #include <arm_neon.h>
+if(_crc32c_is_arm64)
+  set(ARM64_CRC_CXXFLAGS -march=armv8-a+crc+crypto)
+  check_cxx_source_compiles_with_flags("
+    #include <arm_acle.h>
+    #include <arm_neon.h>
 
-  int main() {
-  #ifdef __aarch64__
-    __crc32cb(0, 0); __crc32ch(0, 0); __crc32cw(0, 0); __crc32cd(0, 0);
-    vmull_p64(0, 0);
-  #else
-  #error crc32c library does not support hardware acceleration on 32-bit ARM
-  #endif
-    return 0;
-  }
-  " HAVE_ARM64_CRC32C
-  CXXFLAGS ${ARM64_CRC_CXXFLAGS}
-)
+    int main() {
+    #ifdef __aarch64__
+      __crc32cb(0, 0); __crc32ch(0, 0); __crc32cw(0, 0); __crc32cd(0, 0);
+      vmull_p64(0, 0);
+    #else
+    #error crc32c library does not support hardware acceleration on 32-bit ARM
+    #endif
+      return 0;
+    }
+    " HAVE_ARM64_CRC32C
+    CXXFLAGS ${ARM64_CRC_CXXFLAGS}
+  )
+else()
+  set(HAVE_ARM64_CRC32C FALSE)
+endif()
 
 add_library(crc32c STATIC EXCLUDE_FROM_ALL
   ${PROJECT_SOURCE_DIR}/src/crc32c/src/crc32c.cc
@@ -113,3 +135,6 @@ if(HAVE_ARM64_CRC32C)
 endif()
 
 unset(_crc32_src)
+unset(_crc32c_is_arm64)
+unset(_crc32c_is_x86)
+unset(_crc32c_processor_lower)

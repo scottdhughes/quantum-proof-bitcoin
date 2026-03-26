@@ -2,12 +2,16 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <addresstype.h>
 #include <consensus/amount.h>
 #include <crypto/pqsig/params.h>
 #include <crypto/pqsig/pqsig.h>
+#include <psbt.h>
 #include <policy/policy.h>
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
+#include <script/sign.h>
+#include <script/signingprovider.h>
 #include <script/script.h>
 #include <script/script_error.h>
 
@@ -64,6 +68,20 @@ CMutableTransaction BuildSpendingTx()
     tx.vout[0].nValue = 50 * COIN;
     tx.vout[0].scriptPubKey = CScript{} << OP_TRUE;
     return tx;
+}
+
+CScript MakeWitnessScript(const std::array<uint8_t, pqsig::PK_SCRIPT_SIZE>& pk_script)
+{
+    return CScript{} << std::vector<unsigned char>{pk_script.begin(), pk_script.end()} << OP_CHECKSIG;
+}
+
+FlatSigningProvider MakePQSigningProvider(const std::array<uint8_t, pqsig::PK_SCRIPT_SIZE>& pk_script)
+{
+    FlatSigningProvider provider;
+    const CScript witness_script = MakeWitnessScript(pk_script);
+    provider.scripts.emplace(CScriptID(witness_script), witness_script);
+    provider.pq_keys.emplace(pk_script, TEST_SK_SEED);
+    return provider;
 }
 
 } // namespace
@@ -155,6 +173,85 @@ BOOST_AUTO_TEST_CASE(checkmultisig_accepts_valid_and_rejects_wrong_sighash)
 
     BOOST_CHECK(!VerifyScript(mutated_tx.vin[0].scriptSig, multisig_script, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, mutated_checker, &err));
     BOOST_CHECK_EQUAL(err, SCRIPT_ERR_EVAL_FALSE);
+}
+
+BOOST_AUTO_TEST_CASE(produce_signature_builds_valid_p2wsh_pq_witness)
+{
+    const auto pk_script = MakePkScript();
+    const CScript witness_script = MakeWitnessScript(pk_script);
+    const CScript script_pubkey = GetScriptForDestination(WitnessV0ScriptHash(witness_script));
+    const CAmount amount = 50 * COIN;
+
+    CMutableTransaction tx = BuildSpendingTx();
+    SignatureData sigdata;
+    const auto provider = MakePQSigningProvider(pk_script);
+
+    BOOST_REQUIRE(ProduceSignature(provider, MutableTransactionSignatureCreator(tx, 0, amount, SIGHASH_ALL), script_pubkey, sigdata));
+    BOOST_REQUIRE_EQUAL(sigdata.scriptWitness.stack.size(), 2U);
+    BOOST_CHECK_EQUAL(sigdata.scriptWitness.stack[0].size(), pqsig::SIG_SIZE);
+    BOOST_CHECK(sigdata.scriptWitness.stack[1] == std::vector<unsigned char>(witness_script.begin(), witness_script.end()));
+
+    tx.vin[0].scriptWitness = sigdata.scriptWitness;
+    const CTransaction tx_const{tx};
+    const TransactionSignatureChecker checker(&tx_const, /*nInIn=*/0, amount, MissingDataBehavior::FAIL);
+
+    ScriptError err;
+    BOOST_CHECK(VerifyScript(CScript{}, script_pubkey, &tx.vin[0].scriptWitness, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_OK);
+}
+
+BOOST_AUTO_TEST_CASE(dummy_and_non_all_pq_signing_paths)
+{
+    const auto pk_script = MakePkScript();
+    const CScript witness_script = MakeWitnessScript(pk_script);
+    const CScript script_pubkey = GetScriptForDestination(WitnessV0ScriptHash(witness_script));
+    const CAmount amount = 50 * COIN;
+    const auto provider = MakePQSigningProvider(pk_script);
+
+    SignatureData dummy_sigdata;
+    BOOST_REQUIRE(ProduceSignature(provider, DUMMY_SIGNATURE_CREATOR, script_pubkey, dummy_sigdata));
+    BOOST_REQUIRE_EQUAL(dummy_sigdata.scriptWitness.stack.size(), 2U);
+    BOOST_CHECK_EQUAL(dummy_sigdata.scriptWitness.stack[0].size(), pqsig::SIG_SIZE);
+    BOOST_CHECK(dummy_sigdata.scriptWitness.stack[1] == std::vector<unsigned char>(witness_script.begin(), witness_script.end()));
+
+    SignatureData rejected_sigdata;
+    CMutableTransaction tx = BuildSpendingTx();
+    BOOST_CHECK(!ProduceSignature(provider, MutableTransactionSignatureCreator(tx, 0, amount, SIGHASH_NONE), script_pubkey, rejected_sigdata));
+}
+
+BOOST_AUTO_TEST_CASE(psbt_roundtrips_pq_proprietary_partial_sig_and_finalizes)
+{
+    const auto pk_script = MakePkScript();
+    const CScript witness_script = MakeWitnessScript(pk_script);
+    const CScript script_pubkey = GetScriptForDestination(WitnessV0ScriptHash(witness_script));
+    const CAmount amount = 50 * COIN;
+
+    CMutableTransaction tx = BuildSpendingTx();
+    PartiallySignedTransaction psbt(tx);
+    psbt.inputs[0].witness_utxo = CTxOut(amount, script_pubkey);
+
+    const auto provider = MakePQSigningProvider(pk_script);
+    const PrecomputedTransactionData txdata = PrecomputePSBTData(psbt);
+
+    BOOST_CHECK(static_cast<int>(SignPSBTInput(provider, psbt, 0, &txdata, std::nullopt, nullptr, /*finalize=*/false)) == static_cast<int>(PSBTError::OK));
+    BOOST_CHECK(psbt.inputs[0].final_script_witness.IsNull());
+    BOOST_REQUIRE_EQUAL(psbt.inputs[0].m_proprietary.size(), 1U);
+
+    DataStream ss{};
+    ss << psbt;
+    PartiallySignedTransaction roundtrip;
+    ss >> roundtrip;
+
+    BOOST_REQUIRE_EQUAL(roundtrip.inputs[0].m_proprietary.size(), 1U);
+    const auto& prop = *roundtrip.inputs[0].m_proprietary.begin();
+    BOOST_CHECK(prop.identifier == std::vector<unsigned char>({'p', 'q', 'b', 't', 'c'}));
+    BOOST_CHECK_EQUAL(prop.subtype, 1U);
+    BOOST_CHECK_EQUAL(prop.value.size(), pqsig::SIG_SIZE);
+
+    BOOST_CHECK(FinalizePSBT(roundtrip));
+    BOOST_REQUIRE_EQUAL(roundtrip.inputs[0].final_script_witness.stack.size(), 2U);
+    BOOST_CHECK_EQUAL(roundtrip.inputs[0].final_script_witness.stack[0].size(), pqsig::SIG_SIZE);
+    BOOST_CHECK(roundtrip.inputs[0].final_script_witness.stack[1] == std::vector<unsigned char>(witness_script.begin(), witness_script.end()));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

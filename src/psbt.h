@@ -829,6 +829,28 @@ struct PSBTInput
                         throw std::ios_base::failure("Duplicate Key, proprietary key already found");
                     }
                     s >> this_prop.value;
+                    if (this_prop.identifier == std::vector<unsigned char>{'p', 'q', 'b', 't', 'c'} && this_prop.subtype == 0x01) {
+                        SpanReader prop_key{this_prop.key};
+                        uint8_t type;
+                        prop_key >> type;
+                        if (type != PSBT_IN_PROPRIETARY) {
+                            throw std::ios_base::failure("Invalid PQ proprietary key type");
+                        }
+                        std::vector<unsigned char> identifier;
+                        prop_key >> identifier;
+                        const uint64_t subtype = ReadCompactSize(prop_key);
+                        if (identifier != this_prop.identifier || subtype != this_prop.subtype || prop_key.size() != pqsig::PK_SCRIPT_SIZE) {
+                            throw std::ios_base::failure("Invalid PQ proprietary key payload");
+                        }
+                        PQPkScript pk_script{};
+                        prop_key >> std::as_writable_bytes(std::span{pk_script});
+                        if (!pqsig::IsValidPkScript(pk_script)) {
+                            throw std::ios_base::failure("Invalid PQ PK_script in proprietary key");
+                        }
+                        if (this_prop.value.size() != pqsig::SIG_SIZE) {
+                            throw std::ios_base::failure("Invalid PQ proprietary signature size");
+                        }
+                    }
                     m_proprietary.insert(this_prop);
                     break;
                 }

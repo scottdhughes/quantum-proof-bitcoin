@@ -287,6 +287,7 @@ BASE_SCRIPTS = [
     'wallet_importdescriptors.py',
     'wallet_pq_descriptors.py',
     'wallet_pq_backup_recovery.py',
+    'wallet_pq_psbt.py',
     'wallet_crosschain.py',
     'mining_basic.py',
     'mining_mainnet.py',

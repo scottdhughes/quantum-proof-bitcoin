@@ -59,6 +59,27 @@ bool MutableTransactionSignatureCreator::CreateSig(const SigningProvider& provid
     return true;
 }
 
+bool MutableTransactionSignatureCreator::CreatePQSig(const SigningProvider& provider, std::vector<unsigned char>& sig, const PQPkScript& pk_script, const CScript& scriptCode, SigVersion sigversion) const
+{
+    assert(sigversion == SigVersion::BASE || sigversion == SigVersion::WITNESS_V0);
+
+    PQSeed seed;
+    if (!provider.GetPQKey(pk_script, seed)) {
+        return false;
+    }
+
+    if (sigversion == SigVersion::WITNESS_V0 && !MoneyRange(amount)) return false;
+
+    const int hashtype = nHashType == SIGHASH_DEFAULT ? SIGHASH_ALL : nHashType;
+    if (hashtype != SIGHASH_ALL) {
+        return false;
+    }
+
+    const uint256 hash = SignatureHash(scriptCode, m_txto, nIn, hashtype, amount, sigversion, m_txdata);
+    sig.resize(pqsig::SIG_SIZE);
+    return pqsig::PQSigSign(sig, std::span<const uint8_t>{hash.begin(), hash.size()}, seed, pk_script);
+}
+
 bool MutableTransactionSignatureCreator::CreateSchnorrSig(const SigningProvider& provider, std::vector<unsigned char>& sig, const XOnlyPubKey& pubkey, const uint256* leaf_hash, const uint256* merkle_root, SigVersion sigversion) const
 {
     assert(sigversion == SigVersion::TAPROOT || sigversion == SigVersion::TAPSCRIPT);
@@ -148,6 +169,21 @@ static bool CreateSig(const BaseSignatureCreator& creator, SignatureData& sigdat
     }
     // Could not make signature or signature not found, add keyid to missing
     sigdata.missing_sigs.push_back(keyid);
+    return false;
+}
+
+static bool CreatePQSig(const BaseSignatureCreator& creator, SignatureData& sigdata, const SigningProvider& provider, std::vector<unsigned char>& sig_out, const PQPkScript& pk_script, const CScript& scriptcode, SigVersion sigversion)
+{
+    const auto it = sigdata.pq_signatures.find(pk_script);
+    if (it != sigdata.pq_signatures.end()) {
+        sig_out = it->second;
+        return true;
+    }
+    if (creator.CreatePQSig(provider, sig_out, pk_script, scriptcode, sigversion)) {
+        auto inserted = sigdata.pq_signatures.emplace(pk_script, sig_out);
+        assert(inserted.second);
+        return true;
+    }
     return false;
 }
 
@@ -413,10 +449,20 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
     case TxoutType::NULL_DATA:
     case TxoutType::WITNESS_UNKNOWN:
         return false;
-    case TxoutType::PUBKEY:
+    case TxoutType::PUBKEY: {
+        if (vSolutions[0].size() == pqsig::PK_SCRIPT_SIZE) {
+            PQPkScript pk_script{};
+            std::copy(vSolutions[0].begin(), vSolutions[0].end(), pk_script.begin());
+            if (pqsig::IsValidPkScript(pk_script)) {
+                if (!CreatePQSig(creator, sigdata, provider, sig, pk_script, scriptPubKey, sigversion)) return false;
+                ret.push_back(std::move(sig));
+                return true;
+            }
+        }
         if (!CreateSig(creator, sigdata, provider, sig, CPubKey(vSolutions[0]), scriptPubKey, sigversion)) return false;
         ret.push_back(std::move(sig));
         return true;
+    }
     case TxoutType::PUBKEYHASH: {
         CKeyID keyID = CKeyID(uint160(vSolutions[0]));
         CPubKey pubkey;
@@ -692,6 +738,7 @@ void SignatureData::MergeSignatureData(SignatureData sigdata)
         witness_script = sigdata.witness_script;
     }
     signatures.insert(std::make_move_iterator(sigdata.signatures.begin()), std::make_move_iterator(sigdata.signatures.end()));
+    pq_signatures.insert(std::make_move_iterator(sigdata.pq_signatures.begin()), std::make_move_iterator(sigdata.pq_signatures.end()));
 }
 
 namespace {
@@ -730,6 +777,11 @@ public:
         vchSig[5 + m_r_len] = m_s_len;
         vchSig[6 + m_r_len] = 0x01;
         vchSig[6 + m_r_len + m_s_len] = SIGHASH_ALL;
+        return true;
+    }
+    bool CreatePQSig(const SigningProvider& provider, std::vector<unsigned char>& sig, const PQPkScript& pk_script, const CScript& scriptCode, SigVersion sigversion) const override
+    {
+        sig.assign(pqsig::SIG_SIZE, 0x00);
         return true;
     }
     bool CreateSchnorrSig(const SigningProvider& provider, std::vector<unsigned char>& sig, const XOnlyPubKey& pubkey, const uint256* leaf_hash, const uint256* tweak, SigVersion sigversion) const override

@@ -5,6 +5,7 @@
 #include <psbt.h>
 
 #include <common/types.h>
+#include <crypto/pqsig/pqsig.h>
 #include <node/types.h>
 #include <policy/policy.h>
 #include <script/signingprovider.h>
@@ -12,6 +13,70 @@
 #include <util/strencodings.h>
 
 using common::PSBTError;
+
+namespace {
+
+constexpr uint64_t PSBT_PQBTC_IN_PARTIAL_SIG{0x01};
+constexpr std::array<unsigned char, 5> PSBT_PQBTC_IDENTIFIER{{'p', 'q', 'b', 't', 'c'}};
+
+bool IsPQPartialSig(const PSBTProprietary& prop)
+{
+    return prop.subtype == PSBT_PQBTC_IN_PARTIAL_SIG && prop.identifier == std::vector<unsigned char>(PSBT_PQBTC_IDENTIFIER.begin(), PSBT_PQBTC_IDENTIFIER.end());
+}
+
+bool DecodePQPartialSigProp(const PSBTProprietary& prop, PQPkScript& pk_script, std::vector<unsigned char>& sig)
+{
+    if (!IsPQPartialSig(prop)) {
+        return false;
+    }
+
+    SpanReader key_reader{prop.key};
+    uint8_t type;
+    key_reader >> type;
+    if (type != PSBT_IN_PROPRIETARY) {
+        return false;
+    }
+    std::vector<unsigned char> identifier;
+    key_reader >> identifier;
+    const uint64_t subtype = ReadCompactSize(key_reader);
+    if (identifier != prop.identifier || subtype != prop.subtype || key_reader.size() != pqsig::PK_SCRIPT_SIZE) {
+        return false;
+    }
+    key_reader >> std::as_writable_bytes(std::span{pk_script});
+    if (!pqsig::IsValidPkScript(pk_script) || prop.value.size() != pqsig::SIG_SIZE) {
+        return false;
+    }
+    sig = prop.value;
+    return true;
+}
+
+PSBTProprietary MakePQPartialSigProp(const PQPkScript& pk_script, const std::vector<unsigned char>& sig)
+{
+    PSBTProprietary prop;
+    prop.subtype = PSBT_PQBTC_IN_PARTIAL_SIG;
+    prop.identifier.assign(PSBT_PQBTC_IDENTIFIER.begin(), PSBT_PQBTC_IDENTIFIER.end());
+    prop.value = sig;
+
+    VectorWriter key_writer{prop.key, 0};
+    key_writer << CompactSizeWriter(PSBT_IN_PROPRIETARY);
+    key_writer << prop.identifier;
+    WriteCompactSize(key_writer, prop.subtype);
+    key_writer << std::span{pk_script};
+    return prop;
+}
+
+void ErasePQPartialSigProps(std::set<PSBTProprietary>& props)
+{
+    for (auto it = props.begin(); it != props.end();) {
+        if (IsPQPartialSig(*it)) {
+            it = props.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+} // namespace
 
 PartiallySignedTransaction::PartiallySignedTransaction(const CMutableTransaction& tx) : tx(tx)
 {
@@ -91,7 +156,7 @@ bool PartiallySignedTransaction::GetInputUTXO(CTxOut& utxo, int input_index) con
 
 bool PSBTInput::IsNull() const
 {
-    return !non_witness_utxo && witness_utxo.IsNull() && partial_sigs.empty() && unknown.empty() && hd_keypaths.empty() && redeem_script.empty() && witness_script.empty();
+    return !non_witness_utxo && witness_utxo.IsNull() && partial_sigs.empty() && unknown.empty() && m_proprietary.empty() && hd_keypaths.empty() && redeem_script.empty() && witness_script.empty();
 }
 
 void PSBTInput::FillSignatureData(SignatureData& sigdata) const
@@ -109,6 +174,13 @@ void PSBTInput::FillSignatureData(SignatureData& sigdata) const
     }
 
     sigdata.signatures.insert(partial_sigs.begin(), partial_sigs.end());
+    for (const auto& prop : m_proprietary) {
+        PQPkScript pk_script{};
+        std::vector<unsigned char> sig;
+        if (DecodePQPartialSigProp(prop, pk_script, sig)) {
+            sigdata.pq_signatures.emplace(pk_script, std::move(sig));
+        }
+    }
     if (!redeem_script.empty()) {
         sigdata.redeem_script = redeem_script;
     }
@@ -158,6 +230,7 @@ void PSBTInput::FromSignatureData(const SignatureData& sigdata)
         hd_keypaths.clear();
         redeem_script.clear();
         witness_script.clear();
+        ErasePQPartialSigProps(m_proprietary);
 
         if (!sigdata.scriptSig.empty()) {
             final_script_sig = sigdata.scriptSig;
@@ -169,6 +242,10 @@ void PSBTInput::FromSignatureData(const SignatureData& sigdata)
     }
 
     partial_sigs.insert(sigdata.signatures.begin(), sigdata.signatures.end());
+    ErasePQPartialSigProps(m_proprietary);
+    for (const auto& [pk_script, sig] : sigdata.pq_signatures) {
+        m_proprietary.insert(MakePQPartialSigProp(pk_script, sig));
+    }
     if (redeem_script.empty() && !sigdata.redeem_script.empty()) {
         redeem_script = sigdata.redeem_script;
     }
@@ -206,6 +283,7 @@ void PSBTInput::Merge(const PSBTInput& input)
     }
 
     partial_sigs.insert(input.partial_sigs.begin(), input.partial_sigs.end());
+    m_proprietary.insert(input.m_proprietary.begin(), input.m_proprietary.end());
     ripemd160_preimages.insert(input.ripemd160_preimages.begin(), input.ripemd160_preimages.end());
     sha256_preimages.insert(input.sha256_preimages.begin(), input.sha256_preimages.end());
     hash160_preimages.insert(input.hash160_preimages.begin(), input.hash160_preimages.end());
@@ -450,6 +528,9 @@ PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransact
         for (const auto& [_, sig] : input.partial_sigs) {
             if (sig.second.back() != *sighash) return PSBTError::SIGHASH_MISMATCH;
         }
+    }
+    if (!sigdata.pq_signatures.empty() && *sighash != SIGHASH_DEFAULT && *sighash != SIGHASH_ALL) {
+        return PSBTError::SIGHASH_MISMATCH;
     }
 
     sigdata.witness = false;

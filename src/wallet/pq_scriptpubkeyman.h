@@ -35,9 +35,11 @@ private:
     bool m_decryption_thoroughly_checked GUARDED_BY(cs_pq_man){false};
 
     bool GetRootSeed(CKeyingMaterial& root_seed) const EXCLUSIVE_LOCKS_REQUIRED(cs_pq_man);
+    bool GetChildSeedForIndex(int32_t index, PQSeed& seed) const EXCLUSIVE_LOCKS_REQUIRED(cs_pq_man);
     static CScript MakeWitnessScript(const std::array<unsigned char, pqsig::PK_SCRIPT_SIZE>& pk_script);
     static CScript MakeScriptPubKey(const std::array<unsigned char, pqsig::PK_SCRIPT_SIZE>& pk_script);
     bool GetDestinationForIndex(int32_t index, CTxDestination& dest) const EXCLUSIVE_LOCKS_REQUIRED(cs_pq_man);
+    std::unique_ptr<FlatSigningProvider> GetSigningProvider(const CScript& script, bool include_private) const;
     bool WriteMetadata(WalletBatch& batch) EXCLUSIVE_LOCKS_REQUIRED(cs_pq_man);
 
 public:
@@ -70,8 +72,10 @@ public:
     int64_t GetTimeFirstKey() const override;
     std::unique_ptr<CKeyMetadata> GetMetadata(const CTxDestination& dest) const override;
     std::unique_ptr<SigningProvider> GetSolvingProvider(const CScript& script) const override;
-    bool IsSpendable(const CScript& script) const override { return false; }
+    bool IsSpendable(const CScript& script) const override;
     bool CanProvide(const CScript& script, SignatureData& sigdata) override;
+    bool SignTransaction(CMutableTransaction& tx, const std::map<COutPoint, Coin>& coins, int sighash, std::map<int, bilingual_str>& input_errors) const override;
+    std::optional<common::PSBTError> FillPSBT(PartiallySignedTransaction& psbt, const PrecomputedTransactionData& txdata, std::optional<int> sighash_type = std::nullopt, bool sign = true, bool bip32derivs = false, int* n_signed = nullptr, bool finalize = true) const override;
     uint256 GetID() const override;
     std::unordered_set<CScript, SaltedSipHasher> GetScriptPubKeys() const override;
     std::unordered_set<CScript, SaltedSipHasher> GetScriptPubKeys(int32_t minimum_index) const;
