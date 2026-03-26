@@ -446,6 +446,14 @@ CoinsResult AvailableCoins(const CWallet& wallet,
             continue;
         }
 
+        bool spendable = false;
+        for (const auto* spk_man : wallet.GetScriptPubKeyMans(output.scriptPubKey)) {
+            spendable |= spk_man->IsSpendable(output.scriptPubKey);
+        }
+        if (!spendable) {
+            continue;
+        }
+
         bool tx_from_me = CachedTxIsFromMe(wallet, wtx);
 
         std::unique_ptr<SigningProvider> provider = wallet.GetSolvingProvider(output.scriptPubKey);

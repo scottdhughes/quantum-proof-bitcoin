@@ -195,6 +195,7 @@ BASE_SCRIPTS = [
     'wallet_createwallet.py',
     'wallet_reindex.py',
     'wallet_reorgsrestore.py',
+    'wallet_pq_active_ranged.py',
     'interface_http.py',
     'interface_rpc.py',
     'interface_usdt_coinselection.py',

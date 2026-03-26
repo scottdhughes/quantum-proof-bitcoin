@@ -55,7 +55,9 @@ enum class DBErrors : int
 namespace DBKeys {
 extern const std::string ACENTRY;
 extern const std::string ACTIVEEXTERNALSPK;
+extern const std::string ACTIVEEXTERNALPQSPK;
 extern const std::string ACTIVEINTERNALSPK;
+extern const std::string ACTIVEINTERNALPQSPK;
 extern const std::string BESTBLOCK;
 extern const std::string BESTBLOCK_NOMERKLE;
 extern const std::string CRYPTED_KEY;
@@ -80,6 +82,10 @@ extern const std::string VERSION;
 extern const std::string WALLETDESCRIPTOR;
 extern const std::string WALLETDESCRIPTORCKEY;
 extern const std::string WALLETDESCRIPTORKEY;
+extern const std::string PQWALLETDESCRIPTOR;
+extern const std::string PQWALLETDESCRIPTORCACHE;
+extern const std::string PQWALLETDESCRIPTORCKEY;
+extern const std::string PQWALLETDESCRIPTORKEY;
 extern const std::string WATCHMETA;
 extern const std::string WATCHS;
 
@@ -244,6 +250,10 @@ public:
     bool WriteDescriptorKey(const uint256& desc_id, const CPubKey& pubkey, const CPrivKey& privkey);
     bool WriteCryptedDescriptorKey(const uint256& desc_id, const CPubKey& pubkey, const std::vector<unsigned char>& secret);
     bool WriteDescriptor(const uint256& desc_id, const WalletDescriptor& descriptor);
+    bool WritePQDescriptor(const uint256& desc_id, const PQWalletDescriptor& descriptor);
+    bool WritePQDescriptorSeed(const uint256& desc_id, const std::vector<unsigned char>& root_seed);
+    bool WriteCryptedPQDescriptorSeed(const uint256& desc_id, const std::vector<unsigned char>& crypted_root_seed);
+    bool WritePQDescriptorCache(const uint256& desc_id, int32_t index, const std::vector<unsigned char>& pk_script);
     bool WriteDescriptorDerivedCache(const CExtPubKey& xpub, const uint256& desc_id, uint32_t key_exp_index, uint32_t der_index);
     bool WriteDescriptorParentCache(const CExtPubKey& xpub, const uint256& desc_id, uint32_t key_exp_index);
     bool WriteDescriptorLastHardenedCache(const CExtPubKey& xpub, const uint256& desc_id, uint32_t key_exp_index);
@@ -259,6 +269,8 @@ public:
 
     bool WriteActiveScriptPubKeyMan(uint8_t type, const uint256& id, bool internal);
     bool EraseActiveScriptPubKeyMan(uint8_t type, bool internal);
+    bool WriteActivePQScriptPubKeyMan(const uint256& id, bool internal);
+    bool EraseActivePQScriptPubKeyMan(bool internal);
 
     DBErrors LoadWallet(CWallet* pwallet);
 

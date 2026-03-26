@@ -8,6 +8,7 @@
 #include <script/descriptor.h>
 #include <util/fs.h>
 
+#include <array>
 #include <vector>
 
 namespace wallet {
@@ -96,6 +97,23 @@ public:
 
     WalletDescriptor() = default;
     WalletDescriptor(std::shared_ptr<Descriptor> descriptor, uint64_t creation_time, int32_t range_start, int32_t range_end, int32_t next_index) : descriptor(descriptor), id(DescriptorID(*descriptor)), creation_time(creation_time), range_start(range_start), range_end(range_end), next_index(next_index) { }
+};
+
+class PQWalletDescriptor
+{
+public:
+    uint64_t creation_time{0};
+    int32_t range_start{0};
+    int32_t range_end{0};
+    int32_t next_index{0};
+    uint8_t branch{0};
+
+    SERIALIZE_METHODS(PQWalletDescriptor, obj)
+    {
+        READWRITE(obj.creation_time, obj.range_start, obj.range_end, obj.next_index, obj.branch);
+    }
+
+    bool IsInternal() const { return branch == 1; }
 };
 
 WalletDescriptor GenerateWalletDescriptor(const CExtPubKey& master_key, const OutputType& output_type, bool internal);

@@ -67,6 +67,7 @@ class Wallet;
 }
 namespace wallet {
 class CWallet;
+class PQDescriptorScriptPubKeyMan;
 class WalletBatch;
 enum class DBErrors : int;
 } // namespace wallet
@@ -417,6 +418,8 @@ private:
 
     std::map<OutputType, ScriptPubKeyMan*> m_external_spk_managers;
     std::map<OutputType, ScriptPubKeyMan*> m_internal_spk_managers;
+    ScriptPubKeyMan* m_external_pq_spk_manager{nullptr};
+    ScriptPubKeyMan* m_internal_pq_spk_manager{nullptr};
 
     // Indexed by a unique identifier produced by each ScriptPubKeyMan using
     // ScriptPubKeyMan::GetID. In many cases it will be the hash of an internal structure
@@ -785,6 +788,8 @@ public:
 
     util::Result<CTxDestination> GetNewDestination(const OutputType type, const std::string label);
     util::Result<CTxDestination> GetNewChangeDestination(const OutputType type);
+    util::Result<CTxDestination> GetNewPQDestination(const std::string& label);
+    util::Result<CTxDestination> GetNewPQChangeDestination();
 
     bool IsMine(const CTxDestination& dest) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool IsMine(const CScript& script) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
@@ -995,24 +1000,31 @@ public:
 
     //! Instantiate a descriptor ScriptPubKeyMan from the WalletDescriptor and load it
     DescriptorScriptPubKeyMan& LoadDescriptorScriptPubKeyMan(uint256 id, WalletDescriptor& desc);
+    PQDescriptorScriptPubKeyMan& LoadPQDescriptorScriptPubKeyMan(uint256 id, PQWalletDescriptor& desc);
+    bool LoadPQDescriptorRootSeed(uint256 id, const std::vector<unsigned char>& root_seed);
+    bool LoadCryptedPQDescriptorRootSeed(uint256 id, const std::vector<unsigned char>& crypted_root_seed);
+    bool LoadPQDescriptorCacheEntry(uint256 id, int32_t index, const std::vector<unsigned char>& pk_script);
 
     //! Adds the active ScriptPubKeyMan for the specified type and internal. Writes it to the wallet file
     //! @param[in] id The unique id for the ScriptPubKeyMan
     //! @param[in] type The OutputType this ScriptPubKeyMan provides addresses for
     //! @param[in] internal Whether this ScriptPubKeyMan provides change addresses
     void AddActiveScriptPubKeyMan(uint256 id, OutputType type, bool internal);
+    void AddActivePQScriptPubKeyMan(uint256 id, bool internal);
 
     //! Loads an active ScriptPubKeyMan for the specified type and internal. (used by LoadWallet)
     //! @param[in] id The unique id for the ScriptPubKeyMan
     //! @param[in] type The OutputType this ScriptPubKeyMan provides addresses for
     //! @param[in] internal Whether this ScriptPubKeyMan provides change addresses
     void LoadActiveScriptPubKeyMan(uint256 id, OutputType type, bool internal);
+    void LoadActivePQScriptPubKeyMan(uint256 id, bool internal);
 
     //! Remove specified ScriptPubKeyMan from set of active SPK managers. Writes the change to the wallet file.
     //! @param[in] id The unique id for the ScriptPubKeyMan
     //! @param[in] type The OutputType this ScriptPubKeyMan provides addresses for
     //! @param[in] internal Whether this ScriptPubKeyMan provides change addresses
     void DeactivateScriptPubKeyMan(uint256 id, OutputType type, bool internal);
+    void DeactivateActivePQScriptPubKeyMan(uint256 id, bool internal);
 
     //! Create new DescriptorScriptPubKeyMan and add it to the wallet
     DescriptorScriptPubKeyMan& SetupDescriptorScriptPubKeyMan(WalletBatch& batch, const CExtKey& master_key, const OutputType& output_type, bool internal) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
@@ -1033,6 +1045,7 @@ public:
 
     //! Add a descriptor to the wallet, return a ScriptPubKeyMan & associated output type
     util::Result<std::reference_wrapper<DescriptorScriptPubKeyMan>> AddWalletDescriptor(WalletDescriptor& desc, const FlatSigningProvider& signing_provider, const std::string& label, bool internal) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    util::Result<std::reference_wrapper<PQDescriptorScriptPubKeyMan>> AddWalletPQDescriptor(const PQPrivateDescriptorInfo& info, uint64_t creation_time, int32_t range_start, int32_t range_end, int32_t next_index) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     /** Move all records from the BDB database to a new SQLite database for storage.
      * The original BDB file will be deleted and replaced with a new SQLite file.

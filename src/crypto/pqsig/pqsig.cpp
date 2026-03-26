@@ -5,6 +5,7 @@
 #include <crypto/pqsig/pqsig.h>
 
 #include <crypto/pqsig/domains.h>
+#include <crypto/hkdf_sha256_32.h>
 #include <crypto/pqsig/hypertree.h>
 #include <crypto/pqsig/octopus.h>
 #include <crypto/pqsig/params.h>
@@ -16,6 +17,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <string>
+#include <tinyformat.h>
 
 namespace pqsig {
 namespace {
@@ -241,6 +244,18 @@ bool DerivePkScript(const std::span<uint8_t> out_pk_script33, const std::span<co
     std::copy(pk_seed.begin(), pk_seed.end(), out_pk_script33.begin() + 1);
     std::copy(pk_root.begin(), pk_root.end(), out_pk_script33.begin() + 1 + pk_seed.size());
     return true;
+}
+
+bool DeriveWalletPkScript(const std::span<uint8_t> out_pk_script33, const std::span<const uint8_t> root_seed, const bool internal, const uint32_t index)
+{
+    if (!ConsensusProfileLocked() || out_pk_script33.size() != PK_SCRIPT_SIZE || root_seed.size() != MSG32_SIZE) {
+        return false;
+    }
+
+    CHKDF_HMAC_SHA256_L32 hkdf(root_seed.data(), root_seed.size(), "PQSIG-WALLET-ROOT-v1");
+    unsigned char child_seed[MSG32_SIZE];
+    hkdf.Expand32(strprintf("branch=%u;index=%u", internal ? 1U : 0U, index), child_seed);
+    return DerivePkScript(out_pk_script33, child_seed);
 }
 
 bool PQSigVerify(

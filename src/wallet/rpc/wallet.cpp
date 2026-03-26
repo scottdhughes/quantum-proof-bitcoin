@@ -699,7 +699,7 @@ RPCHelpMan gethdkeys()
             std::map<CExtPubKey, CExtKey> wallet_xprvs;
             for (auto* spkm : spkms) {
                 auto* desc_spkm{dynamic_cast<DescriptorScriptPubKeyMan*>(spkm)};
-                CHECK_NONFATAL(desc_spkm);
+                if (!desc_spkm) continue;
                 LOCK(desc_spkm->cs_desc_man);
                 WalletDescriptor w_desc = desc_spkm->GetWalletDescriptor();
 
@@ -847,7 +847,9 @@ static RPCHelpMan createwalletdescriptor()
 // addresses
 RPCHelpMan getaddressinfo();
 RPCHelpMan getnewaddress();
+RPCHelpMan getnewpqaddress();
 RPCHelpMan getrawchangeaddress();
+RPCHelpMan getrawpqchangeaddress();
 RPCHelpMan setlabel();
 RPCHelpMan listaddressgroupings();
 RPCHelpMan keypoolrefill();
@@ -924,7 +926,9 @@ std::span<const CRPCCommand> GetWalletRPCCommands()
         {"wallet", &getbalance},
         {"wallet", &gethdkeys},
         {"wallet", &getnewaddress},
+        {"wallet", &getnewpqaddress},
         {"wallet", &getrawchangeaddress},
+        {"wallet", &getrawpqchangeaddress},
         {"wallet", &getreceivedbyaddress},
         {"wallet", &getreceivedbylabel},
         {"wallet", &gettransaction},

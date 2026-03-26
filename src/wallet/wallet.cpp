@@ -65,6 +65,7 @@
 #include <wallet/crypter.h>
 #include <wallet/db.h>
 #include <wallet/external_signer_scriptpubkeyman.h>
+#include <wallet/pq_scriptpubkeyman.h>
 #include <wallet/scriptpubkeyman.h>
 #include <wallet/transaction.h>
 #include <wallet/types.h>
@@ -311,12 +312,18 @@ public:
     {
         // create initial filter with scripts from all ScriptPubKeyMans
         for (auto spkm : m_wallet.GetAllScriptPubKeyMans()) {
-            auto desc_spkm{dynamic_cast<DescriptorScriptPubKeyMan*>(spkm)};
-            assert(desc_spkm != nullptr);
-            AddScriptPubKeys(desc_spkm);
-            // save each range descriptor's end for possible future filter updates
-            if (desc_spkm->IsHDEnabled()) {
-                m_last_range_ends.emplace(desc_spkm->GetID(), desc_spkm->GetEndRange());
+            if (auto* desc_spkm = dynamic_cast<DescriptorScriptPubKeyMan*>(spkm)) {
+                AddScriptPubKeys(desc_spkm);
+                if (desc_spkm->IsHDEnabled()) {
+                    m_last_range_ends.emplace(desc_spkm->GetID(), desc_spkm->GetEndRange());
+                }
+            } else if (auto* pq_spkm = dynamic_cast<PQDescriptorScriptPubKeyMan*>(spkm)) {
+                AddScriptPubKeys(*pq_spkm);
+                m_last_range_ends.emplace(pq_spkm->GetID(), pq_spkm->GetEndRange());
+            } else {
+                for (const auto& script_pub_key : spkm->GetScriptPubKeys()) {
+                    m_filter_set.emplace(script_pub_key.begin(), script_pub_key.end());
+                }
             }
         }
     }
@@ -325,12 +332,19 @@ public:
     {
         // repopulate filter with new scripts if top-up has happened since last iteration
         for (const auto& [desc_spkm_id, last_range_end] : m_last_range_ends) {
-            auto desc_spkm{dynamic_cast<DescriptorScriptPubKeyMan*>(m_wallet.GetScriptPubKeyMan(desc_spkm_id))};
-            assert(desc_spkm != nullptr);
-            int32_t current_range_end{desc_spkm->GetEndRange()};
-            if (current_range_end > last_range_end) {
-                AddScriptPubKeys(desc_spkm, last_range_end);
-                m_last_range_ends.at(desc_spkm->GetID()) = current_range_end;
+            auto* spkm = m_wallet.GetScriptPubKeyMan(desc_spkm_id);
+            if (auto* desc_spkm = dynamic_cast<DescriptorScriptPubKeyMan*>(spkm)) {
+                int32_t current_range_end{desc_spkm->GetEndRange()};
+                if (current_range_end > last_range_end) {
+                    AddScriptPubKeys(desc_spkm, last_range_end);
+                    m_last_range_ends.at(desc_spkm->GetID()) = current_range_end;
+                }
+            } else if (auto* pq_spkm = dynamic_cast<PQDescriptorScriptPubKeyMan*>(spkm)) {
+                int32_t current_range_end{pq_spkm->GetEndRange()};
+                if (current_range_end > last_range_end) {
+                    AddScriptPubKeys(*pq_spkm, last_range_end);
+                    m_last_range_ends.at(pq_spkm->GetID()) = current_range_end;
+                }
             }
         }
     }
@@ -354,6 +368,13 @@ private:
     void AddScriptPubKeys(const DescriptorScriptPubKeyMan* desc_spkm, int32_t last_range_end = 0)
     {
         for (const auto& script_pub_key : desc_spkm->GetScriptPubKeys(last_range_end)) {
+            m_filter_set.emplace(script_pub_key.begin(), script_pub_key.end());
+        }
+    }
+
+    void AddScriptPubKeys(const PQDescriptorScriptPubKeyMan& pq_spkm, int32_t last_range_end = 0)
+    {
+        for (const auto& script_pub_key : pq_spkm.GetScriptPubKeys(last_range_end)) {
             m_filter_set.emplace(script_pub_key.begin(), script_pub_key.end());
         }
     }
@@ -552,8 +573,9 @@ void CWallet::UpgradeDescriptorCache()
     }
 
     for (ScriptPubKeyMan* spkm : GetAllScriptPubKeyMans()) {
-        DescriptorScriptPubKeyMan* desc_spkm = dynamic_cast<DescriptorScriptPubKeyMan*>(spkm);
-        desc_spkm->UpgradeDescriptorCache();
+        if (auto* desc_spkm = dynamic_cast<DescriptorScriptPubKeyMan*>(spkm)) {
+            desc_spkm->UpgradeDescriptorCache();
+        }
     }
     SetWalletFlag(WALLET_FLAG_LAST_HARDENED_XPUB_CACHED);
 }
@@ -2494,6 +2516,9 @@ size_t CWallet::KeypoolCountExternalKeys() const
     for (auto spk_man : m_external_spk_managers) {
         count += spk_man.second->GetKeyPoolSize();
     }
+    if (m_external_pq_spk_manager) {
+        count += m_external_pq_spk_manager->GetKeyPoolSize();
+    }
 
     return count;
 }
@@ -2544,6 +2569,30 @@ util::Result<CTxDestination> CWallet::GetNewChangeDestination(const OutputType t
     if (op_dest) reservedest.KeepDestination();
 
     return op_dest;
+}
+
+util::Result<CTxDestination> CWallet::GetNewPQDestination(const std::string& label)
+{
+    LOCK(cs_wallet);
+    auto* pq_spk_man = dynamic_cast<PQDescriptorScriptPubKeyMan*>(m_external_pq_spk_manager);
+    if (!pq_spk_man) {
+        return util::Error{_("Error: No active PQ receiving descriptor is available.")};
+    }
+    auto op_dest = pq_spk_man->GetNewDestination(OutputType::BECH32);
+    if (op_dest) {
+        SetAddressBook(*op_dest, label, AddressPurpose::RECEIVE);
+    }
+    return op_dest;
+}
+
+util::Result<CTxDestination> CWallet::GetNewPQChangeDestination()
+{
+    LOCK(cs_wallet);
+    auto* pq_spk_man = dynamic_cast<PQDescriptorScriptPubKeyMan*>(m_internal_pq_spk_manager);
+    if (!pq_spk_man) {
+        return util::Error{_("Error: No active PQ change descriptor is available.")};
+    }
+    return pq_spk_man->GetNewDestination(OutputType::BECH32);
 }
 
 void CWallet::MarkDestinationsDirty(const std::set<CTxDestination>& destinations) {
@@ -3365,6 +3414,8 @@ std::set<ScriptPubKeyMan*> CWallet::GetActiveScriptPubKeyMans() const
             }
         }
     }
+    if (m_external_pq_spk_manager) spk_mans.insert(m_external_pq_spk_manager);
+    if (m_internal_pq_spk_manager) spk_mans.insert(m_internal_pq_spk_manager);
     return spk_mans;
 }
 
@@ -3376,6 +3427,7 @@ bool CWallet::IsActiveScriptPubKeyMan(const ScriptPubKeyMan& spkm) const
     for (const auto& [_, int_spkm] : m_internal_spk_managers) {
         if (int_spkm == &spkm) return true;
     }
+    if (m_external_pq_spk_manager == &spkm || m_internal_pq_spk_manager == &spkm) return true;
     return false;
 }
 
@@ -3534,6 +3586,35 @@ DescriptorScriptPubKeyMan& CWallet::LoadDescriptorScriptPubKeyMan(uint256 id, Wa
     return *spk_manager;
 }
 
+PQDescriptorScriptPubKeyMan& CWallet::LoadPQDescriptorScriptPubKeyMan(uint256 id, PQWalletDescriptor& desc)
+{
+    auto spk_manager = std::make_unique<PQDescriptorScriptPubKeyMan>(*this, id, desc, m_keypool_size);
+    auto* out = spk_manager.get();
+    AddScriptPubKeyMan(id, std::move(spk_manager));
+    return *out;
+}
+
+bool CWallet::LoadPQDescriptorRootSeed(uint256 id, const std::vector<unsigned char>& root_seed) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet)
+{
+    AssertLockHeld(cs_wallet);
+    auto* spk_man = dynamic_cast<PQDescriptorScriptPubKeyMan*>(GetScriptPubKeyMan(id));
+    return spk_man != nullptr && spk_man->LoadRootSeed(root_seed);
+}
+
+bool CWallet::LoadCryptedPQDescriptorRootSeed(uint256 id, const std::vector<unsigned char>& crypted_root_seed) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet)
+{
+    AssertLockHeld(cs_wallet);
+    auto* spk_man = dynamic_cast<PQDescriptorScriptPubKeyMan*>(GetScriptPubKeyMan(id));
+    return spk_man != nullptr && spk_man->LoadCryptedRootSeed(crypted_root_seed);
+}
+
+bool CWallet::LoadPQDescriptorCacheEntry(uint256 id, const int32_t index, const std::vector<unsigned char>& pk_script) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet)
+{
+    AssertLockHeld(cs_wallet);
+    auto* spk_man = dynamic_cast<PQDescriptorScriptPubKeyMan*>(GetScriptPubKeyMan(id));
+    return spk_man != nullptr && spk_man->LoadCachedPkScript(index, pk_script);
+}
+
 DescriptorScriptPubKeyMan& CWallet::SetupDescriptorScriptPubKeyMan(WalletBatch& batch, const CExtKey& master_key, const OutputType& output_type, bool internal)
 {
     AssertLockHeld(cs_wallet);
@@ -3637,6 +3718,15 @@ void CWallet::AddActiveScriptPubKeyMan(uint256 id, OutputType type, bool interna
     return AddActiveScriptPubKeyManWithDb(batch, id, type, internal);
 }
 
+void CWallet::AddActivePQScriptPubKeyMan(uint256 id, bool internal)
+{
+    WalletBatch batch(GetDatabase());
+    if (!batch.WriteActivePQScriptPubKeyMan(id, internal)) {
+        throw std::runtime_error(std::string(__func__) + ": writing active PQ ScriptPubKeyMan id failed");
+    }
+    LoadActivePQScriptPubKeyMan(id, internal);
+}
+
 void CWallet::AddActiveScriptPubKeyManWithDb(WalletBatch& batch, uint256 id, OutputType type, bool internal)
 {
     if (!batch.WriteActiveScriptPubKeyMan(static_cast<uint8_t>(type), id, internal)) {
@@ -3665,6 +3755,21 @@ void CWallet::LoadActiveScriptPubKeyMan(uint256 id, OutputType type, bool intern
     NotifyCanGetAddressesChanged();
 }
 
+void CWallet::LoadActivePQScriptPubKeyMan(uint256 id, bool internal)
+{
+    Assert(IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS));
+
+    WalletLogPrintf("Setting PQ spkMan to active: id = %s, internal = %s\n", id.ToString(), internal ? "true" : "false");
+    auto* spk_man = m_spk_managers.at(id).get();
+    if (internal) {
+        m_internal_pq_spk_manager = spk_man;
+    } else {
+        m_external_pq_spk_manager = spk_man;
+    }
+
+    NotifyCanGetAddressesChanged();
+}
+
 void CWallet::DeactivateScriptPubKeyMan(uint256 id, OutputType type, bool internal)
 {
     auto spk_man = GetScriptPubKeyMan(type, internal);
@@ -3679,6 +3784,20 @@ void CWallet::DeactivateScriptPubKeyMan(uint256 id, OutputType type, bool intern
         spk_mans.erase(type);
     }
 
+    NotifyCanGetAddressesChanged();
+}
+
+void CWallet::DeactivateActivePQScriptPubKeyMan(uint256 id, bool internal)
+{
+    auto*& spk_man = internal ? m_internal_pq_spk_manager : m_external_pq_spk_manager;
+    if (spk_man != nullptr && spk_man->GetID() == id) {
+        WalletLogPrintf("Deactivate PQ spkMan: id = %s, internal = %s\n", id.ToString(), internal ? "true" : "false");
+        WalletBatch batch(GetDatabase());
+        if (!batch.EraseActivePQScriptPubKeyMan(internal)) {
+            throw std::runtime_error(std::string(__func__) + ": erasing active PQ ScriptPubKeyMan id failed");
+        }
+        spk_man = nullptr;
+    }
     NotifyCanGetAddressesChanged();
 }
 
@@ -3705,15 +3824,16 @@ std::optional<bool> CWallet::IsInternalScriptPubKeyMan(ScriptPubKeyMan* spk_man)
     }
 
     const auto desc_spk_man = dynamic_cast<DescriptorScriptPubKeyMan*>(spk_man);
-    if (!desc_spk_man) {
-        throw std::runtime_error(std::string(__func__) + ": unexpected ScriptPubKeyMan type.");
+    if (desc_spk_man) {
+        LOCK(desc_spk_man->cs_desc_man);
+        const auto& type = desc_spk_man->GetWalletDescriptor().descriptor->GetOutputType();
+        assert(type.has_value());
+
+        return GetScriptPubKeyMan(*type, /* internal= */ true) == desc_spk_man;
     }
-
-    LOCK(desc_spk_man->cs_desc_man);
-    const auto& type = desc_spk_man->GetWalletDescriptor().descriptor->GetOutputType();
-    assert(type.has_value());
-
-    return GetScriptPubKeyMan(*type, /* internal= */ true) == desc_spk_man;
+    if (spk_man == m_internal_pq_spk_manager) return true;
+    if (spk_man == m_external_pq_spk_manager) return false;
+    throw std::runtime_error(std::string(__func__) + ": unexpected ScriptPubKeyMan type.");
 }
 
 util::Result<std::reference_wrapper<DescriptorScriptPubKeyMan>> CWallet::AddWalletDescriptor(WalletDescriptor& desc, const FlatSigningProvider& signing_provider, const std::string& label, bool internal)
@@ -3774,6 +3894,52 @@ util::Result<std::reference_wrapper<DescriptorScriptPubKeyMan>> CWallet::AddWall
     // Break balance caches so that outputs that are now IsMine in already known txs will be included in the balance
     MarkDirty();
 
+    return std::reference_wrapper(*spk_man);
+}
+
+util::Result<std::reference_wrapper<PQDescriptorScriptPubKeyMan>> CWallet::AddWalletPQDescriptor(const PQPrivateDescriptorInfo& info, const uint64_t creation_time, const int32_t range_start, const int32_t range_end, const int32_t next_index)
+{
+    AssertLockHeld(cs_wallet);
+
+    if (!IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS)) {
+        return util::Error{_("Cannot add PQ descriptors to a non-descriptor wallet")};
+    }
+    if (IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS)) {
+        return util::Error{_("Cannot import pqpriv() to a wallet with private keys disabled")};
+    }
+
+    const uint256 id = PQDescriptorScriptPubKeyMan::DeriveID(info.root_seed, info.internal);
+    PQWalletDescriptor descriptor{creation_time, range_start, range_end, next_index, static_cast<uint8_t>(info.internal ? 1 : 0)};
+
+    PQDescriptorScriptPubKeyMan* spk_man = nullptr;
+    if (auto* existing = GetScriptPubKeyMan(id)) {
+        spk_man = dynamic_cast<PQDescriptorScriptPubKeyMan*>(existing);
+        if (!spk_man) {
+            return util::Error{_("ScriptPubKey manager id collision for pqpriv() descriptor")};
+        }
+        if (!spk_man->UpdateWalletDescriptor(descriptor)) {
+            return util::Error{_("Could not update PQ descriptor state")};
+        }
+    } else {
+        auto new_spk_man = std::make_unique<PQDescriptorScriptPubKeyMan>(*this, id, info.root_seed, info.internal, creation_time, range_start, range_end, next_index, m_keypool_size);
+        if (IsCrypted()) {
+            if (IsLocked()) {
+                return util::Error{_("Cannot import pqpriv() into a locked encrypted wallet")};
+            }
+            WalletBatch batch(GetDatabase());
+            if (!new_spk_man->Encrypt(vMasterKey, &batch)) {
+                return util::Error{_("Could not encrypt pqpriv() root seed")};
+            }
+        }
+        spk_man = new_spk_man.get();
+        AddScriptPubKeyMan(id, std::move(new_spk_man));
+    }
+
+    if (!spk_man->TopUp()) {
+        return util::Error{_("Could not top up PQ scriptPubKeys")};
+    }
+
+    MarkDirty();
     return std::reference_wrapper(*spk_man);
 }
 
@@ -4469,7 +4635,7 @@ std::set<CExtPubKey> CWallet::GetActiveHDPubKeys() const
     std::set<CExtPubKey> active_xpubs;
     for (const auto& spkm : GetActiveScriptPubKeyMans()) {
         const DescriptorScriptPubKeyMan* desc_spkm = dynamic_cast<DescriptorScriptPubKeyMan*>(spkm);
-        assert(desc_spkm);
+        if (!desc_spkm) continue;
         LOCK(desc_spkm->cs_desc_man);
         WalletDescriptor w_desc = desc_spkm->GetWalletDescriptor();
 
@@ -4487,7 +4653,7 @@ std::optional<CKey> CWallet::GetKey(const CKeyID& keyid) const
 
     for (const auto& spkm : GetAllScriptPubKeyMans()) {
         const DescriptorScriptPubKeyMan* desc_spkm = dynamic_cast<DescriptorScriptPubKeyMan*>(spkm);
-        assert(desc_spkm);
+        if (!desc_spkm) continue;
         LOCK(desc_spkm->cs_desc_man);
         if (std::optional<CKey> key = desc_spkm->GetKey(keyid)) {
             return key;

@@ -10,10 +10,17 @@
 #include <script/sign.h>
 #include <script/signingprovider.h>
 
+#include <array>
 #include <optional>
+#include <string>
 #include <vector>
 
 using ExtPubKeyMap = std::unordered_map<uint32_t, CExtPubKey>;
+
+struct PQPrivateDescriptorInfo {
+    std::array<unsigned char, 32> root_seed;
+    bool internal;
+};
 
 /** Cache for single descriptor's derived extended pubkeys */
 class DescriptorCache {
@@ -200,6 +207,9 @@ std::string GetDescriptorChecksum(const std::string& descriptor);
  * - Failing that, a "raw()" descriptor is returned.
  */
 std::unique_ptr<Descriptor> InferDescriptor(const CScript& script, const SigningProvider& provider);
+
+std::optional<PQPrivateDescriptorInfo> GetPQPrivateDescriptorInfo(const Descriptor& descriptor);
+std::string GetPQPrivateDescriptorString(const std::array<unsigned char, 32>& root_seed, bool internal, bool with_checksum = true);
 
 /** Unique identifier that may not change over time, unless explicitly marked as not backwards compatible.
 *   This is not part of BIP 380, not guaranteed to be interoperable and should not be exposed to the user.
