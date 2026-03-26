@@ -63,6 +63,15 @@ def run_bench(bench_exe: str) -> tuple[dict[str, float | int], str]:
     ns_match = NS_PER_OP_RE.search(output)
     if ns_match:
         envelope["ns_per_op"] = float(ns_match.group("ns").replace(",", ""))
+    else:
+        for line in output.splitlines():
+            if "PQSigBenchEnvelope" not in line or "PQSIG_BENCH_ENVELOPE" in line:
+                continue
+            numbers = re.findall(r"[0-9][0-9,]*(?:\.[0-9]+)?", line)
+            if not numbers:
+                continue
+            envelope["ns_per_op"] = float(numbers[0].replace(",", ""))
+            break
     return envelope, output
 
 

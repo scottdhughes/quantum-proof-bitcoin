@@ -7,6 +7,16 @@ enable_language(C)
 function(add_secp256k1 subdir)
   message("")
   message("Configuring secp256k1 subtree...")
+  if(NOT CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    string(MAKE_C_IDENTIFIER "-Wcast-align=strict" secp256k1_cast_align_strict_var)
+    string(TOUPPER "${secp256k1_cast_align_strict_var}" secp256k1_cast_align_strict_var)
+    set(secp256k1_cast_align_strict_var "C_SUPPORTS_${secp256k1_cast_align_strict_var}")
+    set(${secp256k1_cast_align_strict_var} FALSE CACHE INTERNAL
+      "Skip the GNU-only -Wcast-align=strict secp256k1 probe on non-GNU toolchains."
+      FORCE
+    )
+    unset(secp256k1_cast_align_strict_var)
+  endif()
   set(BUILD_SHARED_LIBS OFF)
   set(CMAKE_EXPORT_COMPILE_COMMANDS OFF)
   set(SECP256K1_ENABLE_MODULE_ECDH OFF CACHE BOOL "" FORCE)

@@ -7,6 +7,12 @@ function(add_libmultiprocess subdir)
   # option that controls whether enable_testing() is called, but in the bitcoin
   # build a BUILD_TESTS option is used instead.
   set(BUILD_TESTING "${BUILD_TESTS}")
+  if(NOT CMAKE_SYSTEM_NAME MATCHES "^(FreeBSD|OpenBSD|DragonFly)$")
+    set(HAVE_PTHREAD_GETTHREADID_NP FALSE CACHE INTERNAL
+      "Skip the BSD-only pthread_getthreadid_np probe on non-BSD platforms."
+      FORCE
+    )
+  endif()
   add_subdirectory(${subdir} EXCLUDE_FROM_ALL)
   # Apply core_interface compile options to libmultiprocess runtime library.
   target_link_libraries(multiprocess PUBLIC $<BUILD_INTERFACE:core_interface>)

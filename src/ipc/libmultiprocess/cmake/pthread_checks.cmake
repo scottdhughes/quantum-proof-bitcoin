@@ -30,16 +30,12 @@ check_cxx_source_compiles("
   }"
   HAVE_PTHREAD_THREADID_NP)
 
-if(CMAKE_SYSTEM_NAME MATCHES "^(FreeBSD|OpenBSD|DragonFly)$")
-  check_cxx_source_compiles("
-    #include <pthread.h>
-    #include <pthread_np.h>
-    int main(int argc, char** argv)
-    {
-      return pthread_getthreadid_np();
-    }"
-    HAVE_PTHREAD_GETTHREADID_NP)
-else()
-  set(HAVE_PTHREAD_GETTHREADID_NP FALSE)
-endif()
+check_cxx_source_compiles("
+  #include <pthread.h>
+  #include <pthread_np.h>
+  int main(int argc, char** argv)
+  {
+    return pthread_getthreadid_np();
+  }"
+  HAVE_PTHREAD_GETTHREADID_NP)
 cmake_pop_check_state()
