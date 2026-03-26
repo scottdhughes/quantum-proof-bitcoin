@@ -5,6 +5,7 @@
 #include <wallet/pq_scriptpubkeyman.h>
 
 #include <crypto/sha256.h>
+#include <script/sign.h>
 #include <script/script.h>
 #include <script/solver.h>
 #include <tinyformat.h>
@@ -83,6 +84,16 @@ bool PQDescriptorScriptPubKeyMan::GetRootSeed(CKeyingMaterial& root_seed) const
     return m_storage.WithEncryptionKey([&](const CKeyingMaterial& master_key) {
         return DecryptSecret(master_key, crypted_root_seed, m_id, root_seed) && root_seed.size() == pqsig::MSG32_SIZE;
     });
+}
+
+bool PQDescriptorScriptPubKeyMan::GetChildSeedForIndex(const int32_t index, PQSeed& seed) const
+{
+    AssertLockHeld(cs_pq_man);
+    CKeyingMaterial root_seed;
+    if (!GetRootSeed(root_seed)) {
+        return false;
+    }
+    return pqsig::DeriveWalletSkSeed(seed, root_seed, IsInternal(), index);
 }
 
 bool PQDescriptorScriptPubKeyMan::GetDestinationForIndex(const int32_t index, CTxDestination& dest) const
@@ -256,6 +267,12 @@ bool PQDescriptorScriptPubKeyMan::IsMine(const CScript& script) const
     return m_map_script_pub_keys.contains(script);
 }
 
+bool PQDescriptorScriptPubKeyMan::IsSpendable(const CScript& script) const
+{
+    LOCK(cs_pq_man);
+    return m_map_script_pub_keys.contains(script) && (!m_root_seed.empty() || !m_crypted_root_seed.empty());
+}
+
 bool PQDescriptorScriptPubKeyMan::CheckDecryptionKey(const CKeyingMaterial& master_key)
 {
     LOCK(cs_pq_man);
@@ -329,6 +346,11 @@ std::unique_ptr<CKeyMetadata> PQDescriptorScriptPubKeyMan::GetMetadata(const CTx
 
 std::unique_ptr<SigningProvider> PQDescriptorScriptPubKeyMan::GetSolvingProvider(const CScript& script) const
 {
+    return GetSigningProvider(script, /*include_private=*/false);
+}
+
+std::unique_ptr<FlatSigningProvider> PQDescriptorScriptPubKeyMan::GetSigningProvider(const CScript& script, const bool include_private) const
+{
     LOCK(cs_pq_man);
     const auto it = m_map_script_pub_keys.find(script);
     if (it == m_map_script_pub_keys.end()) {
@@ -341,12 +363,85 @@ std::unique_ptr<SigningProvider> PQDescriptorScriptPubKeyMan::GetSolvingProvider
     auto provider = std::make_unique<FlatSigningProvider>();
     const CScript witness_script = MakeWitnessScript(pk_it->second);
     provider->scripts.emplace(CScriptID(witness_script), witness_script);
+    if (include_private) {
+        PQSeed child_seed{};
+        if (!GetChildSeedForIndex(it->second, child_seed)) {
+            return nullptr;
+        }
+        provider->pq_keys.emplace(pk_it->second, child_seed);
+    }
     return provider;
 }
 
 bool PQDescriptorScriptPubKeyMan::CanProvide(const CScript& script, SignatureData&)
 {
     return IsMine(script);
+}
+
+bool PQDescriptorScriptPubKeyMan::SignTransaction(CMutableTransaction& tx, const std::map<COutPoint, Coin>& coins, int sighash, std::map<int, bilingual_str>& input_errors) const
+{
+    const int effective_sighash = sighash == SIGHASH_DEFAULT ? SIGHASH_ALL : sighash;
+    if (effective_sighash != SIGHASH_ALL) {
+        return false;
+    }
+
+    std::unique_ptr<FlatSigningProvider> keys = std::make_unique<FlatSigningProvider>();
+    for (const auto& coin_pair : coins) {
+        std::unique_ptr<FlatSigningProvider> coin_keys = GetSigningProvider(coin_pair.second.out.scriptPubKey, /*include_private=*/true);
+        if (!coin_keys) {
+            continue;
+        }
+        keys->Merge(std::move(*coin_keys));
+    }
+
+    return ::SignTransaction(tx, keys.get(), coins, sighash, input_errors);
+}
+
+std::optional<common::PSBTError> PQDescriptorScriptPubKeyMan::FillPSBT(PartiallySignedTransaction& psbt, const PrecomputedTransactionData& txdata, std::optional<int> sighash_type, const bool sign, const bool bip32derivs, int* n_signed, const bool finalize) const
+{
+    if (n_signed) {
+        *n_signed = 0;
+    }
+    for (unsigned int i = 0; i < psbt.tx->vin.size(); ++i) {
+        const CTxIn& txin = psbt.tx->vin[i];
+        PSBTInput& input = psbt.inputs.at(i);
+
+        if (PSBTInputSigned(input)) {
+            continue;
+        }
+
+        CScript script;
+        if (!input.witness_utxo.IsNull()) {
+            script = input.witness_utxo.scriptPubKey;
+        } else if (input.non_witness_utxo) {
+            if (txin.prevout.n >= input.non_witness_utxo->vout.size()) {
+                return common::PSBTError::MISSING_INPUTS;
+            }
+            script = input.non_witness_utxo->vout[txin.prevout.n].scriptPubKey;
+        } else {
+            continue;
+        }
+
+        std::unique_ptr<FlatSigningProvider> keys = GetSigningProvider(script, /*include_private=*/sign);
+        if (!keys) {
+            continue;
+        }
+
+        const std::optional<int> input_sighash = input.sighash_type.has_value() ? input.sighash_type : sighash_type;
+        if (input_sighash.has_value() && *input_sighash != SIGHASH_DEFAULT && *input_sighash != SIGHASH_ALL) {
+            return common::PSBTError::SIGHASH_MISMATCH;
+        }
+
+        const auto res = SignPSBTInput(HidingSigningProvider(keys.get(), /*hide_secret=*/!sign, /*hide_origin=*/!bip32derivs), psbt, i, &txdata, sighash_type, nullptr, finalize);
+        if (res != common::PSBTError::OK && res != common::PSBTError::INCOMPLETE) {
+            return res;
+        }
+
+        if (n_signed && (PSBTInputSigned(input) || !sign)) {
+            ++(*n_signed);
+        }
+    }
+    return {};
 }
 
 uint256 PQDescriptorScriptPubKeyMan::GetID() const

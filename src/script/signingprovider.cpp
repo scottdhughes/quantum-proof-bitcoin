@@ -44,6 +44,12 @@ bool HidingSigningProvider::GetKeyOrigin(const CKeyID& keyid, KeyOriginInfo& inf
     return m_provider->GetKeyOrigin(keyid, info);
 }
 
+bool HidingSigningProvider::GetPQKey(const PQPkScript& pk_script, PQSeed& seed) const
+{
+    if (m_hide_secret) return false;
+    return m_provider->GetPQKey(pk_script, seed);
+}
+
 bool HidingSigningProvider::GetTaprootSpendData(const XOnlyPubKey& output_key, TaprootSpendData& spenddata) const
 {
     return m_provider->GetTaprootSpendData(output_key, spenddata);
@@ -73,6 +79,7 @@ bool FlatSigningProvider::HaveKey(const CKeyID &keyid) const
     return LookupHelper(keys, keyid, key);
 }
 bool FlatSigningProvider::GetKey(const CKeyID& keyid, CKey& key) const { return LookupHelper(keys, keyid, key); }
+bool FlatSigningProvider::GetPQKey(const PQPkScript& pk_script, PQSeed& seed) const { return LookupHelper(pq_keys, pk_script, seed); }
 bool FlatSigningProvider::GetTaprootSpendData(const XOnlyPubKey& output_key, TaprootSpendData& spenddata) const
 {
     TaprootBuilder builder;
@@ -100,6 +107,7 @@ FlatSigningProvider& FlatSigningProvider::Merge(FlatSigningProvider&& b)
     pubkeys.merge(b.pubkeys);
     keys.merge(b.keys);
     origins.merge(b.origins);
+    pq_keys.merge(b.pq_keys);
     tr_trees.merge(b.tr_trees);
     aggregate_pubkeys.merge(b.aggregate_pubkeys);
     return *this;
@@ -280,6 +288,14 @@ bool MultiSigningProvider::GetKey(const CKeyID& keyid, CKey& key) const
 {
     for (const auto& provider: m_providers) {
         if (provider->GetKey(keyid, key)) return true;
+    }
+    return false;
+}
+
+bool MultiSigningProvider::GetPQKey(const PQPkScript& pk_script, PQSeed& seed) const
+{
+    for (const auto& provider: m_providers) {
+        if (provider->GetPQKey(pk_script, seed)) return true;
     }
     return false;
 }

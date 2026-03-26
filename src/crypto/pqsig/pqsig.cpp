@@ -248,14 +248,22 @@ bool DerivePkScript(const std::span<uint8_t> out_pk_script33, const std::span<co
 
 bool DeriveWalletPkScript(const std::span<uint8_t> out_pk_script33, const std::span<const uint8_t> root_seed, const bool internal, const uint32_t index)
 {
-    if (!ConsensusProfileLocked() || out_pk_script33.size() != PK_SCRIPT_SIZE || root_seed.size() != MSG32_SIZE) {
+    std::array<unsigned char, MSG32_SIZE> child_seed{};
+    if (!DeriveWalletSkSeed(child_seed, root_seed, internal, index)) {
+        return false;
+    }
+    return DerivePkScript(out_pk_script33, child_seed);
+}
+
+bool DeriveWalletSkSeed(const std::span<uint8_t> out_sk_seed32, const std::span<const uint8_t> root_seed, const bool internal, const uint32_t index)
+{
+    if (!ConsensusProfileLocked() || out_sk_seed32.size() != MSG32_SIZE || root_seed.size() != MSG32_SIZE) {
         return false;
     }
 
     CHKDF_HMAC_SHA256_L32 hkdf(root_seed.data(), root_seed.size(), "PQSIG-WALLET-ROOT-v1");
-    unsigned char child_seed[MSG32_SIZE];
-    hkdf.Expand32(strprintf("branch=%u;index=%u", internal ? 1U : 0U, index), child_seed);
-    return DerivePkScript(out_pk_script33, child_seed);
+    hkdf.Expand32(strprintf("branch=%u;index=%u", internal ? 1U : 0U, index), out_sk_seed32.data());
+    return true;
 }
 
 bool PQSigVerify(

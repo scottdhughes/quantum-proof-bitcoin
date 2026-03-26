@@ -33,7 +33,7 @@ class WalletPQActiveRangedTest(BitcoinTestFramework):
         self.skip_if_no_wallet()
 
     def mine_block(self):
-        self.nodes[0].generatetodescriptor(1, RAW_TRUE_DESCRIPTOR, called_by_framework=True)
+        return self.nodes[0].generatetodescriptor(1, RAW_TRUE_DESCRIPTOR, called_by_framework=True)[0]
 
     def ensure_wallet_loaded(self, wallet_name):
         node = self.nodes[0]
@@ -80,13 +80,32 @@ class WalletPQActiveRangedTest(BitcoinTestFramework):
         if label is not None:
             assert_equal(info["labels"], [label])
 
-    def assert_tracked_output(self, wallet, txid: str, entry, amount: Decimal):
-        tx = wallet.gettransaction(txid)
-        assert_equal(tx["amount"], amount)
-        assert_equal(tx["details"][0]["address"], entry.address)
-        assert_equal(tx["details"][0]["category"], "receive")
+    def assert_owned_unspent(self, wallet, txid: str, entry, amount: Decimal, *, category: str | None = "receive"):
+        if category is not None:
+            tx = wallet.gettransaction(txid)
+            details = [detail for detail in tx["details"] if detail["address"] == entry.address]
+            assert_equal(len(details), 1)
+            assert_equal(details[0]["category"], category)
+        unspent = wallet.listunspent()
+        assert_equal(len(unspent), 1)
+        assert_equal(unspent[0]["txid"], txid)
+        assert_equal(unspent[0]["address"], entry.address)
+        assert_equal(unspent[0]["amount"], amount)
+        assert_equal(unspent[0]["spendable"], True)
         assert_equal(wallet.getbalances()["mine"]["trusted"], amount)
-        assert_equal(wallet.listunspent(), [])
+
+    def find_output_amount(self, txid: str, address: str, *, blockhash: str) -> Decimal:
+        tx = self.nodes[0].getrawtransaction(txid, 2, blockhash)
+        for vout in tx["vout"]:
+            script_pub_key = vout["scriptPubKey"]
+            output_address = script_pub_key.get("address")
+            if output_address is None:
+                addresses = script_pub_key.get("addresses", [])
+                if addresses:
+                    output_address = addresses[0]
+            if output_address == address:
+                return Decimal(str(vout["value"]))
+        raise AssertionError(f"Unable to find output for {address} in {txid}")
 
     def fund_entry(self, entry, amount_sat: int) -> str:
         tx = create_wallet_funded_tx(self.nodes[0], bytes(entry.script_pub_key), amount_sat)
@@ -131,22 +150,25 @@ class WalletPQActiveRangedTest(BitcoinTestFramework):
         self.assert_address_info(wallet, int_entries[0], is_change=True)
         self.assert_descriptor_state(wallet, root_seed, external_next=3, internal_next=1)
 
-        self.log.info("Fund a later generated PQ address and confirm it is tracked but not spendable")
+        self.log.info("Fund a later generated PQ address and confirm it is tracked and spendable")
         txid = self.fund_entry(ext_entries[2], 4 * COIN)
         self.mine_block()
-        self.assert_tracked_output(wallet, txid, ext_entries[2], Decimal("4.00000000"))
-        assert_raises_rpc_error(-6, "Insufficient funds", wallet.sendtoaddress, sink_addr, 1)
+        self.assert_owned_unspent(wallet, txid, ext_entries[2], Decimal("4.00000000"))
+
+        self.log.info("Spend from the funded PQ output and confirm automatic PQ change uses the active internal manager")
+        spend_txid = wallet.sendtoaddress(sink_addr, 1)
+        spend_blockhash = self.mine_block()
+        change_amount = self.find_output_amount(spend_txid, int_entries[1].address, blockhash=spend_blockhash)
+        self.assert_owned_unspent(wallet, spend_txid, int_entries[1], change_amount, category=None)
+        self.assert_descriptor_state(wallet, root_seed, external_next=3, internal_next=2)
+        self.assert_address_info(wallet, int_entries[1], is_change=True)
 
         self.log.info("Restart and confirm active manager state and tracked outputs persist")
         self.restart_node(0, self.extra_args[0])
         node = self.nodes[0]
         wallet = self.ensure_wallet_loaded("pqactive")
-        self.assert_descriptor_state(wallet, root_seed, external_next=3, internal_next=1)
-        self.assert_tracked_output(wallet, txid, ext_entries[2], Decimal("4.00000000"))
-
-        assert_equal(wallet.getnewpqaddress(), ext_entries[3].address)
-        assert_equal(wallet.getrawpqchangeaddress(), int_entries[1].address)
-        self.assert_descriptor_state(wallet, root_seed, external_next=4, internal_next=2)
+        self.assert_descriptor_state(wallet, root_seed, external_next=3, internal_next=2)
+        self.assert_owned_unspent(wallet, spend_txid, int_entries[1], change_amount, category=None)
 
         self.log.info("Back up and restore the wallet with active PQ managers intact")
         backup_path = node.datadir_path / "pqactive.bak"
@@ -154,9 +176,9 @@ class WalletPQActiveRangedTest(BitcoinTestFramework):
         node.restorewallet("pqactive_restored", str(backup_path))
         restored = node.get_wallet_rpc("pqactive_restored")
 
-        self.assert_descriptor_state(restored, root_seed, external_next=4, internal_next=2)
-        self.assert_tracked_output(restored, txid, ext_entries[2], Decimal("4.00000000"))
-        self.assert_address_info(restored, ext_entries[2], is_change=False)
+        self.assert_descriptor_state(restored, root_seed, external_next=3, internal_next=2)
+        self.assert_owned_unspent(restored, spend_txid, int_entries[1], change_amount, category=None)
+        self.assert_address_info(restored, int_entries[1], is_change=True)
         assert_equal(restored.gethdkeys(), [])
         assert_raises_rpc_error(-4, "Public export for ranged pqpriv() descriptors is not available.", restored.listdescriptors, False)
         assert_raises_rpc_error(
@@ -167,18 +189,18 @@ class WalletPQActiveRangedTest(BitcoinTestFramework):
         )
 
         self.log.info("Generated addresses continue from the correct next index after restore")
-        assert_equal(restored.getnewpqaddress("restored receive"), ext_entries[4].address)
+        assert_equal(restored.getnewpqaddress("restored receive"), ext_entries[3].address)
         assert_equal(restored.getrawpqchangeaddress(), int_entries[2].address)
-        self.assert_descriptor_state(restored, root_seed, external_next=5, internal_next=3)
+        self.assert_descriptor_state(restored, root_seed, external_next=4, internal_next=3)
 
         self.log.info("Reload the restored wallet and confirm watch set and next_index remain stable")
         restored.unloadwallet()
         node.loadwallet("pqactive_restored")
         restored = node.get_wallet_rpc("pqactive_restored")
+        self.assert_descriptor_state(restored, root_seed, external_next=4, internal_next=3)
+        self.assert_owned_unspent(restored, spend_txid, int_entries[1], change_amount, category=None)
+        assert_equal(restored.getnewpqaddress(), ext_entries[4].address)
         self.assert_descriptor_state(restored, root_seed, external_next=5, internal_next=3)
-        self.assert_tracked_output(restored, txid, ext_entries[2], Decimal("4.00000000"))
-        assert_equal(restored.getnewpqaddress(), ext_entries[5].address)
-        self.assert_descriptor_state(restored, root_seed, external_next=6, internal_next=3)
 
 
 if __name__ == "__main__":

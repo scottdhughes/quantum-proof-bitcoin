@@ -1719,6 +1719,9 @@ bool CWallet::CanGetAddresses(bool internal) const
 {
     LOCK(cs_wallet);
     if (m_spk_managers.empty()) return false;
+    if (internal && m_internal_pq_spk_manager && m_internal_pq_spk_manager->CanGetAddresses(/*internal=*/true)) {
+        return true;
+    }
     for (OutputType t : OUTPUT_TYPES) {
         auto spk_man = GetScriptPubKeyMan(t, internal);
         if (spk_man && spk_man->CanGetAddresses(internal)) {
@@ -2275,7 +2278,7 @@ OutputType CWallet::TransactionChangeType(const std::optional<OutputType>& chang
         // Currently tr is the only type supported by the BECH32M spkman
         return OutputType::BECH32M;
     }
-    const bool has_bech32_spkman(GetScriptPubKeyMan(OutputType::BECH32, /*internal=*/true));
+    const bool has_bech32_spkman(GetChangeScriptPubKeyMan(OutputType::BECH32));
     if (has_bech32_spkman && any_wpkh) {
         // Currently wpkh is the only type supported by the BECH32 spkman
         return OutputType::BECH32;
@@ -2571,6 +2574,17 @@ util::Result<CTxDestination> CWallet::GetNewChangeDestination(const OutputType t
     return op_dest;
 }
 
+ScriptPubKeyMan* CWallet::GetChangeScriptPubKeyMan(const OutputType& type) const
+{
+    if (auto* spk_man = GetScriptPubKeyMan(type, /*internal=*/true)) {
+        return spk_man;
+    }
+    if (type == OutputType::BECH32) {
+        return m_internal_pq_spk_manager;
+    }
+    return nullptr;
+}
+
 util::Result<CTxDestination> CWallet::GetNewPQDestination(const std::string& label)
 {
     LOCK(cs_wallet);
@@ -2650,7 +2664,7 @@ std::set<std::string> CWallet::ListAddrBookLabels(const std::optional<AddressPur
 
 util::Result<CTxDestination> ReserveDestination::GetReservedDestination(bool internal)
 {
-    m_spk_man = pwallet->GetScriptPubKeyMan(type, internal);
+    m_spk_man = internal ? pwallet->GetChangeScriptPubKeyMan(type) : pwallet->GetScriptPubKeyMan(type, internal);
     if (!m_spk_man) {
         return util::Error{strprintf(_("Error: No %s addresses available."), FormatOutputType(type))};
     }
