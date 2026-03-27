@@ -5,6 +5,7 @@
 #include <crypto/pqsig/pqsig.h>
 #include <crypto/pqsig/pqsig_internal.h>
 #include <crypto/pqsig/params.h>
+#include <test/data/pqsig/future_vectors.json.h>
 #include <test/data/pqsig/invalid_vectors.json.h>
 #include <test/data/pqsig/kat_v1.json.h>
 #include <tinyformat.h>
@@ -59,6 +60,20 @@ const UniValue& GetInvalidVectors()
     return vectors;
 }
 
+const UniValue& GetFutureVectors()
+{
+    static UniValue vectors{UniValue::VARR};
+    static bool loaded{false};
+    if (!loaded) {
+        UniValue root;
+        BOOST_REQUIRE(root.read(json_tests::future_vectors));
+        vectors = root.get_obj().find_value("vectors");
+        BOOST_REQUIRE(vectors.isArray());
+        loaded = true;
+    }
+    return vectors;
+}
+
 const UniValue& FindKatVectorByName(const std::string& name)
 {
     const UniValue& vectors = GetKatVectors();
@@ -77,6 +92,17 @@ uint8_t ParseHexByte(const std::string& hex)
     const std::vector<uint8_t> parsed = ParseHex(hex);
     BOOST_REQUIRE_EQUAL(parsed.size(), 1U);
     return parsed[0];
+}
+
+pqsig::PkScriptParseStatus ParseExpectedStatus(const std::string& value)
+{
+    if (value == "VALID_ACTIVE") return pqsig::PkScriptParseStatus::VALID_ACTIVE;
+    if (value == "INVALID_LENGTH") return pqsig::PkScriptParseStatus::INVALID_LENGTH;
+    if (value == "RESERVED_INVALID_ALG_ID") return pqsig::PkScriptParseStatus::RESERVED_INVALID_ALG_ID;
+    if (value == "ALLOCATED_FUTURE_ALG_ID") return pqsig::PkScriptParseStatus::ALLOCATED_FUTURE_ALG_ID;
+    if (value == "RETIRED_ALG_ID") return pqsig::PkScriptParseStatus::RETIRED_ALG_ID;
+    if (value == "UNALLOCATED_ALG_ID") return pqsig::PkScriptParseStatus::UNALLOCATED_ALG_ID;
+    throw std::runtime_error("unknown pk-script parse status");
 }
 
 struct PQSigCase
@@ -439,6 +465,50 @@ BOOST_AUTO_TEST_CASE(pqsig_invalid_corpus_minimum_coverage)
     BOOST_CHECK(has_sig_layer_auth);
     BOOST_CHECK(has_sig_layer_wots);
     BOOST_CHECK(has_sig_layer_count);
+}
+
+BOOST_AUTO_TEST_CASE(pqsig_future_fixture_vectors)
+{
+    const UniValue& future_vectors = GetFutureVectors();
+    BOOST_REQUIRE(future_vectors.isArray());
+    BOOST_REQUIRE(!future_vectors.get_array().empty());
+
+    for (unsigned int i = 0; i < future_vectors.get_array().size(); ++i) {
+        const UniValue future_obj = future_vectors.get_array()[i].get_obj();
+        const std::string base_name = future_obj.find_value("base").get_str();
+        const UniValue base_obj = FindKatVectorByName(base_name).get_obj();
+
+        std::vector<uint8_t> msg = ParseHex(base_obj.find_value("msg32").get_str());
+        std::vector<uint8_t> sk = ParseHex(base_obj.find_value("sk_seed").get_str());
+        std::vector<uint8_t> pk = ParseHex(base_obj.find_value("pk_script33").get_str());
+        std::vector<uint8_t> sig = ParseHex(base_obj.find_value("sig4480").get_str());
+
+        const UniValue& mutations = future_obj.find_value("mutations");
+        BOOST_REQUIRE(mutations.isArray());
+        for (unsigned int j = 0; j < mutations.get_array().size(); ++j) {
+            ApplyMutation(msg, pk, sig, mutations.get_array()[j].get_obj());
+        }
+
+        BOOST_REQUIRE_EQUAL(msg.size(), pqsig::MSG32_SIZE);
+        BOOST_REQUIRE_EQUAL(sk.size(), pqsig::MSG32_SIZE);
+        BOOST_REQUIRE_EQUAL(pk.size(), pqsig::PK_SCRIPT_SIZE);
+        BOOST_REQUIRE_EQUAL(sig.size(), pqsig::SIG_SIZE);
+
+        const auto expected_status = ParseExpectedStatus(future_obj.find_value("expected_status").get_str());
+        BOOST_CHECK(pqsig::ClassifyPkScript(pk) == expected_status);
+
+        std::array<uint8_t, pqsig::PK_CORE_SIZE / 2> pk_seed{};
+        std::array<uint8_t, pqsig::PK_CORE_SIZE / 2> pk_root{};
+        const bool expect_parse = future_obj.find_value("expected_parse").get_bool();
+        const bool expect_verify = future_obj.find_value("expected_verify").get_bool();
+        const bool expect_sign = future_obj.find_value("expected_sign").get_bool();
+
+        BOOST_CHECK_EQUAL(pqsig::ParsePkScript(pk, pk_seed, pk_root), expect_parse);
+        BOOST_CHECK_EQUAL(pqsig::PQSigVerify(sig, msg, pk), expect_verify);
+
+        std::vector<uint8_t> regenerated(pqsig::SIG_SIZE);
+        BOOST_CHECK_EQUAL(pqsig::PQSigSign(regenerated, msg, sk, pk), expect_sign);
+    }
 }
 
 BOOST_AUTO_TEST_CASE(pqsig_selected_structural_mutations_fail)

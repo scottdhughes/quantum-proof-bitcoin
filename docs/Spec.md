@@ -209,9 +209,10 @@ Policy SHOULD enforce:
 ## 9. Upgrade and Versioning (Plan)
 - ALG_ID byte in PK_script provides a clean hook for future signature versions.
 - The active GA profile is PQSig rc2 with `ALG_ID = 0x01`; see `ALG_ID_REGISTRY.md`.
+- `ALG_ID = 0x02` is allocated to the neutral `future-0x02` fixture path and remains invalid in current releases.
 - Assigned values, lifecycle state, allocation rules, and reuse prohibitions are defined in `ALG_ID_REGISTRY.md`.
 - Current parser compatibility and explicit non-negotiation rules are frozen in `ALG_ID_PARSER_COMPAT.md`.
-- Forward-compatible algorithm test paths remain post-v1 work tracked separately.
+- A forward-compatible algorithm test path now exists via the neutral `future-0x02` fixture profile; runtime acceptance remains unchanged.
 
 ---
 

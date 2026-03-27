@@ -1,0 +1,21 @@
+{
+  "profile": "pqsig-future-0x02-fixtures",
+  "vectors": [
+    {
+      "name": "future_0x02_from_kat_01",
+      "base": "kat_01",
+      "mutations": [
+        {
+          "field": "pk_script33",
+          "offset": 0,
+          "op": "set",
+          "value": "02"
+        }
+      ],
+      "expected_status": "ALLOCATED_FUTURE_ALG_ID",
+      "expected_parse": false,
+      "expected_verify": false,
+      "expected_sign": false
+    }
+  ]
+}

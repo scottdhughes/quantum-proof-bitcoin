@@ -62,15 +62,16 @@ std::array<uint8_t, params::N> DerivePkSeed(const std::span<const uint8_t> sk_se
     return domains::HashN(metrics, "PQSIG-PK-SEED", parts);
 }
 
-bool ParsePkScript(
+bool ParseActivePkScript(
     const std::span<const uint8_t> pk_script,
-    std::array<uint8_t, params::N>& pk_seed,
-    std::array<uint8_t, params::N>& pk_root)
+    const std::span<uint8_t> out_pk_seed,
+    const std::span<uint8_t> out_pk_root)
 {
     if (!ConsensusProfileLocked()) return false;
+    if (out_pk_seed.size() != params::N || out_pk_root.size() != params::N) return false;
     if (!IsValidPkScript(pk_script)) return false;
-    std::copy_n(pk_script.begin() + 1, params::N, pk_seed.begin());
-    std::copy_n(pk_script.begin() + 1 + params::N, params::N, pk_root.begin());
+    std::copy_n(pk_script.begin() + 1, params::N, out_pk_seed.begin());
+    std::copy_n(pk_script.begin() + 1 + params::N, params::N, out_pk_root.begin());
     return true;
 }
 
@@ -256,6 +257,14 @@ bool IsValidPkScript(const std::span<const uint8_t> pk_script33)
     return ClassifyPkScript(pk_script33) == PkScriptParseStatus::VALID_ACTIVE;
 }
 
+bool ParsePkScript(
+    const std::span<const uint8_t> pk_script33,
+    const std::span<uint8_t> out_pk_seed,
+    const std::span<uint8_t> out_pk_root)
+{
+    return ParseActivePkScript(pk_script33, out_pk_seed, out_pk_root);
+}
+
 bool DerivePkScript(const std::span<uint8_t> out_pk_script33, const std::span<const uint8_t> sk_seed)
 {
     if (!ConsensusProfileLocked() || out_pk_script33.size() != PK_SCRIPT_SIZE || sk_seed.size() != MSG32_SIZE) {
@@ -306,7 +315,7 @@ bool PQSigVerify(
 
     std::array<uint8_t, params::N> pk_seed{};
     std::array<uint8_t, params::N> pk_root{};
-    if (!ParsePkScript(pk_script33, pk_seed, pk_root)) {
+    if (!ParseActivePkScript(pk_script33, pk_seed, pk_root)) {
         PublishMetrics(metrics);
         return false;
     }
@@ -341,7 +350,7 @@ bool PQSigSign(
 
     std::array<uint8_t, params::N> pk_seed{};
     std::array<uint8_t, params::N> pk_root{};
-    if (!ParsePkScript(pk_script33, pk_seed, pk_root)) {
+    if (!ParseActivePkScript(pk_script33, pk_seed, pk_root)) {
         PublishMetrics(metrics);
         return false;
     }

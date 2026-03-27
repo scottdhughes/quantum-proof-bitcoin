@@ -34,6 +34,9 @@ enum class PkScriptParseStatus : uint8_t {
 
 PkScriptParseStatus ClassifyPkScript(std::span<const uint8_t> pk_script33);
 bool IsValidPkScript(std::span<const uint8_t> pk_script33);
+bool ParsePkScript(std::span<const uint8_t> pk_script33,
+                   std::span<uint8_t> out_pk_seed,
+                   std::span<uint8_t> out_pk_root);
 bool DerivePkScript(std::span<uint8_t> out_pk_script33, std::span<const uint8_t> sk_seed);
 bool DeriveWalletSkSeed(std::span<uint8_t> out_sk_seed32, std::span<const uint8_t> root_seed, bool internal, uint32_t index);
 bool DeriveWalletPkScript(std::span<uint8_t> out_pk_script33, std::span<const uint8_t> root_seed, bool internal, uint32_t index);

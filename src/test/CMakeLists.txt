@@ -163,11 +163,13 @@ if(PQBTC_ENABLE_LEGACY_UNIT_TESTS)
     data/tx_invalid.json
     data/tx_valid.json
     data/pqsig/kat_v1.json
+    data/pqsig/future_vectors.json
     data/pqsig/invalid_vectors.json
   )
 else()
   target_json_data_sources(test_pqbtc
     data/pqsig/kat_v1.json
+    data/pqsig/future_vectors.json
     data/pqsig/invalid_vectors.json
   )
 endif()

@@ -104,10 +104,17 @@ BOOST_AUTO_TEST_CASE(alg_id_registry_is_frozen_for_current_release)
     BOOST_CHECK_EQUAL(active.sig_size, pqsig::SIG_SIZE);
     BOOST_CHECK_EQUAL(active.pk_script_size, pqsig::PK_SCRIPT_SIZE);
 
-    const auto unallocated = pqsig::GetALGIDInfo(0x02);
-    BOOST_CHECK_EQUAL(unallocated.alg_id, 0x02);
-    BOOST_CHECK(unallocated.state == pqsig::ALGIDState::UNALLOCATED);
+    const auto future = pqsig::GetALGIDInfo(0x02);
+    BOOST_CHECK_EQUAL(future.alg_id, 0x02);
+    BOOST_CHECK(future.state == pqsig::ALGIDState::ALLOCATED_FUTURE);
     BOOST_CHECK(!pqsig::IsValidALGID(0x02));
+    BOOST_CHECK_EQUAL(future.sig_size, pqsig::SIG_SIZE);
+    BOOST_CHECK_EQUAL(future.pk_script_size, pqsig::PK_SCRIPT_SIZE);
+
+    const auto unallocated = pqsig::GetALGIDInfo(0x03);
+    BOOST_CHECK_EQUAL(unallocated.alg_id, 0x03);
+    BOOST_CHECK(unallocated.state == pqsig::ALGIDState::UNALLOCATED);
+    BOOST_CHECK(!pqsig::IsValidALGID(0x03));
     BOOST_CHECK_EQUAL(unallocated.sig_size, 0U);
     BOOST_CHECK_EQUAL(unallocated.pk_script_size, 0U);
 }
@@ -117,8 +124,10 @@ BOOST_AUTO_TEST_CASE(pk_script_classification_is_length_first_and_matches_validi
     const auto active_pk_script = MakePkScript();
     auto reserved_pk_script = active_pk_script;
     reserved_pk_script[0] = 0x00;
+    auto future_pk_script = active_pk_script;
+    future_pk_script[0] = 0x02;
     auto unallocated_pk_script = active_pk_script;
-    unallocated_pk_script[0] = 0x02;
+    unallocated_pk_script[0] = 0x03;
 
     struct ClassificationCase {
         std::vector<uint8_t> pk_script;
@@ -130,6 +139,7 @@ BOOST_AUTO_TEST_CASE(pk_script_classification_is_length_first_and_matches_validi
         {std::vector<uint8_t>(pqsig::PK_SCRIPT_SIZE - 1, 0x11), pqsig::PkScriptParseStatus::INVALID_LENGTH},
         {std::vector<uint8_t>(reserved_pk_script.begin(), reserved_pk_script.end()), pqsig::PkScriptParseStatus::RESERVED_INVALID_ALG_ID},
         {std::vector<uint8_t>(active_pk_script.begin(), active_pk_script.end()), pqsig::PkScriptParseStatus::VALID_ACTIVE},
+        {std::vector<uint8_t>(future_pk_script.begin(), future_pk_script.end()), pqsig::PkScriptParseStatus::ALLOCATED_FUTURE_ALG_ID},
         {std::vector<uint8_t>(unallocated_pk_script.begin(), unallocated_pk_script.end()), pqsig::PkScriptParseStatus::UNALLOCATED_ALG_ID},
         {std::vector<uint8_t>(pqsig::PK_SCRIPT_SIZE + 1, 0x11), pqsig::PkScriptParseStatus::INVALID_LENGTH},
     };
@@ -191,9 +201,17 @@ BOOST_AUTO_TEST_CASE(checksig_rejects_wrong_sig_size_and_alg_id)
     BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, reserved_script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
     BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUBKEYTYPE);
 
+    // Allocated-future algorithm identifiers are still rejected with the same public-key encoding error.
+    auto future_pk_script = pk_script;
+    future_pk_script[0] = 0x02;
+    const CScript future_script_pubkey = CScript{} << std::vector<unsigned char>{future_pk_script.begin(), future_pk_script.end()} << OP_CHECKSIG;
+    tx.vin[0].scriptSig = CScript{} << std::vector<unsigned char>{good_sig.begin(), good_sig.end()};
+    BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, future_script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUBKEYTYPE);
+
     // Unallocated algorithm identifiers are rejected with the same public-key encoding error.
     auto unallocated_pk_script = pk_script;
-    unallocated_pk_script[0] = 0x02;
+    unallocated_pk_script[0] = 0x03;
     const CScript unallocated_script_pubkey = CScript{} << std::vector<unsigned char>{unallocated_pk_script.begin(), unallocated_pk_script.end()} << OP_CHECKSIG;
     tx.vin[0].scriptSig = CScript{} << std::vector<unsigned char>{good_sig.begin(), good_sig.end()};
     BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, unallocated_script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
@@ -323,7 +341,7 @@ BOOST_AUTO_TEST_CASE(psbt_rejects_non_active_pq_pk_script_in_proprietary_partial
     PartiallySignedTransaction psbt(tx);
 
     auto invalid_pk_script = pk_script;
-    invalid_pk_script[0] = 0x02;
+    invalid_pk_script[0] = 0x03;
 
     PSBTProprietary prop;
     prop.subtype = 1;

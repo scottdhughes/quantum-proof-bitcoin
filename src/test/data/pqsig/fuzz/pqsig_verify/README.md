@@ -9,7 +9,8 @@ or acceptance-boundary class represented in the local smoke corpus.
 | Seed | Class | Expected shape | Purpose |
 |---|---|---|---|
 | `seed_short_sizes.bin` | short-size inputs | invalid | Exercises early size rejection. |
-| `seed_bad_alg_id.bin` | bad alg-id | invalid | Exercises `PK_script[0] != 0x01` rejection. |
+| `seed_allocated_future_alg_id.bin` | allocated-future alg-id | invalid | Exercises `PK_script[0] == 0x02` allocated-future rejection. |
+| `seed_unallocated_alg_id.bin` | unallocated alg-id | invalid | Exercises `PK_script[0] == 0x03` unallocated rejection. |
 | `seed_pk_seed_mismatch.bin` | pk-seed mismatch | valid-size invalid | Keeps the `PK_root` re-derivation path in corpus. |
 | `seed_pk_root_mismatch.bin` | pk-root mismatch | valid-size invalid | Keeps parser rejection for mismatched `PK_root`. |
 | `seed_count_mismatch.bin` | reserved count mutation | valid-size invalid | Exercises the rc2 reserved-zero count field rejection. |

@@ -36,6 +36,8 @@ constexpr ALGIDInfo GetALGIDInfo(const uint8_t alg_id)
         return {alg_id, ALGIDState::RESERVED_INVALID, 0, 0};
     case ALG_ID_RC2:
         return {alg_id, ALGIDState::ACTIVE, 4480, 33};
+    case 0x02:
+        return {alg_id, ALGIDState::ALLOCATED_FUTURE, 4480, 33};
     default:
         return {alg_id, ALGIDState::UNALLOCATED, 0, 0};
     }
