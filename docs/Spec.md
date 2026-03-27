@@ -210,7 +210,8 @@ Policy SHOULD enforce:
 - ALG_ID byte in PK_script provides a clean hook for future signature versions.
 - The active GA profile is PQSig rc2 with `ALG_ID = 0x01`; see `ALG_ID_REGISTRY.md`.
 - Assigned values, lifecycle state, allocation rules, and reuse prohibitions are defined in `ALG_ID_REGISTRY.md`.
-- Parser/version-negotiation work and forward-compatible algorithm test paths remain post-v1 work tracked separately.
+- Current parser compatibility and explicit non-negotiation rules are frozen in `ALG_ID_PARSER_COMPAT.md`.
+- Forward-compatible algorithm test paths remain post-v1 work tracked separately.
 
 ---
 

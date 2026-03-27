@@ -844,7 +844,7 @@ struct PSBTInput
                         }
                         PQPkScript pk_script{};
                         prop_key >> std::as_writable_bytes(std::span{pk_script});
-                        if (!pqsig::IsValidPkScript(pk_script)) {
+                        if (pqsig::ClassifyPkScript(pk_script) != pqsig::PkScriptParseStatus::VALID_ACTIVE) {
                             throw std::ios_base::failure("Invalid PQ PK_script in proprietary key");
                         }
                         if (this_prop.value.size() != pqsig::SIG_SIZE) {

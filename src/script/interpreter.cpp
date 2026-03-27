@@ -88,7 +88,7 @@ bool CheckSignatureEncoding(const std::vector<unsigned char> &vchSig, unsigned i
 bool static CheckPubKeyEncoding(const valtype &vchPubKey, unsigned int flags, const SigVersion &sigversion, ScriptError* serror) {
     (void)flags;
     (void)sigversion;
-    if (!pqsig::IsValidPkScript(vchPubKey)) {
+    if (pqsig::ClassifyPkScript(vchPubKey) != pqsig::PkScriptParseStatus::VALID_ACTIVE) {
         return set_error(serror, SCRIPT_ERR_PUBKEYTYPE);
     }
     return true;
@@ -1559,7 +1559,7 @@ bool GenericTransactionSignatureChecker<T>::CheckECDSASignature(const std::vecto
     if (!IsPreTaprootPQSigVersion(sigversion)) return false;
     if (vchSigIn.empty()) return false;
     if (vchSigIn.size() != pqsig::SIG_SIZE) return false;
-    if (!pqsig::IsValidPkScript(vchPubKey)) return false;
+    if (pqsig::ClassifyPkScript(vchPubKey) != pqsig::PkScriptParseStatus::VALID_ACTIVE) return false;
 
     // Witness sighashes need the amount.
     if (sigversion == SigVersion::WITNESS_V0 && amount < 0) return HandleMissingData(m_mdb);

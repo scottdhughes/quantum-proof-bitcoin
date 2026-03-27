@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -227,9 +228,32 @@ bool VerifySignatureStructure(
 
 } // namespace
 
+PkScriptParseStatus ClassifyPkScript(const std::span<const uint8_t> pk_script33)
+{
+    if (pk_script33.size() != PK_SCRIPT_SIZE) {
+        return PkScriptParseStatus::INVALID_LENGTH;
+    }
+
+    switch (GetALGIDInfo(pk_script33[0]).state) {
+    case ALGIDState::ACTIVE:
+        return PkScriptParseStatus::VALID_ACTIVE;
+    case ALGIDState::RESERVED_INVALID:
+        return PkScriptParseStatus::RESERVED_INVALID_ALG_ID;
+    case ALGIDState::ALLOCATED_FUTURE:
+        return PkScriptParseStatus::ALLOCATED_FUTURE_ALG_ID;
+    case ALGIDState::RETIRED:
+        return PkScriptParseStatus::RETIRED_ALG_ID;
+    case ALGIDState::UNALLOCATED:
+        return PkScriptParseStatus::UNALLOCATED_ALG_ID;
+    }
+
+    assert(false);
+    return PkScriptParseStatus::UNALLOCATED_ALG_ID;
+}
+
 bool IsValidPkScript(const std::span<const uint8_t> pk_script33)
 {
-    return pk_script33.size() == PK_SCRIPT_SIZE && IsValidALGID(pk_script33[0]);
+    return ClassifyPkScript(pk_script33) == PkScriptParseStatus::VALID_ACTIVE;
 }
 
 bool DerivePkScript(const std::span<uint8_t> out_pk_script33, const std::span<const uint8_t> sk_seed)

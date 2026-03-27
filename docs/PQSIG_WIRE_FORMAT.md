@@ -9,7 +9,7 @@
 - `PK_script` length is exactly 33 bytes.
 - Layout: `ALG_ID(1 byte) || PK_core(32 bytes)`.
 - For rc2: `ALG_ID = 0x01`; assigned values and lifecycle state are governed by `ALG_ID_REGISTRY.md`.
-- Any other length or unknown algorithm id is invalid.
+- Any other length or non-active algorithm id is invalid; parser handling is defined in `ALG_ID_PARSER_COMPAT.md`.
 
 ## Signature Encoding
 - Signature length is exactly 4480 bytes.

@@ -42,7 +42,7 @@ static bool MatchPayToPubkey(const CScript& script, valtype& pubkey)
     }
     if (script.size() == CPubKey::COMPRESSED_SIZE + 2 && script[0] == CPubKey::COMPRESSED_SIZE && script.back() == OP_CHECKSIG) {
         pubkey = valtype(script.begin() + 1, script.begin() + CPubKey::COMPRESSED_SIZE + 1);
-        return CPubKey::ValidSize(pubkey) || pqsig::IsValidPkScript(pubkey);
+        return CPubKey::ValidSize(pubkey) || pqsig::ClassifyPkScript(pubkey) == pqsig::PkScriptParseStatus::VALID_ACTIVE;
     }
     return false;
 }

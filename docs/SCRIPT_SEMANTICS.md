@@ -10,7 +10,7 @@
 - `OP_CHECKMULTISIG` verifies multiple PQSig signatures under existing stack mechanics.
 
 ## Validation Rules
-- Unknown `ALG_ID` fails.
+- Non-active `ALG_ID` fails; parser handling is defined in `ALG_ID_PARSER_COMPAT.md`.
 - Wrong public key size fails.
 - Wrong signature size fails.
 - Failed PQSig verification fails.

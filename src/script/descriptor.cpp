@@ -1013,7 +1013,7 @@ static bool ParsePqPkScript(std::span<const char> expr, std::array<unsigned char
         return false;
     }
     std::copy(pk_script.begin(), pk_script.end(), out_pk_script.begin());
-    if (!pqsig::IsValidPkScript(out_pk_script)) {
+    if (pqsig::ClassifyPkScript(out_pk_script) != pqsig::PkScriptParseStatus::VALID_ACTIVE) {
         error = strprintf("PK_script must use ALG_ID=0x%02x", pqsig::ALG_ID_RC2);
         return false;
     }
@@ -1064,7 +1064,7 @@ static bool MatchPQSingleSigWitnessScript(const CScript& script, std::array<unsi
     if (script.size() != 1 + pqsig::PK_SCRIPT_SIZE + 1) return false;
     if (script[0] != pqsig::PK_SCRIPT_SIZE || script.back() != OP_CHECKSIG) return false;
     std::copy(script.begin() + 1, script.begin() + 1 + pqsig::PK_SCRIPT_SIZE, out_pk_script.begin());
-    return pqsig::IsValidPkScript(out_pk_script);
+    return pqsig::ClassifyPkScript(out_pk_script) == pqsig::PkScriptParseStatus::VALID_ACTIVE;
 }
 
 /** A parsed addr(A) descriptor. */
