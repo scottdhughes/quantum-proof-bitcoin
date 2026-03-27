@@ -40,5 +40,5 @@ Consensus-locked internal parameterization for the PQSig rc2 profile in PQBTC.
 ## Safety Properties
 - Parser treats signature and key inputs as hostile.
 - Parameter values are immutable consensus constants.
-- Unknown `ALG_ID` is invalid.
+- Unknown `ALG_ID` is invalid; assigned values and lifecycle state are governed by `ALG_ID_REGISTRY.md`.
 - Any nonzero count field is invalid.

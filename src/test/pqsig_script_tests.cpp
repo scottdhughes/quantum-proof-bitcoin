@@ -88,6 +88,30 @@ FlatSigningProvider MakePQSigningProvider(const std::array<uint8_t, pqsig::PK_SC
 
 BOOST_AUTO_TEST_SUITE(pqsig_script_tests)
 
+BOOST_AUTO_TEST_CASE(alg_id_registry_is_frozen_for_current_release)
+{
+    const auto reserved = pqsig::GetALGIDInfo(0x00);
+    BOOST_CHECK_EQUAL(reserved.alg_id, 0x00);
+    BOOST_CHECK(reserved.state == pqsig::ALGIDState::RESERVED_INVALID);
+    BOOST_CHECK(!pqsig::IsValidALGID(0x00));
+    BOOST_CHECK_EQUAL(reserved.sig_size, 0U);
+    BOOST_CHECK_EQUAL(reserved.pk_script_size, 0U);
+
+    const auto active = pqsig::GetALGIDInfo(pqsig::ALG_ID_RC2);
+    BOOST_CHECK_EQUAL(active.alg_id, pqsig::ALG_ID_RC2);
+    BOOST_CHECK(active.state == pqsig::ALGIDState::ACTIVE);
+    BOOST_CHECK(pqsig::IsValidALGID(pqsig::ALG_ID_RC2));
+    BOOST_CHECK_EQUAL(active.sig_size, pqsig::SIG_SIZE);
+    BOOST_CHECK_EQUAL(active.pk_script_size, pqsig::PK_SCRIPT_SIZE);
+
+    const auto unallocated = pqsig::GetALGIDInfo(0x02);
+    BOOST_CHECK_EQUAL(unallocated.alg_id, 0x02);
+    BOOST_CHECK(unallocated.state == pqsig::ALGIDState::UNALLOCATED);
+    BOOST_CHECK(!pqsig::IsValidALGID(0x02));
+    BOOST_CHECK_EQUAL(unallocated.sig_size, 0U);
+    BOOST_CHECK_EQUAL(unallocated.pk_script_size, 0U);
+}
+
 BOOST_AUTO_TEST_CASE(checksig_accepts_valid_pqsig)
 {
     const auto pk_script = MakePkScript();

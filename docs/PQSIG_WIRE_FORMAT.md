@@ -8,7 +8,7 @@
 ## Script-Layer Public Key
 - `PK_script` length is exactly 33 bytes.
 - Layout: `ALG_ID(1 byte) || PK_core(32 bytes)`.
-- For rc2: `ALG_ID = 0x01`.
+- For rc2: `ALG_ID = 0x01`; assigned values and lifecycle state are governed by `ALG_ID_REGISTRY.md`.
 - Any other length or unknown algorithm id is invalid.
 
 ## Signature Encoding

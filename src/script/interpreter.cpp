@@ -19,7 +19,9 @@ namespace {
 
 static_assert(pqsig::PK_SCRIPT_SIZE == 33, "PQSIG rc2 pubkey script size drifted");
 static_assert(pqsig::SIG_SIZE == 4480, "PQSIG rc2 signature size drifted");
-static_assert(pqsig::ALG_ID_RC2 == 0x01, "PQSIG rc2 ALG_ID drifted");
+static_assert(pqsig::GetALGIDInfo(pqsig::ALG_ID_RC2).state == pqsig::ALGIDState::ACTIVE, "PQSIG active ALG_ID drifted");
+static_assert(pqsig::GetALGIDInfo(pqsig::ALG_ID_RC2).pk_script_size == pqsig::PK_SCRIPT_SIZE, "PQSIG registry pubkey size drifted");
+static_assert(pqsig::GetALGIDInfo(pqsig::ALG_ID_RC2).sig_size == pqsig::SIG_SIZE, "PQSIG registry signature size drifted");
 
 constexpr bool IsPreTaprootPQSigVersion(const SigVersion sigversion)
 {

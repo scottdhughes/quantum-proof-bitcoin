@@ -208,10 +208,9 @@ Policy SHOULD enforce:
 
 ## 9. Upgrade and Versioning (Plan)
 - ALG_ID byte in PK_script provides a clean hook for future signature versions.
-- The active GA profile is PQSig rc2 with `ALG_ID = 0x01`.
-- Retired ALG_ID values MUST NOT be reused for different wire semantics.
-- New ALG_ID values MUST be introduced via a consensus upgrade process.
-- Any future ALG_ID allocation MUST ship with a frozen wire-format spec and explicit change-control review before activation.
+- The active GA profile is PQSig rc2 with `ALG_ID = 0x01`; see `ALG_ID_REGISTRY.md`.
+- Assigned values, lifecycle state, allocation rules, and reuse prohibitions are defined in `ALG_ID_REGISTRY.md`.
+- Parser/version-negotiation work and forward-compatible algorithm test paths remain post-v1 work tracked separately.
 
 ---
 
