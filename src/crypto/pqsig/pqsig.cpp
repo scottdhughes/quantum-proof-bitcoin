@@ -31,7 +31,9 @@ constexpr bool ConsensusProfileLocked()
            PK_CORE_SIZE == 32 &&
            MSG32_SIZE == 32 &&
            SIG_SIZE == 4480 &&
-           ALG_ID_RC2 == 0x01 &&
+           GetALGIDInfo(ALG_ID_RC2).state == ALGIDState::ACTIVE &&
+           GetALGIDInfo(ALG_ID_RC2).pk_script_size == PK_SCRIPT_SIZE &&
+           GetALGIDInfo(ALG_ID_RC2).sig_size == SIG_SIZE &&
            params::N == 16 &&
            params::QS_LOG2 == 40 &&
            params::H == 44 &&
@@ -227,7 +229,7 @@ bool VerifySignatureStructure(
 
 bool IsValidPkScript(const std::span<const uint8_t> pk_script33)
 {
-    return pk_script33.size() == PK_SCRIPT_SIZE && pk_script33[0] == ALG_ID_RC2;
+    return pk_script33.size() == PK_SCRIPT_SIZE && IsValidALGID(pk_script33[0]);
 }
 
 bool DerivePkScript(const std::span<uint8_t> out_pk_script33, const std::span<const uint8_t> sk_seed)

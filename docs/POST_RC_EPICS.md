@@ -20,8 +20,8 @@ Execution tracker for work required after `v1.0.0-rc1` to reach full-and-complet
 - Exit criteria: decision-complete consensus plan with cross-version test matrix.
 
 3. Multi-algorithm evolution (`ALG_ID` registry)
-- Scope: version registry, parser compatibility contract, governance and rollout semantics.
-- Exit criteria: at least one forward-compatible algorithm version test path.
+- Scope: `#24` registry definition and governance rules, `#25` parser compatibility contract, and `#26` forward-compatible algorithm version path.
+- Exit criteria: frozen registry plus at least one forward-compatible algorithm version test path.
 
 4. CI completeness strategy
 - Scope: full PQ migration of legacy suites or explicit durable dual-profile guarantees.

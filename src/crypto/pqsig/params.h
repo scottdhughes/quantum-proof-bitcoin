@@ -64,7 +64,9 @@ static_assert(L == 32);
 static_assert(SWN == 240);
 static_assert(pqsig::PK_SCRIPT_SIZE == 33);
 static_assert(pqsig::SIG_SIZE == 4480);
-static_assert(pqsig::ALG_ID_RC2 == 0x01);
+static_assert(pqsig::GetALGIDInfo(pqsig::ALG_ID_RC2).state == pqsig::ALGIDState::ACTIVE);
+static_assert(pqsig::GetALGIDInfo(pqsig::ALG_ID_RC2).pk_script_size == pqsig::PK_SCRIPT_SIZE);
+static_assert(pqsig::GetALGIDInfo(pqsig::ALG_ID_RC2).sig_size == pqsig::SIG_SIZE);
 static_assert(SIGN_COUNTER_MAX == 1048576);
 
 } // namespace params

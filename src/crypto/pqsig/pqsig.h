@@ -5,6 +5,8 @@
 #ifndef BITCOIN_CRYPTO_PQSIG_PQSIG_H
 #define BITCOIN_CRYPTO_PQSIG_PQSIG_H
 
+#include <crypto/pqsig/pqsig_registry.h>
+
 #include <cstddef>
 #include <cstdint>
 
@@ -16,7 +18,10 @@ inline constexpr size_t PK_SCRIPT_SIZE{33};
 inline constexpr size_t PK_CORE_SIZE{32};
 inline constexpr size_t MSG32_SIZE{32};
 inline constexpr size_t SIG_SIZE{4480};
-inline constexpr uint8_t ALG_ID_RC2{0x01};
+
+static_assert(GetALGIDInfo(ALG_ID_RC2).state == ALGIDState::ACTIVE);
+static_assert(GetALGIDInfo(ALG_ID_RC2).pk_script_size == PK_SCRIPT_SIZE);
+static_assert(GetALGIDInfo(ALG_ID_RC2).sig_size == SIG_SIZE);
 
 bool IsValidPkScript(std::span<const uint8_t> pk_script33);
 bool DerivePkScript(std::span<uint8_t> out_pk_script33, std::span<const uint8_t> sk_seed);
