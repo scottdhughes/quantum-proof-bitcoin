@@ -43,7 +43,7 @@ bool DecodePQPartialSigProp(const PSBTProprietary& prop, PQPkScript& pk_script, 
         return false;
     }
     key_reader >> std::as_writable_bytes(std::span{pk_script});
-    if (!pqsig::IsValidPkScript(pk_script) || prop.value.size() != pqsig::SIG_SIZE) {
+    if (pqsig::ClassifyPkScript(pk_script) != pqsig::PkScriptParseStatus::VALID_ACTIVE || prop.value.size() != pqsig::SIG_SIZE) {
         return false;
     }
     sig = prop.value;

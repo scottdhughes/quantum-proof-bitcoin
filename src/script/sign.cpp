@@ -453,7 +453,7 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         if (vSolutions[0].size() == pqsig::PK_SCRIPT_SIZE) {
             PQPkScript pk_script{};
             std::copy(vSolutions[0].begin(), vSolutions[0].end(), pk_script.begin());
-            if (pqsig::IsValidPkScript(pk_script)) {
+            if (pqsig::ClassifyPkScript(pk_script) == pqsig::PkScriptParseStatus::VALID_ACTIVE) {
                 if (!CreatePQSig(creator, sigdata, provider, sig, pk_script, scriptPubKey, sigversion)) return false;
                 ret.push_back(std::move(sig));
                 return true;

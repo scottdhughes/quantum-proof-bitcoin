@@ -539,7 +539,7 @@ bool PQDescriptorScriptPubKeyMan::LoadCachedPkScript(const int32_t index, const 
     }
     std::array<unsigned char, pqsig::PK_SCRIPT_SIZE> pk_script_array{};
     std::copy(pk_script.begin(), pk_script.end(), pk_script_array.begin());
-    if (!pqsig::IsValidPkScript(pk_script_array)) {
+    if (pqsig::ClassifyPkScript(pk_script_array) != pqsig::PkScriptParseStatus::VALID_ACTIVE) {
         return false;
     }
     m_map_pk_scripts[index] = pk_script_array;

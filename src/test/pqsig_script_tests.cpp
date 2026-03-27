@@ -112,6 +112,35 @@ BOOST_AUTO_TEST_CASE(alg_id_registry_is_frozen_for_current_release)
     BOOST_CHECK_EQUAL(unallocated.pk_script_size, 0U);
 }
 
+BOOST_AUTO_TEST_CASE(pk_script_classification_is_length_first_and_matches_validity)
+{
+    const auto active_pk_script = MakePkScript();
+    auto reserved_pk_script = active_pk_script;
+    reserved_pk_script[0] = 0x00;
+    auto unallocated_pk_script = active_pk_script;
+    unallocated_pk_script[0] = 0x02;
+
+    struct ClassificationCase {
+        std::vector<uint8_t> pk_script;
+        pqsig::PkScriptParseStatus expected;
+    };
+
+    const std::vector<ClassificationCase> cases{
+        {{}, pqsig::PkScriptParseStatus::INVALID_LENGTH},
+        {std::vector<uint8_t>(pqsig::PK_SCRIPT_SIZE - 1, 0x11), pqsig::PkScriptParseStatus::INVALID_LENGTH},
+        {std::vector<uint8_t>(reserved_pk_script.begin(), reserved_pk_script.end()), pqsig::PkScriptParseStatus::RESERVED_INVALID_ALG_ID},
+        {std::vector<uint8_t>(active_pk_script.begin(), active_pk_script.end()), pqsig::PkScriptParseStatus::VALID_ACTIVE},
+        {std::vector<uint8_t>(unallocated_pk_script.begin(), unallocated_pk_script.end()), pqsig::PkScriptParseStatus::UNALLOCATED_ALG_ID},
+        {std::vector<uint8_t>(pqsig::PK_SCRIPT_SIZE + 1, 0x11), pqsig::PkScriptParseStatus::INVALID_LENGTH},
+    };
+
+    for (const auto& test_case : cases) {
+        const auto status = pqsig::ClassifyPkScript(test_case.pk_script);
+        BOOST_CHECK(status == test_case.expected);
+        BOOST_CHECK_EQUAL(pqsig::IsValidPkScript(test_case.pk_script), status == pqsig::PkScriptParseStatus::VALID_ACTIVE);
+    }
+}
+
 BOOST_AUTO_TEST_CASE(checksig_accepts_valid_pqsig)
 {
     const auto pk_script = MakePkScript();
@@ -154,12 +183,20 @@ BOOST_AUTO_TEST_CASE(checksig_rejects_wrong_sig_size_and_alg_id)
     BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, short_pk_script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
     BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUBKEYTYPE);
 
-    // Wrong algorithm identifier in the pubkey script is rejected deterministically.
-    auto bad_pk_script = pk_script;
-    bad_pk_script[0] = 0x00;
-    const CScript bad_script_pubkey = CScript{} << std::vector<unsigned char>{bad_pk_script.begin(), bad_pk_script.end()} << OP_CHECKSIG;
+    // Reserved-invalid algorithm identifiers are rejected deterministically.
+    auto reserved_pk_script = pk_script;
+    reserved_pk_script[0] = 0x00;
+    const CScript reserved_script_pubkey = CScript{} << std::vector<unsigned char>{reserved_pk_script.begin(), reserved_pk_script.end()} << OP_CHECKSIG;
     tx.vin[0].scriptSig = CScript{} << std::vector<unsigned char>{good_sig.begin(), good_sig.end()};
-    BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, bad_script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
+    BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, reserved_script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUBKEYTYPE);
+
+    // Unallocated algorithm identifiers are rejected with the same public-key encoding error.
+    auto unallocated_pk_script = pk_script;
+    unallocated_pk_script[0] = 0x02;
+    const CScript unallocated_script_pubkey = CScript{} << std::vector<unsigned char>{unallocated_pk_script.begin(), unallocated_pk_script.end()} << OP_CHECKSIG;
+    tx.vin[0].scriptSig = CScript{} << std::vector<unsigned char>{good_sig.begin(), good_sig.end()};
+    BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, unallocated_script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
     BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUBKEYTYPE);
 }
 
@@ -276,6 +313,36 @@ BOOST_AUTO_TEST_CASE(psbt_roundtrips_pq_proprietary_partial_sig_and_finalizes)
     BOOST_REQUIRE_EQUAL(roundtrip.inputs[0].final_script_witness.stack.size(), 2U);
     BOOST_CHECK_EQUAL(roundtrip.inputs[0].final_script_witness.stack[0].size(), pqsig::SIG_SIZE);
     BOOST_CHECK(roundtrip.inputs[0].final_script_witness.stack[1] == std::vector<unsigned char>(witness_script.begin(), witness_script.end()));
+}
+
+BOOST_AUTO_TEST_CASE(psbt_rejects_non_active_pq_pk_script_in_proprietary_partial_sig)
+{
+    const auto pk_script = MakePkScript();
+
+    CMutableTransaction tx = BuildSpendingTx();
+    PartiallySignedTransaction psbt(tx);
+
+    auto invalid_pk_script = pk_script;
+    invalid_pk_script[0] = 0x02;
+
+    PSBTProprietary prop;
+    prop.subtype = 1;
+    prop.identifier = {'p', 'q', 'b', 't', 'c'};
+    prop.value.assign(pqsig::SIG_SIZE, 0x5a);
+
+    VectorWriter key_writer{prop.key, 0};
+    key_writer << CompactSizeWriter(PSBT_IN_PROPRIETARY);
+    key_writer << prop.identifier;
+    WriteCompactSize(key_writer, prop.subtype);
+    key_writer << std::span{invalid_pk_script};
+
+    psbt.inputs[0].m_proprietary.insert(prop);
+
+    DataStream ss{};
+    ss << psbt;
+
+    PartiallySignedTransaction roundtrip;
+    BOOST_CHECK_THROW(ss >> roundtrip, std::ios_base::failure);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

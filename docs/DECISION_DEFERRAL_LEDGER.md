@@ -40,9 +40,9 @@ and define the concrete work required for a full-and-complete post-v1 program.
 ### 4. Fixed rc2 wire/profile
 - rc2 state: `ALG_ID=0x01`, `PK_script` fixed at 33 bytes, signature fixed at 4480 bytes, and `PK.root` is exact-root bound.
 - post-v1 update: `ALG_ID` registry structure and governance rules are frozen.
-- deferred: parser compatibility contract and forward-compatible algorithm path.
+- post-v1 update: parser compatibility and explicit non-negotiation rules are frozen.
+- deferred: forward-compatible algorithm path.
 - full-complete delta:
-  - version negotiation and backward-compat parsing guarantees
   - forward-compatible algorithm test path and activation/interoperability rules
 
 ### 5. Fixed pre-taproot sighash mode
@@ -70,7 +70,7 @@ and define the concrete work required for a full-and-complete post-v1 program.
 ## Post-v1 Full-Complete Program (Execution Order)
 1. Wallet completeness and PSBT parity.
 2. Taproot/PQ coexistence design + deployment path.
-3. Multi-alg parser compatibility and forward-compatible algorithm path.
+3. Multi-alg forward-compatible algorithm path.
 4. CI completion (full migration or permanent dual-profile contract).
 5. Operational SLO hardening and adversarial throughput validation.
 6. Bench instrumentation hardening from fixed-envelope mode to measured accounting.
