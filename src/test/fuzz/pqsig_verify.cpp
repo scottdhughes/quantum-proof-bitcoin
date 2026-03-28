@@ -129,27 +129,33 @@ void ApplyDeterministicRejectMutation(
     std::vector<uint8_t>& msg,
     std::vector<uint8_t>& pk)
 {
-    switch (provider.ConsumeIntegralInRange<int>(0, 6)) {
+    switch (provider.ConsumeIntegralInRange<int>(0, 8)) {
     case 0:
         pk[0] = 0x00;
         break;
     case 1:
-        XorByte(pk, 1 + provider.ConsumeIntegralInRange<size_t>(0, pqsig::params::N - 1), provider.ConsumeIntegralInRange<uint8_t>(1, 255));
+        pk[0] = 0x02;
         break;
     case 2:
-        XorByte(pk, 1 + pqsig::params::N + provider.ConsumeIntegralInRange<size_t>(0, pqsig::params::N - 1), provider.ConsumeIntegralInRange<uint8_t>(1, 255));
+        pk[0] = 0x03;
         break;
     case 3:
-        MutateLayerCounter(provider, sig);
+        XorByte(pk, 1 + provider.ConsumeIntegralInRange<size_t>(0, pqsig::params::N - 1), provider.ConsumeIntegralInRange<uint8_t>(1, 255));
         break;
     case 4:
-        OverflowLayerCounter(provider, sig);
+        XorByte(pk, 1 + pqsig::params::N + provider.ConsumeIntegralInRange<size_t>(0, pqsig::params::N - 1), provider.ConsumeIntegralInRange<uint8_t>(1, 255));
         break;
     case 5:
-        XorByte(msg, provider.ConsumeIntegralInRange<size_t>(0, msg.size() - 1), provider.ConsumeIntegralInRange<uint8_t>(1, 255));
         MutateLayerCounter(provider, sig);
         break;
     case 6:
+        OverflowLayerCounter(provider, sig);
+        break;
+    case 7:
+        XorByte(msg, provider.ConsumeIntegralInRange<size_t>(0, msg.size() - 1), provider.ConsumeIntegralInRange<uint8_t>(1, 255));
+        MutateLayerCounter(provider, sig);
+        break;
+    case 8:
         XorByte(sig, provider.ConsumeIntegralInRange<size_t>(0, pqsig::params::SIG_R_SIZE - 1), provider.ConsumeIntegralInRange<uint8_t>(1, 255));
         OverflowLayerCounter(provider, sig);
         break;

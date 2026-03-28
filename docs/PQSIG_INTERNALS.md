@@ -41,4 +41,5 @@ Consensus-locked internal parameterization for the PQSig rc2 profile in PQBTC.
 - Parser treats signature and key inputs as hostile.
 - Parameter values are immutable consensus constants.
 - `ALG_ID` classification and parser/version-handling rules are defined in `ALG_ID_PARSER_COMPAT.md`; assigned values and lifecycle state are governed by `ALG_ID_REGISTRY.md`.
+- `future-0x02` is frozen only as an allocated-future fixture profile and defines no active signing or verification semantics in current releases.
 - Any nonzero count field is invalid.

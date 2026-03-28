@@ -19,7 +19,7 @@ Current-release parser and version-handling rules for PQBTC `PK_script` inputs.
 ## Registry-State Handling
 - `RESERVED_INVALID`: reject.
 - `ACTIVE`: permit active-profile structural parsing.
-- `ALLOCATED_FUTURE`: reject until a later activation tranche defines compatibility behavior.
+- `ALLOCATED_FUTURE`: reject until a later activation tranche defines compatibility behavior. Current allocated-future example: `future-0x02` (`ALG_ID=0x02`).
 - `RETIRED`: reject permanently.
 - `UNALLOCATED`: reject.
 
