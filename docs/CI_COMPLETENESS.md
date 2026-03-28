@@ -71,4 +71,3 @@ Until a separate ownership model or `CODEOWNERS` file exists, all current workfl
 Still deferred after this tranche:
 
 1. converting `pq_backlog` suites into required PQ gates or documenting permanent dual-profile boundaries for them
-2. runtime and matrix optimization work in issue `#29`

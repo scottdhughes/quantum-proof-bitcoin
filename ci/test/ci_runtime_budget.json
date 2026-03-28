@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "wall_clock_definition": "earliest_required_job_start_to_latest_required_job_completion",
+  "linux_fuzz_shard_count": 2,
+  "workflows": {
+    "CI": {
+      "wall_clock_minutes_max": 60
+    },
+    "Gatekeeper": {
+      "wall_clock_minutes_max": 5
+    },
+    "measured-bench": {
+      "wall_clock_minutes_max": 15
+    }
+  }
+}
