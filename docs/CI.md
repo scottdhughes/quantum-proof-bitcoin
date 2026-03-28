@@ -29,8 +29,8 @@ The following controls are part of the v1 RC posture:
 These interfaces are intentionally stable for v1:
 
 - `PQBTC_FUNCTIONAL_TESTS`
-  - Explicit test list for PQ-first functional gating.
-  - Default: `feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py mempool_pq_stress.py feature_pq_reorg.py feature_pq_block_limits.py`
+  - Explicit override for the PQ-first functional gating list.
+  - Default source of truth: `ci/test/pq_functional_tests.txt`
 - `PQBTC_ENABLE_LEGACY_FUNCTIONAL_TESTS`
   - `true` enables legacy functional profile explicitly.
   - Default keeps legacy non-gating.
@@ -46,6 +46,41 @@ These interfaces are intentionally stable for v1:
 - `PQSIG_BENCH_POLICY`
   - Checked-in bench policy file for exact counters and measured-bench runtime bands.
   - Default: `ci/test/pqsig_bench_policy.json`.
+
+## Gate Ownership
+
+Current workflow and gate ownership remains maintainer-owned:
+
+| Gate | Owner | Notes |
+|---|---|---|
+| `CI` | `@scottdhughes` | Required build/test/fuzz workflow on pull requests and `main`. |
+| `Gatekeeper` | `@scottdhughes` | Freeze-gate and docs drift enforcement. |
+| `measured-bench` | `@scottdhughes` | Dedicated runtime variance gate. |
+| PQ functional default list | `@scottdhughes` | Canonical file: `ci/test/pq_functional_tests.txt`. |
+| Legacy opt-in profile | `@scottdhughes` | Controlled by `PQBTC_ENABLE_LEGACY_FUNCTIONAL_TESTS=true`. |
+
+## CI Inventory Contract
+
+The CI completeness foundation is split into two checked-in sources of truth:
+
+- `ci/test/pq_functional_tests.txt`
+  - canonical ordered list of the required PQ-first functional tests
+- `ci/test/functional_suite_inventory.json`
+  - exhaustive classification of the functional test corpus into `pq_required`, `pq_backlog`, `dual_profile`, and `legacy_only`
+
+Inventory validation command:
+
+```bash
+python3 ci/test/check_ci_inventory.py
+```
+
+The validator is required in the normal PR path and fails if:
+
+1. a functional test file is unclassified
+2. an inventory entry references a missing test
+3. an entry uses an unknown `policy_class`
+4. an owner is empty
+5. the `pq_required` entries drift from `ci/test/pq_functional_tests.txt`
 
 ## Bench and Determinism Checks
 

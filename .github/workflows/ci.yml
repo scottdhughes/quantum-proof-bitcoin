@@ -102,6 +102,18 @@ jobs:
           # Run tests on commits after the last merge commit and before the PR head commit
           git rebase --exec "git merge --no-commit origin/${GITHUB_BASE_REF} && python3 ./.github/ci-test-each-commit-exec.py && git reset --hard" ${{ env.TEST_BASE }}
 
+  ci-inventory:
+    name: 'CI inventory'
+    runs-on: ubuntu-24.04
+    if: ${{ vars.SKIP_BRANCH_PUSH != 'true' || github.event_name == 'pull_request' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.ref || '' }}
+      - name: Validate CI inventory
+        run: python3 ci/test/check_ci_inventory.py
+
   macos-native-arm64:
     name: ${{ matrix.job-name }}
     # Use any image to support the xcode-select below, but hardcode version to avoid silent upgrades (and breaks).
@@ -308,8 +320,9 @@ jobs:
           BITCOINUTIL: '${{ github.workspace }}\build\bin\Release\pqbtc-util.exe'
           BITCOINWALLET: '${{ github.workspace }}\build\bin\Release\pqbtc-wallet.exe'
           TEST_RUNNER_EXTRA: ${{ github.event_name != 'pull_request' && '--extended' || '' }}
-          PQBTC_FUNCTIONAL_TESTS: 'feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py mempool_pq_stress.py feature_pq_reorg.py feature_pq_block_limits.py'
-        run: py -3 test/functional/test_runner.py --jobs $NUMBER_OF_PROCESSORS --ci --quiet --tmpdirprefix="${RUNNER_TEMP}" --combinedlogslen=99999999 --timeout-factor=${TEST_RUNNER_TIMEOUT_FACTOR} ${TEST_RUNNER_EXTRA} ${PQBTC_FUNCTIONAL_TESTS}
+        run: |
+          PQBTC_FUNCTIONAL_TESTS="${PQBTC_FUNCTIONAL_TESTS:-$(paste -sd' ' ../ci/test/pq_functional_tests.txt)}"
+          py -3 test/functional/test_runner.py --jobs $NUMBER_OF_PROCESSORS --ci --quiet --tmpdirprefix="${RUNNER_TEMP}" --combinedlogslen=99999999 --timeout-factor=${TEST_RUNNER_TIMEOUT_FACTOR} ${TEST_RUNNER_EXTRA} ${PQBTC_FUNCTIONAL_TESTS}
 
       - name: Clone corpora
         if: matrix.job-type == 'fuzz'
@@ -459,8 +472,9 @@ jobs:
           # feature_unsupported_utxo_db.py fails on windows because of emojis in the test data directory
           EXCLUDE: '--exclude wallet_multiwallet.py,feature_unsupported_utxo_db.py'
           TEST_RUNNER_EXTRA: ${{ github.event_name != 'pull_request' && '--extended' || '' }}
-          PQBTC_FUNCTIONAL_TESTS: 'feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py mempool_pq_stress.py feature_pq_reorg.py feature_pq_block_limits.py'
-        run: py -3 test/functional/test_runner.py --jobs $NUMBER_OF_PROCESSORS --ci --quiet --tmpdirprefix="$RUNNER_TEMP" --combinedlogslen=99999999 --timeout-factor=$TEST_RUNNER_TIMEOUT_FACTOR $EXCLUDE $TEST_RUNNER_EXTRA $PQBTC_FUNCTIONAL_TESTS
+        run: |
+          PQBTC_FUNCTIONAL_TESTS="${PQBTC_FUNCTIONAL_TESTS:-$(paste -sd' ' ci/test/pq_functional_tests.txt)}"
+          py -3 test/functional/test_runner.py --jobs $NUMBER_OF_PROCESSORS --ci --quiet --tmpdirprefix="$RUNNER_TEMP" --combinedlogslen=99999999 --timeout-factor=$TEST_RUNNER_TIMEOUT_FACTOR $EXCLUDE $TEST_RUNNER_EXTRA $PQBTC_FUNCTIONAL_TESTS
 
   ci-matrix:
     name: ${{ matrix.name }}
