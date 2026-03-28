@@ -250,7 +250,7 @@ if [ "$RUN_FUNCTIONAL_TESTS" = "true" ]; then
         TEST_RUNNER_EXTRA=("${FILTERED_TEST_RUNNER_EXTRA[@]}")
       fi
       if [ -z "${PQBTC_FUNCTIONAL_TESTS}" ]; then
-        PQBTC_FUNCTIONAL_TESTS="feature_pqsig_basic.py feature_pqsig_multisig.py mempool_pq_limits.py mempool_pq_stress.py feature_pq_reorg.py feature_pq_block_limits.py"
+        PQBTC_FUNCTIONAL_TESTS="$(paste -sd' ' "${BASE_ROOT_DIR}/ci/test/pq_functional_tests.txt")"
       fi
       eval "PQBTC_FUNCTIONAL_TESTS_ARRAY=($PQBTC_FUNCTIONAL_TESTS)"
     else

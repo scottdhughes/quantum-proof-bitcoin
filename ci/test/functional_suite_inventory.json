@@ -1,0 +1,1864 @@
+[
+  {
+    "name": "example_test.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_abortnode.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_addrman.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_anchors.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_asmap.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_assumeutxo.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_assumevalid.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_bind_extra.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_bind_port_discover.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_bind_port_externalip.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_bip68_sequence.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_block.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_blocksdir.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_blocksxor.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_cltv.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_coinstatsindex.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_coinstatsindex_compatibility.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_config_args.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_csv_activation.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_dbcrash.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_dersig.py",
+    "policy_class": "legacy_only",
+    "owner": "@scottdhughes",
+    "tracking_issue": null,
+    "notes": "Explicit retired-secp or pre-PQ behavior; not on the PQ migration path."
+  },
+  {
+    "name": "feature_dirsymlinks.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_discover.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_fastprune.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_fee_estimation.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_filelock.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_framework_miniwallet.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_framework_startup_failures.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_framework_unit_tests.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_help.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_includeconf.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_index_prune.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_init.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_loadblock.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_logging.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_maxtipage.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_maxuploadtarget.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_minchainwork.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_notifications.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_nulldummy.py",
+    "policy_class": "legacy_only",
+    "owner": "@scottdhughes",
+    "tracking_issue": null,
+    "notes": "Explicit retired-secp or pre-PQ behavior; not on the PQ migration path."
+  },
+  {
+    "name": "feature_port.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_posix_fs_permissions.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_pq_block_limits.py",
+    "policy_class": "pq_required",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Protected PQ-first functional gate."
+  },
+  {
+    "name": "feature_pq_reorg.py",
+    "policy_class": "pq_required",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Protected PQ-first functional gate."
+  },
+  {
+    "name": "feature_pqsig_basic.py",
+    "policy_class": "pq_required",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Protected PQ-first functional gate."
+  },
+  {
+    "name": "feature_pqsig_multisig.py",
+    "policy_class": "pq_required",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Protected PQ-first functional gate."
+  },
+  {
+    "name": "feature_presegwit_node_upgrade.py",
+    "policy_class": "legacy_only",
+    "owner": "@scottdhughes",
+    "tracking_issue": null,
+    "notes": "Explicit SegWit-era behavior; retained outside the PQ migration path."
+  },
+  {
+    "name": "feature_proxy.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_pruning.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_rbf.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_reindex.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_reindex_init.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_reindex_readonly.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_remove_pruned_files_on_startup.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_segwit.py",
+    "policy_class": "legacy_only",
+    "owner": "@scottdhughes",
+    "tracking_issue": null,
+    "notes": "Explicit SegWit-era behavior; retained outside the PQ migration path."
+  },
+  {
+    "name": "feature_settings.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_shutdown.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_signet.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_startupnotify.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_taproot.py",
+    "policy_class": "legacy_only",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#13",
+    "notes": "Explicit Taproot coverage; retained for the separate Taproot posture epic."
+  },
+  {
+    "name": "feature_uacomment.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "feature_unsupported_utxo_db.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_utxo_set_hash.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "feature_versionbits_warning.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+  },
+  {
+    "name": "interface_bitcoin_cli.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "interface_http.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "interface_ipc.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "interface_rest.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "interface_rpc.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "interface_usdt_coinselection.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "interface_usdt_mempool.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "interface_usdt_net.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "interface_usdt_utxocache.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "interface_usdt_validation.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "interface_zmq.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "mempool_accept.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_accept_wtxid.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_compatibility.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_datacarrier.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_dust.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_ephemeral_dust.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_expiry.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_limit.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_package_limits.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_package_onemore.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_package_rbf.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_packages.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_persist.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_pq_limits.py",
+    "policy_class": "pq_required",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Protected PQ-first functional gate."
+  },
+  {
+    "name": "mempool_pq_stress.py",
+    "policy_class": "pq_required",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Protected PQ-first functional gate."
+  },
+  {
+    "name": "mempool_reorg.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_resurrect.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_sigoplimit.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_spend_coinbase.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_truc.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_unbroadcast.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mempool_updatefromblock.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mining_basic.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mining_getblocktemplate_longpoll.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mining_mainnet.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mining_prioritisetransaction.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "mining_template_verification.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+  },
+  {
+    "name": "p2p_1p1c_network.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_add_connections.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_addr_relay.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_addrfetch.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_addrv2_relay.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_block_sync.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_blockfilters.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_blocksonly.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_compactblocks.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_compactblocks_blocksonly.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_compactblocks_hb.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_disconnect_ban.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_dns_seeds.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_eviction.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_feefilter.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_filter.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_fingerprint.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_getaddr_caching.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_getdata.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_handshake.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_headers_sync_with_minchainwork.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_i2p_ports.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_i2p_sessions.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_ibd_stalling.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_ibd_txrelay.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_initial_headers_sync.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_invalid_block.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_invalid_locator.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_invalid_messages.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_invalid_tx.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_leak.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_leak_tx.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_message_capture.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_mutated_blocks.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_net_deadlock.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_nobloomfilter_messages.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_node_network_limited.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_opportunistic_1p1c.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_orphan_handling.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_outbound_eviction.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_permissions.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_ping.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_seednode.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_segwit.py",
+    "policy_class": "legacy_only",
+    "owner": "@scottdhughes",
+    "tracking_issue": null,
+    "notes": "Explicit SegWit-era behavior; retained outside the PQ migration path."
+  },
+  {
+    "name": "p2p_sendheaders.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_sendtxrcncl.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_timeouts.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_tx_download.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_tx_privacy.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_unrequested_blocks.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_v2_encrypted.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_v2_misbehaving.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "p2p_v2_transport.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_bind.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_blockchain.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_createmultisig.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_decodescript.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_deprecated.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_deriveaddresses.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_dumptxoutset.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_estimatefee.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_generate.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_getblockfilter.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_getblockfrompeer.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_getblockstats.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_getchaintips.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_getdescriptoractivity.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_getdescriptorinfo.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_help.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_invalid_address_message.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_invalidateblock.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_mempool_info.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_misc.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_named_arguments.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_net.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_orphans.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_packages.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_preciousblock.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_psbt.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_rawtransaction.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_scanblocks.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_scantxoutset.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_setban.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_signer.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_signmessagewithprivkey.py",
+    "policy_class": "legacy_only",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Legacy message-signing flow; not part of the PQ wallet path."
+  },
+  {
+    "name": "rpc_signrawtransactionwithkey.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_txoutproof.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_uptime.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_users.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_validateaddress.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "rpc_whitelist.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "tool_bitcoin.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "tool_bitcoin_chainstate.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "tool_rpcauth.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "tool_signet_miner.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "tool_utils.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "tool_utxo_to_sqlite.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "tool_wallet.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "wallet_abandonconflict.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_address_types.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "wallet_anchor.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "wallet_assumeutxo.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_avoid_mixing_output_types.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_avoidreuse.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_backup.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_backwards_compatibility.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_balance.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_basic.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_blank.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_bumpfee.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_change_address.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_coinbase_category.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_conflicts.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_create_tx.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_createwallet.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_createwalletdescriptor.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_crosschain.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_descriptor.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_disable.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_encryption.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_fallbackfee.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_fast_rescan.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_fundrawtransaction.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_gethdkeys.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_groups.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_hd.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_importdescriptors.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_importprunedfunds.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_keypool.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_keypool_topup.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_labels.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_listdescriptors.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_listreceivedby.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_listsinceblock.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_listtransactions.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_migration.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_miniscript.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "wallet_miniscript_decaying_multisig_descriptor_psbt.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "wallet_multisig_descriptor_psbt.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "wallet_multiwallet.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_orphanedreward.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_pq_active_ranged.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "PQ-specific coverage exists but is not yet part of the required CI gate set."
+  },
+  {
+    "name": "wallet_pq_backup_recovery.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "PQ-specific coverage exists but is not yet part of the required CI gate set."
+  },
+  {
+    "name": "wallet_pq_descriptors.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "PQ-specific coverage exists but is not yet part of the required CI gate set."
+  },
+  {
+    "name": "wallet_pq_psbt.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "PQ-specific coverage exists but is not yet part of the required CI gate set."
+  },
+  {
+    "name": "wallet_reindex.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_reorgsrestore.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_rescan_unconfirmed.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_resendwallettransactions.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_send.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_sendall.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_sendmany.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_signer.py",
+    "policy_class": "dual_profile",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Retained under the current non-gating dual-profile contract."
+  },
+  {
+    "name": "wallet_signmessagewithaddress.py",
+    "policy_class": "legacy_only",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Legacy message-signing flow; not part of the PQ wallet path."
+  },
+  {
+    "name": "wallet_signrawtransactionwithwallet.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_simulaterawtx.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_spend_unconfirmed.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_startup.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_taproot.py",
+    "policy_class": "legacy_only",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#13",
+    "notes": "Explicit Taproot coverage; retained for the separate Taproot posture epic."
+  },
+  {
+    "name": "wallet_timelock.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_transactiontime_rescan.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_txn_clone.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_txn_doublespend.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  },
+  {
+    "name": "wallet_v3_txs.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#15",
+    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+  }
+]
