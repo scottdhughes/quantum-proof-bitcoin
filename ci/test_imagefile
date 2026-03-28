@@ -15,6 +15,6 @@ ARG BASE_ROOT_DIR
 ENV BASE_ROOT_DIR=${BASE_ROOT_DIR}
 
 COPY ./ci/retry/retry /usr/bin/retry
-COPY ./ci/test/00_setup_env.sh ./${FILE_ENV} ./ci/test/01_base_install.sh /ci_container_base/ci/test/
+COPY ./ci/test/00_setup_env.sh ./ci/test/00_setup_env_native_fuzz.sh ./${FILE_ENV} ./ci/test/01_base_install.sh /ci_container_base/ci/test/
 
 RUN ["bash", "-c", "cd /ci_container_base/ && set -o errexit && source ./ci/test/00_setup_env.sh && ./ci/test/01_base_install.sh"]
