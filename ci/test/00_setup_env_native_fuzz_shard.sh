@@ -6,8 +6,8 @@
 
 export LC_ALL=C.UTF-8
 
-# shellcheck disable=SC1090
-source "${BASE_ROOT_DIR}/ci/test/00_setup_env_native_fuzz.sh"
+# shellcheck disable=SC1091
+source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/00_setup_env_native_fuzz.sh"
 
 export RUN_UNIT_TESTS=false
 export RUN_FUNCTIONAL_TESTS=false
