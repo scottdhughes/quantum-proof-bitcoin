@@ -102,7 +102,7 @@ jobs:
           path: ${{ env.BASE_BUILD_DIR }}/bin/fuzz
 
   linux-fuzz-shards:
-    name: 'fuzzer,address,undefined,integer, no depends (shard ${{ matrix.shard_index + 1 }}/${{ matrix.shard_count }})'
+    name: 'fuzzer,address,undefined,integer, no depends (shard ${{ matrix.shard_label }})'
     needs: [runners, linux-fuzz-build]
     runs-on: ${{ needs.runners.outputs.provider == 'cirrus' && 'ghcr.io/cirruslabs/ubuntu-runner-amd64:24.04-lg' || 'ubuntu-24.04' }}
     if: ${{ vars.SKIP_BRANCH_PUSH != 'true' || github.event_name == 'pull_request' }}
@@ -114,8 +114,10 @@ jobs:
         include:
           - shard_index: 0
             shard_count: 2
+            shard_label: '1/2'
           - shard_index: 1
             shard_count: 2
+            shard_label: '2/2'
 
     env:
       DANGER_CI_ON_HOST_FOLDERS: 1
