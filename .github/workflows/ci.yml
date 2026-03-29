@@ -145,6 +145,9 @@ jobs:
           name: linux-fuzz-binary-${{ github.run_id }}
           path: ${{ env.BASE_BUILD_DIR }}/bin
 
+      - name: Restore fuzz execute bit
+        run: chmod +x "${BASE_BUILD_DIR}/bin/fuzz"
+
       - name: Run fuzz shard
         run: ./ci/test_run_all.sh
 
