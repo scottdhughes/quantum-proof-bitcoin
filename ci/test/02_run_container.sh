@@ -123,7 +123,7 @@ CI_EXEC "${BASE_ROOT_DIR}/ci/test/01_base_install.sh"
 
 CI_EXEC mkdir -p "${BINS_SCRATCH_DIR}"
 
-CI_EXEC "${BASE_ROOT_DIR}/ci/test/03_test_script.sh"
+CI_EXEC "${CI_TEST_SCRIPT}"
 
 if [ -z "$DANGER_RUN_CI_ON_HOST" ]; then
   echo "Stop and remove CI container by ID"

@@ -11,6 +11,7 @@ PQC-facing CI enforcement is split across two workflows:
 | `ci.yml` | Build, tests, benchmarks, fuzz, and PQ gating across platforms |
 | `measured-bench.yml` | Dedicated runtime variance gate for PQSig bench performance |
 | `gatekeeper.yml` | Docs-first freeze-gate checks against the selected base ref |
+| `test-each-commit.yml` | Non-required per-commit replay coverage for multi-commit pull requests |
 
 ## RC Stabilization Controls
 
@@ -58,6 +59,40 @@ Current workflow and gate ownership remains maintainer-owned:
 | `measured-bench` | `@scottdhughes` | Dedicated runtime variance gate. |
 | PQ functional default list | `@scottdhughes` | Canonical file: `ci/test/pq_functional_tests.txt`. |
 | Legacy opt-in profile | `@scottdhughes` | Controlled by `PQBTC_ENABLE_LEGACY_FUNCTIONAL_TESTS=true`. |
+| `test each commit` workflow | `@scottdhughes` | Non-required long-tail coverage outside the required `CI` wall-clock path. |
+
+## Runtime Budget Contract
+
+Checked-in runtime budget file:
+
+- `ci/test/ci_runtime_budget.json`
+
+Current required-path budgets:
+
+| Workflow | Budget |
+|---|---|
+| `CI` | under `60` minutes |
+| `Gatekeeper` | under `5` minutes |
+| `measured-bench` | under `15` minutes |
+
+Wall-clock semantics are frozen as:
+
+- earliest required job start to latest required job completion for that workflow run
+- not the sum of job runtimes
+
+Runtime reporting helper:
+
+```bash
+gh run view <run-id> --json jobs,createdAt,updatedAt > /tmp/ci-run.json
+python3 ci/test/report_ci_runtime.py --workflow CI --input /tmp/ci-run.json
+```
+
+or from stdin:
+
+```bash
+gh run view <run-id> --json jobs,createdAt,updatedAt | \
+  python3 ci/test/report_ci_runtime.py --workflow CI
+```
 
 ## CI Inventory Contract
 

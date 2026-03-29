@@ -52,6 +52,11 @@ export RUN_PQSIG_FUZZ_SMOKE=${RUN_PQSIG_FUZZ_SMOKE:-true}
 export PQSIG_FUZZ_SMOKE_MAX_TOTAL_TIME=${PQSIG_FUZZ_SMOKE_MAX_TOTAL_TIME:-30}
 export PQSIG_FUZZ_SMOKE_MAX_RUNS=${PQSIG_FUZZ_SMOKE_MAX_RUNS:-100000}
 export PQSIG_BENCH_REPEATS=${PQSIG_BENCH_REPEATS:-3}
+export BUILD_BENCH_BINARIES=${BUILD_BENCH_BINARIES:-$RUN_UNIT_TESTS}
+export BUILD_FUZZ_BINARY=${BUILD_FUZZ_BINARY:-$RUN_FUZZ_TESTS}
+export CI_TEST_SCRIPT=${CI_TEST_SCRIPT:-$BASE_ROOT_DIR/ci/test/03_test_script.sh}
+export FUZZ_SHARD_INDEX=${FUZZ_SHARD_INDEX:-0}
+export FUZZ_SHARD_COUNT=${FUZZ_SHARD_COUNT:-2}
 
 # Randomize test order.
 # See https://www.boost.org/doc/libs/1_71_0/libs/test/doc/html/boost_test/utf_reference/rt_param_reference/random.html

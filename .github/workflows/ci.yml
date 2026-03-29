@@ -46,62 +46,6 @@ jobs:
             echo "::notice title=Runner Selection::Using GitHub-hosted runners"
           fi
 
-  test-each-commit:
-    name: 'test each commit'
-    runs-on: ubuntu-24.04
-    if: github.event_name == 'pull_request' && github.event.pull_request.commits != 1
-    timeout-minutes: 360  # Use maximum time, see https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#jobsjob_idtimeout-minutes. Assuming a worst case time of 1 hour per commit, this leads to a --max-count=6 below.
-    env:
-      MAX_COUNT: 6
-    steps:
-      - name: Determine fetch depth
-        run: echo "FETCH_DEPTH=$((${{ github.event.pull_request.commits }} + 2))" >> "$GITHUB_ENV"
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: ${{ env.FETCH_DEPTH }}
-      - name: Determine commit range
-        run: |
-          # Checkout HEAD~ and find the test base commit
-          # Checkout HEAD~ because it would be wasteful to rerun tests on the PR
-          # head commit that are already run by other jobs.
-          git checkout HEAD~
-          # Figure out test base commit by listing ancestors of HEAD, excluding
-          # ancestors of the most recent merge commit, limiting the list to the
-          # newest MAX_COUNT ancestors, ordering it from oldest to newest, and
-          # taking the first one.
-          #
-          # If the branch contains up to MAX_COUNT ancestor commits after the
-          # most recent merge commit, all of those commits will be tested. If it
-          # contains more, only the most recent MAX_COUNT commits will be
-          # tested.
-          #
-          # In the command below, the ^@ suffix is used to refer to all parents
-          # of the merge commit as described in:
-          # https://git-scm.com/docs/git-rev-parse#_other_rev_parent_shorthand_notations
-          # and the ^ prefix is used to exclude these parents and all their
-          # ancestors from the rev-list output as described in:
-          # https://git-scm.com/docs/git-rev-list
-          MERGE_BASE=$(git rev-list -n1 --merges HEAD)
-          EXCLUDE_MERGE_BASE_ANCESTORS=
-          # MERGE_BASE can be empty due to limited fetch-depth
-          if test -n "$MERGE_BASE"; then
-            EXCLUDE_MERGE_BASE_ANCESTORS=^${MERGE_BASE}^@
-          fi
-          echo "TEST_BASE=$(git rev-list -n$((${{ env.MAX_COUNT }} + 1)) --reverse HEAD $EXCLUDE_MERGE_BASE_ANCESTORS | head -1)" >> "$GITHUB_ENV"
-      - run: |
-          git fetch origin "${GITHUB_BASE_REF}"
-          git config user.email "ci@example.com"
-          git config user.name "CI"
-      - run: |
-          sudo apt-get update
-          sudo apt-get install clang mold ccache build-essential cmake ninja-build pkgconf python3-zmq libevent-dev libboost-dev libsqlite3-dev systemtap-sdt-dev libzmq3-dev qt6-base-dev qt6-tools-dev qt6-l10n-tools libqrencode-dev capnproto libcapnp-dev -y
-          sudo pip3 install --break-system-packages pycapnp
-      - name: Compile and run tests
-        run: |
-          # Run tests on commits after the last merge commit and before the PR head commit
-          git rebase --exec "git merge --no-commit origin/${GITHUB_BASE_REF} && python3 ./.github/ci-test-each-commit-exec.py && git reset --hard" ${{ env.TEST_BASE }}
-
   ci-inventory:
     name: 'CI inventory'
     runs-on: ubuntu-24.04
@@ -112,7 +56,116 @@ jobs:
         with:
           ref: ${{ github.event_name == 'pull_request' && github.ref || '' }}
       - name: Validate CI inventory
-        run: python3 ci/test/check_ci_inventory.py
+        run: |
+          python3 ci/test/check_ci_inventory.py
+          python3 -m unittest discover -s ci/test -p 'test_*.py'
+
+  linux-fuzz-build:
+    name: 'fuzzer,address,undefined,integer, no depends (build)'
+    needs: runners
+    runs-on: ${{ needs.runners.outputs.provider == 'cirrus' && 'ghcr.io/cirruslabs/ubuntu-runner-amd64:24.04-lg' || 'ubuntu-24.04' }}
+    if: ${{ vars.SKIP_BRANCH_PUSH != 'true' || github.event_name == 'pull_request' }}
+    timeout-minutes: 120
+
+    env:
+      DANGER_CI_ON_HOST_FOLDERS: 1
+      FILE_ENV: './ci/test/00_setup_env_native_fuzz_build.sh'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.ref || '' }}
+
+      - name: Configure environment
+        uses: ./.github/actions/configure-environment
+
+      - name: Restore caches
+        id: restore-cache
+        uses: ./.github/actions/restore-caches
+
+      - name: Configure Docker
+        uses: ./.github/actions/configure-docker
+        with:
+          cache-provider: ${{ needs.runners.outputs.provider }}
+
+      - name: CI script
+        run: ./ci/test_run_all.sh
+
+      - name: Save caches
+        uses: ./.github/actions/save-caches
+
+      - name: Upload fuzz binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-fuzz-binary-${{ github.run_id }}
+          path: ${{ env.BASE_BUILD_DIR }}/bin/fuzz
+
+  linux-fuzz-shards:
+    name: 'fuzzer,address,undefined,integer, no depends (shard ${{ matrix.shard_label }})'
+    needs: [runners, linux-fuzz-build]
+    runs-on: ${{ needs.runners.outputs.provider == 'cirrus' && 'ghcr.io/cirruslabs/ubuntu-runner-amd64:24.04-lg' || 'ubuntu-24.04' }}
+    if: ${{ vars.SKIP_BRANCH_PUSH != 'true' || github.event_name == 'pull_request' }}
+    timeout-minutes: 120
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard_index: 0
+            shard_count: 2
+            shard_label: '1/2'
+          - shard_index: 1
+            shard_count: 2
+            shard_label: '2/2'
+
+    env:
+      DANGER_CI_ON_HOST_FOLDERS: 1
+      FILE_ENV: './ci/test/00_setup_env_native_fuzz_shard.sh'
+      FUZZ_SHARD_INDEX: ${{ matrix.shard_index }}
+      FUZZ_SHARD_COUNT: ${{ matrix.shard_count }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.ref || '' }}
+
+      - name: Configure environment
+        uses: ./.github/actions/configure-environment
+
+      - name: Configure Docker
+        uses: ./.github/actions/configure-docker
+        with:
+          cache-provider: ${{ needs.runners.outputs.provider }}
+
+      - name: Download fuzz binary
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-fuzz-binary-${{ github.run_id }}
+          path: ${{ env.BASE_BUILD_DIR }}/bin
+
+      - name: Restore fuzz execute bit
+        run: chmod +x "${BASE_BUILD_DIR}/bin/fuzz"
+
+      - name: Run fuzz shard
+        run: ./ci/test_run_all.sh
+
+  linux-fuzz-compat:
+    name: 'fuzzer,address,undefined,integer, no depends'
+    needs: [linux-fuzz-build, linux-fuzz-shards]
+    runs-on: ubuntu-24.04
+    if: ${{ always() && (vars.SKIP_BRANCH_PUSH != 'true' || github.event_name == 'pull_request') }}
+    steps:
+      - name: Validate split fuzz results
+        env:
+          BUILD_RESULT: ${{ needs.linux-fuzz-build.result }}
+          SHARDS_RESULT: ${{ needs.linux-fuzz-shards.result }}
+        run: |
+          echo "linux-fuzz-build: ${BUILD_RESULT}"
+          echo "linux-fuzz-shards: ${SHARDS_RESULT}"
+          test "${BUILD_RESULT}" = "success"
+          test "${SHARDS_RESULT}" = "success"
 
   macos-native-arm64:
     name: ${{ matrix.job-name }}
@@ -231,7 +284,7 @@ jobs:
         job-type: [standard, fuzz]
         include:
           - job-type: standard
-            generate-options: '-DBUILD_GUI=ON -DWITH_ZMQ=ON -DBUILD_BENCH=ON -DWERROR=ON'
+            generate-options: '-DBUILD_GUI=ON -DWITH_ZMQ=ON -DWERROR=ON'
             job-name: 'Windows native, VS 2022'
           - job-type: fuzz
             generate-options: '-DVCPKG_MANIFEST_NO_DEFAULT_FEATURES=ON -DVCPKG_MANIFEST_FEATURES="wallet" -DBUILD_GUI=OFF -DBUILD_FOR_FUZZING=ON -DWERROR=ON'
@@ -521,12 +574,6 @@ jobs:
             fallback-runner: 'ubuntu-24.04'
             timeout-minutes: 120
             file-env: './ci/test/00_setup_env_i686_no_ipc.sh'
-
-          - name: 'fuzzer,address,undefined,integer, no depends'
-            cirrus-runner: 'ghcr.io/cirruslabs/ubuntu-runner-amd64:24.04-lg'
-            fallback-runner: 'ubuntu-24.04'
-            timeout-minutes: 240
-            file-env: './ci/test/00_setup_env_native_fuzz.sh'
 
           - name: 'previous releases, depends DEBUG'
             cirrus-runner: 'ghcr.io/cirruslabs/ubuntu-runner-amd64:24.04-md'

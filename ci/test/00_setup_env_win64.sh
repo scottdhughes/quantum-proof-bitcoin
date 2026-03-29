@@ -12,6 +12,9 @@ export HOST=x86_64-w64-mingw32
 export PACKAGES="g++-mingw-w64-x86-64-posix nsis"
 export RUN_UNIT_TESTS=false
 export RUN_FUNCTIONAL_TESTS=false
+export RUN_PQSIG_FUZZ_SMOKE=false
+export BUILD_BENCH_BINARIES=true
+export BUILD_FUZZ_BINARY=true
 export GOAL="deploy"
 export BITCOIN_CONFIG="-DREDUCE_EXPORTS=ON -DBUILD_GUI_TESTS=OFF \
 -DCMAKE_CXX_FLAGS='-Wno-error=maybe-uninitialized'"

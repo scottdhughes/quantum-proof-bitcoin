@@ -110,7 +110,13 @@ if [ "$DOWNLOAD_PREVIOUS_RELEASES" = "true" ]; then
   test/get_previous_releases.py --target-dir "$PREVIOUS_RELEASES_DIR"
 fi
 
-BITCOIN_CONFIG_ALL="-DBUILD_BENCH=ON -DBUILD_FUZZ_BINARY=ON"
+BITCOIN_CONFIG_ALL=""
+if [ "${BUILD_BENCH_BINARIES}" = "true" ]; then
+  BITCOIN_CONFIG_ALL="${BITCOIN_CONFIG_ALL} -DBUILD_BENCH=ON"
+fi
+if [ "${BUILD_FUZZ_BINARY}" = "true" ]; then
+  BITCOIN_CONFIG_ALL="${BITCOIN_CONFIG_ALL} -DBUILD_FUZZ_BINARY=ON"
+fi
 if [ -z "$NO_DEPENDS" ]; then
   BITCOIN_CONFIG_ALL="${BITCOIN_CONFIG_ALL} -DCMAKE_TOOLCHAIN_FILE=$DEPENDS_DIR/$HOST/toolchain.cmake"
 fi
@@ -270,7 +276,7 @@ if [ "$RUN_FUNCTIONAL_TESTS" = "true" ]; then
   fi
 fi
 
-if [ "${RUN_PQSIG_FUZZ_SMOKE}" = "true" ]; then
+if [ "${RUN_PQSIG_FUZZ_SMOKE}" = "true" ] && [ "${BUILD_FUZZ_BINARY}" = "true" ]; then
   build_for_fuzzing=""
   if [ -f "${BASE_BUILD_DIR}/CMakeCache.txt" ]; then
     build_for_fuzzing="$(sed -n 's/^BUILD_FOR_FUZZING:BOOL=//p' "${BASE_BUILD_DIR}/CMakeCache.txt" | tail -1)"
