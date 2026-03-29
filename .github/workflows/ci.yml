@@ -151,6 +151,22 @@ jobs:
       - name: Run fuzz shard
         run: ./ci/test_run_all.sh
 
+  linux-fuzz-compat:
+    name: 'fuzzer,address,undefined,integer, no depends'
+    needs: [linux-fuzz-build, linux-fuzz-shards]
+    runs-on: ubuntu-24.04
+    if: ${{ always() && (vars.SKIP_BRANCH_PUSH != 'true' || github.event_name == 'pull_request') }}
+    steps:
+      - name: Validate split fuzz results
+        env:
+          BUILD_RESULT: ${{ needs.linux-fuzz-build.result }}
+          SHARDS_RESULT: ${{ needs.linux-fuzz-shards.result }}
+        run: |
+          echo "linux-fuzz-build: ${BUILD_RESULT}"
+          echo "linux-fuzz-shards: ${SHARDS_RESULT}"
+          test "${BUILD_RESULT}" = "success"
+          test "${SHARDS_RESULT}" = "success"
+
   macos-native-arm64:
     name: ${{ matrix.job-name }}
     # Use any image to support the xcode-select below, but hardcode version to avoid silent upgrades (and breaks).
