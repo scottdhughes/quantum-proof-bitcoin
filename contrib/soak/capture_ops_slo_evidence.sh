@@ -13,6 +13,7 @@ RAW_OUT="${RAW_OUT:-${ROOT_DIR}/build/ops-slo/${STAMP}}"
 TEST_RUNNER="${ROOT_DIR}/build/test/functional/test_runner.py"
 SOAK_OUT="${RAW_OUT}/soak"
 SOAK_RUNS="${SOAK_RUNS:-10}"
+SPEC_ID="OPS-SLO-v1"
 
 mkdir -p "${DOC_OUT}" "${RAW_OUT}"
 
@@ -38,19 +39,44 @@ if compgen -G "${SOAK_OUT}/summaries/*.json" > /dev/null; then
   cp "${SOAK_OUT}/summaries/"*.json "${DOC_OUT}/soak-summaries/"
 fi
 
+cat > "${DOC_OUT}/manifest.json" <<EOF
+{
+  "spec_id": "${SPEC_ID}",
+  "stamp": "${STAMP}",
+  "capture_script": "contrib/soak/capture_ops_slo_evidence.sh",
+  "soak_runs": ${SOAK_RUNS},
+  "artifacts": [
+    "README.md",
+    "mempool-pq-limits-summary.json",
+    "mempool-pq-stress-summary.json",
+    "feature-pq-reorg-summary.json",
+    "pq-mempool-soak-summary.json",
+    "pq-mempool-soak-results.tsv"
+  ]
+}
+EOF
+
 cat > "${DOC_OUT}/README.md" <<EOF
 # PQBTC Ops/SLO Evidence (${STAMP})
 
-- Functional summaries:
-  - \`mempool-pq-limits-summary.json\`
-  - \`mempool-pq-stress-summary.json\`
-  - \`feature-pq-reorg-summary.json\`
-- Soak summaries:
-  - \`pq-mempool-soak-summary.json\`
-  - \`pq-mempool-soak-results.tsv\`
-  - \`soak-summaries/\`
-- Raw logs:
-  - \`build/ops-slo/${STAMP}\`
+- Spec: \`${SPEC_ID}\`
+- Capture script: \`contrib/soak/capture_ops_slo_evidence.sh\`
+- Validator: \`contrib/soak/validate_ops_slo_evidence.py --signoff <bundle-root>\`
+- Raw logs: \`build/ops-slo/${STAMP}\`
+
+## Artifacts
+
+- \`README.md\`
+- \`manifest.json\`
+- \`mempool-pq-limits-summary.json\`
+- \`mempool-pq-stress-summary.json\`
+- \`feature-pq-reorg-summary.json\`
+- \`pq-mempool-soak-summary.json\`
+- \`pq-mempool-soak-results.tsv\`
+
+## Optional Supplemental Artifacts
+
+- \`soak-summaries/\`
 EOF
 
 echo "Ops/SLO evidence written to: ${DOC_OUT}"

@@ -1,0 +1,14 @@
+{
+  "spec_id": "OPS-SLO-v1",
+  "stamp": "2026-03-23",
+  "capture_script": "contrib/soak/capture_ops_slo_evidence.sh",
+  "soak_runs": 10,
+  "artifacts": [
+    "README.md",
+    "mempool-pq-limits-summary.json",
+    "mempool-pq-stress-summary.json",
+    "feature-pq-reorg-summary.json",
+    "pq-mempool-soak-summary.json",
+    "pq-mempool-soak-results.tsv"
+  ]
+}
