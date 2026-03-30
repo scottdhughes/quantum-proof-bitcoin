@@ -140,8 +140,9 @@ class MempoolPQStressTest(BitcoinTestFramework):
                 mempool_before_restart=mempool_before_restart,
                 mempool_after_restart=mempool_after_restart,
                 reorg_result="invalidate-reconsider-restored-then-cleared",
+                saturation_target=len(spend_txids),
+                rbf_replacements=len(rbf_fees),
             )
-            recorder.add_note(f"saturation_target={len(spend_txids)}; rbf_replacements={len(rbf_fees)}")
             recorder.success()
         except Exception as exc:
             recorder.failure(str(exc))

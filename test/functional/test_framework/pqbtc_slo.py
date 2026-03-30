@@ -30,6 +30,7 @@ class PQBTCSLORecorder:
         }
 
     def update(self, **kwargs) -> None:
+        # Scenario-specific threshold fields are additive to the frozen base summary contract.
         self._summary.update(kwargs)
 
     def add_note(self, note: str) -> None:

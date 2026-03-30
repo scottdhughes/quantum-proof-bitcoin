@@ -1,0 +1,12 @@
+{
+  "crash_assert_hang": false,
+  "duration_s": 36.41,
+  "mempool_after_restart": 20,
+  "mempool_before_restart": 20,
+  "notes": "",
+  "pass": true,
+  "rbf_replacements": 5,
+  "reorg_result": "invalidate-reconsider-restored-then-cleared",
+  "saturation_target": 20,
+  "scenario": "mempool_pq_stress"
+}

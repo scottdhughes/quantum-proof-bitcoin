@@ -41,6 +41,20 @@ SUMMARY_SCENARIOS = {
     "mempool-pq-stress-summary.json": "mempool_pq_stress",
     "feature-pq-reorg-summary.json": "feature_pq_reorg",
 }
+SCENARIO_SIGNOFF_REQUIREMENTS = {
+    "mempool_pq_stress": {
+        "saturation_target": 20,
+        "rbf_replacements": 5,
+        "mempool_before_restart": 20,
+        "mempool_after_restart": 20,
+    },
+    "feature_pq_reorg": {
+        "restart_node0_before_reconnect": True,
+        "competing_branch_blocks": 2,
+        "reinserted_tx_count": 1,
+        "reorg_result": "competing-branch-reinserted-then-remined",
+    },
+}
 SOAK_SUMMARY = "pq-mempool-soak-summary.json"
 SOAK_SCENARIO = "pq_mempool_soak"
 
@@ -106,6 +120,13 @@ def _validate_summary_fields(path: Path, expected_scenario: str, required_fields
     return summary
 
 
+def _require_signoff_fields(summary: dict[str, object], requirements: dict[str, object]) -> None:
+    scenario = str(summary["scenario"])
+    for field, expected_value in requirements.items():
+        _require(field in summary, f"{scenario}: signoff requires field {field}")
+        _require(summary[field] == expected_value, f"{scenario}: signoff requires {field} == {expected_value!r}")
+
+
 def validate_bundle(bundle_root: Path, *, signoff: bool = False) -> None:
     bundle_root = bundle_root.resolve()
     _require(bundle_root.is_dir(), f"{bundle_root}: bundle directory not found")
@@ -116,10 +137,10 @@ def validate_bundle(bundle_root: Path, *, signoff: bool = False) -> None:
     for artifact in REQUIRED_ARTIFACTS:
         _require((bundle_root / artifact).is_file(), f"{artifact}: missing file")
 
-    summaries = []
+    summaries = {}
     for filename, scenario in SUMMARY_SCENARIOS.items():
         summary = _validate_summary_fields(bundle_root / filename, scenario, SUMMARY_REQUIRED_FIELDS)
-        summaries.append(summary)
+        summaries[scenario] = summary
 
     soak_summary = _validate_summary_fields(bundle_root / SOAK_SUMMARY, SOAK_SCENARIO, SOAK_REQUIRED_FIELDS)
     _require(isinstance(soak_summary["runs"], int), f"{SOAK_SUMMARY}: runs must be an integer")
@@ -134,9 +155,11 @@ def validate_bundle(bundle_root: Path, *, signoff: bool = False) -> None:
 
     if signoff:
         _require(manifest["soak_runs"] == 10, "manifest.json: signoff requires soak_runs == 10")
-        for summary in summaries:
+        for summary in summaries.values():
             _require(summary["pass"] is True, f"{summary['scenario']}: signoff requires pass=true")
             _require(summary["crash_assert_hang"] is False, f"{summary['scenario']}: signoff requires crash_assert_hang=false")
+        for scenario, requirements in SCENARIO_SIGNOFF_REQUIREMENTS.items():
+            _require_signoff_fields(summaries[scenario], requirements)
         _require(soak_summary["pass"] is True, f"{SOAK_SCENARIO}: signoff requires pass=true")
         _require(soak_summary["crash_assert_hang"] is False, f"{SOAK_SCENARIO}: signoff requires crash_assert_hang=false")
         _require(soak_summary["runs"] == 10, f"{SOAK_SCENARIO}: signoff requires runs == 10")

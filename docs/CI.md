@@ -247,7 +247,7 @@ STAMP=$(date -u +%Y-%m-%d) contrib/soak/capture_ops_slo_evidence.sh
 Bundle validation:
 
 ```bash
-contrib/soak/validate_ops_slo_evidence.py --signoff docs/artifacts/ops-slo/2026-03-23
+contrib/soak/validate_ops_slo_evidence.py --signoff docs/artifacts/ops-slo/2026-03-30
 ```
 
 Expected local wall-clock time for the full capture is roughly 5-10 minutes on current developer hardware, depending on soak durations.
@@ -258,6 +258,17 @@ The capture includes:
 2. `mempool_pq_stress.py`
 3. `feature_pq_reorg.py`
 4. `RUNS=10 JOBS=1 contrib/soak/run_pq_mempool_soak.sh`
+
+The current sign-off bundle also requires structured threshold fields for the existing stress and
+reorg campaigns, not just note-derived values:
+
+1. `mempool_pq_stress`
+   - `saturation_target=20`
+   - `rbf_replacements=5`
+2. `feature_pq_reorg`
+   - `restart_node0_before_reconnect=true`
+   - `competing_branch_blocks=2`
+   - `reinserted_tx_count=1`
 
 This capture and validation path is an operator/local evidence surface. It is not a separate
 required PR status in the current CI contract.
