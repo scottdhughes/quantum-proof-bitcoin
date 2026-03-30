@@ -97,8 +97,12 @@ class PQSigReorgTest(BitcoinTestFramework):
             assert node0.getbestblockhash() == final_block
             assert node1.getbestblockhash() == final_block
 
-            recorder.update(reorg_result="competing-branch-reinserted-then-remined")
-            recorder.add_note("restart_node0_before_reconnect=true")
+            recorder.update(
+                reorg_result="competing-branch-reinserted-then-remined",
+                restart_node0_before_reconnect=True,
+                competing_branch_blocks=2,
+                reinserted_tx_count=1,
+            )
             recorder.success()
         except Exception as exc:
             recorder.failure(str(exc))

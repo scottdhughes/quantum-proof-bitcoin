@@ -45,6 +45,17 @@ Per-scenario JSON summaries use this fixed field set:
 - `crash_assert_hang`
 - `notes`
 
+The following scenario-specific threshold fields are additive to the fixed field set and are
+required for current sign-off on the named scenarios:
+
+- `mempool_pq_stress`
+  - `saturation_target`
+  - `rbf_replacements`
+- `feature_pq_reorg`
+  - `restart_node0_before_reconnect`
+  - `competing_branch_blocks`
+  - `reinserted_tx_count`
+
 The soak aggregate summary extends the fixed field set with:
 
 - `runs`
@@ -92,6 +103,16 @@ Operator sign-off requires:
 4. Restart and reorg reconciliation outcomes remain consistent with the scenario contract.
 5. Witness `10,001` byte rejection stability and large-witness RBF churn status remain captured in
    the scenario summaries that produced `pass=true`.
+6. `mempool_pq_stress` reports:
+   - `saturation_target=20`
+   - `rbf_replacements=5`
+   - `mempool_before_restart=20`
+   - `mempool_after_restart=20`
+7. `feature_pq_reorg` reports:
+   - `restart_node0_before_reconnect=true`
+   - `competing_branch_blocks=2`
+   - `reinserted_tx_count=1`
+   - `reorg_result="competing-branch-reinserted-then-remined"`
 
 ## Invocation And Validation
 
@@ -110,12 +131,12 @@ STAMP=$(date -u +%Y-%m-%d) contrib/soak/capture_ops_slo_evidence.sh
 Bundle validation:
 
 ```bash
-contrib/soak/validate_ops_slo_evidence.py --signoff docs/artifacts/ops-slo/2026-03-23
+contrib/soak/validate_ops_slo_evidence.py --signoff docs/artifacts/ops-slo/2026-03-30
 ```
 
 ## Reproduce Latest Evidence
 
-The latest checked-in evidence batch lives under `docs/artifacts/ops-slo/2026-03-23/`.
+The latest checked-in evidence batch lives under `docs/artifacts/ops-slo/2026-03-30/`.
 
 To reproduce a fresh batch locally:
 
@@ -131,6 +152,7 @@ contrib/soak/validate_ops_slo_evidence.py --signoff docs/artifacts/ops-slo/$STAM
 
 ## Current Execution Order
 
-1. Close issue `#32` by freezing this bundle contract, publishing the validator, and validating the
-   checked-in evidence bundle.
-2. Keep issue `#31` open for later adversarial throughput and scenario expansion.
+1. Land the opening slice of issue `#31` by promoting stress/reorg campaign thresholds into
+   structured evidence and validating a refreshed checked-in bundle.
+2. Keep issue `#31` open by default unless the refreshed threshold bundle clearly satisfies the
+   full pass/fail-threshold scope.
