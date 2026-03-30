@@ -28,8 +28,8 @@ Execution tracker for work required after `v1.0.0-rc1` to reach full-and-complet
 - Exit criteria: documented policy with stable gating and ownership.
 
 5. Operational hardening and SLOs
-- Scope: long-run soak, adversarial throughput tests, restart/reorg resilience under PQ load.
-- Exit criteria: agreed SLO dashboard and sign-off thresholds.
+- Scope: freeze `#32` checked-in operator signal and evidence-validation contract around the current soak/restart/reorg assets, then extend `#31` adversarial throughput and scenario coverage under PQ load.
+- Exit criteria: checked-in operator signal contract and sign-off thresholds are frozen for `#32`, and the remaining workload expansion under `#31` is complete.
 
 6. Bench instrumentation hardening
 - Scope: measured runtime counters replacing fixed-envelope telemetry mode.

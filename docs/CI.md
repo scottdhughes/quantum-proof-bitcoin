@@ -235,12 +235,19 @@ Operator/local capture:
 contrib/soak/capture_ops_slo_evidence.sh
 ```
 
-The helper writes tracked summaries under `docs/artifacts/ops-slo/<date>/` and raw logs under `build/ops-slo/<date>/`.
+The helper writes tracked summaries under `docs/artifacts/ops-slo/<date>/`, emits a fixed
+`manifest.json` and `README.md`, and stores raw logs under `build/ops-slo/<date>/`.
 
 CI-runner style invocation:
 
 ```bash
 STAMP=$(date -u +%Y-%m-%d) contrib/soak/capture_ops_slo_evidence.sh
+```
+
+Bundle validation:
+
+```bash
+contrib/soak/validate_ops_slo_evidence.py --signoff docs/artifacts/ops-slo/2026-03-23
 ```
 
 Expected local wall-clock time for the full capture is roughly 5-10 minutes on current developer hardware, depending on soak durations.
@@ -251,3 +258,6 @@ The capture includes:
 2. `mempool_pq_stress.py`
 3. `feature_pq_reorg.py`
 4. `RUNS=10 JOBS=1 contrib/soak/run_pq_mempool_soak.sh`
+
+This capture and validation path is an operator/local evidence surface. It is not a separate
+required PR status in the current CI contract.

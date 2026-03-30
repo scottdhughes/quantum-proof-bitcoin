@@ -106,3 +106,10 @@ Rules:
   - [ ] No
   - [x] Yes (CFC verdict and accepted-set impact statement attached)
 - Notes: `2026-03-06` posture change for issue `#48`: old profile held, rc2 exact-root reprofile active, and fresh burn-in evidence required before any blocker closure. `2026-03-09`: merge-commit CI and Gatekeeper are green on the shipped rc2 path, issue `#48` is closed, and the GA call is promote from current `main`.
+
+## Post-v1 Carry-Forward
+
+Post-v1 operational sign-off reuses the rollback-trigger vocabulary from `Required Evidence` item 7.
+The checked-in operator evidence contract lives in `docs/OPS_SLO.md`, the tracked bundles live under
+`docs/artifacts/ops-slo/<stamp>/`, and local integrity/sign-off validation runs via
+`contrib/soak/validate_ops_slo_evidence.py --signoff <bundle>`.

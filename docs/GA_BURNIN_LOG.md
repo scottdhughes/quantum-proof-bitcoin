@@ -11,6 +11,13 @@
 - End: 2026-03-09
 - Cadence: weekly checkpoints
 
+## Post-v1 Carry-Forward
+
+The checkpoint vocabulary for soak summary, SLO summary, and rollback-trigger review carries forward
+into the post-v1 operator bundle defined by `docs/OPS_SLO.md`. Checked-in operator bundles live under
+`docs/artifacts/ops-slo/<stamp>/` and validate with
+`contrib/soak/validate_ops_slo_evidence.py --signoff <bundle>`.
+
 ## RC2 Reset (2026-03-06)
 
 1. `v1.0.0` GA on the original `ALG_ID=0x00` profile is held.
