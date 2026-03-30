@@ -19,6 +19,10 @@
 - Max block weight is 16,000,000 WU.
 - Max script element size is at least 10,000 bytes.
 
+## Post-v1 Boundary
+- Future witness-v1 posture is frozen in `TAPROOT_POSTURE.md`.
+- Inherited Taproot semantics are not the future activation target as-is.
+
 ## Out of Scope for v1
 - Wallet UX for keypool batching and recovery flows.
 - New RPCs for legacy-compatible signing surfaces.

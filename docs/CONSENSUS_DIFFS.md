@@ -15,3 +15,8 @@
 
 ## Audit Requirement
 Every merged consensus diff must reference this document and corresponding tests.
+
+## Post-v1 Boundary
+Future witness-v1 replacement posture is frozen in `TAPROOT_POSTURE.md`. This v1
+ledger records only the shipped v1 consensus diffs and does not approve inherited
+Taproot activation semantics for a later tranche.

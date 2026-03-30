@@ -54,6 +54,7 @@ Use `/Users/scott/quantum-proof-bitcoin/contrib/release/cut_v1_rc1.sh` to run RC
 ## Deferred from v1 (Tracked)
 
 See `/Users/scott/quantum-proof-bitcoin/docs/DECISION_DEFERRAL_LEDGER.md` and `/Users/scott/quantum-proof-bitcoin/docs/POST_RC_EPICS.md`.
+Future Taproot posture is tracked separately in `/Users/scott/quantum-proof-bitcoin/docs/TAPROOT_POSTURE.md`.
 
 - Wallet/keypool UX and signing parity.
 - Taproot coexistence/replacement design and deployment path.
