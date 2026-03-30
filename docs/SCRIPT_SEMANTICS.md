@@ -18,3 +18,7 @@
 
 ## Legacy Behavior
 - Active PQ consensus paths do not accept DER/secp legacy signature encodings.
+
+## Post-v1 Boundary
+- Future witness-v1 replacement posture is frozen in `TAPROOT_POSTURE.md`.
+- This document defines only shipped v1 pre-taproot PQ semantics.

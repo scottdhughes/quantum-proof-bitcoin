@@ -15,3 +15,7 @@ Reusing the existing sighash construction minimizes migration risk and preserves
 ## Constraints
 - Digest computation must remain byte-for-byte stable for equivalent transaction contexts.
 - Any future sighash redesign requires a new Spec-ID version and explicit consensus activation process.
+
+## Post-v1 Boundary
+Future witness-v1 replacement posture is frozen in `TAPROOT_POSTURE.md`. This document
+defines only the shipped pre-taproot PQ sighash rule.

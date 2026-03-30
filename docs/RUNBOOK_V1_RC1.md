@@ -136,3 +136,5 @@ Use the following immutable state machine for GA operations:
 - Wallet keypool and signing UX.
 - Taproot coexistence migration.
 - Multi-alg version negotiation.
+
+Future Taproot posture is tracked separately in `/Users/scott/quantum-proof-bitcoin/docs/TAPROOT_POSTURE.md`.

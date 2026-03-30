@@ -62,6 +62,9 @@ Explicit legacy-only coverage in this tranche includes:
 2. SegWit/pre-SegWit transition tests
 3. legacy message-signing flows
 
+Taproot-specific tests remain `legacy_only` in the current CI contract. Their future
+status is governed by `TAPROOT_POSTURE.md` and remains outside this tranche.
+
 ## Ownership
 
 Until a separate ownership model or `CODEOWNERS` file exists, all current workflow and gate ownership is assigned to `@scottdhughes`.
