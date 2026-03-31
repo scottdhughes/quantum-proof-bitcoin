@@ -7,20 +7,31 @@
 
 ## Purpose
 
-Freeze the activation/deployment model for the explicit-replacement Taproot path
-before any code constants, deployment wiring, or migration tests are chosen.
+Freeze the activation/deployment model and the concrete dormant deployment
+values for the explicit-replacement Taproot path before migration tests or
+replacement semantics are implemented.
 
 This document is the canonical future-facing authority for replacement activation,
 deployment parameter shape, and rollback/abort semantics on PQBTC. It does not
 change current runtime behavior.
 
-## Current Baseline
+## Historical v1 Baseline
 
-The live repo remains in `DORMANT_BASELINE`:
+The shipped v1 baseline was `DORMANT_BASELINE`:
 
-1. `DEPLOYMENT_TAPROOT` is `NEVER_ACTIVE` on PQBTC deployment tracks.
+1. `DEPLOYMENT_TAPROOT` was `NEVER_ACTIVE` on PQBTC deployment tracks.
 2. Pre-taproot `OP_CHECKSIG` and `OP_CHECKMULTISIG` remain PQ-only.
 3. Pre-taproot sighash remains fixed `SIGHASH_ALL`.
+4. No dormant Taproot-facing surface is approved for use merely because code exists.
+
+## Current Repo Deployment State
+
+The live repo now remains operationally dormant, but it is no longer
+unconfigured:
+
+1. `Consensus::DEPLOYMENT_TAPROOT` is wired with concrete far-future BIP9 values.
+2. The operator-facing deployment/reporting name is `taproot_replacement`.
+3. The current operator-visible phase is `DEPLOYMENT_DEFINED_NOT_SIGNALING`.
 4. No dormant Taproot-facing surface is approved for use merely because code exists.
 
 The future active path, if ever deployed, is a PQ-native replacement path. It is
@@ -68,9 +79,9 @@ operator phase is a distinct code state.
 
 | Operator/governance phase | Meaning | Code-facing BIP9 state relationship |
 |---|---|---|
-| `DORMANT_BASELINE` | Current shipped v1 posture with Taproot disabled and no approved replacement behavior | No active deployment instance is in use; `DEPLOYMENT_TAPROOT` remains `NEVER_ACTIVE` |
+| `DORMANT_BASELINE` | Historical shipped v1 posture with Taproot disabled and no approved replacement behavior | No active deployment instance is in use; `DEPLOYMENT_TAPROOT` is `NEVER_ACTIVE` |
 | `SPEC_FROZEN_NOT_DEPLOYING` | Posture and activation model are frozen in docs, but no live deployment instance is configured for signaling | No deployment attempt is active yet |
-| `DEPLOYMENT_DEFINED_NOT_SIGNALING` | A future BIP9 deployment instance exists in code/config terms, but the start condition is not yet met | `defined` |
+| `DEPLOYMENT_DEFINED_NOT_SIGNALING` | A concrete future-dated BIP9 deployment instance exists in code/config terms, but the start condition is not yet met | `defined` |
 | `SIGNALING` | A deployment attempt is collecting BIP9 signaling and has not yet locked in | `started` |
 | `LOCKED_IN_PRE_ACTIVE` | Threshold rules are satisfied, but replacement behavior is not active yet | `locked_in` |
 | `ACTIVE_REPLACEMENT` | The PQ-native replacement path is active according to the frozen deployment rules | `active` |
@@ -79,8 +90,8 @@ operator phase is a distinct code state.
 ## Phase Semantics
 
 ### `DORMANT_BASELINE`
-- This is the current repo state.
-- `DEPLOYMENT_TAPROOT` remains `NEVER_ACTIVE`.
+- This is the historical shipped v1 state.
+- `DEPLOYMENT_TAPROOT` is `NEVER_ACTIVE`.
 - Witness-v1 code and Taproot-facing wallet/RPC/descriptor/PSBT surfaces are dormant inventory only.
 - No operator should treat existing dormant surfaces as approved for use.
 
@@ -90,7 +101,9 @@ operator phase is a distinct code state.
 - This phase is documentation/governance only and does not imply a live deployment object.
 
 ### `DEPLOYMENT_DEFINED_NOT_SIGNALING`
+- This is the current repo state after concrete deployment values are wired.
 - A future BIP9 deployment instance may exist, but start conditions are not yet met.
+- The operator-facing deployment/reporting name is `taproot_replacement`.
 - Replacement behavior remains dormant.
 - Wallet, RPC, PSBT, descriptor, address, and witness-v1 behavior remain unchanged.
 
@@ -160,6 +173,22 @@ The code-facing BIP9 reporting vocabulary remains:
 
 Future implementation and release docs must preserve this two-layer distinction.
 
+## Frozen Concrete Deployment Values
+
+The repo now freezes these concrete dormant defaults:
+
+| Network | Deployment name | Bit | Start time | Timeout | Min activation height | Threshold | Period |
+|---|---|---|---|---|---|---|---|
+| `main` | `taproot_replacement` | 2 | `4102444800` (`2100-01-01T00:00:00Z`) | `4133980800` (`2101-01-01T00:00:00Z`) | 0 | 1815 | 2016 |
+| `testnet` | `taproot_replacement` | 2 | `4102444800` (`2100-01-01T00:00:00Z`) | `4133980800` (`2101-01-01T00:00:00Z`) | 0 | 1512 | 2016 |
+| `testnet4` | `taproot_replacement` | 2 | `4102444800` (`2100-01-01T00:00:00Z`) | `4133980800` (`2101-01-01T00:00:00Z`) | 0 | 1512 | 2016 |
+| `signet` | `taproot_replacement` | 2 | `4102444800` (`2100-01-01T00:00:00Z`) | `4133980800` (`2101-01-01T00:00:00Z`) | 0 | 1815 | 2016 |
+| `regtest` | `taproot_replacement` | 2 | `4102444800` (`2100-01-01T00:00:00Z`) | `4133980800` (`2101-01-01T00:00:00Z`) | 0 | 108 | 144 |
+
+These values are intentionally far-future dormant defaults. They make the
+replacement deployment concrete and operator-visible without starting a near-term
+signaling commitment on public networks.
+
 ## Rollback and Abort Envelope
 
 Rollback and abort are defined conservatively by phase.
@@ -180,7 +209,7 @@ started deployment instance. It is not a post-activation rollback concept.
 
 | Surface | `DORMANT_BASELINE` / `SPEC_FROZEN_NOT_DEPLOYING` | `DEPLOYMENT_DEFINED_NOT_SIGNALING` / `SIGNALING` / `LOCKED_IN_PRE_ACTIVE` | `ACTIVE_REPLACEMENT` | Downstream owner |
 |---|---|---|---|---|
-| Deployment state / `getdeploymentinfo` posture | Current v1 deployment remains dormant; no approved replacement deployment behavior | Deployment reporting may reflect BIP9 lifecycle, but no replacement semantics are active | Eligible for later implementation under the replacement rules | `#22` |
+| Deployment state / `getdeploymentinfo` posture | Current repo exposes a concrete far-future dormant `taproot_replacement` deployment; no replacement semantics are active | Deployment reporting may reflect BIP9 lifecycle, but no replacement semantics are active | Eligible for later implementation under the replacement rules | `#22` |
 | Witness-v1 output acceptance | Dormant inventory only | Unchanged; no approved activation during pre-active phases | Eligible only after replacement activation rules are implemented | `#22` |
 | Address encoding and reporting | Dormant inventory only | Unchanged; existing code is not approval for use | Eligible only after replacement-specific address/output rules are implemented | `#22` |
 | Wallet capability surfaces such as `taprootEnabled()` | Dormant inventory only | Unchanged; no approved wallet activation during pre-active phases | Eligible only after replacement-specific wallet behavior is defined | `#22` then `#23` |
@@ -192,15 +221,14 @@ started deployment instance. It is not a post-activation rollback concept.
 
 ## Release-Gating Baseline
 
-This tranche freezes that a future deployment attempt must not be defined as deployable
-until all of the following exist in a later follow-up:
+This tranche freezes that a future deployment attempt must not be moved beyond
+the current dormant defined state until all of the following exist in a later follow-up:
 
 - frozen posture doc (`TAPROOT_POSTURE.md`)
 - frozen activation/rollback doc (this document)
-- concrete network parameter values
-- code plumbing for the chosen deployment instance
 - operator/release guidance for interpreting deployment status
 - migration/compatibility validation plan in `#23`
+- replacement-specific semantics and activation behavior for the affected surfaces
 
 This tranche does not define the full checklist contents beyond those baseline categories.
 
@@ -208,8 +236,6 @@ This tranche does not define the full checklist contents beyond those baseline c
 
 This document does **not** define:
 
-- concrete mainnet/testnet/regtest deployment values
-- modifications to `chainparams` or deployment wiring
 - the replacement-path witness-v1 script/address semantics themselves
 - migration or compatibility behavior across pre/post-activation nodes
 - CI reclassification or conversion of Taproot-specific suites
@@ -220,4 +246,3 @@ This document does **not** define:
 - `#22`: freeze activation/deployment mechanism family, state machine, parameter schema,
   and rollback envelope for the explicit-replacement path
 - `#23`: define migration and compatibility behavior spanning pre/post-activation states
-

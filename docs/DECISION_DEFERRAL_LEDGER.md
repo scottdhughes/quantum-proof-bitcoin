@@ -26,8 +26,8 @@ and define the concrete work required for a full-and-complete post-v1 program.
 - v1 state: taproot activation remains `NEVER_ACTIVE` on PQBTC deployment tracks.
 - post-v1 update: taproot posture is frozen to explicit replacement in `TAPROOT_POSTURE.md`.
 - post-v1 update: replacement activation family, parameter schema, and rollback envelope are frozen in `TAPROOT_ACTIVATION.md`.
+- post-v1 update: concrete far-future dormant deployment values and the `taproot_replacement` reporting surface are wired into the repo.
 - full-complete delta:
-  - concrete deployment values and code wiring for the replacement path
   - cross-version compatibility and migration functional suites for the replacement path
 
 ### 3. PQ-first CI profile
@@ -68,7 +68,7 @@ and define the concrete work required for a full-and-complete post-v1 program.
 
 ## Post-v1 Full-Complete Program (Execution Order)
 1. Wallet completeness and PSBT parity.
-2. Taproot replacement activation wiring + migration path.
+2. Taproot replacement migration path and compatibility matrix.
 3. CI completion (full migration or permanent dual-profile contract).
 4. Operational SLO hardening and adversarial throughput validation.
 5. Bench instrumentation hardening from fixed-envelope mode to measured accounting.
