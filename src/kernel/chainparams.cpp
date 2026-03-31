@@ -499,7 +499,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].threshold = 108; // 75%
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].period = 144; // Faster than normal for regtest (144 instead of 2016)
 
-        // Taproot replacement remains far-future dormant by default and is overrideable via -vbparams.
+        // Taproot replacement remains far-future dormant by default and is overridable via -vbparams.
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = TAPROOT_REPLACEMENT_START_TIME;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = TAPROOT_REPLACEMENT_TIMEOUT;
