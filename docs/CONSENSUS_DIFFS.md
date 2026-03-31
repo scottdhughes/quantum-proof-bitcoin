@@ -17,6 +17,7 @@
 Every merged consensus diff must reference this document and corresponding tests.
 
 ## Post-v1 Boundary
-Future witness-v1 replacement posture is frozen in `TAPROOT_POSTURE.md`. This v1
+Future witness-v1 replacement posture is frozen in `TAPROOT_POSTURE.md`, and the
+replacement activation/rollback model is frozen in `TAPROOT_ACTIVATION.md`. This v1
 ledger records only the shipped v1 consensus diffs and does not approve inherited
 Taproot activation semantics for a later tranche.

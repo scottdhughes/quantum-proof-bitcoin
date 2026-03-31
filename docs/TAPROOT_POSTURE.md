@@ -8,7 +8,8 @@
 ## Purpose
 
 Freeze the post-v1 Taproot posture decision before activation, deployment, rollback,
-or migration mechanics are specified.
+or migration mechanics are implemented. Activation/deployment/rollback semantics are
+now frozen in `TAPROOT_ACTIVATION.md`.
 
 This document is the canonical future-facing authority for Taproot posture on PQBTC.
 It does not change current runtime behavior.
@@ -73,12 +74,12 @@ model that the current implementation and docs do not define.
 
 | Surface | Current v1 state | Explicit-replacement posture | Expected treatment | Downstream owner |
 |---|---|---|---|---|
-| Deployment state in `src/kernel/chainparams.cpp` | `DEPLOYMENT_TAPROOT` is `NEVER_ACTIVE` on PQBTC tracks | Current deployment settings are baseline only, not the future activation design | Retained dormant until a replacement activation spec exists | `#22` |
-| Script semantics | Pre-taproot `CHECKSIG` / `CHECKMULTISIG` are PQ-only | Future witness-v1+ semantics must be defined as a new PQ-native replacement, not inherited Taproot semantics | Superseded later by replacement-specific script rules | `#21` then `#22` |
-| Sighash posture | Pre-taproot paths are fixed to `SIGHASH_ALL` | This doc does not define any witness-v1+ replacement sighash rules | Downstream-defined only | `#21` then `#22` |
-| Witness-v1 / Taproot address encoding in `src/key_io.cpp` | Bech32m/Taproot encoding and decoding code exists | Existing witness-v1 address code is not a commitment to activate inherited Taproot semantics | Retained dormant until a replacement address/output spec exists | `#21` then `#22` |
+| Deployment state in `src/kernel/chainparams.cpp` | `DEPLOYMENT_TAPROOT` is `NEVER_ACTIVE` on PQBTC tracks | Current deployment settings are baseline only; replacement activation model is frozen in `TAPROOT_ACTIVATION.md` | Retained dormant until a later code tranche defines concrete deployment values | `#22` |
+| Script semantics | Pre-taproot `CHECKSIG` / `CHECKMULTISIG` are PQ-only | Future witness-v1+ semantics must be defined as a new PQ-native replacement, not inherited Taproot semantics | Superseded later by replacement-specific script rules | `#22` |
+| Sighash posture | Pre-taproot paths are fixed to `SIGHASH_ALL` | This doc does not define any witness-v1+ replacement sighash rules | Downstream-defined only | `#22` |
+| Witness-v1 / Taproot address encoding in `src/key_io.cpp` | Bech32m/Taproot encoding and decoding code exists | Existing witness-v1 address code is not a commitment to activate inherited Taproot semantics | Retained dormant until a replacement address/output spec exists | `#22` |
 | Wallet Taproot capability surfaces such as `taprootEnabled()` | Interfaces and output-type plumbing exist | Existing wallet surfaces are inherited implementation artifacts, not approved future posture | Retained dormant and out of current sign-off scope | `#22` and `#23` |
-| Descriptor `tr(...)` posture | Descriptor/test surfaces for Taproot exist in inherited wallet code and tests | `tr(...)` is not part of the approved future PQBTC posture as-is | Legacy-only until a replacement descriptor decision exists | `#21` then `#23` |
+| Descriptor `tr(...)` posture | Descriptor/test surfaces for Taproot exist in inherited wallet code and tests | `tr(...)` is not part of the approved future PQBTC posture as-is | Legacy-only until a replacement descriptor decision exists | `#23` |
 | PSBT Taproot fields | Taproot PSBT fields still exist in inherited code and tests | Existing PSBT Taproot field support is not approved future interoperability behavior | Retained dormant and classified as legacy-only for now | `#23` |
 | RPC reporting and creation surfaces | RPC decode/create/reporting surfaces still expose Taproot-related fields and address types | Existing RPC exposure is not an approval of future activated semantics | Retained dormant; future replacement behavior must be specified explicitly | `#22` and `#23` |
 | Functional Taproot suites | Taproot-specific functional tests remain in the repo | These tests are inventory surfaces, not future activation commitments | Retained as legacy-only coverage until migration decisions exist | `#23` |
@@ -88,8 +89,8 @@ model that the current implementation and docs do not define.
 
 This document does **not** define:
 
-- activation state machine or deployment parameters
-- rollback or abort rules for a future replacement path
+- concrete activation parameter values or code wiring
+- runtime rollback machinery for a future replacement path
 - migration or compatibility matrix across pre/post-activation states
 - CI reclassification or conversion of Taproot-specific suites
 - runtime code changes, removals, or enablement
@@ -97,5 +98,5 @@ This document does **not** define:
 ## Downstream Issue Boundaries
 
 - `#21`: freeze posture choice and surface boundary map
-- `#22`: define activation/deployment mechanism and rollback rules for the chosen posture
+- `#22`: freeze activation/deployment mechanism family, parameter schema, and rollback rules for the chosen posture
 - `#23`: define cross-version migration and compatibility validation for the chosen posture

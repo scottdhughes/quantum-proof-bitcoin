@@ -21,6 +21,7 @@
 
 ## Post-v1 Boundary
 - Future witness-v1 posture is frozen in `TAPROOT_POSTURE.md`.
+- Activation/deployment/rollback model is frozen in `TAPROOT_ACTIVATION.md`.
 - Inherited Taproot semantics are not the future activation target as-is.
 
 ## Out of Scope for v1
