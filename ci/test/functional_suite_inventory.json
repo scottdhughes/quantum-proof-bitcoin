@@ -420,6 +420,13 @@
     "notes": "Explicit Taproot coverage; retained for the separate Taproot posture epic."
   },
   {
+    "name": "feature_taproot_replacement_deployment.py",
+    "policy_class": "pq_backlog",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#13",
+    "notes": "Concrete dormant replacement deployment reporting and regtest BIP9 override coverage; kept out of the PQ gate while Taproot migration work remains in #23."
+  },
+  {
     "name": "feature_uacomment.py",
     "policy_class": "dual_profile",
     "owner": "@scottdhughes",

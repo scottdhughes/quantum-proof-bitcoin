@@ -67,6 +67,8 @@ TIME_RANGE_MTP = TIME_GENESIS_BLOCK + (HEIGHT - 6) * TIME_RANGE_STEP
 TIME_RANGE_TIP = TIME_GENESIS_BLOCK + (HEIGHT - 1) * TIME_RANGE_STEP
 TIME_RANGE_END = TIME_GENESIS_BLOCK + HEIGHT * TIME_RANGE_STEP
 DIFFICULTY_ADJUSTMENT_INTERVAL = 144
+TAPROOT_REPLACEMENT_START_TIME = 4102444800
+TAPROOT_REPLACEMENT_TIMEOUT = 4133980800
 
 
 class BlockchainTest(BitcoinTestFramework):
@@ -240,18 +242,17 @@ class BlockchainTest(BitcoinTestFramework):
                 },
                 'active': False
             },
-            'taproot': {
+            'taproot_replacement': {
                 'type': 'bip9',
                 'bip9': {
-                    'start_time': -1,
-                    'timeout': 9223372036854775807,
+                    'start_time': TAPROOT_REPLACEMENT_START_TIME,
+                    'timeout': TAPROOT_REPLACEMENT_TIMEOUT,
                     'min_activation_height': 0,
-                    'status': 'active',
-                    'status_next': 'active',
+                    'status': 'defined',
+                    'status_next': 'defined',
                     'since': 0,
                 },
-                'height': 0,
-                'active': True
+                'active': False
             }
           }
         })

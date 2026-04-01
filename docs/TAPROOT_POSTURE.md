@@ -74,7 +74,7 @@ model that the current implementation and docs do not define.
 
 | Surface | Current v1 state | Explicit-replacement posture | Expected treatment | Downstream owner |
 |---|---|---|---|---|
-| Deployment state in `src/kernel/chainparams.cpp` | `DEPLOYMENT_TAPROOT` is `NEVER_ACTIVE` on PQBTC tracks | Current deployment settings are baseline only; replacement activation model is frozen in `TAPROOT_ACTIVATION.md` | Retained dormant until a later code tranche defines concrete deployment values | `#22` |
+| Deployment state in `src/kernel/chainparams.cpp` | Shipped v1 used `DEPLOYMENT_TAPROOT = NEVER_ACTIVE`; current repo wires far-future dormant BIP9 values and reports them as `taproot_replacement` | Current deployment settings are concrete but still dormant; replacement activation model is frozen in `TAPROOT_ACTIVATION.md` | Retained dormant until a later tranche intentionally opens signaling and defines replacement semantics | `#22` |
 | Script semantics | Pre-taproot `CHECKSIG` / `CHECKMULTISIG` are PQ-only | Future witness-v1+ semantics must be defined as a new PQ-native replacement, not inherited Taproot semantics | Superseded later by replacement-specific script rules | `#22` |
 | Sighash posture | Pre-taproot paths are fixed to `SIGHASH_ALL` | This doc does not define any witness-v1+ replacement sighash rules | Downstream-defined only | `#22` |
 | Witness-v1 / Taproot address encoding in `src/key_io.cpp` | Bech32m/Taproot encoding and decoding code exists | Existing witness-v1 address code is not a commitment to activate inherited Taproot semantics | Retained dormant until a replacement address/output spec exists | `#22` |
@@ -87,9 +87,9 @@ model that the current implementation and docs do not define.
 
 ## Explicit Non-Goals
 
-This document does **not** define:
+This document does **not** define directly:
 
-- concrete activation parameter values or code wiring
+- concrete activation parameter values or code wiring; see `TAPROOT_ACTIVATION.md`
 - runtime rollback machinery for a future replacement path
 - migration or compatibility matrix across pre/post-activation states
 - CI reclassification or conversion of Taproot-specific suites
