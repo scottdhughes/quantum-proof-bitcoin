@@ -16,8 +16,8 @@ Execution tracker for work required after `v1.0.0-rc1` to reach full-and-complet
 - Exit criteria: node+wallet end-to-end PQ signing and recovery with CI coverage.
 
 2. Taproot posture beyond v1
-- Scope: frozen explicit-replacement posture, concrete dormant replacement deployment/reporting path, and migration tests.
-- Exit criteria: frozen replacement posture, concrete dormant deployment/reporting path, and cross-version test matrix.
+- Scope: frozen explicit-replacement posture, concrete dormant replacement deployment/reporting path, frozen migration matrix, and compatibility tests.
+- Exit criteria: frozen replacement posture, concrete dormant deployment/reporting path, and implemented cross-version validation against the frozen matrix.
 
 3. Multi-algorithm evolution (`ALG_ID` registry)
 - Scope: frozen `#24` registry rules, `#25` parser compatibility contract, and `#26` neutral `future-0x02` forward-compatible algorithm version path.
