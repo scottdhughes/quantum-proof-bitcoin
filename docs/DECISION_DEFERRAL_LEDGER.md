@@ -28,8 +28,10 @@ and define the concrete work required for a full-and-complete post-v1 program.
 - post-v1 update: replacement activation family, parameter schema, and rollback envelope are frozen in `TAPROOT_ACTIVATION.md`.
 - post-v1 update: concrete far-future dormant deployment values and the `taproot_replacement` reporting surface are wired into the repo.
 - post-v1 update: directional migration/compatibility matrix and Taproot suite classification are frozen in `TAPROOT_MIGRATION_MATRIX.md`.
+- post-v1 update: runtime evidence now covers the pre-active rows and the defined vs active reporting boundary using plain blocks only.
 - full-complete delta:
-  - implement the cross-version compatibility and migration functional suites for the replacement path
+  - implement the first true active-semantic compatibility tranche for the replacement path
+  - implement the deferred cross-version migration functional suites for the replacement path
 
 ### 3. PQ-first CI profile
 - v1 state: default CI gates PQ suites; legacy profile is explicit opt-in.

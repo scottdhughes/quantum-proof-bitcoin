@@ -59,8 +59,10 @@ The matrix is directional. Each row is evaluated as `local state -> observed/com
 | `SIGNALING` | `DORMANT_BASELINE` | `same-consensus / pre-active deployment divergence` | Same as above from the opposite observation direction. | Regtest-only deployment-status coverage. |
 | `DORMANT_BASELINE` | `LOCKED_IN_PRE_ACTIVE` | `same-consensus / pre-active deployment divergence` | Historical baseline and regtest lock-in may disagree on deployment status only. No approved replacement semantics exist. | Regtest-only deployment-status coverage. |
 | `LOCKED_IN_PRE_ACTIVE` | `DORMANT_BASELINE` | `same-consensus / pre-active deployment divergence` | Same as above from the opposite observation direction. | Regtest-only deployment-status coverage. |
-| `*` | `ACTIVE_REPLACEMENT` | `future-active compatibility reserved` | Any pairing involving future active replacement is reserved for later implementation work. This document does not define active replacement semantics. | Bucket and inventory now; implementation later. |
-| `ACTIVE_REPLACEMENT` | `*` | `future-active compatibility reserved` | Any pairing involving future active replacement is reserved for later implementation work. This document does not define active replacement semantics. | Bucket and inventory now; implementation later. |
+| `DEPLOYMENT_DEFINED_NOT_SIGNALING` | `ACTIVE_REPLACEMENT` | `same-consensus / reporting-only divergence` | Versionbits/deployment reporting may diverge while the nodes remain on the same accepted chain, provided only plain blocks are exercised. This is not evidence of replacement witness-v1 semantics. | Plain-block same-chain reporting assertions only. |
+| `ACTIVE_REPLACEMENT` | `DEPLOYMENT_DEFINED_NOT_SIGNALING` | `same-consensus / reporting-only divergence` | Same as above from the opposite observation direction. This is not evidence of replacement witness-v1 semantics. | Plain-block same-chain reporting assertions only. |
+| `*` | `ACTIVE_REPLACEMENT` | `future-active compatibility reserved` | Any remaining pairing involving future active replacement is reserved for later implementation work. This document does not define active replacement semantics. | Bucket and inventory now; implementation later. |
+| `ACTIVE_REPLACEMENT` | `*` | `future-active compatibility reserved` | Any remaining pairing involving future active replacement is reserved for later implementation work. This document does not define active replacement semantics. | Bucket and inventory now; implementation later. |
 
 ## Coverage Guardrails
 
@@ -71,21 +73,37 @@ The matrix is directional. Each row is evaluated as `local state -> observed/com
    approved merely because deployment reporting exists.
 4. This matrix freezes what is comparable today; it does not speculate about
    active replacement semantics beyond reserving them for later work.
+5. Runtime evidence for `ACTIVE_REPLACEMENT` in this slice is limited to plain
+   blocks and deployment reporting only.
 
 ## Implemented Pre-Active Runtime Evidence
 
 The opening slice of `#23` froze this matrix and its suite classification. The
-current runtime slice adds evidence for the currently exercisable pre-active rows
+current runtime slices add evidence for the currently exercisable reporting rows
 without changing the matrix meaning:
 
 1. `feature_taproot_replacement_deployment.py` remains the single-node proof of
    concrete dormant replacement deployment reporting and regtest BIP9 override
-   transitions.
+   transitions through the exact active boundary.
 2. `feature_taproot_replacement_compat.py` adds cross-node runtime evidence for
    `DEPLOYMENT_DEFINED_NOT_SIGNALING <-> SIGNALING` and
    `DEPLOYMENT_DEFINED_NOT_SIGNALING <-> LOCKED_IN_PRE_ACTIVE` on the same
    accepted chain, with `active = false` on both nodes.
-3. Any row involving `ACTIVE_REPLACEMENT` remains explicitly deferred.
+3. `feature_taproot_replacement_active_boundary.py` adds cross-node runtime
+   evidence for `DEPLOYMENT_DEFINED_NOT_SIGNALING <-> ACTIVE_REPLACEMENT` on the
+   same accepted chain using plain blocks only.
+4. Active replacement semantics remain explicitly deferred.
+
+## Explicit-Replacement Semantic Guard
+
+The current repo evidence for `ACTIVE_REPLACEMENT` is limited to versionbits and
+deployment reporting reaching `active`.
+
+This slice does **not** bless inherited Taproot witness-v1, bech32m, `tr(...)`,
+or P2TR transaction behavior as PQBTC replacement behavior. The inspected
+consensus and networking activation hooks for witness handling remain tied to
+`DEPLOYMENT_SEGWIT`, not `DEPLOYMENT_TAPROOT`, so this matrix freezes only the
+reporting boundary here.
 
 ## Frozen Suite Classification
 
@@ -95,6 +113,7 @@ without changing the matrix meaning:
 | `wallet_taproot.py` | `legacy_only` | `legacy_only` | Explicit inherited Taproot wallet coverage; not a PQBTC replacement target as-is. |
 | `feature_taproot_replacement_deployment.py` | `pq_backlog` | `replacement_migration` | Directly exercises the frozen dormant replacement deployment/reporting path and regtest pre-active BIP9 transitions. |
 | `feature_taproot_replacement_compat.py` | `pq_backlog` | `replacement_migration` | Adds cross-node evidence that defined, started, and locked_in pre-active states can diverge in reporting while remaining on the same accepted chain. |
+| `feature_taproot_replacement_active_boundary.py` | `pq_backlog` | `replacement_migration` | Adds cross-node evidence that defined and active reporting can diverge on the same accepted chain using plain blocks only, without defining active semantics. |
 | `rpc_createmultisig.py` | `dual_profile` | `deferred` | Contains Taproot-adjacent bech32m coverage, but replacement-specific semantics are not yet defined. |
 | `rpc_psbt.py` | `dual_profile` | `deferred` | Contains Taproot-facing PSBT surfaces, but replacement-specific semantics are not yet defined. |
 | `wallet_address_types.py` | `dual_profile` | `deferred` | Contains bech32m/Taproot-facing address branches, but replacement-specific semantics are not yet defined. |
@@ -114,7 +133,9 @@ This slice does **not** define:
 ## Downstream Boundary
 
 The opening slice of `#23` froze the directional matrix and suite classification.
-This runtime slice implements the currently exercisable pre-active evidence only.
+The current runtime slices implement the currently exercisable reporting rows
+only.
 
-Remaining `#23` work after this slice is the active-replacement compatibility and
-the deferred Taproot-facing migration suites implied by this matrix.
+Remaining `#23` work after this slice is the first true active-semantic
+compatibility tranche and the deferred Taproot-facing migration suites implied
+by this matrix.

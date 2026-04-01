@@ -15,7 +15,6 @@ pre-active deployment reporting state.
 from test_framework.blocktools import TIME_GENESIS_BLOCK
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import assert_equal
-from test_framework.wallet import MiniWallet
 
 
 TAPROOT_REPLACEMENT_NAME = "taproot_replacement"
@@ -40,13 +39,12 @@ class TaprootReplacementCompatTest(BitcoinTestFramework):
         while self.nodes[1].getblockcount() < target:
             next_height = self.nodes[1].getblockcount() + 1
             self.set_network_mocktime(next_height)
-            self.generate(self.miner, 1, sync_fun=self.sync_blocks)
+            self.generate(self.nodes[1], 1, sync_fun=self.sync_blocks)
 
     def restart_signalling_node(self):
         self.restart_node(1, extra_args=[f"-vbparams={TAPROOT_REPLACEMENT_NAME}:0:{NO_TIMEOUT}"])
         self.connect_nodes(0, 1)
         self.sync_blocks()
-        self.miner = MiniWallet(self.nodes[1])
 
     def assert_same_chain(self, expected_height):
         best_hash_0 = self.nodes[0].getbestblockhash()
@@ -93,8 +91,6 @@ class TaprootReplacementCompatTest(BitcoinTestFramework):
         self.assert_directional_state_pair(1, 0, signalling_status, "defined", expected_height)
 
     def run_test(self):
-        self.miner = MiniWallet(self.nodes[1])
-
         self.log.info("Restart node1 with regtest vbparams override for taproot_replacement")
         self.restart_signalling_node()
 
