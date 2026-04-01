@@ -4,3 +4,6 @@ feature_pqsig_basic.py
 feature_pqsig_multisig.py
 mempool_pq_limits.py
 mempool_pq_stress.py
+wallet_pq_active_ranged.py
+wallet_pq_backup_recovery.py
+wallet_pq_psbt.py

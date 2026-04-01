@@ -4,15 +4,42 @@
 
 #include <coins.h>
 #include <consensus/amount.h>
+#include <crypto/pqsig/pqsig.h>
 #include <consensus/tx_verify.h>
 #include <node/psbt.h>
 #include <policy/policy.h>
 #include <policy/settings.h>
+#include <script/script.h>
 #include <tinyformat.h>
 
+#include <algorithm>
 #include <numeric>
 
 namespace node {
+namespace {
+bool IsPQSingleSigWitnessScript(const CScript& script)
+{
+    if (script.size() != pqsig::PK_SCRIPT_SIZE + 2) return false;
+    if (script[0] != pqsig::PK_SCRIPT_SIZE || script.back() != OP_CHECKSIG) return false;
+
+    PQPkScript pk_script{};
+    std::copy_n(script.begin() + 1, pqsig::PK_SCRIPT_SIZE, pk_script.begin());
+    return pqsig::ClassifyPkScript(pk_script) == pqsig::PkScriptParseStatus::VALID_ACTIVE;
+}
+
+bool MissingOnlyPQSignature(const PSBTInput& input, const SignatureData& outdata)
+{
+    if (!outdata.missing_pubkeys.empty() || !outdata.missing_sigs.empty() ||
+        !outdata.missing_redeem_script.IsNull() || !outdata.missing_witness_script.IsNull()) {
+        return false;
+    }
+
+    SignatureData existing;
+    input.FillSignatureData(existing);
+    return existing.pq_signatures.empty() && IsPQSingleSigWitnessScript(input.witness_script);
+}
+} // namespace
+
 PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
 {
     // Go through each input and build status
@@ -74,7 +101,8 @@ PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
                 input_analysis.missing_sigs = outdata.missing_sigs;
 
                 // If we are only missing signatures and nothing else, then next is signer
-                if (outdata.missing_pubkeys.empty() && outdata.missing_redeem_script.IsNull() && outdata.missing_witness_script.IsNull() && !outdata.missing_sigs.empty()) {
+                if ((outdata.missing_pubkeys.empty() && outdata.missing_redeem_script.IsNull() && outdata.missing_witness_script.IsNull() && !outdata.missing_sigs.empty()) ||
+                    MissingOnlyPQSignature(input, outdata)) {
                     input_analysis.next = PSBTRole::SIGNER;
                 } else {
                     input_analysis.next = PSBTRole::UPDATER;

@@ -25,7 +25,14 @@ This project implements a Bitcoin-like UTXO chain using hash-based post-quantum 
 
 ## Status
 
-**`v1.0.0` held; `v1.0.0-rc2` active** - the project is on the rc2 mitigation track after retiring the old `ALG_ID=0x00` profile before GA.
+**`v1.0.0` held; `v1.0.0-rc2` active** - the project is on the rc2 mitigation
+track after retiring the old `ALG_ID=0x00` profile before GA.
+
+The repo already includes frozen PQ-only consensus, descriptor-native PQ wallet
+managers, PQ PSBT signing/finalization support, and deterministic wallet
+backup/recovery coverage. Current work is focused on confidence/gating
+completeness, Taproot replacement migration coverage, and operational
+hardening rather than first-pass wallet implementation.
 
 ## RC Documentation
 
