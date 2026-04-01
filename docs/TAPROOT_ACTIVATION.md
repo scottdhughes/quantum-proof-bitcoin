@@ -213,11 +213,11 @@ started deployment instance. It is not a post-activation rollback concept.
 | Witness-v1 output acceptance | Dormant inventory only | Unchanged; no approved activation during pre-active phases | Eligible only after replacement activation rules are implemented | `#22` |
 | Address encoding and reporting | Dormant inventory only | Unchanged; existing code is not approval for use | Eligible only after replacement-specific address/output rules are implemented | `#22` |
 | Wallet capability surfaces such as `taprootEnabled()` | Dormant inventory only | Unchanged; no approved wallet activation during pre-active phases | Eligible only after replacement-specific wallet behavior is defined | `#22` then `#23` |
-| Descriptor `tr(...)` | Legacy-only inventory surface | Unchanged; not approved for use during pre-active phases | Still deferred pending compatibility/migration decisions | `#23` |
-| PSBT Taproot fields | Legacy-only inventory surface | Unchanged; not approved for replacement use during pre-active phases | Still deferred pending compatibility/migration decisions | `#23` |
-| RPC create/decode/reporting surfaces | Dormant or legacy-only inventory surfaces | Unchanged; reporting does not imply approved replacement semantics | Eligible only after replacement-specific RPC behavior is defined | `#22` then `#23` |
-| Functional Taproot suites | Legacy-only coverage | Unchanged | Still deferred pending migration-matrix decisions | `#23` |
-| CI classification posture | `legacy_only` remains frozen | Unchanged | Still deferred pending migration-matrix decisions | `#23` |
+| Descriptor `tr(...)` | Legacy-only inventory surface | Unchanged; not approved for use during pre-active phases | Migration classification is now frozen in `TAPROOT_MIGRATION_MATRIX.md`; replacement semantics remain deferred | `#23` |
+| PSBT Taproot fields | Legacy-only inventory surface | Unchanged; not approved for replacement use during pre-active phases | Migration classification is now frozen in `TAPROOT_MIGRATION_MATRIX.md`; replacement semantics remain deferred | `#23` |
+| RPC create/decode/reporting surfaces | Dormant or legacy-only inventory surfaces | Unchanged; reporting does not imply approved replacement semantics | Migration classification is now frozen in `TAPROOT_MIGRATION_MATRIX.md`; replacement-specific behavior remains deferred | `#22` then `#23` |
+| Functional Taproot suites | Legacy-only coverage | Unchanged | Migration relevance is now frozen in `TAPROOT_MIGRATION_MATRIX.md`; implementation remains deferred | `#23` |
+| CI classification posture | Inherited Taproot suites remain `legacy_only`; replacement deployment reporting remains `pq_backlog` | Unchanged | `policy_class` remains frozen while `taproot_matrix_bucket` carries migration metadata only | `#23` |
 
 ## Release-Gating Baseline
 
@@ -227,7 +227,7 @@ the current dormant defined state until all of the following exist in a later fo
 - frozen posture doc (`TAPROOT_POSTURE.md`)
 - frozen activation/rollback doc (this document)
 - operator/release guidance for interpreting deployment status
-- migration/compatibility validation plan in `#23`
+- frozen migration/compatibility matrix in `TAPROOT_MIGRATION_MATRIX.md`
 - replacement-specific semantics and activation behavior for the affected surfaces
 
 This tranche does not define the full checklist contents beyond those baseline categories.
@@ -237,7 +237,7 @@ This tranche does not define the full checklist contents beyond those baseline c
 This document does **not** define:
 
 - the replacement-path witness-v1 script/address semantics themselves
-- migration or compatibility behavior across pre/post-activation nodes
+- migration or compatibility behavior implementation across pre/post-activation nodes; the frozen matrix lives in `TAPROOT_MIGRATION_MATRIX.md`
 - CI reclassification or conversion of Taproot-specific suites
 - routine rollback after lock-in or after activation
 
@@ -245,4 +245,4 @@ This document does **not** define:
 
 - `#22`: freeze activation/deployment mechanism family, state machine, parameter schema,
   and rollback envelope for the explicit-replacement path
-- `#23`: define migration and compatibility behavior spanning pre/post-activation states
+- `#23`: freeze the migration matrix and implement migration/compatibility behavior spanning pre/post-activation states

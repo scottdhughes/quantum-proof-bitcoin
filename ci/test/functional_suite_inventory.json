@@ -415,16 +415,18 @@
   {
     "name": "feature_taproot.py",
     "policy_class": "legacy_only",
+    "taproot_matrix_bucket": "legacy_only",
     "owner": "@scottdhughes",
-    "tracking_issue": "#13",
-    "notes": "Explicit Taproot coverage; retained for the separate Taproot posture epic."
+    "tracking_issue": "#23",
+    "notes": "Explicit inherited Taproot functional coverage; classified as legacy_only in the #23 migration matrix."
   },
   {
     "name": "feature_taproot_replacement_deployment.py",
     "policy_class": "pq_backlog",
+    "taproot_matrix_bucket": "replacement_migration",
     "owner": "@scottdhughes",
-    "tracking_issue": "#13",
-    "notes": "Concrete dormant replacement deployment reporting and regtest BIP9 override coverage; kept out of the PQ gate while Taproot migration work remains in #23."
+    "tracking_issue": "#23",
+    "notes": "Concrete dormant replacement deployment reporting and regtest BIP9 override coverage; classified as replacement_migration while remaining out of the PQ gate."
   },
   {
     "name": "feature_uacomment.py",
@@ -1108,9 +1110,10 @@
   {
     "name": "rpc_createmultisig.py",
     "policy_class": "dual_profile",
+    "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
-    "tracking_issue": "#15",
-    "notes": "Retained under the current non-gating dual-profile contract."
+    "tracking_issue": "#23",
+    "notes": "Includes bech32m/Taproot-adjacent RPC coverage; retained under the current non-gating dual-profile contract and classified as deferred in the #23 migration matrix."
   },
   {
     "name": "rpc_decodescript.py",
@@ -1269,9 +1272,10 @@
   {
     "name": "rpc_psbt.py",
     "policy_class": "dual_profile",
+    "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
-    "tracking_issue": "#15",
-    "notes": "Retained under the current non-gating dual-profile contract."
+    "tracking_issue": "#23",
+    "notes": "Includes Taproot-facing PSBT surfaces; retained under the current non-gating dual-profile contract and classified as deferred in the #23 migration matrix."
   },
   {
     "name": "rpc_rawtransaction.py",
@@ -1416,9 +1420,10 @@
   {
     "name": "wallet_address_types.py",
     "policy_class": "dual_profile",
+    "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
-    "tracking_issue": "#15",
-    "notes": "Retained under the current non-gating dual-profile contract."
+    "tracking_issue": "#23",
+    "notes": "Includes bech32m/Taproot-facing address branches; retained under the current non-gating dual-profile contract and classified as deferred in the #23 migration matrix."
   },
   {
     "name": "wallet_anchor.py",
@@ -1528,9 +1533,10 @@
   {
     "name": "wallet_createwalletdescriptor.py",
     "policy_class": "pq_backlog",
+    "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
-    "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "tracking_issue": "#23",
+    "notes": "Includes tr()/bech32m descriptor creation paths; kept in pq_backlog and classified as deferred in the #23 migration matrix."
   },
   {
     "name": "wallet_crosschain.py",
@@ -1675,16 +1681,18 @@
   {
     "name": "wallet_miniscript.py",
     "policy_class": "dual_profile",
+    "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
-    "tracking_issue": "#15",
-    "notes": "Retained under the current non-gating dual-profile contract."
+    "tracking_issue": "#23",
+    "notes": "Includes Taproot-facing descriptor/miniscript coverage; retained under the current non-gating dual-profile contract and classified as deferred in the #23 migration matrix."
   },
   {
     "name": "wallet_miniscript_decaying_multisig_descriptor_psbt.py",
     "policy_class": "dual_profile",
+    "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
-    "tracking_issue": "#15",
-    "notes": "Retained under the current non-gating dual-profile contract."
+    "tracking_issue": "#23",
+    "notes": "Touches descriptor/PSBT surfaces that may intersect replacement compatibility later; retained under the current non-gating dual-profile contract and classified as deferred in the #23 migration matrix."
   },
   {
     "name": "wallet_multisig_descriptor_psbt.py",
@@ -1829,9 +1837,10 @@
   {
     "name": "wallet_taproot.py",
     "policy_class": "legacy_only",
+    "taproot_matrix_bucket": "legacy_only",
     "owner": "@scottdhughes",
-    "tracking_issue": "#13",
-    "notes": "Explicit Taproot coverage; retained for the separate Taproot posture epic."
+    "tracking_issue": "#23",
+    "notes": "Explicit inherited Taproot wallet coverage; classified as legacy_only in the #23 migration matrix."
   },
   {
     "name": "wallet_timelock.py",

@@ -79,11 +79,11 @@ model that the current implementation and docs do not define.
 | Sighash posture | Pre-taproot paths are fixed to `SIGHASH_ALL` | This doc does not define any witness-v1+ replacement sighash rules | Downstream-defined only | `#22` |
 | Witness-v1 / Taproot address encoding in `src/key_io.cpp` | Bech32m/Taproot encoding and decoding code exists | Existing witness-v1 address code is not a commitment to activate inherited Taproot semantics | Retained dormant until a replacement address/output spec exists | `#22` |
 | Wallet Taproot capability surfaces such as `taprootEnabled()` | Interfaces and output-type plumbing exist | Existing wallet surfaces are inherited implementation artifacts, not approved future posture | Retained dormant and out of current sign-off scope | `#22` and `#23` |
-| Descriptor `tr(...)` posture | Descriptor/test surfaces for Taproot exist in inherited wallet code and tests | `tr(...)` is not part of the approved future PQBTC posture as-is | Legacy-only until a replacement descriptor decision exists | `#23` |
-| PSBT Taproot fields | Taproot PSBT fields still exist in inherited code and tests | Existing PSBT Taproot field support is not approved future interoperability behavior | Retained dormant and classified as legacy-only for now | `#23` |
-| RPC reporting and creation surfaces | RPC decode/create/reporting surfaces still expose Taproot-related fields and address types | Existing RPC exposure is not an approval of future activated semantics | Retained dormant; future replacement behavior must be specified explicitly | `#22` and `#23` |
-| Functional Taproot suites | Taproot-specific functional tests remain in the repo | These tests are inventory surfaces, not future activation commitments | Retained as legacy-only coverage until migration decisions exist | `#23` |
-| CI classification posture | `CI_COMPLETENESS.md` classifies Taproot-specific tests as `legacy_only` | This tranche does not reclassify them | Legacy-only remains frozen for now | `#23` |
+| Descriptor `tr(...)` posture | Descriptor/test surfaces for Taproot exist in inherited wallet code and tests | `tr(...)` is not part of the approved future PQBTC posture as-is | Inventory classification is now frozen in `TAPROOT_MIGRATION_MATRIX.md`; replacement semantics remain deferred | `#23` |
+| PSBT Taproot fields | Taproot PSBT fields still exist in inherited code and tests | Existing PSBT Taproot field support is not approved future interoperability behavior | Inventory classification is now frozen in `TAPROOT_MIGRATION_MATRIX.md`; replacement semantics remain deferred | `#23` |
+| RPC reporting and creation surfaces | RPC decode/create/reporting surfaces still expose Taproot-related fields and address types | Existing RPC exposure is not an approval of future activated semantics | Deployment reporting remains frozen in `#22`; compatibility coverage classification is now frozen in `TAPROOT_MIGRATION_MATRIX.md` | `#22` and `#23` |
+| Functional Taproot suites | Taproot-specific functional tests remain in the repo | These tests are inventory surfaces, not future activation commitments | Migration relevance is now classified in `TAPROOT_MIGRATION_MATRIX.md` without changing CI gating | `#23` |
+| CI classification posture | `CI_COMPLETENESS.md` keeps inherited Taproot suites `legacy_only` and the replacement deployment test `pq_backlog` | This tranche does not reclassify them | `policy_class` remains frozen while `taproot_matrix_bucket` carries migration-matrix metadata only | `#23` |
 
 ## Explicit Non-Goals
 
@@ -91,7 +91,7 @@ This document does **not** define directly:
 
 - concrete activation parameter values or code wiring; see `TAPROOT_ACTIVATION.md`
 - runtime rollback machinery for a future replacement path
-- migration or compatibility matrix across pre/post-activation states
+- migration or compatibility implementation across pre/post-activation states; the frozen matrix now lives in `TAPROOT_MIGRATION_MATRIX.md`
 - CI reclassification or conversion of Taproot-specific suites
 - runtime code changes, removals, or enablement
 
@@ -99,4 +99,4 @@ This document does **not** define directly:
 
 - `#21`: freeze posture choice and surface boundary map
 - `#22`: freeze activation/deployment mechanism family, parameter schema, and rollback rules for the chosen posture
-- `#23`: define cross-version migration and compatibility validation for the chosen posture
+- `#23`: freeze the migration matrix and implement cross-version compatibility validation for the chosen posture

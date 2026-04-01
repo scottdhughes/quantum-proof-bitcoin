@@ -15,6 +15,18 @@ PQ_TESTS_PATH = REPO_ROOT / "ci" / "test" / "pq_functional_tests.txt"
 INVENTORY_PATH = REPO_ROOT / "ci" / "test" / "functional_suite_inventory.json"
 HELPERS = {"combine_logs.py", "create_cache.py", "test_runner.py"}
 VALID_POLICY_CLASSES = {"pq_required", "pq_backlog", "dual_profile", "legacy_only"}
+VALID_TAPROOT_MATRIX_BUCKETS = {"legacy_only", "replacement_migration", "deferred"}
+REQUIRED_TAPROOT_MATRIX_BUCKETS = {
+    "feature_taproot.py": "legacy_only",
+    "feature_taproot_replacement_deployment.py": "replacement_migration",
+    "rpc_createmultisig.py": "deferred",
+    "rpc_psbt.py": "deferred",
+    "wallet_address_types.py": "deferred",
+    "wallet_createwalletdescriptor.py": "deferred",
+    "wallet_miniscript.py": "deferred",
+    "wallet_miniscript_decaying_multisig_descriptor_psbt.py": "deferred",
+    "wallet_taproot.py": "legacy_only",
+}
 
 
 def fail(message: str) -> None:
@@ -59,6 +71,7 @@ def main() -> int:
         name = entry.get("name")
         policy_class = entry.get("policy_class")
         owner = entry.get("owner")
+        taproot_matrix_bucket = entry.get("taproot_matrix_bucket")
 
         if not isinstance(name, str) or not name:
             fail("inventory entries must contain a non-empty string 'name'")
@@ -72,6 +85,21 @@ def main() -> int:
             fail(f"{name} has unknown policy_class {policy_class!r}")
         if not isinstance(owner, str) or not owner.strip():
             fail(f"{name} has an empty owner")
+        if name in REQUIRED_TAPROOT_MATRIX_BUCKETS:
+            expected_bucket = REQUIRED_TAPROOT_MATRIX_BUCKETS[name]
+            if taproot_matrix_bucket != expected_bucket:
+                fail(
+                    f"{name} must set taproot_matrix_bucket to {expected_bucket!r}, "
+                    f"got {taproot_matrix_bucket!r}"
+                )
+        elif taproot_matrix_bucket is not None:
+            fail(
+                f"{name} unexpectedly sets taproot_matrix_bucket; this field is reserved "
+                "for the curated Taproot migration subset"
+            )
+
+        if taproot_matrix_bucket is not None and taproot_matrix_bucket not in VALID_TAPROOT_MATRIX_BUCKETS:
+            fail(f"{name} has unknown taproot_matrix_bucket {taproot_matrix_bucket!r}")
 
         if policy_class == "pq_required":
             pq_required.append(name)
@@ -91,9 +119,16 @@ def main() -> int:
         )
 
     counts = Counter(entry["policy_class"] for entry in inventory)
+    taproot_bucket_counts = Counter(
+        entry["taproot_matrix_bucket"]
+        for entry in inventory
+        if "taproot_matrix_bucket" in entry
+    )
     print("CI inventory validation passed")
     for label in sorted(VALID_POLICY_CLASSES):
         print(f"{label}: {counts[label]}")
+    for label in sorted(VALID_TAPROOT_MATRIX_BUCKETS):
+        print(f"taproot_matrix_bucket:{label}: {taproot_bucket_counts[label]}")
     return 0
 
 
