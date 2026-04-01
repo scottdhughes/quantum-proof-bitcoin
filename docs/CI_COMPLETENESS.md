@@ -36,8 +36,8 @@ The current functional corpus has `267` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `6` |
-| `pq_backlog` | `105` |
+| `pq_required` | `9` |
+| `pq_backlog` | `102` |
 | `dual_profile` | `147` |
 | `legacy_only` | `9` |
 
@@ -49,12 +49,18 @@ Current required PQ-first gates:
 4. `feature_pqsig_multisig.py`
 5. `mempool_pq_limits.py`
 6. `mempool_pq_stress.py`
+7. `wallet_pq_active_ranged.py`
+8. `wallet_pq_backup_recovery.py`
+9. `wallet_pq_psbt.py`
 
-Key backlog families in this tranche:
+The previous wallet-confidence gap is closed in this tranche by promoting the
+existing PQ wallet suites into the required gate and adding PQ-native wallet and
+PSBT unit coverage to the default `test_pqbtc` profile. The remaining key
+backlog families are:
 
-1. wallet functional coverage outside the current PQ-specific tests
-2. mempool and mining policy suites not yet given explicit PQ gating treatment
-3. chainstate and validation-facing feature tests that still need a later PQ migration decision
+1. mempool and mining policy suites not yet given explicit PQ gating treatment
+2. chainstate and validation-facing feature tests that still need a later PQ migration decision
+3. broader dual-profile and legacy-only coverage that still needs durable ownership and migration boundaries
 
 Explicit legacy-only coverage in this tranche includes:
 
@@ -78,3 +84,4 @@ Until a separate ownership model or `CODEOWNERS` file exists, all current workfl
 Still deferred after this tranche:
 
 1. converting `pq_backlog` suites into required PQ gates or documenting permanent dual-profile boundaries for them
+2. promoting high-value chainstate and validation suites from `pq_backlog` once the current wallet-confidence tranche is stable

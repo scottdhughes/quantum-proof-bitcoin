@@ -193,6 +193,10 @@ target_link_libraries(test_pqbtc
 
 if(ENABLE_WALLET)
   add_subdirectory(${PROJECT_SOURCE_DIR}/src/wallet/test wallet)
+  target_sources(test_pqbtc
+    PRIVATE
+      pq_psbt_tests.cpp
+  )
 endif()
 
 if(ENABLE_IPC)

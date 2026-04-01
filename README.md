@@ -25,7 +25,10 @@ This project implements a Bitcoin-like UTXO chain using hash-based post-quantum 
 
 ## Status
 
-**Early development** - Specification phase.
+**Active implementation** - frozen PQ-only consensus, descriptor-native PQ
+wallet flows, and PQ PSBT handling are in-tree. Current work is focused on CI
+completeness, Taproot replacement migration coverage, and operational
+hardening.
 
 ## License
 

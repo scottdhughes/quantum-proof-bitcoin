@@ -65,6 +65,7 @@ class MockableBatch : public DatabaseBatch
 private:
     MockableData& m_records;
     bool m_pass;
+    bool m_active_txn{false};
 
     bool ReadKey(DataStream&& key, DataStream& value) override;
     bool WriteKey(DataStream&& key, DataStream&& value, bool overwrite=true) override;
@@ -85,10 +86,25 @@ public:
     std::unique_ptr<DatabaseCursor> GetNewPrefixCursor(std::span<const std::byte> prefix) override {
         return std::make_unique<MockableCursor>(m_records, m_pass, prefix);
     }
-    bool TxnBegin() override { return m_pass; }
-    bool TxnCommit() override { return m_pass; }
-    bool TxnAbort() override { return m_pass; }
-    bool HasActiveTxn() override { return false; }
+    bool TxnBegin() override
+    {
+        if (!m_pass || m_active_txn) return false;
+        m_active_txn = true;
+        return true;
+    }
+    bool TxnCommit() override
+    {
+        if (!m_pass || !m_active_txn) return false;
+        m_active_txn = false;
+        return true;
+    }
+    bool TxnAbort() override
+    {
+        if (!m_pass || !m_active_txn) return false;
+        m_active_txn = false;
+        return true;
+    }
+    bool HasActiveTxn() override { return m_active_txn; }
 };
 
 /** A WalletDatabase whose contents and return values can be modified as needed for testing

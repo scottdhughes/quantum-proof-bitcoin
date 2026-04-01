@@ -12,8 +12,9 @@ Execution tracker for work required after `v1.0.0-rc1` to reach full-and-complet
 ## Epics
 
 1. Wallet completeness and signing parity
-- Scope: descriptors, keypool batching, restore/recovery invariants, PSBT finalization, wallet RPC parity, wallet functional coverage.
-- Exit criteria: node+wallet end-to-end PQ signing and recovery with CI coverage.
+- Status: completed by `#12` wallet confidence closure.
+- Delivered scope: descriptor-native PQ wallet managers, restore/recovery invariants, PQ PSBT signing/finalization coverage, and deterministic wallet functional coverage in the required PQ gate.
+- Exit criteria: met once node+wallet end-to-end PQ signing and recovery are covered by required CI and default PQ-native unit coverage.
 
 2. Taproot posture beyond v1
 - Scope: frozen explicit-replacement posture, concrete dormant replacement deployment/reporting path, frozen migration matrix, and compatibility tests.
