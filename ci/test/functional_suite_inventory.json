@@ -429,6 +429,14 @@
     "notes": "Concrete dormant replacement deployment reporting and regtest BIP9 override coverage; classified as replacement_migration while remaining out of the PQ gate."
   },
   {
+    "name": "feature_taproot_replacement_compat.py",
+    "policy_class": "pq_backlog",
+    "taproot_matrix_bucket": "replacement_migration",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#23",
+    "notes": "Cross-node pre-active compatibility coverage for defined vs started and defined vs locked_in reporting divergence on the same accepted chain; classified as replacement_migration while remaining out of the PQ gate."
+  },
+  {
     "name": "feature_uacomment.py",
     "policy_class": "dual_profile",
     "owner": "@scottdhughes",

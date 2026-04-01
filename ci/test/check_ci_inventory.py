@@ -18,6 +18,7 @@ VALID_POLICY_CLASSES = {"pq_required", "pq_backlog", "dual_profile", "legacy_onl
 VALID_TAPROOT_MATRIX_BUCKETS = {"legacy_only", "replacement_migration", "deferred"}
 REQUIRED_TAPROOT_MATRIX_BUCKETS = {
     "feature_taproot.py": "legacy_only",
+    "feature_taproot_replacement_compat.py": "replacement_migration",
     "feature_taproot_replacement_deployment.py": "replacement_migration",
     "rpc_createmultisig.py": "deferred",
     "rpc_psbt.py": "deferred",

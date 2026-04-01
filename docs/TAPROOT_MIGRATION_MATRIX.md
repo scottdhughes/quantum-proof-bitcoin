@@ -72,6 +72,21 @@ The matrix is directional. Each row is evaluated as `local state -> observed/com
 4. This matrix freezes what is comparable today; it does not speculate about
    active replacement semantics beyond reserving them for later work.
 
+## Implemented Pre-Active Runtime Evidence
+
+The opening slice of `#23` froze this matrix and its suite classification. The
+current runtime slice adds evidence for the currently exercisable pre-active rows
+without changing the matrix meaning:
+
+1. `feature_taproot_replacement_deployment.py` remains the single-node proof of
+   concrete dormant replacement deployment reporting and regtest BIP9 override
+   transitions.
+2. `feature_taproot_replacement_compat.py` adds cross-node runtime evidence for
+   `DEPLOYMENT_DEFINED_NOT_SIGNALING <-> SIGNALING` and
+   `DEPLOYMENT_DEFINED_NOT_SIGNALING <-> LOCKED_IN_PRE_ACTIVE` on the same
+   accepted chain, with `active = false` on both nodes.
+3. Any row involving `ACTIVE_REPLACEMENT` remains explicitly deferred.
+
 ## Frozen Suite Classification
 
 | Suite | Current `policy_class` | `taproot_matrix_bucket` | Rationale |
@@ -79,6 +94,7 @@ The matrix is directional. Each row is evaluated as `local state -> observed/com
 | `feature_taproot.py` | `legacy_only` | `legacy_only` | Explicit inherited BIP341/BIP342 functional coverage; not a PQBTC replacement target as-is. |
 | `wallet_taproot.py` | `legacy_only` | `legacy_only` | Explicit inherited Taproot wallet coverage; not a PQBTC replacement target as-is. |
 | `feature_taproot_replacement_deployment.py` | `pq_backlog` | `replacement_migration` | Directly exercises the frozen dormant replacement deployment/reporting path and regtest pre-active BIP9 transitions. |
+| `feature_taproot_replacement_compat.py` | `pq_backlog` | `replacement_migration` | Adds cross-node evidence that defined, started, and locked_in pre-active states can diverge in reporting while remaining on the same accepted chain. |
 | `rpc_createmultisig.py` | `dual_profile` | `deferred` | Contains Taproot-adjacent bech32m coverage, but replacement-specific semantics are not yet defined. |
 | `rpc_psbt.py` | `dual_profile` | `deferred` | Contains Taproot-facing PSBT surfaces, but replacement-specific semantics are not yet defined. |
 | `wallet_address_types.py` | `dual_profile` | `deferred` | Contains bech32m/Taproot-facing address branches, but replacement-specific semantics are not yet defined. |
@@ -97,7 +113,8 @@ This slice does **not** define:
 
 ## Downstream Boundary
 
-This document is the opening slice of `#23`.
+The opening slice of `#23` froze the directional matrix and suite classification.
+This runtime slice implements the currently exercisable pre-active evidence only.
 
-Remaining `#23` work after this slice is the actual implementation of the focused
-migration and compatibility suites implied by this matrix.
+Remaining `#23` work after this slice is the active-replacement compatibility and
+the deferred Taproot-facing migration suites implied by this matrix.

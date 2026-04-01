@@ -18,6 +18,7 @@ Execution tracker for work required after `v1.0.0-rc1` to reach full-and-complet
 
 2. Taproot posture beyond v1
 - Scope: frozen explicit-replacement posture, concrete dormant replacement deployment/reporting path, frozen migration matrix, and compatibility tests.
+- Current state: frozen posture, activation, deployment/reporting, and pre-active runtime compatibility evidence are now checked in; remaining work is active-replacement compatibility and the deferred Taproot-facing surfaces tracked under `#23`.
 - Exit criteria: frozen replacement posture, concrete dormant deployment/reporting path, and implemented cross-version validation against the frozen matrix.
 
 3. Multi-algorithm evolution (`ALG_ID` registry)
