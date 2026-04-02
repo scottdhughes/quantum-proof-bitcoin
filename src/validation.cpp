@@ -2368,6 +2368,10 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Ch
         flags |= SCRIPT_VERIFY_NULLDUMMY;
     }
 
+    if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_TAPROOT)) {
+        flags |= SCRIPT_VERIFY_DISALLOW_INHERITED_TAPROOT;
+    }
+
     return flags;
 }
 
@@ -2625,6 +2629,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                               "contains a non-BIP68-final transaction " + tx.GetHash().ToString());
                 break;
             }
+
         }
 
         // GetTransactionSigOpCost counts 3 types of sigops:

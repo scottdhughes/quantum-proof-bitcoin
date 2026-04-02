@@ -36,6 +36,9 @@ unconfigured:
 
 The future active path, if ever deployed, is a PQ-native replacement path. It is
 not inherited BIP341/BIP342 Taproot semantics switched on as-is.
+The first owned active-semantic runtime seam now checked in is negative-control
+only: `ACTIVE_REPLACEMENT` explicitly rejects inherited witness-v1 Taproot block
+spends, and does not yet approve any positive PQ-native witness-v1 behavior.
 
 ## Mechanism Family Decision
 
@@ -122,8 +125,11 @@ operator phase is a distinct code state.
 - The PQ-native replacement path becomes active.
 - Only at this phase may downstream implementation tranches activate replacement-specific
   witness-v1/address/wallet/descriptor/PSBT/RPC behavior.
-- This tranche does not define those active semantics; it only defines when such semantics
-  become eligible for later implementation.
+- The current repo owns one negative-control semantic guard at this phase:
+  inherited witness-v1 Taproot block spends are explicitly rejected once
+  `ACTIVE_REPLACEMENT` is live.
+- This tranche still does not define any positive PQ-native active semantics; it
+  only defines when such semantics become eligible for later implementation.
 
 ### `ABORTED_PRE_ACTIVATION`
 - This is an operator/governance outcome, not a standalone BIP9 state.
@@ -210,13 +216,13 @@ started deployment instance. It is not a post-activation rollback concept.
 | Surface | `DORMANT_BASELINE` / `SPEC_FROZEN_NOT_DEPLOYING` | `DEPLOYMENT_DEFINED_NOT_SIGNALING` / `SIGNALING` / `LOCKED_IN_PRE_ACTIVE` | `ACTIVE_REPLACEMENT` | Downstream owner |
 |---|---|---|---|---|
 | Deployment state / `getdeploymentinfo` posture | Current repo exposes a concrete far-future dormant `taproot_replacement` deployment; no replacement semantics are active | Deployment reporting may reflect BIP9 lifecycle, but no replacement semantics are active | Eligible for later implementation under the replacement rules | `#22` |
-| Witness-v1 output acceptance | Dormant inventory only | Unchanged; no approved activation during pre-active phases | Eligible only after replacement activation rules are implemented | `#22` |
+| Witness-v1 output acceptance | Dormant inventory only | Unchanged; no approved activation during pre-active phases | Inherited Taproot witness-v1 block spends are explicitly rejected as negative-control evidence; positive PQ-native witness-v1 rules remain deferred | `#22` then `#23` |
 | Address encoding and reporting | Dormant inventory only | Unchanged; existing code is not approval for use | Eligible only after replacement-specific address/output rules are implemented | `#22` |
 | Wallet capability surfaces such as `taprootEnabled()` | Dormant inventory only | Unchanged; no approved wallet activation during pre-active phases | Eligible only after replacement-specific wallet behavior is defined | `#22` then `#23` |
 | Descriptor `tr(...)` | Legacy-only inventory surface | Unchanged; not approved for use during pre-active phases | Migration classification is now frozen in `TAPROOT_MIGRATION_MATRIX.md`; replacement semantics remain deferred | `#23` |
 | PSBT Taproot fields | Legacy-only inventory surface | Unchanged; not approved for replacement use during pre-active phases | Migration classification is now frozen in `TAPROOT_MIGRATION_MATRIX.md`; replacement semantics remain deferred | `#23` |
 | RPC create/decode/reporting surfaces | Dormant or legacy-only inventory surfaces | Unchanged; reporting does not imply approved replacement semantics | Migration classification is now frozen in `TAPROOT_MIGRATION_MATRIX.md`; replacement-specific behavior remains deferred | `#22` then `#23` |
-| Functional Taproot suites | Legacy-only coverage | Unchanged | Migration relevance is now frozen in `TAPROOT_MIGRATION_MATRIX.md`; implementation remains deferred | `#23` |
+| Functional Taproot suites | Legacy-only coverage | Unchanged | Migration relevance is now frozen in `TAPROOT_MIGRATION_MATRIX.md`; runtime evidence now includes the negative-control active-semantic guard while broader active semantics remain deferred | `#23` |
 | CI classification posture | Inherited Taproot suites remain `legacy_only`; replacement deployment reporting remains `pq_backlog` | Unchanged | `policy_class` remains frozen while `taproot_matrix_bucket` carries migration metadata only | `#23` |
 
 ## Release-Gating Baseline

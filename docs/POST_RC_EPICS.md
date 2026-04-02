@@ -18,7 +18,7 @@ Execution tracker for work required after `v1.0.0-rc1` to reach full-and-complet
 
 2. Taproot posture beyond v1
 - Scope: frozen explicit-replacement posture, concrete dormant replacement deployment/reporting path, frozen migration matrix, and compatibility tests.
-- Current state: frozen posture, activation, deployment/reporting, pre-active runtime compatibility evidence, and the defined vs active reporting boundary are now checked in; remaining work is the first true active-semantic compatibility slice and the deferred Taproot-facing surfaces tracked under `#23`.
+- Current state: frozen posture, activation, deployment/reporting, pre-active runtime compatibility evidence, the defined vs active reporting boundary, and the first active-semantic negative-control guard are now checked in; remaining work is the first positive PQ-native active-semantic slice and the deferred Taproot-facing surfaces tracked under `#23`.
 - Exit criteria: frozen replacement posture, concrete dormant deployment/reporting path, and implemented cross-version validation against the frozen matrix.
 
 3. Multi-algorithm evolution (`ALG_ID` registry)
