@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <consensus/amount.h>
+#include <crypto/sha256.h>
 #include <crypto/pqsig/pqsig.h>
 #include <policy/policy.h>
 #include <script/interpreter.h>
@@ -43,6 +44,15 @@ std::vector<uint8_t> SignForScript(const CMutableTransaction& tx, const CScript&
     return sig;
 }
 
+class AcceptingTaprootChecker final : public BaseSignatureChecker
+{
+public:
+    bool CheckSchnorrSignature(std::span<const unsigned char> sig, std::span<const unsigned char> pubkey, SigVersion sigversion, ScriptExecutionData&, ScriptError*) const override
+    {
+        return sigversion == SigVersion::TAPROOT && sig.size() == 64 && pubkey.size() == 32;
+    }
+};
+
 } // namespace
 
 BOOST_FIXTURE_TEST_SUITE(script_tests, BasicTestingSetup)
@@ -82,6 +92,44 @@ BOOST_AUTO_TEST_CASE(pq_checksig_accepts_and_rejects_deterministically)
     const TransactionSignatureChecker wrong_size_checker(&wrong_size_tx_const, 0, 0, MissingDataBehavior::FAIL);
     BOOST_CHECK(!VerifyScript(wrong_size_tx.vin[0].scriptSig, script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, wrong_size_checker, &err));
     BOOST_CHECK_EQUAL(err, SCRIPT_ERR_SIG_DER);
+}
+
+BOOST_AUTO_TEST_CASE(inherited_taproot_rejection_guard_is_explicit)
+{
+    constexpr unsigned int witness_flags{SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_TAPROOT};
+    constexpr unsigned int guarded_flags{witness_flags | SCRIPT_VERIFY_DISALLOW_INHERITED_TAPROOT};
+    const CScript taproot_script_pubkey = CScript{} << OP_1 << std::vector<unsigned char>(32, 0x03);
+    CScriptWitness taproot_witness;
+    taproot_witness.stack = {std::vector<unsigned char>(64, 0x04)};
+    const AcceptingTaprootChecker checker;
+
+    ScriptError err = SCRIPT_ERR_UNKNOWN_ERROR;
+    BOOST_CHECK(VerifyScript(CScript{}, taproot_script_pubkey, &taproot_witness, witness_flags, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_OK);
+
+    err = SCRIPT_ERR_UNKNOWN_ERROR;
+    BOOST_CHECK(!VerifyScript(CScript{}, taproot_script_pubkey, &taproot_witness, guarded_flags, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_INHERITED_TAPROOT_DISALLOWED);
+
+    const CScript witness_script = CScript{} << OP_TRUE;
+    uint256 witness_script_hash;
+    CSHA256().Write(witness_script.data(), witness_script.size()).Finalize(witness_script_hash.begin());
+    const CScript witness_v0_script_pubkey = CScript{} << OP_0 << std::vector<unsigned char>{witness_script_hash.begin(), witness_script_hash.end()};
+    CScriptWitness witness_v0;
+    witness_v0.stack = {std::vector<unsigned char>{witness_script.begin(), witness_script.end()}};
+
+    err = SCRIPT_ERR_UNKNOWN_ERROR;
+    BOOST_CHECK(VerifyScript(CScript{}, witness_v0_script_pubkey, &witness_v0, guarded_flags, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_OK);
+
+    err = SCRIPT_ERR_UNKNOWN_ERROR;
+    BOOST_CHECK(VerifyScript(CScript{}, CScript{} << OP_TRUE, nullptr, guarded_flags, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_OK);
+
+    const CScript malformed_witness_v0_script_pubkey = CScript{} << OP_0 << std::vector<unsigned char>(31, 0x05);
+    err = SCRIPT_ERR_UNKNOWN_ERROR;
+    BOOST_CHECK(!VerifyScript(CScript{}, malformed_witness_v0_script_pubkey, &taproot_witness, guarded_flags, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

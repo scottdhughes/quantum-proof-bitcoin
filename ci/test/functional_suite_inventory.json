@@ -445,6 +445,14 @@
     "notes": "Cross-node defined vs active reporting-boundary coverage on the same accepted chain using plain blocks only; classified as replacement_migration while remaining out of the PQ gate."
   },
   {
+    "name": "feature_taproot_replacement_active_semantic_guard.py",
+    "policy_class": "pq_backlog",
+    "taproot_matrix_bucket": "replacement_migration",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#23",
+    "notes": "Negative-control active-semantic coverage for inherited Taproot rejection under ACTIVE_REPLACEMENT; classified as replacement_migration while remaining out of the PQ gate."
+  },
+  {
     "name": "feature_uacomment.py",
     "policy_class": "dual_profile",
     "owner": "@scottdhughes",

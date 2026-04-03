@@ -11,9 +11,9 @@ Freeze the first migration and compatibility matrix for the explicit-replacement
 Taproot path.
 
 This document is the canonical future-facing authority for how PQBTC classifies
-Taproot-facing migration coverage across the already-frozen dormant and pre-active
-states. It does not define active replacement semantics and does not change runtime
-behavior.
+Taproot-facing migration coverage across the already-frozen dormant, pre-active,
+and narrowly-owned negative-control active states. It does not define any
+positive PQ-native active replacement seam.
 
 ## Current Inputs
 
@@ -37,10 +37,11 @@ required status contexts, or runtime behavior.
 
 ## Compatibility Classes
 
-This matrix freezes three compatibility outcome classes:
+This matrix freezes four compatibility outcome classes:
 
 - `same-consensus / reporting-only divergence`
 - `same-consensus / pre-active deployment divergence`
+- `active-semantic divergence / inherited-taproot rejected`
 - `future-active compatibility reserved`
 
 The matrix is directional. Each row is evaluated as `local state -> observed/compared state`.
@@ -61,8 +62,10 @@ The matrix is directional. Each row is evaluated as `local state -> observed/com
 | `LOCKED_IN_PRE_ACTIVE` | `DORMANT_BASELINE` | `same-consensus / pre-active deployment divergence` | Same as above from the opposite observation direction. | Regtest-only deployment-status coverage. |
 | `DEPLOYMENT_DEFINED_NOT_SIGNALING` | `ACTIVE_REPLACEMENT` | `same-consensus / reporting-only divergence` | Versionbits/deployment reporting may diverge while the nodes remain on the same accepted chain, provided only plain blocks are exercised. This is not evidence of replacement witness-v1 semantics. | Plain-block same-chain reporting assertions only. |
 | `ACTIVE_REPLACEMENT` | `DEPLOYMENT_DEFINED_NOT_SIGNALING` | `same-consensus / reporting-only divergence` | Same as above from the opposite observation direction. This is not evidence of replacement witness-v1 semantics. | Plain-block same-chain reporting assertions only. |
-| `*` | `ACTIVE_REPLACEMENT` | `future-active compatibility reserved` | Any remaining pairing involving future active replacement is reserved for later implementation work. This document does not define active replacement semantics. | Bucket and inventory now; implementation later. |
-| `ACTIVE_REPLACEMENT` | `*` | `future-active compatibility reserved` | Any remaining pairing involving future active replacement is reserved for later implementation work. This document does not define active replacement semantics. | Bucket and inventory now; implementation later. |
+| `DEPLOYMENT_DEFINED_NOT_SIGNALING` | `ACTIVE_REPLACEMENT` | `active-semantic divergence / inherited-taproot rejected` | For the inherited witness-v1 Taproot negative-control fixture, the defined node may accept a block that the active node rejects. This is negative-control active evidence only: it proves inherited Taproot semantics are not the replacement path and does not define any positive PQ-native active seam. | Cross-node block-validation negative-control fixture only. |
+| `ACTIVE_REPLACEMENT` | `DEPLOYMENT_DEFINED_NOT_SIGNALING` | `active-semantic divergence / inherited-taproot rejected` | Same as above from the opposite observation direction. The active node rejects inherited Taproot witness-v1 semantics while the defined node still accepts the negative-control fixture. | Cross-node block-validation negative-control fixture only. |
+| `*` | `ACTIVE_REPLACEMENT` | `future-active compatibility reserved` | Any remaining pairing involving future active replacement beyond the explicit plain-block reporting rows and inherited-Taproot negative-control rows is reserved for later implementation work. This document does not define positive active replacement semantics. | Bucket and inventory now; implementation later. |
+| `ACTIVE_REPLACEMENT` | `*` | `future-active compatibility reserved` | Any remaining pairing involving future active replacement beyond the explicit plain-block reporting rows and inherited-Taproot negative-control rows is reserved for later implementation work. This document does not define positive active replacement semantics. | Bucket and inventory now; implementation later. |
 
 ## Coverage Guardrails
 
@@ -73,10 +76,12 @@ The matrix is directional. Each row is evaluated as `local state -> observed/com
    approved merely because deployment reporting exists.
 4. This matrix freezes what is comparable today; it does not speculate about
    active replacement semantics beyond reserving them for later work.
-5. Runtime evidence for `ACTIVE_REPLACEMENT` in this slice is limited to plain
-   blocks and deployment reporting only.
+5. Runtime evidence for `ACTIVE_REPLACEMENT` in the current repo is limited to:
+   - plain-block same-chain reporting compatibility
+   - inherited Taproot negative-control rejection
+6. No positive PQ-native active replacement seam is defined by this matrix.
 
-## Implemented Pre-Active Runtime Evidence
+## Implemented Runtime Evidence
 
 The opening slice of `#23` froze this matrix and its suite classification. The
 current runtime slices add evidence for the currently exercisable reporting rows
@@ -92,18 +97,23 @@ without changing the matrix meaning:
 3. `feature_taproot_replacement_active_boundary.py` adds cross-node runtime
    evidence for `DEPLOYMENT_DEFINED_NOT_SIGNALING <-> ACTIVE_REPLACEMENT` on the
    same accepted chain using plain blocks only.
-4. Active replacement semantics remain explicitly deferred.
+4. `feature_taproot_replacement_active_semantic_guard.py` adds the first true
+   active-semantic evidence as a negative control: a default
+   `DEPLOYMENT_DEFINED_NOT_SIGNALING` node accepts a valid inherited witness-v1
+   Taproot keypath spend at block-validation level, while an
+   `ACTIVE_REPLACEMENT` node rejects the same block once the explicit guard is active.
+5. Positive PQ-native active replacement semantics remain explicitly deferred.
 
 ## Explicit-Replacement Semantic Guard
 
-The current repo evidence for `ACTIVE_REPLACEMENT` is limited to versionbits and
-deployment reporting reaching `active`.
+The current repo now owns one explicit active-semantic boundary:
+`ACTIVE_REPLACEMENT` rejects inherited witness-v1 Taproot keypath spending
+semantics in block validation.
 
-This slice does **not** bless inherited Taproot witness-v1, bech32m, `tr(...)`,
-or P2TR transaction behavior as PQBTC replacement behavior. The inspected
-consensus and networking activation hooks for witness handling remain tied to
-`DEPLOYMENT_SEGWIT`, not `DEPLOYMENT_TAPROOT`, so this matrix freezes only the
-reporting boundary here.
+This is **negative-control active evidence only**. It proves inherited Taproot
+witness-v1 semantics are **not** the PQBTC replacement path. It does **not**
+define any positive PQ-native active witness-v1, address, wallet, descriptor,
+RPC, or PSBT seam.
 
 ## Frozen Suite Classification
 
@@ -114,6 +124,7 @@ reporting boundary here.
 | `feature_taproot_replacement_deployment.py` | `pq_backlog` | `replacement_migration` | Directly exercises the frozen dormant replacement deployment/reporting path and regtest pre-active BIP9 transitions. |
 | `feature_taproot_replacement_compat.py` | `pq_backlog` | `replacement_migration` | Adds cross-node evidence that defined, started, and locked_in pre-active states can diverge in reporting while remaining on the same accepted chain. |
 | `feature_taproot_replacement_active_boundary.py` | `pq_backlog` | `replacement_migration` | Adds cross-node evidence that defined and active reporting can diverge on the same accepted chain using plain blocks only, without defining active semantics. |
+| `feature_taproot_replacement_active_semantic_guard.py` | `pq_backlog` | `replacement_migration` | Adds the first active-semantic negative-control seam: inherited Taproot witness-v1 keypath spends remain acceptable on the defined side and are explicitly rejected on the active side. |
 | `rpc_createmultisig.py` | `dual_profile` | `deferred` | Contains Taproot-adjacent bech32m coverage, but replacement-specific semantics are not yet defined. |
 | `rpc_psbt.py` | `dual_profile` | `deferred` | Contains Taproot-facing PSBT surfaces, but replacement-specific semantics are not yet defined. |
 | `wallet_address_types.py` | `dual_profile` | `deferred` | Contains bech32m/Taproot-facing address branches, but replacement-specific semantics are not yet defined. |
@@ -125,8 +136,8 @@ reporting boundary here.
 
 This slice does **not** define:
 
-- active replacement witness-v1 semantics
-- migration behavior between active replacement and dormant nodes
+- positive PQ-native active replacement witness-v1 semantics
+- broad migration behavior between active replacement and dormant nodes beyond the explicit negative-control fixture
 - CI reclassification of Taproot suites into PQ-required gates
 - wallet, RPC, descriptor, PSBT, address, or consensus implementation changes
 
@@ -134,8 +145,8 @@ This slice does **not** define:
 
 The opening slice of `#23` froze the directional matrix and suite classification.
 The current runtime slices implement the currently exercisable reporting rows
-only.
+plus the inherited-Taproot negative-control guard only.
 
 Remaining `#23` work after this slice is the first true active-semantic
-compatibility tranche and the deferred Taproot-facing migration suites implied
-by this matrix.
+positive PQ-native compatibility tranche and the deferred Taproot-facing
+migration suites implied by this matrix.
