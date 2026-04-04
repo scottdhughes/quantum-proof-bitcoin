@@ -30,9 +30,10 @@ and define the concrete work required for a full-and-complete post-v1 program.
 - post-v1 update: directional migration/compatibility matrix and Taproot suite classification are frozen in `TAPROOT_MIGRATION_MATRIX.md`.
 - post-v1 update: runtime evidence now covers the pre-active rows and the defined vs active reporting boundary using plain blocks only.
 - post-v1 update: the first active-semantic runtime seam is now checked in as a negative-control guard that rejects inherited Taproot witness-v1 block spends under `ACTIVE_REPLACEMENT`.
+- post-v1 update: the first positive PQ-native active-semantic seam is now checked in as a block-validation-only witness-v1 / 32-byte / non-P2SH replacement-script-hash path with `SHA256(revealed_script) == program`, a revealed script of exactly `<33-byte pk_script> OP_CHECKSIG`, and fixed `SIGHASH_ALL`.
 - full-complete delta:
-  - implement the first positive PQ-native active-semantic compatibility tranche for the replacement path
   - implement the deferred cross-version migration functional suites for the replacement path
+  - define any broader active witness-v1, mempool, relay, policy, wallet, RPC, descriptor, address, or PSBT semantics beyond the first positive seam
 
 ### 3. PQ-first CI profile
 - v1 state: default CI gates PQ suites; legacy profile is explicit opt-in.

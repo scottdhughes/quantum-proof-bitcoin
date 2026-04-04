@@ -19,6 +19,7 @@ VALID_TAPROOT_MATRIX_BUCKETS = {"legacy_only", "replacement_migration", "deferre
 REQUIRED_TAPROOT_MATRIX_BUCKETS = {
     "feature_taproot.py": "legacy_only",
     "feature_taproot_replacement_active_boundary.py": "replacement_migration",
+    "feature_taproot_replacement_active_positive_seam.py": "replacement_migration",
     "feature_taproot_replacement_active_semantic_guard.py": "replacement_migration",
     "feature_taproot_replacement_compat.py": "replacement_migration",
     "feature_taproot_replacement_deployment.py": "replacement_migration",

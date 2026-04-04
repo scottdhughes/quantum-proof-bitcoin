@@ -32,12 +32,12 @@ This tranche does not migrate legacy suites to PQ semantics and does not optimiz
 
 ## Current Inventory Summary
 
-The current functional corpus has `270` tracked test files, classified as:
+The current functional corpus has `271` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
 | `pq_required` | `9` |
-| `pq_backlog` | `105` |
+| `pq_backlog` | `106` |
 | `dual_profile` | `147` |
 | `legacy_only` | `9` |
 
@@ -72,10 +72,12 @@ Inherited Taproot-specific suites remain `legacy_only` in the current CI contrac
 while `feature_taproot_replacement_deployment.py` and
 `feature_taproot_replacement_compat.py` and
 `feature_taproot_replacement_active_boundary.py` and
+`feature_taproot_replacement_active_positive_seam.py` and
 `feature_taproot_replacement_active_semantic_guard.py` remain `pq_backlog` as
 replacement-path deployment, pre-active compatibility, active-boundary
-reporting, and negative-control active-semantic coverage. Their future status is
-governed by `TAPROOT_POSTURE.md` and `TAPROOT_MIGRATION_MATRIX.md`.
+reporting, first-positive active-semantic, and negative-control
+active-semantic coverage. Their future status is governed by
+`TAPROOT_POSTURE.md` and `TAPROOT_MIGRATION_MATRIX.md`.
 `policy_class` remains the CI gating/ownership surface, while
 `taproot_matrix_bucket` is migration-matrix metadata only and does not change
 required CI behavior in this tranche.

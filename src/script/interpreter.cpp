@@ -1727,6 +1727,43 @@ static bool ExecuteWitnessScript(const std::span<const valtype>& stack_span, con
     return true;
 }
 
+static bool IsExactPQReplacementWitnessScript(const valtype& script_bytes)
+{
+    const CScript script{script_bytes.begin(), script_bytes.end()};
+    CScript::const_iterator pc = script.begin();
+    opcodetype opcode{};
+    std::vector<unsigned char> pushed_data;
+
+    if (!script.GetOp(pc, opcode, pushed_data)) return false;
+    if (opcode != static_cast<opcodetype>(pqsig::PK_SCRIPT_SIZE)) return false;
+    if (pushed_data.size() != pqsig::PK_SCRIPT_SIZE) return false;
+    if (pqsig::ClassifyPkScript(pushed_data) != pqsig::PkScriptParseStatus::VALID_ACTIVE) return false;
+
+    pushed_data.clear();
+    if (!script.GetOp(pc, opcode, pushed_data)) return false;
+    if (!pushed_data.empty() || opcode != OP_CHECKSIG) return false;
+
+    return pc == script.end();
+}
+
+static std::optional<bool> TryExecutePQReplacementWitnessProgram(const std::span<const valtype>& stack, std::span<const unsigned char> program, unsigned int flags, const BaseSignatureChecker& checker, ScriptExecutionData& execdata, ScriptError* serror)
+{
+    if (!(flags & SCRIPT_VERIFY_PQ_REPLACEMENT_V1_SCRIPTHASH)) return std::nullopt;
+    if (stack.size() != 2) return std::nullopt;
+
+    const valtype& revealed_script_bytes = stack.back();
+    if (!IsExactPQReplacementWitnessScript(revealed_script_bytes)) return std::nullopt;
+
+    const CScript exec_script{revealed_script_bytes.begin(), revealed_script_bytes.end()};
+    uint256 hash_exec_script;
+    CSHA256().Write(exec_script.data(), exec_script.size()).Finalize(hash_exec_script.begin());
+    if (memcmp(hash_exec_script.begin(), program.data(), WITNESS_V1_TAPROOT_SIZE) != 0) {
+        return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+    }
+
+    return ExecuteWitnessScript(stack.first(stack.size() - 1), exec_script, flags, SigVersion::WITNESS_V0, checker, execdata, serror);
+}
+
 uint256 ComputeTapleafHash(uint8_t leaf_version, std::span<const unsigned char> script)
 {
     return (HashWriter{HASHER_TAPLEAF} << leaf_version << CompactSizeWriter(script.size()) << script).GetSHA256();
@@ -1803,7 +1840,12 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
             return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
         }
     } else if (witversion == 1 && program.size() == WITNESS_V1_TAPROOT_SIZE && !is_p2sh) {
-        // BIP341 Taproot: 32-byte non-P2SH witness v1 program (which encodes a P2C-tweaked pubkey)
+        // Witness v1 / 32-byte / non-P2SH programs first try the explicit
+        // replacement seam under the active replacement flag, then fall back to
+        // inherited Taproot handling or its active rejection guard.
+        if (const auto replacement_result = TryExecutePQReplacementWitnessProgram(stack, program, flags, checker, execdata, serror)) {
+            return *replacement_result;
+        }
         if (flags & SCRIPT_VERIFY_DISALLOW_INHERITED_TAPROOT) {
             return set_error(serror, SCRIPT_ERR_INHERITED_TAPROOT_DISALLOWED);
         }

@@ -23,6 +23,10 @@
 - Future witness-v1 posture is frozen in `TAPROOT_POSTURE.md`.
 - Activation/deployment/rollback model and concrete dormant replacement deployment values are frozen in `TAPROOT_ACTIVATION.md`.
 - Inherited Taproot semantics are not the future activation target as-is.
+- The first positive post-v1 seam is now frozen as a block-validation-only
+  witness-v1 / 32-byte / non-P2SH replacement-script-hash path with
+  `SHA256(revealed_script) == program`, fixed `SIGHASH_ALL`, and no generic
+  witness-v1, mempool, relay, or policy meaning.
 
 ## Out of Scope for v1
 - Wallet UX for keypool batching and recovery flows.
