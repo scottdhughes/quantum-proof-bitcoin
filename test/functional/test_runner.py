@@ -147,6 +147,7 @@ BASE_SCRIPTS = [
     'feature_taproot_replacement_compat.py',
     'feature_taproot_replacement_active_boundary.py',
     'feature_taproot_replacement_active_semantic_guard.py',
+    'feature_taproot_replacement_active_positive_seam.py',
     'wallet_listtransactions.py',
     'wallet_miniscript.py',
     # vv Tests less than 30s vv

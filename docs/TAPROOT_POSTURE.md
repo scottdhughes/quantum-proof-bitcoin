@@ -69,16 +69,21 @@ model that the current implementation and docs do not define.
 3. Existing Taproot-related code and tests in the repo are implementation surfaces to
    classify, not proof of planned activation semantics.
 4. No current dormant Taproot surface becomes active merely because it exists in the codebase.
-5. The first owned `ACTIVE_REPLACEMENT` semantic seam is negative-control only:
-   inherited Taproot witness-v1 spending is explicitly rejected and is therefore
-   not the PQBTC replacement path.
+5. The current repo owns two narrow `ACTIVE_REPLACEMENT` witness-v1 seams:
+   - inherited Taproot witness-v1 spending is explicitly rejected and is
+     therefore not the PQBTC replacement path
+   - one positive PQ-native replacement-script-hash seam is accepted in
+     block validation only
+6. These seams do not define generic witness-v1 semantics, keypath,
+   tree/tapscript, annex, mempool, relay, policy, wallet, descriptor, RPC,
+   address, or PSBT behavior.
 
 ## Surface Boundary Matrix
 
 | Surface | Current v1 state | Explicit-replacement posture | Expected treatment | Downstream owner |
 |---|---|---|---|---|
 | Deployment state in `src/kernel/chainparams.cpp` | Shipped v1 used `DEPLOYMENT_TAPROOT = NEVER_ACTIVE`; current repo wires far-future dormant BIP9 values and reports them as `taproot_replacement` | Current deployment settings are concrete but still dormant; replacement activation model is frozen in `TAPROOT_ACTIVATION.md` | Retained dormant until a later tranche intentionally opens signaling and defines replacement semantics | `#22` |
-| Script semantics | Pre-taproot `CHECKSIG` / `CHECKMULTISIG` are PQ-only | Future witness-v1+ semantics must be defined as a new PQ-native replacement, not inherited Taproot semantics | Current active-negative-control guard explicitly rejects inherited Taproot witness-v1 block spends; positive replacement script rules remain deferred | `#22` then `#23` |
+| Script semantics | Pre-taproot `CHECKSIG` / `CHECKMULTISIG` are PQ-only | Future witness-v1+ semantics must be defined as a new PQ-native replacement, not inherited Taproot semantics | Current active seams explicitly reject inherited Taproot witness-v1 block spends and accept one positive witness-v1 / 32-byte / non-P2SH replacement-script-hash seam in block validation only; broader replacement script rules remain deferred | `#22` then `#23` |
 | Sighash posture | Pre-taproot paths are fixed to `SIGHASH_ALL` | This doc does not define any witness-v1+ replacement sighash rules | Downstream-defined only | `#22` |
 | Witness-v1 / Taproot address encoding in `src/key_io.cpp` | Bech32m/Taproot encoding and decoding code exists | Existing witness-v1 address code is not a commitment to activate inherited Taproot semantics | Retained dormant until a replacement address/output spec exists | `#22` |
 | Wallet Taproot capability surfaces such as `taprootEnabled()` | Interfaces and output-type plumbing exist | Existing wallet surfaces are inherited implementation artifacts, not approved future posture | Retained dormant and out of current sign-off scope | `#22` and `#23` |
@@ -95,6 +100,7 @@ This document does **not** define directly:
 - concrete activation parameter values or code wiring; see `TAPROOT_ACTIVATION.md`
 - runtime rollback machinery for a future replacement path
 - migration or compatibility implementation across pre/post-activation states; the frozen matrix now lives in `TAPROOT_MIGRATION_MATRIX.md`
+- generic witness-v1, keypath, tree/tapscript, annex, mempool, relay, policy, wallet, descriptor, RPC, address, or PSBT semantics beyond the explicitly frozen active seams
 - CI reclassification or conversion of Taproot-specific suites
 - runtime code changes, removals, or enablement
 

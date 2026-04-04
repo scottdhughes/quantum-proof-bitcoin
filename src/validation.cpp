@@ -2370,6 +2370,7 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Ch
 
     if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_TAPROOT)) {
         flags |= SCRIPT_VERIFY_DISALLOW_INHERITED_TAPROOT;
+        flags |= SCRIPT_VERIFY_PQ_REPLACEMENT_V1_SCRIPTHASH;
     }
 
     return flags;

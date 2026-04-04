@@ -146,6 +146,10 @@ enum : uint32_t {
     // Internal replacement-path guard for inherited Taproot witness-v1 spends.
     SCRIPT_VERIFY_DISALLOW_INHERITED_TAPROOT = (1U << 21),
 
+    // Internal replacement-path enablement for the first positive PQ-native
+    // witness-v1 replacement-script-hash seam.
+    SCRIPT_VERIFY_PQ_REPLACEMENT_V1_SCRIPTHASH = (1U << 22),
+
     // Constants to point to the highest flag in use. Add new flags above this line.
     //
     SCRIPT_VERIFY_END_MARKER

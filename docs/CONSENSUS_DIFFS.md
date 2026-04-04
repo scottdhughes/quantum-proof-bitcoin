@@ -21,4 +21,7 @@ Future witness-v1 replacement posture is frozen in `TAPROOT_POSTURE.md`, and the
 replacement activation/rollback model plus concrete dormant deployment values are
 frozen in `TAPROOT_ACTIVATION.md`. This v1 ledger records only the shipped v1
 consensus diffs and does not approve inherited Taproot activation semantics for a
-later tranche.
+later tranche. The first later-tranche positive seam is now frozen as a
+block-validation-only witness-v1 / 32-byte / non-P2SH replacement-script-hash
+path with `SHA256(revealed_script) == program` and fixed `SIGHASH_ALL`; it does
+not define generic witness-v1, mempool, relay, or policy semantics.

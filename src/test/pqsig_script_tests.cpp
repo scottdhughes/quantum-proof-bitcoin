@@ -4,6 +4,7 @@
 
 #include <addresstype.h>
 #include <consensus/amount.h>
+#include <crypto/sha256.h>
 #include <crypto/pqsig/params.h>
 #include <crypto/pqsig/pqsig.h>
 #include <psbt.h>
@@ -50,6 +51,16 @@ std::vector<uint8_t> SignForScript(const CMutableTransaction& tx, const CScript&
     return sig;
 }
 
+std::vector<uint8_t> SignForWitnessScript(const CMutableTransaction& tx, const CScript& witness_script, const CAmount amount, std::span<const uint8_t> pk_script)
+{
+    const uint256 sighash = SignatureHash(witness_script, tx, /*nIn=*/0, SIGHASH_ALL, amount, SigVersion::WITNESS_V0);
+    std::vector<uint8_t> sig(pqsig::SIG_SIZE);
+    if (!pqsig::PQSigSign(sig, std::span<const uint8_t>{sighash.begin(), sighash.size()}, TEST_SK_SEED, pk_script)) {
+        throw std::runtime_error("failed to produce deterministic witness signature");
+    }
+    return sig;
+}
+
 void MutateLayerCounter(std::vector<uint8_t>& sig, const size_t layer)
 {
     const size_t layer_offset = pqsig::params::HT_OFFSET + layer * pqsig::params::HT_LAYER_SIZE;
@@ -75,6 +86,13 @@ CScript MakeWitnessScript(const std::array<uint8_t, pqsig::PK_SCRIPT_SIZE>& pk_s
     return CScript{} << std::vector<unsigned char>{pk_script.begin(), pk_script.end()} << OP_CHECKSIG;
 }
 
+CScript MakeReplacementScriptPubKey(const CScript& witness_script)
+{
+    uint256 witness_script_hash;
+    CSHA256().Write(witness_script.data(), witness_script.size()).Finalize(witness_script_hash.begin());
+    return CScript{} << OP_1 << std::vector<unsigned char>{witness_script_hash.begin(), witness_script_hash.end()};
+}
+
 FlatSigningProvider MakePQSigningProvider(const std::array<uint8_t, pqsig::PK_SCRIPT_SIZE>& pk_script)
 {
     FlatSigningProvider provider;
@@ -83,6 +101,15 @@ FlatSigningProvider MakePQSigningProvider(const std::array<uint8_t, pqsig::PK_SC
     provider.pq_keys.emplace(pk_script, TEST_SK_SEED);
     return provider;
 }
+
+class AcceptingTaprootChecker final : public BaseSignatureChecker
+{
+public:
+    bool CheckSchnorrSignature(std::span<const unsigned char> sig, std::span<const unsigned char> pubkey, SigVersion sigversion, ScriptExecutionData&, ScriptError*) const override
+    {
+        return sigversion == SigVersion::TAPROOT && sig.size() == 64 && pubkey.size() == 32;
+    }
+};
 
 } // namespace
 
@@ -296,6 +323,54 @@ BOOST_AUTO_TEST_CASE(dummy_and_non_all_pq_signing_paths)
     SignatureData rejected_sigdata;
     CMutableTransaction tx = BuildSpendingTx();
     BOOST_CHECK(!ProduceSignature(provider, MutableTransactionSignatureCreator(tx, 0, amount, SIGHASH_NONE), script_pubkey, rejected_sigdata));
+}
+
+BOOST_AUTO_TEST_CASE(replacement_v1_script_hash_seam_is_active_only)
+{
+    constexpr unsigned int witness_flags{SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_TAPROOT};
+    constexpr unsigned int guarded_flags{witness_flags | SCRIPT_VERIFY_DISALLOW_INHERITED_TAPROOT};
+    constexpr unsigned int replacement_flags{guarded_flags | SCRIPT_VERIFY_PQ_REPLACEMENT_V1_SCRIPTHASH};
+
+    const auto pk_script = MakePkScript();
+    const CScript witness_script = MakeWitnessScript(pk_script);
+    const CScript replacement_script_pubkey = MakeReplacementScriptPubKey(witness_script);
+    const CAmount amount = 50 * COIN;
+
+    CMutableTransaction replacement_tx = BuildSpendingTx();
+    const std::vector<uint8_t> replacement_sig = SignForWitnessScript(replacement_tx, witness_script, amount, pk_script);
+    replacement_tx.vin[0].scriptWitness.stack = {
+        std::vector<unsigned char>{replacement_sig.begin(), replacement_sig.end()},
+        std::vector<unsigned char>{witness_script.begin(), witness_script.end()},
+    };
+
+    const CTransaction replacement_tx_const{replacement_tx};
+    const TransactionSignatureChecker replacement_checker(&replacement_tx_const, /*nInIn=*/0, amount, MissingDataBehavior::FAIL);
+    ScriptError err = SCRIPT_ERR_UNKNOWN_ERROR;
+
+    BOOST_CHECK(VerifyScript(CScript{}, replacement_script_pubkey, &replacement_tx.vin[0].scriptWitness, replacement_flags, replacement_checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_OK);
+
+    err = SCRIPT_ERR_UNKNOWN_ERROR;
+    BOOST_CHECK(!VerifyScript(CScript{}, replacement_script_pubkey, &replacement_tx.vin[0].scriptWitness, guarded_flags, replacement_checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_INHERITED_TAPROOT_DISALLOWED);
+
+    const CScript mismatch_script_pubkey = MakeReplacementScriptPubKey(CScript{} << OP_TRUE);
+    err = SCRIPT_ERR_UNKNOWN_ERROR;
+    BOOST_CHECK(!VerifyScript(CScript{}, mismatch_script_pubkey, &replacement_tx.vin[0].scriptWitness, replacement_flags, replacement_checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+
+    const CScript witness_v0_script_pubkey = GetScriptForDestination(WitnessV0ScriptHash(witness_script));
+    err = SCRIPT_ERR_UNKNOWN_ERROR;
+    BOOST_CHECK(VerifyScript(CScript{}, witness_v0_script_pubkey, &replacement_tx.vin[0].scriptWitness, replacement_flags, replacement_checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_OK);
+
+    const CScript inherited_taproot_script_pubkey = CScript{} << OP_1 << std::vector<unsigned char>(32, 0x03);
+    CScriptWitness inherited_taproot_witness;
+    inherited_taproot_witness.stack = {std::vector<unsigned char>(64, 0x04)};
+    const AcceptingTaprootChecker taproot_checker;
+    err = SCRIPT_ERR_UNKNOWN_ERROR;
+    BOOST_CHECK(!VerifyScript(CScript{}, inherited_taproot_script_pubkey, &inherited_taproot_witness, replacement_flags, taproot_checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_INHERITED_TAPROOT_DISALLOWED);
 }
 
 BOOST_AUTO_TEST_CASE(psbt_roundtrips_pq_proprietary_partial_sig_and_finalizes)
