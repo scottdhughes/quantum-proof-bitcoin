@@ -422,43 +422,43 @@
   },
   {
     "name": "feature_taproot_replacement_deployment.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "taproot_matrix_bucket": "replacement_migration",
     "owner": "@scottdhughes",
     "tracking_issue": "#23",
-    "notes": "Concrete dormant replacement deployment reporting and regtest BIP9 override coverage; classified as replacement_migration while remaining out of the PQ gate."
+    "notes": "Concrete dormant replacement deployment reporting and regtest BIP9 override coverage; promoted into the required PQ gate as deterministic replacement-path deployment evidence under #23."
   },
   {
     "name": "feature_taproot_replacement_compat.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "taproot_matrix_bucket": "replacement_migration",
     "owner": "@scottdhughes",
     "tracking_issue": "#23",
-    "notes": "Cross-node pre-active compatibility coverage for defined vs started and defined vs locked_in reporting divergence on the same accepted chain; classified as replacement_migration while remaining out of the PQ gate."
+    "notes": "Cross-node pre-active compatibility coverage for defined vs started and defined vs locked_in reporting divergence on the same accepted chain; promoted into the required PQ gate as deterministic replacement-path migration evidence under #23."
   },
   {
     "name": "feature_taproot_replacement_active_boundary.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "taproot_matrix_bucket": "replacement_migration",
     "owner": "@scottdhughes",
     "tracking_issue": "#23",
-    "notes": "Cross-node defined vs active reporting-boundary coverage on the same accepted chain using plain blocks only; classified as replacement_migration while remaining out of the PQ gate."
+    "notes": "Cross-node defined vs active reporting-boundary coverage on the same accepted chain using plain blocks only; promoted into the required PQ gate as deterministic active-boundary migration evidence under #23."
   },
   {
     "name": "feature_taproot_replacement_active_semantic_guard.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "taproot_matrix_bucket": "replacement_migration",
     "owner": "@scottdhughes",
     "tracking_issue": "#23",
-    "notes": "Negative-control active-semantic coverage for inherited Taproot rejection under ACTIVE_REPLACEMENT; classified as replacement_migration while remaining out of the PQ gate."
+    "notes": "Negative-control active-semantic coverage for inherited Taproot rejection under ACTIVE_REPLACEMENT; promoted into the required PQ gate as deterministic active-semantic guard evidence under #23."
   },
   {
     "name": "feature_taproot_replacement_active_positive_seam.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "taproot_matrix_bucket": "replacement_migration",
     "owner": "@scottdhughes",
     "tracking_issue": "#23",
-    "notes": "Positive active-semantic coverage for the first PQ-native witness-v1 replacement-script-hash block-validation seam under ACTIVE_REPLACEMENT; classified as replacement_migration while remaining out of the PQ gate."
+    "notes": "Positive active-semantic coverage for the first PQ-native witness-v1 replacement-script-hash block-validation seam under ACTIVE_REPLACEMENT; promoted into the required PQ gate as deterministic positive active-seam evidence under #23."
   },
   {
     "name": "feature_uacomment.py",
