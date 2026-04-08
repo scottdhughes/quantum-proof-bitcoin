@@ -11,4 +11,9 @@ mempool_pq_limits.py
 mempool_pq_stress.py
 wallet_pq_active_ranged.py
 wallet_pq_backup_recovery.py
+wallet_pq_create_tx.py
+wallet_pq_descriptors.py
 wallet_pq_psbt.py
+wallet_pq_send.py
+wallet_pq_sendall.py
+wallet_pq_sendmany.py
