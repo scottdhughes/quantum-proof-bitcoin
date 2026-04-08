@@ -3,6 +3,7 @@
 ## Status: FROZEN
 ## Spec-ID: WALLET-v1-frozen
 ## Updated-By: freeze-gate-prereq-20260408
+## Frozen-By: gatekeeper-prereq-20260408
 ## Consensus-Relevant: NO
 
 ## Current v1 Wallet Surface
