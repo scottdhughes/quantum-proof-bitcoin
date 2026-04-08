@@ -1,8 +1,8 @@
 # Wallet Plan for PQBTC
 
-## Status: IMPLEMENTED
-## Spec-ID: WALLET-v1-implemented
-## Updated-By: issue-12-wallet-confidence-20260401
+## Status: FROZEN
+## Spec-ID: WALLET-v1-frozen
+## Updated-By: freeze-gate-prereq-20260408
 ## Consensus-Relevant: NO
 
 ## Current v1 Wallet Surface
