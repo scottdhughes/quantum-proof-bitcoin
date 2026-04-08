@@ -169,6 +169,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "walletcreatefundedpsbt", 3, "max_tx_weight"},
     { "walletcreatefundedpsbt", 4, "bip32derivs" },
     { "walletcreatefundedpsbt", 5, "version" },
+    { "createpqwalletmanagers", 1, "range_end" },
+    { "createpqwalletmanagers", 2, "next_index" },
     { "walletprocesspsbt", 1, "sign" },
     { "walletprocesspsbt", 3, "bip32derivs" },
     { "walletprocesspsbt", 4, "finalize" },
