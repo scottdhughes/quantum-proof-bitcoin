@@ -111,6 +111,18 @@ std::string LabelFromValue(const UniValue& value)
     return label;
 }
 
+bool ScriptPubKeyHasPrivateKeys(const CWallet& wallet, const CScript& script_pubkey)
+{
+    AssertLockHeld(wallet.cs_wallet);
+
+    for (const auto* spk_man : wallet.GetScriptPubKeyMans(script_pubkey)) {
+        if (spk_man->HavePrivateKeys()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void PushParentDescriptors(const CWallet& wallet, const CScript& script_pubkey, UniValue& entry)
 {
     UniValue parent_descs(UniValue::VARR);

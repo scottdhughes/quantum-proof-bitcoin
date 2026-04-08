@@ -49,6 +49,8 @@ WalletContext& EnsureWalletContext(const std::any& context);
 
 bool GetAvoidReuseFlag(const CWallet& wallet, const UniValue& param);
 std::string LabelFromValue(const UniValue& value);
+//! Return whether any wallet ScriptPubKey manager for this script currently has private key material.
+bool ScriptPubKeyHasPrivateKeys(const CWallet& wallet, const CScript& script_pubkey) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
 //! Fetch parent descriptors of this scriptPubKey.
 void PushParentDescriptors(const CWallet& wallet, const CScript& script_pubkey, UniValue& entry);
 

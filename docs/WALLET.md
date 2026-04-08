@@ -16,6 +16,22 @@ The wallet surface is no longer deferred in the repo. Current `main` includes:
 - backup, restore, and ranged-descriptor recovery coverage
 - default PQ-native unit coverage for wallet bookkeeping and PSBT role/error handling
 
+Important boundary:
+
+- inherited `createwalletdescriptor` support is still separate from the PQ-native
+  wallet-manager path
+- inherited `getnewaddress` and `getrawchangeaddress` are still separate from
+  the PQ-native address path and are explicitly rejected on PQ-only active
+  wallets in favor of `getnewpqaddress` and `getrawpqchangeaddress`
+- PQ wallet-manager creation now has a dedicated setup RPC,
+  `createpqwalletmanagers`, rather than entering through the inherited
+  xpub-based descriptor builder
+- inherited `keypoolrefill` remains a supported maintenance RPC for active
+  PQ managers; on PQ-only wallets it expands the receive/change `pqpriv(...)`
+  ranges instead of creating inherited address families
+- raw `importdescriptors` with `pqpriv(...)` remains available as a lower-level
+  descriptor/test path
+
 ## Confidence Closure In This Tranche
 
 This tranche closes the remaining wallet confidence gap by:

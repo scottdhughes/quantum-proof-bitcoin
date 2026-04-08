@@ -1072,6 +1072,10 @@ public:
 
     //! Retrieve the xpubs in use by the active descriptors
     std::set<CExtPubKey> GetActiveHDPubKeys() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    //! Returns true when any active ScriptPubKey manager is PQ-native
+    bool HasActivePQManagers() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    //! Returns true when all active ScriptPubKey managers are PQ-native
+    bool HasOnlyActivePQManagers() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     //! Find the private key for the given key id from the wallet's descriptors, if available
     //! Returns nullopt when no descriptor has the key or if the wallet is locked.

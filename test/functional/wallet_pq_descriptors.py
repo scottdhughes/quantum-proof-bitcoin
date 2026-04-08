@@ -31,8 +31,18 @@ class WalletPQDescriptorsTest(BitcoinTestFramework):
     def mine_block(self):
         self.nodes[0].generatetodescriptor(1, RAW_TRUE_DESCRIPTOR, called_by_framework=True)
 
+    def find_pq_props(self, decoded_input):
+        return [
+            prop for prop in decoded_input.get("proprietary", [])
+            if prop["identifier"] == "7071627463" and prop["subtype"] == 1
+        ]
+
     def run_test(self):
         node = self.nodes[0]
+        node.createwallet(wallet_name="sink")
+        sink = node.get_wallet_rpc("sink")
+        sink_address = sink.getnewaddress()
+
         node.createwallet(wallet_name="watch", disable_private_keys=True, blank=True)
         watch = node.get_wallet_rpc("watch")
 
@@ -94,7 +104,9 @@ class WalletPQDescriptorsTest(BitcoinTestFramework):
         info = watch.getaddressinfo(address)
         assert_equal(info["desc"], descriptor)
         assert_equal(info["ismine"], True)
+        assert_equal(info["has_private_keys"], False)
         assert_equal(info["solvable"], True)
+        assert_equal(watch.getwalletinfo()["private_keys_enabled"], False)
 
         self.log.info("Descriptor survives unload/load")
         watch.unloadwallet()
@@ -114,9 +126,38 @@ class WalletPQDescriptorsTest(BitcoinTestFramework):
         assert_equal(unspent[0]["txid"], txid)
         assert_equal(unspent[0]["address"], address)
         assert_equal(unspent[0]["amount"], Decimal("5.00000000"))
+        assert_equal(unspent[0]["has_private_keys"], False)
+        assert_equal(unspent[0]["solvable"], True)
         balances = watch.getbalances()
         tracked_bucket = balances["watchonly"] if "watchonly" in balances else balances["mine"]
         assert_equal(tracked_bucket["trusted"], Decimal("5.00000000"))
+
+        self.log.info("Fixed watch-only pq(...) can prepare but not sign a PSBT-backed send")
+        created = watch.send(
+            outputs={sink_address: Decimal("5.00000000")},
+            options={
+                "inputs": [{"txid": unspent[0]["txid"], "vout": unspent[0]["vout"]}],
+                "add_inputs": False,
+                "subtract_fee_from_outputs": [0],
+                "psbt": True,
+            },
+        )
+        assert_equal(created["complete"], False)
+        assert "txid" not in created
+        decoded = node.decodepsbt(created["psbt"])
+        assert_equal(len(decoded["inputs"]), 1)
+        assert_equal(len(decoded["tx"]["vin"]), 1)
+        assert_equal(len(decoded["tx"]["vout"]), 1)
+        assert "witness_utxo" in decoded["inputs"][0]
+        assert_equal(self.find_pq_props(decoded["inputs"][0]), [])
+        assert "final_scriptwitness" not in decoded["inputs"][0]
+        assert Decimal(str(decoded["tx"]["vout"][0]["value"])) < Decimal("5.00000000")
+
+        processed = watch.walletprocesspsbt(psbt=created["psbt"], finalize=False)
+        assert_equal(processed["complete"], False)
+        processed_decoded = node.decodepsbt(processed["psbt"])
+        assert_equal(self.find_pq_props(processed_decoded["inputs"][0]), [])
+        assert "final_scriptwitness" not in processed_decoded["inputs"][0]
 
 
 if __name__ == "__main__":

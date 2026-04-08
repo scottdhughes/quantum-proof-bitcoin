@@ -9,15 +9,21 @@
 #include <key_io.h>
 #include <rpc/server.h>
 #include <rpc/util.h>
+#include <script/descriptor.h>
 #include <univalue.h>
+#include <util/time.h>
 #include <util/translation.h>
 #include <wallet/context.h>
+#include <wallet/pq_scriptpubkeyman.h>
 #include <wallet/receive.h>
 #include <wallet/rpc/util.h>
 #include <wallet/rpc/wallet.h>
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
 
+#include <algorithm>
+#include <array>
+#include <limits>
 #include <optional>
 
 
@@ -216,7 +222,7 @@ static RPCHelpMan loadwallet()
     return RPCHelpMan{
         "loadwallet",
         "Loads a wallet from a wallet file or directory."
-                "\nNote that all wallet command-line options used when starting bitcoind will be"
+                "\nNote that all wallet command-line options used when starting pqbtcd will be"
                 "\napplied to the new wallet.\n",
                 {
                     {"filename", RPCArg::Type::STR, RPCArg::Optional::NO, "The path to the directory of the wallet to be loaded, either absolute or relative to the \"wallets\" directory. The \"wallets\" directory is set by the -walletdir option and defaults to the \"wallets\" folder within the data directory."},
@@ -800,6 +806,12 @@ static RPCHelpMan createwalletdescriptor()
             if (hdkey.isNull()) {
                 std::set<CExtPubKey> active_xpubs = pwallet->GetActiveHDPubKeys();
                 if (active_xpubs.size() != 1) {
+                    if (active_xpubs.empty() && pwallet->HasActivePQManagers()) {
+                        throw JSONRPCError(
+                            RPC_INVALID_ADDRESS_OR_KEY,
+                            "Active pqpriv() managers do not expose HD keys; createwalletdescriptor only supports xpub-based descriptor families"
+                        );
+                    }
                     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Unable to determine which HD key to use from active descriptors. Please specify with 'hdkey'");
                 }
                 xpub = *active_xpubs.begin();
@@ -839,6 +851,138 @@ static RPCHelpMan createwalletdescriptor()
             }
             UniValue out{UniValue::VOBJ};
             out.pushKV("descs", std::move(descs));
+            return out;
+        }
+    };
+}
+
+static RPCHelpMan createpqwalletmanagers()
+{
+    return RPCHelpMan{"createpqwalletmanagers",
+        "Creates and activates the wallet's PQ-native receive and change managers from a shared root seed. "
+        "This is the dedicated setup path for all-PQ descriptor wallets and requires the wallet to have no active address managers."
+        + HELP_REQUIRING_PASSPHRASE,
+        {
+            {"root_seed", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The 32-byte root seed used to derive both pqpriv() branches."},
+            {"range_end", RPCArg::Type::NUM, RPCArg::Optional::NO, "Inclusive end index for both the receive and change pqpriv() ranges."},
+            {"next_index", RPCArg::Type::NUM, RPCArg::Default{0}, "Initial next_index for both the receive and change pqpriv() managers."},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::OBJ, "receive", "The activated receive pqpriv() manager",
+                    {
+                        {RPCResult::Type::STR, "desc", "The receive pqpriv() descriptor"},
+                        {RPCResult::Type::BOOL, "active", "Whether the manager is active"},
+                        {RPCResult::Type::BOOL, "internal", "Whether the manager is internal"},
+                        {RPCResult::Type::ARR_FIXED, "range", "The inclusive descriptor range",
+                            {
+                                {RPCResult::Type::NUM, "begin", "Range start"},
+                                {RPCResult::Type::NUM, "end", "Range end"},
+                            }},
+                        {RPCResult::Type::NUM, "next_index", "The initial next index"},
+                    }},
+                {RPCResult::Type::OBJ, "change", "The activated change pqpriv() manager",
+                    {
+                        {RPCResult::Type::STR, "desc", "The change pqpriv() descriptor"},
+                        {RPCResult::Type::BOOL, "active", "Whether the manager is active"},
+                        {RPCResult::Type::BOOL, "internal", "Whether the manager is internal"},
+                        {RPCResult::Type::ARR_FIXED, "range", "The inclusive descriptor range",
+                            {
+                                {RPCResult::Type::NUM, "begin", "Range start"},
+                                {RPCResult::Type::NUM, "end", "Range end"},
+                            }},
+                        {RPCResult::Type::NUM, "next_index", "The initial next index"},
+                    }},
+            },
+        },
+        RPCExamples{
+            HelpExampleCli("createpqwalletmanagers", "\"" + std::string(64, '2') + "\" 9")
+            + HelpExampleRpc("createpqwalletmanagers", "\"" + std::string(64, '2') + "\", 9")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            std::shared_ptr<CWallet> const pwallet = GetWalletForJSONRPCRequest(request);
+            if (!pwallet) return UniValue::VNULL;
+
+            const std::vector<unsigned char> root_seed_bytes = ParseHexV(request.params[0], "root_seed");
+            if (root_seed_bytes.size() != 32) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "root_seed must be exactly 32 bytes");
+            }
+
+            const int64_t range_end_inclusive = request.params[1].getInt<int64_t>();
+            if (range_end_inclusive < 0 || range_end_inclusive >= std::numeric_limits<int32_t>::max()) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "range_end must be between 0 and 2147483646");
+            }
+
+            const int64_t next_index = request.params[2].isNull() ? 0 : request.params[2].getInt<int64_t>();
+            if (next_index < 0 || next_index > range_end_inclusive) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "next_index is out of range");
+            }
+
+            std::array<unsigned char, 32> root_seed{};
+            std::copy(root_seed_bytes.begin(), root_seed_bytes.end(), root_seed.begin());
+
+            LOCK(pwallet->cs_wallet);
+
+            if (!pwallet->IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS)) {
+                throw JSONRPCError(RPC_WALLET_ERROR, "createpqwalletmanagers requires a descriptor wallet");
+            }
+            if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS)) {
+                throw JSONRPCError(RPC_WALLET_ERROR, "createpqwalletmanagers requires private keys to be enabled");
+            }
+            if (!pwallet->GetActiveScriptPubKeyMans().empty()) {
+                throw JSONRPCError(RPC_WALLET_ERROR, "createpqwalletmanagers requires a wallet without active address managers");
+            }
+
+            EnsureWalletIsUnlocked(*pwallet);
+
+            const int32_t range_start = 0;
+            const int32_t range_end = static_cast<int32_t>(range_end_inclusive + 1);
+            const int32_t initial_next_index = static_cast<int32_t>(next_index);
+            const uint64_t creation_time = GetTime();
+
+            auto receive_res = pwallet->AddWalletPQDescriptor(
+                PQPrivateDescriptorInfo{root_seed, /*internal=*/false},
+                creation_time,
+                range_start,
+                range_end,
+                initial_next_index
+            );
+            if (!receive_res) {
+                throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Could not create receive pqpriv() manager: %s", util::ErrorString(receive_res).original));
+            }
+
+            auto change_res = pwallet->AddWalletPQDescriptor(
+                PQPrivateDescriptorInfo{root_seed, /*internal=*/true},
+                creation_time,
+                range_start,
+                range_end,
+                initial_next_index
+            );
+            if (!change_res) {
+                throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Could not create change pqpriv() manager: %s", util::ErrorString(change_res).original));
+            }
+
+            pwallet->AddActivePQScriptPubKeyMan(receive_res.value().get().GetID(), /*internal=*/false);
+            pwallet->AddActivePQScriptPubKeyMan(change_res.value().get().GetID(), /*internal=*/true);
+
+            const auto make_branch_result = [&](bool internal) {
+                UniValue branch(UniValue::VOBJ);
+                branch.pushKV("desc", GetPQPrivateDescriptorString(root_seed, internal));
+                branch.pushKV("active", true);
+                branch.pushKV("internal", internal);
+                UniValue range(UniValue::VARR);
+                range.push_back(range_start);
+                range.push_back(static_cast<int32_t>(range_end_inclusive));
+                branch.pushKV("range", std::move(range));
+                branch.pushKV("next_index", initial_next_index);
+                return branch;
+            };
+
+            UniValue out(UniValue::VOBJ);
+            out.pushKV("receive", make_branch_result(/*internal=*/false));
+            out.pushKV("change", make_branch_result(/*internal=*/true));
             return out;
         }
     };
@@ -918,6 +1062,7 @@ std::span<const CRPCCommand> GetWalletRPCCommands()
         {"wallet", &bumpfee},
         {"wallet", &psbtbumpfee},
         {"wallet", &createwallet},
+        {"wallet", &createpqwalletmanagers},
         {"wallet", &createwalletdescriptor},
         {"wallet", &restorewallet},
         {"wallet", &encryptwallet},
