@@ -4,14 +4,15 @@ This document describes the PQBTC v1 CI posture for RC stabilization.
 
 ## Overview
 
-PQC-facing CI enforcement is split across two workflows:
+PQC-facing CI enforcement is split across a fast required lane and promotion lanes:
 
 | Workflow | Purpose |
 |---|---|
-| `ci.yml` | Build, tests, benchmarks, fuzz, and PQ gating across platforms |
-| `measured-bench.yml` | Dedicated runtime variance gate for PQSig bench performance |
+| `ci.yml` | Required tranche gate: CI inventory, lint, and one Linux-native PQ build/test lane |
+| `promotion-matrix.yml` | Non-required cross-platform, sanitizer, fuzz, and compatibility coverage for promotion events |
+| `measured-bench.yml` | Non-required dedicated runtime variance gate for PQSig bench performance |
 | `gatekeeper.yml` | Docs-first freeze-gate checks against the selected base ref |
-| `test-each-commit.yml` | Non-required per-commit replay coverage for multi-commit pull requests |
+| `test-each-commit.yml` | Manual non-required per-commit replay coverage when a branch needs commit-by-commit validation |
 
 ## RC Stabilization Controls
 
@@ -22,8 +23,9 @@ The following controls are part of the v1 RC posture:
 3. Deterministic artifact checks run in CI:
    - `contrib/genesis/generated_constants.json`
    - `src/test/data/pqsig/kat_v1.json`
-4. PQ bench envelope checks run with repeated samples and baseline output capture.
-5. `pqsig_verify` fuzz smoke runs in CI in addition to existing fuzz jobs.
+4. The required path uses one Linux-native PQ tranche lane instead of the full legacy-style matrix.
+5. PQ bench envelope checks run with repeated samples and baseline output capture.
+6. `pqsig_verify` fuzz smoke remains in promotion/fuzz lanes, not the default required path.
 
 ## CI Control Interfaces
 
@@ -54,12 +56,13 @@ Current workflow and gate ownership remains maintainer-owned:
 
 | Gate | Owner | Notes |
 |---|---|---|
-| `CI` | `@scottdhughes` | Required build/test/fuzz workflow on pull requests and `main`. |
+| `CI` | `@scottdhughes` | Required tranche workflow on pull requests and branch pushes. |
+| `Promotion Matrix` | `@scottdhughes` | Non-required broad compatibility workflow for `main`, scheduled health checks, and explicit promotion runs. |
 | `Gatekeeper` | `@scottdhughes` | Freeze-gate and docs drift enforcement. |
-| `measured-bench` | `@scottdhughes` | Dedicated runtime variance gate. |
+| `measured-bench` | `@scottdhughes` | Non-required dedicated runtime variance gate. |
 | PQ functional default list | `@scottdhughes` | Canonical file: `ci/test/pq_functional_tests.txt`. |
 | Legacy opt-in profile | `@scottdhughes` | Controlled by `PQBTC_ENABLE_LEGACY_FUNCTIONAL_TESTS=true`. |
-| `test each commit` workflow | `@scottdhughes` | Non-required long-tail coverage outside the required `CI` wall-clock path. |
+| `test each commit` workflow | `@scottdhughes` | Manual long-tail coverage outside the required `CI` wall-clock path. |
 
 ## Runtime Budget Contract
 
@@ -67,13 +70,15 @@ Checked-in runtime budget file:
 
 - `ci/test/ci_runtime_budget.json`
 
-Current required-path budgets:
+Current runtime budgets:
 
 | Workflow | Budget |
 |---|---|
-| `CI` | under `60` minutes |
+| `CI` | under `40` minutes |
 | `Gatekeeper` | under `5` minutes |
+| `Promotion Matrix` | under `180` minutes |
 | `measured-bench` | under `15` minutes |
+| `test each commit` | under `360` minutes |
 
 Wall-clock semantics are frozen as:
 
@@ -146,10 +151,17 @@ python3 ci/test/check_pqsig_bench.py \
 
 Measured-bench rollout:
 
-1. `measured-bench.yml` runs on pull requests, pushes to `main`, weekly schedule, and manual dispatch.
+1. `measured-bench.yml` runs on pushes to `main`, weekly schedule, and manual dispatch.
 2. The workflow uses the checked-in `variance_bands` block from `ci/test/pqsig_bench_policy.json`.
-3. Branch protection should only add the `measured-bench` status after at least one green PR run and one green `main` run.
+3. The workflow stays non-required so perf variance does not block ordinary tranche merges.
 4. Expected wall-clock budget for the dedicated job is under 15 minutes on `ubuntu-24.04`.
+
+Required `main` protection should be kept to the tranche gate:
+
+1. `Freeze-gate enforcement`
+2. `CI inventory`
+3. `Linux native PQ tranche`
+4. `lint`
 
 Deterministic artifact check:
 
@@ -247,7 +259,7 @@ STAMP=$(date -u +%Y-%m-%d) contrib/soak/capture_ops_slo_evidence.sh
 Bundle validation:
 
 ```bash
-contrib/soak/validate_ops_slo_evidence.py --signoff docs/artifacts/ops-slo/2026-03-30
+contrib/soak/validate_ops_slo_evidence.py --signoff docs/artifacts/ops-slo/2026-04-06
 ```
 
 Expected local wall-clock time for the full capture is roughly 5-10 minutes on current developer hardware, depending on soak durations.

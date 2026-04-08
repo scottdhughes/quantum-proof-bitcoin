@@ -1,7 +1,6 @@
 name: test each commit
 
 on:
-  pull_request:
   workflow_dispatch:
 
 concurrency:
@@ -12,17 +11,16 @@ jobs:
   test-each-commit:
     name: 'test each commit'
     runs-on: ubuntu-24.04
-    if: github.event_name == 'pull_request' && github.event.pull_request.commits != 1
     timeout-minutes: 360
     env:
       MAX_COUNT: 6
     steps:
       - name: Determine fetch depth
-        run: echo "FETCH_DEPTH=$((${{ github.event.pull_request.commits }} + 2))" >> "$GITHUB_ENV"
+        run: echo "FETCH_DEPTH=8" >> "$GITHUB_ENV"
 
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.ref }}
           fetch-depth: ${{ env.FETCH_DEPTH }}
 
       - name: Determine commit range
@@ -37,7 +35,7 @@ jobs:
 
       - name: Prepare merge base and toolchain
         run: |
-          git fetch origin "${GITHUB_BASE_REF}"
+          git fetch origin main
           git config user.email "ci@example.com"
           git config user.name "CI"
           sudo apt-get update
@@ -46,4 +44,4 @@ jobs:
 
       - name: Compile and run tests
         run: |
-          git rebase --exec "git merge --no-commit origin/${GITHUB_BASE_REF} && python3 ./.github/ci-test-each-commit-exec.py && git reset --hard" ${{ env.TEST_BASE }}
+          git rebase --exec "git merge --no-commit origin/main && python3 ./.github/ci-test-each-commit-exec.py && git reset --hard" ${{ env.TEST_BASE }}
