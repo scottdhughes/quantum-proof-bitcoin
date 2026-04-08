@@ -36,8 +36,8 @@ The current functional corpus has `271` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `9` |
-| `pq_backlog` | `106` |
+| `pq_required` | `14` |
+| `pq_backlog` | `101` |
 | `dual_profile` | `147` |
 | `legacy_only` | `9` |
 
@@ -47,15 +47,22 @@ Current required PQ-first gates:
 2. `feature_pq_reorg.py`
 3. `feature_pqsig_basic.py`
 4. `feature_pqsig_multisig.py`
-5. `mempool_pq_limits.py`
-6. `mempool_pq_stress.py`
-7. `wallet_pq_active_ranged.py`
-8. `wallet_pq_backup_recovery.py`
-9. `wallet_pq_psbt.py`
+5. `feature_taproot_replacement_deployment.py`
+6. `feature_taproot_replacement_compat.py`
+7. `feature_taproot_replacement_active_boundary.py`
+8. `feature_taproot_replacement_active_semantic_guard.py`
+9. `feature_taproot_replacement_active_positive_seam.py`
+10. `mempool_pq_limits.py`
+11. `mempool_pq_stress.py`
+12. `wallet_pq_active_ranged.py`
+13. `wallet_pq_backup_recovery.py`
+14. `wallet_pq_psbt.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet and
-PSBT unit coverage to the default `test_pqbtc` profile. The remaining key
+PSBT unit coverage to the default `test_pqbtc` profile. The replacement-path
+confidence gap is closed in this tranche by promoting the full deterministic
+Taproot replacement functional stack into the required PQ gate. The remaining key
 backlog families are:
 
 1. mempool and mining policy suites not yet given explicit PQ gating treatment
@@ -73,10 +80,10 @@ while `feature_taproot_replacement_deployment.py` and
 `feature_taproot_replacement_compat.py` and
 `feature_taproot_replacement_active_boundary.py` and
 `feature_taproot_replacement_active_positive_seam.py` and
-`feature_taproot_replacement_active_semantic_guard.py` remain `pq_backlog` as
+`feature_taproot_replacement_active_semantic_guard.py` are now `pq_required` as
 replacement-path deployment, pre-active compatibility, active-boundary
 reporting, first-positive active-semantic, and negative-control
-active-semantic coverage. Their future status is governed by
+active-semantic coverage. Their current required-gate status is governed by
 `TAPROOT_POSTURE.md` and `TAPROOT_MIGRATION_MATRIX.md`.
 `policy_class` remains the CI gating/ownership surface, while
 `taproot_matrix_bucket` is migration-matrix metadata only and does not change
@@ -90,5 +97,5 @@ Until a separate ownership model or `CODEOWNERS` file exists, all current workfl
 
 Still deferred after this tranche:
 
-1. converting `pq_backlog` suites into required PQ gates or documenting permanent dual-profile boundaries for them
+1. converting additional `pq_backlog` suites into required PQ gates or documenting permanent dual-profile boundaries for them
 2. promoting high-value chainstate and validation suites from `pq_backlog` once the current wallet-confidence tranche is stable

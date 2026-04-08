@@ -4,13 +4,19 @@
   "linux_fuzz_shard_count": 2,
   "workflows": {
     "CI": {
-      "wall_clock_minutes_max": 60
+      "wall_clock_minutes_max": 40
     },
     "Gatekeeper": {
       "wall_clock_minutes_max": 5
     },
+    "Promotion Matrix": {
+      "wall_clock_minutes_max": 180
+    },
     "measured-bench": {
       "wall_clock_minutes_max": 15
+    },
+    "test each commit": {
+      "wall_clock_minutes_max": 360
     }
   }
 }
