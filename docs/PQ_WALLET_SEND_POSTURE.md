@@ -8,17 +8,17 @@
 ## Purpose
 
 Freeze the owned PQ-only
-[send](/Users/scott/quantum-proof-bitcoin/test/functional/wallet_send.py)
+[send](../test/functional/wallet_send.py)
 RPC posture without reopening the broad inherited `wallet_send.py` matrix.
 
 ## Owned Surface
 
 The current owned PQ-native `send` RPC path is:
 
-- [wallet_pq_send.py](/Users/scott/quantum-proof-bitcoin/test/functional/wallet_pq_send.py)
+- [wallet_pq_send.py](../test/functional/wallet_pq_send.py)
 
 It covers a PQ-only active wallet created through
-[createpqwalletmanagers](/Users/scott/quantum-proof-bitcoin/src/wallet/rpc/wallet.cpp).
+[createpqwalletmanagers](../src/wallet/rpc/wallet.cpp).
 
 ## Contract
 
@@ -33,14 +33,14 @@ On PQ-only active wallets:
 
 This surface is about the operator-facing `send` RPC contract itself. Direct
 `sendtoaddress` create-tx posture stays frozen separately in
-[PQ_WALLET_CREATE_TX_POSTURE.md](/Users/scott/quantum-proof-bitcoin/docs/PQ_WALLET_CREATE_TX_POSTURE.md).
+[PQ_WALLET_CREATE_TX_POSTURE.md](./PQ_WALLET_CREATE_TX_POSTURE.md).
 The owned `sendall` RPC contract is frozen separately in
-[PQ_WALLET_SENDALL_POSTURE.md](/Users/scott/quantum-proof-bitcoin/docs/PQ_WALLET_SENDALL_POSTURE.md).
+[PQ_WALLET_SENDALL_POSTURE.md](./PQ_WALLET_SENDALL_POSTURE.md).
 
 ## Non-Goals In This Tranche
 
 This tranche does not own the full inherited
-[wallet_send.py](/Users/scott/quantum-proof-bitcoin/test/functional/wallet_send.py)
+[wallet_send.py](../test/functional/wallet_send.py)
 matrix. It explicitly does not take on:
 
 - watch-only `send` behavior
