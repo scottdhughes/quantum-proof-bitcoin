@@ -159,14 +159,14 @@ The following are intentionally rejected today:
 
 Implementation references:
 
-- [descriptor.cpp](/Users/scott/quantum-proof-bitcoin/src/script/descriptor.cpp)
-- [pq_scriptpubkeyman.cpp](/Users/scott/quantum-proof-bitcoin/src/wallet/pq_scriptpubkeyman.cpp)
-- [backup.cpp](/Users/scott/quantum-proof-bitcoin/src/wallet/rpc/backup.cpp)
+- [descriptor.cpp](../src/script/descriptor.cpp)
+- [pq_scriptpubkeyman.cpp](../src/wallet/pq_scriptpubkeyman.cpp)
+- [backup.cpp](../src/wallet/rpc/backup.cpp)
 
 Current test evidence:
 
-- [pq_descriptor_tests.cpp](/Users/scott/quantum-proof-bitcoin/src/test/pq_descriptor_tests.cpp)
-- [wallet_pq_descriptors.py](/Users/scott/quantum-proof-bitcoin/test/functional/wallet_pq_descriptors.py)
+- [pq_descriptor_tests.cpp](../src/test/pq_descriptor_tests.cpp)
+- [wallet_pq_descriptors.py](../test/functional/wallet_pq_descriptors.py)
 
 ## Confidence Snapshot
 
@@ -195,7 +195,7 @@ does.
 
 The next owned follow-on is:
 
-- [wallet_createwalletdescriptor.py](/Users/scott/quantum-proof-bitcoin/test/functional/wallet_createwalletdescriptor.py)
+- [wallet_createwalletdescriptor.py](../test/functional/wallet_createwalletdescriptor.py)
 
 That is where the repo needs to decide how much descriptor creation behavior it
 wants to own under an all-PQ Track A stance instead of inheriting old Taproot

@@ -14,8 +14,8 @@ the all-PQ Track A stance.
 
 The supported PQ-native address RPCs are:
 
-- [getnewpqaddress](/Users/scott/quantum-proof-bitcoin/src/wallet/rpc/addresses.cpp)
-- [getrawpqchangeaddress](/Users/scott/quantum-proof-bitcoin/src/wallet/rpc/addresses.cpp)
+- [getnewpqaddress](../src/wallet/rpc/addresses.cpp)
+- [getrawpqchangeaddress](../src/wallet/rpc/addresses.cpp)
 
 These are the owned receive/change entry points when a wallet's active state is
 driven by ranged `pqpriv(...)` managers.
@@ -24,8 +24,8 @@ driven by ranged `pqpriv(...)` managers.
 
 The inherited address RPCs are still present:
 
-- [getnewaddress](/Users/scott/quantum-proof-bitcoin/src/wallet/rpc/addresses.cpp)
-- [getrawchangeaddress](/Users/scott/quantum-proof-bitcoin/src/wallet/rpc/addresses.cpp)
+- [getnewaddress](../src/wallet/rpc/addresses.cpp)
+- [getrawchangeaddress](../src/wallet/rpc/addresses.cpp)
 
 But for wallets whose active managers are entirely PQ-native, those inherited
 RPCs are no longer part of the supported UX. They now reject immediately with a
@@ -59,7 +59,7 @@ This posture note does **not** mean:
 
 The broad inherited suite remains:
 
-- [wallet_address_types.py](/Users/scott/quantum-proof-bitcoin/test/functional/wallet_address_types.py)
+- [wallet_address_types.py](../test/functional/wallet_address_types.py)
   - current inventory posture: `dual_profile`
   - current Taproot matrix bucket: `deferred`
 

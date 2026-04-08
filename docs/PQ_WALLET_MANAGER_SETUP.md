@@ -14,7 +14,7 @@ managers.
 
 The dedicated PQ-native setup RPC is:
 
-- [createpqwalletmanagers](/Users/scott/quantum-proof-bitcoin/src/wallet/rpc/wallet.cpp)
+- [createpqwalletmanagers](../src/wallet/rpc/wallet.cpp)
 
 It creates and activates the receive/change `pqpriv(...)` manager pair from one
 shared 32-byte root seed.
@@ -45,7 +45,7 @@ Outputs:
 This RPC keeps the PQ-native setup path separate from the inherited HD-xpub
 descriptor builder:
 
-- [createwalletdescriptor](/Users/scott/quantum-proof-bitcoin/src/wallet/rpc/wallet.cpp)
+- [createwalletdescriptor](../src/wallet/rpc/wallet.cpp)
 
 That inherited RPC still creates `wpkh(...)` / `tr(...)` descriptor families.
 It does not understand PQ root seeds and should not be overloaded early.
@@ -62,7 +62,7 @@ longer the preferred initial setup UX for Track A PQ wallets.
 ## Keypool Maintenance
 
 Once the active PQ managers exist, the inherited
-[keypoolrefill](/Users/scott/quantum-proof-bitcoin/src/wallet/rpc/addresses.cpp)
+[keypoolrefill](../src/wallet/rpc/addresses.cpp)
 RPC remains a supported maintenance path.
 
 Under PQ-only active wallets it does not create inherited address families.
@@ -74,10 +74,10 @@ branch keeps at least the requested number of unused destinations available.
 Once the active PQ managers exist, the owned funding/change posture is:
 
 - raw-transaction funding through
-  [fundrawtransaction](/Users/scott/quantum-proof-bitcoin/src/wallet/rpc/spend.cpp)
+  [fundrawtransaction](../src/wallet/rpc/spend.cpp)
   remains a supported wallet path
 - PSBT funding through
-  [walletcreatefundedpsbt](/Users/scott/quantum-proof-bitcoin/src/wallet/rpc/spend.cpp)
+  [walletcreatefundedpsbt](../src/wallet/rpc/spend.cpp)
   remains a supported wallet path for both explicit-input and automatic-input
   flows
 - automatic change selection on PQ-only wallets must continue to consume the

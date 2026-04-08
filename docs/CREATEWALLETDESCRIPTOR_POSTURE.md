@@ -15,7 +15,7 @@ This note exists because the inherited RPC name sounds like it should be part of
 
 ## Current Reality
 
-The current RPC at [wallet.cpp](/Users/scott/quantum-proof-bitcoin/src/wallet/rpc/wallet.cpp#L749)
+The current RPC at [wallet.cpp](../src/wallet/rpc/wallet.cpp)
 is still the inherited HD-xpub descriptor builder.
 
 It currently:
@@ -31,7 +31,7 @@ In practice, the current functional coverage proves:
 
 The current passing suite is:
 
-- [wallet_createwalletdescriptor.py](/Users/scott/quantum-proof-bitcoin/test/functional/wallet_createwalletdescriptor.py)
+- [wallet_createwalletdescriptor.py](../test/functional/wallet_createwalletdescriptor.py)
 
 ## What It Does Not Do
 
@@ -50,22 +50,22 @@ creation is solved.
 The current PQ-native wallet-manager creation path is different:
 
 - call the dedicated
-  [createpqwalletmanagers](/Users/scott/quantum-proof-bitcoin/src/wallet/rpc/wallet.cpp)
+  [createpqwalletmanagers](../src/wallet/rpc/wallet.cpp)
   RPC on a descriptor wallet with no active managers
 - let the dedicated PQ manager own address generation and signing
 
 That path is already exercised in:
 
-- [wallet_pq_active_ranged.py](/Users/scott/quantum-proof-bitcoin/test/functional/wallet_pq_active_ranged.py)
-- [PQ_WALLET_MANAGER_SETUP.md](/Users/scott/quantum-proof-bitcoin/docs/PQ_WALLET_MANAGER_SETUP.md)
+- [wallet_pq_active_ranged.py](../test/functional/wallet_pq_active_ranged.py)
+- [PQ_WALLET_MANAGER_SETUP.md](./PQ_WALLET_MANAGER_SETUP.md)
 
 And the lower-level descriptor import path is still exercised in:
 
-- [wallet_pq_psbt.py](/Users/scott/quantum-proof-bitcoin/test/functional/wallet_pq_psbt.py)
+- [wallet_pq_psbt.py](../test/functional/wallet_pq_psbt.py)
 
 And the fixed public watch-only side is exercised in:
 
-- [wallet_pq_descriptors.py](/Users/scott/quantum-proof-bitcoin/test/functional/wallet_pq_descriptors.py)
+- [wallet_pq_descriptors.py](../test/functional/wallet_pq_descriptors.py)
 
 ## Track A Interpretation
 
@@ -84,7 +84,7 @@ Current UX improvement:
   `Active pqpriv() managers do not expose HD keys; createwalletdescriptor only supports xpub-based descriptor families`
 
 This means a green
-[wallet_createwalletdescriptor.py](/Users/scott/quantum-proof-bitcoin/test/functional/wallet_createwalletdescriptor.py)
+[wallet_createwalletdescriptor.py](../test/functional/wallet_createwalletdescriptor.py)
 run tells us inherited descriptor creation still works. It does **not** tell us
 that PQ-native descriptor creation semantics are defined.
 
