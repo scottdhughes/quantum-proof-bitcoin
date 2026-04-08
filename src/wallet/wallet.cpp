@@ -1719,6 +1719,9 @@ bool CWallet::CanGetAddresses(bool internal) const
 {
     LOCK(cs_wallet);
     if (m_spk_managers.empty()) return false;
+    if (!internal && m_external_pq_spk_manager && m_external_pq_spk_manager->CanGetAddresses(/*internal=*/false)) {
+        return true;
+    }
     if (internal && m_internal_pq_spk_manager && m_internal_pq_spk_manager->CanGetAddresses(/*internal=*/true)) {
         return true;
     }
@@ -4659,6 +4662,35 @@ std::set<CExtPubKey> CWallet::GetActiveHDPubKeys() const
         active_xpubs.merge(std::move(desc_xpubs));
     }
     return active_xpubs;
+}
+
+bool CWallet::HasActivePQManagers() const
+{
+    AssertLockHeld(cs_wallet);
+    if (!IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS)) return false;
+
+    for (const auto& spkm : GetActiveScriptPubKeyMans()) {
+        if (dynamic_cast<PQDescriptorScriptPubKeyMan*>(spkm)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool CWallet::HasOnlyActivePQManagers() const
+{
+    AssertLockHeld(cs_wallet);
+    if (!IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS)) return false;
+
+    const auto active_spkms = GetActiveScriptPubKeyMans();
+    if (active_spkms.empty()) return false;
+
+    for (const auto& spkm : active_spkms) {
+        if (!dynamic_cast<PQDescriptorScriptPubKeyMan*>(spkm)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 std::optional<CKey> CWallet::GetKey(const CKeyID& keyid) const

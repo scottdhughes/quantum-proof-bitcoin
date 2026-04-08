@@ -22,7 +22,7 @@ RPCHelpMan getnewaddress()
 {
     return RPCHelpMan{
         "getnewaddress",
-        "Returns a new Bitcoin address for receiving payments.\n"
+        "Returns a new PQBTC address for receiving payments.\n"
                 "If 'label' is specified, it is added to the address book \n"
                 "so payments received with the address will be associated with 'label'.\n",
                 {
@@ -30,7 +30,7 @@ RPCHelpMan getnewaddress()
                     {"address_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -addresstype"}, "The address type to use. Options are " + FormatAllOutputTypes() + "."},
                 },
                 RPCResult{
-                    RPCResult::Type::STR, "address", "The new bitcoin address"
+                    RPCResult::Type::STR, "address", "The new PQBTC address"
                 },
                 RPCExamples{
                     HelpExampleCli("getnewaddress", "")
@@ -59,6 +59,13 @@ RPCHelpMan getnewaddress()
         output_type = parsed.value();
     }
 
+    if (pwallet->HasOnlyActivePQManagers()) {
+        throw JSONRPCError(
+            RPC_INVALID_ADDRESS_OR_KEY,
+            "Active pqpriv() managers do not use inherited getnewaddress; use getnewpqaddress"
+        );
+    }
+
     auto op_dest = pwallet->GetNewDestination(output_type, label);
     if (!op_dest) {
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, util::ErrorString(op_dest).original);
@@ -73,7 +80,7 @@ RPCHelpMan getrawchangeaddress()
 {
     return RPCHelpMan{
         "getrawchangeaddress",
-        "Returns a new Bitcoin address, for receiving change.\n"
+        "Returns a new PQBTC address, for receiving change.\n"
                 "This is for use with raw transactions, NOT normal use.\n",
                 {
                     {"address_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -changetype"}, "The address type to use. Options are " + FormatAllOutputTypes() + "."},
@@ -103,6 +110,13 @@ RPCHelpMan getrawchangeaddress()
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("Unknown address type '%s'", request.params[0].get_str()));
         }
         output_type = parsed.value();
+    }
+
+    if (pwallet->HasOnlyActivePQManagers()) {
+        throw JSONRPCError(
+            RPC_INVALID_ADDRESS_OR_KEY,
+            "Active pqpriv() managers do not use inherited getrawchangeaddress; use getrawpqchangeaddress"
+        );
     }
 
     auto op_dest = pwallet->GetNewChangeDestination(output_type);
@@ -179,7 +193,7 @@ RPCHelpMan setlabel()
         "setlabel",
         "Sets the label associated with the given address.\n",
                 {
-                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin address to be associated with a label."},
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The PQBTC address to be associated with a label."},
                     {"label", RPCArg::Type::STR, RPCArg::Optional::NO, "The label to assign to the address."},
                 },
                 RPCResult{RPCResult::Type::NONE, "", ""},
@@ -196,7 +210,7 @@ RPCHelpMan setlabel()
 
     CTxDestination dest = DecodeDestination(request.params[0].get_str());
     if (!IsValidDestination(dest)) {
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Bitcoin address");
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid PQBTC address");
     }
 
     const std::string label{LabelFromValue(request.params[1])};
@@ -227,7 +241,7 @@ RPCHelpMan listaddressgroupings()
                         {
                             {RPCResult::Type::ARR_FIXED, "", "",
                             {
-                                {RPCResult::Type::STR, "address", "The bitcoin address"},
+                                {RPCResult::Type::STR, "address", "The PQBTC address"},
                                 {RPCResult::Type::STR_AMOUNT, "amount", "The amount in " + CURRENCY_UNIT},
                                 {RPCResult::Type::STR, "label", /*optional=*/true, "The label"},
                             }},
@@ -276,11 +290,11 @@ RPCHelpMan listaddressgroupings()
 RPCHelpMan keypoolrefill()
 {
     return RPCHelpMan{"keypoolrefill",
-                "Refills each descriptor keypool in the wallet up to the specified number of new keys.\n"
-                "By default, descriptor wallets have 4 active ranged descriptors (" + FormatAllOutputTypes() + "), each with " + util::ToString(DEFAULT_KEYPOOL_SIZE) + " entries.\n" +
+                "Refills each active ranged keypool or manager in the wallet up to the specified number of unused destinations.\n"
+                "For inherited descriptor wallets, this tops up the active descriptor keypools. For PQ-only wallets, this expands the active pqpriv() receive/change ranges so each branch keeps at least the requested number of unused destinations available.\n" +
         HELP_REQUIRING_PASSPHRASE,
                 {
-                    {"newsize", RPCArg::Type::NUM, RPCArg::DefaultHint{strprintf("%u, or as set by -keypool", DEFAULT_KEYPOOL_SIZE)}, "The new keypool size"},
+                    {"newsize", RPCArg::Type::NUM, RPCArg::DefaultHint{strprintf("%u, or as set by -keypool", DEFAULT_KEYPOOL_SIZE)}, "The minimum available size to maintain for each active ranged keypool or manager"},
                 },
                 RPCResult{RPCResult::Type::NONE, "", ""},
                 RPCExamples{
@@ -439,6 +453,7 @@ RPCHelpMan getaddressinfo()
                         {RPCResult::Type::STR_HEX, "scriptPubKey", "The hex-encoded output script generated by the address."},
                         {RPCResult::Type::BOOL, "ismine", "If the address is yours."},
                         {RPCResult::Type::BOOL, "iswatchonly", "(DEPRECATED) Always false."},
+                        {RPCResult::Type::BOOL, "has_private_keys", "Whether the wallet has private key material for this address script."},
                         {RPCResult::Type::BOOL, "solvable", "If we know how to spend coins sent to this address, ignoring the possible lack of private keys."},
                         {RPCResult::Type::STR, "desc", /*optional=*/true, "A descriptor for spending coins sent to this address (only when solvable)."},
                         {RPCResult::Type::STR, "parent_desc", /*optional=*/true, "The descriptor used to derive this address if this is a descriptor wallet"},
@@ -460,7 +475,7 @@ RPCHelpMan getaddressinfo()
                         {RPCResult::Type::OBJ, "embedded", /*optional=*/true, "Information about the address embedded in P2SH or P2WSH, if relevant and known.",
                         {
                             {RPCResult::Type::ELISION, "", "Includes all getaddressinfo output fields for the embedded address, excluding metadata (timestamp, hdkeypath, hdseedid)\n"
-                            "and relation to the wallet (ismine)."},
+                            "and relation to the wallet (ismine, has_private_keys)."},
                         }},
                         {RPCResult::Type::BOOL, "iscompressed", /*optional=*/true, "If the pubkey is compressed."},
                         {RPCResult::Type::NUM_TIME, "timestamp", /*optional=*/true, "The creation time of the key, if available, expressed in " + UNIX_EPOCH_TIME + "."},
@@ -534,6 +549,7 @@ RPCHelpMan getaddressinfo()
     }
 
     ret.pushKV("iswatchonly", false);
+    ret.pushKV("has_private_keys", ScriptPubKeyHasPrivateKeys(*pwallet, scriptPubKey));
 
     UniValue detail = DescribeWalletAddress(*pwallet, dest);
     ret.pushKVs(std::move(detail));
