@@ -1,0 +1,13 @@
+{
+  "competing_branch_blocks": 2,
+  "crash_assert_hang": false,
+  "duration_s": 5.947,
+  "mempool_after_restart": null,
+  "mempool_before_restart": null,
+  "notes": "",
+  "pass": true,
+  "reinserted_tx_count": 1,
+  "reorg_result": "competing-branch-reinserted-then-remined",
+  "restart_node0_before_reconnect": true,
+  "scenario": "feature_pq_reorg"
+}
