@@ -131,12 +131,12 @@ STAMP=$(date -u +%Y-%m-%d) contrib/soak/capture_ops_slo_evidence.sh
 Bundle validation:
 
 ```bash
-contrib/soak/validate_ops_slo_evidence.py --signoff docs/artifacts/ops-slo/2026-03-30
+contrib/soak/validate_ops_slo_evidence.py --signoff docs/artifacts/ops-slo/2026-04-06
 ```
 
 ## Reproduce Latest Evidence
 
-The latest checked-in evidence batch lives under `docs/artifacts/ops-slo/2026-03-30/`.
+The latest checked-in evidence batch lives under `docs/artifacts/ops-slo/2026-04-06/`.
 
 To reproduce a fresh batch locally:
 
