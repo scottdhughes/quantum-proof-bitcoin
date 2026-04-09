@@ -1762,11 +1762,18 @@
     "notes": "Required deterministic PQ wallet backup, restore, and recovery coverage."
   },
   {
-    "name": "wallet_pq_descriptors.py",
-    "policy_class": "pq_backlog",
+    "name": "wallet_pq_create_tx.py",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
-    "tracking_issue": "#15",
-    "notes": "PQ-specific coverage exists but is not yet part of the required CI gate set."
+    "tracking_issue": "#12",
+    "notes": "Required PQ-only direct wallet create-tx anti-fee-sniping and version coverage."
+  },
+  {
+    "name": "wallet_pq_descriptors.py",
+    "policy_class": "pq_required",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#12",
+    "notes": "Required fixed watch-only pq(...) descriptor import, introspection, tracking, and non-signing PSBT-prep coverage."
   },
   {
     "name": "wallet_pq_psbt.py",
@@ -1774,6 +1781,27 @@
     "owner": "@scottdhughes",
     "tracking_issue": "#12",
     "notes": "Required deterministic PQ PSBT creation, signing, and finalization coverage."
+  },
+  {
+    "name": "wallet_pq_send.py",
+    "policy_class": "pq_required",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#12",
+    "notes": "Required PQ-only send RPC anti-fee-sniping and explicit locktime posture coverage."
+  },
+  {
+    "name": "wallet_pq_sendall.py",
+    "policy_class": "pq_required",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#12",
+    "notes": "Required PQ-only sendall RPC anti-fee-sniping and explicit locktime posture coverage."
+  },
+  {
+    "name": "wallet_pq_sendmany.py",
+    "policy_class": "pq_required",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#12",
+    "notes": "Required PQ-only sendmany RPC anti-fee-sniping and multi-recipient subtractfeefrom coverage."
   },
   {
     "name": "wallet_reindex.py",

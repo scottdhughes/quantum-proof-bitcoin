@@ -32,12 +32,12 @@ This tranche does not migrate legacy suites to PQ semantics and does not optimiz
 
 ## Current Inventory Summary
 
-The current functional corpus has `271` tracked test files, classified as:
+The current functional corpus has `275` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `14` |
-| `pq_backlog` | `101` |
+| `pq_required` | `19` |
+| `pq_backlog` | `100` |
 | `dual_profile` | `147` |
 | `legacy_only` | `9` |
 
@@ -56,14 +56,20 @@ Current required PQ-first gates:
 11. `mempool_pq_stress.py`
 12. `wallet_pq_active_ranged.py`
 13. `wallet_pq_backup_recovery.py`
-14. `wallet_pq_psbt.py`
+14. `wallet_pq_create_tx.py`
+15. `wallet_pq_descriptors.py`
+16. `wallet_pq_psbt.py`
+17. `wallet_pq_send.py`
+18. `wallet_pq_sendall.py`
+19. `wallet_pq_sendmany.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
-existing PQ wallet suites into the required gate and adding PQ-native wallet and
-PSBT unit coverage to the default `test_pqbtc` profile. The replacement-path
-confidence gap is closed in this tranche by promoting the full deterministic
-Taproot replacement functional stack into the required PQ gate. The remaining key
-backlog families are:
+existing PQ wallet suites into the required gate and adding PQ-native wallet,
+fixed watch-only descriptor, direct create-tx, `send`, `sendall`, `sendmany`,
+and PSBT unit coverage to the default `test_pqbtc` profile. The
+replacement-path confidence gap is closed in this tranche by promoting the full
+deterministic Taproot replacement functional stack into the required PQ gate.
+The remaining key backlog families are:
 
 1. mempool and mining policy suites not yet given explicit PQ gating treatment
 2. chainstate and validation-facing feature tests that still need a later PQ migration decision
