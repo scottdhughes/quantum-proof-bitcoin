@@ -22,6 +22,14 @@ This project implements a Bitcoin-like UTXO chain using hash-based post-quantum 
 
 - [Protocol Specification](Spec.md) - Normative spec with MUST/SHOULD language
 - [Core Diff Plan](CORE_DIFF_PLAN.md) - Bitcoin Core fork implementation phases
+- [Track A: Native PQ Bitcoin](TRACK_A_NATIVE_PQ_BITCOIN.md) - Strategic anchor, scope, non-goals, and how adjacent approaches fit
+- [Track A 90-Day Roadmap](TRACK_A_90_DAY_ROADMAP.md) - Concrete execution plan for April 6, 2026 through July 5, 2026
+- [Genesis And Network Posture](GENESIS_AND_NETWORK_POSTURE.md) - Launch interpretation for a fresh block-0 chain, network identity, and non-goals around inherited Bitcoin history
+- [Research Index](RESEARCH_INDEX.md) - Curated map of the repo's internal research corpus and key external references
+- [Watch-Only `pq(...)` Contract](PQ_DESCRIPTOR_WATCHONLY_CONTRACT.md) - Fixed public PQ descriptor boundaries, import behavior, and test-backed expectations
+- [PQ Wallet Manager Setup](PQ_WALLET_MANAGER_SETUP.md) - Dedicated PQ-native receive/change manager setup path and its guardrails
+- [PQ Address RPC Posture](PQ_ADDRESS_RPC_POSTURE.md) - Dedicated PQ address RPC boundary and why inherited address RPCs stay separate on PQ-only wallets
+- [`createwalletdescriptor` Posture](CREATEWALLETDESCRIPTOR_POSTURE.md) - Current inherited descriptor-creation behavior and why it is not yet the PQ-native creation path
 
 ## Status
 

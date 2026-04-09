@@ -1,7 +1,7 @@
 # Quantum-Proof Bitcoin Fork (Genesis Chain) — Protocol Spec v0 (DRAFT)
 
 Status: Draft
-Last-Updated: YYYY-MM-DD
+Last-Updated: 2026-04-06
 
 This document is a developer-facing protocol specification for a Bitcoin Core-derived chain
 starting from a new genesis block (height 0), with post-quantum (PQ) signatures required
@@ -9,6 +9,17 @@ for transaction authorization from genesis.
 
 Normative language: "MUST", "MUST NOT", "SHOULD", "SHOULD NOT", "MAY" are
 to be interpreted as in RFC 2119.
+
+Primary external reference for the PQ signature construction and parameter
+selection used here:
+
+- Mikhail Kudinov and Jonas Nick, "Hash-based Signature Schemes for Bitcoin"
+  (IACR ePrint 2025/2203)
+
+Related discussion:
+
+- Jonas Nick, "SHRINCS: 324-byte stateful post-quantum signatures with static
+  backups" (Delving Bitcoin, December 11, 2025)
 
 ---
 
@@ -65,8 +76,9 @@ PQSig v0 is a stateless, hash-based signature scheme in the SPHINCS framework, u
 - PORS+FP for the few-time layer,
 with hypertree parameters chosen for q_s = 2^40 max signatures per public key.
 
-(See the referenced paper's sections on WOTS+C, PORS+FP, SPHINCS framework substitution,
-and the parameter tables.)
+(See "Hash-based Signature Schemes for Bitcoin" for the WOTS+C, PORS+FP,
+SPHINCS-family substitution, and parameter-table background behind this
+construction.)
 
 ### 4.2 Security Parameterization (v0 constants)
 - Target security: NIST Level 1 / ~128-bit classical security.
@@ -220,4 +232,6 @@ Policy SHOULD enforce:
 PQSig v0 corresponds to the parameter set in Table 1:
 "W+C P+FP 2^40: h=44 d=4 a=16 k=8 w=16 l=32 S_{w,n}=240 SigSize=4480 SigVerify(compr.)=1292"
 
-(That spec is based directly on the paper's construction notes, parameter choices, and constraints around Hmsg sizing, HD wallets, and multisig practicality.)
+(This spec is based directly on "Hash-based Signature Schemes for Bitcoin" and
+its construction notes, parameter choices, and constraints around Hmsg sizing,
+HD wallets, and multisig practicality.)
