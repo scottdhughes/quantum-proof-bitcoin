@@ -212,6 +212,7 @@ BASE_SCRIPTS = [
     'rpc_whitelist.py',
     'feature_proxy.py',
     'wallet_signrawtransactionwithwallet.py',
+    'wallet_pq_signrawtransaction.py',
     'rpc_signrawtransactionwithkey.py',
     'rpc_rawtransaction.py',
     'wallet_transactiontime_rescan.py',

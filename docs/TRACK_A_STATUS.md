@@ -2,8 +2,8 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-04-09
-## Current Phase: Phase 1 - Confidence and Slice Selection
+## Updated: 2026-04-11
+## Current Phase: Phase 1 - Wallet Surface Expansion
 
 ## Purpose
 
@@ -46,25 +46,21 @@ Next likely follow-ons:
 
 ## Current Queue
 
-1. Recommended next PR after the currently open send-path / CI and CLI hotfix
-   work: land the Track A strategy and launch-posture docs pack.
+1. Recommended next PR after the PQ raw-signing slice: extend active PQ
+   manager restore semantics.
    Exact files for that PR:
-   - `docs/TRACK_A_NATIVE_PQ_BITCOIN.md`
-   - `docs/TRACK_A_90_DAY_ROADMAP.md`
-   - `docs/GENESIS_AND_NETWORK_POSTURE.md`
-   - `docs/RESEARCH_INDEX.md`
-   - `docs/PSBT_REPLACEMENT_TRANCHE.md`
-   - `docs/TEST_COST_POSTURE.md`
+   - `test/functional/wallet_pq_backup_recovery.py`
+   - `test/functional/wallet_pq_active_ranged.py`
+   - `docs/PQ_WALLET_MANAGER_SETUP.md`
+   - `docs/WALLET.md`
    - `docs/TRACK_A_STATUS.md`
-   - `docs/README_PQBTC.md`
-   - `docs/Spec.md`
-   - `docs/DECISION_DEFERRAL_LEDGER.md`
    Minimum validation only:
-   - doc-only review
-   - keep links repo-relative
+   - `python3 test/functional/wallet_pq_backup_recovery.py`
+   - `python3 test/functional/wallet_pq_active_ranged.py`
    Stays deferred:
-   - product-identity and Qt/CLI naming cleanup in `src/` and `src/qt/`
-   - `OPS_SLO` evidence/artifact refresh and `docs/artifacts/ops-slo/*`
+   - broad inherited backup/recovery migration rehab
+   - broad inherited `wallet_signrawtransactionwithwallet.py` rehabilitation
+   - broad `wallet_fundrawtransaction.py` rehabilitation
    - inherited `createwalletdescriptor` expansion beyond the current xpub-based surface
    - broad `wallet_address_types.py` rehabilitation
    - inherited classical PSBT compatibility in `rpc_psbt.py`
@@ -221,6 +217,23 @@ Aineko must ask before:
   doc-only review and repo-relative links. Product identity/Qt naming work,
   `OPS_SLO` evidence/artifact updates, broad inherited address-type rehab, and
   inherited classical PSBT compatibility remain deferred.
+- 2026-04-10: After merging the docs, identity, and `OPS_SLO` slices and
+  resyncing the old dirty worktree to current `main`, no further real tranche
+  remained in that worktree. The next clean owned slice is now a PQ-specific
+  `signrawtransactionwithwallet` contract, implemented as a dedicated
+  `wallet_pq_signrawtransaction.py` surface plus a matching posture doc and PQ
+  gate/inventory updates. Broad inherited `wallet_signrawtransactionwithwallet`
+  and `wallet_fundrawtransaction` rehab remain deferred.
+- 2026-04-11: The next owned wallet surface remains a PQ-specific
+  `signrawtransactionwithwallet` slice: direct wallet-owned raw spends,
+  default/`ALL` parity, explicit non-`ALL` rejection, and fixed PQ witness
+  shape, without reopening the broad inherited raw-signing matrix.
+- 2026-04-11: The PQ-only raw-signing slice is now owned explicitly through
+  `wallet_pq_signrawtransaction.py` and
+  `PQ_WALLET_SIGNRAWTRANSACTION_POSTURE.md`, with required-gate promotion in
+  `pq_functional_tests.txt` and `functional_suite_inventory.json`. The next
+  wallet follow-on should extend active PQ manager restore semantics rather
+  than reopening the inherited raw-signing matrix.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
