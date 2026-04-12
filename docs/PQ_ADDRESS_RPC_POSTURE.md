@@ -52,7 +52,7 @@ silently drifting back into classical address-family semantics.
 
 This posture note does **not** mean:
 
-- `wallet_address_types.py` is now an owned PQ suite
+- `wallet_address_types.py` is now an owned full PQ migration suite
 - inherited legacy, P2SH-SegWit, or bech32m address-family behavior is fully
   migrated to PQ semantics
 - broad mixed address-family send flows are now green
@@ -62,24 +62,39 @@ The broad inherited suite remains:
 - [wallet_address_types.py](../test/functional/wallet_address_types.py)
   - current inventory posture: `dual_profile`
   - current Taproot matrix bucket: `deferred`
+  - current owned boundary:
+    - low-risk inherited address-shape smoke coverage that still passes
+    - explicit PQ-only inherited `getnewaddress` / `getrawchangeaddress`
+      rejection coverage for valid explicit address types, including `bech32m`
+    - one deferred inherited classical `sendmany` negative control
 
-On 2026-04-06 it still failed in the inherited classical path at
-`sendmany("", sends)` with `Signing transaction failed`, before the new PQ-only
-address-RPC guards became the relevant question.
+As of 2026-04-12, that suite no longer fails accidentally in the inherited
+classical path. Instead, it freezes the current failure explicitly:
+
+- inherited classical `sendmany("", sends)` still fails with
+  `Signing transaction failed`
+- that behavior remains deferred Track A compatibility work, not a PQ-address
+  RPC regression
 
 ## Confidence Snapshot
 
-Targeted confidence on 2026-04-06:
+Targeted confidence on 2026-04-12:
 
+- `python3 test/functional/wallet_address_types.py`
+  - result: passed
+  - covers low-risk inherited address-shape smoke checks, explicit PQ-only
+    inherited address-RPC rejection for default plus `legacy` /
+    `p2sh-segwit` / `bech32` / `bech32m`, and one deferred inherited
+    `sendmany` negative control
 - `python3 test/functional/wallet_pq_active_ranged.py`
   - result: passed
-  - covers dedicated PQ setup, default inherited address-RPC rejection, and
-    explicit `bech32` / `legacy` / `p2sh-segwit` inherited address-RPC
-    rejection before and after restore
+  - covers dedicated PQ setup plus the broader before/after-restore inherited
+    address-RPC rejection boundary on active PQ wallets
 
 ## Interpretation
 
 - the owned PQ wallet address UX is now explicit
-- broad inherited address-type rehabilitation remains separate deferred work
-- `wallet_address_types.py` should be treated as reference inventory, not as
-  the current Track A wallet-address milestone
+- `wallet_address_types.py` now freezes a narrow inherited-address boundary,
+  not a broad compatibility rehab
+- broad inherited address-type send/sign rehabilitation remains separate
+  deferred work
