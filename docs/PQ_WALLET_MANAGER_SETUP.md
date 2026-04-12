@@ -98,7 +98,9 @@ Targeted confidence pass on 2026-04-08:
 - `python3 test/functional/wallet_pq_active_ranged.py`
   - result: passed
   - covers dedicated PQ setup, active receive/change generation, PQ-aware
-    `keypoolrefill`, spend/change, restart, backup, and restore
+    `keypoolrefill`, spend/change, restart, backup, restore, restored
+    keypool continuity, and post-restore automatic PQ change on the restored
+    internal manager
 - `python3 test/functional/wallet_pq_psbt.py`
   - result: passed
   - covers the main PQ-native PSBT/signing flow starting from the dedicated

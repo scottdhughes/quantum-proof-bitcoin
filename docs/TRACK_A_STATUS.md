@@ -234,6 +234,11 @@ Aineko must ask before:
   `pq_functional_tests.txt` and `functional_suite_inventory.json`. The next
   wallet follow-on should extend active PQ manager restore semantics rather
   than reopening the inherited raw-signing matrix.
+- 2026-04-12: Active PQ manager restore semantics now explicitly include
+  restored keypool continuity and post-restore automatic PQ change on the
+  restored internal manager. With the owned `rpc_psbt.py` PQ subset now
+  frozen, the next clean Track A wallet follow-on shifts to the
+  `wallet_createwalletdescriptor.py` boundary.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
