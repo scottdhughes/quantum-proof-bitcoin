@@ -287,6 +287,7 @@ class WalletPQActiveRangedTest(BitcoinTestFramework):
             external_range=[0, 14],
             internal_range=[0, 12],
         )
+        self.assert_keypool_info(wallet, external=12, internal=11)
         self.assert_address_info(wallet, int_entries[1], is_change=True)
 
         self.log.info("Restart and confirm active manager state and tracked outputs persist")
@@ -317,6 +318,7 @@ class WalletPQActiveRangedTest(BitcoinTestFramework):
             external_range=[0, 14],
             internal_range=[0, 12],
         )
+        self.assert_keypool_info(restored, external=12, internal=11)
         self.assert_owned_unspent(restored, spend_txid, int_entries[1], change_amount, category=None)
         self.assert_address_info(restored, int_entries[1], is_change=True)
         assert_equal(restored.gethdkeys(), [])
@@ -368,6 +370,7 @@ class WalletPQActiveRangedTest(BitcoinTestFramework):
             external_range=[0, 14],
             internal_range=[0, 12],
         )
+        self.assert_keypool_info(restored, external=11, internal=10)
 
         self.log.info("Reload the restored wallet and confirm watch set and next_index remain stable")
         restored.unloadwallet()
@@ -381,6 +384,7 @@ class WalletPQActiveRangedTest(BitcoinTestFramework):
             external_range=[0, 14],
             internal_range=[0, 12],
         )
+        self.assert_keypool_info(restored, external=11, internal=10)
         self.assert_owned_unspent(restored, spend_txid, int_entries[1], change_amount, category=None)
         assert_equal(restored.getnewpqaddress(), ext_entries[4].address)
         self.assert_descriptor_state(
@@ -391,6 +395,27 @@ class WalletPQActiveRangedTest(BitcoinTestFramework):
             external_range=[0, 14],
             internal_range=[0, 12],
         )
+        self.assert_keypool_info(restored, external=10, internal=10)
+
+        self.log.info("Automatic PQ change still uses the restored internal manager after reload")
+        restored_spend_txid = restored.sendtoaddress(sink_addr, 1)
+        restored_spend_blockhash = self.mine_block()
+        restored_change_amount = self.find_output_amount(
+            restored_spend_txid,
+            int_entries[3].address,
+            blockhash=restored_spend_blockhash,
+        )
+        self.assert_owned_unspent(restored, restored_spend_txid, int_entries[3], restored_change_amount, category=None)
+        self.assert_descriptor_state(
+            restored,
+            root_seed,
+            external_next=5,
+            internal_next=4,
+            external_range=[0, 14],
+            internal_range=[0, 12],
+        )
+        self.assert_keypool_info(restored, external=10, internal=9)
+        self.assert_address_info(restored, int_entries[3], is_change=True)
 
 
 if __name__ == "__main__":

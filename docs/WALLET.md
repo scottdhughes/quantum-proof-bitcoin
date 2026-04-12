@@ -14,6 +14,8 @@ The wallet surface is no longer deferred in the repo. Current `main` includes:
 - deterministic PQ destination derivation with persisted `next_index`
 - PQ signing and PQ PSBT proprietary partial-signature handling under the current fixed `SIGHASH_ALL` rule
 - backup, restore, and ranged-descriptor recovery coverage
+- active PQ manager restore continuity for persisted `next_index`, keypool
+  state, and post-restore automatic PQ change
 - default PQ-native unit coverage for wallet bookkeeping and PSBT role/error handling
 
 Important boundary:
