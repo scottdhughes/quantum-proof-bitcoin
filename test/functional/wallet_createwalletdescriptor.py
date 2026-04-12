@@ -13,6 +13,12 @@ from test_framework.util import (
 from test_framework.wallet_util import WalletUnlock
 
 
+PQ_CREATEWALLETDESCRIPTOR_ERROR = (
+    "Active pqpriv() managers do not expose HD keys; createwalletdescriptor "
+    "only supports xpub-based descriptor families"
+)
+
+
 class WalletCreateDescriptorTest(BitcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
@@ -25,6 +31,28 @@ class WalletCreateDescriptorTest(BitcoinTestFramework):
         self.test_basic()
         self.test_imported_other_keys()
         self.test_encrypted()
+        self.test_pq_active_managers_reject_inherited_descriptor_creation()
+
+    def descriptor_snapshot(self, wallet):
+        snapshot = []
+        for descriptor in wallet.listdescriptors(private=True)["descriptors"]:
+            snapshot.append({
+                "desc": descriptor["desc"],
+                "active": descriptor["active"],
+                "internal": descriptor["internal"],
+                "range": descriptor.get("range"),
+                "next_index": descriptor.get("next_index"),
+            })
+        return sorted(snapshot, key=lambda item: item["desc"])
+
+    def pq_wallet_state_snapshot(self, wallet):
+        info = wallet.getwalletinfo()
+        return {
+            "descriptors": self.descriptor_snapshot(wallet),
+            "hdkeys": wallet.gethdkeys(),
+            "keypoolsize": info["keypoolsize"],
+            "keypoolsize_hd_internal": info["keypoolsize_hd_internal"],
+        }
 
     def test_basic(self):
         def_wallet = self.nodes[0].get_wallet_rpc(self.default_wallet_name)
@@ -113,6 +141,25 @@ class WalletCreateDescriptorTest(BitcoinTestFramework):
 
         with WalletUnlock(wallet, "pass"):
             wallet.createwalletdescriptor(type="bech32m")
+
+    def test_pq_active_managers_reject_inherited_descriptor_creation(self):
+        self.log.info("Test createwalletdescriptor rejects PQ-only active managers without mutating wallet state")
+        self.nodes[0].createwallet("pq_only", blank=True)
+        wallet = self.nodes[0].get_wallet_rpc("pq_only")
+        wallet.createpqwalletmanagers(("42" * 32), 9)
+
+        state_before = self.pq_wallet_state_snapshot(wallet)
+        assert_equal(state_before["hdkeys"], [])
+        assert_equal(len(state_before["descriptors"]), 2)
+
+        for output_type in ("bech32", "bech32m"):
+            assert_raises_rpc_error(
+                -5,
+                PQ_CREATEWALLETDESCRIPTOR_ERROR,
+                wallet.createwalletdescriptor,
+                output_type,
+            )
+            assert_equal(self.pq_wallet_state_snapshot(wallet), state_before)
 
 
 

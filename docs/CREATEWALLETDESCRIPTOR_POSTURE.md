@@ -28,6 +28,8 @@ In practice, the current functional coverage proves:
 
 - `type="bech32"` creates `wpkh(...)` descriptors
 - `type="bech32m"` creates `tr(...)` descriptors
+- PQ-only wallets with active `pqpriv(...)` managers are rejected explicitly
+  because this RPC remains xpub-only
 
 The current passing suite is:
 
@@ -106,19 +108,23 @@ Reasoning:
 
 ## Confidence Snapshot
 
-Targeted confidence pass run on 2026-04-06:
+Targeted confidence pass run on 2026-04-12:
 
 - `python3 test/functional/wallet_createwalletdescriptor.py`
   - result: passed
+  - relevant guard: inherited xpub creation still works for `bech32` /
+    `bech32m`, while PQ-only active-manager wallets reject both families with
+    the current PQ-specific xpub-only RPC error and without mutating
+    descriptor, HD-key, or active-manager state
 - `python3 test/functional/wallet_pq_active_ranged.py`
   - result: passed
-  - relevant guard: dedicated PQ setup is now covered directly, and active
-    `pqpriv(...)` managers still reject inherited
-    `createwalletdescriptor("bech32")` and `createwalletdescriptor("bech32m")`
-    because they expose no HD xpub source, now with a PQ-specific RPC error
+  - relevant guard: dedicated PQ setup remains on
+    `createpqwalletmanagers`, and restore/reload rejection coverage for active
+    `pqpriv(...)` managers stays owned there
 
 Interpretation:
 
 - inherited descriptor creation remains healthy
-- PQ-native setup is now explicit and test-backed without overloading the
-  inherited RPC
+- PQ-only wallets are explicitly rejected by this inherited RPC
+- PQ-native setup remains explicit and test-backed on
+  `createpqwalletmanagers` without overloading the inherited RPC
