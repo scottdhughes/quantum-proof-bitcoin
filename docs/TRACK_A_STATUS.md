@@ -14,9 +14,9 @@ active, use this file to choose the next safe step for `quantum-proof-bitcoin`.
 
 ## Current Objective
 
-Freeze the owned `rpc_psbt.py` PQ subset for `#23`, keep inherited classical
-PSBT finalize as an explicit deferred legacy boundary, then move the next owned
-follow-on to descriptor/address creation surfaces.
+Freeze the inherited `createwalletdescriptor` xpub-only boundary for `#23`,
+keep PQ-native setup on `createpqwalletmanagers`, then move the next owned
+follow-on to `wallet_address_types.py`.
 
 ## Current Working Thesis
 
@@ -38,41 +38,41 @@ Chosen first owned tranche:
 
 Next likely follow-ons:
 
-2. `wallet_createwalletdescriptor.py`
-3. `wallet_address_types.py`
-4. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
-5. `wallet_miniscript.py`
+2. `wallet_address_types.py`
+3. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
+4. `wallet_miniscript.py`
+5. `feature_block.py`
 
 ## Current Queue
 
-1. This slice freezes `rpc_psbt.py` as:
-   - one narrow PQ-owned wallet PSBT subset
-   - one explicit inherited classical negative control at `finalizepsbt`
+1. This slice freezes `wallet_createwalletdescriptor.py` as:
+   - inherited xpub-based `bech32` / `bech32m` descriptor creation
+   - one explicit PQ-only rejection boundary on active `pqpriv(...)` managers
    Minimum validation only:
-   - `python3 test/functional/rpc_psbt.py`
-   - `python3 test/functional/wallet_pq_psbt.py`
+   - `python3 test/functional/wallet_createwalletdescriptor.py`
+   - `python3 test/functional/wallet_pq_active_ranged.py`
    Stays deferred:
-   - broad inherited PSBT rehabilitation
-   - dual-mode classical/PQ signature finalize compatibility
-   - broad inherited backup/recovery migration rehab
-   - broad inherited `wallet_signrawtransactionwithwallet.py` rehabilitation
-   - broad `wallet_fundrawtransaction.py` rehabilitation
+   - PQ-native descriptor creation through `createwalletdescriptor`
+   - Taproot-replacement descriptor semantics beyond current inherited
+     `tr(...)` coverage
+   - broad inherited address-type rehabilitation
 2. Recommended next PR after this slice:
-   - preferred: `wallet_createwalletdescriptor.py`
-   - lower-risk alternate: `wallet_pq_descriptors.py`
+   - preferred: `wallet_address_types.py`
+   - lower-risk alternate: `feature_block.py`
    Why next:
-   - moves past the PSBT tranche
+   - moves past the inherited xpub-builder boundary
    - keeps momentum on wallet-owned migration surfaces
-   - avoids reopening inherited classical PSBT behavior
-3. Use `PSBT_REPLACEMENT_TRANCHE.md` as the current owned slice.
+   - tightens the next broad inherited address surface under the same Track A
+     posture
+3. Use `CREATEWALLETDESCRIPTOR_POSTURE.md` as the current owned slice.
 4. Use `PQ_DESCRIPTOR_WATCHONLY_CONTRACT.md` as the fixed public descriptor
    contract.
-5. Treat the `rpc_psbt.py` classical `finalizepsbt` failure as an intentionally deferred
-   inherited classical-PSBT compatibility gap under the all-PQ Track A stance.
+5. Treat `createwalletdescriptor` as an inherited xpub builder, not a PQ-native
+   wallet-manager creation path under the all-PQ Track A stance.
 6. Use `GENESIS_AND_NETWORK_POSTURE.md` as the launch-level interpretation for
    a fresh block-0 chain with its own network identity.
-7. Use `CREATEWALLETDESCRIPTOR_POSTURE.md` to keep inherited descriptor
-   creation separate from the PQ-native creation path.
+7. Use `PSBT_REPLACEMENT_TRANCHE.md` to keep the owned PQ `rpc_psbt.py`
+   subset separate from inherited classical PSBT rehabilitation.
 8. Use `PQ_WALLET_MANAGER_SETUP.md` as the current setup-path contract for
    active PQ receive/change managers.
 9. Use `PQ_ADDRESS_RPC_POSTURE.md` as the current inherited-address boundary
@@ -239,6 +239,11 @@ Aineko must ask before:
   restored internal manager. With the owned `rpc_psbt.py` PQ subset now
   frozen, the next clean Track A wallet follow-on shifts to the
   `wallet_createwalletdescriptor.py` boundary.
+- 2026-04-12: `wallet_createwalletdescriptor.py` now freezes the inherited
+  xpub-only boundary directly: inherited `bech32` / `bech32m` descriptor
+  creation stays green, PQ-only active-manager wallets reject both families
+  without mutating descriptor or manager state, and the next clean wallet
+  follow-on shifts to `wallet_address_types.py`.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full

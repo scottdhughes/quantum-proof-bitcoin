@@ -1568,7 +1568,7 @@
     "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
     "tracking_issue": "#23",
-    "notes": "Includes tr()/bech32m descriptor creation paths; kept in pq_backlog and classified as deferred in the #23 migration matrix."
+    "notes": "Inherited xpub descriptor builder with bech32/wpkh and bech32m/tr coverage plus an explicit PQ-only rejection boundary; kept in pq_backlog and classified as deferred in the #23 migration matrix."
   },
   {
     "name": "wallet_crosschain.py",
