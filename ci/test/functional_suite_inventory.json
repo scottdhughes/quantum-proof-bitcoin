@@ -1307,7 +1307,7 @@
     "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
     "tracking_issue": "#23",
-    "notes": "Includes Taproot-facing PSBT surfaces; retained under the current non-gating dual-profile contract and classified as deferred in the #23 migration matrix."
+    "notes": "Includes a narrow PQ-owned wallet PSBT subset plus an explicit legacy classical negative control; retained under the current non-gating dual-profile contract and classified as deferred in the #23 migration matrix."
   },
   {
     "name": "rpc_rawtransaction.py",
