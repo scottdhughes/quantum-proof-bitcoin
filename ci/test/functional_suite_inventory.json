@@ -1455,7 +1455,7 @@
     "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
     "tracking_issue": "#23",
-    "notes": "Includes bech32m/Taproot-facing address branches; retained under the current non-gating dual-profile contract and classified as deferred in the #23 migration matrix."
+    "notes": "Contains low-risk inherited address-shape smoke coverage plus an explicit PQ-only inherited-address rejection boundary and a deferred inherited sendmany negative control; retained under the current non-gating dual-profile contract and classified as deferred in the #23 migration matrix."
   },
   {
     "name": "wallet_anchor.py",
