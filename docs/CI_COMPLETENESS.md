@@ -32,11 +32,11 @@ This tranche does not migrate legacy suites to PQ semantics and does not optimiz
 
 ## Current Inventory Summary
 
-The current functional corpus has `275` tracked test files, classified as:
+The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `19` |
+| `pq_required` | `20` |
 | `pq_backlog` | `100` |
 | `dual_profile` | `147` |
 | `legacy_only` | `9` |
@@ -62,11 +62,13 @@ Current required PQ-first gates:
 17. `wallet_pq_send.py`
 18. `wallet_pq_sendall.py`
 19. `wallet_pq_sendmany.py`
+20. `wallet_pq_signrawtransaction.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
 fixed watch-only descriptor, direct create-tx, `send`, `sendall`, `sendmany`,
-and PSBT unit coverage to the default `test_pqbtc` profile. The
+direct raw-signing, and PSBT unit coverage to the default `test_pqbtc`
+profile. The
 replacement-path confidence gap is closed in this tranche by promoting the full
 deterministic Taproot replacement functional stack into the required PQ gate.
 The remaining key backlog families are:

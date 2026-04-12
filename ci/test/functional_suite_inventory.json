@@ -1804,6 +1804,13 @@
     "notes": "Required PQ-only sendmany RPC anti-fee-sniping and multi-recipient subtractfeefrom coverage."
   },
   {
+    "name": "wallet_pq_signrawtransaction.py",
+    "policy_class": "pq_required",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#12",
+    "notes": "Required PQ-only signrawtransactionwithwallet default/ALL parity, fixed-sighash rejection, and direct witness-shape coverage."
+  },
+  {
     "name": "wallet_reindex.py",
     "policy_class": "pq_backlog",
     "owner": "@scottdhughes",
