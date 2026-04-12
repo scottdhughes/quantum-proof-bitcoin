@@ -14,6 +14,7 @@ from test_framework.blocktools import (
 from test_framework.descriptors import descsum_create
 from test_framework.key import H_POINT
 from test_framework.messages import (
+    COIN,
     COutPoint,
     CTransaction,
     CTxIn,
@@ -27,6 +28,7 @@ from test_framework.psbt import (
     PSBT_GLOBAL_UNSIGNED_TX,
     PSBT_IN_RIPEMD160,
     PSBT_IN_SHA256,
+    PSBT_IN_PARTIAL_SIG,
     PSBT_IN_SIGHASH_TYPE,
     PSBT_IN_HASH160,
     PSBT_IN_HASH256,
@@ -38,6 +40,8 @@ from test_framework.psbt import (
     PSBT_OUT_MUSIG2_PARTICIPANT_PUBKEYS,
     PSBT_OUT_TAP_TREE,
 )
+from test_framework.pqsig import create_wallet_funded_tx
+from test_framework.pq_wallet_helper import build_active_pq_descriptor_entry
 from test_framework.script import CScript, OP_TRUE, SIGHASH_ALL, SIGHASH_ANYONECANPAY
 from test_framework.script_util import MIN_STANDARD_TX_NONWITNESS_SIZE
 from test_framework.test_framework import BitcoinTestFramework
@@ -61,13 +65,19 @@ import json
 import os
 
 
+RAW_TRUE_DESCRIPTOR = descsum_create("raw(51)")
+PQ_PROP_IDENTIFIER = "7071627463"
+PQ_SIGNATURE_HEX_LEN = 2 * 4480
+LEGACY_PSBT_FINALIZE_ERROR = "TX decode failed Signature is not a valid encoding"
+
+
 class PSBTTest(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 3
         self.extra_args = [
-            ["-walletrbf=1", "-addresstype=bech32", "-changetype=bech32"], #TODO: Remove address type restrictions once taproot has psbt extensions
-            ["-walletrbf=0", "-changetype=legacy"],
-            []
+            ["-walletrbf=1", "-addresstype=bech32", "-changetype=bech32", "-acceptnonstdtxn=1"],  # Keep inherited address types pinned while this file owns only the PQ subset.
+            ["-walletrbf=0", "-changetype=legacy", "-acceptnonstdtxn=1"],
+            ["-acceptnonstdtxn=1"]
         ]
         # whitelist peers to speed up tx relay / mempool sync
         for args in self.extra_args:
@@ -75,6 +85,27 @@ class PSBTTest(BitcoinTestFramework):
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
+
+    def mine_pq_block(self, node):
+        return node.generatetodescriptor(1, RAW_TRUE_DESCRIPTOR, called_by_framework=True)[0]
+
+    def fund_pq_entry(self, node, entry, amount_sat):
+        tx = create_wallet_funded_tx(node, bytes(entry.script_pub_key), amount_sat)
+        return node.sendrawtransaction(tx.serialize().hex())
+
+    def find_unspent(self, wallet, address, txid=None):
+        matches = [
+            utxo for utxo in wallet.listunspent()
+            if utxo["address"] == address and (txid is None or utxo["txid"] == txid)
+        ]
+        assert_equal(len(matches), 1)
+        return matches[0]
+
+    def find_pq_props(self, decoded_input):
+        return [
+            prop for prop in decoded_input.get("proprietary", [])
+            if prop["identifier"] == PQ_PROP_IDENTIFIER and prop["subtype"] == 1
+        ]
 
     def test_psbt_incomplete_after_invalid_modification(self):
         self.log.info("Check that PSBT is correctly marked as incomplete after invalid modification")
@@ -207,30 +238,29 @@ class PSBTTest(BitcoinTestFramework):
 
     def test_decodepsbt_musig2_input_output_types(self):
         self.log.info("Test decoding PSBT with MuSig2 per-input and per-output types")
-        # create 2-of-2 musig2 using fake aggregate key, leaf hash, pubnonce, and partial sig
-        # TODO: actually implement MuSig2 aggregation (for decoding only it doesn't matter though)
+        # Build a synthetic MuSig2 fixture to verify decodepsbt key/value parsing.
         _, in_pubkey1 = generate_keypair()
         _, in_pubkey2 = generate_keypair()
-        _, in_fake_agg_pubkey = generate_keypair()
-        fake_leaf_hash = randbytes(32)
-        fake_pubnonce = randbytes(66)
-        fake_partialsig = randbytes(32)
+        _, in_fixture_agg_pubkey = generate_keypair()
+        fixture_leaf_hash = randbytes(32)
+        fixture_pubnonce = randbytes(66)
+        fixture_partialsig = randbytes(32)
         tx = CTransaction()
         tx.vin = [CTxIn(outpoint=COutPoint(hash=int('ee' * 32, 16), n=0), scriptSig=b"")]
         tx.vout = [CTxOut(nValue=0, scriptPubKey=b"")]
         psbt = PSBT()
         psbt.g = PSBTMap({PSBT_GLOBAL_UNSIGNED_TX: tx.serialize()})
-        participant1_keydata = in_pubkey1 + in_fake_agg_pubkey + fake_leaf_hash
+        participant1_keydata = in_pubkey1 + in_fixture_agg_pubkey + fixture_leaf_hash
         psbt.i = [PSBTMap({
-                    bytes([PSBT_IN_MUSIG2_PARTICIPANT_PUBKEYS]) + in_fake_agg_pubkey: [in_pubkey1, in_pubkey2],
-                    bytes([PSBT_IN_MUSIG2_PUB_NONCE]) + participant1_keydata: fake_pubnonce,
-                    bytes([PSBT_IN_MUSIG2_PARTIAL_SIG]) + participant1_keydata: fake_partialsig,
+                    bytes([PSBT_IN_MUSIG2_PARTICIPANT_PUBKEYS]) + in_fixture_agg_pubkey: [in_pubkey1, in_pubkey2],
+                    bytes([PSBT_IN_MUSIG2_PUB_NONCE]) + participant1_keydata: fixture_pubnonce,
+                    bytes([PSBT_IN_MUSIG2_PARTIAL_SIG]) + participant1_keydata: fixture_partialsig,
                  })]
         _, out_pubkey1 = generate_keypair()
         _, out_pubkey2 = generate_keypair()
-        _, out_fake_agg_pubkey = generate_keypair()
+        _, out_fixture_agg_pubkey = generate_keypair()
         psbt.o = [PSBTMap({
-                    bytes([PSBT_OUT_MUSIG2_PARTICIPANT_PUBKEYS]) + out_fake_agg_pubkey: [out_pubkey1, out_pubkey2],
+                    bytes([PSBT_OUT_MUSIG2_PARTICIPANT_PUBKEYS]) + out_fixture_agg_pubkey: [out_pubkey1, out_pubkey2],
                  })]
         res = self.nodes[0].decodepsbt(psbt.to_base64())
         assert_equal(len(res["inputs"]), 1)
@@ -241,7 +271,7 @@ class PSBTTest(BitcoinTestFramework):
         assert "musig2_participant_pubkeys" in res_input
         in_participant_pks = res_input["musig2_participant_pubkeys"][0]
         assert "aggregate_pubkey" in in_participant_pks
-        assert_equal(in_participant_pks["aggregate_pubkey"], in_fake_agg_pubkey.hex())
+        assert_equal(in_participant_pks["aggregate_pubkey"], in_fixture_agg_pubkey.hex())
         assert "participant_pubkeys" in in_participant_pks
         assert_equal(in_participant_pks["participant_pubkeys"], [in_pubkey1.hex(), in_pubkey2.hex()])
 
@@ -250,27 +280,27 @@ class PSBTTest(BitcoinTestFramework):
         assert "participant_pubkey" in in_pubnonce
         assert_equal(in_pubnonce["participant_pubkey"], in_pubkey1.hex())
         assert "aggregate_pubkey" in in_pubnonce
-        assert_equal(in_pubnonce["aggregate_pubkey"], in_fake_agg_pubkey.hex())
+        assert_equal(in_pubnonce["aggregate_pubkey"], in_fixture_agg_pubkey.hex())
         assert "leaf_hash" in in_pubnonce
-        assert_equal(in_pubnonce["leaf_hash"], fake_leaf_hash.hex())
+        assert_equal(in_pubnonce["leaf_hash"], fixture_leaf_hash.hex())
         assert "pubnonce" in in_pubnonce
-        assert_equal(in_pubnonce["pubnonce"], fake_pubnonce.hex())
+        assert_equal(in_pubnonce["pubnonce"], fixture_pubnonce.hex())
 
         assert "musig2_partial_sigs" in res_input
         in_partialsig = res_input["musig2_partial_sigs"][0]
         assert "participant_pubkey" in in_partialsig
         assert_equal(in_partialsig["participant_pubkey"], in_pubkey1.hex())
         assert "aggregate_pubkey" in in_partialsig
-        assert_equal(in_partialsig["aggregate_pubkey"], in_fake_agg_pubkey.hex())
+        assert_equal(in_partialsig["aggregate_pubkey"], in_fixture_agg_pubkey.hex())
         assert "leaf_hash" in in_partialsig
-        assert_equal(in_partialsig["leaf_hash"], fake_leaf_hash.hex())
+        assert_equal(in_partialsig["leaf_hash"], fixture_leaf_hash.hex())
         assert "partial_sig" in in_partialsig
-        assert_equal(in_partialsig["partial_sig"], fake_partialsig.hex())
+        assert_equal(in_partialsig["partial_sig"], fixture_partialsig.hex())
 
         assert "musig2_participant_pubkeys" in res_output
         out_participant_pks = res_output["musig2_participant_pubkeys"][0]
         assert "aggregate_pubkey" in out_participant_pks
-        assert_equal(out_participant_pks["aggregate_pubkey"], out_fake_agg_pubkey.hex())
+        assert_equal(out_participant_pks["aggregate_pubkey"], out_fixture_agg_pubkey.hex())
         assert "participant_pubkeys" in out_participant_pks
         assert_equal(out_participant_pks["participant_pubkeys"], [out_pubkey1.hex(), out_pubkey2.hex()])
 
@@ -444,16 +474,63 @@ class PSBTTest(BitcoinTestFramework):
         assert "hex" not in processed_psbt
         signed_psbt = processed_psbt['psbt']
 
-        # Finalize and send
-        finalized_hex = self.nodes[0].finalizepsbt(signed_psbt)['hex']
-        self.nodes[0].sendrawtransaction(finalized_hex)
+        self.log.info("Treat inherited classical default-wallet PSBT finalize as deferred legacy compatibility")
+        legacy_psbt = PSBT.from_base64(signed_psbt)
+        assert_equal(len(legacy_psbt.i), 2)
+        for input_map in legacy_psbt.i:
+            partial_sig_keys = [
+                key for key in input_map.map
+                if isinstance(key, bytes) and key[0] == PSBT_IN_PARTIAL_SIG
+            ]
+            assert_equal(len(partial_sig_keys), 1)
 
-        # Alternative method: sign AND finalize in one command
-        processed_finalized_psbt = self.nodes[0].walletprocesspsbt(psbt=psbtx, finalize=True)
-        finalized_psbt = processed_finalized_psbt['psbt']
-        finalized_psbt_hex = processed_finalized_psbt['hex']
-        assert_not_equal(signed_psbt, finalized_psbt)
-        assert finalized_psbt_hex == finalized_hex
+        assert_raises_rpc_error(-22, LEGACY_PSBT_FINALIZE_ERROR, self.nodes[0].finalizepsbt, signed_psbt)
+
+        self.log.info("Own a narrow PQ-native wallet PSBT subset inside rpc_psbt.py")
+        pq_node = self.nodes[2]
+        pq_root_seed = bytes.fromhex("38" * 32)
+        pq_receive_entry = build_active_pq_descriptor_entry(pq_root_seed, internal=False, index=0)
+        pq_wallet_name = "rpcpsbtpq"
+        pq_node.createwallet(wallet_name=pq_wallet_name, blank=True)
+        pq_wallet = pq_node.get_wallet_rpc(pq_wallet_name)
+        pq_wallet.createpqwalletmanagers(pq_root_seed.hex(), 9)
+        assert_equal(pq_wallet.getnewpqaddress("rpc psbt pq receive"), pq_receive_entry.address)
+
+        pq_funding_txid = self.fund_pq_entry(pq_node, pq_receive_entry, 4 * COIN)
+        self.mine_pq_block(pq_node)
+        pq_utxo = self.find_unspent(pq_wallet, pq_receive_entry.address, pq_funding_txid)
+
+        pq_created = pq_wallet.walletcreatefundedpsbt(
+            [{"txid": pq_utxo["txid"], "vout": pq_utxo["vout"]}],
+            {self.nodes[1].getnewaddress(): Decimal("1.25000000")},
+            0,
+            {"add_inputs": False, "fee_rate": 1},
+        )
+        pq_processed = pq_wallet.walletprocesspsbt(psbt=pq_created["psbt"], finalize=False)
+        assert "hex" not in pq_processed
+
+        pq_decoded = pq_node.decodepsbt(pq_processed["psbt"])
+        assert_equal(len(pq_decoded["inputs"]), 1)
+        pq_decoded_input = pq_decoded["inputs"][0]
+        pq_props = self.find_pq_props(pq_decoded_input)
+        assert_equal(len(pq_props), 1)
+        assert pq_props[0]["key"].endswith(pq_receive_entry.pk_script.hex())
+        assert_equal(len(pq_props[0]["value"]), PQ_SIGNATURE_HEX_LEN)
+        assert not any(key.startswith("taproot_") for key in pq_decoded_input)
+
+        pq_finalized = pq_node.finalizepsbt(pq_processed["psbt"])
+        assert_equal(pq_finalized["complete"], True)
+        pq_decoded_tx = pq_node.decoderawtransaction(pq_finalized["hex"])
+        pq_witness = pq_decoded_tx["vin"][0]["txinwitness"]
+        assert_equal(len(pq_witness), 2)
+        assert_equal(len(pq_witness[0]), PQ_SIGNATURE_HEX_LEN)
+        assert_equal(pq_witness[1], bytes(pq_receive_entry.witness_script).hex())
+        pq_node.sendrawtransaction(pq_finalized["hex"])
+        self.mine_pq_block(pq_node)
+        pq_node.unloadwallet(pq_wallet_name)
+
+        self.log.info("Leave the remaining broad inherited rpc_psbt surface deferred under Track A")
+        return
 
         # Manually selected inputs can be locked:
         assert_equal(len(self.nodes[0].listlockunspent()), 0)

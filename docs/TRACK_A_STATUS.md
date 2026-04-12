@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-04-11
+## Updated: 2026-04-12
 ## Current Phase: Phase 1 - Wallet Surface Expansion
 
 ## Purpose
@@ -14,10 +14,9 @@ active, use this file to choose the next safe step for `quantum-proof-bitcoin`.
 
 ## Current Objective
 
-Execute the first owned Taproot-replacement tranche for `#23`, starting with
-explicit PQ-native PSBT semantics, then lock the fixed watch-only `pq(...)`
-descriptor contract, the dedicated PQ wallet/address setup path, and refresh
-confidence in the current gate/evidence paths.
+Freeze the owned `rpc_psbt.py` PQ subset for `#23`, keep inherited classical
+PSBT finalize as an explicit deferred legacy boundary, then move the next owned
+follow-on to descriptor/address creation surfaces.
 
 ## Current Working Thesis
 
@@ -46,42 +45,43 @@ Next likely follow-ons:
 
 ## Current Queue
 
-1. Recommended next PR after the PQ raw-signing slice: extend active PQ
-   manager restore semantics.
-   Exact files for that PR:
-   - `test/functional/wallet_pq_backup_recovery.py`
-   - `test/functional/wallet_pq_active_ranged.py`
-   - `docs/PQ_WALLET_MANAGER_SETUP.md`
-   - `docs/WALLET.md`
-   - `docs/TRACK_A_STATUS.md`
+1. This slice freezes `rpc_psbt.py` as:
+   - one narrow PQ-owned wallet PSBT subset
+   - one explicit inherited classical negative control at `finalizepsbt`
    Minimum validation only:
-   - `python3 test/functional/wallet_pq_backup_recovery.py`
-   - `python3 test/functional/wallet_pq_active_ranged.py`
+   - `python3 test/functional/rpc_psbt.py`
+   - `python3 test/functional/wallet_pq_psbt.py`
    Stays deferred:
+   - broad inherited PSBT rehabilitation
+   - dual-mode classical/PQ signature finalize compatibility
    - broad inherited backup/recovery migration rehab
    - broad inherited `wallet_signrawtransactionwithwallet.py` rehabilitation
    - broad `wallet_fundrawtransaction.py` rehabilitation
-   - inherited `createwalletdescriptor` expansion beyond the current xpub-based surface
-   - broad `wallet_address_types.py` rehabilitation
-   - inherited classical PSBT compatibility in `rpc_psbt.py`
-2. Use `PSBT_REPLACEMENT_TRANCHE.md` as the current owned slice.
-3. Use `PQ_DESCRIPTOR_WATCHONLY_CONTRACT.md` as the fixed public descriptor
+2. Recommended next PR after this slice:
+   - preferred: `wallet_createwalletdescriptor.py`
+   - lower-risk alternate: `wallet_pq_descriptors.py`
+   Why next:
+   - moves past the PSBT tranche
+   - keeps momentum on wallet-owned migration surfaces
+   - avoids reopening inherited classical PSBT behavior
+3. Use `PSBT_REPLACEMENT_TRANCHE.md` as the current owned slice.
+4. Use `PQ_DESCRIPTOR_WATCHONLY_CONTRACT.md` as the fixed public descriptor
    contract.
-4. Treat the `rpc_psbt.py` `finalizepsbt` failure as an intentionally deferred
+5. Treat the `rpc_psbt.py` classical `finalizepsbt` failure as an intentionally deferred
    inherited classical-PSBT compatibility gap under the all-PQ Track A stance.
-5. Use `GENESIS_AND_NETWORK_POSTURE.md` as the launch-level interpretation for
+6. Use `GENESIS_AND_NETWORK_POSTURE.md` as the launch-level interpretation for
    a fresh block-0 chain with its own network identity.
-6. Use `CREATEWALLETDESCRIPTOR_POSTURE.md` to keep inherited descriptor
+7. Use `CREATEWALLETDESCRIPTOR_POSTURE.md` to keep inherited descriptor
    creation separate from the PQ-native creation path.
-7. Use `PQ_WALLET_MANAGER_SETUP.md` as the current setup-path contract for
+8. Use `PQ_WALLET_MANAGER_SETUP.md` as the current setup-path contract for
    active PQ receive/change managers.
-8. Use `PQ_ADDRESS_RPC_POSTURE.md` as the current inherited-address boundary
+9. Use `PQ_ADDRESS_RPC_POSTURE.md` as the current inherited-address boundary
    for PQ-only active wallets.
-9. Use `TEST_COST_POSTURE.md` to choose the cheapest defensible validation tier
+10. Use `TEST_COST_POSTURE.md` to choose the cheapest defensible validation tier
    for each tranche before running tests.
-10. Re-run and inspect the current required PQ-first functional gate strategy at
+11. Re-run and inspect the current required PQ-first functional gate strategy at
     a targeted level.
-11. Reproduce the current `OPS_SLO` evidence flow only when the work has
+12. Reproduce the current `OPS_SLO` evidence flow only when the work has
     actually reached milestone-evidence scope.
 
 ## Autonomous Scope

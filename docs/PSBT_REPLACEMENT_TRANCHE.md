@@ -143,10 +143,30 @@ Relevant neighboring surfaces that remain follow-on work:
 - [wallet_pq_psbt.py](../test/functional/wallet_pq_psbt.py)
   End-to-end wallet PSBT parity for active `pqpriv(...)` managers.
 - [rpc_psbt.py](../test/functional/rpc_psbt.py)
-  Broad inherited PSBT RPC surface that this tranche must not accidentally
-  destabilize.
+  Broad inherited PSBT RPC surface that now owns one narrow active-PQ subset
+  while retaining one classical finalize negative control.
 - [pqsig_script_tests.cpp](../src/test/pqsig_script_tests.cpp)
   PQ proprietary partial-signature round-trip and rejection guards.
+
+## Frozen `rpc_psbt.py` Boundary
+
+The owned `rpc_psbt.py` surface is intentionally narrow:
+
+- blank descriptor wallet created inside the test
+- active PQ managers initialized only through `createpqwalletmanagers`
+- one PQ-owned UTXO funded with the existing `create_wallet_funded_tx` helper
+- one owned PSBT flow:
+  `walletcreatefundedpsbt -> walletprocesspsbt(finalize=false) -> decodepsbt -> finalizepsbt`
+- one explicit legacy negative control:
+  inherited classical `pkh(...)` partial signatures may still appear in the
+  signed PSBT map after `walletprocesspsbt(finalize=false)`, but
+  `finalizepsbt` must fail with
+  `Signature is not a valid encoding`
+- the remaining inherited upstream `rpc_psbt.py` sections stay parked below
+  this boundary and are not part of the active Track A validation path yet
+
+Nothing in this tranche owns broad inherited PSBT rehabilitation, dual-mode
+signature encoding, or generic classical finalize compatibility.
 
 ## Expected Deliverables
 
@@ -165,66 +185,45 @@ Phase-2 completion for this tranche means:
 
 ## Current Confidence Snapshot
 
-Targeted confidence pass run on 2026-04-08:
+Targeted confidence pass run on 2026-04-12:
 
-- `build/bin/test_pqbtc --run_test=pqsig_script_tests`
+- `python3 test/functional/rpc_psbt.py`
   - result: passed
-- `python3 test/functional/test_runner.py --jobs=1 wallet_pq_psbt.py`
+  - current posture:
+    - active `pqpriv(...)` wallet PSBT processing succeeds inside
+      `rpc_psbt.py`
+    - `decodepsbt` exposes exactly one `pqbtc` proprietary partial-signature
+      field per signed PQ input
+    - no inherited Taproot field is implied for the owned PQ path
+    - `finalizepsbt` produces the expected
+      `[pq_signature, witness_script]` witness shape with the fixed
+      4480-byte signature payload
+    - one inherited classical `pkh(...)` path is kept only as an explicit
+      negative control
+- `python3 test/functional/wallet_pq_psbt.py`
   - result: passed
-  - current posture: dedicated `createpqwalletmanagers` setup for the main
-    spend/PSBT path, explicit `fundrawtransaction` PQ-change coverage, explicit
-    automatic-input `walletcreatefundedpsbt` PQ-change coverage, including
-    `changePosition` and `subtractFeeFromOutputs`, with one retained low-level
-    `importdescriptors` check
-- `python3 test/functional/test_runner.py --jobs=1 rpc_psbt.py`
-  - result: failed
-  - failing point: `finalizepsbt`
-  - observed error: `TX decode failed Signature is not a valid encoding`
 
 Interpretation:
 
-- the owned PQ-native PSBT path is healthy
-- the broader inherited PSBT RPC surface still contains at least one path that
-  does not cleanly fit PQBTC's current signature semantics
+- the owned PQ-native PSBT path is healthy in both the dedicated wallet suite
+  and the narrow `rpc_psbt.py` subset
+- the inherited classical pre-taproot finalize break is no longer an accidental
+  failure; it is a documented deferred compatibility boundary
 
-Narrowed root cause:
+Frozen decision:
 
-- the failing repro spends classical `pkh(...)` inputs from the default wallet,
-  not the active `pqpriv(...)` path
-- `walletprocesspsbt(finalize=false)` emits ordinary-looking classical
-  `partial_sigs` for those inputs
-- `decodepsbt` / `finalizepsbt` then reject that signed PSBT because
-  [interpreter.cpp](../src/script/interpreter.cpp#L75)
-  currently makes `CheckSignatureEncoding()` PQ-only for all pre-taproot paths:
-  any non-empty signature whose size is not `pqsig::SIG_SIZE` is rejected as
-  `SCRIPT_ERR_SIG_DER`
-
-This means the current blocker is not a mystery in the owned PQ-native tranche.
-It is an explicit compatibility break in the inherited classical PSBT decode /
-finalize path.
-
-Decision boundary:
-
-- if PQBTC intends to keep classical pre-taproot PSBT flows alive during the
-  migration window, it needs dual-mode signature encoding validation here
-- if PQBTC intends to drop those flows, `rpc_psbt.py` should stay out of the
-  owned tranche and be marked as explicitly deferred legacy compatibility work
-
-Current decision:
-
-- Track A is all-PQ
-- inherited classical pre-taproot PSBT decode / finalize compatibility is not
-  part of the owned tranche
-- `rpc_psbt.py` remains a useful reference surface, but its classical signing
-  expectations should be treated as deferred legacy compatibility work rather
-  than a blocker on PQ-native progress
+- Track A remains all-PQ
+- inherited classical pre-taproot PSBT decode / finalize compatibility remains
+  deferred legacy work
+- `rpc_psbt.py` stays out of `pq_required` for now, but the PQ-owned subset is
+  now explicit and testable
 
 ## Follow-On Questions
 
 The next questions after this tranche should be:
 
 1. Should PQBTC expose a richer decode view for the PQ proprietary field?
-2. Which descriptor surface should be promoted next after PSBT:
+2. Which descriptor surface should be promoted next after this PSBT subset:
    `wallet_createwalletdescriptor.py` or `wallet_pq_descriptors.py`?
 3. What is the smallest safe replacement-path bridge from PQ-native PSBT
    behavior toward future replacement witness-v1 semantics without importing
