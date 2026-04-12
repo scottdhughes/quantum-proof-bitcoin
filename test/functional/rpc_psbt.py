@@ -46,7 +46,6 @@ from test_framework.script import CScript, OP_TRUE, SIGHASH_ALL, SIGHASH_ANYONEC
 from test_framework.script_util import MIN_STANDARD_TX_NONWITNESS_SIZE
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
-    assert_not_equal,
     assert_approx,
     assert_equal,
     assert_greater_than,
@@ -530,7 +529,8 @@ class PSBTTest(BitcoinTestFramework):
         pq_node.unloadwallet(pq_wallet_name)
 
         self.log.info("Leave the remaining broad inherited rpc_psbt surface deferred under Track A")
-        return
+        if os.getenv("PQBTC_RUN_DEFERRED_RPC_PSBT_SURFACE") != "1":
+            return
 
         # Manually selected inputs can be locked:
         assert_equal(len(self.nodes[0].listlockunspent()), 0)
