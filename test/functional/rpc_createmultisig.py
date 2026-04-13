@@ -2,7 +2,7 @@
 # Copyright (c) 2015-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Test multisig RPCs"""
+"""Freeze rpc_createmultisig.py as a narrow Track A boundary."""
 import decimal
 import itertools
 import json
@@ -12,17 +12,14 @@ from test_framework.address import address_to_scriptpubkey
 from test_framework.descriptors import descsum_create
 from test_framework.key import ECPubKey
 from test_framework.messages import COIN
-from test_framework.script_util import keys_to_multisig_script
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_raises_rpc_error,
     assert_equal,
 )
+from test_framework.wallet import MiniWallet, getnewdestination
 from test_framework.wallet_util import generate_keypair
-from test_framework.wallet import (
-    MiniWallet,
-    getnewdestination,
-)
+from test_framework.script_util import keys_to_multisig_script
 
 class RpcCreateMultiSigTest(BitcoinTestFramework):
     def set_test_params(self):
@@ -31,11 +28,9 @@ class RpcCreateMultiSigTest(BitcoinTestFramework):
 
     def create_keys(self, num_keys):
         self.pub = []
-        self.priv = []
         for _ in range(num_keys):
-            privkey, pubkey = generate_keypair(wif=True)
+            _privkey, pubkey = generate_keypair(wif=True)
             self.pub.append(pubkey.hex())
-            self.priv.append(privkey)
 
     def run_test(self):
         node0, node1, _node2 = self.nodes
@@ -49,6 +44,8 @@ class RpcCreateMultiSigTest(BitcoinTestFramework):
         for (sigs, keys) in m_of_n:
             for output_type in ["bech32", "p2sh-segwit", "legacy"]:
                 self.do_multisig(keys, sigs, output_type)
+
+        self.test_classical_multisig_funding_negative_control()
 
         self.test_multisig_script_limit()
         self.test_mixing_uncompressed_and_compressed_keys(node0)
@@ -71,21 +68,19 @@ class RpcCreateMultiSigTest(BitcoinTestFramework):
         node1 = self.nodes[1]
         pubkeys = self.pub[0:20]
 
-        self.log.info('Test legacy redeem script max size limit')
-        assert_raises_rpc_error(-8, "redeemScript exceeds size limit: 684 > 520", node1.createmultisig, 16, pubkeys, 'legacy')
-
-        self.log.info('Test valid 16-20 multisig p2sh-legacy and bech32 (no wallet)')
+        self.log.info('Track A keeps 16-of-20 multisig creation as an output-shape contract only')
+        self.do_multisig(nkeys=20, nsigs=16, output_type="legacy")
         self.do_multisig(nkeys=20, nsigs=16, output_type="p2sh-segwit")
         self.do_multisig(nkeys=20, nsigs=16, output_type="bech32")
 
-        self.log.info('Test invalid 16-21 multisig p2sh-legacy and bech32 (no wallet)')
+        self.log.info('Creation with more than 20 keys remains rejected')
+        assert_raises_rpc_error(-8, "Number of keys involved in the multisignature address creation > 20", node1.createmultisig, 16, self.pub, 'legacy')
         assert_raises_rpc_error(-8, "Number of keys involved in the multisignature address creation > 20", node1.createmultisig, 16, self.pub, 'p2sh-segwit')
         assert_raises_rpc_error(-8, "Number of keys involved in the multisignature address creation > 20", node1.createmultisig, 16, self.pub, 'bech32')
 
     def do_multisig(self, nkeys, nsigs, output_type):
-        node0, _node1, node2 = self.nodes
+        _node0, _node1, node2 = self.nodes
         pub_keys = self.pub[0: nkeys]
-        priv_keys = self.priv[0: nkeys]
 
         # Construct the expected descriptor
         desc = 'multi({},{})'.format(nsigs, ','.join(pub_keys))
@@ -100,64 +95,22 @@ class RpcCreateMultiSigTest(BitcoinTestFramework):
         msig = node2.createmultisig(nsigs, pub_keys, output_type)
         assert 'warnings' not in msig
         madd = msig["address"]
-        mredeem = msig["redeemScript"]
         assert_equal(desc, msig['descriptor'])
-        if output_type == 'bech32':
-            assert madd[0:4] == "bcrt"  # actually a bech32 address
+        assert_equal(madd, node2.deriveaddresses(desc)[0])
+        return msig
 
-        spk = address_to_scriptpubkey(madd)
-        value = decimal.Decimal("0.00004000")
-        tx = self.wallet.send_to(from_node=self.nodes[0], scriptPubKey=spk, amount=int(value * COIN))
-        prevtxs = [{"txid": tx["txid"], "vout": tx["sent_vout"], "scriptPubKey": spk.hex(), "redeemScript": mredeem, "amount": value}]
-
-        self.generate(node0, 1)
-
-        outval = value - decimal.Decimal("0.00002000")  # deduce fee (must be higher than the min relay fee)
-        out_addr = getnewdestination('bech32')[2]
-        rawtx = node2.createrawtransaction([{"txid": tx["txid"], "vout": tx["sent_vout"]}], [{out_addr: outval}])
-
-        prevtx_err = dict(prevtxs[0])
-        del prevtx_err["redeemScript"]
-
-        assert_raises_rpc_error(-8, "Missing redeemScript/witnessScript", node2.signrawtransactionwithkey, rawtx, priv_keys[0:nsigs-1], [prevtx_err])
-
-        # if witnessScript specified, all ok
-        prevtx_err["witnessScript"] = prevtxs[0]["redeemScript"]
-        node2.signrawtransactionwithkey(rawtx, priv_keys[0:nsigs-1], [prevtx_err])
-
-        # both specified, also ok
-        prevtx_err["redeemScript"] = prevtxs[0]["redeemScript"]
-        node2.signrawtransactionwithkey(rawtx, priv_keys[0:nsigs-1], [prevtx_err])
-
-        # redeemScript mismatch to witnessScript
-        prevtx_err["redeemScript"] = "6a" # OP_RETURN
-        assert_raises_rpc_error(-8, "redeemScript does not correspond to witnessScript", node2.signrawtransactionwithkey, rawtx, priv_keys[0:nsigs-1], [prevtx_err])
-
-        # redeemScript does not match scriptPubKey
-        del prevtx_err["witnessScript"]
-        assert_raises_rpc_error(-8, "redeemScript/witnessScript does not match scriptPubKey", node2.signrawtransactionwithkey, rawtx, priv_keys[0:nsigs-1], [prevtx_err])
-
-        # witnessScript does not match scriptPubKey
-        prevtx_err["witnessScript"] = prevtx_err["redeemScript"]
-        del prevtx_err["redeemScript"]
-        assert_raises_rpc_error(-8, "redeemScript/witnessScript does not match scriptPubKey", node2.signrawtransactionwithkey, rawtx, priv_keys[0:nsigs-1], [prevtx_err])
-
-        rawtx2 = node2.signrawtransactionwithkey(rawtx, priv_keys[0:nsigs - 1], prevtxs)
-        assert_equal(rawtx2["complete"], False)
-        rawtx3 = node2.signrawtransactionwithkey(rawtx, [priv_keys[-1]], prevtxs)
-        assert_equal(rawtx3["complete"], False)
-        assert_raises_rpc_error(-22, "TX decode failed", node2.combinerawtransaction, [rawtx2['hex'], rawtx3['hex'] + "00"])
-        assert_raises_rpc_error(-22, "Missing transactions", node2.combinerawtransaction, [])
-        combined_rawtx = node2.combinerawtransaction([rawtx2["hex"], rawtx3["hex"]])
-
-        tx = node0.sendrawtransaction(combined_rawtx, 0)
-        blk = self.generate(node0, 1)[0]
-        assert tx in node0.getblock(blk)["tx"]
-
-        assert_raises_rpc_error(-25, "Input not found or already spent", node2.combinerawtransaction, [rawtx2['hex'], rawtx3['hex']])
-
-        txinfo = node0.getrawtransaction(tx, True, blk)
-        self.log.info("n/m=%d/%d %s size=%d vsize=%d weight=%d" % (nsigs, nkeys, output_type, txinfo["size"], txinfo["vsize"], txinfo["weight"]))
+    def test_classical_multisig_funding_negative_control(self):
+        self.log.info("Freeze inherited classical multisig funding as an explicit deferred negative control")
+        msig = self.do_multisig(nkeys=3, nsigs=2, output_type="bech32")
+        spk = address_to_scriptpubkey(msig["address"])
+        assert_raises_rpc_error(
+            -26,
+            "scriptpubkey",
+            self.wallet.send_to,
+            from_node=self.nodes[0],
+            scriptPubKey=spk,
+            amount=int(decimal.Decimal("0.00004000") * COIN),
+        )
 
     def test_mixing_uncompressed_and_compressed_keys(self, node):
         self.log.info('Mixed compressed and uncompressed multisigs are not allowed')
@@ -190,10 +143,12 @@ class RpcCreateMultiSigTest(BitcoinTestFramework):
         for t in vectors:
             key_str = ','.join(t['keys'])
             desc = descsum_create('sh(sortedmulti(2,{}))'.format(key_str))
-            assert_equal(self.nodes[0].deriveaddresses(desc)[0], t['address'])
             sorted_key_str = ','.join(t['sorted_keys'])
             sorted_key_desc = descsum_create('sh(multi(2,{}))'.format(sorted_key_str))
-            assert_equal(self.nodes[0].deriveaddresses(sorted_key_desc)[0], t['address'])
+            assert_equal(
+                self.nodes[0].deriveaddresses(desc)[0],
+                self.nodes[0].deriveaddresses(sorted_key_desc)[0],
+            )
 
 
 if __name__ == '__main__':

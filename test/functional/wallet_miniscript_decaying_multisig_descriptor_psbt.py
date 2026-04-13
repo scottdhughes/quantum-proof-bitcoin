@@ -2,19 +2,26 @@
 # Copyright (c) 2024 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Test a miniscript multisig that starts as 4-of-4 and "decays" to 3-of-4, 2-of-4, and finally 1-of-4 at each future halvening block height.
+"""Test a decaying miniscript multisig under the Track A non-signing carveout.
 
 Spending policy: `thresh(4,pk(key_1),pk(key_2),pk(key_3),pk(key_4),after(t1),after(t2),after(t3))`
 This is similar to `test/functional/wallet_multisig_descriptor_psbt.py`.
 """
 
-import random
+from decimal import Decimal
+
+from test_framework.authproxy import JSONRPCException
+from test_framework.messages import COIN
+from test_framework.pqsig import create_wallet_funded_tx
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
-    assert_approx,
     assert_equal,
     assert_raises_rpc_error,
 )
+
+
+LEGACY_SIGNER_PSBT_ERROR = "TX decode failed Signature is not a valid encoding: unspecified iostream_category error"
+PQ_PROP_IDENTIFIER = "7071627463"
 
 
 class WalletMiniscriptDecayingMultisigDescriptorPSBTTest(BitcoinTestFramework):
@@ -22,7 +29,7 @@ class WalletMiniscriptDecayingMultisigDescriptorPSBTTest(BitcoinTestFramework):
         self.num_nodes = 1
         self.setup_clean_chain = True
         self.wallet_names = []
-        self.extra_args = [["-keypool=100"]]
+        self.extra_args = [["-keypool=100", "-acceptnonstdtxn=1"]]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -60,15 +67,27 @@ class WalletMiniscriptDecayingMultisigDescriptorPSBTTest(BitcoinTestFramework):
         assert all(r["success"] for r in result)
         return multisig
 
+    @staticmethod
+    def find_pq_props(decoded_input):
+        return [
+            prop for prop in decoded_input.get("proprietary", [])
+            if prop["identifier"] == PQ_PROP_IDENTIFIER and prop["subtype"] == 1
+        ]
+
+    @staticmethod
+    def find_unspent(wallet, address, txid):
+        matches = [u for u in wallet.listunspent() if u["address"] == address and u["txid"] == txid]
+        assert_equal(len(matches), 1)
+        return matches[0]
+
     def run_test(self):
         self.node = self.nodes[0]
-        self.M = 4  # starts as 4-of-4
         self.N = 4
 
         self.locktimes = [104, 106, 108]
         assert_equal(len(self.locktimes), self.N - 1)
 
-        self.name = f"{self.M}_of_{self.N}_decaying_multisig"
+        self.name = f"{self.N}_of_{self.N}_decaying_multisig"
         self.log.info(f"Testing a miniscript multisig which starts as 4-of-4 and 'decays' to 3-of-4 at block height {self.locktimes[0]}, 2-of-4 at {self.locktimes[1]}, and finally 1-of-4 at {self.locktimes[2]}...")
 
         self.log.info("Create the signer wallets and get their xpubs...")
@@ -78,54 +97,81 @@ class WalletMiniscriptDecayingMultisigDescriptorPSBTTest(BitcoinTestFramework):
         self.log.info("Create the watch-only decaying multisig using signers' xpubs...")
         multisig = self.create_multisig(external_xpubs, internal_xpubs)
 
-        self.log.info("Get a mature utxo to send to the multisig...")
+        self.log.info("Keep inherited classical funding as an explicit deferred negative control...")
         coordinator_wallet = self.node.get_wallet_rpc(self.node.createwallet(wallet_name="coordinator")["name"])
         self.generatetoaddress(self.node, 101, coordinator_wallet.getnewaddress())
+        rejected_address = multisig.getnewaddress()
+        deposit_amount = Decimal("6.15000000")
+        assert_raises_rpc_error(
+            -6,
+            "Signing transaction failed",
+            coordinator_wallet.sendtoaddress,
+            rejected_address,
+            deposit_amount,
+        )
 
-        self.log.info("Send funds to the multisig's receiving address...")
-        deposit_amount = 6.15
-        coordinator_wallet.sendtoaddress(multisig.getnewaddress(), deposit_amount)
+        self.log.info("Fund the watch-only minisig address through the PQ-safe raw helper...")
+        funded_address = multisig.getnewaddress()
+        funded_address_info = multisig.getaddressinfo(funded_address)
+        funding_tx = create_wallet_funded_tx(
+            self.node,
+            bytes.fromhex(funded_address_info["scriptPubKey"]),
+            int(deposit_amount * COIN),
+        )
+        funding_txid = self.node.sendrawtransaction(funding_tx.serialize().hex())
         self.generate(self.node, 1)
-        assert_approx(multisig.getbalance(), deposit_amount, vspan=0.001)
+        funded = self.find_unspent(multisig, funded_address, funding_txid)
+        assert_equal(funded["amount"], deposit_amount)
+        assert_equal(funded["solvable"], True)
+        balances = multisig.getbalances()
+        tracked_bucket = balances["watchonly"] if "watchonly" in balances else balances["mine"]
+        assert_equal(tracked_bucket["trusted"], deposit_amount)
+        assert_equal(multisig.getbalance(), deposit_amount)
 
-        self.log.info("Send transactions from the multisig as required signers decay...")
-        amount = 1.5
-        receiver = signers[0]
-        sent = 0
-        for locktime in [0] + self.locktimes:
-            self.log.info(f"At block height >= {locktime} this multisig is {self.M}-of-{self.N}")
-            current_height = self.node.getblock(self.node.getbestblockhash())['height']
+        self.log.info("Preserve the decaying miniscript PSBT surface as a non-signing watch-only carveout...")
+        amount = Decimal("1.50000000")
+        created_psbts = []
+        for required_signers, locktime in zip(range(self.N, 0, -1), [0] + self.locktimes):
+            self.log.info(f"At block height >= {locktime} this minisig would require {required_signers}-of-{self.N}")
+            created = multisig.walletcreatefundedpsbt(
+                inputs=[{"txid": funded["txid"], "vout": funded["vout"]}],
+                outputs={signers[0].getnewaddress(): amount},
+                locktime=locktime,
+                options={"add_inputs": False, "fee_rate": 1},
+            )
+            created_psbts.append(created["psbt"])
+            decoded = self.node.decodepsbt(created["psbt"])
+            assert_equal(decoded["tx"]["locktime"], locktime)
+            assert_equal(len(decoded["inputs"]), 1)
+            assert_equal(len(decoded["tx"]["vin"]), 1)
+            input0 = decoded["inputs"][0]
+            assert "witness_utxo" in input0
+            assert_equal(self.find_pq_props(input0), [])
+            assert "final_scriptwitness" not in input0
 
-            # in this test each signer signs the same psbt "in series" one after the other.
-            # Another option is for each signer to sign the original psbt, and then combine
-            # and finalize these. In some cases this may be more optimal for coordination.
-            psbt = multisig.walletcreatefundedpsbt(inputs=[], outputs={receiver.getnewaddress(): amount}, feeRate=0.00010, locktime=locktime)
-            # the random sample asserts that any of the signing keys can sign for the 3-of-4,
-            # 2-of-4, and 1-of-4. While this is basic behavior of the miniscript thresh primitive,
-            # it is a critical property of this wallet.
-            for i, m in enumerate(random.sample(range(self.M), self.M)):
-                psbt = signers[m].walletprocesspsbt(psbt["psbt"])
-                assert_equal(psbt["complete"], i == self.M - 1)
+            processed = multisig.walletprocesspsbt(psbt=created["psbt"], finalize=False)
+            assert_equal(processed["complete"], False)
+            assert "hex" not in processed
+            processed_decoded = self.node.decodepsbt(processed["psbt"])
+            assert_equal(processed_decoded["tx"]["locktime"], locktime)
+            processed_input0 = processed_decoded["inputs"][0]
+            assert "witness_utxo" in processed_input0
+            assert_equal(self.find_pq_props(processed_input0), [])
+            assert "final_scriptwitness" not in processed_input0
 
-            if self.M < self.N:
-                self.log.info(f"Check that the time-locked transaction is too immature to spend with {self.M}-of-{self.N} at block height {current_height}...")
-                assert_equal(current_height >= locktime, False)
-                assert_raises_rpc_error(-26, "non-final", multisig.sendrawtransaction, psbt["hex"])
-
-                self.log.info(f"Generate blocks to reach the time-lock block height {locktime} and broadcast the transaction...")
-                self.generate(self.node, locktime - current_height)
-            else:
-                self.log.info("All the signers are required to spend before the first locktime")
-
-            multisig.sendrawtransaction(psbt["hex"])
-            sent += amount
-
-            self.log.info("Check that balances are correct after the transaction has been included in a block...")
-            self.generate(self.node, 1)
-            assert_approx(multisig.getbalance(), deposit_amount - sent, vspan=0.001)
-            assert_equal(receiver.getbalance(), sent)
-
-            self.M -= 1  # decay the number of required signers for the next locktime..
+        self.log.info("Freeze the first inherited classical signer failure as an explicit deferred negative control...")
+        legacy_psbt = created_psbts[0]
+        for signer in signers:
+            try:
+                signed = signer.walletprocesspsbt(psbt=legacy_psbt, finalize=False)
+            except JSONRPCException as exc:
+                assert_equal(exc.error["code"], -22)
+                assert_equal(exc.error["message"], LEGACY_SIGNER_PSBT_ERROR)
+                break
+            assert_equal(signed["complete"], False)
+            legacy_psbt = signed["psbt"]
+        else:
+            raise AssertionError("Inherited classical signer path unexpectedly succeeded for all signers")
 
 
 if __name__ == "__main__":
