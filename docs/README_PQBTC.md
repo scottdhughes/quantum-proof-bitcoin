@@ -24,6 +24,8 @@ This project implements a Bitcoin-like UTXO chain using hash-based post-quantum 
 - [Core Diff Plan](CORE_DIFF_PLAN.md) - Bitcoin Core fork implementation phases
 - [Track A: Native PQ Bitcoin](TRACK_A_NATIVE_PQ_BITCOIN.md) - Strategic anchor, scope, non-goals, and how adjacent approaches fit
 - [Track A 90-Day Roadmap](TRACK_A_90_DAY_ROADMAP.md) - Concrete execution plan for April 6, 2026 through July 5, 2026
+- [SHRINCS Decision Track](SHRINCS_DECISION_TRACK.md) - Controlled evaluation lane for SHRINCS-family adoption without destabilizing active Track A work
+- [Signature Profile Comparison Memo](PQSIG_PROFILE_COMPARISON.md) - Decision memo comparing active `PQSig rc2` against SHRINCS-style and SHRIMPS-style candidates
 - [Genesis And Network Posture](GENESIS_AND_NETWORK_POSTURE.md) - Launch interpretation for a fresh block-0 chain, network identity, and non-goals around inherited Bitcoin history
 - [Research Index](RESEARCH_INDEX.md) - Curated map of the repo's internal research corpus and key external references
 - [Watch-Only `pq(...)` Contract](PQ_DESCRIPTOR_WATCHONLY_CONTRACT.md) - Fixed public PQ descriptor boundaries, import behavior, and test-backed expectations
