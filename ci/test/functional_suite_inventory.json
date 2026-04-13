@@ -81,21 +81,21 @@
     "policy_class": "pq_backlog",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Current owned tranche adapts PQ signing, same-work header delivery, explicit invalid multi-block branch handling, transport-oversize disconnect expectations, and mempool-baseline resurrection assertions inside the functional harness; broader CI/gating follow-up remains deferred."
   },
   {
     "name": "feature_blocksdir.py",
     "policy_class": "pq_backlog",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Now freezes the external -blocksdir storage-layout contract: missing-path init failure, external blk/rev storage under the chosen blocksdir, local chain-path block index retention, no silent top-level datadir blocks fallback, and restart persistence with the same external blocksdir; broader block-file mutation and XOR handling remain separate follow-on surfaces."
   },
   {
     "name": "feature_blocksxor.py",
     "policy_class": "pq_backlog",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Now freezes the narrow -blocksxor storage boundary: non-wallet block-file seeding under -fastprune, manual un-XOR rewrite of mined blk/rev files with the stored XOR key, explicit restart rejection when -blocksxor=0 is requested while a random key still exists, successful restart after deleting the key, full verifychain integrity validation, and recreation of the null XOR key; broader corruption, reindex, prune, and chainstate migration decisions remain separate follow-on surfaces."
   },
   {
     "name": "feature_cltv.py",
@@ -165,7 +165,7 @@
     "policy_class": "pq_backlog",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Now freezes the narrow -fastprune large-block admission boundary: one large witness-annex block mined through the non-signing MiniWallet ADDRESS_OP_TRUE path is accepted under -fastprune and advances the initialized chain without crash or hang; broader prune lifecycle, restart, reindex, and prune-plus-index interaction remain separate follow-on surfaces."
   },
   {
     "name": "feature_fee_estimation.py",
@@ -221,7 +221,7 @@
     "policy_class": "pq_backlog",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Now freezes the prune-plus-index matrix: linear RPC sync for blockfilter/coinstats indices under prune, index accessibility before and after pruning, exact prune-to-index-height restart continuity, prune-past-index-height init failures until -reindex, recovery after -reindex, and explicit prune-lock handling in the reorg path; broader bootstrap/loadblock import behavior remains separate."
   },
   {
     "name": "feature_init.py",
@@ -235,7 +235,7 @@
     "policy_class": "pq_backlog",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "PQBTC bootstrap/import backlog surface: a disconnected peer imports a linearized bootstrap.dat generated from the live source node's block files and current regtest message-start bytes, reaches height 100 under -loadblock, and converges on the source node's best block hash."
   },
   {
     "name": "feature_logging.py",
@@ -298,28 +298,28 @@
     "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Protected PQ-first functional gate."
+    "notes": "Protected PQ-first functional gate for the PQBTC block-profile ceiling: `getblocktemplate` weightlimit remains 16,000,000, exact-ceiling `-blockmaxweight=16000000` restarts succeed, over-ceiling startup fails at `16000001`, and the node still mines after returning to the allowed ceiling."
   },
   {
     "name": "feature_pq_reorg.py",
     "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Protected PQ-first functional gate."
+    "notes": "Protected PQ-first functional gate for PQ-signed reorg reconciliation: a mined PQ spend is reinserted into mempool after a competing longer branch wins, restart-before-reconnect remains valid, rebroadcast tolerates already-known states, and the spend is remined on the final winning branch."
   },
   {
     "name": "feature_pqsig_basic.py",
     "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Protected PQ-first functional gate."
+    "notes": "Protected PQ-first functional gate for the minimal PQ single-signature spend path: a wallet-funded PQ CHECKSIG P2WSH witness is accepted when valid, truncated and tampered witnesses are rejected at mempool admission, and the accepted spend confirms successfully."
   },
   {
     "name": "feature_pqsig_multisig.py",
     "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Protected PQ-first functional gate."
+    "notes": "Protected PQ-first functional gate for the minimal PQ multisignature spend path: a wallet-funded PQ CHECKMULTISIG P2WSH witness is accepted when both signatures are valid, a tampered witness is rejected at mempool admission, and the accepted multisignature spend confirms successfully."
   },
   {
     "name": "feature_presegwit_node_upgrade.py",
@@ -375,7 +375,7 @@
     "policy_class": "pq_backlog",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Now freezes the prune-lifecycle cleanup boundary under -fastprune -prune=1: multi-file blk/rev creation, immediate prune-triggered deletion where open file descriptors permit it, explicit Windows delayed-delete behavior, cleanup completion after restart once descriptors are closed, and -reindex recreation of a fresh blk00000/rev00000 baseline; broader prune-plus-index interaction remains a separate follow-on surface."
   },
   {
     "name": "feature_segwit.py",
@@ -661,14 +661,14 @@
     "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Protected PQ-first functional gate."
+    "notes": "Protected PQ-first functional gate for PQ-native mempool boundaries: exact-size PQ signatures and 10,000-byte witness items are accepted, oversized variants are rejected with a stable restart-persistent reason, large-witness RBF churn remains valid, and restart preserves the mempool set until mining clears it."
   },
   {
     "name": "mempool_pq_stress.py",
     "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Protected PQ-first functional gate."
+    "notes": "Protected PQ-first functional gate for two-node PQ-native relay stress: witness-heavy RBF replacements and a broader spend batch relay across both nodes, survive restart on the receiving node, clear when mined, and restore/clear again across invalidate/reconsider with successful SLO reporting."
   },
   {
     "name": "mempool_reorg.py",
@@ -1145,7 +1145,7 @@
     "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
     "tracking_issue": "#23",
-    "notes": "Includes bech32m/Taproot-adjacent RPC coverage; retained under the current non-gating dual-profile contract and classified as deferred in the #23 migration matrix."
+    "notes": "Now freezes an inherited createmultisig output-shape contract for legacy/p2sh-segwit/bech32 plus explicit bech32m rejection, 16-of-20 creation coverage, and one deferred classical funding scriptpubkey negative control; retained under the current non-gating dual-profile contract and classified as deferred in the #23 migration matrix."
   },
   {
     "name": "rpc_decodescript.py",
@@ -1716,7 +1716,7 @@
     "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
     "tracking_issue": "#23",
-    "notes": "Includes Taproot-facing descriptor/miniscript coverage; retained under the current non-gating dual-profile contract and classified as deferred in the #23 migration matrix."
+    "notes": "Now freezes a narrow static-public-key miniscript watch-only carveout: import/derive stays positive, raw helper funding remains an explicit deferred scriptpubkey rejection, direct coinbase generation creates one real tracked UTXO, and spend preparation is limited to an incomplete non-signing PSBT boundary plus ranged xpub/tprv and TapMiniscript invalid-key controls."
   },
   {
     "name": "wallet_miniscript_decaying_multisig_descriptor_psbt.py",
@@ -1724,14 +1724,14 @@
     "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
     "tracking_issue": "#23",
-    "notes": "Touches descriptor/PSBT surfaces that may intersect replacement compatibility later; retained under the current non-gating dual-profile contract and classified as deferred in the #23 migration matrix."
+    "notes": "Contains a PQ-safe non-signing decaying miniscript descriptor/PSBT carveout plus explicit deferred inherited classical funding/signing negative controls; retained under the current non-gating dual-profile contract and classified as deferred in the #23 migration matrix."
   },
   {
     "name": "wallet_multisig_descriptor_psbt.py",
     "policy_class": "dual_profile",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Retained under the current non-gating dual-profile contract."
+    "notes": "Now freezes a PQ-safe non-signing watch-only multisig descriptor/PSBT carveout with direct coinbase funding plus explicit deferred inherited classical funding/signing negative controls; retained under the current non-gating dual-profile contract."
   },
   {
     "name": "wallet_multiwallet.py",

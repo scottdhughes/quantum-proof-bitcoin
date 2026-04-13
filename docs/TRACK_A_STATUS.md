@@ -2,8 +2,8 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-04-12
-## Current Phase: Phase 1 - Wallet Surface Expansion
+## Updated: 2026-04-13
+## Current Phase: Phase 1 - Wallet And Block Surface Expansion
 
 ## Purpose
 
@@ -14,9 +14,19 @@ active, use this file to choose the next safe step for `quantum-proof-bitcoin`.
 
 ## Current Objective
 
-Freeze the inherited address-RPC boundary in `wallet_address_types.py`, keep
-broad inherited classical send/sign compatibility deferred, then move the next
-owned follow-on to `wallet_miniscript_decaying_multisig_descriptor_psbt.py`.
+Keep the non-signing decaying miniscript descriptor/PSBT carveout in
+`wallet_miniscript_decaying_multisig_descriptor_psbt.py` frozen, keep the
+current `feature_block.py` invalid-branch/transport/mempool tranche frozen,
+freeze the new `wallet_miniscript.py`, `rpc_createmultisig.py`,
+`wallet_multisig_descriptor_psbt.py`, `feature_blocksdir.py`,
+`feature_blocksxor.py`, `feature_fastprune.py`, and
+`feature_remove_pruned_files_on_startup.py`, `feature_index_prune.py`, and
+`feature_pq_block_limits.py`, `feature_pq_reorg.py`, and
+`mempool_pq_limits.py`, and `mempool_pq_stress.py` boundaries, freeze the new
+`feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
+`feature_loadblock.py`, and `wallet_miniscript.py` boundaries, and move the
+next owned follow-on to broader inherited classical multisig funding/signing
+work.
 
 ## Current Working Thesis
 
@@ -28,63 +38,374 @@ owned follow-on to `wallet_miniscript_decaying_multisig_descriptor_psbt.py`.
 - The best progress in this window is one owned product-facing migration slice,
   not broad speculative redesign.
 
-## Current Candidates For First Owned Slice
+## Current Follow-On Candidates
 
-Chosen first owned tranche:
+Preferred next owned tranche:
 
-1. `rpc_psbt.py` / PQ-native PSBT semantics
-   - Why first: user-facing, testable, narrow enough to finish, and directly
-     connected to wallet/signing maturity.
+1. broader inherited classical multisig funding/signing work
+   - Why next: the static miniscript watch-only funding/spend-preparation
+     carveout is now frozen, so the larger remaining wallet gap is inherited
+     classical multisig funding/signing.
 
-Next likely follow-ons:
+Still deferred:
 
-2. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
-3. `wallet_miniscript.py`
-4. `feature_block.py`
-5. `rpc_createmultisig.py`
+2. broader inherited classical multisig PSBT/finalization rehab
+3. TapMiniscript activation or replacement semantics
 
 ## Current Queue
 
-1. This slice freezes `wallet_address_types.py` as:
-   - low-risk inherited address-shape smoke coverage
-   - one explicit PQ-only inherited `getnewaddress` / `getrawchangeaddress`
-     rejection boundary
-   - one deferred inherited classical `sendmany` negative control
+1. This slice freezes `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
+   as:
+   - inherited xpub-backed decaying miniscript descriptor import as reference
+     context only
+   - one explicit inherited coordinator `sendtoaddress(...)` rejection boundary
+   - PQ-safe raw funding into the watch-only miniscript receive script under
+     the functional harness
+   - non-signing watch-only PSBT creation/decode across the decaying locktime
+     loop
+   - one explicit inherited classical signer
+     `walletprocesspsbt(finalize=false)` encoding-failure negative control
    Minimum validation only:
-   - `python3 test/functional/wallet_address_types.py`
-   - `python3 test/functional/wallet_pq_active_ranged.py`
+   - `python3 test/functional/wallet_miniscript_decaying_multisig_descriptor_psbt.py`
+   - `python3 test/functional/wallet_pq_descriptors.py`
    Stays deferred:
-   - broad inherited address-family send/receive rehabilitation
-   - broad mixed-mode change policy rehabilitation
-   - bech32m/Taproot-facing address migration semantics
-2. Recommended next PR after this slice:
-   - preferred: `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
-   - lower-risk alternate: `feature_block.py`
+   - inherited classical miniscript signer rehabilitation
+   - broad inherited multisig broadcast/finalization rehabilitation
+   - policy-level claims beyond the current functional harness carveout
+2. `feature_block.py` now owns:
+   - exact push-only MAX_SCRIPT_SIZE boundary construction under PQBTC limits
+   - PQ legacy-signature helpers for the block-spend paths this suite covers
+   - same-work side branches as header-only announcements that do not move the
+     active tip by themselves
+   - explicit full ancestor-chain delivery only when those side branches are
+     later exercised
+   - explicit invalid longer-fork and invalid-descendant branch assertions with
+     tip preservation instead of disconnect-only expectations
+   - transport-size oversized-block expectations where PQBTC now fails before
+     inherited parser-level checks
+   - resurrection checks grounded on the live mempool baseline plus the
+     `tx78`/`tx79` delta
+   Minimum validation target:
+   - `python3 test/functional/feature_block.py`
+   Still deferred inside this suite:
+   - promotion into `pq_required`
+   - broader CI ownership decisions for chainstate-facing backlog beyond this
+     fixed functional contract
+3. `wallet_miniscript.py` now owns:
+   - inherited miniscript sanity rejection coverage for insane and
+     unsatisfiable descriptors
+   - one static public-key `wsh(...)` miniscript import plus address
+     derivation as the only positive in-file miniscript surface
+   - one explicit raw-funding `scriptpubkey` negative control under the
+     default policy path for inherited classical miniscript outputs
+   - one direct coinbase-funded watch-only miniscript UTXO
+   - one incomplete non-signing PSBT-backed send-preparation boundary using the
+     tracked miniscript UTXO without change
+   - explicit incomplete `walletprocesspsbt(finalize=false)` and
+     `finalizepsbt` boundaries for that watch-only miniscript PSBT
+   - explicit ranged xpub/tprv invalid-key negative controls, including one
+     TapMiniscript xpub import boundary
+   Minimum validation target:
+   - `python3 test/functional/wallet_miniscript.py`
+   Still deferred inside this suite:
+   - classical miniscript signer rehabilitation beyond the current non-signing
+     carveout
+   - TapMiniscript activation or replacement semantics
+   - promotion into `pq_required`
+4. `rpc_createmultisig.py` now owns:
+   - inherited `createmultisig` descriptor/address output construction for
+     `legacy` / `p2sh-segwit` / `bech32`
+   - address expectations grounded on `deriveaddresses(descriptor)` under the
+     current PQBTC network identity instead of inherited `bcrt...` prefixes
+   - explicit 16-of-20 creation coverage as an output-shape surface
+   - explicit `bech32m` rejection, mixed-key fallback warnings, sortedmulti
+     equivalence over sorted keys, and multisig redeemScript encoding checks
+   - one representative inherited classical funding `scriptpubkey` negative
+     control
+   Minimum validation target:
+   - `python3 test/functional/rpc_createmultisig.py`
+   Still deferred inside this suite:
+   - broad `signrawtransactionwithkey` / `combinerawtransaction` rehab
+   - inherited classical multisig broadcast compatibility
+   - replacement-path `bech32m` semantics
+   - promotion into `pq_required`
+5. `wallet_multisig_descriptor_psbt.py` now owns:
+   - inherited xpub-backed watch-only `wsh(sortedmulti(...))` descriptor import
+     as reference context
+   - cross-participant receive/change address agreement for the imported
+     watch-only multisig
+   - one explicit inherited coordinator `sendtoaddress(...)` rejection
+     boundary
+   - direct coinbase funding into the multisig receive address to create one
+     real watch-only UTXO without reopening inherited send-path behavior
+   - non-signing
+     `walletcreatefundedpsbt -> decodepsbt -> walletprocesspsbt(finalize=false)`
+     coverage for that watch-only UTXO
+   - one explicit inherited signer `walletprocesspsbt(finalize=false)`
+     encoding-failure negative control
+   Minimum validation target:
+   - `python3 test/functional/wallet_multisig_descriptor_psbt.py`
+   Still deferred inside this suite:
+   - broad inherited classical multisig signing/finalization rehabilitation
+   - promotion into `pq_required`
+6. `feature_blocksdir.py` now owns:
+   - missing `-blocksdir` init failure when the external path does not exist
+   - successful external blk/rev storage under the chosen blocksdir with the
+     local chain path retaining the block index
+   - explicit no-fallback contract: the node datadir does not recreate a local
+     `blocks/` directory while the external blocksdir is active
+   - restart persistence with the same external blocksdir
+   Minimum validation target:
+   - `python3 test/functional/feature_blocksdir.py`
+   Still deferred inside this suite:
+   - block-file mutation/corruption handling
+   - XORed block-file handling
+   - promotion into `pq_required`
+7. `feature_blocksxor.py` now owns:
+   - non-wallet block-file seeding via deterministic mining under
+     `-blocksxor=1 -fastprune=1`
+   - explicit multi-file blk/rev creation before any XOR assertions
+   - manual un-XOR rewrite of mined blk/rev files using the stored random XOR
+     key
+   - restart rejection when `-blocksxor=0` is requested while that random key
+     still exists
+   - successful `-blocksxor=0` restart after deleting the stored key, followed
+     by `verifychain(checklevel=2, nblocks=0)` integrity validation
+   - null XOR key recreation after the successful un-XOR restart path
+   Minimum validation target:
+   - `python3 test/functional/feature_blocksxor.py`
+   Still deferred inside this suite:
+   - broader block-file corruption handling
+   - prune/reindex lifecycle coverage
+   - promotion into `pq_required`
+8. `feature_fastprune.py` now owns:
+   - startup under `-fastprune`
+   - one large witness-annex block assembled through the non-signing
+     `MiniWalletMode.ADDRESS_OP_TRUE` path
+   - direct `generateblock(...)` acceptance for that large block without crash
+     or hang
+   - explicit chain-height advancement from the initialized 200-block harness
+     to 201
+   Minimum validation target:
+   - `python3 test/functional/feature_fastprune.py`
+   Still deferred inside this suite:
+   - prune lifecycle and file-deletion handling
+   - restart and reindex behavior
+   - prune-plus-index interaction
+   - promotion into `pq_required`
+9. `feature_remove_pruned_files_on_startup.py` now owns:
+   - mining enough blocks under `-fastprune -prune=1` to create multiple
+     blk/rev files before pruning
+   - explicit prune-triggered blk/rev deletion expectations on platforms where
+     open file descriptors do not block removal
+   - explicit Windows delayed-delete expectations while blk/rev descriptors
+     remain open
+   - cleanup completion on restart after those file descriptors are closed
+   - `-reindex` recreation of a fresh `blk00000.dat` / `rev00000.dat`
+     baseline after wiping the previous pruned file set
+   Minimum validation target:
+   - `python3 test/functional/feature_remove_pruned_files_on_startup.py`
+   Still deferred inside this suite:
+   - prune-plus-index interaction
+   - broader index recovery and prune-lock semantics
+   - promotion into `pq_required`
+10. `feature_index_prune.py` now owns:
+   - linear RPC block sync under prune for blockfilter/coinstats index nodes
+   - index accessibility at tip before and after pruning begins
+   - continued queryability for pruned block heights while the index state
+     still covers them
+   - explicit RPC errors after restarting without indices
+   - restart continuity when pruning exactly up to the indices' best block
+   - expected init failures when pruning moves past the indices' best block
+   - recovery after restarting with `-reindex`
+   - explicit prune-lock movement in the reorg path
+   Minimum validation target:
+   - `python3 test/functional/feature_index_prune.py`
+   Still deferred inside this suite:
+   - promotion into `pq_required`
+   - broader bootstrap/loadblock import behavior
+11. `feature_pq_block_limits.py` now owns:
+   - exact `getblocktemplate` block weight limit reporting at `16_000_000`
+   - exact-ceiling `-blockmaxweight=16000000` restart acceptance
+   - explicit startup rejection for `-blockmaxweight=16000001`
+   - post-restart mining continuity after returning to the allowed ceiling
+   - required PQ-first gate protection for this launch-profile surface
+   Minimum validation target:
+   - `python3 test/functional/feature_pq_block_limits.py`
+   Still deferred inside this suite:
+   - broader mining policy and template-construction behavior
+   - mempool packing or fee-driven block assembly behavior
+12. `feature_pq_reorg.py` now owns:
+   - wallet-funded PQ output creation followed by one PQ-signed spend on the
+     first branch
+   - acceptance into mempool, mining on the first branch, and explicit mempool
+     removal after that block
+   - competing longer branch construction on the disconnected peer
+   - node restart before reconnect without losing later reorg reconciliation
+   - mempool reinsertion of the previously mined PQ spend after the competing
+     branch wins
+   - rebroadcast tolerance for "already in mempool" / "already known" states
+   - remining of the spend on the final winning branch with both nodes
+     converging on the same final tip
+   - successful `PQBTCSLORecorder` completion for the reorg scenario
+   Minimum validation target:
+   - `python3 test/functional/feature_pq_reorg.py`
+   Still deferred inside this suite:
+   - broader multi-transaction reorg conflict matrices
+   - large-witness mempool churn and restart-persistence boundaries
+   - storage/import bootstrap behavior
+13. `mempool_pq_limits.py` now owns:
+   - exact-size PQ signature acceptance and short/long PQ signature rejection
+   - `10_000` byte witness-item acceptance and `10_001` byte witness-item
+     rejection
+   - stable oversized-witness reject reason across repeated admission attempts
+     and restart
+   - large-witness RBF replacement across increasing fee steps
+   - restart persistence for a batch of large-witness mempool transactions until
+     mining clears them
+   - successful `PQBTCSLORecorder` completion with the reject reason recorded
+   - required PQ-first gate protection for this mempool boundary
+   Minimum validation target:
+   - `python3 test/functional/mempool_pq_limits.py`
+   Still deferred inside this suite:
+   - broader two-node relay stress behavior
+   - reorg reconciliation behavior
+   - storage/import bootstrap behavior
+14. `mempool_pq_stress.py` now owns:
+   - witness-heavy RBF replacement propagation across both nodes
+   - relay of a broader independent witness-heavy spend batch across both nodes
+   - restart persistence on the receiving node after reconnect and sync
+   - mempool clearing on both nodes when the stress block is mined
+   - mempool restoration on invalidate and clearing again on reconsider
+   - successful `PQBTCSLORecorder` completion for the stress scenario
+   - required PQ-first gate protection for this relay/mempool stress boundary
+   Minimum validation target:
+   - `python3 test/functional/mempool_pq_stress.py`
+   Still deferred inside this suite:
+   - broader multi-peer partition behavior
+   - signature-validity edge cases
+   - storage/import bootstrap behavior
+15. `feature_pqsig_basic.py` now owns:
+   - wallet-helper funding of a PQ `OP_CHECKSIG` P2WSH witness output under the
+     functional harness
+   - one valid PQ witness acceptance path through `testmempoolaccept`
+   - one truncated-signature rejection boundary at mempool admission
+   - one tampered-but-correct-length signature rejection boundary at mempool
+     admission
+   - broadcast and confirmation of the accepted spend
+   - required PQ-first gate protection for this minimal signing boundary
+   Minimum validation target:
+   - `python3 test/functional/feature_pqsig_basic.py`
+   Still deferred inside this suite:
+   - multisignature PQ witness behavior
+   - wallet-owned PSBT or descriptor signing semantics
+   - relay, restart, and reorg behavior
+16. `feature_pqsig_multisig.py` now owns:
+   - wallet-helper funding of a PQ `OP_CHECKMULTISIG` P2WSH witness output under
+     the functional harness
+   - one valid 2-of-2 PQ multisignature witness acceptance path through
+     `testmempoolaccept`
+   - one tampered multisignature witness rejection boundary at mempool
+     admission
+   - broadcast and confirmation of the accepted multisignature spend
+   - required PQ-first gate protection for this minimal multisignature boundary
+   Minimum validation target:
+   - `python3 test/functional/feature_pqsig_multisig.py`
+   Still deferred inside this suite:
+   - threshold variants beyond the current 2-of-2 witness shape
+   - wallet-owned PSBT, descriptor, or RPC multisignature semantics
+   - relay, restart, reorg, and block-import behavior
+17. `feature_loadblock.py` now owns:
+   - source-node generation of `100` post-genesis blocks while the peer remains
+     disconnected
+   - linearization config built from the live source-node RPC credentials,
+     blockdir, genesis hash, and current regtest message-start bytes
+   - successful `linearize-hashes.py` and `linearize-data.py` production of one
+     `bootstrap.dat`
+   - restart of the unsynced peer with `-loadblock=<bootstrap.dat>`
+   - blocking completion of import up to height `100`
+   - convergence on the same best block hash as the source node after import
+   Minimum validation target:
+   - `python3 test/functional/feature_loadblock.py`
+   Still deferred inside this suite:
+   - pruning-plus-bootstrap interaction
+   - index rebuild or reindex interaction
+   - malformed or interrupted bootstrap import recovery
+18. Recommended next PR after this tranche:
+   - preferred: broader inherited classical multisig funding/signing work
+   - alternate: broader inherited classical multisig PSBT/finalization rehab
    Why next:
-   - moves past the inherited address-RPC boundary
-   - keeps pressure on descriptor/PSBT migration surfaces
-   - avoids reopening broad inherited classical send/sign rehab
-3. Use `PQ_ADDRESS_RPC_POSTURE.md` as the current owned slice.
-4. Use `PQ_DESCRIPTOR_WATCHONLY_CONTRACT.md` as the fixed public descriptor
+   - the storage/prune ladder now has owned slices for layout, XOR handling,
+     large-block admission, prune cleanup, and prune-plus-index behavior
+   - `feature_pq_block_limits.py` now freezes the launch block-profile ceiling
+     itself
+   - `feature_pq_reorg.py` now freezes the adjacent PQ-native chainstate/reorg
+     surface
+   - `mempool_pq_limits.py` now freezes the single-node PQ-native mempool policy
+     boundary
+   - `mempool_pq_stress.py` now freezes the adjacent higher-churn relay/mempool
+     variant
+   - `feature_pqsig_basic.py` now freezes the minimal single-signature PQ
+     witness-validation path directly
+   - `feature_pqsig_multisig.py` now freezes the minimal 2-of-2 PQ
+     witness-validation path directly
+   - `feature_loadblock.py` now freezes the import/bootstrap path directly
+   - `wallet_miniscript.py` now freezes a funded watch-only miniscript
+     spend-preparation boundary directly
+   - the next highest-value unresolved wallet surface is inherited classical
+     multisig funding/signing
+19. Use `FEATURE_BLOCK_POSTURE.md` as the fixed note for the current
+   `feature_block.py` contract.
+20. Use `PSBT_REPLACEMENT_TRANCHE.md` as the current owned miniscript/PSBT
+   carveout note.
+21. Use `PQ_DESCRIPTOR_WATCHONLY_CONTRACT.md` as the fixed public descriptor
    contract.
-5. Treat inherited `getnewaddress` / `getrawchangeaddress` as unsupported on
+22. Use `CREATEMULTISIG_POSTURE.md` as the fixed note for the current
+   `rpc_createmultisig.py` contract.
+23. Use `FEATURE_BLOCKSDIR_POSTURE.md` as the fixed note for the current
+   `feature_blocksdir.py` contract.
+24. Use `FEATURE_BLOCKSXOR_POSTURE.md` as the fixed note for the current
+   `feature_blocksxor.py` contract.
+25. Use `FEATURE_FASTPRUNE_POSTURE.md` as the fixed note for the current
+   `feature_fastprune.py` contract.
+26. Use `FEATURE_REMOVE_PRUNED_FILES_ON_STARTUP_POSTURE.md` as the fixed note
+   for the current `feature_remove_pruned_files_on_startup.py` contract.
+27. Use `FEATURE_INDEX_PRUNE_POSTURE.md` as the fixed note for the current
+   `feature_index_prune.py` contract.
+28. Use `FEATURE_PQ_BLOCK_LIMITS_POSTURE.md` as the fixed note for the current
+   `feature_pq_block_limits.py` contract.
+29. Use `FEATURE_PQ_REORG_POSTURE.md` as the fixed note for the current
+   `feature_pq_reorg.py` contract.
+30. Use `MEMPOOL_PQ_LIMITS_POSTURE.md` as the fixed note for the current
+   `mempool_pq_limits.py` contract.
+31. Use `MEMPOOL_PQ_STRESS_POSTURE.md` as the fixed note for the current
+   `mempool_pq_stress.py` contract.
+32. Use `FEATURE_PQSIG_BASIC_POSTURE.md` as the fixed note for the current
+   `feature_pqsig_basic.py` contract.
+33. Use `FEATURE_PQSIG_MULTISIG_POSTURE.md` as the fixed note for the current
+   `feature_pqsig_multisig.py` contract.
+34. Use `FEATURE_LOADBLOCK_POSTURE.md` as the fixed note for the current
+   `feature_loadblock.py` contract.
+35. Use `WALLET_MINISCRIPT_POSTURE.md` as the fixed note for the current
+   `wallet_miniscript.py` contract.
+29. Treat inherited `getnewaddress` / `getrawchangeaddress` as unsupported on
    PQ-only active-manager wallets; the owned PQ address UX remains
    `getnewpqaddress` / `getrawpqchangeaddress`.
-6. Treat `createwalletdescriptor` as an inherited xpub builder, not a PQ-native
+30. Treat `createwalletdescriptor` as an inherited xpub builder, not a PQ-native
    wallet-manager creation path under the all-PQ Track A stance.
-7. Use `GENESIS_AND_NETWORK_POSTURE.md` as the launch-level interpretation for
+31. Use `GENESIS_AND_NETWORK_POSTURE.md` as the launch-level interpretation for
    a fresh block-0 chain with its own network identity.
-8. Use `PSBT_REPLACEMENT_TRANCHE.md` to keep the owned PQ `rpc_psbt.py`
-   subset separate from inherited classical PSBT rehabilitation.
-9. Use `PQ_WALLET_MANAGER_SETUP.md` as the current setup-path contract for
+32. Keep the owned `rpc_psbt.py` subset and the non-signing decaying miniscript
+   carveout separate from inherited classical PSBT rehabilitation.
+33. Use `PQ_WALLET_MANAGER_SETUP.md` as the current setup-path contract for
    active PQ receive/change managers.
-10. Use `CREATEWALLETDESCRIPTOR_POSTURE.md` to keep inherited descriptor
+34. Use `CREATEWALLETDESCRIPTOR_POSTURE.md` to keep inherited descriptor
     creation separate from the PQ-native creation path.
-11. Use `TEST_COST_POSTURE.md` to choose the cheapest defensible validation tier
+35. Use `TEST_COST_POSTURE.md` to choose the cheapest defensible validation tier
     for each tranche before running tests.
-12. Re-run and inspect the current required PQ-first functional gate strategy at
+36. Re-run and inspect the current required PQ-first functional gate strategy at
     a targeted level.
-13. Reproduce the current `OPS_SLO` evidence flow only when the work has
+37. Reproduce the current `OPS_SLO` evidence flow only when the work has
     actually reached milestone-evidence scope.
 
 ## Autonomous Scope
@@ -125,6 +446,14 @@ Aineko must ask before:
 - `PQ_WALLET_MANAGER_SETUP.md`
 - `PQ_ADDRESS_RPC_POSTURE.md`
 - `CREATEWALLETDESCRIPTOR_POSTURE.md`
+- `FEATURE_BLOCKSXOR_POSTURE.md`
+- `FEATURE_FASTPRUNE_POSTURE.md`
+- `FEATURE_REMOVE_PRUNED_FILES_ON_STARTUP_POSTURE.md`
+- `FEATURE_INDEX_PRUNE_POSTURE.md`
+- `FEATURE_PQ_BLOCK_LIMITS_POSTURE.md`
+- `FEATURE_PQ_REORG_POSTURE.md`
+- `MEMPOOL_PQ_LIMITS_POSTURE.md`
+- `MEMPOOL_PQ_STRESS_POSTURE.md`
 - `TEST_COST_POSTURE.md`
 - `POST_RC_EPICS.md`
 - `CI_COMPLETENESS.md`
@@ -254,6 +583,77 @@ Aineko must ask before:
   `bech32m`, and one explicit `sendmany` negative control keeps broad
   inherited classical send/sign compatibility deferred. The next clean wallet
   follow-on shifts to `wallet_miniscript_decaying_multisig_descriptor_psbt.py`.
+- 2026-04-12: `feature_blocksxor.py` now freezes the narrow XORed block-file
+  integrity boundary directly: deterministic mining replaces the inherited
+  MiniWallet setup path, mined blk/rev files can be manually un-XORed with the
+  stored key, `-blocksxor=0` restart stays blocked until that key is deleted,
+  and full-chain `verifychain(checklevel=2, nblocks=0)` passes after the
+  restart. The next adjacent storage follow-on shifts to `feature_fastprune.py`.
+- 2026-04-12: `feature_fastprune.py` now freezes the narrow `-fastprune`
+  large-block admission boundary directly: one large-annex block assembled
+  through the non-signing MiniWallet `ADDRESS_OP_TRUE` path is accepted and
+  advances the initialized chain to height 201 without crash or hang. The next
+  adjacent prune follow-on shifts to
+  `feature_remove_pruned_files_on_startup.py`.
+- 2026-04-12: `feature_remove_pruned_files_on_startup.py` now freezes the
+  prune-lifecycle cleanup boundary directly: prune-triggered blk/rev deletion,
+  explicit platform-specific open-file behavior, restart cleanup after closing
+  file descriptors, and `-reindex` recreation of a fresh blk/rev baseline all
+  remain green under `-fastprune -prune=1`. The next remaining prune follow-on
+  shifts to `feature_index_prune.py`.
+- 2026-04-12: `feature_index_prune.py` now freezes the prune-plus-index matrix
+  directly: blockfilter/coinstats indices remain usable before and after prune,
+  exact prune-to-index-height restart continuity remains valid, prune-past-index
+  restart fails until `-reindex`, and the reorg prune-lock path stays explicit.
+  The next cheapest block-facing follow-on shifts to
+  `feature_pq_block_limits.py`.
+- 2026-04-12: `feature_pq_block_limits.py` now freezes the PQBTC launch block
+  profile ceiling directly: `getblocktemplate` weightlimit remains
+  `16_000_000`, exact-ceiling `-blockmaxweight` restarts stay valid, over-ceiling
+  startup fails at `16000001`, and the node still mines after returning to the
+  allowed limit. The next adjacent PQ-native chainstate follow-on shifts to
+  `feature_pq_reorg.py`.
+- 2026-04-12: `feature_pq_reorg.py` now freezes the PQ-native reorg/mempool
+  reconciliation surface directly: a mined PQ spend is reinserted after a
+  competing longer branch wins, restart-before-reconnect remains valid, the
+  spend is remined on the final winning branch, and the SLO recorder completes
+  successfully for the scenario. The next cheapest adjacent mempool follow-on
+  shifts to `mempool_pq_limits.py`.
+- 2026-04-12: `mempool_pq_limits.py` now freezes the single-node PQ-native
+  mempool policy boundary directly: PQ signature-size checks, witness-item size
+  checks, restart-stable oversized-witness reject reasons, large-witness RBF
+  churn, and restart persistence all remain green. The next adjacent higher-
+  churn mempool follow-on shifts to `mempool_pq_stress.py`.
+- 2026-04-13: `mempool_pq_stress.py` now freezes the two-node PQ-native
+  relay/mempool stress surface directly: witness-heavy RBF replacements and the
+  broader spend batch relay across both nodes, survive restart on the receiving
+  node, clear when mined, and restore/clear again across invalidate/reconsider.
+  The next cheapest adjacent signing follow-on shifts to
+  `feature_pqsig_basic.py`.
+- 2026-04-13: `feature_pqsig_basic.py` now freezes the minimal PQ
+  single-signature validation surface directly: a wallet-funded PQ CHECKSIG
+  P2WSH witness is admitted when valid, truncated and tampered witnesses are
+  rejected at mempool admission, and the accepted spend confirms successfully.
+  The next adjacent signing follow-on shifts to `feature_pqsig_multisig.py`.
+- 2026-04-13: `feature_pqsig_multisig.py` now freezes the minimal PQ 2-of-2
+  multisignature validation surface directly: a wallet-funded PQ CHECKMULTISIG
+  P2WSH witness is admitted when both signatures are valid, a tampered witness
+  is rejected at mempool admission, and the accepted multisignature spend
+  confirms successfully. The next clean import/bootstrap follow-on shifts to
+  `feature_loadblock.py`.
+- 2026-04-13: `feature_loadblock.py` now freezes the PQBTC bootstrap/import
+  surface directly: linearization uses the live regtest message-start bytes,
+  produces `bootstrap.dat` from the source node's block files, and an unsynced
+  peer restarted with `-loadblock` imports to height `100` and converges on the
+  same best block hash. The next owned follow-on shifts back to a dedicated
+  `wallet_miniscript.py` funding/signing tranche.
+- 2026-04-13: `wallet_miniscript.py` now freezes a non-signing miniscript
+  funding/spend-preparation carveout directly: one static watch-only miniscript
+  address is funded through direct coinbase generation, the tracked UTXO can
+  prepare an incomplete PSBT-backed send without change, and
+  `walletprocesspsbt(finalize=false)` plus `finalizepsbt` remain explicitly
+  non-signing/incomplete. The next owned follow-on shifts to broader inherited
+  classical multisig funding/signing work.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full

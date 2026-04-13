@@ -273,18 +273,63 @@ semantics are frozen.
 ### 4. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
 
 - Current inventory posture: `dual_profile`, `deferred`
-- Why fourth:
-  - intersects both descriptor and PSBT behavior
-  - useful stress case later
-  - too indirect for the first replacement tranche
+- Current owned boundary:
+  - keeps inherited xpub-backed decaying miniscript descriptor import as
+    reference context only
+  - keeps one explicit inherited coordinator `sendtoaddress(...)` rejection as
+    the deferred classical funding boundary
+  - uses the existing PQ-safe raw funding helper under the functional harness
+    to fund the watch-only miniscript receive script without inherited wallet
+    signing
+  - preserves non-signing `walletcreatefundedpsbt -> decodepsbt ->
+    walletprocesspsbt(finalize=false)` coverage across the decaying locktime
+    loop
+  - freezes the first inherited classical signer
+    `walletprocesspsbt(finalize=false)` encoding failure as deferred legacy
+    compatibility instead of broad rehab
+  - stays out of `pq_required`
 
 ### 5. `wallet_miniscript.py`
 
 - Current inventory posture: `dual_profile`, `deferred`
-- Why fifth:
-  - large inherited surface
-  - high semantic blast radius
-  - best handled only after narrower descriptor and PSBT contracts are stable
+- Current owned boundary:
+  - keeps the inherited miniscript sanity guards for insane and unsatisfiable
+    descriptors
+  - owns one static public-key `wsh(...)` miniscript import plus address
+    derivation as the only positive in-file miniscript surface under the
+    current Track A posture
+  - freezes raw funding of that inherited classical miniscript output as an
+    explicit `scriptpubkey` negative control under the default policy path
+  - uses direct coinbase generation into the static miniscript address to
+    create one real tracked watch-only UTXO
+  - preserves one non-signing PSBT-backed send-preparation carveout for that
+    tracked miniscript coin with no change output
+  - freezes `walletprocesspsbt(finalize=false)` and `finalizepsbt` as explicit
+    incomplete watch-only boundaries for that miniscript PSBT
+  - freezes ranged xpub/tprv miniscript imports as explicit invalid-key
+    failures
+  - keeps one TapMiniscript xpub import as a matching deferred invalid-key
+    negative control
+  - stays out of `pq_required`
+
+### 6. `wallet_multisig_descriptor_psbt.py`
+
+- Current inventory posture: `dual_profile`
+- Current owned boundary:
+  - keeps inherited xpub-backed `wsh(sortedmulti(...))` descriptor import as
+    watch-only reference context
+  - keeps cross-participant receive/change address agreement as part of that
+    watch-only descriptor contract
+  - freezes one inherited coordinator `sendtoaddress(...)` failure as the
+    deferred classical funding boundary
+  - uses direct coinbase generation into the multisig receive address to create
+    one real watch-only UTXO without reopening inherited send-path semantics
+  - preserves non-signing
+    `walletcreatefundedpsbt -> decodepsbt -> walletprocesspsbt(finalize=false)`
+    coverage for the resulting watch-only multisig
+  - freezes the first inherited signer `walletprocesspsbt(finalize=false)`
+    encoding failure as deferred legacy compatibility instead of broad rehab
+  - stays out of `pq_required`
 
 ## Explicit "Not Next" Surfaces
 
@@ -299,13 +344,11 @@ They are good negative-control context, not the next owned replacement work.
 
 ## Immediate Debug Queue
 
-Before widening this tranche, the next debug questions should be:
+Before widening the next tranche, the next debug questions should be:
 
-1. Which exact `rpc_psbt.py` scenario at the failing line is still assuming an
-   inherited non-PQ signature encoding path?
-2. Should PQBTC carve out a PQ-specific `rpc_psbt` subset rather than trying to
-   preserve the full inherited surface?
-3. Is the correct fix:
-   - adapting test expectations
-   - routing signing/finalization differently for non-PQ paths
-   - or explicitly declaring the inherited path out of scope for Track A?
+1. Is `feature_blocksdir.py` now the cleanest next validation tranche after
+   freezing `wallet_multisig_descriptor_psbt.py`?
+2. Is there any smaller remaining wallet-adjacent surface than broad inherited
+   classical multisig funding/signing rehab, or should that stay deferred?
+3. Should chainstate-facing backlog reduction resume before reopening any of
+   those broader inherited wallet compat paths?
