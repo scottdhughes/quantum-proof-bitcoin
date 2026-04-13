@@ -32,6 +32,13 @@ class BlocksdirTest(BitcoinTestFramework):
         self.generatetoaddress(self.nodes[0], 10, self.nodes[0].get_deterministic_priv_key().address)
         assert (blocksdir_path / self.chain / "blocks" / "blk00000.dat").is_file()
         assert (self.nodes[0].blocks_path / "index").is_dir()
+        assert not (self.nodes[0].datadir_path / "blocks").is_dir()
+
+        self.log.info("Restarting with the same external blocksdir ...")
+        self.restart_node(0, [f"-blocksdir={blocksdir_path}"])
+        assert (blocksdir_path / self.chain / "blocks" / "blk00000.dat").is_file()
+        assert (self.nodes[0].blocks_path / "index").is_dir()
+        assert not (self.nodes[0].datadir_path / "blocks").is_dir()
 
 
 if __name__ == '__main__':

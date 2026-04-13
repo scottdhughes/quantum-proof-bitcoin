@@ -14,7 +14,6 @@ from test_framework.util import (
     assert_greater_than,
     util_xor,
 )
-from test_framework.wallet import MiniWallet
 
 
 class BlocksXORTest(BitcoinTestFramework):
@@ -26,15 +25,20 @@ class BlocksXORTest(BitcoinTestFramework):
         ]]
 
     def run_test(self):
-        self.log.info("Mine some blocks, to create multiple blk*.dat/rev*.dat files")
+        self.log.info("Mine enough blocks to create multiple blk*.dat/rev*.dat files without using the inherited wallet send path")
         node = self.nodes[0]
-        wallet = MiniWallet(node)
-        for _ in range(5):
-            wallet.send_self_transfer(from_node=node, target_vsize=20000)
-            self.generate(wallet, 1)
+        mining_address = node.get_deterministic_priv_key().address
+        block_files = []
+        undo_files = []
+        for _ in range(32):
+            self.generatetoaddress(node, 25, mining_address)
+            block_files = list(node.blocks_path.glob('blk[0-9][0-9][0-9][0-9][0-9].dat'))
+            undo_files = list(node.blocks_path.glob('rev[0-9][0-9][0-9][0-9][0-9].dat'))
+            if len(block_files) > 1:
+                break
+        else:
+            raise AssertionError("Did not create multiple block files under -fastprune")
 
-        block_files = list(node.blocks_path.glob('blk[0-9][0-9][0-9][0-9][0-9].dat'))
-        undo_files  = list(node.blocks_path.glob('rev[0-9][0-9][0-9][0-9][0-9].dat'))
         assert_equal(len(block_files), len(undo_files))
         assert_greater_than(len(block_files), 1)  # we want at least one full block file
 

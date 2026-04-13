@@ -7,7 +7,10 @@ from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal
 )
-from test_framework.wallet import MiniWallet
+from test_framework.wallet import (
+    MiniWallet,
+    MiniWalletMode,
+)
 
 
 class FeatureFastpruneTest(BitcoinTestFramework):
@@ -16,8 +19,10 @@ class FeatureFastpruneTest(BitcoinTestFramework):
         self.extra_args = [["-fastprune"]]
 
     def run_test(self):
-        self.log.info("ensure that large blocks don't crash or freeze in -fastprune")
-        wallet = MiniWallet(self.nodes[0])
+        self.log.info("ensure that a large-annex non-signing block doesn't crash or freeze in -fastprune")
+        # Keep this as a non-signing OP_TRUE spend so the test stays focused on
+        # block assembly under -fastprune rather than inherited wallet sends.
+        wallet = MiniWallet(self.nodes[0], mode=MiniWalletMode.ADDRESS_OP_TRUE)
         tx = wallet.create_self_transfer()['tx']
         annex = b"\x50" + b"\xff" * 0x10000
         tx.wit.vtxinwit[0].scriptWitness.stack.append(annex)
