@@ -1716,7 +1716,7 @@
     "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
     "tracking_issue": "#23",
-    "notes": "Now freezes a narrow static-public-key miniscript watch-only carveout: import/derive stays positive, raw helper funding remains an explicit deferred scriptpubkey rejection, direct coinbase generation creates one real tracked UTXO, and spend preparation is limited to an incomplete non-signing PSBT boundary plus ranged xpub/tprv and TapMiniscript invalid-key controls."
+    "notes": "Now freezes a narrow miniscript funding/signing boundary: one static-public-key watch-only carveout stays positive, raw helper funding remains an explicit deferred scriptpubkey rejection, one wallet-local xprv-backed miniscript import plus direct coinbase funding creates a real spendable signer UTXO, walletprocesspsbt(sign=false) fills witness data, walletprocesspsbt(finalize=false) adds one classical-looking partial_sig, and node-side decode/finalize of that signed PSBT remains an explicit deferred PQ-only signature-encoding failure alongside the ranged xpub/tprv and TapMiniscript invalid-key controls."
   },
   {
     "name": "wallet_miniscript_decaying_multisig_descriptor_psbt.py",

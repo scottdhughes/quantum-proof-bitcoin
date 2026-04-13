@@ -25,8 +25,8 @@ freeze the new `wallet_miniscript.py`, `rpc_createmultisig.py`,
 `mempool_pq_limits.py`, and `mempool_pq_stress.py` boundaries, freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
 `feature_loadblock.py`, and `wallet_miniscript.py` boundaries, and move the
-next owned follow-on to the `wallet_miniscript.py` funding/signing tranche,
-with one chainstate/validation slice remaining the alternate rebalance.
+next owned follow-on to one chainstate/validation tranche, with broader
+inherited miniscript funding/finalization rehab remaining the alternate.
 
 ## Current Working Thesis
 
@@ -42,17 +42,18 @@ with one chainstate/validation slice remaining the alternate rebalance.
 
 Preferred next owned tranche:
 
-1. `wallet_miniscript.py` funding/signing tranche
-   - Why next: `wallet_multisig_descriptor_psbt.py` now owns the first real
-     inherited signer contribution seam, so the next clean wallet follow-on is
-     the adjacent miniscript funding/signing boundary instead of a broader
-     classical multisig rehab pass.
+1. one chainstate/validation tranche
+   - Why next: `wallet_miniscript.py` now owns the first real wallet-local
+     miniscript signer contribution seam, so the next clean move is to
+     rebalance toward runtime confidence instead of widening wallet adjacency
+     again immediately.
 
 Alternate rebalance:
 
-2. one chainstate/validation tranche
-   - Why alternate: if wallet adjacency needs a pause, rebalance toward
-     consensus/runtime confidence instead of widening inherited wallet rehab.
+2. broader inherited miniscript funding/finalization rehab
+   - Why alternate: if wallet adjacency stays hot, the next local follow-on is
+     the broader inherited miniscript funding/finalization surface rather than
+     broad classical multisig work.
 
 Still deferred:
 
@@ -110,13 +111,25 @@ Still deferred:
      tracked miniscript UTXO without change
    - explicit incomplete `walletprocesspsbt(finalize=false)` and
      `finalizepsbt` boundaries for that watch-only miniscript PSBT
+   - one wallet-local xprv-backed `wsh(pk(.../*))` miniscript import as the
+     only positive in-file signer-backed miniscript surface
+   - one explicit inherited `sendtoaddress(...)` `Signing transaction failed`
+     negative control for funding that signer-backed miniscript address
+   - one direct coinbase-funded signer-backed miniscript UTXO with
+     `spendable=true` and `has_private_keys=true`
+   - one explicit PSBT update/signing seam for that signer-backed miniscript:
+     `walletprocesspsbt(sign=false, finalize=false)` fills witness data
+     without signatures, and `walletprocesspsbt(finalize=false)` adds exactly
+     one classical-looking `partial_sig`
+   - explicit node-side decode/finalize failures for that signed miniscript
+     PSBT under the current PQ-only signature-encoding rule
    - explicit ranged xpub/tprv invalid-key negative controls, including one
      TapMiniscript xpub import boundary
    Minimum validation target:
    - `python3 test/functional/wallet_miniscript.py`
    Still deferred inside this suite:
-   - classical miniscript signer rehabilitation beyond the current non-signing
-     carveout
+   - broader inherited miniscript funding/finalization rehabilitation beyond
+     the current one-signer boundary
    - TapMiniscript activation or replacement semantics
    - promotion into `pq_required`
 4. `rpc_createmultisig.py` now owns:
@@ -343,9 +356,9 @@ Still deferred:
    - index rebuild or reindex interaction
    - malformed or interrupted bootstrap import recovery
 18. Recommended next PR after this tranche:
-   - preferred: `wallet_miniscript.py` funding/signing tranche
-   - alternate: one chainstate/validation tranche to rebalance toward runtime
+   - preferred: one chainstate/validation tranche to rebalance toward runtime
      confidence
+   - alternate: broader inherited miniscript funding/finalization rehab
    Why next:
    - the storage/prune ladder now has owned slices for layout, XOR handling,
      large-block admission, prune cleanup, and prune-plus-index behavior
@@ -365,10 +378,13 @@ Still deferred:
    - `wallet_multisig_descriptor_psbt.py` now owns the first inherited signer
      contribution seam without pretending broad classical multisig finalization
      works
-   - `wallet_miniscript.py` is the nearest adjacent wallet surface where the
-     same narrow funding/signing method can continue
-   - if wallet adjacency needs a pause, the next best move is a single
-     chainstate/validation tranche rather than broadening inherited wallet rehab
+   - `wallet_miniscript.py` now owns the adjacent wallet-local miniscript
+     signer contribution seam without pretending signed-PSBT decode/finalize
+     works under PQ-only encoding
+   - after successive wallet-adjacent tranches, the next best move is a single
+     chainstate/validation slice rather than broadening inherited wallet rehab
+   - if wallet adjacency continues immediately, broader inherited miniscript
+     funding/finalization rehab is the next local extension
 19. Use `FEATURE_BLOCK_POSTURE.md` as the fixed note for the current
    `feature_block.py` contract.
 20. Use `PSBT_REPLACEMENT_TRANCHE.md` as the current owned miniscript/PSBT
@@ -673,13 +689,16 @@ Aineko must ask before:
   peer restarted with `-loadblock` imports to height `100` and converges on the
   same best block hash. The next owned follow-on shifts back to a dedicated
   `wallet_miniscript.py` funding/signing tranche.
-- 2026-04-13: `wallet_miniscript.py` now freezes a non-signing miniscript
-  funding/spend-preparation carveout directly: one static watch-only miniscript
-  address is funded through direct coinbase generation, the tracked UTXO can
-  prepare an incomplete PSBT-backed send without change, and
-  `walletprocesspsbt(finalize=false)` plus `finalizepsbt` remain explicitly
-  non-signing/incomplete. The next owned follow-on shifts to broader inherited
-  classical multisig funding/signing work.
+- 2026-04-13: `wallet_miniscript.py` now freezes a miniscript
+  funding/signing boundary directly: the prior static watch-only carveout stays
+  intact, one wallet-local xprv-backed miniscript import plus direct coinbase
+  funding creates a real spendable signer UTXO, `walletprocesspsbt(sign=false)`
+  fills witness data without signatures, `walletprocesspsbt(finalize=false)`
+  adds exactly one classical-looking `partial_sig`, and node-side
+  decode/finalize of that signed PSBT now fails explicitly at the PQ-only
+  signature-encoding wall. The next owned follow-on shifts to one
+  chainstate/validation tranche, with broader inherited miniscript
+  funding/finalization rehab remaining alternate.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full

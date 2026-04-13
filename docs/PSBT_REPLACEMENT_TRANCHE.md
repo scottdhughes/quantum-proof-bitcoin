@@ -306,6 +306,21 @@ semantics are frozen.
     tracked miniscript coin with no change output
   - freezes `walletprocesspsbt(finalize=false)` and `finalizepsbt` as explicit
     incomplete watch-only boundaries for that miniscript PSBT
+  - owns one wallet-local xprv-backed `wsh(pk(.../*))` miniscript import as the
+    only positive in-file signer-backed miniscript surface
+  - freezes inherited `sendtoaddress(...)` funding into that signer-backed
+    miniscript address as an explicit deferred `Signing transaction failed`
+    boundary
+  - uses direct coinbase generation into the signer-backed miniscript address
+    to create one real spendable miniscript UTXO without reopening inherited
+    funding semantics
+  - preserves one explicit PSBT update/signing seam for that signer-backed
+    miniscript coin: `walletprocesspsbt(sign=false, finalize=false)` fills
+    witness data without signatures, while `walletprocesspsbt(finalize=false)`
+    adds exactly one classical-looking `partial_sig` entry
+  - freezes node-side `decodepsbt` and both wallet/node `finalizepsbt`
+    processing of that signed miniscript PSBT as explicit deferred PQ-only
+    signature-encoding failures instead of broad signer rehab
   - freezes ranged xpub/tprv miniscript imports as explicit invalid-key
     failures
   - keeps one TapMiniscript xpub import as a matching deferred invalid-key

@@ -8,6 +8,9 @@ Owned here:
 - one static public-key miniscript import plus address derivation
 - one direct-funding watch-only miniscript UTXO plus non-signing PSBT
   preparation
+- one wallet-local xprv-backed miniscript import plus direct coinbase-funded
+  signer UTXO
+- one first-signer PSBT contribution seam for that signer-backed miniscript
 
 Deferred here:
 - inherited classical miniscript funding under the default policy path
@@ -21,10 +24,13 @@ from decimal import Decimal
 from test_framework.descriptors import descsum_create
 from test_framework.messages import COIN
 from test_framework.pqsig import create_wallet_funded_tx
+from test_framework.psbt import PSBT, PSBT_IN_PARTIAL_SIG
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import assert_equal, assert_raises_rpc_error
 
 
+# Fixed classical fixtures retained as deferred invalid-key controls under
+# Track A. These are distinct from the wallet-local HD keys used below.
 TPRV = "tprv8ZgxMBicQKsPerQj6m35no46amfKQdjY7AhLnmatHYXs8S4MTgeZYkWAn4edSGwwL3vkSiiGqSZQrmy5D3P5gBoqgvYP2fCUpBwbKTMTAkL"
 TPUB_A = "tpubD6NzVbkrYhZ4YPAbyf6urxqqnmJF79PzQtyERAmvkSVS9fweCTjxjDh22Z5St9fGb1a5DUCv8G27nYupKP1Ctr1pkamJossoetzws1moNRn"
 TPUB_B = "tpubD6NzVbkrYhZ4YMQC15JS7QcrsAyfGrGiykweqMmPxTkEVScu7vCZLNpPXW1XphHwzsgmqdHWDQAfucbM72EEB1ZEyfgZxYvkZjYVXx1xS9p"
@@ -38,6 +44,8 @@ TAPROOT_XPUB_MINISCRIPT_DESC = (
     f"tr({TAPROOT_INTERNAL_KEY},or_b(pk({TPUB_A}/*),s:pk({TPUB_B}/*)))"
 )
 XPRV_MINISCRIPT_DESC = f"wsh(and_v(v:older(2),pk({TPRV}/*)))"
+LEGACY_SIGNER_PSBT_ERROR = "TX decode failed Signature is not a valid encoding: unspecified iostream_category error"
+LEGACY_PARTIAL_SIG_UPPER_BOUND = 100
 
 
 class WalletMiniscriptTest(BitcoinTestFramework):
@@ -60,17 +68,26 @@ class WalletMiniscriptTest(BitcoinTestFramework):
         assert_equal(len(matches), 1)
         return matches[0]
 
+    @staticmethod
+    def find_partial_sig_entries(psbt_input):
+        return [
+            (key[1:], value)
+            for key, value in psbt_input.map.items()
+            if isinstance(key, bytes) and key[:1] == bytes([PSBT_IN_PARTIAL_SIG])
+        ]
+
     def run_test(self):
         node = self.nodes[0]
 
-        self.log.info("Create blank wallets for the narrowed miniscript boundary")
+        self.log.info("Create wallets for the narrowed miniscript boundary")
         node.createwallet(wallet_name="ms_wo", blank=True, disable_private_keys=True)
         self.ms_wo_wallet = node.get_wallet_rpc("ms_wo")
-        node.createwallet(wallet_name="ms_sig", blank=True)
+        node.createwallet(wallet_name="ms_sig")
         self.ms_sig_wallet = node.get_wallet_rpc("ms_sig")
         node.createwallet(wallet_name="ms_sink")
         self.ms_sink_wallet = node.get_wallet_rpc("ms_sink")
         sink_address = self.ms_sink_wallet.getnewaddress()
+        self.generatetoaddress(node, 110, sink_address)
 
         self.log.info("Keep the inherited miniscript sanity guards")
         insane = self.ms_wo_wallet.importdescriptors(
@@ -170,6 +187,79 @@ class WalletMiniscriptTest(BitcoinTestFramework):
         assert "final_scriptwitness" not in processed_decoded["inputs"][0]
         assert_equal(node.finalizepsbt(processed["psbt"])["complete"], False)
 
+        self.log.info("Own one wallet-local signer-backed miniscript import")
+        signer_xprv = self.ms_sig_wallet.gethdkeys(private=True, active_only=True)[0]["xprv"]
+        signer_desc = descsum_create(f"wsh(pk({signer_xprv}/*))")
+        signer_imported = self.ms_sig_wallet.importdescriptors(
+            [
+                {
+                    "desc": signer_desc,
+                    "active": True,
+                    "range": 1,
+                    "next_index": 0,
+                    "timestamp": "now",
+                }
+            ]
+        )[0]
+        assert signer_imported["success"], signer_imported
+        signer_address = self.ms_sig_wallet.getnewaddress(address_type="bech32")
+        signer_info = self.ms_sig_wallet.getaddressinfo(signer_address)
+        assert_equal(signer_info["ismine"], True)
+        assert_equal(signer_info["solvable"], True)
+        assert_equal(signer_info["iswatchonly"], False)
+
+        self.log.info("Freeze inherited classical miniscript funding as an explicit signer-side negative control")
+        assert_raises_rpc_error(
+            -6,
+            "Signing transaction failed",
+            self.ms_sink_wallet.sendtoaddress,
+            signer_address,
+            Decimal("1.00000000"),
+        )
+        assert_equal(self.ms_sig_wallet.listunspent(addresses=[signer_address]), [])
+
+        self.log.info("Fund the signer-backed miniscript address through direct coinbase generation")
+        signer_funding_blockhash = self.generatetoaddress(node, 1, signer_address)[0]
+        self.generatetoaddress(node, 100, sink_address)
+        signer_funding_txid = node.getblock(signer_funding_blockhash, 2)["tx"][0]["txid"]
+        signer_funded = self.find_unspent(self.ms_sig_wallet, signer_address, signer_funding_txid)
+        assert_equal(signer_funded["solvable"], True)
+        assert_equal(signer_funded["spendable"], True)
+        assert_equal(signer_funded["has_private_keys"], True)
+
+        self.log.info("Freeze the wallet-local miniscript PSBT update/signing seam")
+        signer_psbt = self.ms_sig_wallet.createpsbt(
+            [{"txid": signer_funded["txid"], "vout": signer_funded["vout"]}],
+            [{sink_address: Decimal("49.90000000")}],
+            0,
+        )
+        unsigned_updated = self.ms_sig_wallet.walletprocesspsbt(
+            psbt=signer_psbt,
+            sign=False,
+            finalize=False,
+        )
+        assert_equal(unsigned_updated["complete"], False)
+        assert unsigned_updated["psbt"] != signer_psbt
+        unsigned_updated_input = node.decodepsbt(unsigned_updated["psbt"])["inputs"][0]
+        assert "witness_utxo" in unsigned_updated_input
+        assert "witness_script" in unsigned_updated_input
+        assert "bip32_derivs" in unsigned_updated_input
+        assert "partial_signatures" not in unsigned_updated_input
+        assert "final_scriptwitness" not in unsigned_updated_input
+
+        signed = self.ms_sig_wallet.walletprocesspsbt(psbt=signer_psbt, finalize=False)
+        assert_equal(signed["complete"], False)
+        assert "hex" not in signed
+        signed_psbt = PSBT.from_base64(signed["psbt"])
+        partial_sigs = self.find_partial_sig_entries(signed_psbt.i[0])
+        assert_equal(len(partial_sigs), 1)
+        assert_equal(len(partial_sigs[0][0]), 33)
+        assert partial_sigs[0][1]
+        assert len(partial_sigs[0][1]) < LEGACY_PARTIAL_SIG_UPPER_BOUND
+        assert_raises_rpc_error(-22, LEGACY_SIGNER_PSBT_ERROR, node.decodepsbt, signed["psbt"])
+        assert_raises_rpc_error(-22, LEGACY_SIGNER_PSBT_ERROR, self.ms_sig_wallet.finalizepsbt, signed["psbt"])
+        assert_raises_rpc_error(-22, LEGACY_SIGNER_PSBT_ERROR, node.finalizepsbt, signed["psbt"])
+
         self.log.info("Freeze inherited ranged xpub miniscript imports as explicit deferred failures")
         self.assert_import_rejected(
             self.ms_wo_wallet,
@@ -192,7 +282,7 @@ class WalletMiniscriptTest(BitcoinTestFramework):
             f"key '{TPUB_A}' is not valid",
         )
 
-        self.log.info("Freeze inherited ranged private-key miniscript imports as explicit deferred failures")
+        self.log.info("Freeze inherited fixture-based ranged private-key miniscript imports as explicit deferred failures")
         self.assert_import_rejected(
             self.ms_sig_wallet,
             {
