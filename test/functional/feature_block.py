@@ -34,7 +34,6 @@ from test_framework.script import (
     CScript,
     MAX_SCRIPT_ELEMENT_SIZE,
     MAX_SCRIPT_SIZE,
-    OP_2DUP,
     OP_CHECKMULTISIG,
     OP_CHECKMULTISIGVERIFY,
     OP_CHECKSIG,

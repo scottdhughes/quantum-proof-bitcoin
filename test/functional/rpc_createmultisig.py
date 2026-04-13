@@ -66,7 +66,6 @@ class RpcCreateMultiSigTest(BitcoinTestFramework):
 
     def test_multisig_script_limit(self):
         node1 = self.nodes[1]
-        pubkeys = self.pub[0:20]
 
         self.log.info('Track A keeps 16-of-20 multisig creation as an output-shape contract only')
         self.do_multisig(nkeys=20, nsigs=16, output_type="legacy")

@@ -245,7 +245,7 @@ Still deferred:
    - mempool reinsertion of the previously mined PQ spend after the competing
      branch wins
    - rebroadcast tolerance for "already in mempool" / "already known" states
-   - remining of the spend on the final winning branch with both nodes
+  - re-mining of the spend on the final winning branch with both nodes
      converging on the same final tip
    - successful `PQBTCSLORecorder` completion for the reorg scenario
    Minimum validation target:
@@ -439,6 +439,8 @@ Aineko must ask before:
 
 - `TRACK_A_NATIVE_PQ_BITCOIN.md`
 - `TRACK_A_90_DAY_ROADMAP.md`
+- `SHRINCS_DECISION_TRACK.md`
+- `PQSIG_PROFILE_COMPARISON.md`
 - `GENESIS_AND_NETWORK_POSTURE.md`
 - `RESEARCH_INDEX.md`
 - `PSBT_REPLACEMENT_TRANCHE.md`
@@ -463,6 +465,15 @@ Aineko must ask before:
 ## Decision Log
 
 - 2026-04-06: Track A confirmed as the repo anchor. No Liquid/Simplicity reset.
+- 2026-04-13: `SHRINCS_DECISION_TRACK.md` added to keep SHRINCS-family
+  evaluation explicit but separate: the repo can study or benchmark a future
+  profile in parallel, but the active Track A execution baseline remains
+  `PQSig rc2` until a dedicated go / no-go decision says otherwise.
+- 2026-04-13: `PQSIG_PROFILE_COMPARISON.md` added as the first concrete
+  decision memo: the active launch recommendation remains `PQSig rc2`, a
+  SHRINCS-style profile is the main pre-launch comparison target, and
+  SHRIMPS-style work stays a later compact-signature lane until wallet,
+  recovery, and implementation costs are made concrete.
 - 2026-04-06: Launch posture clarified: PQBTC is intended as a fresh chain
   starting at block 0, not as a retrofit onto inherited Bitcoin history.
 - 2026-04-06: `GENESIS_AND_NETWORK_POSTURE.md` added to freeze the practical
