@@ -324,11 +324,16 @@ semantics are frozen.
     deferred classical funding boundary
   - uses direct coinbase generation into the multisig receive address to create
     one real watch-only UTXO without reopening inherited send-path semantics
-  - preserves non-signing
+  - preserves watch-only
     `walletcreatefundedpsbt -> decodepsbt -> walletprocesspsbt(finalize=false)`
     coverage for the resulting watch-only multisig
-  - freezes the first inherited signer `walletprocesspsbt(finalize=false)`
-    encoding failure as deferred legacy compatibility instead of broad rehab
+  - freezes the first inherited signer
+    `walletprocesspsbt(finalize=false)` contribution seam as a real raw-PSBT
+    boundary: signer 0 returns an incomplete PSBT carrying exactly one
+    classical-looking `partial_sig` entry for the input
+  - freezes node-side `decodepsbt`, subsequent signer processing, and
+    `finalizepsbt` of that signed PSBT as explicit deferred PQ-only
+    signature-encoding failures instead of broad rehab
   - stays out of `pq_required`
 
 ## Explicit "Not Next" Surfaces

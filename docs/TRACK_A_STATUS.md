@@ -25,8 +25,8 @@ freeze the new `wallet_miniscript.py`, `rpc_createmultisig.py`,
 `mempool_pq_limits.py`, and `mempool_pq_stress.py` boundaries, freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
 `feature_loadblock.py`, and `wallet_miniscript.py` boundaries, and move the
-next owned follow-on to broader inherited classical multisig funding/signing
-work.
+next owned follow-on to the `wallet_miniscript.py` funding/signing tranche,
+with one chainstate/validation slice remaining the alternate rebalance.
 
 ## Current Working Thesis
 
@@ -42,15 +42,22 @@ work.
 
 Preferred next owned tranche:
 
-1. broader inherited classical multisig funding/signing work
-   - Why next: the static miniscript watch-only funding/spend-preparation
-     carveout is now frozen, so the larger remaining wallet gap is inherited
-     classical multisig funding/signing.
+1. `wallet_miniscript.py` funding/signing tranche
+   - Why next: `wallet_multisig_descriptor_psbt.py` now owns the first real
+     inherited signer contribution seam, so the next clean wallet follow-on is
+     the adjacent miniscript funding/signing boundary instead of a broader
+     classical multisig rehab pass.
+
+Alternate rebalance:
+
+2. one chainstate/validation tranche
+   - Why alternate: if wallet adjacency needs a pause, rebalance toward
+     consensus/runtime confidence instead of widening inherited wallet rehab.
 
 Still deferred:
 
-2. broader inherited classical multisig PSBT/finalization rehab
-3. TapMiniscript activation or replacement semantics
+3. broader inherited classical multisig PSBT/finalization rehab
+4. TapMiniscript activation or replacement semantics
 
 ## Current Queue
 
@@ -138,11 +145,15 @@ Still deferred:
      boundary
    - direct coinbase funding into the multisig receive address to create one
      real watch-only UTXO without reopening inherited send-path behavior
-   - non-signing
+   - watch-only
      `walletcreatefundedpsbt -> decodepsbt -> walletprocesspsbt(finalize=false)`
      coverage for that watch-only UTXO
-   - one explicit inherited signer `walletprocesspsbt(finalize=false)`
-     encoding-failure negative control
+   - one real inherited signer `walletprocesspsbt(finalize=false)` seam that
+     returns an incomplete PSBT carrying exactly one classical-looking raw
+     `partial_sig` entry
+   - explicit node-side `decodepsbt`, subsequent signer processing, and
+     `finalizepsbt` encoding-failure boundaries for that signed PSBT under the
+     current PQ-only signature rules
    Minimum validation target:
    - `python3 test/functional/wallet_multisig_descriptor_psbt.py`
    Still deferred inside this suite:
@@ -332,8 +343,9 @@ Still deferred:
    - index rebuild or reindex interaction
    - malformed or interrupted bootstrap import recovery
 18. Recommended next PR after this tranche:
-   - preferred: broader inherited classical multisig funding/signing work
-   - alternate: broader inherited classical multisig PSBT/finalization rehab
+   - preferred: `wallet_miniscript.py` funding/signing tranche
+   - alternate: one chainstate/validation tranche to rebalance toward runtime
+     confidence
    Why next:
    - the storage/prune ladder now has owned slices for layout, XOR handling,
      large-block admission, prune cleanup, and prune-plus-index behavior
@@ -350,10 +362,13 @@ Still deferred:
    - `feature_pqsig_multisig.py` now freezes the minimal 2-of-2 PQ
      witness-validation path directly
    - `feature_loadblock.py` now freezes the import/bootstrap path directly
-   - `wallet_miniscript.py` now freezes a funded watch-only miniscript
-     spend-preparation boundary directly
-   - the next highest-value unresolved wallet surface is inherited classical
-     multisig funding/signing
+   - `wallet_multisig_descriptor_psbt.py` now owns the first inherited signer
+     contribution seam without pretending broad classical multisig finalization
+     works
+   - `wallet_miniscript.py` is the nearest adjacent wallet surface where the
+     same narrow funding/signing method can continue
+   - if wallet adjacency needs a pause, the next best move is a single
+     chainstate/validation tranche rather than broadening inherited wallet rehab
 19. Use `FEATURE_BLOCK_POSTURE.md` as the fixed note for the current
    `feature_block.py` contract.
 20. Use `PSBT_REPLACEMENT_TRANCHE.md` as the current owned miniscript/PSBT

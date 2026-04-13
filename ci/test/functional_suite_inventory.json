@@ -1731,7 +1731,7 @@
     "policy_class": "dual_profile",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Now freezes a PQ-safe non-signing watch-only multisig descriptor/PSBT carveout with direct coinbase funding plus explicit deferred inherited classical funding/signing negative controls; retained under the current non-gating dual-profile contract."
+    "notes": "Now freezes a watch-only multisig descriptor funding/signing boundary with direct coinbase funding, one real inherited signer raw-PSBT partial-signature seam, and explicit deferred node-side decode/finalize failures under PQ-only signature encoding; retained under the current non-gating dual-profile contract."
   },
   {
     "name": "wallet_multiwallet.py",

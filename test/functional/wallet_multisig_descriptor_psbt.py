@@ -2,11 +2,11 @@
 # Copyright (c) 2021-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Freeze wallet_multisig_descriptor_psbt.py as a Track A non-signing carveout."""
+"""Freeze wallet_multisig_descriptor_psbt.py as a Track A funding/signing boundary."""
 
 from decimal import Decimal
 
-from test_framework.authproxy import JSONRPCException
+from test_framework.psbt import PSBT, PSBT_IN_PARTIAL_SIG
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_approx,
@@ -16,6 +16,7 @@ from test_framework.util import (
 
 
 LEGACY_SIGNER_PSBT_ERROR = "TX decode failed Signature is not a valid encoding: unspecified iostream_category error"
+LEGACY_PARTIAL_SIG_UPPER_BOUND = 100
 PQ_PROP_IDENTIFIER = "7071627463"
 
 
@@ -40,6 +41,14 @@ class WalletMultisigDescriptorPSBTTest(BitcoinTestFramework):
         return [
             prop for prop in decoded_input.get("proprietary", [])
             if prop["identifier"] == PQ_PROP_IDENTIFIER and prop["subtype"] == 1
+        ]
+
+    @staticmethod
+    def find_partial_sig_entries(psbt_input):
+        return [
+            (key[1:], value)
+            for key, value in psbt_input.map.items()
+            if isinstance(key, bytes) and key[:1] == bytes([PSBT_IN_PARTIAL_SIG])
         ]
 
     @staticmethod
@@ -88,7 +97,7 @@ class WalletMultisigDescriptorPSBTTest(BitcoinTestFramework):
         self.M = 2
         self.N = self.num_nodes
         self.name = f"{self.M}_of_{self.N}_multisig"
-        self.log.info(f"Testing {self.name} under the Track A non-signing carveout...")
+        self.log.info(f"Testing {self.name} under the Track A funding/signing boundary...")
 
         participants = {
             "signers": [node.get_wallet_rpc(node.createwallet(wallet_name=f"participant_{self.nodes.index(node)}")["name"]) for node in self.nodes],
@@ -167,19 +176,22 @@ class WalletMultisigDescriptorPSBTTest(BitcoinTestFramework):
             assert "partial_signatures" not in input0
             assert "final_scriptwitness" not in input0
 
-        self.log.info("Freeze the first inherited signer failure as an explicit deferred negative control...")
-        legacy_psbt = created["psbt"]
-        for signing_wallet in participants["signers"]:
-            try:
-                signed = signing_wallet.walletprocesspsbt(psbt=legacy_psbt, finalize=False)
-            except JSONRPCException as exc:
-                assert_equal(exc.error["code"], -22)
-                assert_equal(exc.error["message"], LEGACY_SIGNER_PSBT_ERROR)
-                break
-            assert_equal(signed["complete"], False)
-            legacy_psbt = signed["psbt"]
-        else:
-            raise AssertionError("Inherited classical signer path unexpectedly succeeded for all signers")
+        self.log.info("Freeze the first inherited signer contribution boundary...")
+        signer0 = participants["signers"][0].walletprocesspsbt(psbt=created["psbt"], finalize=False)
+        assert_equal(signer0["complete"], False)
+        assert signer0["psbt"] != created["psbt"]
+
+        signed_psbt = PSBT.from_base64(signer0["psbt"])
+        partial_sigs = self.find_partial_sig_entries(signed_psbt.i[0])
+        assert_equal(len(partial_sigs), 1)
+        assert_equal(len(partial_sigs[0][0]), 33)
+        assert partial_sigs[0][1]
+        assert len(partial_sigs[0][1]) < LEGACY_PARTIAL_SIG_UPPER_BOUND
+
+        self.log.info("Freeze node-side decode/finalize of that signed PSBT as deferred legacy compatibility...")
+        assert_raises_rpc_error(-22, LEGACY_SIGNER_PSBT_ERROR, self.nodes[0].decodepsbt, signer0["psbt"])
+        assert_raises_rpc_error(-22, LEGACY_SIGNER_PSBT_ERROR, participants["signers"][1].walletprocesspsbt, signer0["psbt"], finalize=False)
+        assert_raises_rpc_error(-22, LEGACY_SIGNER_PSBT_ERROR, self.nodes[0].finalizepsbt, signer0["psbt"])
 
 
 if __name__ == "__main__":
