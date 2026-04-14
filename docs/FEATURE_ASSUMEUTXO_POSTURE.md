@@ -38,7 +38,6 @@ This posture note does **not** mean:
 
 - wallet behavior during assumeutxo background sync is owned here
 - inherited MiniWallet mempool acceptance is rehabilitated here
-- this suite is promoted into `pq_required`
 
 Those remain separate follow-on surfaces.
 
@@ -57,7 +56,7 @@ Targeted confidence pass run on 2026-04-14:
 ## Interpretation
 
 - `feature_assumeutxo.py` is now a fixed PQBTC assumeutxo activation slice
-- it remains `pq_backlog`, not a required PQ-first gate
+- it is now `pq_required` in the canonical PQ-first functional gate
 - the adjacent wallet-side background-sync surface is now owned by
   [wallet_assumeutxo.py](../test/functional/wallet_assumeutxo.py)
 - the next clean actionable follow-on is

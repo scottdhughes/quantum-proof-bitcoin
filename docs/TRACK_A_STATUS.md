@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-04-13
+## Updated: 2026-04-14
 ## Current Phase: Phase 1 - Wallet And Block Surface Expansion
 
 ## Purpose
@@ -28,9 +28,10 @@ freeze the new `wallet_miniscript.py`, `rpc_createmultisig.py`,
 `feature_utxo_set_hash.py`, `feature_coinstatsindex.py`, and
 `feature_reindex.py`, `feature_reindex_init.py`, and
 `feature_reindex_readonly.py`, and `feature_assumevalid.py` boundaries, and
-move the next owned follow-on to `feature_coinstatsindex_compatibility.py`,
-with broader inherited miniscript funding/finalization rehab as the local
-wallet alternate.
+promote `feature_assumeutxo.py` and `wallet_assumeutxo.py` into the canonical
+`pq_required` gate, then return the next owned follow-on to
+`feature_coinstatsindex_compatibility.py`, with broader inherited miniscript
+funding/finalization rehab as the local wallet alternate.
 
 ## Current Working Thesis
 
@@ -66,7 +67,7 @@ Wallet alternate:
 
 Still deferred:
 
-4. `wallet_assumeutxo.py` gate promotion
+4. `feature_assumevalid.py` gate promotion
 5. TapMiniscript activation or replacement semantics
 
 ## Current Queue
@@ -470,7 +471,6 @@ Still deferred:
    Still deferred inside this suite:
    - wallet behavior during assumeutxo background sync
    - inherited MiniWallet mempool acceptance rehabilitation
-   - promotion into `pq_required`
 25. `wallet_assumeutxo.py` now owns:
    - a wallet-side assumeutxo background-sync contract on top of the current
      regtest assumeutxo anchors
@@ -487,7 +487,6 @@ Still deferred:
    - `python3 test/functional/wallet_assumeutxo.py`
    Still deferred inside this suite:
    - broad inherited MiniWallet mempool acceptance
-   - promotion into `pq_required`
 26. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
    - alternate: broader inherited miniscript funding/finalization rehab
@@ -890,6 +889,12 @@ Aineko must ask before:
   balances still settle to `34` and `340`. The next owned follow-on shifts to
   `feature_coinstatsindex_compatibility.py`, with broader inherited miniscript
   funding/finalization rehab remaining the local wallet alternate.
+- 2026-04-14: `feature_assumeutxo.py` and `wallet_assumeutxo.py` are now
+  promoted into the canonical `pq_required` gate. The current required PQ path
+  therefore covers both snapshot activation and the adjacent wallet-side
+  background-sync contract on the live regtest assumeutxo anchors. The next
+  owned follow-on remains `feature_coinstatsindex_compatibility.py`, while
+  `feature_assumevalid.py` remains the nearby validation-side gate candidate.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
