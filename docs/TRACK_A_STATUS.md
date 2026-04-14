@@ -24,9 +24,13 @@ freeze the new `wallet_miniscript.py`, `rpc_createmultisig.py`,
 `feature_pq_block_limits.py`, `feature_pq_reorg.py`, and
 `mempool_pq_limits.py`, and `mempool_pq_stress.py` boundaries, freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
-`feature_loadblock.py`, and `wallet_miniscript.py` boundaries, and move the
-next owned follow-on to one chainstate/validation tranche, with broader
-inherited miniscript funding/finalization rehab remaining the alternate.
+`feature_loadblock.py`, `wallet_miniscript.py`, and
+`feature_utxo_set_hash.py`, `feature_coinstatsindex.py`, and
+`feature_reindex.py`, `feature_reindex_init.py`, and
+`feature_reindex_readonly.py`, and `feature_assumevalid.py` boundaries, and
+move the next owned follow-on to `feature_coinstatsindex_compatibility.py`,
+with broader inherited miniscript funding/finalization rehab as the local
+wallet alternate.
 
 ## Current Working Thesis
 
@@ -42,23 +46,28 @@ inherited miniscript funding/finalization rehab remaining the alternate.
 
 Preferred next owned tranche:
 
-1. one chainstate/validation tranche
-   - Why next: `wallet_miniscript.py` now owns the first real wallet-local
-     miniscript signer contribution seam, so the next clean move is to
-     rebalance toward runtime confidence instead of widening wallet adjacency
-     again immediately.
+1. `feature_coinstatsindex_compatibility.py`
+   - Why next: the core assumeutxo activation surface and the adjacent
+     wallet-side background-sync surface are now frozen, so the remaining
+     nearby chainstate/index follow-on is cross-version coinstats
+     compatibility.
 
 Alternate rebalance:
 
 2. broader inherited miniscript funding/finalization rehab
-   - Why alternate: if wallet adjacency stays hot, the next local follow-on is
-     the broader inherited miniscript funding/finalization surface rather than
-     broad classical multisig work.
+   - Why alternate: if local wallet adjacency is still the priority, this
+     remains the next wallet-side surface to reopen.
+
+Wallet alternate:
+
+3. broader inherited classical multisig PSBT/finalization rehab
+   - Why alternate: if wallet compatibility scope widens beyond miniscript
+     funding, this remains the larger deferred wallet tranche.
 
 Still deferred:
 
-3. broader inherited classical multisig PSBT/finalization rehab
-4. TapMiniscript activation or replacement semantics
+4. `wallet_assumeutxo.py` gate promotion
+5. TapMiniscript activation or replacement semantics
 
 ## Current Queue
 
@@ -355,36 +364,141 @@ Still deferred:
    - pruning-plus-bootstrap interaction
    - index rebuild or reindex interaction
    - malformed or interrupted bootstrap import recovery
-18. Recommended next PR after this tranche:
-   - preferred: one chainstate/validation tranche to rebalance toward runtime
-     confidence
+18. `feature_utxo_set_hash.py` now owns:
+   - one deterministic raw `OP_TRUE` MiniWallet funding path in place of the
+     inherited Taproot-shaped MiniWallet self-transfer path
+   - direct inclusion of that raw `OP_TRUE` self-transfer by `generateblock(...)`
+   - manual MuHash accumulation that still matches
+     `gettxoutsetinfo("muhash")`
+   - fixed PQBTC `hash_serialized_3` and `muhash` constants for this exact
+     chainstate sequence
+   - explicit deferral of the inherited default MiniWallet send path after its
+     reproduced `scriptpubkey (-26)` failure
+   Minimum validation target:
+   - `python3 test/functional/feature_utxo_set_hash.py`
+   Still deferred inside this suite:
+   - adjacent coinstats-index coverage
+   - promotion into `pq_required`
+19. `feature_coinstatsindex.py` now owns:
+   - one raw `OP_TRUE` MiniWallet funding path in place of the inherited
+     default MiniWallet mempool self-transfer path
+   - one direct-mined raw self-transfer that establishes the first owned
+     txoutset delta before the index/non-index comparison
+   - one direct-mined parent/child pair that covers a spendable raw output plus
+     one explicit `OP_RETURN` unspendable output
+   - stable indexed historical height/hash queries and verbose `block_info`
+     accounting across that bounded dataset
+   - restart, `-reindex`, `-reindex-chainstate`, reorg, and stale-index
+     recovery behavior on the same dataset
+   - explicit deferral of the inherited default MiniWallet mempool path after
+     its reproduced `scriptpubkey (-26)` failure
+   Minimum validation target:
+   - `python3 test/functional/feature_coinstatsindex.py`
+   Still deferred inside this suite:
+   - previous-release coinstats index compatibility
+   - promotion into `pq_required`
+20. `feature_reindex.py` now owns:
+   - repeated restart-time `-reindex` recovery to the same three-block height
+   - repeated restart-time `-reindex-chainstate` recovery to the same
+     three-block height
+   - out-of-order blk file recovery after manually swapping the first
+     post-genesis blocks on disk
+   - expected out-of-order block debug markers during that restart
+   - recovery of the full `12`-block chain after the out-of-order blockfile
+     pass
+   - interrupted `-blockfilterindex -reindex` restart followed by a clean
+     later startup that reopens, rather than wipes, the existing blockfilter
+     LevelDB
+   Minimum validation target:
+   - `python3 test/functional/feature_reindex.py`
+   Still deferred inside this suite:
+   - init-time block-index failure recovery
+   - immutable/read-only blockstore restart behavior
+   - promotion into `pq_required`
+21. `feature_reindex_init.py` now owns:
+   - explicit removal of the on-disk `blocks/index` directory before startup
+   - the exact init-time block-database failure message that instructs the
+     operator to restart with `-reindex` or `-reindex-chainstate`
+   - the current noninteractive reindex-acceptance recovery path
+   - successful recovery back to height `200` after that init failure
+   Minimum validation target:
+   - `python3 test/functional/feature_reindex_init.py`
+   Still deferred inside this suite:
+   - broader restart-time reindex behavior
+   - immutable/read-only blockstore restart behavior
+   - promotion into `pq_required`
+22. `feature_reindex_readonly.py` now owns:
+   - forced creation of a second blk file under `-fastprune`
+   - explicit read-only plus host-level immutable treatment of the first blk
+     file when the local platform supports it
+   - successful restart under `-reindex -fastprune` with the immutable/read-only
+     blockstore
+   - explicit `Reindexing finished` log confirmation
+   - restoration of file mutability and permissions for cleanup
+   Minimum validation target:
+   - `python3 test/functional/feature_reindex_readonly.py`
+   Still deferred inside this suite:
+   - generic reindex behavior outside the immutable/read-only blockstore case
+   - promotion into `pq_required`
+23. `feature_assumevalid.py` now owns:
+   - one handcrafted invalid-signature spend buried just over two weeks deep
+   - rejection of that bad block at height `102` on the non-assumevalid node
+   - acceptance of the full `2202`-block chain on the deeply buried
+     assumevalid-enabled node
+   - expected debug markers for disabling and re-enabling signature validation
+   - rejection of the same bad block on the shallow assumevalid-enabled node
+     when it is not buried deeply enough
+   Minimum validation target:
+   - `python3 test/functional/feature_assumevalid.py`
+   Still deferred inside this suite:
+   - assumeutxo snapshot loading and activation behavior
+   - promotion into `pq_required`
+24. `feature_assumeutxo.py` now owns:
+   - regtest assumeutxo metadata anchors at heights `110`, `200`, and `299`
+     for the live PQBTC harness
+   - snapshot activation across the current prune/index node profiles
+   - invalid snapshot-file, metadata, and chainstate rejection behavior under
+     the current PQBTC snapshot contents
+   - one dedicated clean-node non-empty-mempool rejection using PQ-safe raw
+     `P2WSH` funding instead of inherited wallet signing
+   - one explicit snapshot-only inherited MiniWallet spend negative control
+     rejected with `scriptpubkey (-26)`
+   - restart, `-reindex`, `-reindex-chainstate`, and assumeutxo-node IBD sync
+     behavior under the same fixed snapshot dataset
+   Minimum validation target:
+   - `python3 test/functional/feature_assumeutxo.py`
+   Still deferred inside this suite:
+   - wallet behavior during assumeutxo background sync
+   - inherited MiniWallet mempool acceptance rehabilitation
+   - promotion into `pq_required`
+25. `wallet_assumeutxo.py` now owns:
+   - a wallet-side assumeutxo background-sync contract on top of the current
+     regtest assumeutxo anchors
+   - direct-mined pre-snapshot and post-snapshot MiniWallet funding that keeps
+     the chain aligned with the current assumeutxo snapshot metadata
+   - restoration of a snapshot-height backup during background sync
+   - rejection of a pre-snapshot backup during background sync with the current
+     bounded wallet-loading error
+   - descriptor import and `rescanblockchain` failure while historical blocks
+     remain unavailable during background sync
+   - eventual restore/import success and final owned balances of `34` and
+     `340` after background validation completes
+   Minimum validation target:
+   - `python3 test/functional/wallet_assumeutxo.py`
+   Still deferred inside this suite:
+   - broad inherited MiniWallet mempool acceptance
+   - promotion into `pq_required`
+26. Recommended next PR after this tranche:
+   - preferred: `feature_coinstatsindex_compatibility.py`
    - alternate: broader inherited miniscript funding/finalization rehab
+   - broader wallet alternate: broader inherited classical multisig
+     PSBT/finalization rehab
    Why next:
-   - the storage/prune ladder now has owned slices for layout, XOR handling,
-     large-block admission, prune cleanup, and prune-plus-index behavior
-   - `feature_pq_block_limits.py` now freezes the launch block-profile ceiling
-     itself
-   - `feature_pq_reorg.py` now freezes the adjacent PQ-native chainstate/reorg
-     surface
-   - `mempool_pq_limits.py` now freezes the single-node PQ-native mempool policy
-     boundary
-   - `mempool_pq_stress.py` now freezes the adjacent higher-churn relay/mempool
-     variant
-   - `feature_pqsig_basic.py` now freezes the minimal single-signature PQ
-     witness-validation path directly
-   - `feature_pqsig_multisig.py` now freezes the minimal 2-of-2 PQ
-     witness-validation path directly
-   - `feature_loadblock.py` now freezes the import/bootstrap path directly
-   - `wallet_multisig_descriptor_psbt.py` now owns the first inherited signer
-     contribution seam without pretending broad classical multisig finalization
-     works
-   - `wallet_miniscript.py` now owns the adjacent wallet-local miniscript
-     signer contribution seam without pretending signed-PSBT decode/finalize
-     works under PQ-only encoding
-   - after successive wallet-adjacent tranches, the next best move is a single
-     chainstate/validation slice rather than broadening inherited wallet rehab
-   - if wallet adjacency continues immediately, broader inherited miniscript
-     funding/finalization rehab is the next local extension
+   - `feature_coinstatsindex_compatibility.py` is the remaining nearby
+     chainstate/index follow-on now that both assumeutxo slices are frozen
+   - broader inherited wallet rehab remains useful, but it is no longer the
+     adjacency-first next step unless local assets for compatibility coverage
+     are unavailable
 19. Use `FEATURE_BLOCK_POSTURE.md` as the fixed note for the current
    `feature_block.py` contract.
 20. Use `PSBT_REPLACEMENT_TRANCHE.md` as the current owned miniscript/PSBT
@@ -419,6 +533,22 @@ Still deferred:
    `feature_loadblock.py` contract.
 35. Use `WALLET_MINISCRIPT_POSTURE.md` as the fixed note for the current
    `wallet_miniscript.py` contract.
+36. Use `FEATURE_UTXO_SET_HASH_POSTURE.md` as the fixed note for the current
+   `feature_utxo_set_hash.py` contract.
+37. Use `FEATURE_COINSTATSINDEX_POSTURE.md` as the fixed note for the current
+   `feature_coinstatsindex.py` contract.
+38. Use `FEATURE_REINDEX_POSTURE.md` as the fixed note for the current
+   `feature_reindex.py` contract.
+39. Use `FEATURE_REINDEX_INIT_POSTURE.md` as the fixed note for the current
+   `feature_reindex_init.py` contract.
+40. Use `FEATURE_REINDEX_READONLY_POSTURE.md` as the fixed note for the current
+   `feature_reindex_readonly.py` contract.
+41. Use `FEATURE_ASSUMEVALID_POSTURE.md` as the fixed note for the current
+   `feature_assumevalid.py` contract.
+42. Use `FEATURE_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
+   `feature_assumeutxo.py` contract.
+43. Use `WALLET_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
+   `wallet_assumeutxo.py` contract.
 29. Treat inherited `getnewaddress` / `getrawchangeaddress` as unsupported on
    PQ-only active-manager wallets; the owned PQ address UX remains
    `getnewpqaddress` / `getrawpqchangeaddress`.
@@ -699,6 +829,67 @@ Aineko must ask before:
   signature-encoding wall. The next owned follow-on shifts to one
   chainstate/validation tranche, with broader inherited miniscript
   funding/finalization rehab remaining alternate.
+- 2026-04-13: `feature_utxo_set_hash.py` now freezes the first dedicated
+  txoutset-hash chainstate slice directly: the suite no longer depends on the
+  inherited Taproot-shaped MiniWallet self-transfer path, one raw `OP_TRUE`
+  self-transfer is mined directly by `generateblock(...)`, manual MuHash still
+  matches `gettxoutsetinfo("muhash")`, and the PQBTC deterministic
+  `hash_serialized_3` / `muhash` constants are now fixed for that sequence. The
+  next owned follow-on shifts to `feature_coinstatsindex.py`, with
+  `feature_reindex.py` as the lower-risk chainstate alternate.
+- 2026-04-13: `feature_coinstatsindex.py` now freezes the adjacent
+  txoutset/index slice directly: the suite replaces the inherited default
+  MiniWallet mempool path with direct-mined raw `OP_TRUE` transactions, keeps
+  the indexed/non-indexed `gettxoutsetinfo()` comparisons and verbose
+  `block_info` accounting intact, and preserves restart, reorg, and reindex
+  behavior on that owned dataset. The next owned follow-on shifts to
+  `feature_reindex.py`, with `feature_coinstatsindex_compatibility.py` as the
+  environment-dependent alternate.
+- 2026-04-13: `feature_reindex.py` now freezes the adjacent restart/reindex
+  slice directly: repeated `-reindex` and `-reindex-chainstate` restarts return
+  to the same height, manual out-of-order blk-file swapping still recovers the
+  full chain with the expected debug markers, and an interrupted
+  `-blockfilterindex -reindex` run later resumes without wiping the existing
+  blockfilter LevelDB. The next owned follow-on shifts to
+  `feature_reindex_init.py`, with `feature_reindex_readonly.py` as the
+  environment-sensitive alternate.
+- 2026-04-13: `feature_reindex_init.py` now freezes the adjacent init-failure
+  recovery slice directly: removing `blocks/index` triggers the exact expected
+  startup failure with reindex guidance, and the current noninteractive
+  recovery flag returns the node to height `200`. The next owned follow-on
+  shifts to `feature_reindex_readonly.py`, with
+  `feature_coinstatsindex_compatibility.py` as the environment-dependent
+  alternate.
+- 2026-04-13: `feature_reindex_readonly.py` now freezes the adjacent
+  immutable/read-only blockstore restart slice directly: under `-fastprune`,
+  the first blk file is made read-only and locally immutable, restart with
+  `-reindex -fastprune` completes successfully with the expected
+  `Reindexing finished` marker, and the chain returns to the same height. The
+  next owned follow-on shifts to `feature_assumevalid.py`, with
+  `feature_coinstatsindex_compatibility.py` as the environment-dependent
+  alternate.
+- 2026-04-14: `feature_assumevalid.py` now freezes the adjacent assumevalid
+  validation slice directly: the invalid-signature block is rejected without
+  assumevalid, accepted when it is buried deeply enough under assumevalid, and
+  still rejected when it is not buried deeply enough. The next owned follow-on
+  shifts to `feature_assumeutxo.py`, which now fails on the inherited default
+  MiniWallet `scriptpubkey (-26)` path.
+- 2026-04-14: `feature_assumeutxo.py` now freezes the adjacent snapshot
+  activation slice directly: regtest assumeutxo metadata is committed for
+  heights `110`, `200`, and `299`, snapshot activation/restart/reindex stays
+  green under the current harness, and the inherited snapshot-only MiniWallet
+  spend is now an explicit `scriptpubkey (-26)` negative control. The next
+  owned follow-on shifts to `wallet_assumeutxo.py`, with
+  `feature_coinstatsindex_compatibility.py` remaining the
+  environment-dependent alternate.
+- 2026-04-14: `wallet_assumeutxo.py` now freezes the adjacent wallet-side
+  assumeutxo slice directly: inherited MiniWallet funding is replaced with
+  direct-mined transactions that preserve the current snapshot chain, the
+  snapshot-height backup remains restorable during background sync, the older
+  backup and rescans remain blocked until validation completes, and final owned
+  balances still settle to `34` and `340`. The next owned follow-on shifts to
+  `feature_coinstatsindex_compatibility.py`, with broader inherited miniscript
+  funding/finalization rehab remaining the local wallet alternate.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full

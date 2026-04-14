@@ -33,6 +33,7 @@ from test_framework.util import (
 )
 from test_framework.wallet import (
     MiniWallet,
+    MiniWalletMode,
     getnewdestination,
 )
 
@@ -47,7 +48,7 @@ class CoinStatsIndexTest(BitcoinTestFramework):
         ]
 
     def run_test(self):
-        self.wallet = MiniWallet(self.nodes[0])
+        self.wallet = MiniWallet(self.nodes[0], mode=MiniWalletMode.RAW_OP_TRUE)
         self._test_coin_stats_index()
         self._test_use_index_option()
         self._test_reorg_index()
@@ -70,10 +71,13 @@ class CoinStatsIndexTest(BitcoinTestFramework):
         # Both none and muhash options allow the usage of the index
         index_hash_options = ['none', 'muhash']
 
-        # Generate a normal transaction and mine it
+        # Generate one raw OP_TRUE transaction and mine it directly. The
+        # inherited default MiniWallet mempool path is deferred under PQBTC.
         self.generate(self.wallet, COINBASE_MATURITY + 1)
-        self.wallet.send_self_transfer(from_node=node)
-        self.generate(node, 1)
+        tx0 = self.wallet.create_self_transfer()
+        self.generateblock(node, output="raw(51)", transactions=[tx0["hex"]])
+        self.wallet.rescan_utxos(include_mempool=False)
+        self.sync_index_node()
 
         self.log.info("Test that gettxoutsetinfo() output is consistent with or without coinstatsindex option")
         res0 = node.gettxoutsetinfo('none')
@@ -94,6 +98,7 @@ class CoinStatsIndexTest(BitcoinTestFramework):
 
         # Generate a new tip
         self.generate(node, 5)
+        self.sync_index_node()
 
         for hash_option in index_hash_options:
             # Fetch old stats by height
@@ -133,55 +138,59 @@ class CoinStatsIndexTest(BitcoinTestFramework):
 
             # Test an older block height that included a normal tx
             res5 = index_node.gettxoutsetinfo(hash_option, 102)
-            assert_equal(res5['total_unspendable_amount'], 50)
+            assert_equal(res5['total_unspendable_amount'], Decimal('50.00031200'))
             assert_equal(res5['block_info'], {
-                'unspendable': 0,
+                'unspendable': Decimal('0.00031200'),
                 'prevout_spent': 50,
                 'new_outputs_ex_coinbase': Decimal('49.99968800'),
-                'coinbase': Decimal('50.00031200'),
+                'coinbase': 50,
                 'unspendables': {
                     'genesis_block': 0,
                     'bip30': 0,
                     'scripts': 0,
-                    'unclaimed_rewards': 0,
+                    'unclaimed_rewards': Decimal('0.00031200'),
                 }
             })
             self.block_sanity_check(res5['block_info'])
 
-        # Generate and send a normal tx with two outputs
-        tx1 = self.wallet.send_to(
-            from_node=node,
-            scriptPubKey=self.wallet.get_output_script(),
-            amount=21 * COIN,
-        )
+        # Create one raw two-output tx plus one OP_RETURN child and mine both
+        # directly, so the suite owns the txoutset/index accounting without
+        # reopening inherited mempool policy.
+        tx1 = self.wallet.create_self_transfer(fee_rate=0)["tx"]
+        tx1.vout[0].nValue -= 21 * COIN + 1000
+        tx1.vout.append(CTxOut(21 * COIN, self.wallet.get_output_script()))
+        tx1_out_21 = {
+            "txid": tx1.txid_hex,
+            "vout": 1,
+            "value": Decimal(21),
+            "height": 0,
+            "coinbase": False,
+            "confirmations": 0,
+        }
 
-        # Find the right position of the 21 BTC output
-        tx1_out_21 = self.wallet.get_utxo(txid=tx1["txid"], vout=tx1["sent_vout"])
-
-        # Generate and send another tx with an OP_RETURN output (which is unspendable)
         tx2 = self.wallet.create_self_transfer(utxo_to_spend=tx1_out_21)['tx']
         tx2_val = '20.99'
         tx2.vout = [CTxOut(int(Decimal(tx2_val) * COIN), CScript([OP_RETURN] + [OP_FALSE] * 30))]
-        tx2_hex = tx2.serialize().hex()
-        self.nodes[0].sendrawtransaction(tx2_hex, 0, tx2_val)
 
         # Include both txs in a block
-        self.generate(self.nodes[0], 1)
+        self.generateblock(node, output="raw(51)", transactions=[tx1.serialize().hex(), tx2.serialize().hex()])
+        self.wallet.rescan_utxos(include_mempool=False)
+        self.sync_index_node()
 
         for hash_option in index_hash_options:
             # Check all amounts were registered correctly
             res6 = index_node.gettxoutsetinfo(hash_option, 108)
-            assert_equal(res6['total_unspendable_amount'], Decimal('70.99000000'))
+            assert_equal(res6['total_unspendable_amount'], Decimal('71.00032200'))
             assert_equal(res6['block_info'], {
-                'unspendable': Decimal('20.99000000'),
+                'unspendable': Decimal('21.00001000'),
                 'prevout_spent': 71,
                 'new_outputs_ex_coinbase': Decimal('49.99999000'),
-                'coinbase': Decimal('50.01001000'),
+                'coinbase': 50,
                 'unspendables': {
                     'genesis_block': 0,
                     'bip30': 0,
                     'scripts': Decimal('20.99000000'),
-                    'unclaimed_rewards': 0,
+                    'unclaimed_rewards': Decimal('0.01001000'),
                 }
             })
             self.block_sanity_check(res6['block_info'])
@@ -198,10 +207,11 @@ class CoinStatsIndexTest(BitcoinTestFramework):
         block.solve()
         self.nodes[0].submitblock(block.serialize().hex())
         self.sync_all()
+        self.sync_index_node()
 
         for hash_option in index_hash_options:
             res7 = index_node.gettxoutsetinfo(hash_option, 109)
-            assert_equal(res7['total_unspendable_amount'], Decimal('80.99000000'))
+            assert_equal(res7['total_unspendable_amount'], Decimal('81.00032200'))
             assert_equal(res7['block_info'], {
                 'unspendable': 10,
                 'prevout_spent': 0,

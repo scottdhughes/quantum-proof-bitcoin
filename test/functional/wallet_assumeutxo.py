@@ -13,7 +13,10 @@ See feature_assumeutxo.py for background.
 from test_framework.address import address_to_scriptpubkey
 from test_framework.descriptors import descsum_create
 from test_framework.test_framework import BitcoinTestFramework
-from test_framework.messages import COIN
+from test_framework.messages import (
+    COIN,
+    CTxOut,
+)
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
@@ -54,6 +57,23 @@ class AssumeutxoTest(BitcoinTestFramework):
         wrpc = node.get_wallet_rpc(wallet_name)
         return wrpc.importdescriptors(import_request)
 
+    def mine_wallet_self_transfer(self, node):
+        tx = self.mini_wallet.create_self_transfer()
+        self.generateblock(
+            node,
+            output=node.get_deterministic_priv_key().address,
+            transactions=[tx["hex"]],
+            sync_fun=self.no_op,
+        )
+        self.mini_wallet.rescan_utxos(include_mempool=False)
+
+    def build_wallet_payment_tx(self, destination_script_pub_key, amount_sat, fee_sat=1000):
+        tx = self.mini_wallet.create_self_transfer(fee_rate=0)["tx"]
+        assert tx.vout[0].nValue >= amount_sat + fee_sat
+        tx.vout[0].nValue -= amount_sat + fee_sat
+        tx.vout.append(CTxOut(amount_sat, destination_script_pub_key))
+        return tx
+
     def run_test(self):
         """
         Bring up two (disconnected) nodes, mine some new blocks on the first,
@@ -90,8 +110,9 @@ class AssumeutxoTest(BitcoinTestFramework):
         # while disconnected from n0.
         for i in range(100):
             if i % 3 == 0:
-                self.mini_wallet.send_self_transfer(from_node=n0)
-            self.generate(n0, nblocks=1, sync_fun=self.no_op)
+                self.mine_wallet_self_transfer(n0)
+            else:
+                self.generate(n0, nblocks=1, sync_fun=self.no_op)
             newblock = n0.getblock(n0.getbestblockhash(), 0)
 
             # make n1 aware of the new header, but don't give it the block.
@@ -118,7 +139,7 @@ class AssumeutxoTest(BitcoinTestFramework):
 
         assert_equal(
             dump_output['txoutset_hash'],
-            "d2b051ff5e8eef46520350776f4100dd710a63447a8e01d917e92e79751a63e2")
+            "b6380c577e5df2d31230c0f6cc9c851b102aae4c322ef4e12cbfe6b6a018fba5")
         assert_equal(dump_output["nchaintx"], 334)
         assert_equal(n0.getblockchaininfo()["blocks"], SNAPSHOT_BASE_HEIGHT)
 
@@ -128,9 +149,17 @@ class AssumeutxoTest(BitcoinTestFramework):
         w2_skp = address_to_scriptpubkey(w2_address)
         for i in range(100):
             if i % 3 == 0:
-                self.mini_wallet.send_to(from_node=n0, scriptPubKey=w_skp, amount=1 * COIN)
-                self.mini_wallet.send_to(from_node=n0, scriptPubKey=w2_skp, amount=10 * COIN)
-            self.generate(n0, nblocks=1, sync_fun=self.no_op)
+                tx_w = self.build_wallet_payment_tx(w_skp, 1 * COIN)
+                tx_w2 = self.build_wallet_payment_tx(w2_skp, 10 * COIN)
+                self.generateblock(
+                    n0,
+                    output=n0.get_deterministic_priv_key().address,
+                    transactions=[tx_w.serialize().hex(), tx_w2.serialize().hex()],
+                    sync_fun=self.no_op,
+                )
+                self.mini_wallet.rescan_utxos(include_mempool=False)
+            else:
+                self.generate(n0, nblocks=1, sync_fun=self.no_op)
 
         assert_equal(n0.getblockcount(), FINAL_HEIGHT)
         assert_equal(n1.getblockcount(), START_HEIGHT)

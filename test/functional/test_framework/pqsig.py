@@ -119,7 +119,13 @@ def _pop_mature_funding_utxo(node):
     raise AssertionError("No mature PQ funding UTXO available")
 
 
-def create_wallet_funded_tx(node, destination_scriptpubkey: bytes, amount_sat: int, fee_sat: int = 1000) -> CTransaction:
+def create_wallet_funded_tx(
+    node,
+    destination_scriptpubkey: bytes,
+    amount_sat: int,
+    fee_sat: int = 1000,
+    change_scriptpubkey: bytes | None = None,
+) -> CTransaction:
     """Create a funding tx without relying on legacy wallet signing paths.
 
     v1 consensus has PQ-only CHECKSIG semantics, so functional funding must avoid
@@ -128,11 +134,13 @@ def create_wallet_funded_tx(node, destination_scriptpubkey: bytes, amount_sat: i
     utxo = _pop_mature_funding_utxo(node)
     change_sat = utxo["value_sat"] - amount_sat - fee_sat
     assert change_sat > 0
+    if change_scriptpubkey is None:
+        change_scriptpubkey = bytes(CScript([OP_TRUE]))
 
     tx = CTransaction()
     tx.vin = [CTxIn(COutPoint(int(utxo["txid"], 16), utxo["vout"]), b"", SEQUENCE_FINAL - 1)]
     tx.vout = [
         CTxOut(amount_sat, destination_scriptpubkey),
-        CTxOut(change_sat, CScript([OP_TRUE])),
+        CTxOut(change_sat, change_scriptpubkey),
     ]
     return tx_from_hex(tx.serialize().hex())

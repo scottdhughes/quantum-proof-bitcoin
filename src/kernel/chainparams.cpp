@@ -564,7 +564,28 @@ public:
         fDefaultConsistencyChecks = true;
         m_is_mockable_chain = true;
 
-        m_assumeutxo_data = {};
+        m_assumeutxo_data = {
+            {   // For use by unit tests
+                .height = 110,
+                .hash_serialized = AssumeutxoHash{uint256{"23404ca0ff8546dcc26f857a526538f1201d9765baae5aeacf927b3a490b8712"}},
+                .m_chain_tx_count = 111,
+                .blockhash = uint256{"2da67eeeb548a86288558ef4a8926898d7344a05e0118d0b7c5e4cfaeaa0a58f"},
+            },
+            {
+                // For use by fuzz target src/test/fuzz/utxo_snapshot.cpp
+                .height = 200,
+                .hash_serialized = AssumeutxoHash{uint256{"b11bef93d794f17407e61030bccced32895a8f43ce43e49b2879a551c35b7fdd"}},
+                .m_chain_tx_count = 202,
+                .blockhash = uint256{"1f27274693c29444457e66352aca915bcdb94e1089fd97d70eadcb62a5c5ddc9"},
+            },
+            {
+                // For use by test/functional/feature_assumeutxo.py and test/functional/tool_bitcoin_chainstate.py
+                .height = 299,
+                .hash_serialized = AssumeutxoHash{uint256{"b6380c577e5df2d31230c0f6cc9c851b102aae4c322ef4e12cbfe6b6a018fba5"}},
+                .m_chain_tx_count = 334,
+                .blockhash = uint256{"55f5b68156be54960d12a8e9ed01e4c232cbc7197b231735eb9596f49e306387"},
+            },
+        };
 
         chainTxData = ChainTxData{
             .nTime = 0,

@@ -39,14 +39,14 @@
     "policy_class": "pq_backlog",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Now freezes a narrow PQBTC assumeutxo boundary: regtest assumeutxo metadata is committed for heights 110/200/299, snapshot activation/restart/reindex coverage stays green under the live harness, the non-empty-mempool rejection uses a PQ-safe raw P2WSH path, and the inherited snapshot-only MiniWallet spend is an explicit `scriptpubkey (-26)` negative control."
   },
   {
     "name": "feature_assumevalid.py",
     "policy_class": "pq_backlog",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Now freezes a narrow PQBTC assumevalid boundary: a handcrafted invalid-signature block is rejected without assumevalid, accepted when buried deeply enough under `-assumevalid`, and still rejected when not buried deeply enough; assumeutxo snapshot behavior remains a separate follow-on surface."
   },
   {
     "name": "feature_bind_extra.py",
@@ -109,7 +109,7 @@
     "policy_class": "pq_backlog",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Now freezes a narrow PQBTC txoutset/index boundary: the inherited default MiniWallet mempool self-transfer path remains deferred after a reproduced `scriptpubkey (-26)` failure, while the owned path uses direct-mined raw OP_TRUE transactions for the initial spend and the later parent/child plus OP_RETURN accounting sequence, preserving indexed-vs-non-indexed `gettxoutsetinfo()` parity, verbose `block_info` expectations, and restart/reorg/reindex behavior on that bounded dataset."
   },
   {
     "name": "feature_coinstatsindex_compatibility.py",
@@ -354,21 +354,21 @@
     "policy_class": "pq_backlog",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Now freezes a narrow PQBTC restart/reindex boundary: repeated `-reindex` and `-reindex-chainstate` restarts recover the same three-block chain, manual out-of-order blk file swapping still recovers the full 12-block chain with the expected debug markers, and an interrupted `-blockfilterindex -reindex` run later resumes without wiping the existing blockfilter LevelDB; init-error recovery and immutable/read-only blockstore handling remain separate follow-on surfaces."
   },
   {
     "name": "feature_reindex_init.py",
     "policy_class": "pq_backlog",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Now freezes a narrow PQBTC init-recovery boundary: removing the on-disk `blocks/index` directory causes the expected block-database init failure with explicit reindex guidance, and the current noninteractive reindex-acceptance recovery path returns the node to height 200; broader restart-time reindex behavior and immutable/read-only blockstore handling remain separate follow-on surfaces."
   },
   {
     "name": "feature_reindex_readonly.py",
     "policy_class": "pq_backlog",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Now freezes a narrow PQBTC immutable/read-only blockstore reindex boundary: under `-fastprune`, the first blk file is made read-only and locally immutable when the host supports it, restart under `-reindex -fastprune` completes with the expected `Reindexing finished` marker and the same chain height, and mutability is restored for cleanup; generic reindex behavior remains covered by the other reindex slices."
   },
   {
     "name": "feature_remove_pruned_files_on_startup.py",
@@ -479,7 +479,7 @@
     "policy_class": "pq_backlog",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Now freezes a narrow PQBTC txoutset-hash boundary: the inherited default MiniWallet self-transfer path remains deferred after a reproduced `scriptpubkey (-26)` failure, while the owned path uses one raw OP_TRUE MiniWallet coinbase spend mined directly by `generateblock(...)`, preserves manual MuHash equality with `gettxoutsetinfo(\"muhash\")`, and fixes the current PQBTC `hash_serialized_3` / `muhash` constants for that exact chainstate sequence."
   },
   {
     "name": "feature_versionbits_warning.py",
@@ -1469,7 +1469,7 @@
     "policy_class": "pq_backlog",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes a narrow PQBTC wallet-side assumeutxo boundary: the chain stays aligned with the current assumeutxo anchors while inherited MiniWallet mempool funding is replaced by direct-mined transactions, snapshot-height backup restore is allowed during background sync, older backup restore and rescans stay blocked until background validation completes, and final owned balances still settle to 34 and 340."
   },
   {
     "name": "wallet_avoid_mixing_output_types.py",

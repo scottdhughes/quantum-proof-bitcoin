@@ -12,7 +12,10 @@ from test_framework.messages import (
 from test_framework.crypto.muhash import MuHash3072
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import assert_equal
-from test_framework.wallet import MiniWallet
+from test_framework.wallet import (
+    MiniWallet,
+    MiniWalletMode,
+)
 
 class UTXOSetHashTest(BitcoinTestFramework):
     def set_test_params(self):
@@ -23,19 +26,26 @@ class UTXOSetHashTest(BitcoinTestFramework):
         self.log.info("Test MuHash implementation consistency")
 
         node = self.nodes[0]
-        wallet = MiniWallet(node)
+        # The default MiniWallet path is Taproot-shaped and currently fails on
+        # PQBTC under the inherited `scriptpubkey` path. Freeze this suite on a
+        # raw OP_TRUE spend that the current chainstate surface can actually own.
+        wallet = MiniWallet(node, mode=MiniWalletMode.RAW_OP_TRUE)
         mocktime = node.getblockheader(node.getblockhash(0))['time'] + 1
         node.setmocktime(mocktime)
 
         # Generate 100 blocks and remove the first since we plan to spend its
         # coinbase
-        block_hashes = self.generate(wallet, 1) + self.generate(node, 99)
+        block_hashes = self.generatetodescriptor(node, 1, wallet.get_descriptor()) + self.generate(node, 99)
+        wallet.rescan_utxos(include_mempool=False)
         blocks = list(map(lambda block: from_hex(CBlock(), node.getblock(block, False)), block_hashes))
+        first_block_hash = block_hashes[0]
         blocks.pop(0)
 
         # Create a spending transaction and mine a block which includes it
-        txid = wallet.send_self_transfer(from_node=node)['txid']
-        tx_block = self.generateblock(node, output=wallet.get_address(), transactions=[txid])
+        coinbase_txid = node.getblock(first_block_hash, 2)['tx'][0]['txid']
+        utxo = wallet.get_utxo(txid=coinbase_txid, vout=0, mark_as_spent=False)
+        tx = wallet.create_self_transfer(utxo_to_spend=utxo)
+        tx_block = self.generateblock(node, output="raw(51)", transactions=[tx['hex']])
         blocks.append(from_hex(CBlock(), node.getblock(tx_block['hash'], False)))
 
         # Serialize the outputs that should be in the UTXO set and add them to
@@ -67,8 +77,8 @@ class UTXOSetHashTest(BitcoinTestFramework):
         assert_equal(finalized[::-1].hex(), node_muhash)
 
         self.log.info("Test deterministic UTXO set hash results")
-        assert_equal(node.gettxoutsetinfo()['hash_serialized_3'], "e0b4c80f2880985fdf1adc331ed0735ac207588f986c91c7c05e8cf5fe6780f0")
-        assert_equal(node.gettxoutsetinfo("muhash")['muhash'], "8739b878f23030ef39a5547edc7b57f88d50fdaaf47314ff0524608deb13067e")
+        assert_equal(node.gettxoutsetinfo()['hash_serialized_3'], "3b94891568e70f4a235a06233d3fb6253dacbc15dfd2db248be33086eafd5ca4")
+        assert_equal(node.gettxoutsetinfo("muhash")['muhash'], "3a54f825464eca4e3a0f3c3b8b852e86bee36356fb8924f4ff6d932b3b1f88ae")
 
     def run_test(self):
         self.test_muhash_implementation()
