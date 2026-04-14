@@ -42,7 +42,6 @@ It freezes six things:
 
 This tranche still does not:
 
-- promote `feature_block.py` into `pq_required`
 - claim a general PQ migration decision for every chainstate-facing behavior in
   the suite
 - redesign consensus, policy, or mempool semantics outside the specific
@@ -50,3 +49,17 @@ This tranche still does not:
 
 Those remain later CI/backlog decisions, not a reason to widen this tranche
 into a broader chainstate rewrite.
+
+## Interpretation
+
+- `feature_block.py` is now the required PQ-first full-block validation gate
+  for this bounded harness surface
+- it remains a deliberately scoped contract, not a blanket ownership claim over
+  every chainstate behavior in the inherited suite
+- the next clean actionable local follow-on is
+  [feature_coinstatsindex.py](../test/functional/feature_coinstatsindex.py),
+  which already owns a bounded txoutset/index slice and is the next honest
+  local gate-promotion candidate
+- the environment-dependent compatibility follow-on remains
+  [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py),
+  which stays blocked until real prior PQBTC release assets exist

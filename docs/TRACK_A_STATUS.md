@@ -29,10 +29,11 @@ freeze the new `wallet_miniscript.py`, `rpc_createmultisig.py`,
 `feature_reindex.py`, `feature_reindex_init.py`, and
 `feature_reindex_readonly.py`, and `feature_assumevalid.py` boundaries, and
 keep the new `feature_assumeutxo.py` and `wallet_assumeutxo.py` gates frozen,
-promote `feature_assumevalid.py` into the canonical `pq_required` gate, then
-return the next owned follow-on to
-`feature_coinstatsindex_compatibility.py`, with broader inherited miniscript
-funding/finalization rehab as the local wallet alternate.
+keep `feature_assumevalid.py` frozen in the canonical `pq_required` gate,
+promote `feature_block.py` into the same gate, then return the next local
+owned follow-on to `feature_coinstatsindex.py`, while
+`feature_coinstatsindex_compatibility.py` stays blocked until real prior PQBTC
+release assets exist.
 
 ## Current Working Thesis
 
@@ -48,17 +49,17 @@ funding/finalization rehab as the local wallet alternate.
 
 Preferred next owned tranche:
 
-1. `feature_coinstatsindex_compatibility.py`
-   - Why next: the core assumeutxo activation surface and the adjacent
-     wallet-side background-sync surface are now frozen, so the remaining
-     nearby chainstate/index follow-on is cross-version coinstats
-     compatibility.
+1. `feature_coinstatsindex.py` gate promotion
+   - Why next: after the assumevalid and full-block validation gates are in the
+     required path, the next honest local chainstate/index follow-on is the
+     bounded txoutset/index slice that already passes on the current PQBTC
+     harness.
 
 Alternate rebalance:
 
-2. broader inherited miniscript funding/finalization rehab
-   - Why alternate: if local wallet adjacency is still the priority, this
-     remains the next wallet-side surface to reopen.
+2. `feature_coinstatsindex_compatibility.py`
+   - Why alternate: if real prior PQBTC release assets become available, the
+     blocked cross-version compatibility surface becomes actionable again.
 
 Wallet alternate:
 
@@ -68,7 +69,7 @@ Wallet alternate:
 
 Still deferred:
 
-4. `feature_block.py` gate promotion
+4. `feature_coinstatsindex_compatibility.py` with real prior PQBTC release assets
 5. TapMiniscript activation or replacement semantics
 
 ## Current Queue
@@ -107,7 +108,6 @@ Still deferred:
    Minimum validation target:
    - `python3 test/functional/feature_block.py`
    Still deferred inside this suite:
-   - promotion into `pq_required`
    - broader CI ownership decisions for chainstate-facing backlog beyond this
      fixed functional contract
 3. `wallet_miniscript.py` now owns:
@@ -901,6 +901,13 @@ Aineko must ask before:
   activation and wallet background-sync surfaces. The next owned follow-on
   remains `feature_coinstatsindex_compatibility.py`, while `feature_block.py`
   becomes the nearby validation-side gate candidate.
+- 2026-04-14: `feature_block.py` is now promoted into the canonical
+  `pq_required` gate. The current required PQ path therefore also covers the
+  bounded full-block invalid-branch, transport-oversize, and resurrection
+  harness surface. The next local owned follow-on shifts to
+  `feature_coinstatsindex.py`, while
+  `feature_coinstatsindex_compatibility.py` remains blocked until real prior
+  PQBTC release assets exist.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
