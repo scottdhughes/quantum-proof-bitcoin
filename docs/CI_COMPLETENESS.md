@@ -36,8 +36,8 @@ The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `22` |
-| `pq_backlog` | `98` |
+| `pq_required` | `23` |
+| `pq_backlog` | `97` |
 | `dual_profile` | `147` |
 | `legacy_only` | `9` |
 
@@ -64,7 +64,8 @@ Current required PQ-first gates:
 19. `wallet_pq_sendmany.py`
 20. `wallet_pq_signrawtransaction.py`
 21. `feature_assumeutxo.py`
-22. `wallet_assumeutxo.py`
+22. `feature_assumevalid.py`
+23. `wallet_assumeutxo.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
@@ -75,8 +76,10 @@ replacement-path confidence gap is closed in this tranche by promoting the full
 deterministic Taproot replacement functional stack into the required PQ gate.
 The assumeutxo confidence gap is closed in this tranche by promoting the live
 snapshot-activation surface and the adjacent wallet-side background-sync
-surface into the canonical required gate. The remaining key backlog families
-are:
+surface into the canonical required gate. The assumevalid confidence gap is
+closed in this tranche by promoting the fixed invalid-signature burial-depth
+validation slice into the same required PQ path. The remaining key backlog
+families are:
 
 1. mempool and mining policy suites not yet given explicit PQ gating treatment
 2. additional chainstate and validation-facing feature tests that still need a later PQ migration decision

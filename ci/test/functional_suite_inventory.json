@@ -43,10 +43,10 @@
   },
   {
     "name": "feature_assumevalid.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Now freezes a narrow PQBTC assumevalid boundary: a handcrafted invalid-signature block is rejected without assumevalid, accepted when buried deeply enough under `-assumevalid`, and still rejected when not buried deeply enough; assumeutxo snapshot behavior remains a separate follow-on surface."
+    "notes": "Now promoted into pq_required as the owned PQBTC assumevalid gate: a handcrafted invalid-signature block is rejected without assumevalid, accepted when buried deeply enough under `-assumevalid`, and still rejected when it is not buried deeply enough; assumeutxo snapshot behavior remains a separate follow-on surface."
   },
   {
     "name": "feature_bind_extra.py",

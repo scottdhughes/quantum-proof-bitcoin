@@ -28,8 +28,9 @@ freeze the new `wallet_miniscript.py`, `rpc_createmultisig.py`,
 `feature_utxo_set_hash.py`, `feature_coinstatsindex.py`, and
 `feature_reindex.py`, `feature_reindex_init.py`, and
 `feature_reindex_readonly.py`, and `feature_assumevalid.py` boundaries, and
-promote `feature_assumeutxo.py` and `wallet_assumeutxo.py` into the canonical
-`pq_required` gate, then return the next owned follow-on to
+keep the new `feature_assumeutxo.py` and `wallet_assumeutxo.py` gates frozen,
+promote `feature_assumevalid.py` into the canonical `pq_required` gate, then
+return the next owned follow-on to
 `feature_coinstatsindex_compatibility.py`, with broader inherited miniscript
 funding/finalization rehab as the local wallet alternate.
 
@@ -67,7 +68,7 @@ Wallet alternate:
 
 Still deferred:
 
-4. `feature_assumevalid.py` gate promotion
+4. `feature_block.py` gate promotion
 5. TapMiniscript activation or replacement semantics
 
 ## Current Queue
@@ -448,12 +449,11 @@ Still deferred:
      assumevalid-enabled node
    - expected debug markers for disabling and re-enabling signature validation
    - rejection of the same bad block on the shallow assumevalid-enabled node
-     when it is not buried deeply enough
+   when it is not buried deeply enough
    Minimum validation target:
    - `python3 test/functional/feature_assumevalid.py`
    Still deferred inside this suite:
    - assumeutxo snapshot loading and activation behavior
-   - promotion into `pq_required`
 24. `feature_assumeutxo.py` now owns:
    - regtest assumeutxo metadata anchors at heights `110`, `200`, and `299`
      for the live PQBTC harness
@@ -895,6 +895,12 @@ Aineko must ask before:
   background-sync contract on the live regtest assumeutxo anchors. The next
   owned follow-on remains `feature_coinstatsindex_compatibility.py`, while
   `feature_assumevalid.py` remains the nearby validation-side gate candidate.
+- 2026-04-14: `feature_assumevalid.py` is now promoted into the canonical
+  `pq_required` gate. The current required PQ path therefore also covers the
+  fixed assumevalid burial-depth validation slice alongside the live assumeutxo
+  activation and wallet background-sync surfaces. The next owned follow-on
+  remains `feature_coinstatsindex_compatibility.py`, while `feature_block.py`
+  becomes the nearby validation-side gate candidate.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full

@@ -32,9 +32,8 @@ a narrow validation slice:
 This posture note does **not** mean:
 
 - assumeutxo snapshot loading or snapshot-chainstate behavior is owned here
-- this suite is promoted into `pq_required`
 
-Those remain separate follow-on surfaces.
+That remains a separate follow-on surface.
 
 ## Confidence Snapshot
 
@@ -51,7 +50,7 @@ Targeted confidence pass run on 2026-04-14:
 ## Interpretation
 
 - `feature_assumevalid.py` is now a fixed PQBTC assumevalid slice
-- it remains `pq_backlog`, not a required PQ-first gate
+- it is now `pq_required` as the required PQ-first assumevalid validation gate
 - the adjacent snapshot-loading and wallet background-sync surfaces are now
   owned by
   [feature_assumeutxo.py](../test/functional/feature_assumeutxo.py) and
