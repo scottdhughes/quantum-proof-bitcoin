@@ -1,3 +1,4 @@
+feature_assumeutxo.py
 feature_pq_block_limits.py
 feature_pq_reorg.py
 feature_pqsig_basic.py
@@ -9,6 +10,7 @@ feature_taproot_replacement_active_semantic_guard.py
 feature_taproot_replacement_active_positive_seam.py
 mempool_pq_limits.py
 mempool_pq_stress.py
+wallet_assumeutxo.py
 wallet_pq_active_ranged.py
 wallet_pq_backup_recovery.py
 wallet_pq_create_tx.py

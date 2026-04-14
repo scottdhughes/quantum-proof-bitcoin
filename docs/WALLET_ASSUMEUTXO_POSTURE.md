@@ -38,7 +38,6 @@ This posture note does **not** mean:
 
 - broad inherited MiniWallet mempool acceptance is owned here
 - generic wallet behavior across all assumeutxo permutations is owned here
-- this suite is promoted into `pq_required`
 
 Those remain separate follow-on surfaces.
 
@@ -57,7 +56,7 @@ Targeted confidence pass run on 2026-04-14:
 ## Interpretation
 
 - `wallet_assumeutxo.py` is now a fixed PQBTC wallet-side assumeutxo slice
-- it remains `pq_backlog`, not a required PQ-first gate
+- it is now `pq_required` in the canonical PQ-first functional gate
 - the next clean actionable follow-on is
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py),
   if the required previous-release assets are available locally
