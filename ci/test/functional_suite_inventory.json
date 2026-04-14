@@ -78,10 +78,10 @@
   },
   {
     "name": "feature_block.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Current owned tranche adapts PQ signing, same-work header delivery, explicit invalid multi-block branch handling, transport-oversize disconnect expectations, and mempool-baseline resurrection assertions inside the functional harness; broader CI/gating follow-up remains deferred."
+    "notes": "Now promoted into pq_required as the owned PQBTC full-block gate: the functional harness uses PQ signing helpers, same-work side branches stay header-only until explicitly force-sent, invalid multi-block branches preserve the active tip, transport-oversize paths are treated as disconnect cases, and resurrection checks stay grounded on the actual mempool baseline."
   },
   {
     "name": "feature_blocksdir.py",
