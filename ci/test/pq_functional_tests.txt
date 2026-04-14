@@ -1,4 +1,5 @@
 feature_assumeutxo.py
+feature_assumevalid.py
 feature_pq_block_limits.py
 feature_pq_reorg.py
 feature_pqsig_basic.py
