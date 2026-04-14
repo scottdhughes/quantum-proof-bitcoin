@@ -574,9 +574,9 @@ public:
             {
                 // For use by fuzz target src/test/fuzz/utxo_snapshot.cpp
                 .height = 200,
-                .hash_serialized = AssumeutxoHash{uint256{"b11bef93d794f17407e61030bccced32895a8f43ce43e49b2879a551c35b7fdd"}},
-                .m_chain_tx_count = 202,
-                .blockhash = consteval_ctor(uint256{"1f27274693c29444457e66352aca915bcdb94e1089fd97d70eadcb62a5c5ddc9"}),
+                .hash_serialized = AssumeutxoHash{uint256{"17dcc016d188d16068907cdeb38b75691a118d43053b8cd6a25969419381d13a"}},
+                .m_chain_tx_count = 201,
+                .blockhash = consteval_ctor(uint256{"5457db193e5417616ab1f55ee211258f26283982fb894beb7930c85324bd34b6"}),
             },
             {
                 // For use by test/functional/feature_assumeutxo.py and test/functional/tool_bitcoin_chainstate.py
