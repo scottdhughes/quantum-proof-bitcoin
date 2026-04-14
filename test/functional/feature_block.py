@@ -58,6 +58,11 @@ from test_framework.util import (
 )
 from data import invalid_txs
 
+OVERSIZE_BLOCK_LOG_FRAGMENTS = [
+    'Size too large (block,',
+    'bad-blk-length, size limits failed',
+]
+
 
 #  Use this class for tests that require behavior other than normal p2p behavior.
 #  For now, it is used to serialize a bloated varint (b64).
@@ -407,7 +412,7 @@ class FullBlockTest(BitcoinTestFramework):
         tx.vout = [CTxOut(0, script_output)]
         b24 = self.update_block(24, [tx])
         assert_equal(b24.get_weight(), MAX_BLOCK_WEIGHT + 1 * 4)
-        self.send_blocks([b24], success=False, reject_reason='Size too large (block, 4000001 bytes)', reconnect=True)
+        self.send_blocks([b24], success=False, reject_reason=OVERSIZE_BLOCK_LOG_FRAGMENTS, reconnect=True)
 
         b25 = self.next_block(25, spend=out[7])
         self.send_blocks([b25], False, reconnect=True)
@@ -980,7 +985,7 @@ class FullBlockTest(BitcoinTestFramework):
         tx.vin.append(CTxIn(COutPoint(b64a.vtx[1].txid_int, 0)))
         b64a = self.update_block("64a", [tx])
         assert_equal(b64a.get_weight(), MAX_BLOCK_WEIGHT + 8 * 4)
-        self.send_blocks([b64a], success=False, reject_reason='Size too large (block, 4000008 bytes)', reconnect=True)
+        self.send_blocks([b64a], success=False, reject_reason=OVERSIZE_BLOCK_LOG_FRAGMENTS, reconnect=True)
 
         self.move_tip('dup_2')
         b64 = CBlock(b64a)
@@ -1542,25 +1547,49 @@ class FullBlockTest(BitcoinTestFramework):
         """Sends blocks to test node. Syncs and verifies that tip has advanced to most recent block.
 
         Call with success = False if the tip shouldn't advance to the most recent block."""
+        accept_any_reject_reason = isinstance(reject_reason, (list, tuple))
+        prev_log_size = None
+        if accept_any_reject_reason:
+            prev_log_size = self.nodes[0].debug_log_size(encoding="utf-8")
         for attempt in range(2):
             if not self.helper_peer.is_connected:
                 self.reconnect_p2p(timeout=timeout)
             try:
-                self.helper_peer.send_blocks_and_test(
-                    blocks,
-                    self.nodes[0],
-                    success=success,
-                    reject_reason=reject_reason,
-                    force_send=force_send,
-                    timeout=timeout,
-                    expect_disconnect=reconnect,
-                )
+                if accept_any_reject_reason:
+                    self.helper_peer.send_blocks_and_test(
+                        blocks,
+                        self.nodes[0],
+                        success=success,
+                        reject_reason=None,
+                        force_send=force_send,
+                        timeout=timeout,
+                        expect_disconnect=reconnect,
+                    )
+                else:
+                    self.helper_peer.send_blocks_and_test(
+                        blocks,
+                        self.nodes[0],
+                        success=success,
+                        reject_reason=reject_reason,
+                        force_send=force_send,
+                        timeout=timeout,
+                        expect_disconnect=reconnect,
+                    )
                 break
             except OSError as exc:
                 if attempt == 0 and str(exc) == 'Not connected':
                     self.reconnect_p2p(timeout=timeout)
                     continue
                 raise
+
+        if accept_any_reject_reason:
+            def log_contains_expected_fragment():
+                with open(self.nodes[0].debug_log_path, encoding="utf-8", errors="replace") as dl:
+                    dl.seek(prev_log_size)
+                    appended = dl.read()
+                return any(fragment in appended for fragment in reject_reason)
+
+            self.helper_peer.wait_until(log_contains_expected_fragment, timeout=timeout, check_connected=False)
 
         if reconnect:
             self.reconnect_p2p(timeout=timeout)
