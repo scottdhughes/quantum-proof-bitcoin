@@ -57,7 +57,7 @@ public:
 
 BOOST_FIXTURE_TEST_SUITE(script_tests, BasicTestingSetup)
 
-BOOST_AUTO_TEST_CASE(pq_checksig_accepts_and_rejects_deterministically)
+BOOST_AUTO_TEST_CASE(pq_base_checksig_rejects_oversized_sigs_under_legacy_limits)
 {
     const std::array<uint8_t, 32> sk_seed{0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
                                           0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
@@ -76,22 +76,22 @@ BOOST_AUTO_TEST_CASE(pq_checksig_accepts_and_rejects_deterministically)
     const TransactionSignatureChecker checker(&tx_spend_const, 0, 0, MissingDataBehavior::FAIL);
     ScriptError err;
 
-    BOOST_CHECK(VerifyScript(tx_spend.vin[0].scriptSig, script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
-    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_OK);
+    BOOST_CHECK(!VerifyScript(tx_spend.vin[0].scriptSig, script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUSH_SIZE);
 
     CMutableTransaction mutated_tx = tx_spend;
     mutated_tx.vout[0].nValue = 1;
     const CTransaction mutated_tx_const{mutated_tx};
     const TransactionSignatureChecker mutated_checker(&mutated_tx_const, 0, 0, MissingDataBehavior::FAIL);
     BOOST_CHECK(!VerifyScript(mutated_tx.vin[0].scriptSig, script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, mutated_checker, &err));
-    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_EVAL_FALSE);
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUSH_SIZE);
 
     CMutableTransaction wrong_size_tx = tx_spend;
     wrong_size_tx.vin[0].scriptSig = CScript{} << std::vector<unsigned char>(pqsig::SIG_SIZE - 1, 0x42);
     const CTransaction wrong_size_tx_const{wrong_size_tx};
     const TransactionSignatureChecker wrong_size_checker(&wrong_size_tx_const, 0, 0, MissingDataBehavior::FAIL);
     BOOST_CHECK(!VerifyScript(wrong_size_tx.vin[0].scriptSig, script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, wrong_size_checker, &err));
-    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_SIG_DER);
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUSH_SIZE);
 }
 
 BOOST_AUTO_TEST_CASE(inherited_taproot_rejection_guard_is_explicit)

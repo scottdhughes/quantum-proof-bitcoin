@@ -39,7 +39,7 @@ from test_framework.script import (
     TaprootSignatureHash,
     taproot_construct,
 )
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BitcoinTestFramework, SkipTest
 from test_framework.util import assert_equal
 
 
@@ -164,6 +164,10 @@ class TaprootReplacementActiveSemanticGuardTest(BitcoinTestFramework):
         assert_equal(dep_1["height"], ACTIVE_HEIGHT)
 
     def run_test(self):
+        dep = self.nodes[0].getdeploymentinfo()["deployments"][TAPROOT_REPLACEMENT_NAME]
+        if dep["active"] and dep["bip9"]["status"] == "active":
+            raise SkipTest("legacy-aligned regtest keeps taproot_replacement active from genesis")
+
         self.log.info("Disconnect node1 while probing the dormant-side negative-control precondition")
         self.disconnect_nodes(0, 1)
 

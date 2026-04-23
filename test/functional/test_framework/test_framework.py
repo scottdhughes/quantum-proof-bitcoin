@@ -491,9 +491,21 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
 
     def _align_node_mocktime_to_genesis(self, node):
         now = int(time.time())
-        genesis_time = node.getblockheader(node.getblockhash(0))['time']
+        try:
+            genesis_time = node.getblockheader(node.getblockhash(0))['time']
+        except JSONRPCException:
+            node.rpc_connected = False
+            node._rpc = None
+            node.wait_for_rpc_connection(wait_for_import=False)
+            return
         if now <= genesis_time:
-            node.setmocktime(genesis_time + 1)
+            try:
+                node.setmocktime(genesis_time + 1)
+            except JSONRPCException:
+                node.rpc_connected = False
+                node._rpc = None
+                node.wait_for_rpc_connection(wait_for_import=False)
+                return
 
     def import_deterministic_coinbase_privkeys(self):
         for i in range(self.num_nodes):
@@ -612,7 +624,12 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         node.start(*args, **kwargs)
         node.wait_for_rpc_connection()
         if node.mocktime is not None:
-            node.setmocktime(node.mocktime)
+            try:
+                node.setmocktime(node.mocktime)
+            except JSONRPCException:
+                node.rpc_connected = False
+                node._rpc = None
+                node.wait_for_rpc_connection(wait_for_import=False)
         else:
             self._align_node_mocktime_to_genesis(node)
 

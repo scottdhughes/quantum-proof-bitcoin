@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The PQBTC Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""PQSig multisig flow (2-of-2 CHECKMULTISIG)."""
+"""PQSig multisig remains non-standard under legacy-aligned policy limits."""
 
 from test_framework.messages import (
     COutPoint,
@@ -60,18 +60,17 @@ class PQSigMultisigTest(BitcoinTestFramework):
         good.wit.vtxinwit = [CTxInWitness()]
         good.wit.vtxinwit[0].scriptWitness.stack = [b"", sig1, sig2, bytes(witness_script)]
         good_accept = node.testmempoolaccept([good.serialize().hex()])[0]
-        assert good_accept["allowed"], good_accept
+        assert not good_accept["allowed"], good_accept
+        assert good_accept["reject-reason"] == "bad-witness-nonstandard", good_accept
 
         bad_sig2 = bytearray(sig2)
         bad_sig2[15] ^= 0x01
         bad = tx_from_hex(spend_tx.serialize().hex())
         bad.wit.vtxinwit = [CTxInWitness()]
         bad.wit.vtxinwit[0].scriptWitness.stack = [b"", sig1, bytes(bad_sig2), bytes(witness_script)]
-        assert not node.testmempoolaccept([bad.serialize().hex()])[0]["allowed"]
-
-        txid = node.sendrawtransaction(good.serialize().hex())
-        self.generate(node, 1)
-        assert txid
+        bad_accept = node.testmempoolaccept([bad.serialize().hex()])[0]
+        assert not bad_accept["allowed"], bad_accept
+        assert bad_accept["reject-reason"] == "bad-witness-nonstandard", bad_accept
 
 
 if __name__ == "__main__":

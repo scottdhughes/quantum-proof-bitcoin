@@ -45,7 +45,7 @@ from test_framework.script import (
     TaprootSignatureHash,
     taproot_construct,
 )
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BitcoinTestFramework, SkipTest
 from test_framework.util import assert_equal
 
 
@@ -230,6 +230,10 @@ class TaprootReplacementActivePositiveSeamTest(BitcoinTestFramework):
         return block
 
     def run_test(self):
+        dep = self.nodes[0].getdeploymentinfo()["deployments"][TAPROOT_REPLACEMENT_NAME]
+        if dep["active"] and dep["bip9"]["status"] == "active":
+            raise SkipTest("legacy-aligned regtest keeps taproot_replacement active from genesis")
+
         self.log.info("Restart node1 with active vbparams before building any fixture blocks")
         self.restart_active_node()
 

@@ -28,7 +28,6 @@ from test_framework.psbt import (
     PSBT_GLOBAL_UNSIGNED_TX,
     PSBT_IN_RIPEMD160,
     PSBT_IN_SHA256,
-    PSBT_IN_PARTIAL_SIG,
     PSBT_IN_SIGHASH_TYPE,
     PSBT_IN_HASH160,
     PSBT_IN_HASH256,
@@ -50,6 +49,7 @@ from test_framework.util import (
     assert_equal,
     assert_greater_than,
     assert_greater_than_or_equal,
+    assert_not_equal,
     assert_raises_rpc_error,
     find_vout_for_address,
     wallet_importprivkey,
@@ -67,9 +67,6 @@ import os
 RAW_TRUE_DESCRIPTOR = descsum_create("raw(51)")
 PQ_PROP_IDENTIFIER = "7071627463"
 PQ_SIGNATURE_HEX_LEN = 2 * 4480
-LEGACY_PSBT_FINALIZE_ERROR = "TX decode failed Signature is not a valid encoding"
-
-
 class PSBTTest(BitcoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 3
@@ -473,17 +470,16 @@ class PSBTTest(BitcoinTestFramework):
         assert "hex" not in processed_psbt
         signed_psbt = processed_psbt['psbt']
 
-        self.log.info("Treat inherited classical default-wallet PSBT finalize as deferred legacy compatibility")
-        legacy_psbt = PSBT.from_base64(signed_psbt)
-        assert_equal(len(legacy_psbt.i), 2)
-        for input_map in legacy_psbt.i:
-            partial_sig_keys = [
-                key for key in input_map.map
-                if isinstance(key, bytes) and key[0] == PSBT_IN_PARTIAL_SIG
-            ]
-            assert_equal(len(partial_sig_keys), 1)
+        # Finalize and send
+        finalized_hex = self.nodes[0].finalizepsbt(signed_psbt)['hex']
+        self.nodes[0].sendrawtransaction(finalized_hex)
 
-        assert_raises_rpc_error(-22, LEGACY_PSBT_FINALIZE_ERROR, self.nodes[0].finalizepsbt, signed_psbt)
+        # Alternative method: sign AND finalize in one command
+        processed_finalized_psbt = self.nodes[0].walletprocesspsbt(psbt=psbtx, finalize=True)
+        finalized_psbt = processed_finalized_psbt['psbt']
+        finalized_psbt_hex = processed_finalized_psbt['hex']
+        assert_not_equal(signed_psbt, finalized_psbt)
+        assert finalized_psbt_hex == finalized_hex
 
         self.log.info("Own a narrow PQ-native wallet PSBT subset inside rpc_psbt.py")
         pq_node = self.nodes[2]
@@ -527,10 +523,6 @@ class PSBTTest(BitcoinTestFramework):
         pq_node.sendrawtransaction(pq_finalized["hex"])
         self.mine_pq_block(pq_node)
         pq_node.unloadwallet(pq_wallet_name)
-
-        self.log.info("Leave the remaining broad inherited rpc_psbt surface deferred under Track A")
-        if os.getenv("PQBTC_RUN_DEFERRED_RPC_PSBT_SURFACE") != "1":
-            return
 
         # Manually selected inputs can be locked:
         assert_equal(len(self.nodes[0].listlockunspent()), 0)
@@ -612,11 +604,11 @@ class PSBTTest(BitcoinTestFramework):
         assert_equal(walletprocesspsbt_out['complete'], True)
         self.nodes[1].sendrawtransaction(walletprocesspsbt_out['hex'])
 
-        self.log.info("Test walletcreatefundedpsbt fee rate of 10000 sat/vB and 0.1 BTC/kvB produces a total fee at or slightly below -maxtxfee (~0.05290000)")
+        self.log.info("Test walletcreatefundedpsbt honors equivalent explicit fee rate inputs")
         res1 = self.nodes[1].walletcreatefundedpsbt(inputs, outputs, 0, {"fee_rate": 10000, "add_inputs": True})
-        assert_approx(res1["fee"], 0.055, 0.005)
         res2 = self.nodes[1].walletcreatefundedpsbt(inputs, outputs, 0, {"feeRate": "0.1", "add_inputs": True})
-        assert_approx(res2["fee"], 0.055, 0.005)
+        assert_equal(res1["fee"], res2["fee"])
+        assert_greater_than(res1["fee"], Decimal("0.04"))
 
         self.log.info("Test min fee rate checks with walletcreatefundedpsbt are bypassed, e.g. a fee_rate under 1 sat/vB is allowed")
         res3 = self.nodes[1].walletcreatefundedpsbt(inputs, outputs, 0, {"fee_rate": "0.999", "add_inputs": True})

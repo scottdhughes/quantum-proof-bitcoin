@@ -7,19 +7,19 @@
 
 ## Purpose
 
-Define the owned Track A contract for the PQBTC block weight limit profile and
-`-blockmaxweight` operator boundary.
+Define the owned Track A contract for the legacy Bitcoin block weight ceiling
+with PQ signature support enabled and the `-blockmaxweight` operator boundary.
 
 ## Current Owned Surface
 
 The current passing
 [feature_pq_block_limits.py](../test/functional/feature_pq_block_limits.py)
-suite owns a small PQ-native block-profile contract:
+suite owns a small dual-stack block-profile contract:
 
-- the node reports a `getblocktemplate()["weightlimit"]` of `16_000_000`
-- restarting with `-blockmaxweight=16000000` preserves that same limit
-- starting with `-blockmaxweight=16000001` fails with the expected init error
-  because it exceeds the PQBTC consensus maximum block weight
+- the node reports a `getblocktemplate()["weightlimit"]` of `4_000_000`
+- restarting with `-blockmaxweight=4000000` preserves that same limit
+- starting with `-blockmaxweight=4000001` fails with the expected init error
+  because it exceeds the consensus maximum block weight
 - restarting again at the exact consensus ceiling succeeds and leaves the node
   able to continue mining blocks
 - this suite remains protected by the required PQ-first functional gate
@@ -41,7 +41,7 @@ Targeted confidence pass run on 2026-04-12:
 - `python3 test/functional/feature_pq_block_limits.py`
   - result: passed
   - current posture:
-    - the advertised block weight limit remains exactly `16_000_000`
+    - the advertised block weight limit remains exactly `4_000_000`
     - exact-ceiling `-blockmaxweight` restarts remain valid
     - over-ceiling `-blockmaxweight` startup still fails with the expected
       init error
@@ -50,7 +50,8 @@ Targeted confidence pass run on 2026-04-12:
 
 ## Interpretation
 
-- `feature_pq_block_limits.py` is now a fixed PQ-native consensus/profile slice
+- `feature_pq_block_limits.py` is now a fixed consensus/profile slice for the
+  restored legacy block ceiling under PQ-capable script validation
 - it is a very small contract, but it is directly tied to the launch block
   profile and already belongs in the required PQ gate
 - the next clean follow-on is

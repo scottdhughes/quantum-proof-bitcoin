@@ -37,9 +37,9 @@ That remains a separate follow-on surface.
 
 ## Confidence Snapshot
 
-Targeted confidence pass run on 2026-04-14:
+Current validation reference:
 
-- `python3 test/functional/feature_assumevalid.py`
+- `build/test/functional/test_runner.py --jobs=1 feature_assumevalid.py`
   - result: passed
   - current posture:
     - the non-assumevalid node rejects the invalid block at height `102`
@@ -59,4 +59,5 @@ Targeted confidence pass run on 2026-04-14:
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py),
   if the required previous-release assets are available locally
 - the environment-dependent alternate remains
-  broader inherited miniscript funding/finalization rehab
+  broader inherited wallet/address-type rehab beyond the current descriptor
+  surfaces

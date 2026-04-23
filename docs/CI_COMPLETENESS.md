@@ -36,9 +36,9 @@ The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `24` |
+| `pq_required` | `29` |
 | `pq_backlog` | `96` |
-| `dual_profile` | `147` |
+| `dual_profile` | `142` |
 | `legacy_only` | `9` |
 
 Current required PQ-first gates:
@@ -66,13 +66,31 @@ Current required PQ-first gates:
 21. `feature_assumeutxo.py`
 22. `feature_assumevalid.py`
 23. `feature_block.py`
-24. `wallet_assumeutxo.py`
+24. `rpc_psbt.py`
+25. `wallet_address_types.py`
+26. `wallet_assumeutxo.py`
+27. `wallet_miniscript.py`
+28. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
+29. `wallet_multisig_descriptor_psbt.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
 fixed watch-only descriptor, direct create-tx, `send`, `sendall`, `sendmany`,
 direct raw-signing, and PSBT unit coverage to the default `test_pqbtc`
-profile. The
+profile. The restored inherited pre-taproot PSBT RPC surface and the
+watch-only multisig descriptor PSBT finalization flow are now also part of the
+required gate, so the canonical PQ path covers both the proprietary PQ
+partial-signature path and the legacy multisig/classical finalize path. The
+broader inherited miniscript descriptor funding/signing/finalization surface,
+including the decaying multisig locktime contract, is now also part of the
+required gate. The inherited address-type confidence gap is now also part of
+the required gate: `wallet_address_types.py` covers inherited address-shape
+smoke behavior, descriptor bech32m smoke behavior, inherited mixed-address
+`sendmany`, PQ-only inherited-address RPC rejections, and invalid address-type
+precedence. The validation-side confidence gap is now also closed by
+promoting `feature_assumevalid.py` into the required gate, so the canonical PQ
+path covers the live assumevalid signature-skipping boundary in addition to the
+owned assumeutxo activation and wallet background-sync slices. The
 replacement-path confidence gap is closed in this tranche by promoting the full
 deterministic Taproot replacement functional stack into the required PQ gate.
 The assumeutxo confidence gap is closed in this tranche by promoting the live

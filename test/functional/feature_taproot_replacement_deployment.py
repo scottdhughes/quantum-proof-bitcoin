@@ -10,7 +10,7 @@ existing BIP9 reporting surface for the replacement slot.
 """
 
 from test_framework.blocktools import TIME_GENESIS_BLOCK
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BitcoinTestFramework, SkipTest
 from test_framework.util import assert_equal
 
 
@@ -134,6 +134,10 @@ class TaprootReplacementDeploymentTest(BitcoinTestFramework):
         assert "signalling" not in bip9
 
     def run_test(self):
+        dep = self.nodes[0].getdeploymentinfo()["deployments"][TAPROOT_REPLACEMENT_NAME]
+        if dep["active"] and dep["bip9"]["status"] == "active":
+            raise SkipTest("legacy-aligned regtest keeps taproot_replacement active from genesis")
+
         self.assert_default_defined()
 
         self.stop_node(0)

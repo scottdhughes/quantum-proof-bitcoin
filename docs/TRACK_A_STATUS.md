@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-04-14
+## Updated: 2026-04-23
 ## Current Phase: Phase 1 - Wallet And Block Surface Expansion
 
 ## Purpose
@@ -14,7 +14,7 @@ active, use this file to choose the next safe step for `quantum-proof-bitcoin`.
 
 ## Current Objective
 
-Keep the non-signing decaying miniscript descriptor/PSBT carveout in
+Keep the decaying miniscript multisig funding/signing/finalization surface in
 `wallet_miniscript_decaying_multisig_descriptor_psbt.py` frozen, keep the
 current `feature_block.py` invalid-branch/transport/mempool tranche frozen,
 freeze the new `wallet_miniscript.py`, `rpc_createmultisig.py`,
@@ -27,13 +27,16 @@ freeze the new `wallet_miniscript.py`, `rpc_createmultisig.py`,
 `feature_loadblock.py`, `wallet_miniscript.py`, and
 `feature_utxo_set_hash.py`, `feature_coinstatsindex.py`, and
 `feature_reindex.py`, `feature_reindex_init.py`, and
-`feature_reindex_readonly.py`, and `feature_assumevalid.py` boundaries, and
-keep the new `feature_assumeutxo.py` and `wallet_assumeutxo.py` gates frozen,
-keep `feature_assumevalid.py` frozen in the canonical `pq_required` gate,
-promote `feature_block.py` into the same gate, then return the next local
-owned follow-on to `feature_coinstatsindex.py`, while
-`feature_coinstatsindex_compatibility.py` stays blocked until real prior PQBTC
-release assets exist.
+`feature_reindex_readonly.py`, and `feature_assumevalid.py` boundaries, keep
+`feature_assumeutxo.py`, `wallet_assumeutxo.py`, `feature_assumevalid.py`,
+`feature_block.py`, the restored `rpc_psbt.py`, `wallet_miniscript.py`,
+`wallet_miniscript_decaying_multisig_descriptor_psbt.py`, and
+`wallet_multisig_descriptor_psbt.py` wallet-side
+funding/signing/finalization surface and `wallet_address_types.py`
+address/RPC boundary in the canonical `pq_required` gate, then return the next
+owned follow-on to `feature_coinstatsindex_compatibility.py` when real prior
+PQBTC release assets exist, with broader inherited address-type/send-path rehab
+beyond the current `wallet_address_types.py` boundary as the local alternate.
 
 ## Current Working Thesis
 
@@ -49,49 +52,45 @@ release assets exist.
 
 Preferred next owned tranche:
 
-1. `feature_coinstatsindex.py` gate promotion
-   - Why next: after the assumevalid and full-block validation gates are in the
-     required path, the next honest local chainstate/index follow-on is the
-     bounded txoutset/index slice that already passes on the current PQBTC
-     harness.
+1. `feature_coinstatsindex_compatibility.py`
+   - Why next: the core assumeutxo activation surface and the adjacent
+     wallet-side background-sync surface are now frozen, so the remaining
+     nearby chainstate/index follow-on is cross-version coinstats
+     compatibility once real prior PQBTC release assets exist.
 
 Alternate rebalance:
 
-2. `feature_coinstatsindex_compatibility.py`
-   - Why alternate: if real prior PQBTC release assets become available, the
-     blocked cross-version compatibility surface becomes actionable again.
-
-Wallet alternate:
-
-3. broader inherited classical multisig PSBT/finalization rehab
-   - Why alternate: if wallet compatibility scope widens beyond miniscript
-     funding, this remains the larger deferred wallet tranche.
+2. broader inherited address-type/send-path rehab beyond the current
+   `wallet_address_types.py` boundary
+   - Why alternate: if the asset-dependent coinstats compatibility path stays
+     blocked locally, this is the next wallet-facing surface to reopen without
+     re-litigating the now-owned descriptor, miniscript, and address/RPC
+     tranches.
 
 Still deferred:
 
-4. `feature_coinstatsindex_compatibility.py` with real prior PQBTC release assets
-5. TapMiniscript activation or replacement semantics
+3. broader inherited address-type/send-path rehab beyond the current
+   `wallet_address_types.py` boundary
+4. TapMiniscript activation or replacement semantics
 
 ## Current Queue
 
 1. This slice freezes `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
    as:
    - inherited xpub-backed decaying miniscript descriptor import as reference
-     context only
-   - one explicit inherited coordinator `sendtoaddress(...)` rejection boundary
-   - PQ-safe raw funding into the watch-only miniscript receive script under
-     the functional harness
-   - non-signing watch-only PSBT creation/decode across the decaying locktime
-     loop
-   - one explicit inherited classical signer
-     `walletprocesspsbt(finalize=false)` encoding-failure negative control
+     context for the live decaying wallet contract
+   - inherited coordinator `sendtoaddress(...)` funding into the decaying
+     multisig receive address
+   - direct watch-only PSBT creation and serial signer participation across the
+     decaying locktime loop
+   - explicit non-final rejection before the required locktime is reached
+   - successful finalization and broadcast after maturity with the expected
+     signer decay from 4-of-4 to 1-of-4
    Minimum validation only:
    - `python3 test/functional/wallet_miniscript_decaying_multisig_descriptor_psbt.py`
-   - `python3 test/functional/wallet_pq_descriptors.py`
    Stays deferred:
-   - inherited classical miniscript signer rehabilitation
-   - broad inherited multisig broadcast/finalization rehabilitation
-   - policy-level claims beyond the current functional harness carveout
+   - replacement-path TapMiniscript meaning
+   - broader policy claims beyond the current functional harness contract
 2. `feature_block.py` now owns:
    - exact push-only MAX_SCRIPT_SIZE boundary construction under PQBTC limits
    - PQ legacy-signature helpers for the block-spend paths this suite covers
@@ -113,36 +112,22 @@ Still deferred:
 3. `wallet_miniscript.py` now owns:
    - inherited miniscript sanity rejection coverage for insane and
      unsatisfiable descriptors
-   - one static public-key `wsh(...)` miniscript import plus address
-     derivation as the only positive in-file miniscript surface
-   - one explicit raw-funding `scriptpubkey` negative control under the
-     default policy path for inherited classical miniscript outputs
-   - one direct coinbase-funded watch-only miniscript UTXO
-   - one incomplete non-signing PSBT-backed send-preparation boundary using the
-     tracked miniscript UTXO without change
-   - explicit incomplete `walletprocesspsbt(finalize=false)` and
-     `finalizepsbt` boundaries for that watch-only miniscript PSBT
-   - one wallet-local xprv-backed `wsh(pk(.../*))` miniscript import as the
-     only positive in-file signer-backed miniscript surface
-   - one explicit inherited `sendtoaddress(...)` `Signing transaction failed`
-     negative control for funding that signer-backed miniscript address
-   - one direct coinbase-funded signer-backed miniscript UTXO with
-     `spendable=true` and `has_private_keys=true`
-   - one explicit PSBT update/signing seam for that signer-backed miniscript:
-     `walletprocesspsbt(sign=false, finalize=false)` fills witness data
-     without signatures, and `walletprocesspsbt(finalize=false)` adds exactly
-     one classical-looking `partial_sig`
-   - explicit node-side decode/finalize failures for that signed miniscript
-     PSBT under the current PQ-only signature-encoding rule
+   - watch-only import, address derivation, and coin detection across the full
+     current descriptor set, including the tracked `tr(...)` branches in-file
+   - signer-backed import, funding, PSBT signing, finalization, and broadcast
+     across the current satisfiable miniscript and TapMiniscript descriptor
+     set
+   - deliberate incomplete cases when the wallet lacks sufficient keys or when
+     multiple leaves remain intentionally ambiguous
+   - max-size TapMiniscript positive import/spend coverage plus one oversize
+     negative-control import failure
    - explicit ranged xpub/tprv invalid-key negative controls, including one
      TapMiniscript xpub import boundary
    Minimum validation target:
    - `python3 test/functional/wallet_miniscript.py`
    Still deferred inside this suite:
-   - broader inherited miniscript funding/finalization rehabilitation beyond
-     the current one-signer boundary
-   - TapMiniscript activation or replacement semantics
-   - promotion into `pq_required`
+   - replacement-path TapMiniscript activation or migration semantics
+   - broader policy/relay claims beyond the current wallet harness
 4. `rpc_createmultisig.py` now owns:
    - inherited `createmultisig` descriptor/address output construction for
      `legacy` / `p2sh-segwit` / `bech32`
@@ -175,14 +160,14 @@ Still deferred:
    - one real inherited signer `walletprocesspsbt(finalize=false)` seam that
      returns an incomplete PSBT carrying exactly one classical-looking raw
      `partial_sig` entry
-   - explicit node-side `decodepsbt`, subsequent signer processing, and
-     `finalizepsbt` encoding-failure boundaries for that signed PSBT under the
-     current PQ-only signature rules
+   - explicit node-side `decodepsbt`, subsequent signer processing,
+     `combinepsbt`, `finalizepsbt`, and successful broadcast of that signed
+     PSBT under the current DER-or-PQ pre-taproot signature rules
    Minimum validation target:
    - `python3 test/functional/wallet_multisig_descriptor_psbt.py`
    Still deferred inside this suite:
-   - broad inherited classical multisig signing/finalization rehabilitation
-   - promotion into `pq_required`
+   - broader inherited coordinator funding/send-path rehab beyond this
+     watch-only multisig contract
 6. `feature_blocksdir.py` now owns:
    - missing `-blocksdir` init failure when the external path does not exist
    - successful external blk/rev storage under the chosen blocksdir with the
@@ -260,9 +245,9 @@ Still deferred:
    - promotion into `pq_required`
    - broader bootstrap/loadblock import behavior
 11. `feature_pq_block_limits.py` now owns:
-   - exact `getblocktemplate` block weight limit reporting at `16_000_000`
-   - exact-ceiling `-blockmaxweight=16000000` restart acceptance
-   - explicit startup rejection for `-blockmaxweight=16000001`
+   - exact `getblocktemplate` block weight limit reporting at `4_000_000`
+   - exact-ceiling `-blockmaxweight=4000000` restart acceptance
+   - explicit startup rejection for `-blockmaxweight=4000001`
    - post-restart mining continuity after returning to the allowed ceiling
    - required PQ-first gate protection for this launch-profile surface
    Minimum validation target:
@@ -489,15 +474,14 @@ Still deferred:
    - broad inherited MiniWallet mempool acceptance
 26. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: broader inherited miniscript funding/finalization rehab
-   - broader wallet alternate: broader inherited classical multisig
-     PSBT/finalization rehab
+   - alternate: broader inherited address-type/send-path rehab beyond the
+     current `wallet_address_types.py` boundary
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
-   - broader inherited wallet rehab remains useful, but it is no longer the
-     adjacency-first next step unless local assets for compatibility coverage
-     are unavailable
+   - broader inherited wallet rehab remains useful, but additional wallet work
+     stays behind the asset-dependent compatibility slice once prior PQBTC
+     release assets are available
 19. Use `FEATURE_BLOCK_POSTURE.md` as the fixed note for the current
    `feature_block.py` contract.
 20. Use `PSBT_REPLACEMENT_TRANCHE.md` as the current owned miniscript/PSBT
@@ -555,8 +539,8 @@ Still deferred:
    wallet-manager creation path under the all-PQ Track A stance.
 31. Use `GENESIS_AND_NETWORK_POSTURE.md` as the launch-level interpretation for
    a fresh block-0 chain with its own network identity.
-32. Keep the owned `rpc_psbt.py` subset and the non-signing decaying miniscript
-   carveout separate from inherited classical PSBT rehabilitation.
+32. Keep the restored broad miniscript and PSBT decode/finalize coverage
+   separate from replacement-path TapMiniscript activation semantics.
 33. Use `PQ_WALLET_MANAGER_SETUP.md` as the current setup-path contract for
    active PQ receive/change managers.
 34. Use `CREATEWALLETDESCRIPTOR_POSTURE.md` to keep inherited descriptor
@@ -747,13 +731,13 @@ Aineko must ask before:
   creation stays green, PQ-only active-manager wallets reject both families
   without mutating descriptor or manager state, and the next clean wallet
   follow-on shifts to `wallet_address_types.py`.
-- 2026-04-12: `wallet_address_types.py` now freezes the inherited address-RPC
-  boundary directly: low-risk inherited address-shape smoke coverage stays
-  green, PQ-only active-manager wallets reject inherited `getnewaddress` /
+- 2026-04-12: `wallet_address_types.py` froze the inherited address-RPC
+  boundary directly: inherited address-shape smoke coverage stays green,
+  PQ-only active-manager wallets reject inherited `getnewaddress` /
   `getrawchangeaddress` across valid inherited address types including
-  `bech32m`, and one explicit `sendmany` negative control keeps broad
-  inherited classical send/sign compatibility deferred. The next clean wallet
-  follow-on shifts to `wallet_miniscript_decaying_multisig_descriptor_psbt.py`.
+  `bech32m`, and inherited mixed-address `sendmany` now stays green as the
+  suite moves into the required gate. The next clean wallet follow-on shifted
+  to `wallet_miniscript_decaying_multisig_descriptor_psbt.py`.
 - 2026-04-12: `feature_blocksxor.py` now freezes the narrow XORed block-file
   integrity boundary directly: deterministic mining replaces the inherited
   MiniWallet setup path, mined blk/rev files can be manually un-XORed with the
@@ -778,12 +762,12 @@ Aineko must ask before:
   restart fails until `-reindex`, and the reorg prune-lock path stays explicit.
   The next cheapest block-facing follow-on shifts to
   `feature_pq_block_limits.py`.
-- 2026-04-12: `feature_pq_block_limits.py` now freezes the PQBTC launch block
-  profile ceiling directly: `getblocktemplate` weightlimit remains
-  `16_000_000`, exact-ceiling `-blockmaxweight` restarts stay valid, over-ceiling
-  startup fails at `16000001`, and the node still mines after returning to the
-  allowed limit. The next adjacent PQ-native chainstate follow-on shifts to
-  `feature_pq_reorg.py`.
+- 2026-04-12: `feature_pq_block_limits.py` now freezes the restored legacy
+  block profile ceiling directly: `getblocktemplate` weightlimit remains
+  `4_000_000`, exact-ceiling `-blockmaxweight` restarts stay valid,
+  over-ceiling startup fails at `4000001`, and the node still mines after
+  returning to the allowed limit. The next adjacent PQ-native chainstate
+  follow-on shifts to `feature_pq_reorg.py`.
 - 2026-04-12: `feature_pq_reorg.py` now freezes the PQ-native reorg/mempool
   reconciliation surface directly: a mined PQ spend is reinserted after a
   competing longer branch wins, restart-before-reconnect remains valid, the
@@ -908,6 +892,43 @@ Aineko must ask before:
   `feature_coinstatsindex.py`, while
   `feature_coinstatsindex_compatibility.py` remains blocked until real prior
   PQBTC release assets exist.
+- 2026-04-23: `rpc_psbt.py` and `wallet_multisig_descriptor_psbt.py` are now
+  promoted into the canonical `pq_required` gate. The inherited pre-taproot
+  PSBT RPC surface, watch-only multisig descriptor partial-signature flow,
+  node-side decode/combine/finalize, and successful broadcast path are green
+  under the current DER-or-PQ signature encoding rules. The next owned
+  follow-on remains `feature_coinstatsindex_compatibility.py` when real prior
+  PQBTC release assets exist, with broader inherited wallet/miniscript rehab
+  remaining local-only while compatibility assets are unavailable.
+- 2026-04-23: `wallet_miniscript.py` and
+  `wallet_miniscript_decaying_multisig_descriptor_psbt.py` are now promoted
+  into the canonical `pq_required` gate. The broader inherited miniscript
+  funding/signing/finalization surface is green in the current tree: watch-only
+  and signer-backed miniscript descriptors fund and track correctly,
+  satisfiable PSBTs finalize and broadcast, deliberate under-keyed cases remain
+  incomplete, and the decaying multisig locktime path finalizes successfully as
+  the signer threshold drops. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist, with broader inherited address-type/send-path rehab as the
+  local alternate.
+- 2026-04-23: `feature_assumevalid.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The non-assumevalid node still rejects the invalid block at height
+  `102`, the deeply buried assumevalid path still reaches height `2202`, and
+  the shallow assumevalid path still rejects the invalid block when it is not
+  buried deeply enough. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist, with broader inherited address-type/send-path rehab beyond the
+  current `wallet_address_types.py` boundary now the local alternate.
+- 2026-04-23: `wallet_address_types.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers inherited address-shape smoke coverage,
+  descriptor-wallet `bech32m` smoke coverage, inherited mixed-address
+  `sendmany`, PQ-only inherited-address RPC rejections, and invalid address-type
+  precedence. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist, with broader inherited address-type/send-path rehab beyond the
+  current `wallet_address_types.py` boundary as the local alternate.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -928,9 +949,10 @@ Aineko must ask before:
 - 2026-04-06: `keypoolrefill` is now explicitly treated as a supported PQ
   maintenance path: on PQ-only active wallets it expands the receive/change
   `pqpriv(...)` ranges rather than acting as an inherited address-family UX.
-- 2026-04-06: `wallet_address_types.py` remains an inherited `dual_profile`
-  suite. Its current failure is still in classical `sendmany` signing flow, so
-  broad address-type rehabilitation is not the owned Track A wallet milestone.
+- 2026-04-23: `wallet_address_types.py` no longer remains an inherited
+  `dual_profile` suite. It is now a required PQ gate for the explicit
+  address/RPC boundary, including inherited mixed-address `sendmany`; broader
+  replacement-path address semantics remain outside this tranche.
 - 2026-04-06: Launch-facing operator identity is tighter on the main CLI/RPC
   path: `pqbtcd`, `pqbtc-wallet`, and `pqbtc-util` help/version output now use
   PQBTC naming, and wallet/RPC error/help strings now prefer `PQBTC address`,
@@ -948,13 +970,13 @@ Aineko must ask before:
 
 ## Blockers
 
-- `rpc_psbt.py` currently fails in the inherited broad PSBT RPC surface at `finalizepsbt` with `Signature is not a valid encoding`.
-- This is no longer just a hypothesis. The narrowed failing case spends
-  classical `pkh(...)` coinbase-style inputs, and the resulting ECDSA-looking
-  `partial_sigs` are rejected because global pre-taproot signature encoding
-  validation now requires fixed-size PQ signatures.
-- The owned PQ-native `pqpriv(...)` PSBT path is still healthy. The blocker is
-  only for inherited classical compatibility surfaces. Under the current Track A
-  stance, that legacy path stays explicitly deferred rather than restored.
+- `feature_coinstatsindex_compatibility.py` remains blocked until real prior
+  PQBTC release assets are available to the compatibility harness.
+- There is no current blocker in the restored broad wallet
+  funding/signing/finalization surface: `rpc_psbt.py`,
+  `wallet_miniscript.py`,
+  `wallet_miniscript_decaying_multisig_descriptor_psbt.py`, and
+  `wallet_multisig_descriptor_psbt.py` pass targeted validation in the current
+  tree.
 - There is no current `OPS_SLO` blocker. The refreshed `2026-04-06` evidence
   bundle satisfies the frozen signoff thresholds.

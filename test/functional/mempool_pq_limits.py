@@ -106,14 +106,15 @@ class MempoolPQLimitsTest(BitcoinTestFramework):
             tx.wit.vtxinwit[0].scriptWitness.stack = [b"X" * item_size, bytes(witness_script)]
             return tx
 
-        at_limit = build_spend(10_000)
+        at_limit = build_spend(80)
         assert node.testmempoolaccept([at_limit.serialize().hex()])[0]["allowed"]
 
-        over_limit = build_spend(10_001)
+        over_limit = build_spend(81)
         assert not node.testmempoolaccept([over_limit.serialize().hex()])[0]["allowed"]
 
     def _check_churn_and_rbf_under_large_witness(self, node):
-        witness_script = CScript([OP_DROP, OP_TRUE])
+        sk_seed, pk_script = build_pq_keypair(bytes.fromhex("41" * 32))
+        witness_script = CScript([pk_script, OP_CHECKSIG])
         p2wsh_spk = script_to_p2wsh_script(witness_script)
         dest_spk = bytes(script_to_p2wsh_script(CScript([OP_TRUE])))
 
@@ -121,21 +122,24 @@ class MempoolPQLimitsTest(BitcoinTestFramework):
         fund_txid = fund_tx.txid_hex
         self.generateblock(node, output="raw(51)", transactions=[fund_tx.serialize().hex()])
 
-        def build_spend(*, txid_hex: str, amount: int, payload_size: int, fee_sat: int, sequence: int) -> CTransaction:
+        def build_spend(*, txid_hex: str, amount: int, fee_sat: int, sequence: int, mutate_sig=None) -> CTransaction:
             tx = CTransaction()
             tx.vin = [CTxIn(COutPoint(int(txid_hex, 16), 0), b"", sequence)]
             tx.vout = [CTxOut(amount - fee_sat, dest_spk)]
             tx.wit.vtxinwit = [CTxInWitness()]
-            tx.wit.vtxinwit[0].scriptWitness.stack = [b"R" * payload_size, bytes(witness_script)]
+            sig = sign_segwitv0_input_pq(tx, witness_script, amount, sk_seed, pk_script)
+            if mutate_sig is not None:
+                sig = mutate_sig(sig)
+            tx.wit.vtxinwit[0].scriptWitness.stack = [sig, bytes(witness_script)]
             return tx
 
-        # Stable reject reason for malformed oversized witness item.
+        # Stable reject reason for a malformed oversized PQ signature.
         oversized = build_spend(
             txid_hex=fund_txid,
             amount=fund_tx.vout[0].nValue,
-            payload_size=10_001,
             fee_sat=3_000,
             sequence=SEQUENCE_FINAL - 2,
+            mutate_sig=lambda sig: sig + b"\x00",
         )
         reject1 = node.testmempoolaccept([oversized.serialize().hex()])[0]
         reject2 = node.testmempoolaccept([oversized.serialize().hex()])[0]
@@ -159,7 +163,6 @@ class MempoolPQLimitsTest(BitcoinTestFramework):
             candidate = build_spend(
                 txid_hex=fund_txid,
                 amount=fund_tx.vout[0].nValue,
-                payload_size=9_500,
                 fee_sat=fee_sat,
                 sequence=SEQUENCE_FINAL - 2,
             )
@@ -186,7 +189,6 @@ class MempoolPQLimitsTest(BitcoinTestFramework):
             spend = build_spend(
                 txid_hex=batch_fund_txid,
                 amount=batch_fund.vout[0].nValue,
-                payload_size=9_000 + (idx % 4) * 100,
                 fee_sat=2_500 + idx * 100,
                 sequence=SEQUENCE_FINAL - 1,
             )

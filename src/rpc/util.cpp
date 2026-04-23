@@ -237,6 +237,8 @@ CPubKey HexToPubKey(const std::string& hex_in)
 // Creates a multisig address from a given list of public keys, number of signatures required, and the address type
 CTxDestination AddAndGetMultisigDestination(const int required, const std::vector<CPubKey>& pubkeys, OutputType type, FlatSigningProvider& keystore, CScript& script_out)
 {
+    static constexpr unsigned int MAX_LEGACY_P2SH_SCRIPT_SIZE{520};
+
     // Gather public keys
     if (required < 1) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "a multisignature address must require at least one key to redeem");
@@ -258,8 +260,8 @@ CTxDestination AddAndGetMultisigDestination(const int required, const std::vecto
         }
     }
 
-    if (type == OutputType::LEGACY && script_out.size() > MAX_SCRIPT_ELEMENT_SIZE) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, (strprintf("redeemScript exceeds size limit: %d > %d", script_out.size(), MAX_SCRIPT_ELEMENT_SIZE)));
+    if (type == OutputType::LEGACY && script_out.size() > MAX_LEGACY_P2SH_SCRIPT_SIZE) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, (strprintf("redeemScript exceeds size limit: %d > %d", script_out.size(), MAX_LEGACY_P2SH_SCRIPT_SIZE)));
     }
 
     // Make the address

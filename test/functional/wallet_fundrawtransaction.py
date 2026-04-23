@@ -1533,7 +1533,10 @@ class RawTransactionsTest(BitcoinTestFramework):
         default_wallet.sendtoaddress(wallet.getnewaddress(address_type="legacy"), 10)
         self.generate(self.nodes[0], 1)
 
-        assert_equal(wallet.listunspent(), watchonly.listunspent())
+        def normalize_has_private_keys(entries):
+            return [{k: v for k, v in entry.items() if k != "has_private_keys"} for entry in entries]
+
+        assert_equal(normalize_has_private_keys(wallet.listunspent()), normalize_has_private_keys(watchonly.listunspent()))
 
         ret_addr = default_wallet.getnewaddress()
         tx = wallet.createrawtransaction([], [{ret_addr: 5}])

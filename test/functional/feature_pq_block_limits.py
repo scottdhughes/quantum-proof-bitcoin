@@ -2,7 +2,7 @@
 # Copyright (c) 2026 The PQBTC Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Block weight limit checks for PQBTC v1 consensus/profile."""
+"""Legacy block weight limit checks with PQ signature support enabled."""
 
 from test_framework.test_framework import BitcoinTestFramework
 
@@ -20,19 +20,19 @@ class PQBlockLimitsTest(BitcoinTestFramework):
         node = self.nodes[0]
         self.generate(node, 101)
 
-        assert self._weightlimit() == 16_000_000
+        assert self._weightlimit() == 4_000_000
 
-        self.restart_node(0, extra_args=["-blockmaxweight=16000000"])
-        assert self._weightlimit() == 16_000_000
+        self.restart_node(0, extra_args=["-blockmaxweight=4000000"])
+        assert self._weightlimit() == 4_000_000
 
         self.stop_node(0)
         self.nodes[0].assert_start_raises_init_error(
-            extra_args=["-blockmaxweight=16000001"],
-            expected_msg="Error: Specified -blockmaxweight (16000001) exceeds consensus maximum block weight (16000000)",
+            extra_args=["-blockmaxweight=4000001"],
+            expected_msg="Error: Specified -blockmaxweight (4000001) exceeds consensus maximum block weight (4000000)",
         )
-        self.start_node(0, extra_args=["-blockmaxweight=16000000"])
+        self.start_node(0, extra_args=["-blockmaxweight=4000000"])
         node = self.nodes[0]
-        assert self._weightlimit() == 16_000_000
+        assert self._weightlimit() == 4_000_000
 
         self.generate(node, 1)
 

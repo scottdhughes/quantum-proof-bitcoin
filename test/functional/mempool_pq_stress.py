@@ -14,8 +14,12 @@ from test_framework.messages import (
     SEQUENCE_FINAL,
 )
 from test_framework.authproxy import JSONRPCException
-from test_framework.pqsig import create_wallet_funded_tx
-from test_framework.script import CScript, OP_DROP, OP_TRUE
+from test_framework.pqsig import (
+    build_pq_keypair,
+    create_wallet_funded_tx,
+    sign_segwitv0_input_pq,
+)
+from test_framework.script import CScript, OP_CHECKSIG, OP_TRUE
 from test_framework.script_util import script_to_p2wsh_script
 from test_framework.test_framework import BitcoinTestFramework
 
@@ -33,7 +37,8 @@ class MempoolPQStressTest(BitcoinTestFramework):
             self.generate(node0, 120)
             self.sync_all()
 
-            witness_script = CScript([OP_DROP, OP_TRUE])
+            sk_seed, pk_script = build_pq_keypair(bytes.fromhex("31" * 32))
+            witness_script = CScript([pk_script, OP_CHECKSIG])
             p2wsh_spk = script_to_p2wsh_script(witness_script)
             dest_spk = bytes(script_to_p2wsh_script(CScript([OP_TRUE])))
 
@@ -51,7 +56,6 @@ class MempoolPQStressTest(BitcoinTestFramework):
                 *,
                 fund_txid: str,
                 amount: int,
-                payload_size: int,
                 fee_sat: int,
                 sequence: int = SEQUENCE_FINAL - 1,
             ) -> CTransaction:
@@ -59,7 +63,8 @@ class MempoolPQStressTest(BitcoinTestFramework):
                 tx.vin = [CTxIn(COutPoint(int(fund_txid, 16), 0), b"", sequence)]
                 tx.vout = [CTxOut(amount - fee_sat, dest_spk)]
                 tx.wit.vtxinwit = [CTxInWitness()]
-                tx.wit.vtxinwit[0].scriptWitness.stack = [b"S" * payload_size, bytes(witness_script)]
+                sig = sign_segwitv0_input_pq(tx, witness_script, amount, sk_seed, pk_script)
+                tx.wit.vtxinwit[0].scriptWitness.stack = [sig, bytes(witness_script)]
                 return tx
 
             rbf_fund, rbf_fund_txid = fund_txs[0]
@@ -69,7 +74,6 @@ class MempoolPQStressTest(BitcoinTestFramework):
                 replacement = build_witness_heavy_spend(
                     fund_txid=rbf_fund_txid,
                     amount=rbf_fund.vout[0].nValue,
-                    payload_size=9_500,
                     fee_sat=fee_sat,
                     sequence=SEQUENCE_FINAL - 2,
                 )
@@ -91,7 +95,6 @@ class MempoolPQStressTest(BitcoinTestFramework):
                 spend = build_witness_heavy_spend(
                     fund_txid=fund_txid,
                     amount=fund_tx.vout[0].nValue,
-                    payload_size=9_100 + (idx % 5) * 100,
                     fee_sat=25_000 + idx * 1_000,
                 )
                 spend_hex = spend.serialize().hex()

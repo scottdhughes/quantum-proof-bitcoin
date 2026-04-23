@@ -81,6 +81,29 @@ const std::map<unsigned char, std::string> mapSigHashTypes = {
     {static_cast<unsigned char>(SIGHASH_SINGLE|SIGHASH_ANYONECANPAY), std::string("SINGLE|ANYONECANPAY")},
 };
 
+static bool LooksLikeDefinedLegacySignature(const std::vector<unsigned char>& sig)
+{
+    if (sig.size() < 9 || sig.size() > 73) return false;
+    if (sig[0] != 0x30) return false;
+    if (sig[1] != sig.size() - 3) return false;
+
+    const unsigned int lenR = sig[3];
+    if (5 + lenR >= sig.size()) return false;
+
+    const unsigned int lenS = sig[5 + lenR];
+    if (static_cast<size_t>(lenR + lenS + 7) != sig.size()) return false;
+
+    if (sig[2] != 0x02 || lenR == 0) return false;
+    if (sig[4] & 0x80) return false;
+    if (lenR > 1 && sig[4] == 0x00 && !(sig[5] & 0x80)) return false;
+
+    if (sig[lenR + 4] != 0x02 || lenS == 0) return false;
+    if (sig[lenR + 6] & 0x80) return false;
+    if (lenS > 1 && sig[lenR + 6] == 0x00 && !(sig[lenR + 7] & 0x80)) return false;
+
+    return mapSigHashTypes.contains(sig.back());
+}
+
 std::string SighashToStr(unsigned char sighash_type)
 {
     const auto& it = mapSigHashTypes.find(sighash_type);
@@ -120,7 +143,7 @@ std::string ScriptToAsmStr(const CScript& script, const bool fAttemptSighashDeco
                     // this won't decode correctly formatted public keys in Pubkey or Multisig scripts due to
                     // the restrictions on the pubkey formats (see IsCompressedOrUncompressedPubKey) being incongruous with the
                     // checks in CheckSignatureEncoding.
-                    if (CheckSignatureEncoding(vch, SCRIPT_VERIFY_STRICTENC, nullptr)) {
+                    if (LooksLikeDefinedLegacySignature(vch)) {
                         const unsigned char chSigHashType = vch.back();
                         const auto it = mapSigHashTypes.find(chSigHashType);
                         if (it != mapSigHashTypes.end()) {

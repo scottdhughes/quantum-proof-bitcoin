@@ -13,7 +13,7 @@ pre-active deployment reporting state.
 """
 
 from test_framework.blocktools import TIME_GENESIS_BLOCK
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import BitcoinTestFramework, SkipTest
 from test_framework.util import assert_equal
 
 
@@ -91,6 +91,10 @@ class TaprootReplacementCompatTest(BitcoinTestFramework):
         self.assert_directional_state_pair(1, 0, signalling_status, "defined", expected_height)
 
     def run_test(self):
+        dep = self.nodes[0].getdeploymentinfo()["deployments"][TAPROOT_REPLACEMENT_NAME]
+        if dep["active"] and dep["bip9"]["status"] == "active":
+            raise SkipTest("legacy-aligned regtest keeps taproot_replacement active from genesis")
+
         self.log.info("Restart node1 with regtest vbparams override for taproot_replacement")
         self.restart_signalling_node()
 
