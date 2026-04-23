@@ -28,7 +28,6 @@ from test_framework.psbt import (
     PSBT_GLOBAL_UNSIGNED_TX,
     PSBT_IN_RIPEMD160,
     PSBT_IN_SHA256,
-    PSBT_IN_PARTIAL_SIG,
     PSBT_IN_SIGHASH_TYPE,
     PSBT_IN_HASH160,
     PSBT_IN_HASH256,

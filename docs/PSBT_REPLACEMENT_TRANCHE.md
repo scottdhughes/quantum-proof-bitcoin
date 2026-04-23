@@ -10,9 +10,11 @@
 Define the first owned product-facing Track A tranche for post-v1 Taproot
 replacement work.
 
-This tranche is intentionally narrow. It does not attempt to solve all future
+This tranche is intentionally bounded. It does not attempt to solve all future
 wallet, descriptor, RPC, or witness-v1 semantics at once. Its job is to make
-the PQ-native PSBT path explicit, testable, and correctly bounded.
+the PQ-native PSBT path explicit, freeze the restored inherited pre-taproot
+decode/finalize seam, and keep both correctly bounded away from Taproot
+replacement semantics.
 
 ## Why This Tranche Comes First
 
@@ -29,6 +31,8 @@ This tranche covers:
 
 - PQ-native PSBT creation, processing, decode, and finalization behavior for
   the currently implemented PQ wallet path
+- restored inherited pre-taproot PSBT decode/finalize compatibility for the
+  current classical single-key and multisig watch-only flows
 - the proprietary PQ partial-signature representation already exercised in-tree
 - RPC-visible expectations for the existing PQ wallet flow
 - explicit boundaries between current PQ-native PSBT behavior and deferred
@@ -132,10 +136,13 @@ The following remain explicitly deferred after this tranche:
 - generic wallet address-type behavior involving witness-v1 replacement outputs
 - production external signer interface standardization
 
-Relevant neighboring surfaces that remain follow-on work:
+Relevant neighboring surfaces that remain follow-on work for replacement
+semantics:
 
 - [wallet_createwalletdescriptor.py](../test/functional/wallet_createwalletdescriptor.py)
 - [wallet_address_types.py](../test/functional/wallet_address_types.py)
+  Required for the current address/RPC boundary; still deferred for
+  replacement-path address semantics.
 - [wallet_pq_descriptors.py](../test/functional/wallet_pq_descriptors.py)
 
 ## Primary Test Surfaces
@@ -143,30 +150,29 @@ Relevant neighboring surfaces that remain follow-on work:
 - [wallet_pq_psbt.py](../test/functional/wallet_pq_psbt.py)
   End-to-end wallet PSBT parity for active `pqpriv(...)` managers.
 - [rpc_psbt.py](../test/functional/rpc_psbt.py)
-  Broad inherited PSBT RPC surface that now owns one narrow active-PQ subset
-  while retaining one classical finalize negative control.
+  Broad inherited PSBT RPC surface that now owns both the active-PQ subset and
+  the restored inherited pre-taproot decode/finalize path.
 - [pqsig_script_tests.cpp](../src/test/pqsig_script_tests.cpp)
   PQ proprietary partial-signature round-trip and rejection guards.
 
 ## Frozen `rpc_psbt.py` Boundary
 
-The owned `rpc_psbt.py` surface is intentionally narrow:
+The owned `rpc_psbt.py` surface now covers both the PQ-native path and the
+restored inherited pre-taproot finalize path:
 
 - blank descriptor wallet created inside the test
 - active PQ managers initialized only through `createpqwalletmanagers`
 - one PQ-owned UTXO funded with the existing `create_wallet_funded_tx` helper
 - one owned PSBT flow:
   `walletcreatefundedpsbt -> walletprocesspsbt(finalize=false) -> decodepsbt -> finalizepsbt`
-- one explicit legacy negative control:
-  inherited classical `pkh(...)` partial signatures may still appear in the
-  signed PSBT map after `walletprocesspsbt(finalize=false)`, but
-  `finalizepsbt` must fail with
-  `Signature is not a valid encoding`
-- the remaining inherited upstream `rpc_psbt.py` sections stay parked below
-  this boundary and are not part of the active Track A validation path yet
+- inherited classical `pkh(...)`, multisig, and watch-only signer flows remain
+  active inside the same test and must decode, finalize, and broadcast
+  successfully
+- Taproot-facing PSBT semantics remain explicitly deferred; no inherited
+  witness-v1 replacement behavior is implied by this tranche
 
-Nothing in this tranche owns broad inherited PSBT rehabilitation, dual-mode
-signature encoding, or generic classical finalize compatibility.
+Nothing in this tranche owns replacement-path Taproot semantics or generic
+witness-v1 behavior.
 
 ## Expected Deliverables
 
@@ -185,9 +191,9 @@ Phase-2 completion for this tranche means:
 
 ## Current Confidence Snapshot
 
-Targeted confidence pass run on 2026-04-12:
+Current validation reference:
 
-- `python3 test/functional/rpc_psbt.py`
+- `build/test/functional/test_runner.py --jobs=1 rpc_psbt.py`
   - result: passed
   - current posture:
     - active `pqpriv(...)` wallet PSBT processing succeeds inside
@@ -198,36 +204,35 @@ Targeted confidence pass run on 2026-04-12:
     - `finalizepsbt` produces the expected
       `[pq_signature, witness_script]` witness shape with the fixed
       4480-byte signature payload
-    - one inherited classical `pkh(...)` path is kept only as an explicit
-      negative control
+    - inherited classical `pkh(...)`, multisig, and watch-only PSBT paths also
+      decode, finalize, and broadcast successfully
 - `python3 test/functional/wallet_pq_psbt.py`
   - result: passed
 
 Interpretation:
 
 - the owned PQ-native PSBT path is healthy in both the dedicated wallet suite
-  and the narrow `rpc_psbt.py` subset
-- the inherited classical pre-taproot finalize break is no longer an accidental
-  failure; it is a documented deferred compatibility boundary
+  and `rpc_psbt.py`
+- inherited classical pre-taproot PSBT decode/finalize compatibility is
+  restored and no longer a deferred failure boundary
 
 Frozen decision:
 
 - Track A remains all-PQ
-- inherited classical pre-taproot PSBT decode / finalize compatibility remains
-  deferred legacy work
-- `rpc_psbt.py` stays out of `pq_required` for now, but the PQ-owned subset is
-  now explicit and testable
+- inherited classical pre-taproot PSBT decode / finalize compatibility is now
+  part of the owned Track A wallet contract
+- `rpc_psbt.py` belongs in `pq_required`, while Taproot-facing PSBT semantics
+  remain deferred in the replacement matrix
 
 ## Follow-On Questions
 
 The next questions after this tranche should be:
 
 1. Should PQBTC expose a richer decode view for the PQ proprietary field?
-2. Which descriptor surface should be promoted next after this PSBT subset:
-   `wallet_createwalletdescriptor.py` or `wallet_pq_descriptors.py`?
-3. What is the smallest safe replacement-path bridge from PQ-native PSBT
-   behavior toward future replacement witness-v1 semantics without importing
-   inherited Taproot behavior wholesale?
+2. Does `feature_coinstatsindex_compatibility.py` become the next owned
+   follow-on once real prior PQBTC release assets exist?
+3. If the asset-dependent compatibility path stays blocked, is broader
+   inherited miniscript funding/finalization rehab the next wallet-side slice?
 
 ## Ranked Follow-On Queue
 
@@ -261,75 +266,55 @@ semantics are frozen.
 
 ### 3. `wallet_address_types.py`
 
-- Current inventory posture: `dual_profile`, `deferred`
-- Why third:
-  - likely needed eventually for address/output-type policy coherence
-  - broad and mixed surface with significant inherited behavior
-  - should follow descriptor clarifications, not lead them
+- Current inventory posture: `pq_required`, `deferred`
+- Current owned boundary:
+  - inherited address-shape smoke coverage
+  - descriptor-wallet `bech32m` address-shape smoke coverage
+  - inherited mixed-address `sendmany("", sends)` positive control
+  - PQ-only inherited `getnewaddress` / `getrawchangeaddress` rejection
+    coverage for valid explicit address types, including `bech32m`
+  - invalid address-type precedence
 - Goal:
-  revisit address-type behavior only after descriptor and PSBT boundaries are
-  more explicit
+  keep this explicit address/RPC boundary required while replacement-path
+  Taproot/address semantics remain deferred
 
 ### 4. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
 
-- Current inventory posture: `dual_profile`, `deferred`
+- Current inventory posture: `pq_required`, `deferred`
 - Current owned boundary:
-  - keeps inherited xpub-backed decaying miniscript descriptor import as
-    reference context only
-  - keeps one explicit inherited coordinator `sendtoaddress(...)` rejection as
-    the deferred classical funding boundary
-  - uses the existing PQ-safe raw funding helper under the functional harness
-    to fund the watch-only miniscript receive script without inherited wallet
-    signing
-  - preserves non-signing `walletcreatefundedpsbt -> decodepsbt ->
-    walletprocesspsbt(finalize=false)` coverage across the decaying locktime
-    loop
-  - freezes the first inherited classical signer
-    `walletprocesspsbt(finalize=false)` encoding failure as deferred legacy
-    compatibility instead of broad rehab
-  - stays out of `pq_required`
+  - keeps inherited xpub-backed decaying miniscript descriptor import as the
+    watch-only multisig coordination context
+  - uses inherited coordinator `sendtoaddress(...)` funding into the decaying
+    multisig receive address
+  - owns `walletcreatefundedpsbt` plus serial signer participation across the
+    full decaying locktime loop
+  - owns the non-final rejection boundary before the relevant locktime is
+    reached
+  - owns successful finalization and broadcast after maturity as the required
+    signer threshold decays from 4-of-4 to 1-of-4
+  - belongs in `pq_required`
 
 ### 5. `wallet_miniscript.py`
 
-- Current inventory posture: `dual_profile`, `deferred`
+- Current inventory posture: `pq_required`, `deferred`
 - Current owned boundary:
   - keeps the inherited miniscript sanity guards for insane and unsatisfiable
     descriptors
-  - owns one static public-key `wsh(...)` miniscript import plus address
-    derivation as the only positive in-file miniscript surface under the
-    current Track A posture
-  - freezes raw funding of that inherited classical miniscript output as an
-    explicit `scriptpubkey` negative control under the default policy path
-  - uses direct coinbase generation into the static miniscript address to
-    create one real tracked watch-only UTXO
-  - preserves one non-signing PSBT-backed send-preparation carveout for that
-    tracked miniscript coin with no change output
-  - freezes `walletprocesspsbt(finalize=false)` and `finalizepsbt` as explicit
-    incomplete watch-only boundaries for that miniscript PSBT
-  - owns one wallet-local xprv-backed `wsh(pk(.../*))` miniscript import as the
-    only positive in-file signer-backed miniscript surface
-  - freezes inherited `sendtoaddress(...)` funding into that signer-backed
-    miniscript address as an explicit deferred `Signing transaction failed`
-    boundary
-  - uses direct coinbase generation into the signer-backed miniscript address
-    to create one real spendable miniscript UTXO without reopening inherited
-    funding semantics
-  - preserves one explicit PSBT update/signing seam for that signer-backed
-    miniscript coin: `walletprocesspsbt(sign=false, finalize=false)` fills
-    witness data without signatures, while `walletprocesspsbt(finalize=false)`
-    adds exactly one classical-looking `partial_sig` entry
-  - freezes node-side `decodepsbt` and both wallet/node `finalizepsbt`
-    processing of that signed miniscript PSBT as explicit deferred PQ-only
-    signature-encoding failures instead of broad signer rehab
-  - freezes ranged xpub/tprv miniscript imports as explicit invalid-key
-    failures
-  - keeps one TapMiniscript xpub import as a matching deferred invalid-key
-    negative control
-  - stays out of `pq_required`
+  - owns watch-only import, address derivation, and funding detection across
+    the current `wsh(...)` Miniscript and in-file `tr(...)` descriptor set
+  - owns signer-backed funding, PSBT signing, finalization, and broadcast
+    across the current satisfiable Miniscript and TapMiniscript descriptor set
+  - preserves deliberate incomplete cases when the wallet lacks sufficient keys
+    or cannot collapse multiple viable leaves into a single final witness
+  - owns the max-size TapMiniscript positive import/spend seam plus one oversize
+    negative-control import failure
+  - keeps ranged xpub/tprv miniscript imports and one TapMiniscript xpub import
+    as deferred invalid-key controls
+  - belongs in `pq_required`
 
 ### 6. `wallet_multisig_descriptor_psbt.py`
 
-- Current inventory posture: `dual_profile`
+- Current inventory posture: `pq_required`
 - Current owned boundary:
   - keeps inherited xpub-backed `wsh(sortedmulti(...))` descriptor import as
     watch-only reference context
@@ -346,10 +331,10 @@ semantics are frozen.
     `walletprocesspsbt(finalize=false)` contribution seam as a real raw-PSBT
     boundary: signer 0 returns an incomplete PSBT carrying exactly one
     classical-looking `partial_sig` entry for the input
-  - freezes node-side `decodepsbt`, subsequent signer processing, and
-    `finalizepsbt` of that signed PSBT as explicit deferred PQ-only
-    signature-encoding failures instead of broad rehab
-  - stays out of `pq_required`
+  - owns node-side `decodepsbt`, subsequent signer processing, `combinepsbt`,
+    `finalizepsbt`, and successful broadcast of that signed PSBT under the
+    current pre-taproot signature rules
+  - belongs in `pq_required`
 
 ## Explicit "Not Next" Surfaces
 

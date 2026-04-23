@@ -298,7 +298,7 @@
     "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Protected PQ-first functional gate for the PQBTC block-profile ceiling: `getblocktemplate` weightlimit remains 16,000,000, exact-ceiling `-blockmaxweight=16000000` restarts succeed, over-ceiling startup fails at `16000001`, and the node still mines after returning to the allowed ceiling."
+    "notes": "Protected PQ-first functional gate for the restored legacy block-profile ceiling: `getblocktemplate` weightlimit remains 4,000,000, exact-ceiling `-blockmaxweight=4000000` restarts succeed, over-ceiling startup fails at `4000001`, and the node still mines after returning to the allowed ceiling."
   },
   {
     "name": "feature_pq_reorg.py",
@@ -1303,11 +1303,11 @@
   },
   {
     "name": "rpc_psbt.py",
-    "policy_class": "dual_profile",
+    "policy_class": "pq_required",
     "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
     "tracking_issue": "#23",
-    "notes": "Includes a narrow PQ-owned wallet PSBT subset plus an explicit legacy classical negative control; retained under the current non-gating dual-profile contract and classified as deferred in the #23 migration matrix."
+    "notes": "Covers the PQ-native proprietary partial-signature path plus the restored inherited pre-taproot PSBT decode/finalize surface; now part of the required PQ gate while Taproot-facing semantics remain deferred in the #23 migration matrix."
   },
   {
     "name": "rpc_rawtransaction.py",
@@ -1451,11 +1451,11 @@
   },
   {
     "name": "wallet_address_types.py",
-    "policy_class": "dual_profile",
+    "policy_class": "pq_required",
     "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
     "tracking_issue": "#23",
-    "notes": "Contains low-risk inherited address-shape smoke coverage plus an explicit PQ-only inherited-address rejection boundary and a deferred inherited sendmany negative control; retained under the current non-gating dual-profile contract and classified as deferred in the #23 migration matrix."
+    "notes": "Required PQ gate for restored inherited address-shape smoke coverage, descriptor bech32m smoke coverage, inherited mixed-address sendmany positive control, PQ-only inherited-address rejection boundaries, and invalid address-type precedence; replacement-specific taproot semantics remain deferred in the #23 migration matrix."
   },
   {
     "name": "wallet_anchor.py",
@@ -1712,26 +1712,26 @@
   },
   {
     "name": "wallet_miniscript.py",
-    "policy_class": "dual_profile",
+    "policy_class": "pq_required",
     "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
     "tracking_issue": "#23",
-    "notes": "Now freezes a narrow miniscript funding/signing boundary: one static-public-key watch-only carveout stays positive, raw helper funding remains an explicit deferred scriptpubkey rejection, one wallet-local xprv-backed miniscript import plus direct coinbase funding creates a real spendable signer UTXO, walletprocesspsbt(sign=false) fills witness data, walletprocesspsbt(finalize=false) adds one classical-looking partial_sig, and node-side decode/finalize of that signed PSBT remains an explicit deferred PQ-only signature-encoding failure alongside the ranged xpub/tprv and TapMiniscript invalid-key controls."
+    "notes": "Now freezes a broad miniscript wallet contract: watch-only and signer-backed descriptor imports stay positive, inherited funding detects and tracks coins, signer-backed PSBT finalize/broadcast succeeds when the wallet can satisfy a branch, deliberate under-keyed branches remain incomplete, and TapMiniscript-specific replacement meaning stays deferred in the #23 matrix."
   },
   {
     "name": "wallet_miniscript_decaying_multisig_descriptor_psbt.py",
-    "policy_class": "dual_profile",
+    "policy_class": "pq_required",
     "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
     "tracking_issue": "#23",
-    "notes": "Contains a PQ-safe non-signing decaying miniscript descriptor/PSBT carveout plus explicit deferred inherited classical funding/signing negative controls; retained under the current non-gating dual-profile contract and classified as deferred in the #23 migration matrix."
+    "notes": "Now freezes a decaying miniscript multisig funding/signing/finalization contract with inherited descriptor import, funded receive/change addresses, serial signer participation across locktime decay, maturity rejection before locktime, and successful broadcast after finalization; required while replacement-path meaning remains deferred in the #23 matrix."
   },
   {
     "name": "wallet_multisig_descriptor_psbt.py",
-    "policy_class": "dual_profile",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Now freezes a watch-only multisig descriptor funding/signing boundary with direct coinbase funding, one real inherited signer raw-PSBT partial-signature seam, and explicit deferred node-side decode/finalize failures under PQ-only signature encoding; retained under the current non-gating dual-profile contract."
+    "notes": "Now freezes a watch-only multisig descriptor funding/signing boundary with direct coinbase funding, real inherited signer raw-PSBT partial signatures, node-side decode/combine/finalize, and successful broadcast; now part of the required PQ gate."
   },
   {
     "name": "wallet_multiwallet.py",

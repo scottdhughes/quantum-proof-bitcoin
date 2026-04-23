@@ -17,9 +17,6 @@ from test_framework.blocktools import (
         create_block,
         create_coinbase
 )
-from test_framework.compressor import (
-    compress_amount,
-)
 from test_framework.messages import (
     CBlockHeader,
     COutPoint,
@@ -30,9 +27,7 @@ from test_framework.messages import (
     SEQUENCE_FINAL,
     from_hex,
     MAGIC_BYTES,
-    MAX_MONEY,
     msg_headers,
-    ser_varint,
     tx_from_hex,
 )
 from test_framework.p2p import (

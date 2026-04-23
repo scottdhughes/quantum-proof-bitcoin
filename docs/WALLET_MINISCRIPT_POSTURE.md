@@ -7,47 +7,32 @@
 
 ## Purpose
 
-Define the owned Track A contract for the narrow inherited miniscript
-watch-only and signer-backed miniscript import, direct funding, and PSBT
-processing surface.
+Define the owned Track A contract for the current inherited miniscript and
+TapMiniscript wallet import, funding, signing, and finalization surface.
 
 ## Current Owned Surface
 
 The current passing
 [wallet_miniscript.py](../test/functional/wallet_miniscript.py) suite owns a
-bounded miniscript carveout:
+broader wallet miniscript contract:
 
 - inherited miniscript sanity guards for insane and unsatisfiable descriptors
   remain active
-- one static public-key `wsh(or_b(pk(...),s:pk(...)))` miniscript import and
-  address derivation remains the only positive in-file miniscript descriptor
-  surface
-- raw helper funding of that inherited classical miniscript output remains an
-  explicit deferred `scriptpubkey` negative control under the default policy
-  path
-- direct coinbase generation into the imported miniscript address creates one
-  real watch-only UTXO without reopening broad inherited send-path semantics
-- the funded watch-only miniscript can prepare an incomplete PSBT-backed send
-  when the tracked input is preselected and the fee is subtracted from the
-  output to avoid change
-- `walletprocesspsbt(finalize=false)` remains non-signing and incomplete for
-  that watch-only miniscript PSBT
-- `finalizepsbt` remains incomplete for that miniscript PSBT
-- one wallet-local xprv-backed `wsh(pk(.../*))` miniscript import now remains
-  the only positive in-file signer-owned miniscript surface
-- ordinary inherited `sendtoaddress(...)` funding into that signer-owned
-  miniscript address remains an explicit deferred `Signing transaction failed`
-  boundary under Track A
-- direct coinbase generation into the signer-owned miniscript address creates
-  one real spendable miniscript UTXO without reopening inherited send-path
-  semantics
-- `walletprocesspsbt(sign=false, finalize=false)` now fills witness data for
-  that signer-owned miniscript PSBT without adding signatures
-- `walletprocesspsbt(finalize=false)` then adds exactly one classical-looking
-  `partial_sig` entry for the signer-owned miniscript input
-- node-side `decodepsbt` and `finalizepsbt` reject that signed PSBT with the
-  current PQ-only signature-encoding error, which is now the explicit signer
-  boundary instead of an accidental failure
+- the in-file watch-only descriptor set can be imported, derive addresses, and
+  detect funds across both `wsh(...)` Miniscript and the currently implemented
+  `tr(...)` branches
+- the signer-backed descriptor set can be imported, funded, signed, finalized,
+  and broadcast for satisfiable branches across both Miniscript and the current
+  TapMiniscript coverage in-file
+- `walletprocesspsbt(finalize=false)` exposes the expected number of
+  `partial_signatures` or `taproot_script_path_sigs` entries before
+  finalization
+- deliberate under-keyed or ambiguous branch-selection cases remain incomplete
+  by design rather than failing at a signature-encoding wall
+- the suite owns relative-locktime, absolute-locktime, preimage, multi-key,
+  and witness-size-selection behavior within the current wallet harness
+- the max-size TapMiniscript import/spend boundary is covered positively, and
+  one oversize import remains a negative control
 - ranged xpub/tprv miniscript imports and one TapMiniscript xpub import remain
   explicit invalid-key deferred controls
 
@@ -55,34 +40,29 @@ bounded miniscript carveout:
 
 This posture note does **not** mean:
 
-- inherited classical miniscript funding/finalization has been rehabilitated
-- TapMiniscript activation or replacement semantics are defined
-- this suite should move into `pq_required`
-
-Those remain deferred.
+- replacement-path TapMiniscript or witness-v1 activation semantics are defined
+- generic relay, mempool, or policy behavior is implied beyond this wallet test
+- broad non-descriptor inherited funding/send-path behavior is complete
 
 ## Confidence Snapshot
 
-Targeted confidence pass run on 2026-04-13:
+Current validation reference:
 
-- `python3 test/functional/wallet_miniscript.py`
+- `build/test/functional/test_runner.py --jobs=1 wallet_miniscript.py`
   - result: passed
   - current posture:
-    - static miniscript import/derive stays green
-    - one real watch-only miniscript UTXO can be tracked and used for
-      incomplete PSBT preparation
-    - one real signer-owned miniscript UTXO can be tracked and taken through
-      `walletprocesspsbt(sign=false)` and then a single classical-looking
-      partial-signature seam
-    - signed miniscript PSBT decode/finalize remains explicitly blocked by the
-      PQ-only signature-encoding rule
+    - watch-only and signer-backed descriptor imports stay green across the
+      current Miniscript and TapMiniscript fixtures
+    - satisfiable signer-backed PSBTs finalize and broadcast successfully
+    - intentionally under-keyed cases remain incomplete without regressing the
+      rest of the signer/finalize surface
+    - max-size TapMiniscript spend coverage remains green
 
 ## Interpretation
 
-- `wallet_miniscript.py` is now a fixed miniscript funding/signing boundary,
-  not just a watch-only non-signing carveout
-- it remains `dual_profile` / `deferred`, not a required PQ-first gate
-- the next clean follow-on can rebalance toward one chainstate/validation
-  tranche instead of widening wallet adjacency again immediately
-- broad miniscript funding/finalization rehabilitation and TapMiniscript
-  semantics remain deferred
+- `wallet_miniscript.py` is now a fixed wallet miniscript
+  funding/signing/finalization contract, not a narrow non-signing carveout
+- it belongs in `pq_required`, while its `taproot_matrix_bucket` remains
+  `deferred` because replacement-path meaning is still separate work
+- the next clean follow-on can rebalance toward chainstate/validation work
+  instead of reopening the same wallet surface again
