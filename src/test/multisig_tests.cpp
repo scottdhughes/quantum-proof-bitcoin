@@ -46,7 +46,7 @@ std::vector<uint8_t> Sign(
 
 BOOST_FIXTURE_TEST_SUITE(multisig_tests, BasicTestingSetup)
 
-BOOST_AUTO_TEST_CASE(multisig_verify_pq_only)
+BOOST_AUTO_TEST_CASE(multisig_rejects_oversized_pq_sigs_under_legacy_limits)
 {
     const std::array<uint8_t, 32> sk1{0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
                                       0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
@@ -81,8 +81,8 @@ BOOST_AUTO_TEST_CASE(multisig_verify_pq_only)
     ScriptError err;
     const CTransaction tx_spend_const{tx_spend};
     const TransactionSignatureChecker checker(&tx_spend_const, 0, 0, MissingDataBehavior::FAIL);
-    BOOST_CHECK(VerifyScript(tx_spend.vin[0].scriptSig, multisig_script, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
-    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_OK);
+    BOOST_CHECK(!VerifyScript(tx_spend.vin[0].scriptSig, multisig_script, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUSH_SIZE);
 
     CMutableTransaction bad_sig_tx = tx_spend;
     std::vector<uint8_t> bad_sig = sig2;
@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(multisig_verify_pq_only)
     const CTransaction bad_sig_tx_const{bad_sig_tx};
     const TransactionSignatureChecker bad_checker(&bad_sig_tx_const, 0, 0, MissingDataBehavior::FAIL);
     BOOST_CHECK(!VerifyScript(bad_sig_tx.vin[0].scriptSig, multisig_script, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, bad_checker, &err));
-    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_EVAL_FALSE);
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUSH_SIZE);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -178,7 +178,7 @@ BOOST_AUTO_TEST_CASE(pk_script_classification_is_length_first_and_matches_validi
     }
 }
 
-BOOST_AUTO_TEST_CASE(checksig_accepts_valid_pqsig)
+BOOST_AUTO_TEST_CASE(base_checksig_rejects_oversized_pqsig_under_legacy_limits)
 {
     const auto pk_script = MakePkScript();
     const CScript script_pubkey = CScript{} << std::vector<unsigned char>{pk_script.begin(), pk_script.end()} << OP_CHECKSIG;
@@ -191,14 +191,15 @@ BOOST_AUTO_TEST_CASE(checksig_accepts_valid_pqsig)
     const TransactionSignatureChecker checker(&tx_const, /*nInIn=*/0, /*amountIn=*/0, MissingDataBehavior::FAIL);
 
     ScriptError err;
-    BOOST_CHECK(VerifyScript(tx.vin[0].scriptSig, script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
-    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_OK);
+    BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUSH_SIZE);
 }
 
-BOOST_AUTO_TEST_CASE(checksig_rejects_wrong_sig_size_and_alg_id)
+BOOST_AUTO_TEST_CASE(base_checksig_rejects_non_exception_pq_variants_under_legacy_limits)
 {
     const auto pk_script = MakePkScript();
     const CScript good_script_pubkey = CScript{} << std::vector<unsigned char>{pk_script.begin(), pk_script.end()} << OP_CHECKSIG;
+    const unsigned int strict_flags = MANDATORY_SCRIPT_VERIFY_FLAGS | SCRIPT_VERIFY_STRICTENC;
 
     CMutableTransaction tx = BuildSpendingTx();
     const std::vector<uint8_t> good_sig = SignForScript(tx, good_script_pubkey, pk_script);
@@ -208,44 +209,43 @@ BOOST_AUTO_TEST_CASE(checksig_rejects_wrong_sig_size_and_alg_id)
 
     ScriptError err;
 
-    // Wrong signature size is rejected during script encoding checks.
+    // Any non-witness PQ spend path exceeds the legacy 520-byte stack element limit.
     tx.vin[0].scriptSig = CScript{} << std::vector<unsigned char>(pqsig::SIG_SIZE - 1, 0xAA);
     BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, good_script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
-    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_SIG_DER);
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUSH_SIZE);
 
-    // Wrong pubkey script length is rejected deterministically.
+    // A non-exact witness exception still fails at the legacy push-size limit.
     std::vector<unsigned char> short_pk{pk_script.begin(), pk_script.end() - 1};
     const CScript short_pk_script_pubkey = CScript{} << short_pk << OP_CHECKSIG;
     tx.vin[0].scriptSig = CScript{} << std::vector<unsigned char>{good_sig.begin(), good_sig.end()};
-    BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, short_pk_script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
-    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUBKEYTYPE);
+    BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, short_pk_script_pubkey, nullptr, strict_flags, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUSH_SIZE);
 
-    // Reserved-invalid algorithm identifiers are rejected deterministically.
+    // Non-active algorithm identifiers do not qualify for the witness-only exception.
     auto reserved_pk_script = pk_script;
     reserved_pk_script[0] = 0x00;
     const CScript reserved_script_pubkey = CScript{} << std::vector<unsigned char>{reserved_pk_script.begin(), reserved_pk_script.end()} << OP_CHECKSIG;
     tx.vin[0].scriptSig = CScript{} << std::vector<unsigned char>{good_sig.begin(), good_sig.end()};
-    BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, reserved_script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
-    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUBKEYTYPE);
+    BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, reserved_script_pubkey, nullptr, strict_flags, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUSH_SIZE);
 
-    // Allocated-future algorithm identifiers are still rejected with the same public-key encoding error.
+    // Future and unallocated identifiers fail the same legacy-limit gate in base scripts.
     auto future_pk_script = pk_script;
     future_pk_script[0] = 0x02;
     const CScript future_script_pubkey = CScript{} << std::vector<unsigned char>{future_pk_script.begin(), future_pk_script.end()} << OP_CHECKSIG;
     tx.vin[0].scriptSig = CScript{} << std::vector<unsigned char>{good_sig.begin(), good_sig.end()};
-    BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, future_script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
-    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUBKEYTYPE);
+    BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, future_script_pubkey, nullptr, strict_flags, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUSH_SIZE);
 
-    // Unallocated algorithm identifiers are rejected with the same public-key encoding error.
     auto unallocated_pk_script = pk_script;
     unallocated_pk_script[0] = 0x03;
     const CScript unallocated_script_pubkey = CScript{} << std::vector<unsigned char>{unallocated_pk_script.begin(), unallocated_pk_script.end()} << OP_CHECKSIG;
     tx.vin[0].scriptSig = CScript{} << std::vector<unsigned char>{good_sig.begin(), good_sig.end()};
-    BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, unallocated_script_pubkey, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
-    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUBKEYTYPE);
+    BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, unallocated_script_pubkey, nullptr, strict_flags, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUSH_SIZE);
 }
 
-BOOST_AUTO_TEST_CASE(checkmultisig_accepts_valid_and_rejects_wrong_sighash)
+BOOST_AUTO_TEST_CASE(base_checkmultisig_rejects_oversized_pqsigs_under_legacy_limits)
 {
     const auto pk_script = MakePkScript();
     const CScript multisig_script = CScript{} << OP_1 << std::vector<unsigned char>{pk_script.begin(), pk_script.end()} << OP_1 << OP_CHECKMULTISIG;
@@ -258,15 +258,15 @@ BOOST_AUTO_TEST_CASE(checkmultisig_accepts_valid_and_rejects_wrong_sighash)
     const TransactionSignatureChecker checker(&tx_const, /*nInIn=*/0, /*amountIn=*/0, MissingDataBehavior::FAIL);
     ScriptError err;
 
-    BOOST_CHECK(VerifyScript(tx.vin[0].scriptSig, multisig_script, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
-    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_OK);
+    BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, multisig_script, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUSH_SIZE);
 
     // Mutating a layer counter triggers strict internal signature rejection.
     std::vector<uint8_t> malformed_sig = sig;
     MutateLayerCounter(malformed_sig, 0);
     tx.vin[0].scriptSig = CScript{} << OP_0 << std::vector<unsigned char>{malformed_sig.begin(), malformed_sig.end()};
     BOOST_CHECK(!VerifyScript(tx.vin[0].scriptSig, multisig_script, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, checker, &err));
-    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_EVAL_FALSE);
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUSH_SIZE);
 
     // Restore valid scriptSig before sighash mismatch check.
     tx.vin[0].scriptSig = CScript{} << OP_0 << std::vector<unsigned char>{sig.begin(), sig.end()};
@@ -278,7 +278,7 @@ BOOST_AUTO_TEST_CASE(checkmultisig_accepts_valid_and_rejects_wrong_sighash)
     const TransactionSignatureChecker mutated_checker(&mutated_tx_const, /*nInIn=*/0, /*amountIn=*/0, MissingDataBehavior::FAIL);
 
     BOOST_CHECK(!VerifyScript(mutated_tx.vin[0].scriptSig, multisig_script, nullptr, MANDATORY_SCRIPT_VERIFY_FLAGS, mutated_checker, &err));
-    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_EVAL_FALSE);
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_PUSH_SIZE);
 }
 
 BOOST_AUTO_TEST_CASE(produce_signature_builds_valid_p2wsh_pq_witness)
