@@ -14,6 +14,7 @@ from test_framework.blocktools import (
     MAX_BLOCK_SIGOPS,
     REGTEST_N_BITS,
 )
+from test_framework.key import ECKey
 from test_framework.messages import (
     CBlock,
     CBlockHeader,
@@ -29,9 +30,9 @@ from test_framework.messages import (
     uint256_from_str,
 )
 from test_framework.p2p import P2PDataStore, msg_headers, p2p_lock
-from test_framework.pqsig import build_pq_keypair, sign_legacy_input_pq
 from test_framework.script import (
     CScript,
+    LegacySignatureHash,
     MAX_SCRIPT_ELEMENT_SIZE,
     MAX_SCRIPT_SIZE,
     OP_CHECKMULTISIG,
@@ -46,6 +47,7 @@ from test_framework.script import (
     OP_INVALIDOPCODE,
     OP_RETURN,
     OP_TRUE,
+    SIGHASH_ALL,
 )
 from test_framework.script_util import (
     script_to_p2sh_script,
@@ -145,7 +147,9 @@ class FullBlockTest(BitcoinTestFramework):
         self.bootstrap_p2p()  # Add one p2p connection to the node
 
         self.block_heights = {}
-        self.coinbase_key, self.coinbase_pubkey = build_pq_keypair(bytes.fromhex("21" * 32))
+        self.coinbase_key = ECKey()
+        self.coinbase_key.set(bytes.fromhex("21" * 32), True)
+        self.coinbase_pubkey = self.coinbase_key.get_pubkey().get_bytes()
         self.tip = None
         self.blocks = {}
         self.genesis_hash = int(self.nodes[0].getbestblockhash(), 16)
@@ -985,7 +989,13 @@ class FullBlockTest(BitcoinTestFramework):
         tx.vin.append(CTxIn(COutPoint(b64a.vtx[1].txid_int, 0)))
         b64a = self.update_block("64a", [tx])
         assert_equal(b64a.get_weight(), MAX_BLOCK_WEIGHT + 8 * 4)
-        self.send_blocks([b64a], success=False, reject_reason=OVERSIZE_BLOCK_LOG_FRAGMENTS, reconnect=True)
+        self.send_blocks([b64a], success=False, reject_reason='non-canonical ReadCompactSize()')
+
+        # This bloated serialization is rejected without a disconnect under the
+        # legacy-aligned profile, so reconnect explicitly before resending the
+        # canonical block with the same hash.
+        node.disconnect_p2ps()
+        self.reconnect_p2p()
 
         self.move_tip('dup_2')
         b64 = CBlock(b64a)
@@ -1391,7 +1401,9 @@ class FullBlockTest(BitcoinTestFramework):
         if (scriptPubKey[0] == OP_TRUE):  # an anyone-can-spend
             tx.vin[0].scriptSig = CScript()
             return
-        signature = sign_legacy_input_pq(tx, spend_tx.vout[0].scriptPubKey, self.coinbase_key, self.coinbase_pubkey)
+        sighash, err = LegacySignatureHash(spend_tx.vout[0].scriptPubKey, tx, 0, SIGHASH_ALL)
+        assert err is None
+        signature = self.coinbase_key.sign_ecdsa(sighash, rfc6979=True) + bytes([SIGHASH_ALL])
         tx.vin[0].scriptSig = bytes(CScript([signature])) + tx.vin[0].scriptSig
 
     def create_and_sign_transaction(self, spend_tx, value, output_script=None):

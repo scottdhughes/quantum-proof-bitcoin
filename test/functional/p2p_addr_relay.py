@@ -318,6 +318,7 @@ class AddrTest(BitcoinTestFramework):
         self.log.info('Test addr relay in -blocksonly mode')
         self.restart_node(0, ["-blocksonly", "-whitelist=addr@127.0.0.1"])
         self.mocktime = int(time.time())
+        self.nodes[0].setmocktime(self.mocktime)
 
         self.log.info('Check that we send getaddr messages')
         full_outbound_peer = self.nodes[0].add_outbound_p2p_connection(AddrReceiver(), p2p_idx=0, connection_type="outbound-full-relay")

@@ -67,8 +67,8 @@ TIME_RANGE_MTP = TIME_GENESIS_BLOCK + (HEIGHT - 6) * TIME_RANGE_STEP
 TIME_RANGE_TIP = TIME_GENESIS_BLOCK + (HEIGHT - 1) * TIME_RANGE_STEP
 TIME_RANGE_END = TIME_GENESIS_BLOCK + HEIGHT * TIME_RANGE_STEP
 DIFFICULTY_ADJUSTMENT_INTERVAL = 144
-TAPROOT_REPLACEMENT_START_TIME = 4102444800
-TAPROOT_REPLACEMENT_TIMEOUT = 4133980800
+TAPROOT_REPLACEMENT_START_TIME = -1
+TAPROOT_REPLACEMENT_TIMEOUT = 0x7fffffffffffffff
 
 
 class BlockchainTest(BitcoinTestFramework):
@@ -244,15 +244,16 @@ class BlockchainTest(BitcoinTestFramework):
             },
             'taproot_replacement': {
                 'type': 'bip9',
+                'height': 0,
                 'bip9': {
                     'start_time': TAPROOT_REPLACEMENT_START_TIME,
                     'timeout': TAPROOT_REPLACEMENT_TIMEOUT,
                     'min_activation_height': 0,
-                    'status': 'defined',
-                    'status_next': 'defined',
+                    'status': 'active',
+                    'status_next': 'active',
                     'since': 0,
                 },
-                'active': False
+                'active': True
             }
           }
         })
@@ -544,8 +545,9 @@ class BlockchainTest(BitcoinTestFramework):
         assert_equal(self.nodes[0].getnetworkhashps(-1), expected_hashes_per_second_since_diff_change)
 
         # Ensure long lookups get truncated to chain length
-        hashes_per_second = self.nodes[0].getnetworkhashps(self.nodes[0].getblockcount() + 1000)
-        assert hashes_per_second > 0.003
+        chain_length = self.nodes[0].getblockcount()
+        hashes_per_second = self.nodes[0].getnetworkhashps(chain_length + 1000)
+        assert_equal(hashes_per_second, self.nodes[0].getnetworkhashps(chain_length))
 
     def _test_stopatheight(self):
         self.log.info("Test stopping at height")

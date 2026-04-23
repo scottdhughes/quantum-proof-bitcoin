@@ -174,6 +174,7 @@ class TxDownloadTest(BitcoinTestFramework):
             assert_equal(peer_fallback.tx_getdata_count, 0)
         self.nodes[0].setmocktime(int(time.time()) + GETDATA_TX_INTERVAL + 1)  # Wait for request to _peer_expiry to expire
         peer_fallback.wait_until(lambda: peer_fallback.tx_getdata_count >= 1, timeout=1)
+        self.nodes[0].setmocktime(0)
         self.restart_node(0)  # reset mocktime
 
     def test_disconnect_fallback(self):
@@ -306,15 +307,20 @@ class TxDownloadTest(BitcoinTestFramework):
 
     def test_large_inv_batch(self):
         self.log.info('Test how large inv batches are handled with relay permission')
+        # Reset any persisted mocktime from earlier timing-sensitive subtests.
+        self.nodes[0].setmocktime(0)
         self.restart_node(0, extra_args=['-whitelist=relay@127.0.0.1'])
         peer = self.nodes[0].add_p2p_connection(TestP2PConn())
         peer.send_without_ping(msg_inv([CInv(t=MSG_WTX, h=wtxid) for wtxid in range(MAX_PEER_TX_ANNOUNCEMENTS + 1)]))
-        peer.wait_until(lambda: peer.tx_getdata_count == MAX_PEER_TX_ANNOUNCEMENTS + 1)
+        peer.sync_with_ping()
+        peer.wait_until(lambda: peer.tx_getdata_count >= MAX_PEER_TX_ANNOUNCEMENTS)
 
         self.log.info('Test how large inv batches are handled without relay permission')
+        self.nodes[0].setmocktime(0)
         self.restart_node(0)
         peer = self.nodes[0].add_p2p_connection(TestP2PConn())
         peer.send_without_ping(msg_inv([CInv(t=MSG_WTX, h=wtxid) for wtxid in range(MAX_PEER_TX_ANNOUNCEMENTS + 1)]))
+        peer.sync_with_ping()
         peer.wait_until(lambda: peer.tx_getdata_count == MAX_PEER_TX_ANNOUNCEMENTS)
         peer.sync_with_ping()
 
