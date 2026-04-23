@@ -2,13 +2,13 @@
 # Copyright (c) 2017-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Freeze a narrow address-type boundary under PQBTC Track A.
+"""Exercise inherited address-type coverage alongside PQBTC additions.
 
-This file no longer tries to rehabilitate the full inherited address-family
-matrix. Instead it keeps:
+This file keeps focused inherited-address coverage while also asserting the
+current PQ-only wallet boundary:
 
 - low-risk inherited address-shape smoke coverage that still passes
-- one explicit deferred inherited sendmany negative control
+- one inherited sendmany positive control
 - one PQ-only inherited-address rejection boundary for active pqpriv() wallets
 """
 
@@ -164,8 +164,8 @@ class AddressTypeTest(BitcoinTestFramework):
         self.test_address(4, self.nodes[4].getnewaddress("", "bech32m"), "bech32m")
         self.test_address(4, self.nodes[4].getrawchangeaddress("bech32m"), "bech32m")
 
-    def test_deferred_legacy_sendmany_negative_control(self):
-        self.log.info("Freeze the current inherited classical sendmany failure as a deferred negative control")
+    def test_inherited_sendmany_positive_control(self):
+        self.log.info("Inherited address types can be funded together with sendmany")
         assert_greater_than(self.nodes[0].getbalance(), Decimal("1"))
 
         self_change = self.nodes[0].getrawchangeaddress()
@@ -184,7 +184,17 @@ class AddressTypeTest(BitcoinTestFramework):
             p2sh_2: Decimal("0.30"),
             bech32: Decimal("0.40"),
         }
-        assert_raises_rpc_error(-6, "Signing transaction failed", self.nodes[0].sendmany, "", sends)
+        txid = self.nodes[0].sendmany("", sends)
+        self.sync_mempools()
+
+        tx = self.nodes[0].getrawtransaction(txid, True)
+        output_addresses = {
+            vout["scriptPubKey"]["address"]
+            for vout in tx["vout"]
+            if "address" in vout["scriptPubKey"]
+        }
+        for address in sends:
+            assert address in output_addresses
 
     def test_pq_only_inherited_address_rpc_boundary(self):
         self.log.info("PQ-only active wallets reject inherited address RPCs for all valid inherited address types")
@@ -221,7 +231,7 @@ class AddressTypeTest(BitcoinTestFramework):
         self.test_basic_inherited_address_shapes()
         self.test_invalid_address_type_arguments()
         self.test_descriptor_wallet_bech32m_smoke()
-        self.test_deferred_legacy_sendmany_negative_control()
+        self.test_inherited_sendmany_positive_control()
         self.test_pq_only_inherited_address_rpc_boundary()
         self.test_pq_unknown_type_precedence()
 

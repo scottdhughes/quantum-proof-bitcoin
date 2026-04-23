@@ -1,23 +1,17 @@
 #!/usr/bin/env python3
-# Copyright (c) 2021-2022 The Bitcoin Core developers
+# Copyright (c) 2021-present The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Freeze wallet_multisig_descriptor_psbt.py as a Track A funding/signing boundary."""
+"""Test a basic M-of-N multisig setup between multiple people using descriptor wallets and PSBTs, as well as a signing flow.
 
-from decimal import Decimal
+This is meant to be documentation as much as functional tests, so it is kept as simple and readable as possible.
+"""
 
-from test_framework.psbt import PSBT, PSBT_IN_PARTIAL_SIG
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_approx,
     assert_equal,
-    assert_raises_rpc_error,
 )
-
-
-LEGACY_SIGNER_PSBT_ERROR = "TX decode failed Signature is not a valid encoding: unspecified iostream_category error"
-LEGACY_PARTIAL_SIG_UPPER_BOUND = 100
-PQ_PROP_IDENTIFIER = "7071627463"
 
 
 class WalletMultisigDescriptorPSBTTest(BitcoinTestFramework):
@@ -31,35 +25,17 @@ class WalletMultisigDescriptorPSBTTest(BitcoinTestFramework):
         self.skip_if_no_wallet()
 
     @staticmethod
-    def _get_xpub(wallet, internal):
+    def _get_xpub(wallet):
         """Extract the wallet's xpubs using `listdescriptors` and pick the one from the `pkh` descriptor since it's least likely to be accidentally reused (legacy addresses)."""
-        pkh_descriptor = next(filter(lambda d: d["desc"].startswith("pkh(") and d["internal"] == internal, wallet.listdescriptors()["descriptors"]))
-        return pkh_descriptor["desc"].split("pkh(")[1].split(")")[0]
-
-    @staticmethod
-    def find_pq_props(decoded_input):
-        return [
-            prop for prop in decoded_input.get("proprietary", [])
-            if prop["identifier"] == PQ_PROP_IDENTIFIER and prop["subtype"] == 1
-        ]
-
-    @staticmethod
-    def find_partial_sig_entries(psbt_input):
-        return [
-            (key[1:], value)
-            for key, value in psbt_input.map.items()
-            if isinstance(key, bytes) and key[:1] == bytes([PSBT_IN_PARTIAL_SIG])
-        ]
-
-    @staticmethod
-    def find_unspent(wallet, address, txid):
-        matches = [u for u in wallet.listunspent() if u["address"] == address and u["txid"] == txid]
-        assert_equal(len(matches), 1)
-        return matches[0]
+        pkh_descriptor = next(filter(lambda d: d["desc"].startswith("pkh(") and not d["internal"], wallet.listdescriptors()["descriptors"]))
+        # Keep all key origin information (master key fingerprint and all derivation steps) for proper support of hardware devices
+        # See section 'Key origin identification' in 'doc/descriptors.md' for more details...
+        # Replace the change index with the multipath convention
+        return pkh_descriptor["desc"].split("pkh(")[1].split(")")[0].replace("/0/*", "/<0;1>/*")
 
     @staticmethod
     def _check_psbt(psbt, to, value, multisig):
-        """Helper function for any participant to check the PSBT before signing."""
+        """Helper function for any of the N participants to check the psbt with decodepsbt and verify it is OK before signing."""
         tx = multisig.decodepsbt(psbt)["tx"]
         amount = 0
         for vout in tx["vout"]:
@@ -69,26 +45,19 @@ class WalletMultisigDescriptorPSBTTest(BitcoinTestFramework):
                 amount += vout["value"]
         assert_approx(amount, float(value), vspan=0.001)
 
-    def participants_create_multisigs(self, external_xpubs, internal_xpubs):
-        """Import the same watch-only multisig into every participant node."""
+    def participants_create_multisigs(self, xpubs):
+        """The multisig is created by importing the following descriptors. The resulting wallet is watch-only and every participant can do this."""
         for i, node in enumerate(self.nodes):
             node.createwallet(wallet_name=f"{self.name}_{i}", blank=True, disable_private_keys=True)
             multisig = node.get_wallet_rpc(f"{self.name}_{i}")
-            external = multisig.getdescriptorinfo(f"wsh(sortedmulti({self.M},{','.join(external_xpubs)}))")
-            internal = multisig.getdescriptorinfo(f"wsh(sortedmulti({self.M},{','.join(internal_xpubs)}))")
+            multisig_desc = f"wsh(sortedmulti({self.M},{','.join(xpubs)}))"
+            checksum = multisig.getdescriptorinfo(multisig_desc)["checksum"]
             result = multisig.importdescriptors([
-                {
-                    "desc": external["descriptor"],
+                {  # Multipath descriptor expands to receive and change
+                    "desc": f"{multisig_desc}#{checksum}",
                     "active": True,
-                    "internal": False,
                     "timestamp": "now",
-                },
-                {
-                    "desc": internal["descriptor"],
-                    "active": True,
-                    "internal": True,
-                    "timestamp": "now",
-                },
+                }
             ])
             assert all(r["success"] for r in result)
             yield multisig
@@ -97,101 +66,81 @@ class WalletMultisigDescriptorPSBTTest(BitcoinTestFramework):
         self.M = 2
         self.N = self.num_nodes
         self.name = f"{self.M}_of_{self.N}_multisig"
-        self.log.info(f"Testing {self.name} under the Track A funding/signing boundary...")
+        self.log.info(f"Testing {self.name}...")
 
         participants = {
+            # Every participant generates an xpub. The most straightforward way is to create a new descriptor wallet.
+            # This wallet will be the participant's `signer` for the resulting multisig. Avoid reusing this wallet for any other purpose (for privacy reasons).
             "signers": [node.get_wallet_rpc(node.createwallet(wallet_name=f"participant_{self.nodes.index(node)}")["name"]) for node in self.nodes],
-            "multisigs": [],
+            # After participants generate and exchange their xpubs they will each create their own watch-only multisig.
+            # Note: these multisigs are all the same, this just highlights that each participant can independently verify everything on their own node.
+            "multisigs": []
         }
 
         self.log.info("Generate and exchange xpubs...")
-        external_xpubs, internal_xpubs = [[self._get_xpub(signer, internal) for signer in participants["signers"]] for internal in [False, True]]
+        xpubs = [self._get_xpub(signer) for signer in participants["signers"]]
 
-        self.log.info("Every participant imports the watch-only multisig descriptors...")
-        participants["multisigs"] = list(self.participants_create_multisigs(external_xpubs, internal_xpubs))
+        self.log.info("Every participant imports the following descriptors to create the watch-only multisig...")
+        participants["multisigs"] = list(self.participants_create_multisigs(xpubs))
 
-        self.log.info("Check that every participant's multisig generates the same receive/change addresses...")
-        for _ in range(10):
+        self.log.info("Check that every participant's multisig generates the same addresses...")
+        for _ in range(10):  # we check that the first 10 generated addresses are the same for all participant's multisigs
             receive_addresses = [multisig.getnewaddress() for multisig in participants["multisigs"]]
             assert all(address == receive_addresses[0] for address in receive_addresses)
             change_addresses = [multisig.getrawchangeaddress() for multisig in participants["multisigs"]]
             assert all(address == change_addresses[0] for address in change_addresses)
 
-        self.log.info("Keep inherited classical multisig funding as an explicit deferred negative control...")
+        self.log.info("Get a mature utxo to send to the multisig...")
         coordinator_wallet = participants["signers"][0]
         self.generatetoaddress(self.nodes[0], 101, coordinator_wallet.getnewaddress())
-        deposit_amount = Decimal("6.15000000")
-        rejected_address = participants["multisigs"][0].getnewaddress()
-        assert_raises_rpc_error(
-            -6,
-            "Signing transaction failed",
-            coordinator_wallet.sendtoaddress,
-            rejected_address,
-            deposit_amount,
-        )
 
-        self.log.info("Fund the watch-only multisig through direct coinbase generation...")
-        funded_address = participants["multisigs"][0].getnewaddress()
-        funding_blockhash = self.generatetoaddress(self.nodes[0], 1, funded_address)[0]
-        self.generatetoaddress(self.nodes[0], 100, coordinator_wallet.getnewaddress())
-        funding_txid = self.nodes[0].getblock(funding_blockhash, 2)["tx"][0]["txid"]
+        deposit_amount = 6.15
+        multisig_receiving_address = participants["multisigs"][0].getnewaddress()
+        self.log.info("Send funds to the resulting multisig receiving address...")
+        coordinator_wallet.sendtoaddress(multisig_receiving_address, deposit_amount)
+        self.generate(self.nodes[0], 1)
+        for participant in participants["multisigs"]:
+            assert_approx(participant.getbalance(), deposit_amount, vspan=0.001)
 
-        funded = self.find_unspent(participants["multisigs"][0], funded_address, funding_txid)
-        assert_equal(funded["solvable"], True)
-        assert_equal(funded["has_private_keys"], False)
-        deposit_amount = funded["amount"]
-        for multisig in participants["multisigs"]:
-            tracked = self.find_unspent(multisig, funded_address, funding_txid)
-            assert_equal(tracked["amount"], deposit_amount)
-            balances = multisig.getbalances()
-            tracked_bucket = balances["watchonly"] if "watchonly" in balances else balances["mine"]
-            assert_equal(tracked_bucket["trusted"], deposit_amount)
-            assert_equal(multisig.getbalance(), deposit_amount)
-
-        self.log.info("Preserve the multisig descriptor PSBT surface as a non-signing watch-only carveout...")
+        self.log.info("Send a transaction from the multisig!")
         to = participants["signers"][self.N - 1].getnewaddress()
-        value = Decimal("1.00000000")
-        created = participants["multisigs"][0].walletcreatefundedpsbt(
-            inputs=[{"txid": funded["txid"], "vout": funded["vout"]}],
-            outputs={to: value},
-            options={"add_inputs": False, "fee_rate": 1},
-        )
-        decoded = self.nodes[0].decodepsbt(created["psbt"])
-        assert_equal(len(decoded["inputs"]), 1)
-        assert_equal(len(decoded["tx"]["vin"]), 1)
-        assert "witness_utxo" in decoded["inputs"][0]
-        assert_equal(self.find_pq_props(decoded["inputs"][0]), [])
-        assert "partial_signatures" not in decoded["inputs"][0]
-        assert "final_scriptwitness" not in decoded["inputs"][0]
+        value = 1
+        self.log.info("First, make a sending transaction, created using `walletcreatefundedpsbt` (anyone can initiate this)...")
+        psbt = participants["multisigs"][0].walletcreatefundedpsbt(inputs=[], outputs={to: value}, feeRate=0.00010)
 
-        for multisig in participants["multisigs"]:
-            self._check_psbt(created["psbt"], to, value, multisig)
-            processed = multisig.walletprocesspsbt(psbt=created["psbt"], finalize=False)
-            assert_equal(processed["complete"], False)
-            assert "hex" not in processed
-            processed_decoded = self.nodes[0].decodepsbt(processed["psbt"])
-            input0 = processed_decoded["inputs"][0]
-            assert "witness_utxo" in input0
-            assert_equal(self.find_pq_props(input0), [])
-            assert "partial_signatures" not in input0
-            assert "final_scriptwitness" not in input0
+        psbts = []
+        self.log.info("Now at least M users check the psbt with decodepsbt and (if OK) signs it with walletprocesspsbt...")
+        for m in range(self.M):
+            signers_multisig = participants["multisigs"][m]
+            self._check_psbt(psbt["psbt"], to, value, signers_multisig)
+            signing_wallet = participants["signers"][m]
+            partially_signed_psbt = signing_wallet.walletprocesspsbt(psbt["psbt"])
+            psbts.append(partially_signed_psbt["psbt"])
 
-        self.log.info("Freeze the first inherited signer contribution boundary...")
-        signer0 = participants["signers"][0].walletprocesspsbt(psbt=created["psbt"], finalize=False)
-        assert_equal(signer0["complete"], False)
-        assert signer0["psbt"] != created["psbt"]
+        self.log.info("Finally, collect the signed PSBTs with combinepsbt, finalizepsbt, then broadcast the resulting transaction...")
+        combined = coordinator_wallet.combinepsbt(psbts)
+        finalized = coordinator_wallet.finalizepsbt(combined)
+        coordinator_wallet.sendrawtransaction(finalized["hex"])
 
-        signed_psbt = PSBT.from_base64(signer0["psbt"])
-        partial_sigs = self.find_partial_sig_entries(signed_psbt.i[0])
-        assert_equal(len(partial_sigs), 1)
-        assert_equal(len(partial_sigs[0][0]), 33)
-        assert partial_sigs[0][1]
-        assert len(partial_sigs[0][1]) < LEGACY_PARTIAL_SIG_UPPER_BOUND
+        self.log.info("Check that balances are correct after the transaction has been included in a block.")
+        self.generate(self.nodes[0], 1)
+        assert_approx(participants["multisigs"][0].getbalance(), deposit_amount - value, vspan=0.001)
+        assert_equal(participants["signers"][self.N - 1].getbalance(), value)
 
-        self.log.info("Freeze node-side decode/finalize of that signed PSBT as deferred legacy compatibility...")
-        assert_raises_rpc_error(-22, LEGACY_SIGNER_PSBT_ERROR, self.nodes[0].decodepsbt, signer0["psbt"])
-        assert_raises_rpc_error(-22, LEGACY_SIGNER_PSBT_ERROR, participants["signers"][1].walletprocesspsbt, signer0["psbt"], finalize=False)
-        assert_raises_rpc_error(-22, LEGACY_SIGNER_PSBT_ERROR, self.nodes[0].finalizepsbt, signer0["psbt"])
+        self.log.info("Send another transaction from the multisig, this time with a daisy chained signing flow (one after another in series)!")
+        psbt = participants["multisigs"][0].walletcreatefundedpsbt(inputs=[], outputs={to: value}, feeRate=0.00010)
+        for m in range(self.M):
+            signers_multisig = participants["multisigs"][m]
+            self._check_psbt(psbt["psbt"], to, value, signers_multisig)
+            signing_wallet = participants["signers"][m]
+            psbt = signing_wallet.walletprocesspsbt(psbt["psbt"])
+            assert_equal(psbt["complete"], m == self.M - 1)
+        coordinator_wallet.sendrawtransaction(psbt["hex"])
+
+        self.log.info("Check that balances are correct after the transaction has been included in a block.")
+        self.generate(self.nodes[0], 1)
+        assert_approx(participants["multisigs"][0].getbalance(), deposit_amount - (value * 2), vspan=0.001)
+        assert_equal(participants["signers"][self.N - 1].getbalance(), value * 2)
 
 
 if __name__ == "__main__":
