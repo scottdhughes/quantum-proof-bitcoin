@@ -35,10 +35,11 @@ freeze the new `wallet_miniscript.py`, `rpc_createmultisig.py`,
 funding/signing/finalization surface and `wallet_address_types.py`
 address/RPC boundary plus `wallet_fundrawtransaction.py` raw funding boundary
 and `wallet_send.py`, `wallet_sendall.py`, and `wallet_sendmany.py` inherited
-send-path boundaries in the canonical `pq_required` gate, then return the next
-owned follow-on to `feature_coinstatsindex_compatibility.py` when real prior
-PQBTC release assets exist, with broader inherited wallet lifecycle/rebroadcast
-rehab beyond the current send-path gate as the local alternate.
+send-path boundaries and `wallet_resendwallettransactions.py` rebroadcast
+boundary in the canonical `pq_required` gate, then return the next owned
+follow-on to `feature_coinstatsindex_compatibility.py` when real prior PQBTC
+release assets exist, with broader inherited wallet reindex/rescan/reorg rehab
+beyond the current rebroadcast gate as the local alternate.
 
 ## Current Working Thesis
 
@@ -62,17 +63,17 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. broader inherited wallet lifecycle/rebroadcast rehab beyond the current
-   `wallet_send.py` / `wallet_sendall.py` / `wallet_sendmany.py` send-path gate
+2. broader inherited wallet reindex/rescan/reorg rehab beyond the current
+   `wallet_resendwallettransactions.py` rebroadcast gate
    - Why alternate: if the asset-dependent coinstats compatibility path stays
      blocked locally, this is the next wallet-facing surface to reopen without
      re-litigating the now-owned descriptor, miniscript, address/RPC, raw
-     funding, and inherited send-path tranches.
+     funding, inherited send-path, and rebroadcast tranches.
 
 Still deferred:
 
-3. broader inherited wallet lifecycle/reindex/rescan/reorg breadth beyond the
-   next rebroadcast-focused tranche
+3. broader inherited wallet lifecycle breadth beyond the next
+   reindex/rescan/reorg-focused tranche
 4. TapMiniscript activation or replacement semantics
 
 ## Current Queue
@@ -508,16 +509,30 @@ Still deferred:
    Still deferred inside these suites:
    - replacement-path Taproot or bech32m wallet semantics beyond existing tests
    - new PQ-only active-manager RPC behavior
-28. Recommended next PR after this tranche:
+28. `wallet_resendwallettransactions.py` now owns:
+   - restored inherited wallet transaction rebroadcast behavior under the
+     current legacy-compatible PQC profile
+   - initial wallet transaction announcement to peers
+   - delayed rebroadcast timing after a sufficiently later block
+   - scheduler-triggered `MaybeResendWalletTxs` resubmission
+   - no early rebroadcast inside the first twelve-hour window
+   - rebroadcast after the upper resend timer bound
+   - parent-before-child rebroadcast for unconfirmed wallet transaction chains
+   - resubmission after wallet transactions are evicted from the mempool
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 wallet_resendwallettransactions.py`
+   Still deferred inside this suite:
+   - wallet reindex, rescan, or reorg restore semantics
+29. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: broader inherited wallet lifecycle/rebroadcast rehab beyond the
-     current send-path gate
+   - alternate: broader inherited wallet reindex/rescan/reorg rehab beyond the
+     current rebroadcast gate
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
-   - broader inherited wallet lifecycle work remains useful, but additional
-     wallet work stays behind the asset-dependent compatibility slice once prior
-     PQBTC release assets are available
+   - adjacent wallet lifecycle work remains useful, but additional wallet work
+     stays behind the asset-dependent compatibility slice once prior PQBTC
+     release assets are available
 19. Use `FEATURE_BLOCK_POSTURE.md` as the fixed note for the current
    `feature_block.py` contract.
 20. Use `PSBT_REPLACEMENT_TRANCHE.md` as the current owned miniscript/PSBT
@@ -985,6 +1000,15 @@ Aineko must ask before:
   follow-on remains `feature_coinstatsindex_compatibility.py` when real prior
   PQBTC release assets exist, with broader inherited wallet
   lifecycle/rebroadcast rehab beyond this send-path gate as the local alternate.
+- 2026-04-24: `wallet_resendwallettransactions.py` is now promoted into the
+  canonical `pq_required` gate and locally revalidated with the build-tree
+  functional runner. The owned boundary covers restored inherited wallet
+  rebroadcast timing, scheduler-triggered resubmission, peer inventory
+  announcement, and parent-before-child rebroadcast for unconfirmed wallet
+  transaction chains evicted from the mempool. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist, with broader inherited wallet reindex/rescan/reorg rehab beyond
+  this rebroadcast gate as the local alternate.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1037,5 +1061,8 @@ Aineko must ask before:
 - There is no current blocker in the restored inherited wallet send-path
   surface: `wallet_send.py`, `wallet_sendall.py`, and `wallet_sendmany.py` pass
   targeted validation in the current tree.
+- There is no current blocker in the restored inherited wallet rebroadcast
+  surface: `wallet_resendwallettransactions.py` passes targeted validation in
+  the current tree.
 - There is no current `OPS_SLO` blocker. The refreshed `2026-04-06` evidence
   bundle satisfies the frozen signoff thresholds.

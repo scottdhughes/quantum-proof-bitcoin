@@ -36,8 +36,8 @@ The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `33` |
-| `pq_backlog` | `92` |
+| `pq_required` | `34` |
+| `pq_backlog` | `91` |
 | `dual_profile` | `142` |
 | `legacy_only` | `9` |
 
@@ -73,9 +73,10 @@ Current required PQ-first gates:
 28. `wallet_miniscript.py`
 29. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
 30. `wallet_multisig_descriptor_psbt.py`
-31. `wallet_send.py`
-32. `wallet_sendall.py`
-33. `wallet_sendmany.py`
+31. `wallet_resendwallettransactions.py`
+32. `wallet_send.py`
+33. `wallet_sendall.py`
+34. `wallet_sendmany.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
@@ -106,6 +107,11 @@ restored legacy-compatible destination send, sweep, PSBT/no-broadcast,
 fee/change/input-selection, watch-only, confirmation-control, anti-fee-sniping,
 and subtract-fee-from-output validation surfaces that currently pass under the
 PQC profile.
+The inherited wallet rebroadcast confidence gap is now also part of the
+required gate: `wallet_resendwallettransactions.py` covers delayed wallet
+transaction rebroadcast, scheduler-triggered resubmission, peer inventory
+announcement, and parent-before-child rebroadcast for unconfirmed transaction
+chains evicted from the mempool under the current PQC profile.
 The replacement-path confidence gap is closed in this tranche by promoting the
 full deterministic Taproot replacement functional stack into the required PQ
 gate.
