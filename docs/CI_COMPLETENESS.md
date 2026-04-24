@@ -36,8 +36,8 @@ The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `30` |
-| `pq_backlog` | `95` |
+| `pq_required` | `33` |
+| `pq_backlog` | `92` |
 | `dual_profile` | `142` |
 | `legacy_only` | `9` |
 
@@ -73,6 +73,9 @@ Current required PQ-first gates:
 28. `wallet_miniscript.py`
 29. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
 30. `wallet_multisig_descriptor_psbt.py`
+31. `wallet_send.py`
+32. `wallet_sendall.py`
+33. `wallet_sendmany.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
@@ -97,6 +100,12 @@ legacy-compatible PQC profile. The validation-side confidence gap is now also
 closed by promoting `feature_assumevalid.py` into the required gate, so the
 canonical PQ path covers the live assumevalid signature-skipping boundary in
 addition to the owned assumeutxo activation and wallet background-sync slices.
+The inherited wallet send-path confidence gap is now also part of the required
+gate: `wallet_send.py`, `wallet_sendall.py`, and `wallet_sendmany.py` cover the
+restored legacy-compatible destination send, sweep, PSBT/no-broadcast,
+fee/change/input-selection, watch-only, confirmation-control, anti-fee-sniping,
+and subtract-fee-from-output validation surfaces that currently pass under the
+PQC profile.
 The replacement-path confidence gap is closed in this tranche by promoting the
 full deterministic Taproot replacement functional stack into the required PQ
 gate.

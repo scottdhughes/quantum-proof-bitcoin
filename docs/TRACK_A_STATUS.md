@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-04-23
+## Updated: 2026-04-24
 ## Current Phase: Phase 1 - Wallet And Block Surface Expansion
 
 ## Purpose
@@ -34,10 +34,11 @@ freeze the new `wallet_miniscript.py`, `rpc_createmultisig.py`,
 `wallet_multisig_descriptor_psbt.py` wallet-side
 funding/signing/finalization surface and `wallet_address_types.py`
 address/RPC boundary plus `wallet_fundrawtransaction.py` raw funding boundary
-in the canonical `pq_required` gate, then return the next owned follow-on to
-`feature_coinstatsindex_compatibility.py` when real prior PQBTC release assets
-exist, with broader inherited send-path rehab beyond the current funding gate as
-the local alternate.
+and `wallet_send.py`, `wallet_sendall.py`, and `wallet_sendmany.py` inherited
+send-path boundaries in the canonical `pq_required` gate, then return the next
+owned follow-on to `feature_coinstatsindex_compatibility.py` when real prior
+PQBTC release assets exist, with broader inherited wallet lifecycle/rebroadcast
+rehab beyond the current send-path gate as the local alternate.
 
 ## Current Working Thesis
 
@@ -61,17 +62,17 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. broader inherited send-path rehab beyond the current
-   `wallet_fundrawtransaction.py` funding gate
+2. broader inherited wallet lifecycle/rebroadcast rehab beyond the current
+   `wallet_send.py` / `wallet_sendall.py` / `wallet_sendmany.py` send-path gate
    - Why alternate: if the asset-dependent coinstats compatibility path stays
      blocked locally, this is the next wallet-facing surface to reopen without
-     re-litigating the now-owned descriptor, miniscript, address/RPC, and raw
-     funding tranches.
+     re-litigating the now-owned descriptor, miniscript, address/RPC, raw
+     funding, and inherited send-path tranches.
 
 Still deferred:
 
-3. broader inherited send-path rehab beyond the current
-   `wallet_fundrawtransaction.py` funding gate
+3. broader inherited wallet lifecycle/reindex/rescan/reorg breadth beyond the
+   next rebroadcast-focused tranche
 4. TapMiniscript activation or replacement semantics
 
 ## Current Queue
@@ -487,18 +488,36 @@ Still deferred:
    - `build/test/functional/test_runner.py --jobs=1 wallet_fundrawtransaction.py`
    Still deferred inside this suite:
    - replacement-path Taproot or bech32m wallet semantics beyond existing tests
-   - broader send-path ownership for `wallet_send.py`, `wallet_sendall.py`, or
-     `wallet_sendmany.py`
-27. Recommended next PR after this tranche:
+27. `wallet_send.py`, `wallet_sendall.py`, and `wallet_sendmany.py` now own:
+   - restored inherited send RPC behavior under the current legacy-compatible
+     PQC profile
+   - destination sends, no-broadcast and PSBT creation, OP_RETURN outputs,
+     fee/feerate and confirmation-target options, manual inputs and change
+     controls, locktime, RBF, subtract-fee-from-output, unsafe/minconf handling,
+     external-input solving data, and transaction weight limits
+   - full-balance `sendall` sweeps, split recipients, specified outputs,
+     invalid recipient/amount handling, send_max, specific inputs, watch-only
+     PSBT creation, minconf/maxconf, anti-fee-sniping, unconfirmed
+     input/change behavior, ancestor-aware funding, and too-large transaction
+     errors
+   - inherited `sendmany` subtract-fee-from-output validation for duplicate,
+     missing, negative, out-of-bounds, invalid-type, and mixed
+     destination/index cases
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 wallet_send.py wallet_sendall.py wallet_sendmany.py`
+   Still deferred inside these suites:
+   - replacement-path Taproot or bech32m wallet semantics beyond existing tests
+   - new PQ-only active-manager RPC behavior
+28. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: broader inherited send-path rehab beyond the current
-     `wallet_fundrawtransaction.py` funding gate
+   - alternate: broader inherited wallet lifecycle/rebroadcast rehab beyond the
+     current send-path gate
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
-   - broader inherited wallet rehab remains useful, but additional wallet work
-     stays behind the asset-dependent compatibility slice once prior PQBTC
-     release assets are available
+   - broader inherited wallet lifecycle work remains useful, but additional
+     wallet work stays behind the asset-dependent compatibility slice once prior
+     PQBTC release assets are available
 19. Use `FEATURE_BLOCK_POSTURE.md` as the fixed note for the current
    `feature_block.py` contract.
 20. Use `PSBT_REPLACEMENT_TRANCHE.md` as the current owned miniscript/PSBT
@@ -956,6 +975,16 @@ Aineko must ask before:
   follow-on remains `feature_coinstatsindex_compatibility.py` when real prior
   PQBTC release assets exist, with broader inherited send-path rehab beyond
   this funding gate as the local alternate.
+- 2026-04-24: `wallet_send.py`, `wallet_sendall.py`, and
+  `wallet_sendmany.py` are now promoted into the canonical `pq_required` gate
+  and locally revalidated with the build-tree functional runner. The owned
+  boundary covers restored inherited destination send, sweep, PSBT/no-broadcast,
+  fee/change/input-selection, watch-only, confirmation-control,
+  anti-fee-sniping, transaction-size, and subtract-fee-from-output validation
+  surfaces under the current legacy-compatible PQC profile. The next owned
+  follow-on remains `feature_coinstatsindex_compatibility.py` when real prior
+  PQBTC release assets exist, with broader inherited wallet
+  lifecycle/rebroadcast rehab beyond this send-path gate as the local alternate.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1005,5 +1034,8 @@ Aineko must ask before:
   `wallet_miniscript_decaying_multisig_descriptor_psbt.py`, and
   `wallet_multisig_descriptor_psbt.py` pass targeted validation in the current
   tree.
+- There is no current blocker in the restored inherited wallet send-path
+  surface: `wallet_send.py`, `wallet_sendall.py`, and `wallet_sendmany.py` pass
+  targeted validation in the current tree.
 - There is no current `OPS_SLO` blocker. The refreshed `2026-04-06` evidence
   bundle satisfies the frozen signoff thresholds.
