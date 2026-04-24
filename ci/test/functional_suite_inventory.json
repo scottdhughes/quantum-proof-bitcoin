@@ -1812,10 +1812,10 @@
   },
   {
     "name": "wallet_reindex.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
-    "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "tracking_issue": "#12",
+    "notes": "Required gate for restored inherited wallet reindex interaction under the current legacy-compatible PQC profile: watch-only descriptor birthtime adjustment, explicit rescan detection for a previously missed transaction, -reindex restart completion, confirmed transaction survival after reindex, and descriptor wallet birthtime convergence to the transaction time."
   },
   {
     "name": "wallet_reorgsrestore.py",
