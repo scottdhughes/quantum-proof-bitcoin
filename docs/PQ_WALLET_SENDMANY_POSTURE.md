@@ -2,15 +2,15 @@
 
 ## Status: ACTIVE
 ## Spec-ID: PQ-WALLET-SENDMANY-v1
-## Updated: 2026-04-08
+## Updated: 2026-04-24
 ## Consensus-Relevant: NO
 
 ## Purpose
 
 Freeze the owned PQ-only
 [sendmany](../test/functional/wallet_sendmany.py)
-RPC posture without reopening the broad inherited `sendmany` and generic wallet
-behavior matrix.
+RPC posture and the restored inherited `wallet_sendmany.py` subtract-fee
+validation surface under the current legacy-compatible PQC profile.
 
 ## Owned Surface
 
@@ -20,6 +20,13 @@ The current owned PQ-native `sendmany` RPC path is:
 
 It covers a PQ-only active wallet created through
 [createpqwalletmanagers](../src/wallet/rpc/wallet.cpp).
+
+The inherited compatibility path is:
+
+- [wallet_sendmany.py](../test/functional/wallet_sendmany.py)
+
+It is now part of the required PQ gate because it passes unchanged under the
+restored legacy-compatible PQC profile.
 
 ## Contract
 
@@ -39,14 +46,12 @@ and
 
 ## Non-Goals In This Tranche
 
-This tranche does not own the full inherited
-[wallet_sendmany.py](../test/functional/wallet_sendmany.py)
-surface. It explicitly does not take on:
+This tranche does not define behavior outside the existing inherited and
+PQ-only test surfaces. It explicitly does not take on:
 
-- exhaustive `subtractfeefrom` validation edge cases
-- fee-rate matrix coverage
-- comment and verbose-return behavior
-- dual-profile or legacy address-family semantics
+- replacement-path Taproot or bech32m wallet semantics beyond existing tests
+- new PQ-only active-manager RPC behavior
+- prior-release compatibility for `feature_coinstatsindex_compatibility.py`
 
 Those remain separate backlog or compatibility decisions.
 
@@ -58,3 +63,11 @@ Targeted confidence pass on 2026-04-08:
   - result: passed
   - covers the PQ-only `sendmany` RPC posture for default anti-fee-sniping,
     current tx version `2`, and one multi-recipient `subtractfeefrom` edge
+
+Inherited send-path promotion on 2026-04-24:
+
+- `build/test/functional/test_runner.py --jobs=1 wallet_sendmany.py`
+  - result: passed
+  - covers inherited `subtractfeefrom` validation for duplicate, missing,
+    negative, out-of-bounds, invalid-type, and mixed destination/index cases
+    under the current legacy-compatible PQC profile

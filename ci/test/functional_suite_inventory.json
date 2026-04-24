@@ -1840,24 +1840,24 @@
   },
   {
     "name": "wallet_send.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
-    "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "tracking_issue": "#12",
+    "notes": "Required gate for restored inherited send RPC behavior under the current legacy-compatible PQC profile: destination sends, no-broadcast and PSBT creation, fee/feerate and confirmation-target options, watch-only PSBT signing, OP_RETURN outputs, manual inputs and change controls, locktime, RBF, subtract-fee-from-output, unsafe and minconf handling, external-input solving data, and transaction weight limits."
   },
   {
     "name": "wallet_sendall.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
-    "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "tracking_issue": "#12",
+    "notes": "Required gate for restored inherited sendall RPC behavior under the current legacy-compatible PQC profile: full-balance sweeps, split recipients, specified outputs, invalid recipient and amount handling, send_max, specific inputs, watch-only PSBT creation, minconf/maxconf, anti-fee-sniping, unconfirmed input/change behavior, ancestor-aware funding, and too-large transaction errors."
   },
   {
     "name": "wallet_sendmany.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
-    "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "tracking_issue": "#12",
+    "notes": "Required gate for restored inherited sendmany subtract-fee-from-output validation under the current legacy-compatible PQC profile, including duplicate, missing, negative, out-of-bounds, invalid-type, and mixed destination/index cases."
   },
   {
     "name": "wallet_signer.py",

@@ -28,3 +28,6 @@ wallet_pq_send.py
 wallet_pq_sendall.py
 wallet_pq_sendmany.py
 wallet_pq_signrawtransaction.py
+wallet_send.py
+wallet_sendall.py
+wallet_sendmany.py

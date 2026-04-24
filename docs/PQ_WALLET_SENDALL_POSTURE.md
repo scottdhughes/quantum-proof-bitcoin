@@ -2,14 +2,15 @@
 
 ## Status: ACTIVE
 ## Spec-ID: PQ-WALLET-SENDALL-v1
-## Updated: 2026-04-08
+## Updated: 2026-04-24
 ## Consensus-Relevant: NO
 
 ## Purpose
 
 Freeze the owned PQ-only
 [sendall](../test/functional/wallet_sendall.py)
-RPC posture without reopening the broad inherited `wallet_sendall.py` matrix.
+RPC posture and the restored inherited `wallet_sendall.py` matrix under the
+current legacy-compatible PQC profile.
 
 ## Owned Surface
 
@@ -19,6 +20,13 @@ The current owned PQ-native `sendall` RPC path is:
 
 It covers a PQ-only active wallet created through
 [createpqwalletmanagers](../src/wallet/rpc/wallet.cpp).
+
+The inherited compatibility path is:
+
+- [wallet_sendall.py](../test/functional/wallet_sendall.py)
+
+It is now part of the required PQ gate because it passes unchanged under the
+restored legacy-compatible PQC profile.
 
 ## Contract
 
@@ -39,14 +47,12 @@ The owned `sendmany` RPC contract is frozen separately in
 
 ## Non-Goals In This Tranche
 
-This tranche does not own the full inherited
-[wallet_sendall.py](../test/functional/wallet_sendall.py)
-matrix. It explicitly does not take on:
+This tranche does not define behavior outside the existing inherited and
+PQ-only test surfaces. It explicitly does not take on:
 
-- `send_max` and dust-handling behavior
-- specific-input and watch-only `sendall` semantics
-- minconf/maxconf and ancestor-aware funding coverage
-- too-large-transaction behavior
+- replacement-path Taproot or bech32m wallet semantics beyond existing tests
+- new PQ-only active-manager RPC behavior
+- prior-release compatibility for `feature_coinstatsindex_compatibility.py`
 
 Those remain separate backlog or compatibility decisions.
 
@@ -58,3 +64,13 @@ Targeted confidence pass on 2026-04-08:
   - result: passed
   - covers the PQ-only `sendall` RPC posture for default anti-fee-sniping,
     explicit `locktime = 0`, and current tx version `2`
+
+Inherited send-path promotion on 2026-04-24:
+
+- `build/test/functional/test_runner.py --jobs=1 wallet_sendall.py`
+  - result: passed
+  - covers the inherited full-balance sweep, split-recipient, specified-output,
+    invalid recipient/amount, send_max, specific-input, watch-only PSBT,
+    minconf/maxconf, anti-fee-sniping, unconfirmed input/change,
+    ancestor-aware funding, and too-large transaction surfaces under the
+    current legacy-compatible PQC profile

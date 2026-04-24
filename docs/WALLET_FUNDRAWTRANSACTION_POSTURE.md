@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: WALLET-FUNDRAWTRANSACTION-POSTURE-v1
-## Updated: 2026-04-23
+## Updated: 2026-04-24
 ## Consensus-Relevant: NO
 
 ## Purpose
@@ -37,8 +37,6 @@ This promotion does not define:
 
 - replacement-path Taproot or bech32m wallet semantics beyond existing tests
 - new PQ-only active-manager RPC behavior
-- broader send-path ownership for `wallet_send.py`, `wallet_sendall.py`, or
-  `wallet_sendmany.py`
 - prior-release compatibility for `feature_coinstatsindex_compatibility.py`
 
 ## Confidence Snapshot
@@ -56,7 +54,9 @@ Targeted confidence on 2026-04-23:
 
 The canonical PQ gate now includes the inherited raw transaction funding
 contract that already passes under the current PQC-compatible legacy profile.
+The adjacent inherited send-path surface has since been promoted through
+`wallet_send.py`, `wallet_sendall.py`, and `wallet_sendmany.py`.
 The preferred Track A follow-on remains
 `feature_coinstatsindex_compatibility.py` when real prior PQBTC release assets
-exist locally. Until then, the repo-local wallet alternate is the broader
-inherited send path beyond this funding gate.
+exist locally. Until then, the repo-local wallet alternate moves past this
+funding gate and the adjacent send-path gate.
