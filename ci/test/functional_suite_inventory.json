@@ -1833,10 +1833,10 @@
   },
   {
     "name": "wallet_resendwallettransactions.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
-    "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "tracking_issue": "#12",
+    "notes": "Required gate for restored inherited wallet rebroadcast behavior under the current legacy-compatible PQC profile: delayed resend timing, peer inventory rebroadcast, scheduler-triggered resubmission, and parent-before-child rebroadcast for unconfirmed wallet transaction chains evicted from the mempool."
   },
   {
     "name": "wallet_send.py",
