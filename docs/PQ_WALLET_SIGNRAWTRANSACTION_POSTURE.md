@@ -54,7 +54,6 @@ This tranche does not own:
 - broad inherited `wallet_signrawtransactionwithwallet.py` behavior
 - mixed classical/PQ signing compatibility
 - `prevtxs` matrix coverage for legacy descriptor families
-- broad `wallet_fundrawtransaction.py` rehabilitation
 - inherited classical PSBT finalize/decode compatibility in `rpc_psbt.py`
 
 ## Confidence

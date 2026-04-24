@@ -33,10 +33,11 @@ freeze the new `wallet_miniscript.py`, `rpc_createmultisig.py`,
 `wallet_miniscript_decaying_multisig_descriptor_psbt.py`, and
 `wallet_multisig_descriptor_psbt.py` wallet-side
 funding/signing/finalization surface and `wallet_address_types.py`
-address/RPC boundary in the canonical `pq_required` gate, then return the next
-owned follow-on to `feature_coinstatsindex_compatibility.py` when real prior
-PQBTC release assets exist, with broader inherited address-type/send-path rehab
-beyond the current `wallet_address_types.py` boundary as the local alternate.
+address/RPC boundary plus `wallet_fundrawtransaction.py` raw funding boundary
+in the canonical `pq_required` gate, then return the next owned follow-on to
+`feature_coinstatsindex_compatibility.py` when real prior PQBTC release assets
+exist, with broader inherited send-path rehab beyond the current funding gate as
+the local alternate.
 
 ## Current Working Thesis
 
@@ -60,17 +61,17 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. broader inherited address-type/send-path rehab beyond the current
-   `wallet_address_types.py` boundary
+2. broader inherited send-path rehab beyond the current
+   `wallet_fundrawtransaction.py` funding gate
    - Why alternate: if the asset-dependent coinstats compatibility path stays
      blocked locally, this is the next wallet-facing surface to reopen without
-     re-litigating the now-owned descriptor, miniscript, and address/RPC
-     tranches.
+     re-litigating the now-owned descriptor, miniscript, address/RPC, and raw
+     funding tranches.
 
 Still deferred:
 
-3. broader inherited address-type/send-path rehab beyond the current
-   `wallet_address_types.py` boundary
+3. broader inherited send-path rehab beyond the current
+   `wallet_fundrawtransaction.py` funding gate
 4. TapMiniscript activation or replacement semantics
 
 ## Current Queue
@@ -472,10 +473,26 @@ Still deferred:
    - `python3 test/functional/wallet_assumeutxo.py`
    Still deferred inside this suite:
    - broad inherited MiniWallet mempool acceptance
-26. Recommended next PR after this tranche:
+26. `wallet_fundrawtransaction.py` now owns:
+   - restored inherited raw transaction funding under the current
+     legacy-compatible PQC profile
+   - default `add_inputs` behavior and preset-input selection
+   - fee, feerate, change-position, and subtract-fee-from-output behavior
+   - inherited address/change-type handling exercised by the suite
+   - watch-only and all-watched-funds funding
+   - external-input funding with `solving_data` and explicit input weights
+   - transaction-size limits, duplicate outputs, unsafe-input controls, and
+     input confirmation controls
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 wallet_fundrawtransaction.py`
+   Still deferred inside this suite:
+   - replacement-path Taproot or bech32m wallet semantics beyond existing tests
+   - broader send-path ownership for `wallet_send.py`, `wallet_sendall.py`, or
+     `wallet_sendmany.py`
+27. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: broader inherited address-type/send-path rehab beyond the
-     current `wallet_address_types.py` boundary
+   - alternate: broader inherited send-path rehab beyond the current
+     `wallet_fundrawtransaction.py` funding gate
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
@@ -929,6 +946,16 @@ Aineko must ask before:
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
   assets exist, with broader inherited address-type/send-path rehab beyond the
   current `wallet_address_types.py` boundary as the local alternate.
+- 2026-04-23: `wallet_fundrawtransaction.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers inherited raw funding behavior under the
+  current legacy-compatible PQC profile: default and preset input selection,
+  fee/change handling, address/change-type handling, watch-only and
+  external-input funding, transaction-size limits, duplicate outputs,
+  unsafe-input controls, and input confirmation controls. The next owned
+  follow-on remains `feature_coinstatsindex_compatibility.py` when real prior
+  PQBTC release assets exist, with broader inherited send-path rehab beyond
+  this funding gate as the local alternate.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full

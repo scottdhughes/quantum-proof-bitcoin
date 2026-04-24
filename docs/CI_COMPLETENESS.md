@@ -36,8 +36,8 @@ The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `29` |
-| `pq_backlog` | `96` |
+| `pq_required` | `30` |
+| `pq_backlog` | `95` |
 | `dual_profile` | `142` |
 | `legacy_only` | `9` |
 
@@ -69,9 +69,10 @@ Current required PQ-first gates:
 24. `rpc_psbt.py`
 25. `wallet_address_types.py`
 26. `wallet_assumeutxo.py`
-27. `wallet_miniscript.py`
-28. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
-29. `wallet_multisig_descriptor_psbt.py`
+27. `wallet_fundrawtransaction.py`
+28. `wallet_miniscript.py`
+29. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
+30. `wallet_multisig_descriptor_psbt.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
@@ -87,12 +88,18 @@ required gate. The inherited address-type confidence gap is now also part of
 the required gate: `wallet_address_types.py` covers inherited address-shape
 smoke behavior, descriptor bech32m smoke behavior, inherited mixed-address
 `sendmany`, PQ-only inherited-address RPC rejections, and invalid address-type
-precedence. The validation-side confidence gap is now also closed by
-promoting `feature_assumevalid.py` into the required gate, so the canonical PQ
-path covers the live assumevalid signature-skipping boundary in addition to the
-owned assumeutxo activation and wallet background-sync slices. The
-replacement-path confidence gap is closed in this tranche by promoting the full
-deterministic Taproot replacement functional stack into the required PQ gate.
+precedence. The inherited raw transaction funding surface is now also part of
+the required gate: `wallet_fundrawtransaction.py` covers default and preset
+input selection, fee/change handling, address/change-type handling, watch-only
+and external-input funding, transaction-size limits, duplicate outputs,
+unsafe-input controls, and input confirmation controls under the current
+legacy-compatible PQC profile. The validation-side confidence gap is now also
+closed by promoting `feature_assumevalid.py` into the required gate, so the
+canonical PQ path covers the live assumevalid signature-skipping boundary in
+addition to the owned assumeutxo activation and wallet background-sync slices.
+The replacement-path confidence gap is closed in this tranche by promoting the
+full deterministic Taproot replacement functional stack into the required PQ
+gate.
 The assumeutxo confidence gap is closed in this tranche by promoting the live
 snapshot-activation surface and the adjacent wallet-side background-sync
 surface into the canonical required gate. The assumevalid confidence gap is

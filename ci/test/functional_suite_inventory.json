@@ -1614,10 +1614,10 @@
   },
   {
     "name": "wallet_fundrawtransaction.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Required PQ gate for restored inherited fundrawtransaction behavior under the current legacy-compatible PQC profile: default and preset input selection, fee/change handling, address/change-type handling, watch-only and external-input funding, transaction-size limits, duplicate outputs, unsafe-input controls, and input confirmation controls."
   },
   {
     "name": "wallet_gethdkeys.py",
