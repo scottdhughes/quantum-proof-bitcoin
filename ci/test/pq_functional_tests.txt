@@ -30,6 +30,7 @@ wallet_pq_sendall.py
 wallet_pq_sendmany.py
 wallet_pq_signrawtransaction.py
 wallet_reindex.py
+wallet_rescan_unconfirmed.py
 wallet_resendwallettransactions.py
 wallet_send.py
 wallet_sendall.py

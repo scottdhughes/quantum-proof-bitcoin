@@ -1826,10 +1826,10 @@
   },
   {
     "name": "wallet_rescan_unconfirmed.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
-    "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "tracking_issue": "#12",
+    "notes": "Required gate for restored inherited descriptor-wallet unconfirmed-rescan behavior under the current legacy-compatible PQC profile: descriptor import rescans mempool transactions after a mocked reorg, recognizes the watched parent address as ismine, detects the re-entered parent, and detects the unconfirmed child sweep through input ordering."
   },
   {
     "name": "wallet_resendwallettransactions.py",
