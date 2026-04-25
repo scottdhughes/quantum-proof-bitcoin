@@ -39,10 +39,11 @@ send-path boundaries and `wallet_resendwallettransactions.py` rebroadcast
 boundary and `wallet_reindex.py` wallet/reindex boundary in the canonical
 `pq_required` gate plus `wallet_fast_rescan.py` descriptor-wallet fast-rescan
 boundary and `wallet_rescan_unconfirmed.py` unconfirmed-rescan boundary, then
-return the next owned follow-on to `feature_coinstatsindex_compatibility.py`
+keep `wallet_reorgsrestore.py` wallet reorg-restore behavior in the same gate,
+then return the next owned follow-on to `feature_coinstatsindex_compatibility.py`
 when real prior PQBTC release assets exist, with broader inherited wallet
-reorg-restore rehab beyond the current unconfirmed-rescan gate as the local
-alternate.
+backup/restore and transaction-time rescan rehab beyond the current
+reorg-restore gate as the local alternate.
 
 ## Current Working Thesis
 
@@ -66,18 +67,18 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. broader inherited wallet reorg-restore rehab beyond the current
-   `wallet_rescan_unconfirmed.py` gate
+2. broader inherited wallet backup/restore and transaction-time rescan rehab
+   beyond the current `wallet_reorgsrestore.py` gate
    - Why alternate: if the asset-dependent coinstats compatibility path stays
      blocked locally, this is the next wallet-facing surface to reopen without
      re-litigating the now-owned descriptor, miniscript, address/RPC, raw
      funding, inherited send-path, rebroadcast, reindex, fast-rescan, and
-     unconfirmed-rescan tranches.
+     unconfirmed-rescan/reorg-restore tranches.
 
 Still deferred:
 
-3. broader inherited wallet lifecycle breadth beyond the next reorg-restore
-   focused tranche
+3. broader inherited wallet lifecycle breadth beyond the next backup/restore
+   and transaction-time rescan tranche
 4. TapMiniscript activation or replacement semantics
 
 ## Current Queue
@@ -558,7 +559,7 @@ Still deferred:
    Minimum validation target:
    - `build/test/functional/test_runner.py --jobs=1 wallet_fast_rescan.py`
    Still deferred inside this suite:
-   - broader wallet reorg-restore semantics
+   - broader wallet backup/restore and transaction-time rescan semantics
    - wallet backup/restore compatibility beyond the fast-rescan backup fixture
 31. `wallet_rescan_unconfirmed.py` now owns:
    - restored inherited descriptor-wallet unconfirmed-rescan behavior under the
@@ -576,13 +577,33 @@ Still deferred:
    Minimum validation target:
    - `build/test/functional/test_runner.py --jobs=1 wallet_rescan_unconfirmed.py`
    Still deferred inside this suite:
-   - broader wallet reorg-restore semantics
+   - broader wallet backup/restore and transaction-time rescan semantics
    - wallet backup/restore compatibility beyond existing PQ-owned backup
      coverage
-32. Recommended next PR after this tranche:
+32. `wallet_reorgsrestore.py` now owns:
+   - restored inherited wallet reorg-restore behavior under the current
+     legacy-compatible PQC profile
+   - confirmed wallet transaction status restoration after wallet reload on a
+     longer chain
+   - restored confirmations with a different block hash after reorg
+   - conflicted wallet transaction recovery when the formerly conflicted
+     transaction becomes confirmed on the longer chain
+   - startup abandonment of orphaned coinbase transactions and descendants
+   - trusted-balance reset after orphaned coinbase abandonment
+   - unclean-shutdown restart rescan after an invalidated block was not flushed
+     to disk
+   - duplicate block-disconnection tolerance across a follow-up reorg
+   - abandon/un-abandon consistency across `invalidateblock` and
+     `reconsiderblock`
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 wallet_reorgsrestore.py`
+   Still deferred inside this suite:
+   - broader wallet backup/restore compatibility
+   - wallet transaction-time rescan behavior
+33. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: broader inherited wallet reorg-restore rehab beyond the current
-     unconfirmed-rescan gate
+   - alternate: broader inherited wallet backup/restore and transaction-time
+     rescan rehab beyond the current reorg-restore gate
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
@@ -1099,6 +1120,18 @@ Aineko must ask before:
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
   assets exist, with broader inherited wallet reorg-restore rehab beyond this
   unconfirmed-rescan gate as the local alternate.
+- 2026-04-25: `wallet_reorgsrestore.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers restored inherited wallet reorg-restore
+  behavior under the current legacy-compatible PQC profile: confirmed
+  transaction status restoration after wallet reload on a longer chain,
+  conflicted transaction recovery, startup abandonment of orphaned coinbase
+  transactions and descendants, and unclean-shutdown reorg recovery without
+  duplicate-disconnect crashes. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist, with broader inherited wallet backup/restore and
+  transaction-time rescan rehab beyond this reorg-restore gate as the local
+  alternate.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1162,5 +1195,8 @@ Aineko must ask before:
 - There is no current blocker in the restored inherited wallet
   unconfirmed-rescan surface: `wallet_rescan_unconfirmed.py` passes targeted
   validation in the current tree.
+- There is no current blocker in the restored inherited wallet reorg-restore
+  surface: `wallet_reorgsrestore.py` passes targeted validation in the current
+  tree.
 - There is no current `OPS_SLO` blocker. The refreshed `2026-04-06` evidence
   bundle satisfies the frozen signoff thresholds.
