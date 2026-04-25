@@ -36,8 +36,8 @@ The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `37` |
-| `pq_backlog` | `88` |
+| `pq_required` | `38` |
+| `pq_backlog` | `87` |
 | `dual_profile` | `142` |
 | `legacy_only` | `9` |
 
@@ -75,11 +75,12 @@ Current required PQ-first gates:
 30. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
 31. `wallet_multisig_descriptor_psbt.py`
 32. `wallet_reindex.py`
-33. `wallet_rescan_unconfirmed.py`
-34. `wallet_resendwallettransactions.py`
-35. `wallet_send.py`
-36. `wallet_sendall.py`
-37. `wallet_sendmany.py`
+33. `wallet_reorgsrestore.py`
+34. `wallet_rescan_unconfirmed.py`
+35. `wallet_resendwallettransactions.py`
+36. `wallet_send.py`
+37. `wallet_sendall.py`
+38. `wallet_sendmany.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
@@ -131,6 +132,12 @@ required gate: `wallet_rescan_unconfirmed.py` covers descriptor import rescans
 of mempool transactions after a mocked reorg, watched parent-address ownership,
 re-entered parent detection, and unconfirmed child sweep detection through
 input ordering under the current PQC profile.
+The inherited wallet reorg-restore confidence gap is now also part of the
+required gate: `wallet_reorgsrestore.py` covers wallet transaction status
+restoration across longer-chain reloads, conflicted transaction recovery,
+startup abandonment of orphaned coinbase transactions and descendants, and
+unclean-shutdown reorg recovery without duplicate-disconnect crashes under the
+current PQC profile.
 The replacement-path confidence gap is closed in this tranche by promoting the
 full deterministic Taproot replacement functional stack into the required PQ
 gate.
