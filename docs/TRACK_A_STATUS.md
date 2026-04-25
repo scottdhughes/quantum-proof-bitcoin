@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-04-24
+## Updated: 2026-04-25
 ## Current Phase: Phase 1 - Wallet And Block Surface Expansion
 
 ## Purpose
@@ -37,11 +37,11 @@ address/RPC boundary plus `wallet_fundrawtransaction.py` raw funding boundary
 and `wallet_send.py`, `wallet_sendall.py`, and `wallet_sendmany.py` inherited
 send-path boundaries and `wallet_resendwallettransactions.py` rebroadcast
 boundary and `wallet_reindex.py` wallet/reindex boundary in the canonical
-`pq_required` gate, then return the next owned follow-on to
+`pq_required` gate plus `wallet_fast_rescan.py` descriptor-wallet fast-rescan
+boundary, then return the next owned follow-on to
 `feature_coinstatsindex_compatibility.py` when real prior PQBTC release assets
-exist, with broader inherited wallet
-fast-rescan/unconfirmed-rescan/reorg-restore rehab beyond the current reindex
-gate as the local alternate.
+exist, with broader inherited wallet unconfirmed-rescan/reorg-restore rehab
+beyond the current fast-rescan gate as the local alternate.
 
 ## Current Working Thesis
 
@@ -65,17 +65,18 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. broader inherited wallet fast-rescan/unconfirmed-rescan/reorg-restore rehab
-   beyond the current `wallet_reindex.py` gate
+2. broader inherited wallet unconfirmed-rescan/reorg-restore rehab beyond the
+   current `wallet_fast_rescan.py` gate
    - Why alternate: if the asset-dependent coinstats compatibility path stays
      blocked locally, this is the next wallet-facing surface to reopen without
      re-litigating the now-owned descriptor, miniscript, address/RPC, raw
-     funding, inherited send-path, rebroadcast, and reindex tranches.
+     funding, inherited send-path, rebroadcast, reindex, and fast-rescan
+     tranches.
 
 Still deferred:
 
 3. broader inherited wallet lifecycle breadth beyond the next
-   fast-rescan/unconfirmed-rescan/reorg-restore-focused tranche
+   unconfirmed-rescan/reorg-restore-focused tranche
 4. TapMiniscript activation or replacement semantics
 
 ## Current Queue
@@ -540,13 +541,28 @@ Still deferred:
    Minimum validation target:
    - `build/test/functional/test_runner.py --jobs=1 wallet_reindex.py`
    Still deferred inside this suite:
-   - wallet fast-rescan, unconfirmed-rescan, or reorg-restore semantics
+   - wallet unconfirmed-rescan or reorg-restore semantics
    - wallet backup/restore compatibility beyond existing PQ-owned backup
      coverage
-30. Recommended next PR after this tranche:
+30. `wallet_fast_rescan.py` now owns:
+   - restored inherited descriptor-wallet fast-rescan behavior under the
+     current legacy-compatible PQC profile
+   - ranged descriptor end-range address derivation and top-up detection
+   - fixed non-ranged descriptor funding detection
+   - block-filter fast rescan during wallet backup restore and non-active
+     descriptor import
+   - slow full-block rescan during wallet backup restore and non-active
+     descriptor import when block filters are disabled
+   - parity between fast and slow rescan transaction discovery
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 wallet_fast_rescan.py`
+   Still deferred inside this suite:
+   - wallet unconfirmed-rescan or reorg-restore semantics
+   - wallet backup/restore compatibility beyond the fast-rescan backup fixture
+31. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: broader inherited wallet fast-rescan/unconfirmed-rescan/reorg-
-     restore rehab beyond the current reindex gate
+   - alternate: broader inherited wallet unconfirmed-rescan/reorg-restore rehab
+     beyond the current fast-rescan gate
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
@@ -1041,6 +1057,17 @@ Aineko must ask before:
   assets exist, with broader inherited wallet
   fast-rescan/unconfirmed-rescan/reorg-restore rehab beyond this reindex gate
   as the local alternate.
+- 2026-04-25: `wallet_fast_rescan.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers restored inherited descriptor-wallet
+  fast-rescan behavior under the current legacy-compatible PQC profile:
+  block-filter fast rescan and slow full-block rescan parity across wallet
+  backup restore and non-active descriptor import paths, including ranged
+  descriptor top-ups and one fixed non-ranged descriptor. The next owned
+  follow-on remains `feature_coinstatsindex_compatibility.py` when real prior
+  PQBTC release assets exist, with broader inherited wallet
+  unconfirmed-rescan/reorg-restore rehab beyond this fast-rescan gate as the
+  local alternate.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1098,5 +1125,8 @@ Aineko must ask before:
   the current tree.
 - There is no current blocker in the restored inherited wallet reindex surface:
   `wallet_reindex.py` passes targeted validation in the current tree.
+- There is no current blocker in the restored inherited wallet fast-rescan
+  surface: `wallet_fast_rescan.py` passes targeted validation in the current
+  tree.
 - There is no current `OPS_SLO` blocker. The refreshed `2026-04-06` evidence
   bundle satisfies the frozen signoff thresholds.

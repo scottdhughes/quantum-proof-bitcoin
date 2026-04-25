@@ -36,8 +36,8 @@ The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `35` |
-| `pq_backlog` | `90` |
+| `pq_required` | `36` |
+| `pq_backlog` | `89` |
 | `dual_profile` | `142` |
 | `legacy_only` | `9` |
 
@@ -69,15 +69,16 @@ Current required PQ-first gates:
 24. `rpc_psbt.py`
 25. `wallet_address_types.py`
 26. `wallet_assumeutxo.py`
-27. `wallet_fundrawtransaction.py`
-28. `wallet_miniscript.py`
-29. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
-30. `wallet_multisig_descriptor_psbt.py`
-31. `wallet_reindex.py`
-32. `wallet_resendwallettransactions.py`
-33. `wallet_send.py`
-34. `wallet_sendall.py`
-35. `wallet_sendmany.py`
+27. `wallet_fast_rescan.py`
+28. `wallet_fundrawtransaction.py`
+29. `wallet_miniscript.py`
+30. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
+31. `wallet_multisig_descriptor_psbt.py`
+32. `wallet_reindex.py`
+33. `wallet_resendwallettransactions.py`
+34. `wallet_send.py`
+35. `wallet_sendall.py`
+36. `wallet_sendmany.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
@@ -119,6 +120,11 @@ explicit rescan detection for a previously missed transaction, `-reindex`
 restart completion, confirmed transaction survival after reindex, and
 descriptor wallet birthtime convergence to the transaction time under the
 current PQC profile.
+The inherited wallet fast-rescan confidence gap is now also part of the
+required gate: `wallet_fast_rescan.py` covers block-filter fast rescan and
+slow full-block rescan parity for descriptor wallets across backup restore and
+non-active descriptor import paths, including ranged descriptor top-ups and a
+fixed non-ranged descriptor under the current PQC profile.
 The replacement-path confidence gap is closed in this tranche by promoting the
 full deterministic Taproot replacement functional stack into the required PQ
 gate.
