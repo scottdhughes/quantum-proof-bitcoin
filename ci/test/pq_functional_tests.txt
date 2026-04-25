@@ -15,6 +15,7 @@ mempool_pq_stress.py
 rpc_psbt.py
 wallet_address_types.py
 wallet_assumeutxo.py
+wallet_fast_rescan.py
 wallet_fundrawtransaction.py
 wallet_miniscript.py
 wallet_miniscript_decaying_multisig_descriptor_psbt.py
