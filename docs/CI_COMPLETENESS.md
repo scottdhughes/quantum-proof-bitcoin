@@ -36,8 +36,8 @@ The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `38` |
-| `pq_backlog` | `87` |
+| `pq_required` | `39` |
+| `pq_backlog` | `86` |
 | `dual_profile` | `142` |
 | `legacy_only` | `9` |
 
@@ -81,6 +81,7 @@ Current required PQ-first gates:
 36. `wallet_send.py`
 37. `wallet_sendall.py`
 38. `wallet_sendmany.py`
+39. `wallet_transactiontime_rescan.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
@@ -138,6 +139,12 @@ restoration across longer-chain reloads, conflicted transaction recovery,
 startup abandonment of orphaned coinbase transactions and descendants, and
 unclean-shutdown reorg recovery without duplicate-disconnect crashes under the
 current PQC profile.
+The inherited wallet transaction-time rescan confidence gap is now also part
+of the required gate: `wallet_transactiontime_rescan.py` covers watch-only
+descriptor transaction time preservation across original detection and full
+restoration rescans, idle `abortrescan`, invalid `rescanblockchain` parameter
+rejection, and locked encrypted wallet rescan rejection under the current PQC
+profile.
 The replacement-path confidence gap is closed in this tranche by promoting the
 full deterministic Taproot replacement functional stack into the required PQ
 gate.
