@@ -16,6 +16,8 @@ rpc_psbt.py
 wallet_address_types.py
 wallet_assumeutxo.py
 wallet_backup.py
+wallet_blank.py
+wallet_createwallet.py
 wallet_fast_rescan.py
 wallet_fundrawtransaction.py
 wallet_miniscript.py
