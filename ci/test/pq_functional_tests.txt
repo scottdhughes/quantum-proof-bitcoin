@@ -37,4 +37,5 @@ wallet_resendwallettransactions.py
 wallet_send.py
 wallet_sendall.py
 wallet_sendmany.py
+wallet_startup.py
 wallet_transactiontime_rescan.py
