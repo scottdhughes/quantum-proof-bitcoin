@@ -1487,10 +1487,10 @@
   },
   {
     "name": "wallet_backup.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
-    "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "tracking_issue": "#12",
+    "notes": "Required gate for restored inherited wallet backup/restore behavior under the current legacy-compatible PQC profile: backupwallet/restorewallet preserve multi-wallet balances after transaction churn, invalid and missing backup files are rejected without creating wallets, existing destination paths are handled safely, backup-to-source paths fail, unnamed restore succeeds, and pruned-node restore behavior respects backup/prune-height boundaries."
   },
   {
     "name": "wallet_backwards_compatibility.py",

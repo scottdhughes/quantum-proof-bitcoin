@@ -36,8 +36,8 @@ The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `39` |
-| `pq_backlog` | `86` |
+| `pq_required` | `40` |
+| `pq_backlog` | `85` |
 | `dual_profile` | `142` |
 | `legacy_only` | `9` |
 
@@ -69,19 +69,20 @@ Current required PQ-first gates:
 24. `rpc_psbt.py`
 25. `wallet_address_types.py`
 26. `wallet_assumeutxo.py`
-27. `wallet_fast_rescan.py`
-28. `wallet_fundrawtransaction.py`
-29. `wallet_miniscript.py`
-30. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
-31. `wallet_multisig_descriptor_psbt.py`
-32. `wallet_reindex.py`
-33. `wallet_reorgsrestore.py`
-34. `wallet_rescan_unconfirmed.py`
-35. `wallet_resendwallettransactions.py`
-36. `wallet_send.py`
-37. `wallet_sendall.py`
-38. `wallet_sendmany.py`
-39. `wallet_transactiontime_rescan.py`
+27. `wallet_backup.py`
+28. `wallet_fast_rescan.py`
+29. `wallet_fundrawtransaction.py`
+30. `wallet_miniscript.py`
+31. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
+32. `wallet_multisig_descriptor_psbt.py`
+33. `wallet_reindex.py`
+34. `wallet_reorgsrestore.py`
+35. `wallet_rescan_unconfirmed.py`
+36. `wallet_resendwallettransactions.py`
+37. `wallet_send.py`
+38. `wallet_sendall.py`
+39. `wallet_sendmany.py`
+40. `wallet_transactiontime_rescan.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
@@ -145,6 +146,11 @@ descriptor transaction time preservation across original detection and full
 restoration rescans, idle `abortrescan`, invalid `rescanblockchain` parameter
 rejection, and locked encrypted wallet rescan rejection under the current PQC
 profile.
+The inherited wallet backup/restore confidence gap is now also part of the
+required gate: `wallet_backup.py` covers `backupwallet`/`restorewallet`
+balance preservation after transaction churn, invalid and missing backup-file
+rejection, destination-path safety, backup-to-source failure, unnamed restore,
+and pruned-node restore behavior under the current PQC profile.
 The replacement-path confidence gap is closed in this tranche by promoting the
 full deterministic Taproot replacement functional stack into the required PQ
 gate.
