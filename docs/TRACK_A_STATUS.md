@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-04-25
+## Updated: 2026-04-26
 ## Current Phase: Phase 1 - Wallet And Block Surface Expansion
 
 ## Purpose
@@ -40,10 +40,11 @@ boundary and `wallet_reindex.py` wallet/reindex boundary in the canonical
 `pq_required` gate plus `wallet_fast_rescan.py` descriptor-wallet fast-rescan
 boundary and `wallet_rescan_unconfirmed.py` unconfirmed-rescan boundary, then
 keep `wallet_reorgsrestore.py` wallet reorg-restore behavior in the same gate,
-then return the next owned follow-on to `feature_coinstatsindex_compatibility.py`
-when real prior PQBTC release assets exist, with broader inherited wallet
-backup/restore and transaction-time rescan rehab beyond the current
-reorg-restore gate as the local alternate.
+keep `wallet_transactiontime_rescan.py` transaction-time rescan behavior in the
+same gate, then return the next owned follow-on to
+`feature_coinstatsindex_compatibility.py` when real prior PQBTC release assets
+exist, with broader inherited wallet backup/restore rehab beyond the current
+transaction-time rescan gate as the local alternate.
 
 ## Current Working Thesis
 
@@ -67,18 +68,18 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. broader inherited wallet backup/restore and transaction-time rescan rehab
-   beyond the current `wallet_reorgsrestore.py` gate
+2. broader inherited wallet backup/restore rehab beyond the current
+   `wallet_transactiontime_rescan.py` gate
    - Why alternate: if the asset-dependent coinstats compatibility path stays
      blocked locally, this is the next wallet-facing surface to reopen without
      re-litigating the now-owned descriptor, miniscript, address/RPC, raw
      funding, inherited send-path, rebroadcast, reindex, fast-rescan, and
-     unconfirmed-rescan/reorg-restore tranches.
+     unconfirmed-rescan/reorg-restore/transaction-time-rescan tranches.
 
 Still deferred:
 
 3. broader inherited wallet lifecycle breadth beyond the next backup/restore
-   and transaction-time rescan tranche
+   tranche
 4. TapMiniscript activation or replacement semantics
 
 ## Current Queue
@@ -599,11 +600,29 @@ Still deferred:
    - `build/test/functional/test_runner.py --jobs=1 wallet_reorgsrestore.py`
    Still deferred inside this suite:
    - broader wallet backup/restore compatibility
-   - wallet transaction-time rescan behavior
-33. Recommended next PR after this tranche:
+33. `wallet_transactiontime_rescan.py` now owns:
+   - restored inherited wallet transaction-time rescan behavior under the
+     current legacy-compatible PQC profile
+   - watch-only descriptor imports for three received transactions separated
+     by mock-time intervals
+   - original transaction `blocktime` and wallet `time` matching the block
+     times at initial detection
+   - wallet restoration with `timestamp=now` descriptors starting with no
+     detected historical transactions
+   - idle `abortrescan` returning `false`
+   - partial-history rescan followed by full-history rescan
+   - restored balance, transaction count, and transaction times after full
+     rescan
+   - invalid `rescanblockchain` start/stop height rejection
+   - locked encrypted wallet rescan rejection until unlock
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 wallet_transactiontime_rescan.py`
+   Still deferred inside this suite:
+   - broader wallet backup/restore compatibility
+34. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: broader inherited wallet backup/restore and transaction-time
-     rescan rehab beyond the current reorg-restore gate
+   - alternate: broader inherited wallet backup/restore rehab beyond the
+     current transaction-time rescan gate
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
@@ -1132,6 +1151,17 @@ Aineko must ask before:
   assets exist, with broader inherited wallet backup/restore and
   transaction-time rescan rehab beyond this reorg-restore gate as the local
   alternate.
+- 2026-04-26: `wallet_transactiontime_rescan.py` is now promoted into the
+  canonical `pq_required` gate and locally revalidated with the build-tree
+  functional runner. The owned boundary covers restored inherited wallet
+  transaction-time rescan behavior under the current legacy-compatible PQC
+  profile: watch-only descriptor transaction times match original block times,
+  restoration rescans preserve those times, idle `abortrescan` returns false,
+  invalid `rescanblockchain` parameters are rejected, and locked encrypted
+  wallets reject rescans until unlock. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist, with broader inherited wallet backup/restore rehab beyond this
+  transaction-time rescan gate as the local alternate.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1198,5 +1228,8 @@ Aineko must ask before:
 - There is no current blocker in the restored inherited wallet reorg-restore
   surface: `wallet_reorgsrestore.py` passes targeted validation in the current
   tree.
+- There is no current blocker in the restored inherited wallet transaction-time
+  rescan surface: `wallet_transactiontime_rescan.py` passes targeted validation
+  in the current tree.
 - There is no current `OPS_SLO` blocker. The refreshed `2026-04-06` evidence
   bundle satisfies the frozen signoff thresholds.

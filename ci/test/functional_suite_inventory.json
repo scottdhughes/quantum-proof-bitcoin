@@ -1918,10 +1918,10 @@
   },
   {
     "name": "wallet_transactiontime_rescan.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
-    "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "tracking_issue": "#12",
+    "notes": "Required gate for restored inherited wallet transaction-time rescan behavior under the current legacy-compatible PQC profile: watch-only descriptor imports preserve transaction blocktime/time across original detection and full restoration rescans, abortrescan returns false when idle, invalid rescanblockchain parameters are rejected, and locked encrypted wallets reject rescans without unlock."
   },
   {
     "name": "wallet_txn_clone.py",
