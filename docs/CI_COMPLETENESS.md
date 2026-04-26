@@ -36,8 +36,8 @@ The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `40` |
-| `pq_backlog` | `85` |
+| `pq_required` | `41` |
+| `pq_backlog` | `84` |
 | `dual_profile` | `142` |
 | `legacy_only` | `9` |
 
@@ -82,7 +82,8 @@ Current required PQ-first gates:
 37. `wallet_send.py`
 38. `wallet_sendall.py`
 39. `wallet_sendmany.py`
-40. `wallet_transactiontime_rescan.py`
+40. `wallet_startup.py`
+41. `wallet_transactiontime_rescan.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
@@ -151,6 +152,10 @@ required gate: `wallet_backup.py` covers `backupwallet`/`restorewallet`
 balance preservation after transaction churn, invalid and missing backup-file
 rejection, destination-path safety, backup-to-source failure, unnamed restore,
 and pruned-node restore behavior under the current PQC profile.
+The inherited wallet startup confidence gap is now also part of the required
+gate: `wallet_startup.py` covers default wallet auto-load, persisted
+`load_on_startup` wallet creation flags, `unloadwallet` startup-list removal,
+and `loadwallet` startup-list addition under the current PQC profile.
 The replacement-path confidence gap is closed in this tranche by promoting the
 full deterministic Taproot replacement functional stack into the required PQ
 gate.

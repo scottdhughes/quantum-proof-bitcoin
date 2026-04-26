@@ -42,10 +42,11 @@ boundary and `wallet_rescan_unconfirmed.py` unconfirmed-rescan boundary, then
 keep `wallet_reorgsrestore.py` wallet reorg-restore behavior in the same gate,
 keep `wallet_transactiontime_rescan.py` transaction-time rescan behavior in the
 same gate, keep `wallet_backup.py` backup/restore behavior in the same gate,
-then return the next owned follow-on to `feature_coinstatsindex_compatibility.py`
-when real prior PQBTC release assets exist, with broader inherited wallet
-lifecycle coverage beyond the current backup/restore gate as the local
-alternate.
+keep `wallet_startup.py` load-on-startup behavior in the same gate, then
+return the next owned follow-on to `feature_coinstatsindex_compatibility.py`
+when real prior PQBTC release assets exist, with adjacent inherited wallet
+creation/blank/multiwallet lifecycle coverage beyond the current startup gate
+as the local alternate.
 
 ## Current Working Thesis
 
@@ -69,13 +70,14 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. broader inherited wallet lifecycle coverage beyond the current
-   `wallet_backup.py` gate
+2. adjacent inherited wallet creation/blank/multiwallet lifecycle coverage
+   beyond the current `wallet_startup.py` gate
    - Why alternate: if the asset-dependent coinstats compatibility path stays
      blocked locally, this is the next wallet-facing surface to reopen without
      re-litigating the now-owned descriptor, miniscript, address/RPC, raw
      funding, inherited send-path, rebroadcast, reindex, fast-rescan, and
-     unconfirmed-rescan/reorg-restore/transaction-time-rescan/backup tranches.
+     unconfirmed-rescan/reorg-restore/transaction-time-rescan/backup/startup
+     tranches.
 
 Still deferred:
 
@@ -638,10 +640,24 @@ Still deferred:
    - `build/test/functional/test_runner.py --jobs=1 wallet_backup.py`
    Still deferred inside this suite:
    - broader wallet backwards-compatibility and migration semantics
-35. Recommended next PR after this tranche:
+35. `wallet_startup.py` now owns:
+   - restored inherited wallet startup and load-on-startup behavior under the
+     current legacy-compatible PQC profile
+   - node startup with no wallets loaded and an empty wallet directory
+   - unnamed default wallet auto-load after restart when no other wallets exist
+   - `createwallet(..., load_on_startup=true)` persistence across restart
+   - `createwallet(..., load_on_startup=false)` exclusion from restart loading
+   - `unloadwallet(..., load_on_startup=false)` removing startup persistence
+   - `loadwallet(..., load_on_startup=true)` adding startup persistence
+   - final restart state matching the configured startup wallet set
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 wallet_startup.py`
+   Still deferred inside this suite:
+   - broader wallet creation, blank-wallet, and multiwallet semantics
+36. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: broader inherited wallet lifecycle coverage beyond the current
-     backup/restore gate
+   - alternate: adjacent inherited wallet creation/blank/multiwallet lifecycle
+     coverage beyond the current startup gate
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
@@ -1192,6 +1208,18 @@ Aineko must ask before:
   The next owned follow-on remains `feature_coinstatsindex_compatibility.py`
   when real prior PQBTC release assets exist, with broader inherited wallet
   lifecycle coverage beyond this backup/restore gate as the local alternate.
+- 2026-04-26: `wallet_startup.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers restored inherited wallet startup and
+  load-on-startup behavior under the current legacy-compatible PQC profile:
+  empty wallet startup, unnamed default wallet auto-load, persisted
+  `load_on_startup` flags from `createwallet`, startup-list removal through
+  `unloadwallet`, startup-list addition through `loadwallet`, and final restart
+  state matching the configured startup wallet set. The next owned follow-on
+  remains `feature_coinstatsindex_compatibility.py` when real prior PQBTC
+  release assets exist, with adjacent inherited wallet
+  creation/blank/multiwallet lifecycle coverage beyond this startup gate as the
+  local alternate.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1263,5 +1291,7 @@ Aineko must ask before:
   in the current tree.
 - There is no current blocker in the restored inherited wallet backup/restore
   surface: `wallet_backup.py` passes targeted validation in the current tree.
+- There is no current blocker in the restored inherited wallet startup surface:
+  `wallet_startup.py` passes targeted validation in the current tree.
 - There is no current `OPS_SLO` blocker. The refreshed `2026-04-06` evidence
   bundle satisfies the frozen signoff thresholds.

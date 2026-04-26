@@ -1896,10 +1896,10 @@
   },
   {
     "name": "wallet_startup.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
-    "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "tracking_issue": "#12",
+    "notes": "Required gate for restored inherited wallet startup/load-on-startup behavior under the current legacy-compatible PQC profile: default wallet auto-loads when no other wallets exist, createwallet load_on_startup flags persist across restart, unloadwallet can remove startup persistence, and loadwallet can add startup persistence."
   },
   {
     "name": "wallet_taproot.py",
