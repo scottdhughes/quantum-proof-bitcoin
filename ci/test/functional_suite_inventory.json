@@ -1515,10 +1515,10 @@
   },
   {
     "name": "wallet_blank.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the narrow blank descriptor-wallet lifecycle boundary: blank wallets preserve the blank flag across descriptor import and encryption, while descriptor metadata remains stable; broader createwallet and multiwallet lifecycle behavior remain separate follow-on surfaces."
   },
   {
     "name": "wallet_bumpfee.py",
@@ -1557,10 +1557,10 @@
   },
   {
     "name": "wallet_createwallet.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited createwallet argument and lifecycle boundary under the legacy-compatible PQC profile: invalid option combinations, disabled-private-key and blank-wallet creation, descriptor import behavior, encryption, empty-passphrase warnings, avoid_reuse, legacy-wallet rejection, and wallet version logging; broader multiwallet lifecycle behavior remains a separate follow-on surface."
   },
   {
     "name": "wallet_createwalletdescriptor.py",
