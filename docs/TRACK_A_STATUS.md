@@ -59,10 +59,13 @@ keep `wallet_avoid_mixing_output_types.py`, `wallet_avoidreuse.py`,
 `wallet_change_address.py`, `wallet_fallbackfee.py`, `wallet_groups.py`, and
 `wallet_spend_unconfirmed.py` coin-selection and spend-policy behavior in the
 same gate, then
+keep `wallet_abandonconflict.py`, `wallet_bumpfee.py`, `wallet_conflicts.py`,
+`wallet_txn_clone.py`, and `wallet_txn_doublespend.py` fee-bump and
+transaction-conflict behavior in the same gate, then
 return the next owned follow-on to `feature_coinstatsindex_compatibility.py`
-when real prior PQBTC release assets exist, with `wallet_bumpfee.py` and
-adjacent transaction-conflict surfaces beyond the current spend-policy gate as
-the local alternate.
+when real prior PQBTC release assets exist, with transaction construction,
+transaction simulation, and remaining wallet transaction breadth beyond the
+current bumpfee/conflict gate as the local alternate.
 
 ## Current Working Thesis
 
@@ -86,8 +89,8 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. `wallet_bumpfee.py` and adjacent transaction-conflict surfaces beyond the
-   current spend-policy gate
+2. transaction construction, transaction simulation, and remaining wallet
+   transaction breadth beyond the current bumpfee/conflict gate
    - Why alternate: if the asset-dependent coinstats compatibility path stays
      blocked locally, this is the next wallet-facing surface to rebalance
      without re-litigating the now-owned descriptor, miniscript, address/RPC,
@@ -95,7 +98,7 @@ Alternate rebalance:
      unconfirmed-rescan, reorg-restore, transaction-time-rescan, backup,
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
      HD, keypool, descriptor-listing, accounting, label, transaction-listing,
-     coin-selection, and spend-policy tranches.
+     coin-selection, spend-policy, and bumpfee/conflict tranches.
 
 Still deferred:
 
@@ -730,7 +733,9 @@ Still deferred:
    - `build/test/functional/test_runner.py --jobs=1 wallet_descriptor.py wallet_disable.py wallet_encryption.py wallet_gethdkeys.py wallet_hd.py wallet_keypool.py wallet_keypool_topup.py wallet_listdescriptors.py`
    Still deferred inside this suite:
    - wallet accounting, label, and transaction-listing semantics now covered
-     by adjacent required gates; conflict semantics remain separate
+     by adjacent required gates; conflict semantics now covered by adjacent
+     required gates; generic transaction construction and simulation remain
+     separate
 40. `wallet_balance.py`, `wallet_coinbase_category.py`, `wallet_labels.py`,
    `wallet_listreceivedby.py`, `wallet_listsinceblock.py`, and
    `wallet_listtransactions.py` now own:
@@ -753,8 +758,9 @@ Still deferred:
    Minimum validation target:
    - `build/test/functional/test_runner.py --jobs=1 wallet_balance.py wallet_coinbase_category.py wallet_labels.py wallet_listreceivedby.py wallet_listsinceblock.py wallet_listtransactions.py`
    Still deferred inside this suite:
-   - coin-selection grouping now covered by adjacent required gates; bumpfee,
-     abandoned-conflict, and broader conflict semantics remain separate
+   - coin-selection grouping and bumpfee/conflict semantics now covered by
+     adjacent required gates; generic transaction construction and simulation
+     remain separate
 41. `wallet_avoid_mixing_output_types.py`, `wallet_avoidreuse.py`,
    `wallet_change_address.py`, `wallet_fallbackfee.py`, `wallet_groups.py`,
    and `wallet_spend_unconfirmed.py` now own:
@@ -777,21 +783,52 @@ Still deferred:
    Minimum validation target:
    - `build/test/functional/test_runner.py --jobs=1 wallet_avoid_mixing_output_types.py wallet_avoidreuse.py wallet_change_address.py wallet_fallbackfee.py wallet_groups.py wallet_spend_unconfirmed.py`
    Still deferred inside this suite:
-   - broad `bumpfee`, abandoned-conflict, transaction clone, double-spend, and
-     broader conflict semantics
-42. Recommended next PR after this tranche:
+   - bumpfee and conflict semantics now covered by adjacent required gates;
+     generic transaction construction, transaction simulation, and broad basic
+     wallet behavior remain separate
+42. `wallet_abandonconflict.py`, `wallet_bumpfee.py`,
+   `wallet_conflicts.py`, `wallet_txn_clone.py`, and
+   `wallet_txn_doublespend.py` now own:
+   - restored inherited fee-bump, abandoned-conflict, clone, double-spend, and
+     wallet conflict-tracking behavior under the current legacy-compatible PQC
+     profile
+   - abandoned transaction handling, balance/listing visibility, abandoned
+     transactions in `listsinceblock`, and double-spend conflict handling
+   - `bumpfee` and `psbtbumpfee` option validation, fee-rate validation,
+     confirmation-target validation, estimate-mode validation, change handling,
+     non-RBF replacement rejection, non-owned input and PSBT behavior,
+     descendant and abandoned-descendant behavior, dust/change/drop-to-fee
+     behavior, `maxtxfee`, watch-only PSBT behavior, successor and re-bump
+     behavior, spent-coin failure, metadata persistence, locked-wallet
+     rejection, change address reuse, confirmed-output availability,
+     replaced-output feerate checks, and `walletincrementalrelayfee` behavior
+   - block and mempool conflict tracking, reorg conflict state, inactive
+     formerly conflicted transactions, conflict removal, combined block and
+     mempool conflict handling, and parent mempool conflicts
+   - cloned or malleated transaction accounting across the default, `--segwit`,
+     and `--mineblock` variants
+   - double-spend transaction accounting across the default and `--mineblock`
+     variants
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 wallet_abandonconflict.py wallet_bumpfee.py wallet_conflicts.py wallet_txn_clone.py wallet_txn_doublespend.py`
+   Fixed posture note:
+   - `WALLET_BUMPFEE_CONFLICT_POSTURE.md`
+   Still deferred inside this suite:
+   - generic transaction construction, transaction simulation, and broad basic
+     wallet behavior
+43. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: `wallet_bumpfee.py` and adjacent transaction-conflict surfaces
-     beyond this spend-policy gate
+   - alternate: transaction construction, transaction simulation, and remaining
+     wallet transaction breadth beyond this bumpfee/conflict gate
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
-   - fee-bump and transaction-conflict work remains useful once the current
+   - transaction construction and simulation work remains useful once the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
      HD, keypool, descriptor-listing, accounting, label, transaction-listing,
-     coin-selection, and spend-policy gates are frozen, but additional wallet
-     work stays behind the asset-dependent compatibility slice once prior PQBTC
-     release assets are available
+     coin-selection, spend-policy, and bumpfee/conflict gates are frozen, but
+     additional wallet work stays behind the asset-dependent compatibility slice
+     once prior PQBTC release assets are available
 19. Use `FEATURE_BLOCK_POSTURE.md` as the fixed note for the current
    `feature_block.py` contract.
 20. Use `PSBT_REPLACEMENT_TRANCHE.md` as the current owned miniscript/PSBT
@@ -1403,8 +1440,20 @@ Aineko must ask before:
   behavior, and unconfirmed-input spend policy under the current
   legacy-compatible PQC profile. The next owned follow-on remains
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
-  assets exist, with `wallet_bumpfee.py` and adjacent transaction-conflict
-  surfaces as the local alternate.
+  assets exist, with fee-bump and adjacent transaction-conflict surfaces as the
+  local alternate.
+- 2026-04-27: `wallet_abandonconflict.py`, `wallet_bumpfee.py`,
+  `wallet_conflicts.py`, `wallet_txn_clone.py`, and
+  `wallet_txn_doublespend.py` are now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers restored inherited abandoned/conflicted
+  transaction handling, `bumpfee`/`psbtbumpfee` behavior, wallet conflict
+  tracking, cloned/malleated transaction accounting, and double-spend
+  transaction accounting under the current legacy-compatible PQC profile. The
+  next owned follow-on remains `feature_coinstatsindex_compatibility.py` when
+  real prior PQBTC release assets exist, with transaction construction,
+  transaction simulation, and remaining wallet transaction breadth beyond this
+  bumpfee/conflict gate as the local alternate.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full

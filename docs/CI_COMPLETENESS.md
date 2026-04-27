@@ -36,8 +36,8 @@ The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `64` |
-| `pq_backlog` | `61` |
+| `pq_required` | `69` |
+| `pq_backlog` | `56` |
 | `dual_profile` | `142` |
 | `legacy_only` | `9` |
 
@@ -67,46 +67,51 @@ Current required PQ-first gates:
 22. `feature_assumevalid.py`
 23. `feature_block.py`
 24. `rpc_psbt.py`
-25. `wallet_address_types.py`
-26. `wallet_assumeutxo.py`
-27. `wallet_avoid_mixing_output_types.py`
-28. `wallet_avoidreuse.py`
-29. `wallet_backup.py`
-30. `wallet_balance.py`
-31. `wallet_blank.py`
-32. `wallet_change_address.py`
-33. `wallet_coinbase_category.py`
-34. `wallet_createwallet.py`
-35. `wallet_descriptor.py`
-36. `wallet_disable.py`
-37. `wallet_encryption.py`
-38. `wallet_fallbackfee.py`
-39. `wallet_fast_rescan.py`
-40. `wallet_fundrawtransaction.py`
-41. `wallet_gethdkeys.py`
-42. `wallet_groups.py`
-43. `wallet_hd.py`
-44. `wallet_keypool.py`
-45. `wallet_keypool_topup.py`
-46. `wallet_labels.py`
-47. `wallet_listdescriptors.py`
-48. `wallet_listreceivedby.py`
-49. `wallet_listsinceblock.py`
-50. `wallet_listtransactions.py`
-51. `wallet_miniscript.py`
-52. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
-53. `wallet_multisig_descriptor_psbt.py`
-54. `wallet_multiwallet.py`
-55. `wallet_reindex.py`
-56. `wallet_reorgsrestore.py`
-57. `wallet_rescan_unconfirmed.py`
-58. `wallet_resendwallettransactions.py`
-59. `wallet_send.py`
-60. `wallet_sendall.py`
-61. `wallet_sendmany.py`
-62. `wallet_spend_unconfirmed.py`
-63. `wallet_startup.py`
-64. `wallet_transactiontime_rescan.py`
+25. `wallet_abandonconflict.py`
+26. `wallet_address_types.py`
+27. `wallet_assumeutxo.py`
+28. `wallet_avoid_mixing_output_types.py`
+29. `wallet_avoidreuse.py`
+30. `wallet_backup.py`
+31. `wallet_balance.py`
+32. `wallet_blank.py`
+33. `wallet_bumpfee.py`
+34. `wallet_change_address.py`
+35. `wallet_coinbase_category.py`
+36. `wallet_conflicts.py`
+37. `wallet_createwallet.py`
+38. `wallet_descriptor.py`
+39. `wallet_disable.py`
+40. `wallet_encryption.py`
+41. `wallet_fallbackfee.py`
+42. `wallet_fast_rescan.py`
+43. `wallet_fundrawtransaction.py`
+44. `wallet_gethdkeys.py`
+45. `wallet_groups.py`
+46. `wallet_hd.py`
+47. `wallet_keypool.py`
+48. `wallet_keypool_topup.py`
+49. `wallet_labels.py`
+50. `wallet_listdescriptors.py`
+51. `wallet_listreceivedby.py`
+52. `wallet_listsinceblock.py`
+53. `wallet_listtransactions.py`
+54. `wallet_miniscript.py`
+55. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
+56. `wallet_multisig_descriptor_psbt.py`
+57. `wallet_multiwallet.py`
+58. `wallet_reindex.py`
+59. `wallet_reorgsrestore.py`
+60. `wallet_rescan_unconfirmed.py`
+61. `wallet_resendwallettransactions.py`
+62. `wallet_send.py`
+63. `wallet_sendall.py`
+64. `wallet_sendmany.py`
+65. `wallet_spend_unconfirmed.py`
+66. `wallet_startup.py`
+67. `wallet_transactiontime_rescan.py`
+68. `wallet_txn_clone.py`
+69. `wallet_txn_doublespend.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
@@ -209,6 +214,13 @@ also part of the required gate: `wallet_avoid_mixing_output_types.py`,
 grouping, avoid-reuse coin selection, change-address selection, fallback-fee
 RBF creation, grouped UTXO selection, avoid-partial-spends behavior, and
 unconfirmed-input spend policy under the current PQC profile.
+The inherited wallet bumpfee and transaction-conflict confidence gap is now
+also part of the required gate: `wallet_abandonconflict.py`,
+`wallet_bumpfee.py`, `wallet_conflicts.py`, `wallet_txn_clone.py`, and
+`wallet_txn_doublespend.py` cover abandoned/conflicted transaction handling,
+fee bumping and PSBT fee bumping, wallet conflict tracking, cloned/malleated
+transaction accounting, and double-spend transaction accounting under the
+current PQC profile.
 The inherited wallet startup confidence gap is now also part of the required
 gate: `wallet_startup.py` covers default wallet auto-load, persisted
 `load_on_startup` wallet creation flags, `unloadwallet` startup-list removal,

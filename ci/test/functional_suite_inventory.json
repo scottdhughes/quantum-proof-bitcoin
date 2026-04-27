@@ -1444,10 +1444,10 @@
   },
   {
     "name": "wallet_abandonconflict.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited abandoned/conflicted transaction boundary under the legacy-compatible PQC profile: abandontransaction behavior, balance/listing visibility, abandoned transactions in listsinceblock, and double-spend conflict handling."
   },
   {
     "name": "wallet_address_types.py",
@@ -1522,10 +1522,10 @@
   },
   {
     "name": "wallet_bumpfee.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited bumpfee/psbtbumpfee boundary under the legacy-compatible PQC profile: option, fee-rate, confirmation-target, and estimate-mode validation; original_change_index and outputs handling; simple bumpfee, non-RBF replacement, non-owned inputs/PSBT, descendants and abandoned descendants, dust/change/drop-to-fee behavior, maxtxfee, watch-only PSBT, successor/re-bump behavior, spent-coin failure, metadata persistence, locked-wallet rejection, change address reuse, confirmed-output availability, replaced-output feerate checks, and walletincrementalrelayfee behavior."
   },
   {
     "name": "wallet_change_address.py",
@@ -1543,10 +1543,10 @@
   },
   {
     "name": "wallet_conflicts.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited wallet conflict tracking boundary under the legacy-compatible PQC profile: block and mempool conflicts, reorg conflict state, inactive formerly conflicted transactions, conflict removal, combined block and mempool conflict handling, and parent mempool conflicts."
   },
   {
     "name": "wallet_create_tx.py",
@@ -1925,17 +1925,17 @@
   },
   {
     "name": "wallet_txn_clone.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited cloned/malleated transaction accounting boundary under the legacy-compatible PQC profile, including default, --segwit, and --mineblock variants."
   },
   {
     "name": "wallet_txn_doublespend.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited double-spend transaction accounting boundary under the legacy-compatible PQC profile, including default and --mineblock variants."
   },
   {
     "name": "wallet_v3_txs.py",
