@@ -1473,17 +1473,17 @@
   },
   {
     "name": "wallet_avoid_mixing_output_types.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited output-type coin-selection boundary under the legacy-compatible PQC profile: mixed wallet UTXOs are created across output types, payment selection keeps input output types grouped, and spending avoids mixing address families when possible."
   },
   {
     "name": "wallet_avoidreuse.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited avoid_reuse boundary under the legacy-compatible PQC profile: avoid_reuse persistence and immutable flags, change classification, reused-address spend rejection, used balance reporting, and destination-group coin selection."
   },
   {
     "name": "wallet_backup.py",
@@ -1529,10 +1529,10 @@
   },
   {
     "name": "wallet_change_address.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited change-address selection boundary under the legacy-compatible PQC profile: mixed input/output setup, change destination selection, change detection, and explicit change address behavior."
   },
   {
     "name": "wallet_coinbase_category.py",
@@ -1600,10 +1600,10 @@
   },
   {
     "name": "wallet_fallbackfee.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited fallbackfee spend-policy boundary under the legacy-compatible PQC profile: wallet RBF creation works with configured fallbackfee when fee estimation is unavailable."
   },
   {
     "name": "wallet_fast_rescan.py",
@@ -1628,10 +1628,10 @@
   },
   {
     "name": "wallet_groups.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited wallet group coin-selection boundary under the legacy-compatible PQC profile: grouped UTXO spending, avoidpartialspends behavior, maxapsfee thresholds, and large same-scriptPubKey UTXO selection limits."
   },
   {
     "name": "wallet_hd.py",
@@ -1889,10 +1889,10 @@
   },
   {
     "name": "wallet_spend_unconfirmed.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited unconfirmed-input spend-policy boundary under the legacy-compatible PQC profile: confirmed vs unconfirmed feerate selection, ancestor and sibling feerate handling, subtract-fee behavior, preset low-fee unconfirmed inputs, RBF parent bumping, overlapping ancestry, and external-input package bumping."
   },
   {
     "name": "wallet_startup.py",
