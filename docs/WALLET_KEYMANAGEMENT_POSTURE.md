@@ -73,6 +73,8 @@ The canonical PQ gate now includes the inherited descriptor wallet,
 no-wallet runtime, encryption, HD key, keypool, and descriptor listing
 contracts that already pass under the current PQC-compatible legacy profile.
 The preferred Track A follow-on remains `feature_coinstatsindex_compatibility.py`
-when real prior PQBTC release assets exist locally. Until then, the repo-local
-wallet alternate moves to wallet accounting, labels, and transaction-listing
-surfaces beyond this key-management gate.
+when real prior PQBTC release assets exist locally. The subsequent accounting
+and listing promotion covers the adjacent balance, label, received-by,
+since-block, and transaction-listing surfaces. Until compatibility assets exist,
+the repo-local wallet alternate is coin-selection grouping and adjacent
+spend-policy surfaces beyond that accounting/listing gate.

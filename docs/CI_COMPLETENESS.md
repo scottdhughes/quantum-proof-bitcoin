@@ -36,8 +36,8 @@ The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `52` |
-| `pq_backlog` | `73` |
+| `pq_required` | `58` |
+| `pq_backlog` | `67` |
 | `dual_profile` | `142` |
 | `legacy_only` | `9` |
 
@@ -70,31 +70,37 @@ Current required PQ-first gates:
 25. `wallet_address_types.py`
 26. `wallet_assumeutxo.py`
 27. `wallet_backup.py`
-28. `wallet_blank.py`
-29. `wallet_createwallet.py`
-30. `wallet_descriptor.py`
-31. `wallet_disable.py`
-32. `wallet_encryption.py`
-33. `wallet_fast_rescan.py`
-34. `wallet_fundrawtransaction.py`
-35. `wallet_gethdkeys.py`
-36. `wallet_hd.py`
-37. `wallet_keypool.py`
-38. `wallet_keypool_topup.py`
-39. `wallet_listdescriptors.py`
-40. `wallet_miniscript.py`
-41. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
-42. `wallet_multisig_descriptor_psbt.py`
-43. `wallet_multiwallet.py`
-44. `wallet_reindex.py`
-45. `wallet_reorgsrestore.py`
-46. `wallet_rescan_unconfirmed.py`
-47. `wallet_resendwallettransactions.py`
-48. `wallet_send.py`
-49. `wallet_sendall.py`
-50. `wallet_sendmany.py`
-51. `wallet_startup.py`
-52. `wallet_transactiontime_rescan.py`
+28. `wallet_balance.py`
+29. `wallet_blank.py`
+30. `wallet_coinbase_category.py`
+31. `wallet_createwallet.py`
+32. `wallet_descriptor.py`
+33. `wallet_disable.py`
+34. `wallet_encryption.py`
+35. `wallet_fast_rescan.py`
+36. `wallet_fundrawtransaction.py`
+37. `wallet_gethdkeys.py`
+38. `wallet_hd.py`
+39. `wallet_keypool.py`
+40. `wallet_keypool_topup.py`
+41. `wallet_labels.py`
+42. `wallet_listdescriptors.py`
+43. `wallet_listreceivedby.py`
+44. `wallet_listsinceblock.py`
+45. `wallet_listtransactions.py`
+46. `wallet_miniscript.py`
+47. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
+48. `wallet_multisig_descriptor_psbt.py`
+49. `wallet_multiwallet.py`
+50. `wallet_reindex.py`
+51. `wallet_reorgsrestore.py`
+52. `wallet_rescan_unconfirmed.py`
+53. `wallet_resendwallettransactions.py`
+54. `wallet_send.py`
+55. `wallet_sendall.py`
+56. `wallet_sendmany.py`
+57. `wallet_startup.py`
+58. `wallet_transactiontime_rescan.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
@@ -183,6 +189,13 @@ is now also part of the required gate: `wallet_descriptor.py`,
 runtime behavior, wallet encryption, HD key reporting, HD backup/restore,
 keypool refill/exhaustion, restored keypool top-up, and descriptor listing
 under the current PQC profile.
+The inherited wallet accounting, labels, and transaction-listing confidence
+gap is now also part of the required gate: `wallet_balance.py`,
+`wallet_coinbase_category.py`, `wallet_labels.py`, `wallet_listreceivedby.py`,
+`wallet_listsinceblock.py`, and `wallet_listtransactions.py` cover balance
+accounting, coinbase category reporting, label RPCs, received-by accounting,
+since-block listing, and transaction listing/gettransaction behavior under the
+current PQC profile.
 The inherited wallet startup confidence gap is now also part of the required
 gate: `wallet_startup.py` covers default wallet auto-load, persisted
 `load_on_startup` wallet creation flags, `unloadwallet` startup-list removal,
