@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: WALLET-MULTIWALLET-POSTURE-v1
-## Updated: 2026-04-26
+## Updated: 2026-04-27
 ## Consensus-Relevant: NO
 
 ## Purpose
@@ -58,6 +58,8 @@ Targeted confidence on 2026-04-26:
 The canonical PQ gate now includes the inherited multiwallet lifecycle contract
 that already passes under the current PQC-compatible legacy profile. The
 preferred Track A follow-on remains `feature_coinstatsindex_compatibility.py`
-when real prior PQBTC release assets exist locally. Until then, the repo-local
-wallet alternate moves to broader inherited wallet lifecycle breadth beyond
-this multiwallet gate.
+when real prior PQBTC release assets exist locally. The subsequent
+key-management promotion covers the adjacent descriptor, encryption, HD,
+keypool, and descriptor-listing surfaces. Until compatibility assets exist, the
+repo-local wallet alternate is wallet accounting, labels, and
+transaction-listing surfaces beyond that key-management gate.

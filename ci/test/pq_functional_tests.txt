@@ -18,8 +18,16 @@ wallet_assumeutxo.py
 wallet_backup.py
 wallet_blank.py
 wallet_createwallet.py
+wallet_descriptor.py
+wallet_disable.py
+wallet_encryption.py
 wallet_fast_rescan.py
 wallet_fundrawtransaction.py
+wallet_gethdkeys.py
+wallet_hd.py
+wallet_keypool.py
+wallet_keypool_topup.py
+wallet_listdescriptors.py
 wallet_miniscript.py
 wallet_miniscript_decaying_multisig_descriptor_psbt.py
 wallet_multisig_descriptor_psbt.py

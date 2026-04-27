@@ -36,8 +36,8 @@ The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `44` |
-| `pq_backlog` | `81` |
+| `pq_required` | `52` |
+| `pq_backlog` | `73` |
 | `dual_profile` | `142` |
 | `legacy_only` | `9` |
 
@@ -72,21 +72,29 @@ Current required PQ-first gates:
 27. `wallet_backup.py`
 28. `wallet_blank.py`
 29. `wallet_createwallet.py`
-30. `wallet_fast_rescan.py`
-31. `wallet_fundrawtransaction.py`
-32. `wallet_miniscript.py`
-33. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
-34. `wallet_multisig_descriptor_psbt.py`
-35. `wallet_multiwallet.py`
-36. `wallet_reindex.py`
-37. `wallet_reorgsrestore.py`
-38. `wallet_rescan_unconfirmed.py`
-39. `wallet_resendwallettransactions.py`
-40. `wallet_send.py`
-41. `wallet_sendall.py`
-42. `wallet_sendmany.py`
-43. `wallet_startup.py`
-44. `wallet_transactiontime_rescan.py`
+30. `wallet_descriptor.py`
+31. `wallet_disable.py`
+32. `wallet_encryption.py`
+33. `wallet_fast_rescan.py`
+34. `wallet_fundrawtransaction.py`
+35. `wallet_gethdkeys.py`
+36. `wallet_hd.py`
+37. `wallet_keypool.py`
+38. `wallet_keypool_topup.py`
+39. `wallet_listdescriptors.py`
+40. `wallet_miniscript.py`
+41. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
+42. `wallet_multisig_descriptor_psbt.py`
+43. `wallet_multiwallet.py`
+44. `wallet_reindex.py`
+45. `wallet_reorgsrestore.py`
+46. `wallet_rescan_unconfirmed.py`
+47. `wallet_resendwallettransactions.py`
+48. `wallet_send.py`
+49. `wallet_sendall.py`
+50. `wallet_sendmany.py`
+51. `wallet_startup.py`
+52. `wallet_transactiontime_rescan.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
@@ -167,6 +175,14 @@ required gate: `wallet_multiwallet.py` covers wallet directory scanning, wallet
 path validation and symlink rejection, dynamic load/unload and creation,
 per-wallet balance and fee isolation, concurrent load rejection, multiwallet
 backup/restore, and exclusive database locking under the current PQC profile.
+The inherited wallet key-management and descriptor-maintenance confidence gap
+is now also part of the required gate: `wallet_descriptor.py`,
+`wallet_disable.py`, `wallet_encryption.py`, `wallet_gethdkeys.py`,
+`wallet_hd.py`, `wallet_keypool.py`, `wallet_keypool_topup.py`, and
+`wallet_listdescriptors.py` cover descriptor wallet maintenance, no-wallet
+runtime behavior, wallet encryption, HD key reporting, HD backup/restore,
+keypool refill/exhaustion, restored keypool top-up, and descriptor listing
+under the current PQC profile.
 The inherited wallet startup confidence gap is now also part of the required
 gate: `wallet_startup.py` covers default wallet auto-load, persisted
 `load_on_startup` wallet creation flags, `unloadwallet` startup-list removal,
