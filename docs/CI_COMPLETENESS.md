@@ -36,8 +36,8 @@ The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `43` |
-| `pq_backlog` | `82` |
+| `pq_required` | `44` |
+| `pq_backlog` | `81` |
 | `dual_profile` | `142` |
 | `legacy_only` | `9` |
 
@@ -77,15 +77,16 @@ Current required PQ-first gates:
 32. `wallet_miniscript.py`
 33. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
 34. `wallet_multisig_descriptor_psbt.py`
-35. `wallet_reindex.py`
-36. `wallet_reorgsrestore.py`
-37. `wallet_rescan_unconfirmed.py`
-38. `wallet_resendwallettransactions.py`
-39. `wallet_send.py`
-40. `wallet_sendall.py`
-41. `wallet_sendmany.py`
-42. `wallet_startup.py`
-43. `wallet_transactiontime_rescan.py`
+35. `wallet_multiwallet.py`
+36. `wallet_reindex.py`
+37. `wallet_reorgsrestore.py`
+38. `wallet_rescan_unconfirmed.py`
+39. `wallet_resendwallettransactions.py`
+40. `wallet_send.py`
+41. `wallet_sendall.py`
+42. `wallet_sendmany.py`
+43. `wallet_startup.py`
+44. `wallet_transactiontime_rescan.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
@@ -161,6 +162,11 @@ invalid option combinations, disabled-private-key and blank-wallet creation,
 descriptor import behavior, encryption, empty-passphrase warnings,
 `avoid_reuse`, legacy-wallet rejection, and wallet version logging under the
 current PQC profile.
+The inherited multiwallet lifecycle confidence gap is now also part of the
+required gate: `wallet_multiwallet.py` covers wallet directory scanning, wallet
+path validation and symlink rejection, dynamic load/unload and creation,
+per-wallet balance and fee isolation, concurrent load rejection, multiwallet
+backup/restore, and exclusive database locking under the current PQC profile.
 The inherited wallet startup confidence gap is now also part of the required
 gate: `wallet_startup.py` covers default wallet auto-load, persisted
 `load_on_startup` wallet creation flags, `unloadwallet` startup-list removal,

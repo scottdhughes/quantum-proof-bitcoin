@@ -54,5 +54,7 @@ load-on-startup contract that already passes under the current PQC-compatible
 legacy profile. The preferred Track A follow-on remains
 `feature_coinstatsindex_compatibility.py` when real prior PQBTC release assets
 exist locally. The subsequent creation/blank promotion covers the adjacent
-creation surfaces; until compatibility assets exist, the repo-local wallet
-alternate is now `wallet_multiwallet.py`.
+creation surfaces, and the subsequent multiwallet promotion covers the adjacent
+multiwallet lifecycle surface. Until compatibility assets exist, the repo-local
+wallet alternate is broader inherited wallet lifecycle breadth beyond
+`wallet_multiwallet.py`.
