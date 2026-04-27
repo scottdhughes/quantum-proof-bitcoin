@@ -23,6 +23,7 @@ wallet_fundrawtransaction.py
 wallet_miniscript.py
 wallet_miniscript_decaying_multisig_descriptor_psbt.py
 wallet_multisig_descriptor_psbt.py
+wallet_multiwallet.py
 wallet_pq_active_ranged.py
 wallet_pq_backup_recovery.py
 wallet_pq_create_tx.py

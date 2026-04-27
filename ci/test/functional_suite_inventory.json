@@ -1735,10 +1735,10 @@
   },
   {
     "name": "wallet_multiwallet.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited multiwallet lifecycle boundary under the legacy-compatible PQC profile: wallet directory scanning, path validation, symlink rejection, dynamic load/unload and creation, per-wallet balance and fee isolation, concurrent load rejection, backup/restore across multiple wallets, and exclusive database locking; broader wallet lifecycle breadth remains a separate follow-on surface."
   },
   {
     "name": "wallet_orphanedreward.py",

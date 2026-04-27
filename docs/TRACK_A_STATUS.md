@@ -45,10 +45,11 @@ same gate, keep `wallet_backup.py` backup/restore behavior in the same gate,
 keep `wallet_startup.py` load-on-startup behavior in the same gate, then
 keep `wallet_blank.py` blank descriptor-wallet behavior and
 `wallet_createwallet.py` wallet creation behavior in the same gate, then
+keep `wallet_multiwallet.py` multiwallet lifecycle behavior in the same gate,
+then
 return the next owned follow-on to `feature_coinstatsindex_compatibility.py`
-when real prior PQBTC release assets exist, with adjacent inherited multiwallet
-lifecycle coverage beyond the current creation/blank gates as the local
-alternate.
+when real prior PQBTC release assets exist, with broader inherited wallet
+lifecycle breadth beyond the current multiwallet gate as the local alternate.
 
 ## Current Working Thesis
 
@@ -72,19 +73,17 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. `wallet_multiwallet.py`
+2. broader inherited wallet lifecycle breadth beyond `wallet_multiwallet.py`
    - Why alternate: if the asset-dependent coinstats compatibility path stays
-     blocked locally, this is the next wallet-facing lifecycle surface to
-     reopen without re-litigating the now-owned descriptor, miniscript,
-     address/RPC, raw funding, inherited send-path, rebroadcast, reindex,
-     fast-rescan, unconfirmed-rescan, reorg-restore,
-     transaction-time-rescan, backup, startup, blank-wallet, and createwallet
-     tranches.
+     blocked locally, this is the next wallet-facing surface to rebalance
+     without re-litigating the now-owned descriptor, miniscript, address/RPC,
+     raw funding, inherited send-path, rebroadcast, reindex, fast-rescan,
+     unconfirmed-rescan, reorg-restore, transaction-time-rescan, backup,
+     startup, blank-wallet, createwallet, and multiwallet tranches.
 
 Still deferred:
 
-3. broader inherited wallet lifecycle breadth beyond `wallet_multiwallet.py`
-4. TapMiniscript activation or replacement semantics
+3. TapMiniscript activation or replacement semantics
 
 ## Current Queue
 
@@ -655,8 +654,8 @@ Still deferred:
    - `build/test/functional/test_runner.py --jobs=1 wallet_startup.py`
    Still deferred inside this suite:
    - broader wallet creation, blank-wallet, and multiwallet semantics now
-     covered by adjacent required gates or tracked as the next lifecycle
-     follow-on
+     covered by adjacent required gates or tracked as broader lifecycle
+     follow-ons
 36. `wallet_blank.py` now owns:
    - restored inherited blank descriptor-wallet behavior under the current
      legacy-compatible PQC profile
@@ -666,7 +665,7 @@ Still deferred:
    Minimum validation target:
    - `build/test/functional/test_runner.py --jobs=1 wallet_blank.py`
    Still deferred inside this suite:
-   - broader wallet creation arguments and multiwallet lifecycle semantics
+   - broader wallet creation arguments and lifecycle semantics
 37. `wallet_createwallet.py` now owns:
    - restored inherited `createwallet` argument and lifecycle behavior under
      the current legacy-compatible PQC profile
@@ -677,15 +676,29 @@ Still deferred:
    Minimum validation target:
    - `build/test/functional/test_runner.py --jobs=1 wallet_createwallet.py`
    Still deferred inside this suite:
-   - broader multiwallet path, load/unload, backup, and locking behavior
-38. Recommended next PR after this tranche:
+   - broader lifecycle breadth beyond the adjacent multiwallet gate
+38. `wallet_multiwallet.py` now owns:
+   - restored inherited multiwallet lifecycle behavior under the current
+     legacy-compatible PQC profile
+   - wallet directory scanning and wallet-file creation
+   - wallet path validation, invalid walletdir startup failures, duplicate
+     wallet arguments, and symlinked wallet path rejection
+   - dynamic wallet loading, creation, unloading, and concurrent load rejection
+   - per-wallet balance, endpoint selection, and `settxfee` isolation
+   - multiwallet backup/restore round trips and exclusive database locking
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 wallet_multiwallet.py`
+   Still deferred inside this suite:
+   - broader wallet lifecycle breadth outside the multiwallet contract
+39. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: `wallet_multiwallet.py`
+   - alternate: broader inherited wallet lifecycle breadth beyond
+     `wallet_multiwallet.py`
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
-   - `wallet_multiwallet.py` is the next adjacent wallet lifecycle surface once
-     the current startup, blank-wallet, and createwallet gates are frozen, but
+   - broader wallet lifecycle work remains useful once the current startup,
+     blank-wallet, createwallet, and multiwallet gates are frozen, but
      additional wallet work stays behind the asset-dependent compatibility slice
      once prior PQBTC release assets are available
 19. Use `FEATURE_BLOCK_POSTURE.md` as the fixed note for the current
@@ -1254,6 +1267,18 @@ Aineko must ask before:
   version logging. The next owned follow-on remains
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
   assets exist, with `wallet_multiwallet.py` as the local alternate.
+- 2026-04-26: `wallet_multiwallet.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers restored inherited multiwallet lifecycle
+  behavior under the current legacy-compatible PQC profile: wallet directory
+  scanning, wallet-file creation, path validation, invalid walletdir startup
+  failures, duplicate wallet arguments, symlinked wallet path rejection,
+  dynamic wallet loading/creation/unloading, concurrent load rejection,
+  per-wallet balance and fee isolation, multiwallet backup/restore round
+  trips, and exclusive database locking. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist, with broader inherited wallet lifecycle breadth beyond this
+  multiwallet gate as the local alternate.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1330,5 +1355,8 @@ Aineko must ask before:
 - There is no current blocker in the restored inherited blank-wallet and
   createwallet surfaces: `wallet_blank.py` and `wallet_createwallet.py` pass
   targeted validation in the current tree.
+- There is no current blocker in the restored inherited multiwallet lifecycle
+  surface: `wallet_multiwallet.py` passes targeted validation in the current
+  tree.
 - There is no current `OPS_SLO` blocker. The refreshed `2026-04-06` evidence
   bundle satisfies the frozen signoff thresholds.

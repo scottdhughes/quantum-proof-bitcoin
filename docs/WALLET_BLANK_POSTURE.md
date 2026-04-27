@@ -52,5 +52,7 @@ The canonical PQ gate now includes the inherited blank descriptor-wallet
 lifecycle contract that already passes under the current PQC-compatible legacy
 profile. The preferred Track A follow-on remains
 `feature_coinstatsindex_compatibility.py` when real prior PQBTC release assets
-exist locally. Until then, the repo-local wallet alternate moves to
+exist locally. The subsequent multiwallet promotion covers the adjacent
+multiwallet lifecycle surface. Until compatibility assets exist, the repo-local
+wallet alternate is broader inherited wallet lifecycle breadth beyond
 `wallet_multiwallet.py`.
