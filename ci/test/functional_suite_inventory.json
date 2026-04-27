@@ -1579,24 +1579,24 @@
   },
   {
     "name": "wallet_descriptor.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited descriptor-wallet maintenance boundary under the legacy-compatible PQC profile: descriptor wallet info, receive/change address derivation, send/receive behavior, encryption and unlock derivation, born-encrypted wallets, blank/disabled-private-key descriptor wallets, descriptor exports/imports, and legacy-key-type load rejection."
   },
   {
     "name": "wallet_disable.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the no-wallet runtime boundary under the legacy-compatible PQC profile: -disablewallet hides wallet RPCs while non-wallet address validation remains available."
   },
   {
     "name": "wallet_encryption.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited wallet encryption boundary under the legacy-compatible PQC profile: encryptwallet behavior, passphrase timeout limits, signing lock/unlock behavior, walletpassphrasechange, and no-private-key wallet encryption rejection."
   },
   {
     "name": "wallet_fallbackfee.py",
@@ -1621,10 +1621,10 @@
   },
   {
     "name": "wallet_gethdkeys.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited gethdkeys boundary under the legacy-compatible PQC profile: HD public/private key listing, encrypted-wallet access controls, imported ranged descriptor keys, non-HD exclusion, and multisig HD-key reporting."
   },
   {
     "name": "wallet_groups.py",
@@ -1635,10 +1635,10 @@
   },
   {
     "name": "wallet_hd.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited HD wallet backup/restore boundary under the legacy-compatible PQC profile: deterministic HD seed behavior, backup restore, keypool refill, and receive/change address recovery."
   },
   {
     "name": "wallet_importdescriptors.py",
@@ -1656,17 +1656,17 @@
   },
   {
     "name": "wallet_keypool.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited keypool and encryption interaction boundary under the legacy-compatible PQC profile: keypool exhaustion/refill, locked/encrypted wallet behavior, change-key use, address reuse constraints, and wallet unlock/keypool refill controls."
   },
   {
     "name": "wallet_keypool_topup.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited keypool backup top-up boundary under the legacy-compatible PQC profile: wallet backup, address generation across output types, restore from backup, keypool top-up, rescan, and restored balance detection."
   },
   {
     "name": "wallet_labels.py",
@@ -1677,10 +1677,10 @@
   },
   {
     "name": "wallet_listdescriptors.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited listdescriptors boundary under the legacy-compatible PQC profile: empty/default descriptor listings, sorted descriptor output, hardened derivation export, private descriptor visibility, encrypted/watch-only wallet behavior, and non-active combo descriptors."
   },
   {
     "name": "wallet_listreceivedby.py",
