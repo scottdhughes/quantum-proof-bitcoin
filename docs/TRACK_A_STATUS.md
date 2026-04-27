@@ -55,9 +55,13 @@ keep `wallet_balance.py`, `wallet_coinbase_category.py`, `wallet_labels.py`,
 `wallet_listreceivedby.py`, `wallet_listsinceblock.py`, and
 `wallet_listtransactions.py` accounting, label, and transaction-listing
 behavior in the same gate, then
+keep `wallet_avoid_mixing_output_types.py`, `wallet_avoidreuse.py`,
+`wallet_change_address.py`, `wallet_fallbackfee.py`, `wallet_groups.py`, and
+`wallet_spend_unconfirmed.py` coin-selection and spend-policy behavior in the
+same gate, then
 return the next owned follow-on to `feature_coinstatsindex_compatibility.py`
-when real prior PQBTC release assets exist, with coin-selection grouping and
-adjacent spend-policy surfaces beyond the current accounting/listing gate as
+when real prior PQBTC release assets exist, with `wallet_bumpfee.py` and
+adjacent transaction-conflict surfaces beyond the current spend-policy gate as
 the local alternate.
 
 ## Current Working Thesis
@@ -82,16 +86,16 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. coin-selection grouping and adjacent spend-policy surfaces beyond the
-   current accounting/listing gate
+2. `wallet_bumpfee.py` and adjacent transaction-conflict surfaces beyond the
+   current spend-policy gate
    - Why alternate: if the asset-dependent coinstats compatibility path stays
      blocked locally, this is the next wallet-facing surface to rebalance
      without re-litigating the now-owned descriptor, miniscript, address/RPC,
      raw funding, inherited send-path, rebroadcast, reindex, fast-rescan,
      unconfirmed-rescan, reorg-restore, transaction-time-rescan, backup,
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
-     HD, keypool, descriptor-listing, accounting, label, and transaction-listing
-     tranches.
+     HD, keypool, descriptor-listing, accounting, label, transaction-listing,
+     coin-selection, and spend-policy tranches.
 
 Still deferred:
 
@@ -749,21 +753,45 @@ Still deferred:
    Minimum validation target:
    - `build/test/functional/test_runner.py --jobs=1 wallet_balance.py wallet_coinbase_category.py wallet_labels.py wallet_listreceivedby.py wallet_listsinceblock.py wallet_listtransactions.py`
    Still deferred inside this suite:
-   - coin-selection grouping, bumpfee, abandoned-conflict, and broader conflict
-     semantics
-41. Recommended next PR after this tranche:
+   - coin-selection grouping now covered by adjacent required gates; bumpfee,
+     abandoned-conflict, and broader conflict semantics remain separate
+41. `wallet_avoid_mixing_output_types.py`, `wallet_avoidreuse.py`,
+   `wallet_change_address.py`, `wallet_fallbackfee.py`, `wallet_groups.py`,
+   and `wallet_spend_unconfirmed.py` now own:
+   - restored inherited coin-selection grouping, change selection, avoid-reuse,
+     fallback-fee, and unconfirmed-input spend-policy behavior under the
+     current legacy-compatible PQC profile
+   - output-type grouping during coin selection across mixed wallet UTXOs
+   - `avoid_reuse` persistence, immutable flags, reused-address spend
+     rejection, used balance reporting, and destination-group coin selection
+   - change destination selection, change detection, and explicit
+     change-address behavior
+   - RBF transaction creation with configured `fallbackfee` when fee
+     estimation is unavailable
+   - grouped UTXO spending, `avoidpartialspends`, `maxapsfee` thresholds, and
+     large same-scriptPubKey UTXO selection limits
+   - confirmed versus unconfirmed input feerate selection, ancestor and sibling
+     feerate handling, subtract-fee behavior, preset low-fee unconfirmed
+     inputs, RBF parent bumping, overlapping ancestry, and external-input
+     package bumping
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 wallet_avoid_mixing_output_types.py wallet_avoidreuse.py wallet_change_address.py wallet_fallbackfee.py wallet_groups.py wallet_spend_unconfirmed.py`
+   Still deferred inside this suite:
+   - broad `bumpfee`, abandoned-conflict, transaction clone, double-spend, and
+     broader conflict semantics
+42. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: coin-selection grouping and adjacent spend-policy surfaces
-     beyond this accounting/listing gate
+   - alternate: `wallet_bumpfee.py` and adjacent transaction-conflict surfaces
+     beyond this spend-policy gate
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
-   - coin-selection grouping and spend-policy work remains useful once the
-     current startup, blank-wallet, createwallet, multiwallet, descriptor,
-     encryption, HD, keypool, descriptor-listing, accounting, label, and
-     transaction-listing gates are frozen, but additional wallet work stays
-     behind the asset-dependent compatibility slice once prior PQBTC release
-     assets are available
+   - fee-bump and transaction-conflict work remains useful once the current
+     startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
+     HD, keypool, descriptor-listing, accounting, label, transaction-listing,
+     coin-selection, and spend-policy gates are frozen, but additional wallet
+     work stays behind the asset-dependent compatibility slice once prior PQBTC
+     release assets are available
 19. Use `FEATURE_BLOCK_POSTURE.md` as the fixed note for the current
    `feature_block.py` contract.
 20. Use `PSBT_REPLACEMENT_TRANCHE.md` as the current owned miniscript/PSBT
@@ -1365,6 +1393,18 @@ Aineko must ask before:
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
   assets exist, with coin-selection grouping and adjacent spend-policy surfaces
   as the local alternate.
+- 2026-04-27: `wallet_avoid_mixing_output_types.py`,
+  `wallet_avoidreuse.py`, `wallet_change_address.py`, `wallet_fallbackfee.py`,
+  `wallet_groups.py`, and `wallet_spend_unconfirmed.py` are now promoted into
+  the canonical `pq_required` gate and locally revalidated with the build-tree
+  functional runner. The owned boundary covers restored inherited output-type
+  grouping, avoid-reuse coin selection, change-address selection,
+  fallback-fee/RBF creation, grouped UTXO selection, avoid-partial-spends
+  behavior, and unconfirmed-input spend policy under the current
+  legacy-compatible PQC profile. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist, with `wallet_bumpfee.py` and adjacent transaction-conflict
+  surfaces as the local alternate.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1454,5 +1494,10 @@ Aineko must ask before:
   `wallet_coinbase_category.py`, `wallet_labels.py`,
   `wallet_listreceivedby.py`, `wallet_listsinceblock.py`, and
   `wallet_listtransactions.py` pass targeted validation in the current tree.
+- There is no current blocker in the restored inherited wallet coin-selection
+  and spend-policy surfaces: `wallet_avoid_mixing_output_types.py`,
+  `wallet_avoidreuse.py`, `wallet_change_address.py`,
+  `wallet_fallbackfee.py`, `wallet_groups.py`, and
+  `wallet_spend_unconfirmed.py` pass targeted validation in the current tree.
 - There is no current `OPS_SLO` blocker. The refreshed `2026-04-06` evidence
   bundle satisfies the frozen signoff thresholds.

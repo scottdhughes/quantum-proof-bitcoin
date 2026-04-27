@@ -74,6 +74,8 @@ The canonical PQ gate now includes the inherited wallet balance, coinbase
 category, label, received-by, since-block, and transaction-listing contracts
 that already pass under the current PQC-compatible legacy profile. The
 preferred Track A follow-on remains `feature_coinstatsindex_compatibility.py`
-when real prior PQBTC release assets exist locally. Until then, the repo-local
-wallet alternate moves to coin-selection grouping and adjacent spend-policy
-surfaces beyond this accounting/listing gate.
+when real prior PQBTC release assets exist locally. The subsequent spend-policy
+promotion covers the adjacent coin-selection grouping, change selection,
+avoid-reuse, fallback-fee, and unconfirmed-input surfaces. Until compatibility
+assets exist, the repo-local wallet alternate is `wallet_bumpfee.py` and
+adjacent transaction-conflict surfaces beyond that spend-policy gate.
