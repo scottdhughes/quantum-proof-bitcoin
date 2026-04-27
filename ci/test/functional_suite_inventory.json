@@ -1501,10 +1501,10 @@
   },
   {
     "name": "wallet_balance.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited wallet balance accounting boundary under the legacy-compatible PQC profile: mined and immature balances, getbalance argument handling, unconfirmed and conflicted balances, non-mempool transaction trust, replacement/reorg balance behavior, lastprocessedblock reporting, and import-triggered balance updates."
   },
   {
     "name": "wallet_basic.py",
@@ -1536,10 +1536,10 @@
   },
   {
     "name": "wallet_coinbase_category.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited coinbase transaction category boundary under the legacy-compatible PQC profile: immature, generated, orphaned, and mature coinbase category reporting across mining and invalidation."
   },
   {
     "name": "wallet_conflicts.py",
@@ -1670,10 +1670,10 @@
   },
   {
     "name": "wallet_labels.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited wallet label RPC boundary under the legacy-compatible PQC profile: listlabels parameter validation, setlabel/getaddressesbylabel/listlabels/listaddressgroupings behavior, label persistence across sends, and watch-only label handling."
   },
   {
     "name": "wallet_listdescriptors.py",
@@ -1684,24 +1684,24 @@
   },
   {
     "name": "wallet_listreceivedby.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited received-by RPC boundary under the legacy-compatible PQC profile: listreceivedbyaddress/listreceivedbylabel/getreceivedbyaddress/getreceivedbylabel behavior, label filtering, immature coinbase inclusion, matured rewards, and invalidated-block exclusion."
   },
   {
     "name": "wallet_listsinceblock.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited listsinceblock boundary under the legacy-compatible PQC profile: no-blockhash and invalid-blockhash handling, target confirmations, reorg and disk-read-error behavior, double-spend/double-send reporting, spend filtering, descriptor lookup, change inclusion, OP_RETURN handling, and label filtering."
   },
   {
     "name": "wallet_listtransactions.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited listtransactions/gettransaction boundary under the legacy-compatible PQC profile: simple sends, confirmation updates, send-to-self and sendmany accounting, BIP125 replaceability reporting, external-address receives, labels, coin-join-style transactions, parameter validation, OP_RETURN output reporting, and from-me status changes."
   },
   {
     "name": "wallet_migration.py",

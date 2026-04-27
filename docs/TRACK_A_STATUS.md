@@ -51,10 +51,14 @@ keep the `wallet_descriptor.py`, `wallet_disable.py`, `wallet_encryption.py`,
 `wallet_gethdkeys.py`, `wallet_hd.py`, `wallet_keypool.py`,
 `wallet_keypool_topup.py`, and `wallet_listdescriptors.py`
 key-management and descriptor-maintenance behavior in the same gate, then
+keep `wallet_balance.py`, `wallet_coinbase_category.py`, `wallet_labels.py`,
+`wallet_listreceivedby.py`, `wallet_listsinceblock.py`, and
+`wallet_listtransactions.py` accounting, label, and transaction-listing
+behavior in the same gate, then
 return the next owned follow-on to `feature_coinstatsindex_compatibility.py`
-when real prior PQBTC release assets exist, with wallet accounting, labels, and
-transaction-listing surfaces beyond the current key-management gate as the
-local alternate.
+when real prior PQBTC release assets exist, with coin-selection grouping and
+adjacent spend-policy surfaces beyond the current accounting/listing gate as
+the local alternate.
 
 ## Current Working Thesis
 
@@ -78,15 +82,16 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. wallet accounting, labels, and transaction-listing surfaces beyond the
-   current key-management gate
+2. coin-selection grouping and adjacent spend-policy surfaces beyond the
+   current accounting/listing gate
    - Why alternate: if the asset-dependent coinstats compatibility path stays
      blocked locally, this is the next wallet-facing surface to rebalance
      without re-litigating the now-owned descriptor, miniscript, address/RPC,
      raw funding, inherited send-path, rebroadcast, reindex, fast-rescan,
      unconfirmed-rescan, reorg-restore, transaction-time-rescan, backup,
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
-     HD, keypool, and descriptor-listing tranches.
+     HD, keypool, descriptor-listing, accounting, label, and transaction-listing
+     tranches.
 
 Still deferred:
 
@@ -720,19 +725,45 @@ Still deferred:
    Minimum validation target:
    - `build/test/functional/test_runner.py --jobs=1 wallet_descriptor.py wallet_disable.py wallet_encryption.py wallet_gethdkeys.py wallet_hd.py wallet_keypool.py wallet_keypool_topup.py wallet_listdescriptors.py`
    Still deferred inside this suite:
-   - wallet accounting, label, transaction-listing, and conflict semantics
-40. Recommended next PR after this tranche:
+   - wallet accounting, label, and transaction-listing semantics now covered
+     by adjacent required gates; conflict semantics remain separate
+40. `wallet_balance.py`, `wallet_coinbase_category.py`, `wallet_labels.py`,
+   `wallet_listreceivedby.py`, `wallet_listsinceblock.py`, and
+   `wallet_listtransactions.py` now own:
+   - restored inherited wallet accounting, label, received-by, since-block,
+     and transaction-listing behavior under the current legacy-compatible PQC
+     profile
+   - mined, immature, trusted, untrusted, conflicted, and imported-output
+     balance accounting
+   - `getbalance`, `getbalances`, `getwalletinfo`, and `gettransaction`
+     last-processed-block reporting
+   - immature, generated, orphaned, and mature coinbase category reporting
+   - label RPC validation, assignment, grouping, send persistence, and
+     watch-only label handling
+   - received-by address/label accounting, immature coinbase inclusion,
+     matured rewards, and invalidated-block exclusion
+   - `listsinceblock` and `listtransactions` behavior for reorgs,
+     double-spends, double-sends, spend filtering, descriptor lookup, change
+     inclusion, OP_RETURN output, labels, BIP125 replaceability, parameter
+     validation, and from-me status changes
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 wallet_balance.py wallet_coinbase_category.py wallet_labels.py wallet_listreceivedby.py wallet_listsinceblock.py wallet_listtransactions.py`
+   Still deferred inside this suite:
+   - coin-selection grouping, bumpfee, abandoned-conflict, and broader conflict
+     semantics
+41. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: wallet accounting, labels, and transaction-listing surfaces
-     beyond this key-management gate
+   - alternate: coin-selection grouping and adjacent spend-policy surfaces
+     beyond this accounting/listing gate
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
-   - wallet accounting/listing work remains useful once the current startup,
-     blank-wallet, createwallet, multiwallet, descriptor, encryption, HD,
-     keypool, and descriptor-listing gates are frozen, but additional wallet
-     work stays behind the asset-dependent compatibility slice once prior PQBTC
-     release assets are available
+   - coin-selection grouping and spend-policy work remains useful once the
+     current startup, blank-wallet, createwallet, multiwallet, descriptor,
+     encryption, HD, keypool, descriptor-listing, accounting, label, and
+     transaction-listing gates are frozen, but additional wallet work stays
+     behind the asset-dependent compatibility slice once prior PQBTC release
+     assets are available
 19. Use `FEATURE_BLOCK_POSTURE.md` as the fixed note for the current
    `feature_block.py` contract.
 20. Use `PSBT_REPLACEMENT_TRANCHE.md` as the current owned miniscript/PSBT
@@ -1323,6 +1354,17 @@ Aineko must ask before:
   next owned follow-on remains `feature_coinstatsindex_compatibility.py` when
   real prior PQBTC release assets exist, with wallet accounting, labels, and
   transaction-listing surfaces as the local alternate.
+- 2026-04-27: `wallet_balance.py`, `wallet_coinbase_category.py`,
+  `wallet_labels.py`, `wallet_listreceivedby.py`, `wallet_listsinceblock.py`,
+  and `wallet_listtransactions.py` are now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers restored inherited balance accounting,
+  coinbase category reporting, label RPCs, received-by accounting,
+  since-block listing, and transaction-listing/gettransaction behavior under
+  the current legacy-compatible PQC profile. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist, with coin-selection grouping and adjacent spend-policy surfaces
+  as the local alternate.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1407,5 +1449,10 @@ Aineko must ask before:
   `wallet_disable.py`, `wallet_encryption.py`, `wallet_gethdkeys.py`,
   `wallet_hd.py`, `wallet_keypool.py`, `wallet_keypool_topup.py`, and
   `wallet_listdescriptors.py` pass targeted validation in the current tree.
+- There is no current blocker in the restored inherited wallet accounting,
+  label, and transaction-listing surfaces: `wallet_balance.py`,
+  `wallet_coinbase_category.py`, `wallet_labels.py`,
+  `wallet_listreceivedby.py`, `wallet_listsinceblock.py`, and
+  `wallet_listtransactions.py` pass targeted validation in the current tree.
 - There is no current `OPS_SLO` blocker. The refreshed `2026-04-06` evidence
   bundle satisfies the frozen signoff thresholds.

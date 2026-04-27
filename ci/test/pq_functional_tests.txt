@@ -16,7 +16,9 @@ rpc_psbt.py
 wallet_address_types.py
 wallet_assumeutxo.py
 wallet_backup.py
+wallet_balance.py
 wallet_blank.py
+wallet_coinbase_category.py
 wallet_createwallet.py
 wallet_descriptor.py
 wallet_disable.py
@@ -27,7 +29,11 @@ wallet_gethdkeys.py
 wallet_hd.py
 wallet_keypool.py
 wallet_keypool_topup.py
+wallet_labels.py
 wallet_listdescriptors.py
+wallet_listreceivedby.py
+wallet_listsinceblock.py
+wallet_listtransactions.py
 wallet_miniscript.py
 wallet_miniscript_decaying_multisig_descriptor_psbt.py
 wallet_multisig_descriptor_psbt.py
