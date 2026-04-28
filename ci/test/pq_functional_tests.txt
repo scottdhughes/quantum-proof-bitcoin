@@ -20,11 +20,13 @@ wallet_avoid_mixing_output_types.py
 wallet_avoidreuse.py
 wallet_backup.py
 wallet_balance.py
+wallet_basic.py
 wallet_blank.py
 wallet_bumpfee.py
 wallet_change_address.py
 wallet_coinbase_category.py
 wallet_conflicts.py
+wallet_create_tx.py
 wallet_createwallet.py
 wallet_descriptor.py
 wallet_disable.py
@@ -62,6 +64,7 @@ wallet_resendwallettransactions.py
 wallet_send.py
 wallet_sendall.py
 wallet_sendmany.py
+wallet_simulaterawtx.py
 wallet_spend_unconfirmed.py
 wallet_startup.py
 wallet_transactiontime_rescan.py
