@@ -1508,10 +1508,10 @@
   },
   {
     "name": "wallet_basic.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited broad basic wallet behavior boundary under the legacy-compatible PQC profile: wallet balances and UTXO visibility, gettxout/mempool interactions, lockunspent persistence and validation, send/settxfee behavior, watch-only and descriptor import checks, immature and mature coinbase handling, and address/accounting edge cases."
   },
   {
     "name": "wallet_blank.py",
@@ -1550,10 +1550,10 @@
   },
   {
     "name": "wallet_create_tx.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited wallet transaction-creation boundary under the legacy-compatible PQC profile: anti-fee-sniping locktime behavior, transaction-size maxtxfee rejection, too-long mempool chain rejection, and current wallet transaction version behavior."
   },
   {
     "name": "wallet_createwallet.py",
@@ -1882,10 +1882,10 @@
   },
   {
     "name": "wallet_simulaterawtx.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited simulaterawtransaction boundary under the legacy-compatible PQC profile: multiwallet balance deltas, watch-only descriptor visibility, funded raw transaction fee/payment accounting, duplicate-spend rejection, missing-input rejection, chained simulated transactions, and mined-input rejection."
   },
   {
     "name": "wallet_spend_unconfirmed.py",

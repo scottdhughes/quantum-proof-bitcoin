@@ -79,5 +79,7 @@ promotion covers the adjacent coin-selection grouping, change selection,
 avoid-reuse, fallback-fee, and unconfirmed-input surfaces. The subsequent
 bumpfee/conflict promotion covers adjacent fee-bump, abandoned-conflict, clone,
 double-spend, and conflict-tracking surfaces. Until compatibility assets exist,
-the repo-local wallet alternate is transaction construction, transaction
-simulation, and remaining wallet transaction breadth beyond those gates.
+the subsequent transaction-construction promotion covers inherited basic wallet
+behavior, transaction creation, and raw transaction simulation. The current
+repo-local wallet alternate is inherited raw transaction signing, descriptor
+import, migration, and remaining wallet transaction breadth beyond those gates.

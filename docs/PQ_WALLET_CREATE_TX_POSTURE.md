@@ -8,9 +8,10 @@
 ## Purpose
 
 Freeze the owned direct wallet transaction-creation contract for PQ-only active
-wallets without reopening the full inherited
+wallets. The full inherited
 [wallet_create_tx.py](../test/functional/wallet_create_tx.py)
-surface.
+surface is now frozen separately in
+[WALLET_TRANSACTION_CONSTRUCTION_POSTURE.md](./WALLET_TRANSACTION_CONSTRUCTION_POSTURE.md).
 
 ## Owned Surface
 
@@ -40,15 +41,15 @@ The higher-level `send` RPC contract is frozen separately in
 
 ## Non-Goals In This Tranche
 
-This tranche does not own the full inherited
-[wallet_create_tx.py](../test/functional/wallet_create_tx.py)
-surface. It explicitly does not take on:
+This tranche does not own the full inherited transaction-construction surface.
+That broader surface is now frozen separately in
+[WALLET_TRANSACTION_CONSTRUCTION_POSTURE.md](./WALLET_TRANSACTION_CONSTRUCTION_POSTURE.md).
+This PQ-only posture note does not take on:
 
 - `maxtxfee` coverage
 - too-long mempool chain handling
-- broad inherited dual-profile wallet rehabilitation
-
-Those remain separate backlog or legacy-compatibility decisions.
+- broad inherited dual-profile wallet rehabilitation outside the promoted
+  construction and simulation gate
 
 ## Confidence
 

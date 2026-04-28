@@ -71,6 +71,8 @@ The preferred Track A follow-on remains `feature_coinstatsindex_compatibility.py
 when real prior PQBTC release assets exist locally. Until then, the repo-local
 wallet alternate moved to `wallet_bumpfee.py` and adjacent
 transaction-conflict surfaces beyond this spend-policy gate; that adjacent
-surface is now covered by `WALLET_BUMPFEE_CONFLICT_POSTURE.md`, so the current
-local alternate is transaction construction, transaction simulation, and
-remaining wallet transaction breadth beyond the bumpfee/conflict gate.
+surface is now covered by `WALLET_BUMPFEE_CONFLICT_POSTURE.md`. The subsequent
+transaction-construction promotion covers inherited basic wallet behavior,
+transaction creation, and raw transaction simulation, so the current local
+alternate is inherited raw transaction signing, descriptor import, migration,
+and remaining wallet transaction breadth beyond those gates.

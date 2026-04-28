@@ -52,7 +52,7 @@ This promotion does not define:
 - new PQ-only active-manager RPC behavior
 - wallet migration or backwards-compatibility release-asset behavior
 - generic transaction construction, transaction simulation, or broad basic
-  wallet behavior outside these fee-bump and conflict contracts
+  wallet behavior inside these fee-bump and conflict contracts
 - prior-release compatibility for `feature_coinstatsindex_compatibility.py`
 
 ## Confidence Snapshot
@@ -74,5 +74,9 @@ already pass under the current PQC-compatible legacy profile.
 
 The preferred Track A follow-on remains `feature_coinstatsindex_compatibility.py`
 when real prior PQBTC release assets exist locally. Until then, the repo-local
-wallet alternate moves to transaction construction, transaction simulation, and
-remaining wallet transaction breadth beyond this bumpfee/conflict gate.
+wallet alternate moved to transaction construction, transaction simulation, and
+basic wallet behavior beyond this bumpfee/conflict gate; that adjacent surface
+is now covered by `WALLET_TRANSACTION_CONSTRUCTION_POSTURE.md`, so the current
+local alternate is inherited raw transaction signing, descriptor import,
+migration, and remaining wallet transaction breadth beyond the construction and
+simulation gate.
