@@ -13,6 +13,7 @@ feature_taproot_replacement_active_positive_seam.py
 mempool_pq_limits.py
 mempool_pq_stress.py
 rpc_psbt.py
+wallet_abandonconflict.py
 wallet_address_types.py
 wallet_assumeutxo.py
 wallet_avoid_mixing_output_types.py
@@ -20,8 +21,10 @@ wallet_avoidreuse.py
 wallet_backup.py
 wallet_balance.py
 wallet_blank.py
+wallet_bumpfee.py
 wallet_change_address.py
 wallet_coinbase_category.py
+wallet_conflicts.py
 wallet_createwallet.py
 wallet_descriptor.py
 wallet_disable.py
@@ -62,3 +65,5 @@ wallet_sendmany.py
 wallet_spend_unconfirmed.py
 wallet_startup.py
 wallet_transactiontime_rescan.py
+wallet_txn_clone.py
+wallet_txn_doublespend.py

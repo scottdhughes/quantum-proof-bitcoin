@@ -53,8 +53,8 @@ This promotion does not define:
 - replacement-path Taproot or bech32m wallet semantics beyond existing tests
 - new PQ-only active-manager RPC behavior
 - wallet migration or backwards-compatibility release-asset behavior
-- coin-selection grouping, bumpfee, abandoned-conflict, or broader conflict
-  semantics outside these listing/accounting contracts
+- generic transaction construction, transaction simulation, or broad basic
+  wallet behavior outside these listing/accounting contracts
 - prior-release compatibility for `feature_coinstatsindex_compatibility.py`
 
 ## Confidence Snapshot
@@ -76,6 +76,8 @@ that already pass under the current PQC-compatible legacy profile. The
 preferred Track A follow-on remains `feature_coinstatsindex_compatibility.py`
 when real prior PQBTC release assets exist locally. The subsequent spend-policy
 promotion covers the adjacent coin-selection grouping, change selection,
-avoid-reuse, fallback-fee, and unconfirmed-input surfaces. Until compatibility
-assets exist, the repo-local wallet alternate is `wallet_bumpfee.py` and
-adjacent transaction-conflict surfaces beyond that spend-policy gate.
+avoid-reuse, fallback-fee, and unconfirmed-input surfaces. The subsequent
+bumpfee/conflict promotion covers adjacent fee-bump, abandoned-conflict, clone,
+double-spend, and conflict-tracking surfaces. Until compatibility assets exist,
+the repo-local wallet alternate is transaction construction, transaction
+simulation, and remaining wallet transaction breadth beyond those gates.
