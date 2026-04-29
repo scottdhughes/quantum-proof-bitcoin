@@ -37,6 +37,7 @@ wallet_fundrawtransaction.py
 wallet_gethdkeys.py
 wallet_groups.py
 wallet_hd.py
+wallet_importdescriptors.py
 wallet_keypool.py
 wallet_keypool_topup.py
 wallet_labels.py
@@ -64,6 +65,7 @@ wallet_resendwallettransactions.py
 wallet_send.py
 wallet_sendall.py
 wallet_sendmany.py
+wallet_signrawtransactionwithwallet.py
 wallet_simulaterawtx.py
 wallet_spend_unconfirmed.py
 wallet_startup.py

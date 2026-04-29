@@ -1642,10 +1642,10 @@
   },
   {
     "name": "wallet_importdescriptors.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited importdescriptors boundary under the legacy-compatible PQC profile: missing descriptor errors, pkh and sh(wpkh) descriptor imports, duplicate imports and label updates, internal-label rejection, invalid-key and checksum/range validation, multisig descriptor imports, ranged descriptor handling, private-key-enabled wallet constraints, and descriptor persistence across reload."
   },
   {
     "name": "wallet_importprunedfunds.py",
@@ -1875,10 +1875,10 @@
   },
   {
     "name": "wallet_signrawtransactionwithwallet.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited signrawtransactionwithwallet boundary under the legacy-compatible PQC profile: locked encrypted wallet rejection, invalid sighash validation, script verification error reporting, fully signed transaction no-op behavior, OP_1NEGATE signing, and CSV/CLTV witness signing behavior."
   },
   {
     "name": "wallet_simulaterawtx.py",

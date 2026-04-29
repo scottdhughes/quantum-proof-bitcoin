@@ -65,10 +65,13 @@ transaction-conflict behavior in the same gate, then
 keep `wallet_basic.py`, `wallet_create_tx.py`, and `wallet_simulaterawtx.py`
 transaction construction, simulation, and broad basic wallet behavior in the
 same gate, then
+keep `wallet_importdescriptors.py` and
+`wallet_signrawtransactionwithwallet.py` descriptor import and raw-signing
+behavior in the same gate, then
 return the next owned follow-on to `feature_coinstatsindex_compatibility.py`
-when real prior PQBTC release assets exist, with inherited raw transaction
-signing, descriptor import, migration, and remaining wallet transaction
-breadth beyond the current construction/simulation gate as the local alternate.
+when real prior PQBTC release assets exist, with remaining wallet transaction
+breadth beyond the current raw-signing/import gate as the local alternate while
+`wallet_migration.py` remains blocked on previous-release fixtures.
 
 ## Current Working Thesis
 
@@ -92,9 +95,8 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. inherited raw transaction signing, descriptor import, migration, and
-   remaining wallet transaction breadth beyond the current construction and
-   simulation gate
+2. remaining wallet transaction breadth beyond the current raw-signing/import
+   gate
    - Why alternate: if the asset-dependent coinstats compatibility path stays
      blocked locally, this is the next wallet-facing surface to rebalance
      without re-litigating the now-owned descriptor, miniscript, address/RPC,
@@ -103,7 +105,9 @@ Alternate rebalance:
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
      HD, keypool, descriptor-listing, accounting, label, transaction-listing,
      coin-selection, spend-policy, bumpfee/conflict, basic wallet,
-     transaction-construction, and simulation tranches.
+     transaction-construction, simulation, raw-signing, and import-descriptor
+     tranches. `wallet_migration.py` stays blocked until previous-release
+     fixtures are available.
 
 Still deferred:
 
@@ -845,24 +849,51 @@ Still deferred:
    Fixed posture note:
    - `WALLET_TRANSACTION_CONSTRUCTION_POSTURE.md`
    Still deferred inside this suite:
-   - inherited raw transaction signing, descriptor import breadth, migration,
-     and prior-release compatibility
-44. Recommended next PR after this tranche:
+   - raw transaction signing and descriptor import now covered by adjacent
+     required gates; migration and prior-release compatibility remain blocked
+     without previous-release fixtures
+44. `wallet_importdescriptors.py` and
+   `wallet_signrawtransactionwithwallet.py` now own:
+   - restored inherited descriptor import and raw transaction signing behavior
+     under the current legacy-compatible PQC profile
+   - `importdescriptors` missing descriptor errors, checksum and range
+     validation, pkh and sh(wpkh) descriptor imports, duplicate imports and
+     label updates, internal-label rejection, invalid-key validation, multisig
+     descriptor imports, ranged descriptor handling, private-key-enabled wallet
+     constraints, and descriptor persistence across wallet reload
+   - `signrawtransactionwithwallet` locked encrypted wallet rejection, invalid
+     sighash validation, script verification error reporting, fully signed
+     transaction no-op behavior, OP_1NEGATE signing, and CSV/CLTV witness
+     signing
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 wallet_signrawtransactionwithwallet.py wallet_importdescriptors.py`
+   Migration probe:
+   - `build/test/functional/test_runner.py --jobs=1 wallet_signrawtransactionwithwallet.py wallet_importdescriptors.py wallet_migration.py`
+   - expected local outcome: `wallet_migration.py` skipped because
+     previous-release fixtures are unavailable
+   Fixed posture note:
+   - `WALLET_RAW_SIGNING_IMPORT_POSTURE.md`
+   Still deferred inside this suite:
+   - `wallet_migration.py`, which is skipped locally because previous-release
+     fixtures are unavailable
+   - import-pruned-funds, timelock, orphaned reward, v3 transaction, signer,
+     and remaining wallet transaction breadth
+45. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: inherited raw transaction signing, descriptor import, migration,
-     and remaining wallet transaction breadth beyond this construction and
-     simulation gate
+   - alternate: remaining wallet transaction breadth beyond this
+     raw-signing/import gate
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
-   - raw transaction signing, descriptor import, and migration work remain useful
-     after the current
+   - import-pruned-funds, timelock, orphaned reward, v3 transaction, signer, and
+     other remaining wallet transaction work remain useful after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
      HD, keypool, descriptor-listing, accounting, label, transaction-listing,
      coin-selection, spend-policy, bumpfee/conflict, basic wallet,
-     transaction-construction, and simulation gates are frozen, but additional
-     wallet work stays behind the asset-dependent compatibility slice once prior
-     PQBTC release assets are available
+     transaction-construction, simulation, raw-signing, and import-descriptor
+     gates are frozen, but additional wallet work stays behind the
+     asset-dependent compatibility slice once prior PQBTC release assets are
+     available
 19. Use `FEATURE_BLOCK_POSTURE.md` as the fixed note for the current
    `feature_block.py` contract.
 20. Use `PSBT_REPLACEMENT_TRANCHE.md` as the current owned miniscript/PSBT
@@ -1498,6 +1529,16 @@ Aineko must ask before:
   assets exist, with inherited raw transaction signing, descriptor import,
   migration, and remaining wallet transaction breadth beyond this construction
   and simulation gate as the local alternate.
+- 2026-04-28: `wallet_importdescriptors.py` and
+  `wallet_signrawtransactionwithwallet.py` are now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers restored inherited descriptor import and
+  raw transaction signing behavior under the current legacy-compatible PQC
+  profile. `wallet_migration.py` remains blocked locally because
+  previous-release fixtures are unavailable. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist, with remaining wallet transaction breadth beyond this
+  raw-signing/import gate as the local alternate.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1600,5 +1641,11 @@ Aineko must ask before:
   transaction-construction, simulation, and broad basic wallet surfaces:
   `wallet_basic.py`, `wallet_create_tx.py`, and `wallet_simulaterawtx.py` pass
   targeted validation in the current tree.
+- There is no current blocker in the restored inherited wallet descriptor-import
+  and raw-signing surfaces: `wallet_importdescriptors.py` and
+  `wallet_signrawtransactionwithwallet.py` pass targeted validation in the
+  current tree.
+- `wallet_migration.py` remains blocked locally until previous-release fixtures
+  are available.
 - There is no current `OPS_SLO` blocker. The refreshed `2026-04-06` evidence
   bundle satisfies the frozen signoff thresholds.
