@@ -58,5 +58,6 @@ Targeted confidence pass run on 2026-04-29:
 
 - `feature_index_prune.py` is now a required prune-plus-index matrix gate
 - it is a higher-cost prune surface, but still a bounded functional contract
-- the next clean local storage/import follow-on is
-  [feature_loadblock.py](../test/functional/feature_loadblock.py)
+- the adjacent storage/import follow-on,
+  [feature_loadblock.py](../test/functional/feature_loadblock.py), is now
+  covered by the required gate

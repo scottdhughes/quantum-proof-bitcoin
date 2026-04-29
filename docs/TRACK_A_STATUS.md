@@ -22,11 +22,12 @@ freeze the new `wallet_miniscript.py`, `rpc_createmultisig.py`,
 `feature_blocksxor.py`, `feature_fastprune.py`,
 `feature_remove_pruned_files_on_startup.py`, and `feature_index_prune.py`
 block storage and prune-lifecycle behavior in the canonical `pq_required`
-gate, and keep
+gate, keep `feature_loadblock.py` bootstrap/import behavior in the same gate,
+and keep
 `feature_pq_block_limits.py`, `feature_pq_reorg.py`, and
 `mempool_pq_limits.py`, and `mempool_pq_stress.py` boundaries, freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
-`feature_loadblock.py`, `wallet_miniscript.py`, and
+`wallet_miniscript.py`, and
 `feature_utxo_set_hash.py`, `feature_coinstatsindex.py`, and
 `feature_reindex.py`, `feature_reindex_init.py`, and
 `feature_reindex_readonly.py`, and `feature_assumevalid.py` boundaries, keep
@@ -103,11 +104,11 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. `feature_loadblock.py`
+2. `feature_utxo_set_hash.py`
    - Why alternate: if the asset-dependent coinstats compatibility path stays
-     blocked locally, the next bounded local storage/import follow-on is
-     `feature_loadblock.py`, now that the external blocksdir, blocksxor,
-     fastprune, prune-cleanup, and prune-plus-index family is required,
+     blocked locally, the next bounded local chainstate follow-on is
+     `feature_utxo_set_hash.py`, now that bootstrap/import behavior is
+     required,
      without re-litigating the now-owned descriptor, miniscript, address/RPC,
      raw funding, inherited send-path, rebroadcast, reindex, fast-rescan,
      unconfirmed-rescan, reorg-restore, transaction-time-rescan, backup,
@@ -117,9 +118,10 @@ Alternate rebalance:
      transaction-construction, simulation, raw-signing, and import-descriptor
      tranches, or the current import-pruned-funds, timelock, orphaned reward,
      v3/TRUC transaction, descriptor-creation, and cross-chain wallet-file
-     tranches. `wallet_backwards_compatibility.py`, `wallet_migration.py`, and
-     `feature_coinstatsindex_compatibility.py` stay blocked until prior-release
-     assets are available.
+     tranches, or the current block storage, prune-lifecycle, and
+     bootstrap/import tranches. `wallet_backwards_compatibility.py`,
+     `wallet_migration.py`, and `feature_coinstatsindex_compatibility.py` stay
+     blocked until prior-release assets are available.
 
 Still deferred:
 
@@ -393,7 +395,7 @@ Still deferred:
    - blocking completion of import up to height `100`
    - convergence on the same best block hash as the source node after import
    Minimum validation target:
-   - `python3 test/functional/feature_loadblock.py`
+   - `build/test/functional/test_runner.py --jobs=1 feature_loadblock.py`
    Still deferred inside this suite:
    - pruning-plus-bootstrap interaction
    - index rebuild or reindex interaction
@@ -941,13 +943,12 @@ Still deferred:
      real prior PQBTC release assets exist
 47. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: `feature_loadblock.py`
+   - alternate: `feature_utxo_set_hash.py`
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
-   - `feature_loadblock.py` is the next bounded storage/import follow-on now
-     that external blocksdir, blocksxor, fastprune, prune-cleanup, and
-     prune-plus-index behavior are required
+   - `feature_utxo_set_hash.py` is the next bounded local chainstate follow-on
+     now that bootstrap/import behavior is required
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -1633,6 +1634,14 @@ Aineko must ask before:
   remains `feature_coinstatsindex_compatibility.py` when real prior PQBTC
   release assets exist; otherwise the local storage/import alternate is
   `feature_loadblock.py`.
+- 2026-04-29: `feature_loadblock.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers linearized `bootstrap.dat` production from
+  live PQBTC regtest block files and `-loadblock` import convergence on a
+  disconnected peer. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist; otherwise the local chainstate alternate is
+  `feature_utxo_set_hash.py`.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1752,6 +1761,8 @@ Aineko must ask before:
   surfaces: `feature_blocksdir.py`, `feature_blocksxor.py`,
   `feature_fastprune.py`, `feature_remove_pruned_files_on_startup.py`, and
   `feature_index_prune.py` pass targeted validation in the current tree.
+- There is no current blocker in the bootstrap/import surface:
+  `feature_loadblock.py` passes targeted validation in the current tree.
 - `wallet_backwards_compatibility.py` remains blocked locally until
   previous-release fixtures are available.
 - `wallet_migration.py` remains blocked locally until previous-release fixtures
