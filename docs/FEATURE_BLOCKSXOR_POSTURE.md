@@ -2,6 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: FEATURE-BLOCKSXOR-POSTURE-v1
+## Updated: 2026-04-29
 ## Frozen-By: track-a-phase1-20260412
 ## Consensus-Relevant: NO
 
@@ -33,17 +34,17 @@ small storage-integrity contract:
 This posture note does **not** mean:
 
 - broader block-file corruption handling is covered
-- prune/reindex lifecycle behavior is owned here
+- generic reindex behavior is owned here
+- bootstrap or `-loadblock` import behavior is owned here
 - transport or P2P block-delivery semantics are owned here
-- this suite should move into `pq_required`
 
 Those remain separate follow-on surfaces.
 
 ## Confidence Snapshot
 
-Targeted confidence pass run on 2026-04-12:
+Targeted confidence pass run on 2026-04-29:
 
-- `python3 test/functional/feature_blocksxor.py`
+- `build/test/functional/test_runner.py --jobs=1 feature_blocksdir.py feature_blocksxor.py feature_fastprune.py feature_remove_pruned_files_on_startup.py feature_index_prune.py`
   - result: passed
   - current posture:
     - deterministic coinbase mining creates multiple XORed blk/rev files under
@@ -56,10 +57,8 @@ Targeted confidence pass run on 2026-04-12:
 
 ## Interpretation
 
-- `feature_blocksxor.py` is now an owned block-storage integrity slice
+- `feature_blocksxor.py` is now a required block-storage integrity gate
 - it is a narrow XOR-key and blk/rev file handling contract, not a broader
   chainstate or pruning migration surface
-- the next adjacent tranche is
-  [feature_fastprune.py](../test/functional/feature_fastprune.py), which is the
-  smallest remaining storage-adjacent follow-on to freeze after `blocksdir` and
-  `blocksxor`
+- adjacent `-fastprune`, prune-cleanup, and prune-plus-index behavior is now
+  covered by the same required storage/prune gate family

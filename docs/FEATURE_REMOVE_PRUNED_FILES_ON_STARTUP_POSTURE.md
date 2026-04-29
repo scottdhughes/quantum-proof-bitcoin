@@ -2,6 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: FEATURE-REMOVE-PRUNED-FILES-ON-STARTUP-POSTURE-v1
+## Updated: 2026-04-29
 ## Frozen-By: track-a-phase1-20260412
 ## Consensus-Relevant: NO
 
@@ -31,18 +32,16 @@ suite owns a small prune-lifecycle contract:
 
 This posture note does **not** mean:
 
-- prune-plus-index interaction is covered
-- blockfilter or coinstats index recovery under prune is covered
-- broader reorg or index prune-lock behavior is covered
-- this suite should move into `pq_required`
+- broader index recovery outside the bounded prune-plus-index matrix is covered
+- bootstrap or `-loadblock` import behavior is covered
 
 Those remain separate follow-on surfaces.
 
 ## Confidence Snapshot
 
-Targeted confidence pass run on 2026-04-12:
+Targeted confidence pass run on 2026-04-29:
 
-- `python3 test/functional/feature_remove_pruned_files_on_startup.py`
+- `build/test/functional/test_runner.py --jobs=1 feature_blocksdir.py feature_blocksxor.py feature_fastprune.py feature_remove_pruned_files_on_startup.py feature_index_prune.py`
   - result: passed
   - current posture:
     - prune-triggered blk/rev removal still behaves as expected under
@@ -55,10 +54,8 @@ Targeted confidence pass run on 2026-04-12:
 
 ## Interpretation
 
-- `feature_remove_pruned_files_on_startup.py` is now an owned prune-lifecycle
-  cleanup slice
+- `feature_remove_pruned_files_on_startup.py` is now a required
+  prune-lifecycle cleanup gate
 - it is not the broader prune-plus-index migration surface
-- the next adjacent tranche is
-  [feature_index_prune.py](../test/functional/feature_index_prune.py), which is
-  the broader prune-plus-index matrix and is already green under the current
-  harness
+- adjacent prune-plus-index behavior is now covered by the same required
+  storage/prune gate family

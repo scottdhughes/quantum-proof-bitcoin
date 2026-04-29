@@ -2,6 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: FEATURE-INDEX-PRUNE-POSTURE-v1
+## Updated: 2026-04-29
 ## Frozen-By: track-a-phase1-20260412
 ## Consensus-Relevant: NO
 
@@ -34,7 +35,6 @@ a bounded prune-plus-index matrix:
 
 This posture note does **not** mean:
 
-- this suite should move into `pq_required`
 - bootstrap or `-loadblock` import behavior is covered
 - broader block-file import or external-storage behavior is covered
 
@@ -42,9 +42,9 @@ Those remain separate follow-on surfaces.
 
 ## Confidence Snapshot
 
-Targeted confidence pass run on 2026-04-12:
+Targeted confidence pass run on 2026-04-29:
 
-- `python3 test/functional/feature_index_prune.py`
+- `build/test/functional/test_runner.py --jobs=1 feature_blocksdir.py feature_blocksxor.py feature_fastprune.py feature_remove_pruned_files_on_startup.py feature_index_prune.py`
   - result: passed
   - current posture:
     - blockfilter and coinstats indices remain usable before and after pruning
@@ -56,10 +56,7 @@ Targeted confidence pass run on 2026-04-12:
 
 ## Interpretation
 
-- `feature_index_prune.py` is now an owned prune-plus-index matrix
+- `feature_index_prune.py` is now a required prune-plus-index matrix gate
 - it is a higher-cost prune surface, but still a bounded functional contract
-- the next clean follow-on is
-  [feature_pq_block_limits.py](../test/functional/feature_pq_block_limits.py),
-  which is a cheaper PQ-native block-profile slice
-- the slower storage-import alternate remains
+- the next clean local storage/import follow-on is
   [feature_loadblock.py](../test/functional/feature_loadblock.py)
