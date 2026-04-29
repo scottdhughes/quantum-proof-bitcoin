@@ -2,6 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: CREATEWALLETDESCRIPTOR-POSTURE-v1
+## Updated: 2026-04-29
 ## Frozen-By: track-a-phase1-20260406
 ## Consensus-Relevant: NO
 
@@ -73,9 +74,11 @@ And the fixed public watch-only side is exercised in:
 
 Under the all-PQ stance:
 
-- the current `createwalletdescriptor` behavior is inherited and deferred
+- the current `createwalletdescriptor` behavior is inherited and required as a
+  legacy-compatible PQC gate
+- replacement descriptor semantics remain deferred
 - it remains useful as reference coverage for descriptor-wallet plumbing
-- it is not an owned PQ-native milestone by itself
+- it is not evidence that PQ-native descriptor creation is solved
 
 Current UX improvement:
 
@@ -108,23 +111,19 @@ Reasoning:
 
 ## Confidence Snapshot
 
-Targeted confidence pass run on 2026-04-12:
+Targeted confidence pass run on 2026-04-29:
 
-- `python3 test/functional/wallet_createwalletdescriptor.py`
+- `build/test/functional/test_runner.py --jobs=1 wallet_crosschain.py wallet_createwalletdescriptor.py`
   - result: passed
   - relevant guard: inherited xpub creation still works for `bech32` /
     `bech32m`, while PQ-only active-manager wallets reject both families with
     the current PQ-specific xpub-only RPC error and without mutating
-    descriptor, HD-key, or active-manager state
-- `python3 test/functional/wallet_pq_active_ranged.py`
-  - result: passed
-  - relevant guard: dedicated PQ setup remains on
-    `createpqwalletmanagers`, and restore/reload rejection coverage for active
-    `pqpriv(...)` managers stays owned there
+    descriptor, HD-key, or active-manager state; cross-chain wallets and
+    backups from a different genesis/network are rejected on load and restore
 
 Interpretation:
 
-- inherited descriptor creation remains healthy
+- inherited descriptor creation is now part of the canonical required gate
 - PQ-only wallets are explicitly rejected by this inherited RPC
 - PQ-native setup remains explicit and test-backed on
   `createpqwalletmanagers` without overloading the inherited RPC

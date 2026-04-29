@@ -1564,18 +1564,18 @@
   },
   {
     "name": "wallet_createwalletdescriptor.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "taproot_matrix_bucket": "deferred",
     "owner": "@scottdhughes",
     "tracking_issue": "#23",
-    "notes": "Inherited xpub descriptor builder with bech32/wpkh and bech32m/tr coverage plus an explicit PQ-only rejection boundary; kept in pq_backlog and classified as deferred in the #23 migration matrix."
+    "notes": "Now freezes the inherited createwalletdescriptor boundary under the legacy-compatible PQC profile: xpub-based bech32/wpkh and bech32m/tr descriptor creation, active descriptor key selection, duplicate/invalid HD-key validation, encrypted-wallet unlock behavior, and explicit PQ-only active-manager rejection without mutating wallet state; replacement descriptor semantics remain deferred in the #23 migration matrix."
   },
   {
     "name": "wallet_crosschain.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited cross-chain wallet file safety boundary under the legacy-compatible PQC profile: wallets and backups from a different genesis/network are rejected by loadwallet and restorewallet with wallet verification failure."
   },
   {
     "name": "wallet_descriptor.py",
