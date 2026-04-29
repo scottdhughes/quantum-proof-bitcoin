@@ -2,6 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: FEATURE-LOADBLOCK-POSTURE-v1
+## Updated: 2026-04-29
 ## Frozen-By: track-a-phase1-20260413
 ## Consensus-Relevant: YES
 
@@ -39,9 +40,9 @@ Those remain separate follow-on surfaces.
 
 ## Confidence Snapshot
 
-Targeted confidence pass run on 2026-04-13:
+Targeted confidence pass run on 2026-04-29:
 
-- `python3 test/functional/feature_loadblock.py`
+- `build/test/functional/test_runner.py --jobs=1 feature_loadblock.py`
   - result: passed
   - current posture:
     - linearization succeeds against the live PQBTC regtest block files
@@ -50,9 +51,10 @@ Targeted confidence pass run on 2026-04-13:
 
 ## Interpretation
 
-- `feature_loadblock.py` is now a fixed PQBTC bootstrap/import slice
-- it remains `pq_backlog`, not a required PQ-first gate
-- the next clean follow-on shifts back to wallet-level inherited miniscript
-  funding/signing work
+- `feature_loadblock.py` is now a required PQBTC bootstrap/import gate
+- it remains bounded to linearized bootstrap import on the current regtest
+  profile
+- the next clean local chainstate follow-on is
+  [feature_utxo_set_hash.py](../test/functional/feature_utxo_set_hash.py)
 - broader prune, reindex, malformed-import, and interrupted-import behavior
   remain deferred

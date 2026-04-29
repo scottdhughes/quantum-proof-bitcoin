@@ -232,10 +232,10 @@
   },
   {
     "name": "feature_loadblock.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "PQBTC bootstrap/import backlog surface: a disconnected peer imports a linearized bootstrap.dat generated from the live source node's block files and current regtest message-start bytes, reaches height 100 under -loadblock, and converges on the source node's best block hash."
+    "notes": "Now promoted into pq_required as the PQBTC bootstrap/import gate: a disconnected peer imports a linearized bootstrap.dat generated from the live source node's block files and current regtest message-start bytes, reaches height 100 under -loadblock, and converges on the source node's best block hash; pruning-plus-bootstrap, index rebuild, malformed import, and interrupted import recovery remain separate follow-on surfaces."
   },
   {
     "name": "feature_logging.py",
