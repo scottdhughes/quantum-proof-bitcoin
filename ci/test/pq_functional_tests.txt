@@ -38,6 +38,7 @@ wallet_gethdkeys.py
 wallet_groups.py
 wallet_hd.py
 wallet_importdescriptors.py
+wallet_importprunedfunds.py
 wallet_keypool.py
 wallet_keypool_topup.py
 wallet_labels.py
@@ -49,6 +50,7 @@ wallet_miniscript.py
 wallet_miniscript_decaying_multisig_descriptor_psbt.py
 wallet_multisig_descriptor_psbt.py
 wallet_multiwallet.py
+wallet_orphanedreward.py
 wallet_pq_active_ranged.py
 wallet_pq_backup_recovery.py
 wallet_pq_create_tx.py
@@ -69,6 +71,8 @@ wallet_signrawtransactionwithwallet.py
 wallet_simulaterawtx.py
 wallet_spend_unconfirmed.py
 wallet_startup.py
+wallet_timelock.py
 wallet_transactiontime_rescan.py
 wallet_txn_clone.py
 wallet_txn_doublespend.py
+wallet_v3_txs.py

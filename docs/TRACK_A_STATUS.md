@@ -68,10 +68,14 @@ same gate, then
 keep `wallet_importdescriptors.py` and
 `wallet_signrawtransactionwithwallet.py` descriptor import and raw-signing
 behavior in the same gate, then
+keep `wallet_importprunedfunds.py`, `wallet_timelock.py`,
+`wallet_orphanedreward.py`, and `wallet_v3_txs.py` remaining wallet
+transaction-breadth behavior in the same gate, then
 return the next owned follow-on to `feature_coinstatsindex_compatibility.py`
-when real prior PQBTC release assets exist, with remaining wallet transaction
-breadth beyond the current raw-signing/import gate as the local alternate while
-`wallet_migration.py` remains blocked on previous-release fixtures.
+when real prior PQBTC release assets exist, with the small remaining local
+wallet backlog beyond the current transaction-breadth gate as the local
+alternate while `wallet_migration.py` remains blocked on previous-release
+fixtures.
 
 ## Current Working Thesis
 
@@ -95,7 +99,7 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. remaining wallet transaction breadth beyond the current raw-signing/import
+2. small remaining local wallet backlog beyond the current transaction-breadth
    gate
    - Why alternate: if the asset-dependent coinstats compatibility path stays
      blocked locally, this is the next wallet-facing surface to rebalance
@@ -106,8 +110,9 @@ Alternate rebalance:
      HD, keypool, descriptor-listing, accounting, label, transaction-listing,
      coin-selection, spend-policy, bumpfee/conflict, basic wallet,
      transaction-construction, simulation, raw-signing, and import-descriptor
-     tranches. `wallet_migration.py` stays blocked until previous-release
-     fixtures are available.
+     tranches, or the current import-pruned-funds, timelock, orphaned reward,
+     and v3/TRUC transaction tranche. `wallet_migration.py` stays blocked until
+     previous-release fixtures are available.
 
 Still deferred:
 
@@ -876,24 +881,56 @@ Still deferred:
    Still deferred inside this suite:
    - `wallet_migration.py`, which is skipped locally because previous-release
      fixtures are unavailable
-   - import-pruned-funds, timelock, orphaned reward, v3 transaction, signer,
-     and remaining wallet transaction breadth
-45. Recommended next PR after this tranche:
+   - import-pruned-funds, timelock, orphaned reward, and v3 transaction
+     behavior now covered by adjacent required gates; the small remaining local
+     wallet backlog stays separate
+45. `wallet_importprunedfunds.py`, `wallet_timelock.py`,
+   `wallet_orphanedreward.py`, and `wallet_v3_txs.py` now own:
+   - restored inherited import-pruned-funds, timelock, orphaned reward, and
+     v3/TRUC wallet behavior under the current legacy-compatible PQC profile
+   - `importprunedfunds` and `removeprunedfunds` proof import rejection for
+     unaffiliated addresses, watch-only descriptor import, private-key import,
+     balance/listing updates, removal behavior, transaction decode errors,
+     proof mismatch errors, malformed merkleblock rejection, and missing-block
+     rejection
+   - confirmed timelocked send accounting stability across received-by-address,
+     received-by-label, listreceived, trusted balance, and unspent coin state
+     when mock time changes finality
+   - orphaned block reward handling, descendant abandonment, reload
+     persistence, and preserving abandoned descendants when the reward returns
+     to the active chain
+   - wallet v3/TRUC behavior for version-mixing spend availability, v3 UTXO
+     visibility, conflicting sibling handling, mempool conflict removal, parent
+     and child weight checks, user input weight preservation, `createpsbt`,
+     `send`, `sendall`, funded-PSBT v3 flows, TRUC weight-limit errors,
+     non-TRUC mixing rejection, multiple unconfirmed TRUC output rejection, and
+     third-generation spend rejection
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 wallet_importprunedfunds.py wallet_timelock.py wallet_orphanedreward.py wallet_v3_txs.py`
+   Fixed posture note:
+   - `WALLET_REMAINING_TRANSACTION_BREADTH_POSTURE.md`
+   Still deferred inside this suite:
+   - `wallet_migration.py`, which is skipped locally because previous-release
+     fixtures are unavailable
+   - `wallet_crosschain.py`, `wallet_createwalletdescriptor.py`, and
+     `wallet_backwards_compatibility.py`
+46. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: remaining wallet transaction breadth beyond this
-     raw-signing/import gate
+   - alternate: small remaining local wallet backlog beyond this
+     transaction-breadth gate
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
-   - import-pruned-funds, timelock, orphaned reward, v3 transaction, signer, and
-     other remaining wallet transaction work remain useful after the current
+   - crosschain, createwalletdescriptor, and backwards-compatibility work remain
+     useful after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
      HD, keypool, descriptor-listing, accounting, label, transaction-listing,
      coin-selection, spend-policy, bumpfee/conflict, basic wallet,
      transaction-construction, simulation, raw-signing, and import-descriptor
-     gates are frozen, but additional wallet work stays behind the
-     asset-dependent compatibility slice once prior PQBTC release assets are
-     available
+     gates are frozen, and after the current import-pruned-funds, timelock,
+     orphaned reward, and v3/TRUC transaction gate is frozen, but additional
+     wallet work stays behind the asset-dependent compatibility slice once
+     prior PQBTC release assets are available
 19. Use `FEATURE_BLOCK_POSTURE.md` as the fixed note for the current
    `feature_block.py` contract.
 20. Use `PSBT_REPLACEMENT_TRANCHE.md` as the current owned miniscript/PSBT
@@ -1539,6 +1576,17 @@ Aineko must ask before:
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
   assets exist, with remaining wallet transaction breadth beyond this
   raw-signing/import gate as the local alternate.
+- 2026-04-29: `wallet_importprunedfunds.py`, `wallet_timelock.py`,
+  `wallet_orphanedreward.py`, and `wallet_v3_txs.py` are now promoted into the
+  canonical `pq_required` gate and locally revalidated with the build-tree
+  functional runner. The owned boundary covers restored inherited
+  import-pruned-funds, timelock, orphaned reward, and v3/TRUC wallet behavior
+  under the current legacy-compatible PQC profile. `wallet_migration.py`
+  remains blocked locally because previous-release fixtures are unavailable.
+  The next owned follow-on remains `feature_coinstatsindex_compatibility.py`
+  when real prior PQBTC release assets exist, with `wallet_crosschain.py`,
+  `wallet_createwalletdescriptor.py`, and `wallet_backwards_compatibility.py`
+  as the local alternate backlog.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1645,6 +1693,11 @@ Aineko must ask before:
   and raw-signing surfaces: `wallet_importdescriptors.py` and
   `wallet_signrawtransactionwithwallet.py` pass targeted validation in the
   current tree.
+- There is no current blocker in the restored inherited wallet
+  import-pruned-funds, timelock, orphaned reward, and v3/TRUC surfaces:
+  `wallet_importprunedfunds.py`, `wallet_timelock.py`,
+  `wallet_orphanedreward.py`, and `wallet_v3_txs.py` pass targeted validation
+  in the current tree.
 - `wallet_migration.py` remains blocked locally until previous-release fixtures
   are available.
 - There is no current `OPS_SLO` blocker. The refreshed `2026-04-06` evidence

@@ -1649,10 +1649,10 @@
   },
   {
     "name": "wallet_importprunedfunds.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited importprunedfunds/removeprunedfunds boundary under the legacy-compatible PQC profile: proof import rejection for unaffiliated addresses, watch-only descriptor import, private-key import, balance/listing updates, removal behavior, transaction decode errors, proof mismatch errors, malformed merkleblock rejection, and missing-block rejection."
   },
   {
     "name": "wallet_keypool.py",
@@ -1742,10 +1742,10 @@
   },
   {
     "name": "wallet_orphanedreward.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited orphaned block reward boundary under the legacy-compatible PQC profile: spending mature rewards plus existing balance, orphaning a reward, abandoning descendants, preserving abandoned status across reload, and keeping descendant transactions abandoned after the reward returns to the active chain."
   },
   {
     "name": "wallet_pq_active_ranged.py",
@@ -1911,10 +1911,10 @@
   },
   {
     "name": "wallet_timelock.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited wallet timelock boundary under the legacy-compatible PQC profile: confirmed timelocked sends keep received-by-address, received-by-label, listreceived, trusted balance, and unspent coin state stable when mock time changes finality."
   },
   {
     "name": "wallet_transactiontime_rescan.py",
@@ -1939,9 +1939,9 @@
   },
   {
     "name": "wallet_v3_txs.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Now freezes the inherited wallet v3/TRUC boundary under the legacy-compatible PQC profile: version-mixing spend availability, v3 UTXO visibility, conflicting sibling handling, mempool conflict removal, max parent/child weight checks, user input weight preservation, createpsbt/send/sendall/funded-PSBT v3 flows, TRUC weight-limit errors, non-TRUC mixing rejection, multiple unconfirmed TRUC output rejection, and third-generation spend rejection."
   }
 ]
