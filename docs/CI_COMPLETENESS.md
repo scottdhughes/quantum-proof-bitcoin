@@ -36,8 +36,8 @@ The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `74` |
-| `pq_backlog` | `51` |
+| `pq_required` | `78` |
+| `pq_backlog` | `47` |
 | `dual_profile` | `142` |
 | `legacy_only` | `9` |
 
@@ -92,31 +92,35 @@ Current required PQ-first gates:
 47. `wallet_groups.py`
 48. `wallet_hd.py`
 49. `wallet_importdescriptors.py`
-50. `wallet_keypool.py`
-51. `wallet_keypool_topup.py`
-52. `wallet_labels.py`
-53. `wallet_listdescriptors.py`
-54. `wallet_listreceivedby.py`
-55. `wallet_listsinceblock.py`
-56. `wallet_listtransactions.py`
-57. `wallet_miniscript.py`
-58. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
-59. `wallet_multisig_descriptor_psbt.py`
-60. `wallet_multiwallet.py`
-61. `wallet_reindex.py`
-62. `wallet_reorgsrestore.py`
-63. `wallet_rescan_unconfirmed.py`
-64. `wallet_resendwallettransactions.py`
-65. `wallet_send.py`
-66. `wallet_sendall.py`
-67. `wallet_sendmany.py`
-68. `wallet_signrawtransactionwithwallet.py`
-69. `wallet_simulaterawtx.py`
-70. `wallet_spend_unconfirmed.py`
-71. `wallet_startup.py`
-72. `wallet_transactiontime_rescan.py`
-73. `wallet_txn_clone.py`
-74. `wallet_txn_doublespend.py`
+50. `wallet_importprunedfunds.py`
+51. `wallet_keypool.py`
+52. `wallet_keypool_topup.py`
+53. `wallet_labels.py`
+54. `wallet_listdescriptors.py`
+55. `wallet_listreceivedby.py`
+56. `wallet_listsinceblock.py`
+57. `wallet_listtransactions.py`
+58. `wallet_miniscript.py`
+59. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
+60. `wallet_multisig_descriptor_psbt.py`
+61. `wallet_multiwallet.py`
+62. `wallet_orphanedreward.py`
+63. `wallet_reindex.py`
+64. `wallet_reorgsrestore.py`
+65. `wallet_rescan_unconfirmed.py`
+66. `wallet_resendwallettransactions.py`
+67. `wallet_send.py`
+68. `wallet_sendall.py`
+69. `wallet_sendmany.py`
+70. `wallet_signrawtransactionwithwallet.py`
+71. `wallet_simulaterawtx.py`
+72. `wallet_spend_unconfirmed.py`
+73. `wallet_startup.py`
+74. `wallet_timelock.py`
+75. `wallet_transactiontime_rescan.py`
+76. `wallet_txn_clone.py`
+77. `wallet_txn_doublespend.py`
+78. `wallet_v3_txs.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
@@ -244,6 +248,12 @@ transaction no-op behavior, CSV/CLTV witness signing, descriptor import
 validation, duplicate imports and label updates, multisig and ranged descriptor
 imports, private-key-enabled wallet constraints, and descriptor persistence
 under the current PQC profile.
+The inherited remaining wallet transaction-breadth confidence gap is now also
+part of the required gate: `wallet_importprunedfunds.py`,
+`wallet_timelock.py`, `wallet_orphanedreward.py`, and `wallet_v3_txs.py` cover
+imported pruned-fund proof handling, timelocked-send accounting stability,
+orphaned block reward abandonment and reload behavior, and v3/TRUC wallet
+transaction handling under the current PQC profile.
 The inherited wallet startup confidence gap is now also part of the required
 gate: `wallet_startup.py` covers default wallet auto-load, persisted
 `load_on_startup` wallet creation flags, `unloadwallet` startup-list removal,
