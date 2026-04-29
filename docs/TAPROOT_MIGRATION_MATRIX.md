@@ -164,7 +164,7 @@ annex, mempool, relay, policy, wallet, descriptor, address, RPC, or PSBT behavio
 | `rpc_createmultisig.py` | `dual_profile` | `deferred` | Contains Taproot-adjacent bech32m coverage, but replacement-specific semantics are not yet defined. |
 | `rpc_psbt.py` | `pq_required` | `deferred` | Required for the restored pre-taproot PSBT decode/finalize contract, while Taproot-facing replacement semantics remain undefined. |
 | `wallet_address_types.py` | `pq_required` | `deferred` | Required for restored inherited address-type smoke coverage, inherited mixed-address `sendmany`, and PQ-only inherited-address RPC rejection boundaries, while replacement-specific semantics remain undefined. |
-| `wallet_createwalletdescriptor.py` | `pq_backlog` | `deferred` | Contains `tr(...)` descriptor creation paths, but replacement descriptor semantics are not yet defined. |
+| `wallet_createwalletdescriptor.py` | `pq_required` | `deferred` | Required for the inherited xpub descriptor-creation and explicit PQ-only rejection boundary, while replacement descriptor semantics remain undefined. |
 | `wallet_miniscript.py` | `pq_required` | `deferred` | Required for the restored wallet-side miniscript funding/signing/finalization contract, while TapMiniscript replacement meaning remains undefined. |
 | `wallet_miniscript_decaying_multisig_descriptor_psbt.py` | `pq_required` | `deferred` | Required for the decaying miniscript multisig funding/signing/finalization contract, while future replacement-path meaning remains separate. |
 

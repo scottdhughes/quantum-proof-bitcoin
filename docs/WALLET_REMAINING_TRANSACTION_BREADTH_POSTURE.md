@@ -48,8 +48,8 @@ This promotion does not define:
 - replacement-path Taproot or bech32m wallet semantics beyond existing tests
 - new PQ-only active-manager RPC behavior
 - wallet migration or backwards-compatibility release-asset behavior
-- inherited wallet crosschain, backwards-compatibility, or
-  `createwalletdescriptor` behavior outside these transaction-breadth contracts
+- inherited wallet backwards-compatibility behavior outside these
+  transaction-breadth contracts
 - prior-release compatibility for `feature_coinstatsindex_compatibility.py`
 
 ## Confidence Snapshot
@@ -69,9 +69,11 @@ The canonical PQ gate now includes the inherited wallet import-pruned-funds,
 timelock, orphaned reward, and v3/TRUC wallet behavior that already passes
 under the current PQC-compatible legacy profile.
 
-`wallet_migration.py` remains blocked locally because the previous-release
-fixtures are unavailable. The preferred Track A follow-on remains
-`feature_coinstatsindex_compatibility.py` when real prior PQBTC release assets
-exist locally. Until then, the repo-local wallet alternate moves to the small
-remaining local wallet backlog: `wallet_crosschain.py`,
-`wallet_createwalletdescriptor.py`, and `wallet_backwards_compatibility.py`.
+The repo-local wallet alternate moved to `wallet_crosschain.py` and
+`wallet_createwalletdescriptor.py`; those surfaces are now covered by
+[WALLET_CROSSCHAIN_DESCRIPTOR_CREATION_POSTURE.md](./WALLET_CROSSCHAIN_DESCRIPTOR_CREATION_POSTURE.md).
+
+`wallet_migration.py` and `wallet_backwards_compatibility.py` remain blocked
+locally because previous-release fixtures are unavailable. The preferred Track
+A follow-on remains `feature_coinstatsindex_compatibility.py` when real prior
+PQBTC release assets exist locally.

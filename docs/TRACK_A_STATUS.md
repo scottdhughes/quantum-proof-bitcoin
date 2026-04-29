@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-04-28
+## Updated: 2026-04-29
 ## Current Phase: Phase 1 - Wallet And Block Surface Expansion
 
 ## Purpose
@@ -71,11 +71,13 @@ behavior in the same gate, then
 keep `wallet_importprunedfunds.py`, `wallet_timelock.py`,
 `wallet_orphanedreward.py`, and `wallet_v3_txs.py` remaining wallet
 transaction-breadth behavior in the same gate, then
+keep `wallet_createwalletdescriptor.py` and `wallet_crosschain.py`
+descriptor-creation and cross-chain wallet-file behavior in the same gate,
+then
 return the next owned follow-on to `feature_coinstatsindex_compatibility.py`
-when real prior PQBTC release assets exist, with the small remaining local
-wallet backlog beyond the current transaction-breadth gate as the local
-alternate while `wallet_migration.py` remains blocked on previous-release
-fixtures.
+when real prior PQBTC release assets exist. Locally,
+`wallet_backwards_compatibility.py` and `wallet_migration.py` remain blocked
+until previous-release fixtures are available.
 
 ## Current Working Thesis
 
@@ -99,10 +101,11 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. small remaining local wallet backlog beyond the current transaction-breadth
-   gate
+2. local non-wallet `pq_backlog` inventory review
    - Why alternate: if the asset-dependent coinstats compatibility path stays
-     blocked locally, this is the next wallet-facing surface to rebalance
+     blocked locally, the unblocked wallet-local backlog has been exhausted
+     except for previous-release-dependent suites. Choose the next local
+     tranche from non-wallet `pq_backlog` only after an inventory review,
      without re-litigating the now-owned descriptor, miniscript, address/RPC,
      raw funding, inherited send-path, rebroadcast, reindex, fast-rescan,
      unconfirmed-rescan, reorg-restore, transaction-time-rescan, backup,
@@ -111,8 +114,9 @@ Alternate rebalance:
      coin-selection, spend-policy, bumpfee/conflict, basic wallet,
      transaction-construction, simulation, raw-signing, and import-descriptor
      tranches, or the current import-pruned-funds, timelock, orphaned reward,
-     and v3/TRUC transaction tranche. `wallet_migration.py` stays blocked until
-     previous-release fixtures are available.
+     v3/TRUC transaction, descriptor-creation, and cross-chain wallet-file
+     tranches. `wallet_backwards_compatibility.py` and `wallet_migration.py`
+     stay blocked until previous-release fixtures are available.
 
 Still deferred:
 
@@ -912,25 +916,47 @@ Still deferred:
    Still deferred inside this suite:
    - `wallet_migration.py`, which is skipped locally because previous-release
      fixtures are unavailable
-   - `wallet_crosschain.py`, `wallet_createwalletdescriptor.py`, and
-     `wallet_backwards_compatibility.py`
-46. Recommended next PR after this tranche:
+   - `wallet_crosschain.py` and `wallet_createwalletdescriptor.py` are now
+     covered by the adjacent required descriptor-creation/cross-chain gate;
+     `wallet_backwards_compatibility.py` remains previous-release blocked
+46. `wallet_createwalletdescriptor.py` and `wallet_crosschain.py` now own:
+   - restored inherited xpub descriptor creation and cross-chain wallet-file
+     safety behavior under the current legacy-compatible PQC profile
+   - `createwalletdescriptor` xpub-based bech32/wpkh and bech32m/tr descriptor
+     manager creation, active descriptor key selection, duplicate/invalid
+     HD-key validation, encrypted-wallet unlock behavior, and explicit
+     PQ-only active-manager rejection without mutating wallet state
+   - wallet and backup rejection from a different genesis/network through
+     `loadwallet` and `restorewallet`
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 wallet_crosschain.py wallet_createwalletdescriptor.py`
+   Compatibility probe:
+   - `build/test/functional/test_runner.py --jobs=1 wallet_crosschain.py wallet_createwalletdescriptor.py wallet_backwards_compatibility.py`
+   - expected local outcome: `wallet_backwards_compatibility.py` skipped
+     because previous-release fixtures are unavailable
+   Fixed posture note:
+   - `WALLET_CROSSCHAIN_DESCRIPTOR_CREATION_POSTURE.md`
+   Still deferred inside this suite:
+   - `wallet_backwards_compatibility.py` and `wallet_migration.py`, which are
+     skipped locally because previous-release fixtures are unavailable
+   - `feature_coinstatsindex_compatibility.py`, which remains blocked until
+     real prior PQBTC release assets exist
+47. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: small remaining local wallet backlog beyond this
-     transaction-breadth gate
+   - alternate: local non-wallet `pq_backlog` tranche selected after inventory
+     review
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
-   - crosschain, createwalletdescriptor, and backwards-compatibility work remain
-     useful after the current
+   - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
+     useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
      HD, keypool, descriptor-listing, accounting, label, transaction-listing,
      coin-selection, spend-policy, bumpfee/conflict, basic wallet,
      transaction-construction, simulation, raw-signing, and import-descriptor
      gates are frozen, and after the current import-pruned-funds, timelock,
-     orphaned reward, and v3/TRUC transaction gate is frozen, but additional
-     wallet work stays behind the asset-dependent compatibility slice once
-     prior PQBTC release assets are available
+     orphaned reward, v3/TRUC transaction, descriptor-creation, and
+     cross-chain wallet-file gates are frozen
 19. Use `FEATURE_BLOCK_POSTURE.md` as the fixed note for the current
    `feature_block.py` contract.
 20. Use `PSBT_REPLACEMENT_TRANCHE.md` as the current owned miniscript/PSBT
@@ -1587,6 +1613,17 @@ Aineko must ask before:
   when real prior PQBTC release assets exist, with `wallet_crosschain.py`,
   `wallet_createwalletdescriptor.py`, and `wallet_backwards_compatibility.py`
   as the local alternate backlog.
+- 2026-04-29: `wallet_createwalletdescriptor.py` and `wallet_crosschain.py`
+  are now promoted into the canonical `pq_required` gate and locally
+  revalidated with the build-tree functional runner. The owned boundary covers
+  inherited xpub descriptor creation, explicit PQ-only active-manager
+  rejection, and cross-genesis wallet load/restore rejection under the current
+  legacy-compatible PQC profile. `wallet_backwards_compatibility.py` and
+  `wallet_migration.py` remain blocked locally because previous-release
+  fixtures are unavailable. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist; otherwise choose any next local tranche from non-wallet
+  `pq_backlog` after inventory review.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1698,6 +1735,12 @@ Aineko must ask before:
   `wallet_importprunedfunds.py`, `wallet_timelock.py`,
   `wallet_orphanedreward.py`, and `wallet_v3_txs.py` pass targeted validation
   in the current tree.
+- There is no current blocker in the restored inherited wallet
+  descriptor-creation and cross-chain wallet-file surfaces:
+  `wallet_createwalletdescriptor.py` and `wallet_crosschain.py` pass targeted
+  validation in the current tree.
+- `wallet_backwards_compatibility.py` remains blocked locally until
+  previous-release fixtures are available.
 - `wallet_migration.py` remains blocked locally until previous-release fixtures
   are available.
 - There is no current `OPS_SLO` blocker. The refreshed `2026-04-06` evidence

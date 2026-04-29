@@ -28,6 +28,8 @@ wallet_coinbase_category.py
 wallet_conflicts.py
 wallet_create_tx.py
 wallet_createwallet.py
+wallet_createwalletdescriptor.py
+wallet_crosschain.py
 wallet_descriptor.py
 wallet_disable.py
 wallet_encryption.py
