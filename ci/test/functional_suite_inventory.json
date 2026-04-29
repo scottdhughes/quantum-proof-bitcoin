@@ -85,17 +85,17 @@
   },
   {
     "name": "feature_blocksdir.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Now freezes the external -blocksdir storage-layout contract: missing-path init failure, external blk/rev storage under the chosen blocksdir, local chain-path block index retention, no silent top-level datadir blocks fallback, and restart persistence with the same external blocksdir; broader block-file mutation and XOR handling remain separate follow-on surfaces."
+    "notes": "Now promoted into pq_required as the external -blocksdir storage-layout gate: missing-path init failure, external blk/rev storage under the chosen blocksdir, local chain-path block index retention, no silent top-level datadir blocks fallback, and restart persistence with the same external blocksdir; broader block-file mutation and bootstrap/import behavior remain separate follow-on surfaces."
   },
   {
     "name": "feature_blocksxor.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Now freezes the narrow -blocksxor storage boundary: non-wallet block-file seeding under -fastprune, manual un-XOR rewrite of mined blk/rev files with the stored XOR key, explicit restart rejection when -blocksxor=0 is requested while a random key still exists, successful restart after deleting the key, full verifychain integrity validation, and recreation of the null XOR key; broader corruption, reindex, prune, and chainstate migration decisions remain separate follow-on surfaces."
+    "notes": "Now promoted into pq_required as the narrow -blocksxor storage gate: non-wallet block-file seeding under -fastprune, manual un-XOR rewrite of mined blk/rev files with the stored XOR key, explicit restart rejection when -blocksxor=0 is requested while a random key still exists, successful restart after deleting the key, full verifychain integrity validation, and recreation of the null XOR key; broader corruption, generic reindex, bootstrap/import, and chainstate migration decisions remain separate follow-on surfaces."
   },
   {
     "name": "feature_cltv.py",
@@ -162,10 +162,10 @@
   },
   {
     "name": "feature_fastprune.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Now freezes the narrow -fastprune large-block admission boundary: one large witness-annex block mined through the non-signing MiniWallet ADDRESS_OP_TRUE path is accepted under -fastprune and advances the initialized chain without crash or hang; broader prune lifecycle, restart, reindex, and prune-plus-index interaction remain separate follow-on surfaces."
+    "notes": "Now promoted into pq_required as the narrow -fastprune large-block admission gate: one large witness-annex block mined through the non-signing MiniWallet ADDRESS_OP_TRUE path is accepted under -fastprune and advances the initialized chain without crash or hang; broader generic restart/reindex and bootstrap/import interaction remain separate follow-on surfaces."
   },
   {
     "name": "feature_fee_estimation.py",
@@ -218,10 +218,10 @@
   },
   {
     "name": "feature_index_prune.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Now freezes the prune-plus-index matrix: linear RPC sync for blockfilter/coinstats indices under prune, index accessibility before and after pruning, exact prune-to-index-height restart continuity, prune-past-index-height init failures until -reindex, recovery after -reindex, and explicit prune-lock handling in the reorg path; broader bootstrap/loadblock import behavior remains separate."
+    "notes": "Now promoted into pq_required as the prune-plus-index matrix gate: linear RPC sync for blockfilter/coinstats indices under prune, index accessibility before and after pruning, exact prune-to-index-height restart continuity, prune-past-index-height init failures until -reindex, recovery after -reindex, and explicit prune-lock handling in the reorg path; broader bootstrap/loadblock import behavior remains separate."
   },
   {
     "name": "feature_init.py",
@@ -372,10 +372,10 @@
   },
   {
     "name": "feature_remove_pruned_files_on_startup.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Now freezes the prune-lifecycle cleanup boundary under -fastprune -prune=1: multi-file blk/rev creation, immediate prune-triggered deletion where open file descriptors permit it, explicit Windows delayed-delete behavior, cleanup completion after restart once descriptors are closed, and -reindex recreation of a fresh blk00000/rev00000 baseline; broader prune-plus-index interaction remains a separate follow-on surface."
+    "notes": "Now promoted into pq_required as the prune-lifecycle cleanup gate under -fastprune -prune=1: multi-file blk/rev creation, immediate prune-triggered deletion where open file descriptors permit it, explicit Windows delayed-delete behavior, cleanup completion after restart once descriptors are closed, and -reindex recreation of a fresh blk00000/rev00000 baseline; broader bootstrap/import interaction remains a separate follow-on surface."
   },
   {
     "name": "feature_segwit.py",

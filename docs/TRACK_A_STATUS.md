@@ -18,9 +18,11 @@ Keep the decaying miniscript multisig funding/signing/finalization surface in
 `wallet_miniscript_decaying_multisig_descriptor_psbt.py` frozen, keep the
 current `feature_block.py` invalid-branch/transport/mempool tranche frozen,
 freeze the new `wallet_miniscript.py`, `rpc_createmultisig.py`,
-`wallet_multisig_descriptor_psbt.py`, `feature_blocksdir.py`,
-`feature_blocksxor.py`, `feature_fastprune.py`, and
-`feature_remove_pruned_files_on_startup.py`, `feature_index_prune.py`, and
+`wallet_multisig_descriptor_psbt.py`, keep `feature_blocksdir.py`,
+`feature_blocksxor.py`, `feature_fastprune.py`,
+`feature_remove_pruned_files_on_startup.py`, and `feature_index_prune.py`
+block storage and prune-lifecycle behavior in the canonical `pq_required`
+gate, and keep
 `feature_pq_block_limits.py`, `feature_pq_reorg.py`, and
 `mempool_pq_limits.py`, and `mempool_pq_stress.py` boundaries, freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
@@ -101,11 +103,11 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. local non-wallet `pq_backlog` inventory review
+2. `feature_loadblock.py`
    - Why alternate: if the asset-dependent coinstats compatibility path stays
-     blocked locally, the unblocked wallet-local backlog has been exhausted
-     except for previous-release-dependent suites. Choose the next local
-     tranche from non-wallet `pq_backlog` only after an inventory review,
+     blocked locally, the next bounded local storage/import follow-on is
+     `feature_loadblock.py`, now that the external blocksdir, blocksxor,
+     fastprune, prune-cleanup, and prune-plus-index family is required,
      without re-litigating the now-owned descriptor, miniscript, address/RPC,
      raw funding, inherited send-path, rebroadcast, reindex, fast-rescan,
      unconfirmed-rescan, reorg-restore, transaction-time-rescan, backup,
@@ -115,8 +117,9 @@ Alternate rebalance:
      transaction-construction, simulation, raw-signing, and import-descriptor
      tranches, or the current import-pruned-funds, timelock, orphaned reward,
      v3/TRUC transaction, descriptor-creation, and cross-chain wallet-file
-     tranches. `wallet_backwards_compatibility.py` and `wallet_migration.py`
-     stay blocked until previous-release fixtures are available.
+     tranches. `wallet_backwards_compatibility.py`, `wallet_migration.py`, and
+     `feature_coinstatsindex_compatibility.py` stay blocked until prior-release
+     assets are available.
 
 Still deferred:
 
@@ -225,11 +228,10 @@ Still deferred:
      `blocks/` directory while the external blocksdir is active
    - restart persistence with the same external blocksdir
    Minimum validation target:
-   - `python3 test/functional/feature_blocksdir.py`
+   - `build/test/functional/test_runner.py --jobs=1 feature_blocksdir.py feature_blocksxor.py feature_fastprune.py feature_remove_pruned_files_on_startup.py feature_index_prune.py`
    Still deferred inside this suite:
    - block-file mutation/corruption handling
-   - XORed block-file handling
-   - promotion into `pq_required`
+   - broader bootstrap/loadblock import behavior
 7. `feature_blocksxor.py` now owns:
    - non-wallet block-file seeding via deterministic mining under
      `-blocksxor=1 -fastprune=1`
@@ -242,11 +244,11 @@ Still deferred:
      by `verifychain(checklevel=2, nblocks=0)` integrity validation
    - null XOR key recreation after the successful un-XOR restart path
    Minimum validation target:
-   - `python3 test/functional/feature_blocksxor.py`
+   - `build/test/functional/test_runner.py --jobs=1 feature_blocksdir.py feature_blocksxor.py feature_fastprune.py feature_remove_pruned_files_on_startup.py feature_index_prune.py`
    Still deferred inside this suite:
    - broader block-file corruption handling
-   - prune/reindex lifecycle coverage
-   - promotion into `pq_required`
+   - generic reindex behavior beyond the current storage/prune gate
+   - broader bootstrap/loadblock import behavior
 8. `feature_fastprune.py` now owns:
    - startup under `-fastprune`
    - one large witness-annex block assembled through the non-signing
@@ -256,12 +258,10 @@ Still deferred:
    - explicit chain-height advancement from the initialized 200-block harness
      to 201
    Minimum validation target:
-   - `python3 test/functional/feature_fastprune.py`
+   - `build/test/functional/test_runner.py --jobs=1 feature_blocksdir.py feature_blocksxor.py feature_fastprune.py feature_remove_pruned_files_on_startup.py feature_index_prune.py`
    Still deferred inside this suite:
-   - prune lifecycle and file-deletion handling
-   - restart and reindex behavior
-   - prune-plus-index interaction
-   - promotion into `pq_required`
+   - generic restart and reindex behavior beyond the current storage/prune gate
+   - broader bootstrap/loadblock import behavior
 9. `feature_remove_pruned_files_on_startup.py` now owns:
    - mining enough blocks under `-fastprune -prune=1` to create multiple
      blk/rev files before pruning
@@ -273,11 +273,10 @@ Still deferred:
    - `-reindex` recreation of a fresh `blk00000.dat` / `rev00000.dat`
      baseline after wiping the previous pruned file set
    Minimum validation target:
-   - `python3 test/functional/feature_remove_pruned_files_on_startup.py`
+   - `build/test/functional/test_runner.py --jobs=1 feature_blocksdir.py feature_blocksxor.py feature_fastprune.py feature_remove_pruned_files_on_startup.py feature_index_prune.py`
    Still deferred inside this suite:
-   - prune-plus-index interaction
-   - broader index recovery and prune-lock semantics
-   - promotion into `pq_required`
+   - broader index recovery outside the bounded prune-plus-index matrix
+   - broader bootstrap/loadblock import behavior
 10. `feature_index_prune.py` now owns:
    - linear RPC block sync under prune for blockfilter/coinstats index nodes
    - index accessibility at tip before and after pruning begins
@@ -289,9 +288,8 @@ Still deferred:
    - recovery after restarting with `-reindex`
    - explicit prune-lock movement in the reorg path
    Minimum validation target:
-   - `python3 test/functional/feature_index_prune.py`
+   - `build/test/functional/test_runner.py --jobs=1 feature_blocksdir.py feature_blocksxor.py feature_fastprune.py feature_remove_pruned_files_on_startup.py feature_index_prune.py`
    Still deferred inside this suite:
-   - promotion into `pq_required`
    - broader bootstrap/loadblock import behavior
 11. `feature_pq_block_limits.py` now owns:
    - exact `getblocktemplate` block weight limit reporting at `4_000_000`
@@ -943,11 +941,13 @@ Still deferred:
      real prior PQBTC release assets exist
 47. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: local non-wallet `pq_backlog` tranche selected after inventory
-     review
+   - alternate: `feature_loadblock.py`
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
+   - `feature_loadblock.py` is the next bounded storage/import follow-on now
+     that external blocksdir, blocksxor, fastprune, prune-cleanup, and
+     prune-plus-index behavior are required
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -1622,8 +1622,17 @@ Aineko must ask before:
   `wallet_migration.py` remain blocked locally because previous-release
   fixtures are unavailable. The next owned follow-on remains
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
-  assets exist; otherwise choose any next local tranche from non-wallet
-  `pq_backlog` after inventory review.
+  assets exist; otherwise the next local step is a non-wallet backlog tranche.
+- 2026-04-29: `feature_blocksdir.py`, `feature_blocksxor.py`,
+  `feature_fastprune.py`, `feature_remove_pruned_files_on_startup.py`, and
+  `feature_index_prune.py` are now promoted into the canonical `pq_required`
+  gate and locally revalidated with the build-tree functional runner. The
+  owned boundary covers external block storage, XORed blk/rev handling,
+  `-fastprune` large-block admission, pruned-file cleanup on startup, and
+  blockfilter/coinstats index behavior under prune. The next owned follow-on
+  remains `feature_coinstatsindex_compatibility.py` when real prior PQBTC
+  release assets exist; otherwise the local storage/import alternate is
+  `feature_loadblock.py`.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1739,6 +1748,10 @@ Aineko must ask before:
   descriptor-creation and cross-chain wallet-file surfaces:
   `wallet_createwalletdescriptor.py` and `wallet_crosschain.py` pass targeted
   validation in the current tree.
+- There is no current blocker in the block storage and prune-lifecycle
+  surfaces: `feature_blocksdir.py`, `feature_blocksxor.py`,
+  `feature_fastprune.py`, `feature_remove_pruned_files_on_startup.py`, and
+  `feature_index_prune.py` pass targeted validation in the current tree.
 - `wallet_backwards_compatibility.py` remains blocked locally until
   previous-release fixtures are available.
 - `wallet_migration.py` remains blocked locally until previous-release fixtures

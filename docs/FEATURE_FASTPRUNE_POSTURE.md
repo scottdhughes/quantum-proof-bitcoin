@@ -2,6 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: FEATURE-FASTPRUNE-POSTURE-v1
+## Updated: 2026-04-29
 ## Frozen-By: track-a-phase1-20260412
 ## Consensus-Relevant: NO
 
@@ -29,18 +30,18 @@ small block-assembly contract:
 
 This posture note does **not** mean:
 
-- prune lifecycle or file-deletion behavior is covered
-- restart or reindex behavior is covered
-- prune-plus-index interaction is covered
-- this suite should move into `pq_required`
+- generic restart or reindex behavior is covered
+- bootstrap or `-loadblock` import behavior is covered
+- broad pruning behavior outside the exact required storage/prune family is
+  covered
 
 Those remain separate follow-on surfaces.
 
 ## Confidence Snapshot
 
-Targeted confidence pass run on 2026-04-12:
+Targeted confidence pass run on 2026-04-29:
 
-- `python3 test/functional/feature_fastprune.py`
+- `build/test/functional/test_runner.py --jobs=1 feature_blocksdir.py feature_blocksxor.py feature_fastprune.py feature_remove_pruned_files_on_startup.py feature_index_prune.py`
   - result: passed
   - current posture:
     - `-fastprune` still accepts the large-annex block path
@@ -50,11 +51,7 @@ Targeted confidence pass run on 2026-04-12:
 
 ## Interpretation
 
-- `feature_fastprune.py` is now an owned narrow large-block admission slice
+- `feature_fastprune.py` is now a required narrow large-block admission gate
 - it is not a general pruning or storage-lifecycle migration surface
-- the next adjacent tranche is
-  [feature_remove_pruned_files_on_startup.py](../test/functional/feature_remove_pruned_files_on_startup.py),
-  which is the smallest prune-lifecycle follow-on after `blocksdir`,
-  `blocksxor`, and `fastprune`
-- the broader alternate remains
-  [feature_index_prune.py](../test/functional/feature_index_prune.py)
+- adjacent prune-cleanup and prune-plus-index behavior is now covered by the
+  same required storage/prune gate family
