@@ -9,9 +9,10 @@
 
 Freeze the owned PQ-only
 [signrawtransactionwithwallet](../src/wallet/rpc/spend.cpp)
-contract without reopening the broad inherited
+contract. The broad inherited
 [wallet_signrawtransactionwithwallet.py](../test/functional/wallet_signrawtransactionwithwallet.py)
-matrix.
+matrix is now frozen separately in
+[WALLET_RAW_SIGNING_IMPORT_POSTURE.md](./WALLET_RAW_SIGNING_IMPORT_POSTURE.md).
 
 ## Owned Surface
 
@@ -41,17 +42,17 @@ On PQ-only active wallets:
 
 ## Why This Slice Exists
 
-Track A already owns the PQ-native setup path, change/funding path, PSBT path,
-and operator-facing send family. This slice closes the remaining direct
-wallet-owned raw-signing gap without reopening inherited classical signing
-compatibility or the full historical `wallet_signrawtransactionwithwallet.py`
-matrix.
+Track A owns the PQ-native setup path, change/funding path, PSBT path,
+operator-facing send family, and inherited raw-signing/import-descriptor
+compatibility as separate gates. This slice remains the PQ-only
+wallet-owned raw-signing contract.
 
 ## Non-Goals In This Tranche
 
 This tranche does not own:
 
-- broad inherited `wallet_signrawtransactionwithwallet.py` behavior
+- broad inherited `wallet_signrawtransactionwithwallet.py` behavior, now frozen
+  separately in `WALLET_RAW_SIGNING_IMPORT_POSTURE.md`
 - mixed classical/PQ signing compatibility
 - `prevtxs` matrix coverage for legacy descriptor families
 - inherited classical PSBT finalize/decode compatibility in `rpc_psbt.py`
