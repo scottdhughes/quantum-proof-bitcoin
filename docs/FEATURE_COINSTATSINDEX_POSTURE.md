@@ -60,10 +60,9 @@ Targeted confidence pass run on 2026-04-30:
 - `feature_coinstatsindex.py` is now a required PQBTC txoutset/index gate
 - it remains bounded to the direct-mined raw `OP_TRUE` dataset and current
   local index/reorg/reindex behavior
-- the next clean actionable follow-on is
-  [feature_reindex.py](../test/functional/feature_reindex.py), which is already
-  green under the current harness and is the cheaper adjacent restart/index
-  freeze
+- the adjacent restart/index follow-on,
+  [feature_reindex.py](../test/functional/feature_reindex.py), is now covered
+  by the required gate
 - the environment-dependent alternate is
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py),
   which stays relevant when previous-release test data is available

@@ -11,6 +11,7 @@ feature_pq_block_limits.py
 feature_pq_reorg.py
 feature_pqsig_basic.py
 feature_pqsig_multisig.py
+feature_reindex.py
 feature_remove_pruned_files_on_startup.py
 feature_taproot_replacement_deployment.py
 feature_taproot_replacement_compat.py
