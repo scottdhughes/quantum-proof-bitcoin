@@ -351,10 +351,10 @@
   },
   {
     "name": "feature_reindex.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Now freezes a narrow PQBTC restart/reindex boundary: repeated `-reindex` and `-reindex-chainstate` restarts recover the same three-block chain, manual out-of-order blk file swapping still recovers the full 12-block chain with the expected debug markers, and an interrupted `-blockfilterindex -reindex` run later resumes without wiping the existing blockfilter LevelDB; init-error recovery and immutable/read-only blockstore handling remain separate follow-on surfaces."
+    "notes": "Now promoted into pq_required as the narrow PQBTC restart/reindex gate: repeated `-reindex` and `-reindex-chainstate` restarts recover the same three-block chain, manual out-of-order blk file swapping still recovers the full 12-block chain with the expected debug markers, and an interrupted `-blockfilterindex -reindex` run later resumes without wiping the existing blockfilter LevelDB; init-error recovery and immutable/read-only blockstore handling remain separate follow-on surfaces."
   },
   {
     "name": "feature_reindex_init.py",

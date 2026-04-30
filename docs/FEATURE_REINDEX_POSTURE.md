@@ -2,6 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: FEATURE-REINDEX-POSTURE-v1
+## Updated: 2026-04-30
 ## Frozen-By: track-a-phase1-20260413
 ## Consensus-Relevant: YES
 
@@ -35,15 +36,14 @@ This posture note does **not** mean:
 
 - init-time block-index failure recovery is owned here
 - read-only or immutable blockstore restart behavior is owned here
-- this suite is promoted into `pq_required`
 
 Those remain separate follow-on surfaces.
 
 ## Confidence Snapshot
 
-Targeted confidence pass run on 2026-04-13:
+Targeted confidence pass run on 2026-04-30:
 
-- `python3 test/functional/feature_reindex.py`
+- `build/test/functional/test_runner.py --jobs=1 feature_reindex.py`
   - result: passed
   - current posture:
     - `-reindex` and `-reindex-chainstate` both return to the expected chain
@@ -53,8 +53,9 @@ Targeted confidence pass run on 2026-04-13:
 
 ## Interpretation
 
-- `feature_reindex.py` is now a fixed PQBTC restart/reindex slice
-- it remains `pq_backlog`, not a required PQ-first gate
+- `feature_reindex.py` is now a required PQBTC restart/reindex gate
+- it remains bounded to restart-time reindex, reindex-chainstate,
+  out-of-order blockfile recovery, and interrupted blockfilter reindex resume
 - the next clean actionable follow-on is
   [feature_reindex_init.py](../test/functional/feature_reindex_init.py), which
   freezes the adjacent init-error recovery path and is already green here
