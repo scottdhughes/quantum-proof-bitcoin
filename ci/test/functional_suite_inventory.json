@@ -476,10 +476,10 @@
   },
   {
     "name": "feature_utxo_set_hash.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Now freezes a narrow PQBTC txoutset-hash boundary: the inherited default MiniWallet self-transfer path remains deferred after a reproduced `scriptpubkey (-26)` failure, while the owned path uses one raw OP_TRUE MiniWallet coinbase spend mined directly by `generateblock(...)`, preserves manual MuHash equality with `gettxoutsetinfo(\"muhash\")`, and fixes the current PQBTC `hash_serialized_3` / `muhash` constants for that exact chainstate sequence."
+    "notes": "Now promoted into pq_required as the narrow PQBTC txoutset-hash gate: the inherited default MiniWallet self-transfer path remains deferred after a reproduced `scriptpubkey (-26)` failure, while the owned path uses one raw OP_TRUE MiniWallet coinbase spend mined directly by `generateblock(...)`, preserves manual MuHash equality with `gettxoutsetinfo(\"muhash\")`, and fixes the current PQBTC `hash_serialized_3` / `muhash` constants for that exact chainstate sequence."
   },
   {
     "name": "feature_versionbits_warning.py",
