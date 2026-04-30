@@ -24,12 +24,12 @@ freeze the new `wallet_miniscript.py`, `rpc_createmultisig.py`,
 block storage and prune-lifecycle behavior in the canonical `pq_required`
 gate, keep `feature_loadblock.py` bootstrap/import behavior in the same gate,
 keep `feature_utxo_set_hash.py` txoutset-hash behavior in the same gate, and
+keep `feature_coinstatsindex.py` txoutset/index behavior in the same gate, and
 keep
 `feature_pq_block_limits.py`, `feature_pq_reorg.py`, and
 `mempool_pq_limits.py`, and `mempool_pq_stress.py` boundaries, freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
 `wallet_miniscript.py`, and
-`feature_coinstatsindex.py`, and
 `feature_reindex.py`, `feature_reindex_init.py`, and
 `feature_reindex_readonly.py`, and `feature_assumevalid.py` boundaries, keep
 `feature_assumeutxo.py`, `wallet_assumeutxo.py`, `feature_assumevalid.py`,
@@ -105,11 +105,11 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. `feature_coinstatsindex.py`
+2. `feature_reindex.py`
    - Why alternate: if the asset-dependent coinstats compatibility path stays
      blocked locally, the next bounded local chainstate follow-on is
-     `feature_coinstatsindex.py`, now that the adjacent txoutset-hash behavior
-     is required,
+     `feature_reindex.py`, now that the adjacent txoutset/index behavior is
+     required,
      without re-litigating the now-owned descriptor, miniscript, address/RPC,
      raw funding, inherited send-path, rebroadcast, reindex, fast-rescan,
      unconfirmed-rescan, reorg-restore, transaction-time-rescan, backup,
@@ -120,7 +120,7 @@ Alternate rebalance:
      tranches, or the current import-pruned-funds, timelock, orphaned reward,
      v3/TRUC transaction, descriptor-creation, and cross-chain wallet-file
      tranches, or the current block storage, prune-lifecycle,
-     bootstrap/import, and txoutset-hash tranches.
+     bootstrap/import, txoutset-hash, and txoutset/index tranches.
      `wallet_backwards_compatibility.py`, `wallet_migration.py`, and
      `feature_coinstatsindex_compatibility.py` stay blocked until
      prior-release assets are available.
@@ -430,10 +430,9 @@ Still deferred:
    - explicit deferral of the inherited default MiniWallet mempool path after
      its reproduced `scriptpubkey (-26)` failure
    Minimum validation target:
-   - `python3 test/functional/feature_coinstatsindex.py`
+   - `build/test/functional/test_runner.py --jobs=1 feature_coinstatsindex.py`
    Still deferred inside this suite:
    - previous-release coinstats index compatibility
-   - promotion into `pq_required`
 20. `feature_reindex.py` now owns:
    - repeated restart-time `-reindex` recovery to the same three-block height
    - repeated restart-time `-reindex-chainstate` recovery to the same
@@ -944,12 +943,12 @@ Still deferred:
      real prior PQBTC release assets exist
 47. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: `feature_coinstatsindex.py`
+   - alternate: `feature_reindex.py`
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
-   - `feature_coinstatsindex.py` is the next bounded local txoutset/index
-     follow-on now that txoutset-hash behavior is required
+   - `feature_reindex.py` is the next bounded local restart/index follow-on
+     now that txoutset/index behavior is required
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -1651,6 +1650,15 @@ Aineko must ask before:
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
   assets exist; otherwise the local txoutset/index alternate is
   `feature_coinstatsindex.py`.
+- 2026-04-30: `feature_coinstatsindex.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers direct-mined raw `OP_TRUE` txoutset deltas,
+  indexed-vs-non-indexed `gettxoutsetinfo()` parity, verbose block accounting,
+  restart, reindex, reindex-chainstate, reorg, and stale-index recovery on the
+  bounded PQBTC dataset. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist; otherwise the local restart/index alternate is
+  `feature_reindex.py`.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1774,6 +1782,8 @@ Aineko must ask before:
   `feature_loadblock.py` passes targeted validation in the current tree.
 - There is no current blocker in the txoutset-hash surface:
   `feature_utxo_set_hash.py` passes targeted validation in the current tree.
+- There is no current blocker in the txoutset/index surface:
+  `feature_coinstatsindex.py` passes targeted validation in the current tree.
 - `wallet_backwards_compatibility.py` remains blocked locally until
   previous-release fixtures are available.
 - `wallet_migration.py` remains blocked locally until previous-release fixtures

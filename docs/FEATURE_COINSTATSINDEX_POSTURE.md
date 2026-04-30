@@ -2,6 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: FEATURE-COINSTATSINDEX-POSTURE-v1
+## Updated: 2026-04-30
 ## Frozen-By: track-a-phase1-20260413
 ## Consensus-Relevant: YES
 
@@ -36,15 +37,14 @@ This posture note does **not** mean:
 
 - the inherited default MiniWallet mempool/send path is owned
 - previous-release coinstats index compatibility is owned in this local harness
-- this suite is promoted into `pq_required`
 
 Those remain separate follow-on surfaces.
 
 ## Confidence Snapshot
 
-Targeted confidence pass run on 2026-04-13:
+Targeted confidence pass run on 2026-04-30:
 
-- `python3 test/functional/feature_coinstatsindex.py`
+- `build/test/functional/test_runner.py --jobs=1 feature_coinstatsindex.py`
   - result: passed
   - current posture:
     - indexed and non-indexed `gettxoutsetinfo()` results still agree on the
@@ -57,8 +57,9 @@ Targeted confidence pass run on 2026-04-13:
 
 ## Interpretation
 
-- `feature_coinstatsindex.py` is now a fixed PQBTC txoutset/index slice
-- it remains `pq_backlog`, not a required PQ-first gate
+- `feature_coinstatsindex.py` is now a required PQBTC txoutset/index gate
+- it remains bounded to the direct-mined raw `OP_TRUE` dataset and current
+  local index/reorg/reindex behavior
 - the next clean actionable follow-on is
   [feature_reindex.py](../test/functional/feature_reindex.py), which is already
   green under the current harness and is the cheaper adjacent restart/index
