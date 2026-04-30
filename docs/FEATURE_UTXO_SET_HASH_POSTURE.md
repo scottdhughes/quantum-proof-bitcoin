@@ -2,6 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: FEATURE-UTXO-SET-HASH-POSTURE-v1
+## Updated: 2026-04-30
 ## Frozen-By: track-a-phase1-20260413
 ## Consensus-Relevant: YES
 
@@ -31,15 +32,14 @@ This posture note does **not** mean:
 
 - the inherited default `MiniWalletMode.ADDRESS_OP_TRUE` send path is owned
 - adjacent coinstats index behavior is owned
-- this suite is promoted into `pq_required`
 
 Those remain separate follow-on surfaces.
 
 ## Confidence Snapshot
 
-Targeted confidence pass run on 2026-04-13:
+Targeted confidence pass run on 2026-04-30:
 
-- `python3 test/functional/feature_utxo_set_hash.py`
+- `build/test/functional/test_runner.py --jobs=1 feature_utxo_set_hash.py`
   - result: passed
   - current posture:
     - the raw `OP_TRUE` chainstate path preserves manual MuHash equality
@@ -50,12 +50,12 @@ Targeted confidence pass run on 2026-04-13:
 
 ## Interpretation
 
-- `feature_utxo_set_hash.py` is now a fixed PQBTC txoutset-hash slice
-- it remains `pq_backlog`, not a required PQ-first gate
+- `feature_utxo_set_hash.py` is now a required PQBTC txoutset-hash gate
+- it remains bounded to the raw `OP_TRUE` chainstate sequence and fixed
+  PQBTC hash constants
 - the next clean follow-on is
   [feature_coinstatsindex.py](../test/functional/feature_coinstatsindex.py),
-  which currently fails on the same inherited MiniWallet path and is the
-  nearest adjacent txoutset/index boundary
+  which is the nearest adjacent txoutset/index boundary
 - the lower-risk alternate is
   [feature_reindex.py](../test/functional/feature_reindex.py), which is
   already green under the current harness
