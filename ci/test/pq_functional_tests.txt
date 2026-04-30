@@ -3,6 +3,7 @@ feature_assumevalid.py
 feature_block.py
 feature_blocksdir.py
 feature_blocksxor.py
+feature_coinstatsindex.py
 feature_fastprune.py
 feature_index_prune.py
 feature_loadblock.py

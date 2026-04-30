@@ -106,10 +106,10 @@
   },
   {
     "name": "feature_coinstatsindex.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Now freezes a narrow PQBTC txoutset/index boundary: the inherited default MiniWallet mempool self-transfer path remains deferred after a reproduced `scriptpubkey (-26)` failure, while the owned path uses direct-mined raw OP_TRUE transactions for the initial spend and the later parent/child plus OP_RETURN accounting sequence, preserving indexed-vs-non-indexed `gettxoutsetinfo()` parity, verbose `block_info` expectations, and restart/reorg/reindex behavior on that bounded dataset."
+    "notes": "Now promoted into pq_required as the narrow PQBTC txoutset/index gate: the inherited default MiniWallet mempool self-transfer path remains deferred after a reproduced `scriptpubkey (-26)` failure, while the owned path uses direct-mined raw OP_TRUE transactions for the initial spend and the later parent/child plus OP_RETURN accounting sequence, preserving indexed-vs-non-indexed `gettxoutsetinfo()` parity, verbose `block_info` expectations, and restart/reorg/reindex behavior on that bounded dataset; previous-release coinstats compatibility remains asset-blocked."
   },
   {
     "name": "feature_coinstatsindex_compatibility.py",

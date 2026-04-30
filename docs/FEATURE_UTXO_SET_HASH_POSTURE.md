@@ -53,9 +53,9 @@ Targeted confidence pass run on 2026-04-30:
 - `feature_utxo_set_hash.py` is now a required PQBTC txoutset-hash gate
 - it remains bounded to the raw `OP_TRUE` chainstate sequence and fixed
   PQBTC hash constants
-- the next clean follow-on is
+- the adjacent txoutset/index follow-on,
   [feature_coinstatsindex.py](../test/functional/feature_coinstatsindex.py),
-  which is the nearest adjacent txoutset/index boundary
+  is now covered by the required gate
 - the lower-risk alternate is
   [feature_reindex.py](../test/functional/feature_reindex.py), which is
   already green under the current harness
