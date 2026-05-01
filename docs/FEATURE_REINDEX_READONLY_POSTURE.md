@@ -33,15 +33,14 @@ This posture note does **not** mean:
 
 - generic `-reindex` and `-reindex-chainstate` restart behavior is owned here
 - init-time block-index failure recovery is owned here
-- this suite is promoted into `pq_required`
 
 Those remain separate follow-on surfaces.
 
 ## Confidence Snapshot
 
-Targeted confidence pass run on 2026-04-13:
+Targeted confidence pass run on 2026-05-01:
 
-- `python3 test/functional/feature_reindex_readonly.py`
+- `build/test/functional/test_runner.py --jobs=1 feature_reindex_readonly.py`
   - result: passed
   - current posture:
     - the local host used `chflags` to make the block file immutable
@@ -50,11 +49,12 @@ Targeted confidence pass run on 2026-04-13:
 
 ## Interpretation
 
-- `feature_reindex_readonly.py` is now a fixed PQBTC read-only blockstore
-  reindex slice
-- it remains `pq_backlog`, not a required PQ-first gate
-- the next clean actionable follow-on is
-  [feature_assumevalid.py](../test/functional/feature_assumevalid.py), which is
-  a runnable local chainstate/validation slice and is already green here
-- the environment-dependent alternate remains
+- `feature_reindex_readonly.py` is now a required PQBTC read-only blockstore
+  reindex gate
+- the restart/reindex family is now covered by required gates for generic
+  restart-time reindex, init-time block-index recovery, and read-only
+  blockstore recovery
+- the preferred asset-dependent follow-on remains
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py)
+- without those assets, the local follow-on should be a fresh bounded
+  `pq_backlog` migration decision outside the restart/reindex family

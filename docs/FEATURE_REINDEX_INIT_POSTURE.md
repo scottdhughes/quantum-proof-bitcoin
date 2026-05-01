@@ -47,9 +47,9 @@ Targeted confidence pass run on 2026-05-01:
 ## Interpretation
 
 - `feature_reindex_init.py` is now a required PQBTC init-recovery gate
-- the next clean actionable follow-on is
+- the adjacent read-only blockstore follow-on,
   [feature_reindex_readonly.py](../test/functional/feature_reindex_readonly.py),
   which extends the same restart family into immutable/read-only blockstore
-  handling
-- the environment-dependent alternate remains
+  handling, is now covered by the required gate
+- the environment-dependent follow-on remains
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py)

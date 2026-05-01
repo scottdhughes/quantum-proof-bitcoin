@@ -13,6 +13,7 @@ feature_pqsig_basic.py
 feature_pqsig_multisig.py
 feature_reindex.py
 feature_reindex_init.py
+feature_reindex_readonly.py
 feature_remove_pruned_files_on_startup.py
 feature_taproot_replacement_deployment.py
 feature_taproot_replacement_compat.py
