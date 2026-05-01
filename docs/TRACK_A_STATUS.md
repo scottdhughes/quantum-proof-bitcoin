@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-04-29
+## Updated: 2026-05-01
 ## Current Phase: Phase 1 - Wallet And Block Surface Expansion
 
 ## Purpose
@@ -26,12 +26,13 @@ gate, keep `feature_loadblock.py` bootstrap/import behavior in the same gate,
 keep `feature_utxo_set_hash.py` txoutset-hash behavior in the same gate, and
 keep `feature_coinstatsindex.py` txoutset/index behavior in the same gate, and
 keep `feature_reindex.py` restart/reindex behavior in the same gate, and
+keep `feature_reindex_init.py` init-time block-index recovery behavior in the
+same gate, and
 keep
 `feature_pq_block_limits.py`, `feature_pq_reorg.py`, and
 `mempool_pq_limits.py`, and `mempool_pq_stress.py` boundaries, freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
 `wallet_miniscript.py`, and
-`feature_reindex_init.py`, and
 `feature_reindex_readonly.py`, and `feature_assumevalid.py` boundaries, keep
 `feature_assumeutxo.py`, `wallet_assumeutxo.py`, `feature_assumevalid.py`,
 `feature_block.py`, the restored `rpc_psbt.py`, `wallet_miniscript.py`,
@@ -106,11 +107,11 @@ Preferred next owned tranche:
 
 Alternate rebalance:
 
-2. `feature_reindex_init.py`
+2. `feature_reindex_readonly.py`
    - Why alternate: if the asset-dependent coinstats compatibility path stays
      blocked locally, the next bounded local chainstate follow-on is
-     `feature_reindex_init.py`, now that restart-time reindex behavior is
-     required,
+     `feature_reindex_readonly.py`, now that restart-time reindex and
+     init-time block-index recovery behavior are required,
      without re-litigating the now-owned descriptor, miniscript, address/RPC,
      raw funding, inherited send-path, rebroadcast, reindex, fast-rescan,
      unconfirmed-rescan, reorg-restore, transaction-time-rescan, backup,
@@ -121,8 +122,8 @@ Alternate rebalance:
      tranches, or the current import-pruned-funds, timelock, orphaned reward,
      v3/TRUC transaction, descriptor-creation, and cross-chain wallet-file
      tranches, or the current block storage, prune-lifecycle,
-     bootstrap/import, txoutset-hash, txoutset/index, and restart/reindex
-     tranches.
+     bootstrap/import, txoutset-hash, txoutset/index, restart/reindex, and
+     init-recovery tranches.
      `wallet_backwards_compatibility.py`, `wallet_migration.py`, and
      `feature_coinstatsindex_compatibility.py` stay blocked until
      prior-release assets are available.
@@ -459,11 +460,10 @@ Still deferred:
    - the current noninteractive reindex-acceptance recovery path
    - successful recovery back to height `200` after that init failure
    Minimum validation target:
-   - `python3 test/functional/feature_reindex_init.py`
+   - `build/test/functional/test_runner.py --jobs=1 feature_reindex_init.py`
    Still deferred inside this suite:
    - broader restart-time reindex behavior
    - immutable/read-only blockstore restart behavior
-   - promotion into `pq_required`
 22. `feature_reindex_readonly.py` now owns:
    - forced creation of a second blk file under `-fastprune`
    - explicit read-only plus host-level immutable treatment of the first blk
@@ -944,12 +944,13 @@ Still deferred:
      real prior PQBTC release assets exist
 47. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: `feature_reindex_init.py`
+   - alternate: `feature_reindex_readonly.py`
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
-   - `feature_reindex_init.py` is the next bounded local restart/index
-     follow-on now that restart-time reindex behavior is required
+   - `feature_reindex_readonly.py` is the next bounded local restart/index
+     follow-on now that restart-time reindex and init-time block-index
+     recovery behavior are required
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -1669,6 +1670,14 @@ Aineko must ask before:
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
   assets exist; otherwise the local restart/index alternate is
   `feature_reindex_init.py`.
+- 2026-05-01: `feature_reindex_init.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers missing `blocks/index` startup failure,
+  explicit `-reindex` / `-reindex-chainstate` recovery guidance, the
+  noninteractive reindex-acceptance path, and return to height `200`. The next
+  owned follow-on remains `feature_coinstatsindex_compatibility.py` when real
+  prior PQBTC release assets exist; otherwise the local restart/index
+  alternate is `feature_reindex_readonly.py`.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1796,6 +1805,8 @@ Aineko must ask before:
   `feature_coinstatsindex.py` passes targeted validation in the current tree.
 - There is no current blocker in the restart/reindex surface:
   `feature_reindex.py` passes targeted validation in the current tree.
+- There is no current blocker in the init-time block-index recovery surface:
+  `feature_reindex_init.py` passes targeted validation in the current tree.
 - `wallet_backwards_compatibility.py` remains blocked locally until
   previous-release fixtures are available.
 - `wallet_migration.py` remains blocked locally until previous-release fixtures

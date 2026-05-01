@@ -56,9 +56,10 @@ Targeted confidence pass run on 2026-04-30:
 - `feature_reindex.py` is now a required PQBTC restart/reindex gate
 - it remains bounded to restart-time reindex, reindex-chainstate,
   out-of-order blockfile recovery, and interrupted blockfilter reindex resume
-- the next clean actionable follow-on is
+- the adjacent init-recovery follow-on,
   [feature_reindex_init.py](../test/functional/feature_reindex_init.py), which
-  freezes the adjacent init-error recovery path and is already green here
-- the environment-sensitive alternate is
+  freezes the adjacent init-error recovery path, is now covered by the
+  required gate
+- the next clean actionable follow-on is
   [feature_reindex_readonly.py](../test/functional/feature_reindex_readonly.py),
   which exercises immutable/read-only blockstore restart behavior

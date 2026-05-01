@@ -358,10 +358,10 @@
   },
   {
     "name": "feature_reindex_init.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Now freezes a narrow PQBTC init-recovery boundary: removing the on-disk `blocks/index` directory causes the expected block-database init failure with explicit reindex guidance, and the current noninteractive reindex-acceptance recovery path returns the node to height 200; broader restart-time reindex behavior and immutable/read-only blockstore handling remain separate follow-on surfaces."
+    "notes": "Now promoted into pq_required as the narrow PQBTC init-recovery gate: removing the on-disk `blocks/index` directory causes the expected block-database init failure with explicit reindex guidance, and the current noninteractive reindex-acceptance recovery path returns the node to height 200; broader restart-time reindex behavior and immutable/read-only blockstore handling remain separate follow-on surfaces."
   },
   {
     "name": "feature_reindex_readonly.py",

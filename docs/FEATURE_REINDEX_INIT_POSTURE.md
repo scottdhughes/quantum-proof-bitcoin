@@ -31,15 +31,14 @@ This posture note does **not** mean:
 - broader restart-time `-reindex` and `-reindex-chainstate` behavior is owned
   here
 - immutable or read-only blockstore behavior is owned here
-- this suite is promoted into `pq_required`
 
 Those remain separate follow-on surfaces.
 
 ## Confidence Snapshot
 
-Targeted confidence pass run on 2026-04-13:
+Targeted confidence pass run on 2026-05-01:
 
-- `python3 test/functional/feature_reindex_init.py`
+- `build/test/functional/test_runner.py --jobs=1 feature_reindex_init.py`
   - result: passed
   - current posture:
     - the missing block-index directory triggers the expected init error
@@ -47,8 +46,7 @@ Targeted confidence pass run on 2026-04-13:
 
 ## Interpretation
 
-- `feature_reindex_init.py` is now a fixed PQBTC init-recovery slice
-- it remains `pq_backlog`, not a required PQ-first gate
+- `feature_reindex_init.py` is now a required PQBTC init-recovery gate
 - the next clean actionable follow-on is
   [feature_reindex_readonly.py](../test/functional/feature_reindex_readonly.py),
   which extends the same restart family into immutable/read-only blockstore
