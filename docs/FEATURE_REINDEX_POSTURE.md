@@ -60,6 +60,7 @@ Targeted confidence pass run on 2026-04-30:
   [feature_reindex_init.py](../test/functional/feature_reindex_init.py), which
   freezes the adjacent init-error recovery path, is now covered by the
   required gate
-- the next clean actionable follow-on is
+- the adjacent read-only blockstore follow-on,
   [feature_reindex_readonly.py](../test/functional/feature_reindex_readonly.py),
-  which exercises immutable/read-only blockstore restart behavior
+  which exercises immutable/read-only blockstore restart behavior, is now
+  covered by the required gate

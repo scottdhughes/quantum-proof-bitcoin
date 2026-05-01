@@ -365,10 +365,10 @@
   },
   {
     "name": "feature_reindex_readonly.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Now freezes a narrow PQBTC immutable/read-only blockstore reindex boundary: under `-fastprune`, the first blk file is made read-only and locally immutable when the host supports it, restart under `-reindex -fastprune` completes with the expected `Reindexing finished` marker and the same chain height, and mutability is restored for cleanup; generic reindex behavior remains covered by the other reindex slices."
+    "notes": "Now promoted into pq_required as the narrow PQBTC immutable/read-only blockstore reindex gate: under `-fastprune`, the first blk file is made read-only and locally immutable when the host supports it, restart under `-reindex -fastprune` completes with the expected `Reindexing finished` marker and the same chain height, and mutability is restored for cleanup; generic reindex behavior remains covered by the other reindex slices."
   },
   {
     "name": "feature_remove_pruned_files_on_startup.py",
