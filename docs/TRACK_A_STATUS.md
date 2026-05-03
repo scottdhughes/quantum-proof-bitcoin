@@ -36,6 +36,8 @@ keep `feature_bip68_sequence.py` BIP68 sequence-lock behavior in the same
 gate, and
 keep `feature_cltv.py` CLTV activation and validation behavior in the same
 gate, and
+keep `feature_csv_activation.py` BIP68/BIP112/BIP113 CSV activation behavior
+in the same gate, and
 keep
 `feature_pq_block_limits.py`, `feature_pq_reorg.py`, and
 `mempool_pq_limits.py`, and `mempool_pq_stress.py` boundaries, freeze the new
@@ -120,9 +122,9 @@ Alternate rebalance:
      blocked locally, the restart/reindex family is now covered by required
      gates for generic restart-time reindex, init-time block-index recovery,
      and read-only blockstore recovery, and the unknown-versionbits warning
-     BIP68 sequence-lock, and CLTV surfaces are now covered by the required
-     gate, so the next local step should be a fresh bounded migration decision
-     outside those surfaces,
+     BIP68 sequence-lock, CLTV, and CSV activation surfaces are now covered by
+     the required gate, so the next local step should be a fresh bounded
+     migration decision outside those surfaces,
      without re-litigating the now-owned descriptor, miniscript, address/RPC,
      raw funding, inherited send-path, rebroadcast, reindex, fast-rescan,
      unconfirmed-rescan, reorg-restore, transaction-time-rescan, backup,
@@ -135,7 +137,7 @@ Alternate rebalance:
      tranches, or the current block storage, prune-lifecycle,
      bootstrap/import, txoutset-hash, txoutset/index, restart/reindex,
      init-recovery, read-only blockstore, versionbits-warning, and
-     sequence-lock and CLTV tranches.
+     sequence-lock, CLTV, and CSV-activation tranches.
      `wallet_backwards_compatibility.py`, `wallet_migration.py`, and
      `feature_coinstatsindex_compatibility.py` stay blocked until
      prior-release assets are available.
@@ -956,14 +958,16 @@ Still deferred:
 47. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
    - alternate: remaining repo-local `pq_backlog` triage outside the
-     restart/reindex, versionbits-warning, sequence-lock, and CLTV surfaces
+     restart/reindex, versionbits-warning, sequence-lock, CLTV, and
+     CSV-activation surfaces
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
    - the restart/reindex family is now fully represented in the required gate,
      and the unknown-versionbits warning, BIP68 sequence-lock, and CLTV
-     surfaces are now represented in the required gate, so any local alternate
-     should be a fresh bounded migration decision outside those surfaces
+     and CSV activation surfaces are now represented in the required gate, so
+     any local alternate should be a fresh bounded migration decision outside
+     those surfaces
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -1015,19 +1019,21 @@ Still deferred:
    `feature_bip68_sequence.py` contract.
 39. Use `FEATURE_CLTV_POSTURE.md` as the fixed note for the current
    `feature_cltv.py` contract.
-40. Use `FEATURE_REINDEX_POSTURE.md` as the fixed note for the current
+40. Use `FEATURE_CSV_ACTIVATION_POSTURE.md` as the fixed note for the current
+   `feature_csv_activation.py` contract.
+41. Use `FEATURE_REINDEX_POSTURE.md` as the fixed note for the current
    `feature_reindex.py` contract.
-41. Use `FEATURE_REINDEX_INIT_POSTURE.md` as the fixed note for the current
+42. Use `FEATURE_REINDEX_INIT_POSTURE.md` as the fixed note for the current
    `feature_reindex_init.py` contract.
-42. Use `FEATURE_REINDEX_READONLY_POSTURE.md` as the fixed note for the current
+43. Use `FEATURE_REINDEX_READONLY_POSTURE.md` as the fixed note for the current
    `feature_reindex_readonly.py` contract.
-43. Use `FEATURE_VERSIONBITS_WARNING_POSTURE.md` as the fixed note for the
+44. Use `FEATURE_VERSIONBITS_WARNING_POSTURE.md` as the fixed note for the
    current `feature_versionbits_warning.py` contract.
-44. Use `FEATURE_ASSUMEVALID_POSTURE.md` as the fixed note for the current
+45. Use `FEATURE_ASSUMEVALID_POSTURE.md` as the fixed note for the current
    `feature_assumevalid.py` contract.
-45. Use `FEATURE_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
+46. Use `FEATURE_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
    `feature_assumeutxo.py` contract.
-46. Use `WALLET_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
+47. Use `WALLET_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
    `wallet_assumeutxo.py` contract.
 29. Treat inherited `getnewaddress` / `getrawchangeaddress` as unsupported on
    PQ-only active-manager wallets; the owned PQ address UX remains
@@ -1734,8 +1740,18 @@ Aineko must ask before:
   post-activation block-version enforcement, exact mempool and block rejection
   reasons for CLTV failures, and valid CLTV spend acceptance. The next owned
   follow-on remains `feature_coinstatsindex_compatibility.py` when real prior
-  PQBTC release assets exist; otherwise the adjacent local validation
-  candidate is `feature_csv_activation.py`.
+  PQBTC release assets exist; otherwise the adjacent CSV activation surface is
+  now covered by the required gate.
+- 2026-05-03: `feature_csv_activation.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers suite-local activation for BIP68, BIP112,
+  and BIP113; pre-activation acceptance; post-activation rejection and
+  acceptance across relative locktime, CHECKSEQUENCEVERIFY, and MedianTimePast
+  nLockTime cases; and exact block rejection reasons. The next owned follow-on
+  remains `feature_coinstatsindex_compatibility.py` when real prior PQBTC
+  release assets exist; otherwise the local alternate should be another
+  bounded `pq_backlog` migration decision from the remaining validation,
+  mempool, or mining backlog.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1875,6 +1891,8 @@ Aineko must ask before:
   `feature_bip68_sequence.py` passes targeted validation in the current tree.
 - There is no current blocker in the CLTV validation surface:
   `feature_cltv.py` passes targeted validation in the current tree.
+- There is no current blocker in the CSV activation surface:
+  `feature_csv_activation.py` passes targeted validation in the current tree.
 - `wallet_backwards_compatibility.py` remains blocked locally until
   previous-release fixtures are available.
 - `wallet_migration.py` remains blocked locally until previous-release fixtures

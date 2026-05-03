@@ -56,5 +56,9 @@ Targeted confidence pass run on 2026-05-03:
   validation
 - the preferred asset-dependent follow-on remains
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py)
-- without those assets, the adjacent local validation follow-on is
-  [feature_csv_activation.py](../test/functional/feature_csv_activation.py)
+- the adjacent CSV activation follow-on,
+  [feature_csv_activation.py](../test/functional/feature_csv_activation.py),
+  is now covered by the required gate
+- without prior-release assets, the local follow-on should be another bounded
+  `pq_backlog` migration decision from the remaining validation, mempool, or
+  mining backlog
