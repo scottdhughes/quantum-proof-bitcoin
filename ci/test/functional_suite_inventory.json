@@ -483,10 +483,10 @@
   },
   {
     "name": "feature_versionbits_warning.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the narrow PQBTC unknown-versionbits warning gate: the suite mines regtest periods around the unknown-versionbits threshold, verifies warnings stay clear before activation, then confirms the expected mining/network warnings and alertnotify output after unknown rules activate; broader deployment semantics and Taproot replacement behavior remain separate surfaces."
   },
   {
     "name": "interface_bitcoin_cli.py",
