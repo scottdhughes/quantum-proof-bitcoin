@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-05-01
+## Updated: 2026-05-03
 ## Current Phase: Phase 1 - Wallet And Block Surface Expansion
 
 ## Purpose
@@ -30,6 +30,8 @@ keep `feature_reindex_init.py` init-time block-index recovery behavior in the
 same gate, and
 keep `feature_reindex_readonly.py` immutable/read-only blockstore reindex
 behavior in the same gate, and
+keep `feature_versionbits_warning.py` unknown-versionbits warning behavior in
+the same gate, and
 keep
 `feature_pq_block_limits.py`, `feature_pq_reorg.py`, and
 `mempool_pq_limits.py`, and `mempool_pq_stress.py` boundaries, freeze the new
@@ -113,8 +115,9 @@ Alternate rebalance:
    - Why alternate: if the asset-dependent coinstats compatibility path stays
      blocked locally, the restart/reindex family is now covered by required
      gates for generic restart-time reindex, init-time block-index recovery,
-     and read-only blockstore recovery, so the next local step should be a
-     fresh bounded migration decision outside the restart/reindex family,
+     and read-only blockstore recovery, and the unknown-versionbits warning
+     surface is now covered by the required gate, so the next local step should
+     be a fresh bounded migration decision outside those surfaces,
      without re-litigating the now-owned descriptor, miniscript, address/RPC,
      raw funding, inherited send-path, rebroadcast, reindex, fast-rescan,
      unconfirmed-rescan, reorg-restore, transaction-time-rescan, backup,
@@ -126,7 +129,7 @@ Alternate rebalance:
      v3/TRUC transaction, descriptor-creation, and cross-chain wallet-file
      tranches, or the current block storage, prune-lifecycle,
      bootstrap/import, txoutset-hash, txoutset/index, restart/reindex,
-     init-recovery, and read-only blockstore tranches.
+     init-recovery, read-only blockstore, and versionbits-warning tranches.
      `wallet_backwards_compatibility.py`, `wallet_migration.py`, and
      `feature_coinstatsindex_compatibility.py` stay blocked until
      prior-release assets are available.
@@ -947,13 +950,14 @@ Still deferred:
 47. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
    - alternate: remaining repo-local `pq_backlog` triage outside the
-     restart/reindex family
+     restart/reindex and versionbits-warning surfaces
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
    - the restart/reindex family is now fully represented in the required gate,
-     so any local alternate should be a fresh bounded migration decision
-     outside that family
+     and the unknown-versionbits warning surface is now represented in the
+     required gate, so any local alternate should be a fresh bounded migration
+     decision outside those surfaces
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -1007,11 +1011,13 @@ Still deferred:
    `feature_reindex_init.py` contract.
 40. Use `FEATURE_REINDEX_READONLY_POSTURE.md` as the fixed note for the current
    `feature_reindex_readonly.py` contract.
-41. Use `FEATURE_ASSUMEVALID_POSTURE.md` as the fixed note for the current
+41. Use `FEATURE_VERSIONBITS_WARNING_POSTURE.md` as the fixed note for the
+   current `feature_versionbits_warning.py` contract.
+42. Use `FEATURE_ASSUMEVALID_POSTURE.md` as the fixed note for the current
    `feature_assumevalid.py` contract.
-42. Use `FEATURE_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
+43. Use `FEATURE_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
    `feature_assumeutxo.py` contract.
-43. Use `WALLET_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
+44. Use `WALLET_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
    `wallet_assumeutxo.py` contract.
 29. Treat inherited `getnewaddress` / `getrawchangeaddress` as unsupported on
    PQ-only active-manager wallets; the owned PQ address UX remains
@@ -1691,6 +1697,16 @@ Aineko must ask before:
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
   assets exist; otherwise the local alternate should be a fresh bounded
   `pq_backlog` migration decision outside the restart/reindex family.
+- 2026-05-03: `feature_versionbits_warning.py` is now promoted into the
+  canonical `pq_required` gate and locally revalidated with the build-tree
+  functional runner. The owned boundary covers warning-free behavior below the
+  unknown-bit threshold, active unknown-rules warnings through mining and
+  network info, and `alertnotify` output once the unknown versionbit activates
+  on regtest. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist; otherwise the local alternate should be another bounded
+  `pq_backlog` migration decision from the remaining validation, mempool, or
+  mining backlog.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1822,6 +1838,9 @@ Aineko must ask before:
   `feature_reindex_init.py` passes targeted validation in the current tree.
 - There is no current blocker in the read-only blockstore reindex surface:
   `feature_reindex_readonly.py` passes targeted validation in the current
+  tree.
+- There is no current blocker in the unknown-versionbits warning surface:
+  `feature_versionbits_warning.py` passes targeted validation in the current
   tree.
 - `wallet_backwards_compatibility.py` remains blocked locally until
   previous-release fixtures are available.
