@@ -127,10 +127,10 @@
   },
   {
     "name": "feature_csv_activation.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the narrow PQBTC CSV activation gate: it covers suite-local activation for BIP68, BIP112, and BIP113, pre-activation acceptance, post-activation rejection and acceptance across relative locktime, CHECKSEQUENCEVERIFY, and MedianTimePast nLockTime cases, and exact block rejection reasons; broader mempool/package and mining-template policy remain separate follow-on surfaces."
   },
   {
     "name": "feature_dbcrash.py",
