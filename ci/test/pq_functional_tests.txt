@@ -1,5 +1,6 @@
 feature_assumeutxo.py
 feature_assumevalid.py
+feature_bip68_sequence.py
 feature_block.py
 feature_blocksdir.py
 feature_blocksxor.py
