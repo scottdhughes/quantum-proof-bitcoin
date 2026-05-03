@@ -99,10 +99,10 @@
   },
   {
     "name": "feature_cltv.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the narrow PQBTC CLTV activation gate: it covers buried BIP65 deployment metadata at the configured test height, pre-activation acceptance of CLTV-invalid transactions in blocks, post-activation block-version enforcement, exact mempool and block rejection reasons for CLTV failures, and acceptance of a valid CLTV spend; full CSV activation semantics remain a separate follow-on surface."
   },
   {
     "name": "feature_coinstatsindex.py",

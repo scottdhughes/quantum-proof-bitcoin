@@ -57,6 +57,8 @@ Targeted confidence pass run on 2026-05-03:
   activation boundary
 - the preferred asset-dependent follow-on remains
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py)
-- without those assets, the local follow-on should be another bounded
-  `pq_backlog` migration decision, with `feature_cltv.py` and
-  `feature_csv_activation.py` as adjacent validation candidates
+- the adjacent CLTV validation follow-on,
+  [feature_cltv.py](../test/functional/feature_cltv.py), is now covered by
+  the required gate
+- without prior-release assets, the next local validation follow-on is
+  [feature_csv_activation.py](../test/functional/feature_csv_activation.py)
