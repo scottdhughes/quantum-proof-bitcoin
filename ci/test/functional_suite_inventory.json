@@ -71,10 +71,10 @@
   },
   {
     "name": "feature_bip68_sequence.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the narrow PQBTC BIP68 sequence-lock gate: it covers disable-flag behavior, sequence-lock rejection and acceptance for confirmed and unconfirmed inputs, pre-CSV-activation block acceptance for BIP68-invalid spends, mempool consistency after reorg, CSV activation at the configured test height, and version-2 relay standardness; CLTV and full CSV activation semantics remain separate follow-on surfaces."
   },
   {
     "name": "feature_block.py",
