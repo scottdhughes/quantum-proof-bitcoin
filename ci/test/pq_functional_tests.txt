@@ -28,6 +28,7 @@ feature_utxo_set_hash.py
 feature_versionbits_warning.py
 mempool_accept.py
 mempool_accept_wtxid.py
+mempool_datacarrier.py
 mempool_pq_limits.py
 mempool_pq_stress.py
 rpc_psbt.py

@@ -588,10 +588,10 @@
   },
   {
     "name": "mempool_datacarrier.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited OP_RETURN/datacarrier mempool policy gate: the suite exercises default uncapped datacarrier relay, disabled datacarrier relay, custom datacarriersize boundaries, no-data and zero-byte OP_RETURN handling, and getmempoolinfo reporting under the current legacy-compatible PQC profile."
   },
   {
     "name": "mempool_dust.py",
