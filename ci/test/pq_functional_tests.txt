@@ -26,6 +26,7 @@ feature_taproot_replacement_active_semantic_guard.py
 feature_taproot_replacement_active_positive_seam.py
 feature_utxo_set_hash.py
 feature_versionbits_warning.py
+mempool_accept.py
 mempool_pq_limits.py
 mempool_pq_stress.py
 rpc_psbt.py
