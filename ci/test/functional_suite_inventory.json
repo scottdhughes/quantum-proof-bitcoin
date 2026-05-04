@@ -337,10 +337,10 @@
   },
   {
     "name": "feature_pruning.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the broad PQBTC pruning gate: it covers automatic and manual pruning over large block files, stale-block and deep-reorg retention, redownload of previously pruned block data, prune command-line validation, scanblocks behavior over pruned data, pruneheight handling when undo data is absent, and wallet load/rescan boundaries where wallet support is compiled; blockstore XOR/external storage and prune-plus-index behavior remain separate required gates."
   },
   {
     "name": "feature_rbf.py",

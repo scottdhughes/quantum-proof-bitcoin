@@ -23,6 +23,7 @@ freeze the new `wallet_miniscript.py`, `rpc_createmultisig.py`,
 `feature_remove_pruned_files_on_startup.py`, and `feature_index_prune.py`
 block storage and prune-lifecycle behavior in the canonical `pq_required`
 gate, keep `feature_loadblock.py` bootstrap/import behavior in the same gate,
+keep `feature_pruning.py` broad pruning lifecycle behavior in the same gate,
 keep `feature_utxo_set_hash.py` txoutset-hash behavior in the same gate, and
 keep `feature_coinstatsindex.py` txoutset/index behavior in the same gate, and
 keep `feature_reindex.py` restart/reindex behavior in the same gate, and
@@ -134,7 +135,7 @@ Alternate rebalance:
      transaction-construction, simulation, raw-signing, and import-descriptor
      tranches, or the current import-pruned-funds, timelock, orphaned reward,
      v3/TRUC transaction, descriptor-creation, and cross-chain wallet-file
-     tranches, or the current block storage, prune-lifecycle,
+     tranches, or the current block storage, prune-lifecycle, broad pruning,
      bootstrap/import, txoutset-hash, txoutset/index, restart/reindex,
      init-recovery, read-only blockstore, versionbits-warning, and
      sequence-lock, CLTV, and CSV-activation tranches.
@@ -958,16 +959,16 @@ Still deferred:
 47. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
    - alternate: remaining repo-local `pq_backlog` triage outside the
-     restart/reindex, versionbits-warning, sequence-lock, CLTV, and
-     CSV-activation surfaces
+     restart/reindex, versionbits-warning, sequence-lock, CLTV,
+     CSV-activation, and broad-pruning surfaces
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
    - the restart/reindex family is now fully represented in the required gate,
-     and the unknown-versionbits warning, BIP68 sequence-lock, and CLTV
-     and CSV activation surfaces are now represented in the required gate, so
-     any local alternate should be a fresh bounded migration decision outside
-     those surfaces
+     and the unknown-versionbits warning, BIP68 sequence-lock, CLTV,
+     CSV activation, and broad pruning surfaces are now represented in the
+     required gate, so any local alternate should be a fresh bounded migration
+     decision outside those surfaces
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -1021,19 +1022,21 @@ Still deferred:
    `feature_cltv.py` contract.
 40. Use `FEATURE_CSV_ACTIVATION_POSTURE.md` as the fixed note for the current
    `feature_csv_activation.py` contract.
-41. Use `FEATURE_REINDEX_POSTURE.md` as the fixed note for the current
+41. Use `FEATURE_PRUNING_POSTURE.md` as the fixed note for the current
+   `feature_pruning.py` contract.
+42. Use `FEATURE_REINDEX_POSTURE.md` as the fixed note for the current
    `feature_reindex.py` contract.
-42. Use `FEATURE_REINDEX_INIT_POSTURE.md` as the fixed note for the current
+43. Use `FEATURE_REINDEX_INIT_POSTURE.md` as the fixed note for the current
    `feature_reindex_init.py` contract.
-43. Use `FEATURE_REINDEX_READONLY_POSTURE.md` as the fixed note for the current
+44. Use `FEATURE_REINDEX_READONLY_POSTURE.md` as the fixed note for the current
    `feature_reindex_readonly.py` contract.
-44. Use `FEATURE_VERSIONBITS_WARNING_POSTURE.md` as the fixed note for the
+45. Use `FEATURE_VERSIONBITS_WARNING_POSTURE.md` as the fixed note for the
    current `feature_versionbits_warning.py` contract.
-45. Use `FEATURE_ASSUMEVALID_POSTURE.md` as the fixed note for the current
+46. Use `FEATURE_ASSUMEVALID_POSTURE.md` as the fixed note for the current
    `feature_assumevalid.py` contract.
-46. Use `FEATURE_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
+47. Use `FEATURE_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
    `feature_assumeutxo.py` contract.
-47. Use `WALLET_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
+48. Use `WALLET_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
    `wallet_assumeutxo.py` contract.
 29. Treat inherited `getnewaddress` / `getrawchangeaddress` as unsupported on
    PQ-only active-manager wallets; the owned PQ address UX remains
@@ -1752,6 +1755,17 @@ Aineko must ask before:
   release assets exist; otherwise the local alternate should be another
   bounded `pq_backlog` migration decision from the remaining validation,
   mempool, or mining backlog.
+- 2026-05-03: `feature_pruning.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers automatic and manual pruning over large
+  block files, stale-block and deep-reorg retention, redownload of previously
+  pruned block data, invalid prune option handling, `scanblocks` behavior over
+  pruned data, pruneheight handling when undo data is absent, and wallet
+  load/rescan boundaries where wallet support is compiled. The next owned
+  follow-on remains `feature_coinstatsindex_compatibility.py` when real prior
+  PQBTC release assets exist; otherwise the local alternate should be another
+  bounded `pq_backlog` migration decision from the remaining validation,
+  mempool, or mining backlog.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1893,6 +1907,8 @@ Aineko must ask before:
   `feature_cltv.py` passes targeted validation in the current tree.
 - There is no current blocker in the CSV activation surface:
   `feature_csv_activation.py` passes targeted validation in the current tree.
+- There is no current blocker in the broad pruning surface:
+  `feature_pruning.py` passes targeted validation in the current tree.
 - `wallet_backwards_compatibility.py` remains blocked locally until
   previous-release fixtures are available.
 - `wallet_migration.py` remains blocked locally until previous-release fixtures
