@@ -472,7 +472,7 @@
     "policy_class": "pq_backlog",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Previous-release-dependent chainstate coverage; skipped locally until real prior PQBTC release assets are available to the compatibility harness."
   },
   {
     "name": "feature_utxo_set_hash.py",
@@ -567,10 +567,10 @@
   },
   {
     "name": "mempool_accept.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited raw transaction mempool-acceptance and resource-envelope gate: the suite exercises testmempoolaccept input validation, already-known and missing-input handling, policy reject reasons, fee/feerate checks, standardness boundaries, package-independent RBF replacement, anchor behavior, and confirmed bare-multisig policy under the current legacy-compatible PQC profile; broader mempool family coverage remains separate."
   },
   {
     "name": "mempool_accept_wtxid.py",

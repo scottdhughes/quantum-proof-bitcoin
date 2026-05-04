@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-05-03
+## Updated: 2026-05-04
 ## Current Phase: Phase 1 - Wallet And Block Surface Expansion
 
 ## Purpose
@@ -41,7 +41,9 @@ keep `feature_csv_activation.py` BIP68/BIP112/BIP113 CSV activation behavior
 in the same gate, and
 keep
 `feature_pq_block_limits.py`, `feature_pq_reorg.py`, and
-`mempool_pq_limits.py`, and `mempool_pq_stress.py` boundaries, freeze the new
+`mempool_pq_limits.py`, and `mempool_pq_stress.py` boundaries, keep
+`mempool_accept.py` inherited raw transaction mempool-acceptance behavior in
+the same gate, freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
 `wallet_miniscript.py`, and
 `feature_assumevalid.py` boundaries, keep
@@ -141,7 +143,8 @@ Alternate rebalance:
      sequence-lock, CLTV, and CSV-activation tranches.
      `wallet_backwards_compatibility.py`, `wallet_migration.py`, and
      `feature_coinstatsindex_compatibility.py` stay blocked until
-     prior-release assets are available.
+     prior-release assets are available; `feature_unsupported_utxo_db.py` is
+     also previous-release dependent and skipped locally without those assets.
 
 Still deferred:
 
@@ -956,11 +959,40 @@ Still deferred:
      skipped locally because previous-release fixtures are unavailable
    - `feature_coinstatsindex_compatibility.py`, which remains blocked until
      real prior PQBTC release assets exist
-47. Recommended next PR after this tranche:
+47. `mempool_accept.py` now owns:
+   - inherited raw transaction mempool acceptance under the current
+     legacy-compatible PQC profile
+   - `testmempoolaccept` RPC argument validation for malformed, empty,
+     oversized, and undecodable batches
+   - already-known, already-in-block, already-in-mempool, missing-input,
+     duplicate-input, coinbase, and prevout-null rejection paths
+   - fee, maxfeerate, negative-feerate, replacement, non-final, and BIP68
+     sequence-lock acceptance or rejection behavior
+   - version, scriptPubKey, bare-multisig, scriptSig, dust, standard
+     transaction-size, small non-witness-size, and OP_RETURN policy boundaries
+   - anchor output standardness, nested-anchor rejection, and confirmed
+     bare-multisig spending policy
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 mempool_accept.py`
+   Fixture probe:
+   - `build/test/functional/test_runner.py --jobs=1 feature_unsupported_utxo_db.py`
+   - expected local outcome: `feature_unsupported_utxo_db.py` skipped because
+     previous-release fixtures are unavailable
+   Fixed posture note:
+   - `MEMPOOL_ACCEPT_POSTURE.md`
+   Still deferred inside this suite:
+   - remaining mempool package, persistence, expiry, reorg, TRUC, wtxid, and
+     mining policy suites
+   - `feature_unsupported_utxo_db.py` and
+     `feature_coinstatsindex_compatibility.py`, which remain blocked until
+     real prior PQBTC release assets exist
+48. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: remaining repo-local `pq_backlog` triage outside the
-     restart/reindex, versionbits-warning, sequence-lock, CLTV,
-     CSV-activation, and broad-pruning surfaces
+   - alternate: `mempool_accept_wtxid.py` as the next local mempool acceptance
+     candidate if it passes targeted validation, otherwise continue bounded
+     repo-local `pq_backlog` triage outside the restart/reindex,
+     versionbits-warning, sequence-lock, CLTV, CSV-activation, broad-pruning,
+     and current `mempool_accept.py` surfaces
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
      chainstate/index follow-on now that both assumeutxo slices are frozen
@@ -969,6 +1001,9 @@ Still deferred:
      CSV activation, and broad pruning surfaces are now represented in the
      required gate, so any local alternate should be a fresh bounded migration
      decision outside those surfaces
+   - the first inherited mempool acceptance gate is now frozen, so the adjacent
+     local mempool follow-on is `mempool_accept_wtxid.py` only after a fresh
+     targeted pass
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -1004,39 +1039,41 @@ Still deferred:
    `mempool_pq_limits.py` contract.
 31. Use `MEMPOOL_PQ_STRESS_POSTURE.md` as the fixed note for the current
    `mempool_pq_stress.py` contract.
-32. Use `FEATURE_PQSIG_BASIC_POSTURE.md` as the fixed note for the current
+32. Use `MEMPOOL_ACCEPT_POSTURE.md` as the fixed note for the current
+   `mempool_accept.py` contract.
+33. Use `FEATURE_PQSIG_BASIC_POSTURE.md` as the fixed note for the current
    `feature_pqsig_basic.py` contract.
-33. Use `FEATURE_PQSIG_MULTISIG_POSTURE.md` as the fixed note for the current
+34. Use `FEATURE_PQSIG_MULTISIG_POSTURE.md` as the fixed note for the current
    `feature_pqsig_multisig.py` contract.
-34. Use `FEATURE_LOADBLOCK_POSTURE.md` as the fixed note for the current
+35. Use `FEATURE_LOADBLOCK_POSTURE.md` as the fixed note for the current
    `feature_loadblock.py` contract.
-35. Use `WALLET_MINISCRIPT_POSTURE.md` as the fixed note for the current
+36. Use `WALLET_MINISCRIPT_POSTURE.md` as the fixed note for the current
    `wallet_miniscript.py` contract.
-36. Use `FEATURE_UTXO_SET_HASH_POSTURE.md` as the fixed note for the current
+37. Use `FEATURE_UTXO_SET_HASH_POSTURE.md` as the fixed note for the current
    `feature_utxo_set_hash.py` contract.
-37. Use `FEATURE_COINSTATSINDEX_POSTURE.md` as the fixed note for the current
+38. Use `FEATURE_COINSTATSINDEX_POSTURE.md` as the fixed note for the current
    `feature_coinstatsindex.py` contract.
-38. Use `FEATURE_BIP68_SEQUENCE_POSTURE.md` as the fixed note for the current
+39. Use `FEATURE_BIP68_SEQUENCE_POSTURE.md` as the fixed note for the current
    `feature_bip68_sequence.py` contract.
-39. Use `FEATURE_CLTV_POSTURE.md` as the fixed note for the current
+40. Use `FEATURE_CLTV_POSTURE.md` as the fixed note for the current
    `feature_cltv.py` contract.
-40. Use `FEATURE_CSV_ACTIVATION_POSTURE.md` as the fixed note for the current
+41. Use `FEATURE_CSV_ACTIVATION_POSTURE.md` as the fixed note for the current
    `feature_csv_activation.py` contract.
-41. Use `FEATURE_PRUNING_POSTURE.md` as the fixed note for the current
+42. Use `FEATURE_PRUNING_POSTURE.md` as the fixed note for the current
    `feature_pruning.py` contract.
-42. Use `FEATURE_REINDEX_POSTURE.md` as the fixed note for the current
+43. Use `FEATURE_REINDEX_POSTURE.md` as the fixed note for the current
    `feature_reindex.py` contract.
-43. Use `FEATURE_REINDEX_INIT_POSTURE.md` as the fixed note for the current
+44. Use `FEATURE_REINDEX_INIT_POSTURE.md` as the fixed note for the current
    `feature_reindex_init.py` contract.
-44. Use `FEATURE_REINDEX_READONLY_POSTURE.md` as the fixed note for the current
+45. Use `FEATURE_REINDEX_READONLY_POSTURE.md` as the fixed note for the current
    `feature_reindex_readonly.py` contract.
-45. Use `FEATURE_VERSIONBITS_WARNING_POSTURE.md` as the fixed note for the
+46. Use `FEATURE_VERSIONBITS_WARNING_POSTURE.md` as the fixed note for the
    current `feature_versionbits_warning.py` contract.
-46. Use `FEATURE_ASSUMEVALID_POSTURE.md` as the fixed note for the current
+47. Use `FEATURE_ASSUMEVALID_POSTURE.md` as the fixed note for the current
    `feature_assumevalid.py` contract.
-47. Use `FEATURE_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
+48. Use `FEATURE_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
    `feature_assumeutxo.py` contract.
-48. Use `WALLET_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
+49. Use `WALLET_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
    `wallet_assumeutxo.py` contract.
 29. Treat inherited `getnewaddress` / `getrawchangeaddress` as unsupported on
    PQ-only active-manager wallets; the owned PQ address UX remains
@@ -1106,6 +1143,7 @@ Aineko must ask before:
 - `FEATURE_PQ_REORG_POSTURE.md`
 - `MEMPOOL_PQ_LIMITS_POSTURE.md`
 - `MEMPOOL_PQ_STRESS_POSTURE.md`
+- `MEMPOOL_ACCEPT_POSTURE.md`
 - `TEST_COST_POSTURE.md`
 - `POST_RC_EPICS.md`
 - `CI_COMPLETENESS.md`
@@ -1766,6 +1804,17 @@ Aineko must ask before:
   PQBTC release assets exist; otherwise the local alternate should be another
   bounded `pq_backlog` migration decision from the remaining validation,
   mempool, or mining backlog.
+- 2026-05-04: `mempool_accept.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers inherited raw transaction
+  `testmempoolaccept` behavior, reject-reason stability, fee and replacement
+  checks, standardness and resource-envelope policy, anchor output handling,
+  and confirmed bare-multisig policy under the current legacy-compatible PQC
+  profile. `feature_unsupported_utxo_db.py` was probed and skipped locally
+  because previous-release assets are unavailable. The next owned follow-on
+  remains `feature_coinstatsindex_compatibility.py` when real prior PQBTC
+  release assets exist; otherwise the adjacent local mempool candidate is
+  `mempool_accept_wtxid.py` after a fresh targeted pass.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -1809,6 +1858,8 @@ Aineko must ask before:
 
 - `feature_coinstatsindex_compatibility.py` remains blocked until real prior
   PQBTC release assets are available to the compatibility harness.
+- `feature_unsupported_utxo_db.py` remains blocked locally until real prior
+  PQBTC release assets are available to the previous-release harness.
 - There is no current blocker in the restored broad wallet
   funding/signing/finalization surface: `rpc_psbt.py`,
   `wallet_miniscript.py`,
