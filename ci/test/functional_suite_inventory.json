@@ -574,10 +574,10 @@
   },
   {
     "name": "mempool_accept_wtxid.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited wtxid/non-witness-data mempool acceptance gate: the suite exercises malleated witness children with identical txids and distinct wtxids, exact already-in-mempool reporting, same-nonwitness-data rejection, and rebroadcast of the canonical mempool wtxid under the current legacy-compatible PQC profile."
   },
   {
     "name": "mempool_compatibility.py",
