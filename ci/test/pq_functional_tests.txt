@@ -31,6 +31,7 @@ mempool_accept_wtxid.py
 mempool_datacarrier.py
 mempool_dust.py
 mempool_ephemeral_dust.py
+mempool_expiry.py
 mempool_pq_limits.py
 mempool_pq_stress.py
 rpc_psbt.py
