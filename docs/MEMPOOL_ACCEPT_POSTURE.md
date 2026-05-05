@@ -69,6 +69,7 @@ this worktree.
 - it complements, but does not replace,
   [mempool_datacarrier.py](MEMPOOL_DATACARRIER_POSTURE.md),
   [mempool_dust.py](MEMPOOL_DUST_POSTURE.md),
+  [mempool_ephemeral_dust.py](MEMPOOL_EPHEMERAL_DUST_POSTURE.md),
   [mempool_pq_limits.py](MEMPOOL_PQ_LIMITS_POSTURE.md) and
   [mempool_pq_stress.py](MEMPOOL_PQ_STRESS_POSTURE.md)
 - the preferred asset-dependent follow-on remains

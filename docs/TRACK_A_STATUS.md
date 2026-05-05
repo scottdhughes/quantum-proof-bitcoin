@@ -47,6 +47,8 @@ the same gate, keep `mempool_accept_wtxid.py` inherited wtxid-aware
 mempool-acceptance behavior in the same gate, keep `mempool_datacarrier.py`
 inherited datacarrier policy behavior in the same gate, keep
 `mempool_dust.py` inherited dust relay policy behavior in the same gate,
+keep `mempool_ephemeral_dust.py` inherited ephemeral-dust package policy
+behavior in the same gate,
 freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
 `wallet_miniscript.py`, and
@@ -1030,8 +1032,8 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_DATACARRIER_POSTURE.md`
    Still deferred inside this suite:
-   - remaining mempool ephemeral-dust, package, persistence, expiry, reorg,
-     TRUC, and mining policy suites
+   - remaining mempool package, persistence, expiry, reorg, TRUC, and mining
+     policy suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1053,15 +1055,40 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_DUST_POSTURE.md`
    Still deferred inside this suite:
-   - remaining mempool ephemeral-dust, package, persistence, expiry, reorg,
-     TRUC, and mining policy suites
+   - remaining mempool package, persistence, expiry, reorg, TRUC, and mining
+     policy suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
-51. Recommended next PR after this tranche:
+51. `mempool_ephemeral_dust.py` now owns:
+   - inherited ephemeral-dust package policy under the current
+     legacy-compatible PQC profile
+   - zero-fee TRUC parent rejection individually and acceptance when the
+     package child spends the dust
+   - prioritisation rejection for in-mempool dust-output transactions
+   - restart dropping ephemeral-dust packages because individual reload cannot
+     reconstruct the CPFP package
+   - fee-having parent, modified-fee parent, multidust, non-TRUC, and
+     missing-ephemeral-spend rejection paths
+   - sponsor cycling where a zero-fee dust parent becomes childless and
+     unmined before a later sweep
+   - reorg restoration for valid ephemeral-dust shapes and rejection for fee
+     parents, multidust parents, and invalid follow-on TRUC chains
+   - disabled-minrelay non-TRUC and batched sweep behavior across many parents
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 mempool_ephemeral_dust.py`
+   Fixed posture note:
+   - `MEMPOOL_EPHEMERAL_DUST_POSTURE.md`
+   Still deferred inside this suite:
+   - remaining mempool package, persistence, expiry, reorg, TRUC, and mining
+     policy suites
+   - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
+     `feature_coinstatsindex_compatibility.py`, which remain blocked until
+     real prior PQBTC release assets exist
+52. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: `mempool_ephemeral_dust.py` as the next local mempool policy
-     candidate after a fresh targeted pass, while
+   - alternate: `mempool_expiry.py` as the next local mempool policy candidate
+     after a fresh targeted pass, while
      `mempool_compatibility.py` stays previous-release blocked
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
@@ -1071,9 +1098,10 @@ Still deferred:
      CSV activation, and broad pruning surfaces are now represented in the
      required gate, so any local alternate should be a fresh bounded migration
      decision outside those surfaces
-   - the first two inherited mempool acceptance gates plus datacarrier and
-     dust policy are now frozen, so the adjacent local mempool follow-on should
-     be another bounded policy gate only after a fresh targeted pass
+   - the first two inherited mempool acceptance gates plus datacarrier, dust,
+     and ephemeral-dust policy are now frozen, so the adjacent local mempool
+     follow-on should be another bounded policy gate only after a fresh
+     targeted pass
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -1117,39 +1145,41 @@ Still deferred:
    `mempool_datacarrier.py` contract.
 35. Use `MEMPOOL_DUST_POSTURE.md` as the fixed note for the current
    `mempool_dust.py` contract.
-36. Use `FEATURE_PQSIG_BASIC_POSTURE.md` as the fixed note for the current
+36. Use `MEMPOOL_EPHEMERAL_DUST_POSTURE.md` as the fixed note for the current
+   `mempool_ephemeral_dust.py` contract.
+37. Use `FEATURE_PQSIG_BASIC_POSTURE.md` as the fixed note for the current
    `feature_pqsig_basic.py` contract.
-37. Use `FEATURE_PQSIG_MULTISIG_POSTURE.md` as the fixed note for the current
+38. Use `FEATURE_PQSIG_MULTISIG_POSTURE.md` as the fixed note for the current
    `feature_pqsig_multisig.py` contract.
-38. Use `FEATURE_LOADBLOCK_POSTURE.md` as the fixed note for the current
+39. Use `FEATURE_LOADBLOCK_POSTURE.md` as the fixed note for the current
    `feature_loadblock.py` contract.
-39. Use `WALLET_MINISCRIPT_POSTURE.md` as the fixed note for the current
+40. Use `WALLET_MINISCRIPT_POSTURE.md` as the fixed note for the current
    `wallet_miniscript.py` contract.
-40. Use `FEATURE_UTXO_SET_HASH_POSTURE.md` as the fixed note for the current
+41. Use `FEATURE_UTXO_SET_HASH_POSTURE.md` as the fixed note for the current
    `feature_utxo_set_hash.py` contract.
-41. Use `FEATURE_COINSTATSINDEX_POSTURE.md` as the fixed note for the current
+42. Use `FEATURE_COINSTATSINDEX_POSTURE.md` as the fixed note for the current
    `feature_coinstatsindex.py` contract.
-42. Use `FEATURE_BIP68_SEQUENCE_POSTURE.md` as the fixed note for the current
+43. Use `FEATURE_BIP68_SEQUENCE_POSTURE.md` as the fixed note for the current
    `feature_bip68_sequence.py` contract.
-43. Use `FEATURE_CLTV_POSTURE.md` as the fixed note for the current
+44. Use `FEATURE_CLTV_POSTURE.md` as the fixed note for the current
    `feature_cltv.py` contract.
-44. Use `FEATURE_CSV_ACTIVATION_POSTURE.md` as the fixed note for the current
+45. Use `FEATURE_CSV_ACTIVATION_POSTURE.md` as the fixed note for the current
    `feature_csv_activation.py` contract.
-45. Use `FEATURE_PRUNING_POSTURE.md` as the fixed note for the current
+46. Use `FEATURE_PRUNING_POSTURE.md` as the fixed note for the current
    `feature_pruning.py` contract.
-46. Use `FEATURE_REINDEX_POSTURE.md` as the fixed note for the current
+47. Use `FEATURE_REINDEX_POSTURE.md` as the fixed note for the current
    `feature_reindex.py` contract.
-47. Use `FEATURE_REINDEX_INIT_POSTURE.md` as the fixed note for the current
+48. Use `FEATURE_REINDEX_INIT_POSTURE.md` as the fixed note for the current
    `feature_reindex_init.py` contract.
-48. Use `FEATURE_REINDEX_READONLY_POSTURE.md` as the fixed note for the current
+49. Use `FEATURE_REINDEX_READONLY_POSTURE.md` as the fixed note for the current
    `feature_reindex_readonly.py` contract.
-49. Use `FEATURE_VERSIONBITS_WARNING_POSTURE.md` as the fixed note for the
+50. Use `FEATURE_VERSIONBITS_WARNING_POSTURE.md` as the fixed note for the
    current `feature_versionbits_warning.py` contract.
-50. Use `FEATURE_ASSUMEVALID_POSTURE.md` as the fixed note for the current
+51. Use `FEATURE_ASSUMEVALID_POSTURE.md` as the fixed note for the current
    `feature_assumevalid.py` contract.
-51. Use `FEATURE_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
+52. Use `FEATURE_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
    `feature_assumeutxo.py` contract.
-52. Use `WALLET_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
+53. Use `WALLET_ASSUMEUTXO_POSTURE.md` as the fixed note for the current
    `wallet_assumeutxo.py` contract.
 29. Treat inherited `getnewaddress` / `getrawchangeaddress` as unsupported on
    PQ-only active-manager wallets; the owned PQ address UX remains
@@ -1922,6 +1952,16 @@ Aineko must ask before:
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
   assets exist; otherwise the adjacent local mempool candidate is
   `mempool_ephemeral_dust.py` after a fresh targeted pass.
+- 2026-05-04: `mempool_ephemeral_dust.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers TRUC 1P1C ephemeral-dust package
+  acceptance, zero-fee dust parent rules, sponsor cycling, restart behavior,
+  fee-having and multidust rejection, missing ephemeral spends, reorg
+  restoration, and disabled-minrelay batched sweep behavior under the current
+  legacy-compatible PQC profile. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist; otherwise the adjacent local mempool candidate is
+  `mempool_expiry.py` after a fresh targeted pass.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
