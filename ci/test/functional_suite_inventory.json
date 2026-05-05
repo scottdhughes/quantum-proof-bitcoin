@@ -595,10 +595,10 @@
   },
   {
     "name": "mempool_dust.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited dust-relay mempool policy gate: the suite exercises -dustrelayfee=0 behavior, dust threshold acceptance and rejection for standard output script types, OP_RETURN zero-threshold handling, and multiple configured dust relay fee rates under the current legacy-compatible PQC profile."
   },
   {
     "name": "mempool_ephemeral_dust.py",
