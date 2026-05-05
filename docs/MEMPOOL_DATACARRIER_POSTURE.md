@@ -62,6 +62,7 @@ Targeted confidence pass run on 2026-05-04:
   [mempool_accept_wtxid.py](MEMPOOL_ACCEPT_WTXID_POSTURE.md),
   [mempool_dust.py](MEMPOOL_DUST_POSTURE.md),
   [mempool_ephemeral_dust.py](MEMPOOL_EPHEMERAL_DUST_POSTURE.md),
+  [mempool_expiry.py](MEMPOOL_EXPIRY_POSTURE.md),
   [mempool_pq_limits.py](MEMPOOL_PQ_LIMITS_POSTURE.md), and
   [mempool_pq_stress.py](MEMPOOL_PQ_STRESS_POSTURE.md)
 - the preferred asset-dependent follow-on remains
