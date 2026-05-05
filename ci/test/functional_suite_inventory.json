@@ -623,10 +623,10 @@
   },
   {
     "name": "mempool_package_limits.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited package ancestor/descendant limit gate: the suite exercises combined in-mempool and in-package chain limits, ancestor and descendant count limits, bushy package ancestor accounting, ancestor-size limits, descendant-size limits, stable package-mempool-limits rejection, and acceptance after clearing the conflicting mempool state under the current legacy-compatible PQC profile."
   },
   {
     "name": "mempool_package_onemore.py",
