@@ -616,10 +616,10 @@
   },
   {
     "name": "mempool_limit.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited mempool size, eviction, and package-limit policy gate: the suite exercises full-mempool min-fee rejection, CPFP package admission below mempool minimum, peer broadcast fee-filter behavior, immediate low-feerate package eviction, -maxmempool floor init rejection, mid-package eviction, mid-package replacement, and RBF carveout limit rejection under the current legacy-compatible PQC profile."
   },
   {
     "name": "mempool_package_limits.py",

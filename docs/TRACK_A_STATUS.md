@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-05-04
+## Updated: 2026-05-05
 ## Current Phase: Phase 1 - Wallet And Block Surface Expansion
 
 ## Purpose
@@ -49,7 +49,8 @@ inherited datacarrier policy behavior in the same gate, keep
 `mempool_dust.py` inherited dust relay policy behavior in the same gate,
 keep `mempool_ephemeral_dust.py` inherited ephemeral-dust package policy
 behavior in the same gate, keep `mempool_expiry.py` inherited mempool expiry
-policy behavior in the same gate,
+policy behavior in the same gate, keep `mempool_limit.py` inherited mempool
+size, eviction, and package-limit policy behavior in the same gate,
 freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
 `wallet_miniscript.py`, and
@@ -147,8 +148,9 @@ Alternate rebalance:
      tranches, or the current block storage, prune-lifecycle, broad pruning,
      bootstrap/import, txoutset-hash, txoutset/index, restart/reindex,
      init-recovery, read-only blockstore, versionbits-warning, and
-     sequence-lock, CLTV, CSV-activation, raw mempool-acceptance, and
-     wtxid-aware mempool-acceptance tranches.
+     sequence-lock, CLTV, CSV-activation, raw mempool-acceptance,
+     wtxid-aware mempool-acceptance, datacarrier, dust, ephemeral-dust,
+     expiry, and mempool-limit tranches.
      `wallet_backwards_compatibility.py`, `wallet_migration.py`, and
      `feature_coinstatsindex_compatibility.py` stay blocked until
      prior-release assets are available; `feature_unsupported_utxo_db.py` is
@@ -1105,9 +1107,30 @@ Still deferred:
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
-53. Recommended next PR after this tranche:
+53. `mempool_limit.py` now owns:
+   - inherited mempool size, eviction, and package-limit policy under the
+     current legacy-compatible PQC profile
+   - full-mempool `mempoolminfee` behavior and minimum-fee rejection
+   - CPFP package admission with a parent below the mempool minimum
+   - package broadcast behavior that still respects peer fee filters
+   - immediate rejection for a low-ranked package after full-mempool eviction
+   - `-maxmempool` floor init rejection
+   - mid-package eviction without evicting the newly accepted package
+   - mid-package replacement without stale descendants
+   - RBF carveout limit rejection for package members
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 mempool_limit.py`
+   Fixed posture note:
+   - `MEMPOOL_LIMIT_POSTURE.md`
+   Still deferred inside this suite:
+   - remaining package-limit, package relay, package RBF, persistence, reorg,
+     TRUC, and mining policy suites
+   - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
+     `feature_coinstatsindex_compatibility.py`, which remain blocked until
+     real prior PQBTC release assets exist
+54. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: `mempool_limit.py` as the next local mempool policy candidate
+   - alternate: `mempool_package_limits.py` as the next local mempool policy candidate
      after a fresh targeted pass, while
      `mempool_compatibility.py` stays previous-release blocked
    Why next:
@@ -1119,7 +1142,7 @@ Still deferred:
      required gate, so any local alternate should be a fresh bounded migration
      decision outside those surfaces
    - the first two inherited mempool acceptance gates plus datacarrier, dust,
-     ephemeral-dust, and expiry policy are now frozen, so the adjacent local
+     ephemeral-dust, expiry, and limit policy are now frozen, so the adjacent local
      mempool follow-on should be another bounded policy gate only after a
      fresh targeted pass
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
@@ -1993,6 +2016,16 @@ Aineko must ask before:
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
   assets exist; otherwise the adjacent local mempool candidate is
   `mempool_limit.py` after a fresh targeted pass.
+- 2026-05-05: `mempool_limit.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers full-mempool minimum-fee rejection, CPFP
+  package admission below the mempool minimum, peer broadcast fee-filter
+  behavior, immediate low-feerate package eviction, `-maxmempool` floor init
+  rejection, mid-package eviction, mid-package replacement, and RBF carveout
+  limit rejection under the current legacy-compatible PQC profile. The next
+  owned follow-on remains `feature_coinstatsindex_compatibility.py` when real
+  prior PQBTC release assets exist; otherwise the adjacent local mempool
+  candidate is `mempool_package_limits.py` after a fresh targeted pass.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
