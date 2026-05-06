@@ -637,10 +637,10 @@
   },
   {
     "name": "mempool_package_rbf.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited package RBF policy gate: the suite exercises 1-parent-1-child package replacement, singleton conflict replacement, additional-fee and incremental-relay-fee requirements, max-replacement-candidate caps, package and conflict-cluster shape rejection, feerate diagram rejection, TRUC zero-fee-parent package RBF, and mempool-ancestor conflict rejection under the current legacy-compatible PQC profile."
   },
   {
     "name": "mempool_packages.py",

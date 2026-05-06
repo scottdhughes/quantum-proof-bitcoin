@@ -35,6 +35,7 @@ mempool_expiry.py
 mempool_limit.py
 mempool_package_limits.py
 mempool_package_onemore.py
+mempool_package_rbf.py
 mempool_pq_limits.py
 mempool_pq_stress.py
 rpc_psbt.py
