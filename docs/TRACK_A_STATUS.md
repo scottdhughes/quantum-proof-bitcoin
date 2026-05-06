@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-05-05
+## Updated: 2026-05-06
 ## Current Phase: Phase 1 - Wallet And Block Surface Expansion
 
 ## Purpose
@@ -53,7 +53,8 @@ policy behavior in the same gate, keep `mempool_limit.py` inherited mempool
 size, eviction, and package-limit policy behavior in the same gate, keep
 `mempool_package_limits.py` inherited package ancestor/descendant limit
 policy behavior in the same gate, keep `mempool_package_onemore.py`
-inherited one-more-descendant package carveout behavior in the same gate,
+inherited one-more-descendant package carveout behavior in the same gate, keep
+`mempool_package_rbf.py` inherited package RBF behavior in the same gate,
 freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
 `wallet_miniscript.py`, and
@@ -154,7 +155,7 @@ Alternate rebalance:
      sequence-lock, CLTV, CSV-activation, raw mempool-acceptance,
      wtxid-aware mempool-acceptance, datacarrier, dust, ephemeral-dust,
      expiry, mempool-limit, package-limit, and one-more-descendant carveout
-     tranches.
+     tranches, plus package RBF.
      `wallet_backwards_compatibility.py`, `wallet_migration.py`, and
      `feature_coinstatsindex_compatibility.py` stay blocked until
      prior-release assets are available; `feature_unsupported_utxo_db.py` is
@@ -1127,8 +1128,8 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_LIMIT_POSTURE.md`
    Still deferred inside this suite:
-   - remaining package relay, package RBF, persistence, reorg, TRUC, and
-     mining policy suites
+   - remaining package relay, persistence, reorg, TRUC, and mining policy
+     suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1151,8 +1152,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_PACKAGE_LIMITS_POSTURE.md`
    Still deferred inside this suite:
-   - package RBF, package relay, persistence, reorg, TRUC, and mining policy
-     suites
+   - package relay, persistence, reorg, TRUC, and mining policy suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1175,14 +1175,36 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_PACKAGE_ONEMORE_POSTURE.md`
    Still deferred inside this suite:
-   - broad package RBF, package relay, persistence, reorg, TRUC, and mining
-     policy suites
+   - package relay, persistence, reorg, TRUC, and mining policy suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
-56. Recommended next PR after this tranche:
+56. `mempool_package_rbf.py` now owns:
+   - inherited package RBF policy under the current legacy-compatible PQC
+     profile
+   - 1-parent-1-child package replacement with child-paid conflicts
+   - `testmempoolaccept` conflict rejection during subpackage evaluation
+   - p2p propagation of a basic package RBF replacement to the second node
+   - singleton conflict replacement
+   - absolute-fee and incremental-relay-fee replacement requirements
+   - maximum replacement-candidate limits
+   - package-size, mempool-ancestor, and conflict-cluster shape rejection
+   - package feerate diagram rejection
+   - TRUC zero-fee-parent plus high-fee-child package RBF
+   - filled-mempool ancestor-conflict rejection without evicting the ancestor
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 mempool_package_rbf.py`
+   Fixed posture note:
+   - `MEMPOOL_PACKAGE_RBF_POSTURE.md`
+   Still deferred inside this suite:
+   - broader package relay, persistence, reorg, mining policy, and
+     prior-release compatibility suites
+   - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
+     `feature_coinstatsindex_compatibility.py`, which remain blocked until
+     real prior PQBTC release assets exist
+57. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: `mempool_package_rbf.py` as the next local mempool policy
+   - alternate: `mempool_packages.py` as the next local mempool policy
      candidate after a fresh targeted pass, while
      `mempool_compatibility.py` stays previous-release blocked
    Why next:
@@ -1195,8 +1217,9 @@ Still deferred:
      decision outside those surfaces
    - the first two inherited mempool acceptance gates plus datacarrier, dust,
      ephemeral-dust, expiry, limit, package-limit, and one-more-descendant
-     carveout policy are now frozen, so the adjacent local mempool follow-on
-     should be another bounded policy gate only after a fresh targeted pass
+     carveout policy are now frozen, and package RBF is now frozen, so the
+     adjacent local mempool follow-on should be another bounded policy gate
+     only after a fresh targeted pass
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -2099,6 +2122,17 @@ Aineko must ask before:
   remains `feature_coinstatsindex_compatibility.py` when real prior PQBTC
   release assets exist; otherwise the adjacent local mempool candidate is
   `mempool_package_rbf.py` after a fresh targeted pass.
+- 2026-05-06: `mempool_package_rbf.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers 1-parent-1-child package replacement,
+  singleton conflict replacement, additional-fee and incremental-relay-fee
+  requirements, replacement-candidate caps, package and conflict-cluster shape
+  rejection, feerate diagram rejection, TRUC zero-fee-parent package RBF, and
+  mempool-ancestor conflict rejection under the current legacy-compatible PQC
+  profile. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist; otherwise the adjacent local mempool candidate is
+  `mempool_packages.py` after a fresh targeted pass.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
