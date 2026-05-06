@@ -38,9 +38,9 @@ suite owns the single-node package-limit boundary:
 This posture note does **not** mean:
 
 - every remaining mempool package suite is owned by this tranche
-- one-more-package admission, package RBF, package relay, persistence, broad
-  reorg behavior, TRUC policy, mining-template behavior, or prior-release
-  compatibility behavior is covered here
+- one-more-descendant carveout, package RBF, package relay, persistence,
+  broad reorg behavior, TRUC policy, mining-template behavior, or
+  prior-release compatibility behavior is covered here
 - PQ-native witness-size stress replaces this inherited package-limit surface
 
 Those remain separate required gates or backlog decisions.
@@ -71,6 +71,7 @@ Targeted confidence pass run on 2026-05-05:
   [mempool_ephemeral_dust.py](MEMPOOL_EPHEMERAL_DUST_POSTURE.md),
   [mempool_expiry.py](MEMPOOL_EXPIRY_POSTURE.md),
   [mempool_limit.py](MEMPOOL_LIMIT_POSTURE.md),
+  [mempool_package_onemore.py](MEMPOOL_PACKAGE_ONEMORE_POSTURE.md),
   [mempool_pq_limits.py](MEMPOOL_PQ_LIMITS_POSTURE.md), and
   [mempool_pq_stress.py](MEMPOOL_PQ_STRESS_POSTURE.md)
 - the preferred asset-dependent follow-on remains

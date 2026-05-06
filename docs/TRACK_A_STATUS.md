@@ -52,7 +52,8 @@ behavior in the same gate, keep `mempool_expiry.py` inherited mempool expiry
 policy behavior in the same gate, keep `mempool_limit.py` inherited mempool
 size, eviction, and package-limit policy behavior in the same gate, keep
 `mempool_package_limits.py` inherited package ancestor/descendant limit
-policy behavior in the same gate,
+policy behavior in the same gate, keep `mempool_package_onemore.py`
+inherited one-more-descendant package carveout behavior in the same gate,
 freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
 `wallet_miniscript.py`, and
@@ -152,7 +153,8 @@ Alternate rebalance:
      init-recovery, read-only blockstore, versionbits-warning, and
      sequence-lock, CLTV, CSV-activation, raw mempool-acceptance,
      wtxid-aware mempool-acceptance, datacarrier, dust, ephemeral-dust,
-     expiry, mempool-limit, and package-limit tranches.
+     expiry, mempool-limit, package-limit, and one-more-descendant carveout
+     tranches.
      `wallet_backwards_compatibility.py`, `wallet_migration.py`, and
      `feature_coinstatsindex_compatibility.py` stay blocked until
      prior-release assets are available; `feature_unsupported_utxo_db.py` is
@@ -1125,8 +1127,8 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_LIMIT_POSTURE.md`
    Still deferred inside this suite:
-   - remaining package-limit, package relay, package RBF, persistence, reorg,
-     TRUC, and mining policy suites
+   - remaining package relay, package RBF, persistence, reorg, TRUC, and
+     mining policy suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1149,14 +1151,38 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_PACKAGE_LIMITS_POSTURE.md`
    Still deferred inside this suite:
-   - one-more-package admission, package RBF, package relay, persistence,
-     reorg, TRUC, and mining policy suites
+   - package RBF, package relay, persistence, reorg, TRUC, and mining policy
+     suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
-55. Recommended next PR after this tranche:
+55. `mempool_package_onemore.py` now owns:
+   - inherited one-more-descendant package carveout policy under the current
+     legacy-compatible PQC profile
+   - full `DEFAULT_ANCESTOR_LIMIT` chain construction from a confirmed UTXO
+   - ancestor-limit rejection for adding one more transaction to the chain tip
+   - descendant-limit rejection for middle-of-chain descendants and
+     two-parent descendants
+   - oversized descendant rejection outside the carveout size boundary
+   - package rejection diagnostics for a rejected parent plus missing-input
+     child
+   - direct-child carveout acceptance from the first transaction in the chain
+   - independent second-chain admission after the carveout path
+   - single direct-conflict RBF replacement of the chain using the carveout
+     rule
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 mempool_package_onemore.py`
+   Fixed posture note:
+   - `MEMPOOL_PACKAGE_ONEMORE_POSTURE.md`
+   Still deferred inside this suite:
+   - broad package RBF, package relay, persistence, reorg, TRUC, and mining
+     policy suites
+   - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
+     `feature_coinstatsindex_compatibility.py`, which remain blocked until
+     real prior PQBTC release assets exist
+56. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: `mempool_package_onemore.py` as the next local mempool policy
+   - alternate: `mempool_package_rbf.py` as the next local mempool policy
      candidate after a fresh targeted pass, while
      `mempool_compatibility.py` stays previous-release blocked
    Why next:
@@ -1168,9 +1194,9 @@ Still deferred:
      required gate, so any local alternate should be a fresh bounded migration
      decision outside those surfaces
    - the first two inherited mempool acceptance gates plus datacarrier, dust,
-     ephemeral-dust, expiry, limit, and package-limit policy are now frozen,
-     so the adjacent local mempool follow-on should be another bounded policy
-     gate only after a fresh targeted pass
+     ephemeral-dust, expiry, limit, package-limit, and one-more-descendant
+     carveout policy are now frozen, so the adjacent local mempool follow-on
+     should be another bounded policy gate only after a fresh targeted pass
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -2063,6 +2089,16 @@ Aineko must ask before:
   when real prior PQBTC release assets exist; otherwise the adjacent local
   mempool candidate is `mempool_package_onemore.py` after a fresh targeted
   pass.
+- 2026-05-05: `mempool_package_onemore.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers full ancestor-chain construction,
+  ancestor and descendant limit rejection, oversized descendant rejection,
+  package rejection diagnostics, direct-child carveout acceptance, independent
+  chain admission, and single-conflict RBF replacement of the carveout chain
+  under the current legacy-compatible PQC profile. The next owned follow-on
+  remains `feature_coinstatsindex_compatibility.py` when real prior PQBTC
+  release assets exist; otherwise the adjacent local mempool candidate is
+  `mempool_package_rbf.py` after a fresh targeted pass.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
