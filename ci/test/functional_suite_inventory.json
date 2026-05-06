@@ -644,10 +644,10 @@
   },
   {
     "name": "mempool_packages.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited mempool ancestor/descendant tracking gate: the suite exercises default and custom ancestor/descendant chain limits, verbose ancestor and descendant accounting, gettxspendingprevout consistency, prioritisetransaction fee-delta accounting, cross-node custom limit propagation, and reorg disconnect handling under the current legacy-compatible PQC profile."
   },
   {
     "name": "mempool_persist.py",
