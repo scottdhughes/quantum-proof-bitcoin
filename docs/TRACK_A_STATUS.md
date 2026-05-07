@@ -58,7 +58,8 @@ inherited one-more-descendant package carveout behavior in the same gate, keep
 `mempool_packages.py` inherited mempool ancestor/descendant tracking behavior
 in the same gate, keep `mempool_persist.py` inherited mempool persistence
 behavior in the same gate, keep `mempool_reorg.py` inherited mempool reorg
-behavior in the same gate,
+behavior in the same gate, keep `mempool_resurrect.py` inherited mempool
+resurrection behavior in the same gate,
 freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
 `wallet_miniscript.py`, and
@@ -1252,8 +1253,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_PERSIST_POSTURE.md`
    Still deferred inside this suite:
-   - reorg, resurrection, TRUC, mining policy, and prior-release compatibility
-     suites
+   - TRUC, mining policy, and prior-release compatibility suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1276,15 +1276,36 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_REORG_POSTURE.md`
    Still deferred inside this suite:
-   - resurrection, sigop-limit, spend-coinbase, TRUC, mining policy, and
-     prior-release compatibility suites
+   - sigop-limit, spend-coinbase, TRUC, mining policy, and prior-release
+     compatibility suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
-60. Recommended next PR after this tranche:
+60. `mempool_resurrect.py` now owns:
+   - inherited mempool resurrection behavior under the current
+     legacy-compatible PQC profile
+   - first-level spend admission and confirmation into one block
+   - descendant spend admission and confirmation into a second block
+   - empty mempool while the original two-block confirmation path is active
+   - two-block disconnect after invalidating the first mined block
+   - all disconnected parent and descendant transactions returning to the
+     mempool with zero confirmations
+   - replacement-block mining of the resurrected transaction set
+   - empty mempool after the replacement confirmation path
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 mempool_resurrect.py`
+   Fixed posture note:
+   - `MEMPOOL_RESURRECT_POSTURE.md`
+   Still deferred inside this suite:
+   - sigop-limit, spend-coinbase, TRUC, mining policy, and prior-release
+     compatibility suites
+   - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
+     `feature_coinstatsindex_compatibility.py`, which remain blocked until
+     real prior PQBTC release assets exist
+61. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: `mempool_resurrect.py` as the next local mempool resurrection
-     candidate after a fresh targeted pass, while
+   - alternate: `mempool_sigoplimit.py` as the next local mempool resource
+     envelope candidate after a fresh targeted pass, while
      `mempool_compatibility.py` stays previous-release blocked
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
@@ -1297,9 +1318,9 @@ Still deferred:
    - the first two inherited mempool acceptance gates plus datacarrier, dust,
      ephemeral-dust, expiry, limit, package-limit, and one-more-descendant
      carveout policy are now frozen, and package RBF plus package accounting
-     are now frozen, and mempool persistence is now frozen, so the adjacent
-     local mempool follow-on should be another bounded policy gate only after a
-     fresh targeted pass, with mempool reorg behavior now represented too
+     are now frozen, and mempool persistence, reorg, and resurrection behavior
+     are now frozen, so the adjacent local mempool follow-on should be another
+     bounded policy/resource-envelope gate only after a fresh targeted pass
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -2245,6 +2266,16 @@ Aineko must ask before:
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
   assets exist; otherwise the adjacent local mempool candidate is
   `mempool_resurrect.py` after a fresh targeted pass.
+- 2026-05-07: `mempool_resurrect.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers parent and descendant transactions mined
+  across two blocks, full transaction resurrection into mempool after
+  invalidating the first block, zero-confirmation reporting for the
+  resurrected set, and replacement-block mining under the current
+  legacy-compatible PQC profile. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist; otherwise the adjacent local mempool candidate is
+  `mempool_sigoplimit.py` after a fresh targeted pass.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
