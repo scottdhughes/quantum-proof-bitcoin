@@ -57,6 +57,7 @@ inherited one-more-descendant package carveout behavior in the same gate, keep
 `mempool_package_rbf.py` inherited package RBF behavior in the same gate, keep
 `mempool_packages.py` inherited mempool ancestor/descendant tracking behavior
 in the same gate, keep `mempool_persist.py` inherited mempool persistence
+behavior in the same gate, keep `mempool_reorg.py` inherited mempool reorg
 behavior in the same gate,
 freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
@@ -1256,9 +1257,33 @@ Still deferred:
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
-59. Recommended next PR after this tranche:
+59. `mempool_reorg.py` now owns:
+   - inherited mempool reorg behavior under the current legacy-compatible PQC
+     profile
+   - timelock non-final rejection and later acceptance after the chain advances
+   - direct and indirect coinbase-spend scenarios across mempool and chain
+   - disconnected-block child transaction return to the mempool after shallow
+     invalidation
+   - no-longer-final timelocked transaction removal after reorg
+   - immature coinbase-spend cleanup after deeper invalidation
+   - immediate explicit relay availability for transactions from recently
+     disconnected blocks
+   - early explicit request rejection for very recent unannounced mempool
+     transactions until mock time advances
+   - expected inventory announcement after mock time advances
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 mempool_reorg.py`
+   Fixed posture note:
+   - `MEMPOOL_REORG_POSTURE.md`
+   Still deferred inside this suite:
+   - resurrection, sigop-limit, spend-coinbase, TRUC, mining policy, and
+     prior-release compatibility suites
+   - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
+     `feature_coinstatsindex_compatibility.py`, which remain blocked until
+     real prior PQBTC release assets exist
+60. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: `mempool_reorg.py` as the next local mempool reorg-policy
+   - alternate: `mempool_resurrect.py` as the next local mempool resurrection
      candidate after a fresh targeted pass, while
      `mempool_compatibility.py` stays previous-release blocked
    Why next:
@@ -1274,7 +1299,7 @@ Still deferred:
      carveout policy are now frozen, and package RBF plus package accounting
      are now frozen, and mempool persistence is now frozen, so the adjacent
      local mempool follow-on should be another bounded policy gate only after a
-     fresh targeted pass
+     fresh targeted pass, with mempool reorg behavior now represented too
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -2209,6 +2234,17 @@ Aineko must ask before:
   owned follow-on remains `feature_coinstatsindex_compatibility.py` when real
   prior PQBTC release assets exist; otherwise the adjacent local mempool
   candidate is `mempool_reorg.py` after a fresh targeted pass.
+- 2026-05-07: `mempool_reorg.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers coinbase-spend mempool removal when reorgs
+  make coinbase spends immature, timelock non-final rejection and later
+  acceptance, disconnected block transactions returning to the mempool, invalid
+  descendant removal after deeper invalidation, and relay/request behavior for
+  transactions from recently disconnected blocks under the current
+  legacy-compatible PQC profile. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist; otherwise the adjacent local mempool candidate is
+  `mempool_resurrect.py` after a fresh targeted pass.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full

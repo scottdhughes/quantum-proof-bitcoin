@@ -40,6 +40,7 @@ mempool_packages.py
 mempool_persist.py
 mempool_pq_limits.py
 mempool_pq_stress.py
+mempool_reorg.py
 rpc_psbt.py
 wallet_abandonconflict.py
 wallet_address_types.py

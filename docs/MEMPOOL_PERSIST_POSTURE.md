@@ -75,8 +75,9 @@ Targeted confidence pass run on 2026-05-07:
   [mempool_package_onemore.py](MEMPOOL_PACKAGE_ONEMORE_POSTURE.md),
   [mempool_package_rbf.py](MEMPOOL_PACKAGE_RBF_POSTURE.md),
   [mempool_packages.py](MEMPOOL_PACKAGES_POSTURE.md),
-  [mempool_pq_limits.py](MEMPOOL_PQ_LIMITS_POSTURE.md), and
-  [mempool_pq_stress.py](MEMPOOL_PQ_STRESS_POSTURE.md)
+  [mempool_pq_limits.py](MEMPOOL_PQ_LIMITS_POSTURE.md),
+  [mempool_pq_stress.py](MEMPOOL_PQ_STRESS_POSTURE.md), and
+  [mempool_reorg.py](MEMPOOL_REORG_POSTURE.md)
 - the preferred asset-dependent follow-on remains
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py)
 - without those assets, the local follow-on should be another bounded mempool
