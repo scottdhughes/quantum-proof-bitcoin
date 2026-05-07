@@ -672,10 +672,10 @@
   },
   {
     "name": "mempool_reorg.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited mempool reorg gate: the suite exercises coinbase-spend mempool removal when reorgs make coinbase spends immature, timelock non-final rejection and later acceptance, reorg return of disconnected block transactions to the mempool, removal of invalid descendants after deeper invalidation, and relay/request behavior for transactions from recently disconnected blocks under the current legacy-compatible PQC profile."
   },
   {
     "name": "mempool_resurrect.py",
