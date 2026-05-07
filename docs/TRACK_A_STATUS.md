@@ -59,7 +59,8 @@ inherited one-more-descendant package carveout behavior in the same gate, keep
 in the same gate, keep `mempool_persist.py` inherited mempool persistence
 behavior in the same gate, keep `mempool_reorg.py` inherited mempool reorg
 behavior in the same gate, keep `mempool_resurrect.py` inherited mempool
-resurrection behavior in the same gate,
+resurrection behavior in the same gate, keep `mempool_sigoplimit.py`
+inherited mempool sigop resource-envelope behavior in the same gate,
 freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
 `wallet_miniscript.py`, and
@@ -1276,8 +1277,8 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_REORG_POSTURE.md`
    Still deferred inside this suite:
-   - sigop-limit, spend-coinbase, TRUC, mining policy, and prior-release
-     compatibility suites
+   - spend-coinbase, TRUC, mining policy, and prior-release compatibility
+     suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1297,15 +1298,38 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_RESURRECT_POSTURE.md`
    Still deferred inside this suite:
-   - sigop-limit, spend-coinbase, TRUC, mining policy, and prior-release
-     compatibility suites
+   - spend-coinbase, TRUC, mining policy, and prior-release compatibility
+     suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
-61. Recommended next PR after this tranche:
+61. `mempool_sigoplimit.py` now owns:
+   - inherited bytes-per-sigop mempool resource-envelope policy under the
+     current legacy-compatible PQC profile
+   - default and custom `-bytespersigop` settings across fixed sigop counts
+   - `testmempoolaccept` vsize reporting at, above, and below the
+     sigop-equivalent threshold
+   - ancestor and descendant size accounting with adjusted vsize
+   - package-size rejection for sigop-heavy bare multisig packages
+   - direct package submission where the parent enters mempool and the child
+     fails ancestor-size policy
+   - legacy P2SH sigops standardness rejection and one-input-smaller
+     acceptance
+   - explicit block mining of the non-standard high-sigop transaction
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 mempool_sigoplimit.py`
+   Fixed posture note:
+   - `MEMPOOL_SIGOPLIMIT_POSTURE.md`
+   Still deferred inside this suite:
+   - spend-coinbase, TRUC, mining policy, and prior-release compatibility
+     suites
+   - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
+     `feature_coinstatsindex_compatibility.py`, which remain blocked until
+     real prior PQBTC release assets exist
+62. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: `mempool_sigoplimit.py` as the next local mempool resource
-     envelope candidate after a fresh targeted pass, while
+   - alternate: `mempool_spend_coinbase.py` as the next local mempool
+     coinbase-spend policy candidate after a fresh targeted pass, while
      `mempool_compatibility.py` stays previous-release blocked
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
@@ -1319,8 +1343,9 @@ Still deferred:
      ephemeral-dust, expiry, limit, package-limit, and one-more-descendant
      carveout policy are now frozen, and package RBF plus package accounting
      are now frozen, and mempool persistence, reorg, and resurrection behavior
-     are now frozen, so the adjacent local mempool follow-on should be another
-     bounded policy/resource-envelope gate only after a fresh targeted pass
+     are now frozen, and sigop resource-envelope policy is now frozen, so the
+     adjacent local mempool follow-on should be another bounded policy gate
+     only after a fresh targeted pass
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -2276,6 +2301,16 @@ Aineko must ask before:
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
   assets exist; otherwise the adjacent local mempool candidate is
   `mempool_sigoplimit.py` after a fresh targeted pass.
+- 2026-05-07: `mempool_sigoplimit.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers bytes-per-sigop adjusted vsize accounting,
+  ancestor and descendant size accounting with adjusted vsize, package-limit
+  rejection for sigop-heavy bare multisig packages, direct package submission
+  at the ancestor-size boundary, and legacy sigops standardness boundaries
+  under the current legacy-compatible PQC profile. The next owned follow-on
+  remains `feature_coinstatsindex_compatibility.py` when real prior PQBTC
+  release assets exist; otherwise the adjacent local mempool candidate is
+  `mempool_spend_coinbase.py` after a fresh targeted pass.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
