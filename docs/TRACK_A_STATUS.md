@@ -60,7 +60,9 @@ in the same gate, keep `mempool_persist.py` inherited mempool persistence
 behavior in the same gate, keep `mempool_reorg.py` inherited mempool reorg
 behavior in the same gate, keep `mempool_resurrect.py` inherited mempool
 resurrection behavior in the same gate, keep `mempool_sigoplimit.py`
-inherited mempool sigop resource-envelope behavior in the same gate,
+inherited mempool sigop resource-envelope behavior in the same gate, keep
+`mempool_spend_coinbase.py` inherited mempool coinbase-spend maturity behavior
+in the same gate,
 freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
 `wallet_miniscript.py`, and
@@ -1277,8 +1279,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_REORG_POSTURE.md`
    Still deferred inside this suite:
-   - spend-coinbase, TRUC, mining policy, and prior-release compatibility
-     suites
+   - TRUC, mining policy, and prior-release compatibility suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1298,8 +1299,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_RESURRECT_POSTURE.md`
    Still deferred inside this suite:
-   - spend-coinbase, TRUC, mining policy, and prior-release compatibility
-     suites
+   - TRUC, mining policy, and prior-release compatibility suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1321,15 +1321,35 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_SIGOPLIMIT_POSTURE.md`
    Still deferred inside this suite:
-   - spend-coinbase, TRUC, mining policy, and prior-release compatibility
-     suites
+   - TRUC, mining policy, and prior-release compatibility suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
-62. Recommended next PR after this tranche:
+62. `mempool_spend_coinbase.py` now owns:
+   - inherited mempool coinbase-spend maturity policy under the current
+     legacy-compatible PQC profile
+   - chain invalidation to a height where one coinbase spend is mature for the
+     next block and the adjacent coinbase spend is premature
+   - near-mature coinbase-spend admission to the mempool
+   - premature coinbase-spend rejection with
+     `bad-txns-premature-spend-of-coinbase`
+   - mempool contents containing only the mature spend before mining
+   - mined confirmation of the mature coinbase spend and mempool cleanup
+   - later admission of the formerly premature coinbase spend after height
+     advances
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 mempool_spend_coinbase.py`
+   Fixed posture note:
+   - `MEMPOOL_SPEND_COINBASE_POSTURE.md`
+   Still deferred inside this suite:
+   - TRUC, mining policy, and prior-release compatibility suites
+   - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
+     `feature_coinstatsindex_compatibility.py`, which remain blocked until
+     real prior PQBTC release assets exist
+63. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: `mempool_spend_coinbase.py` as the next local mempool
-     coinbase-spend policy candidate after a fresh targeted pass, while
+   - alternate: `mempool_truc.py` as the next local mempool TRUC policy
+     candidate after a fresh targeted pass, while
      `mempool_compatibility.py` stays previous-release blocked
    Why next:
    - `feature_coinstatsindex_compatibility.py` is the remaining nearby
@@ -1345,7 +1365,8 @@ Still deferred:
      are now frozen, and mempool persistence, reorg, and resurrection behavior
      are now frozen, and sigop resource-envelope policy is now frozen, so the
      adjacent local mempool follow-on should be another bounded policy gate
-     only after a fresh targeted pass
+     only after a fresh targeted pass, with coinbase-spend maturity behavior
+     now represented too
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -2311,6 +2332,16 @@ Aineko must ask before:
   remains `feature_coinstatsindex_compatibility.py` when real prior PQBTC
   release assets exist; otherwise the adjacent local mempool candidate is
   `mempool_spend_coinbase.py` after a fresh targeted pass.
+- 2026-05-07: `mempool_spend_coinbase.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers near-mature coinbase-spend admission,
+  adjacent premature coinbase-spend rejection with
+  `bad-txns-premature-spend-of-coinbase`, mined confirmation of the mature
+  spend, and later admission of the formerly premature spend after height
+  advances under the current legacy-compatible PQC profile. The next owned
+  follow-on remains `feature_coinstatsindex_compatibility.py` when real prior
+  PQBTC release assets exist; otherwise the adjacent local mempool candidate
+  is `mempool_truc.py` after a fresh targeted pass.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
