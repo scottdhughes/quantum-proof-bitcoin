@@ -75,6 +75,7 @@ Targeted confidence pass run on 2026-05-06:
   [mempool_package_limits.py](MEMPOOL_PACKAGE_LIMITS_POSTURE.md),
   [mempool_package_onemore.py](MEMPOOL_PACKAGE_ONEMORE_POSTURE.md),
   [mempool_packages.py](MEMPOOL_PACKAGES_POSTURE.md),
+  [mempool_persist.py](MEMPOOL_PERSIST_POSTURE.md),
   [mempool_pq_limits.py](MEMPOOL_PQ_LIMITS_POSTURE.md), and
   [mempool_pq_stress.py](MEMPOOL_PQ_STRESS_POSTURE.md)
 - the preferred asset-dependent follow-on remains

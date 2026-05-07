@@ -651,10 +651,10 @@
   },
   {
     "name": "mempool_persist.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited mempool persistence gate: the suite exercises default mempool.dat reload, -persistmempool=0 dump/load suppression, savemempool and importmempool RPC behavior, priority-delta and unbroadcast-set persistence, wallet watch-only accounting after reload where wallet support is compiled, cross-node mempool.dat import, import union behavior, and disk-write failure handling under the current legacy-compatible PQC profile."
   },
   {
     "name": "mempool_pq_limits.py",
