@@ -686,10 +686,10 @@
   },
   {
     "name": "mempool_sigoplimit.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited mempool sigop resource-envelope gate: the suite exercises -bytespersigop-adjusted vsize across default and custom values, testmempoolaccept sizing above and below the sigop-equivalent threshold, ancestor/descendant size accounting using adjusted vsize, package-limit rejection for bare multisig sigop-heavy packages, and legacy sigops standardness boundaries under the current legacy-compatible PQC profile."
   },
   {
     "name": "mempool_spend_coinbase.py",
