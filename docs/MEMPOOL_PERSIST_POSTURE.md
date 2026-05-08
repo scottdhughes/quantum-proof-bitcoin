@@ -39,9 +39,8 @@ three-node mempool persistence boundary:
 
 This posture note does **not** mean:
 
-- every remaining mempool reorg, resurrection, update-from-block, or
-  mining-template suite
-  is owned by this tranche
+- every remaining mempool reorg, resurrection, or mining-template suite is
+  owned by this tranche
 - prior-release mempool compatibility behavior is covered without real prior
   PQBTC release assets
 - PQ-native witness-size stress replaces this inherited persistence surface
@@ -83,7 +82,8 @@ Targeted confidence pass run on 2026-05-07:
   [mempool_sigoplimit.py](MEMPOOL_SIGOPLIMIT_POSTURE.md),
   [mempool_spend_coinbase.py](MEMPOOL_SPEND_COINBASE_POSTURE.md), and
   [mempool_truc.py](MEMPOOL_TRUC_POSTURE.md), and
-  [mempool_unbroadcast.py](MEMPOOL_UNBROADCAST_POSTURE.md)
+  [mempool_unbroadcast.py](MEMPOOL_UNBROADCAST_POSTURE.md), and
+  [mempool_updatefromblock.py](MEMPOOL_UPDATEFROMBLOCK_POSTURE.md)
 - the preferred asset-dependent follow-on remains
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py)
 - without those assets, the local follow-on should be another bounded mempool

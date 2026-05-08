@@ -37,7 +37,7 @@ the local unbroadcast delivery boundary:
 
 This posture note does **not** mean:
 
-- the update-from-block, mining-template, or orphan transaction suites are
+- the mining-template or orphan transaction suites are
   owned by this tranche
 - prior-release mempool compatibility behavior is covered without real prior
   PQBTC release assets
@@ -87,5 +87,4 @@ Targeted confidence pass run on 2026-05-08:
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py)
 - without those assets, the local follow-on should be another bounded mempool
   or mining `pq_backlog` migration decision, with
-  `mempool_updatefromblock.py` the adjacent candidate after a fresh targeted
-  pass
+  `mining_basic.py` the adjacent candidate after a fresh targeted pass

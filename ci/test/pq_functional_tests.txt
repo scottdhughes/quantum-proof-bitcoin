@@ -46,6 +46,7 @@ mempool_sigoplimit.py
 mempool_spend_coinbase.py
 mempool_truc.py
 mempool_unbroadcast.py
+mempool_updatefromblock.py
 rpc_psbt.py
 wallet_abandonconflict.py
 wallet_address_types.py

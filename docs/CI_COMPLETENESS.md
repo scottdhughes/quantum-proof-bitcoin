@@ -36,8 +36,8 @@ The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `114` |
-| `pq_backlog` | `11` |
+| `pq_required` | `115` |
+| `pq_backlog` | `10` |
 | `dual_profile` | `142` |
 | `legacy_only` | `9` |
 
@@ -72,91 +72,92 @@ Current required PQ-first gates:
 27. `mempool_spend_coinbase.py`
 28. `mempool_truc.py`
 29. `mempool_unbroadcast.py`
-30. `wallet_pq_active_ranged.py`
-31. `wallet_pq_backup_recovery.py`
-32. `wallet_pq_create_tx.py`
-33. `wallet_pq_descriptors.py`
-34. `wallet_pq_psbt.py`
-35. `wallet_pq_send.py`
-36. `wallet_pq_sendall.py`
-37. `wallet_pq_sendmany.py`
-38. `wallet_pq_signrawtransaction.py`
-39. `feature_assumeutxo.py`
-40. `feature_assumevalid.py`
-41. `feature_bip68_sequence.py`
-42. `feature_block.py`
-43. `feature_blocksdir.py`
-44. `feature_blocksxor.py`
-45. `feature_cltv.py`
-46. `feature_coinstatsindex.py`
-47. `feature_csv_activation.py`
-48. `feature_fastprune.py`
-49. `feature_index_prune.py`
-50. `feature_loadblock.py`
-51. `feature_pruning.py`
-52. `feature_reindex.py`
-53. `feature_reindex_init.py`
-54. `feature_reindex_readonly.py`
-55. `feature_remove_pruned_files_on_startup.py`
-56. `feature_utxo_set_hash.py`
-57. `feature_versionbits_warning.py`
-58. `rpc_psbt.py`
-59. `wallet_abandonconflict.py`
-60. `wallet_address_types.py`
-61. `wallet_assumeutxo.py`
-62. `wallet_avoid_mixing_output_types.py`
-63. `wallet_avoidreuse.py`
-64. `wallet_backup.py`
-65. `wallet_balance.py`
-66. `wallet_basic.py`
-67. `wallet_blank.py`
-68. `wallet_bumpfee.py`
-69. `wallet_change_address.py`
-70. `wallet_coinbase_category.py`
-71. `wallet_conflicts.py`
-72. `wallet_create_tx.py`
-73. `wallet_createwallet.py`
-74. `wallet_createwalletdescriptor.py`
-75. `wallet_crosschain.py`
-76. `wallet_descriptor.py`
-77. `wallet_disable.py`
-78. `wallet_encryption.py`
-79. `wallet_fallbackfee.py`
-80. `wallet_fast_rescan.py`
-81. `wallet_fundrawtransaction.py`
-82. `wallet_gethdkeys.py`
-83. `wallet_groups.py`
-84. `wallet_hd.py`
-85. `wallet_importdescriptors.py`
-86. `wallet_importprunedfunds.py`
-87. `wallet_keypool.py`
-88. `wallet_keypool_topup.py`
-89. `wallet_labels.py`
-90. `wallet_listdescriptors.py`
-91. `wallet_listreceivedby.py`
-92. `wallet_listsinceblock.py`
-93. `wallet_listtransactions.py`
-94. `wallet_miniscript.py`
-95. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
-96. `wallet_multisig_descriptor_psbt.py`
-97. `wallet_multiwallet.py`
-98. `wallet_orphanedreward.py`
-99. `wallet_reindex.py`
-100. `wallet_reorgsrestore.py`
-101. `wallet_rescan_unconfirmed.py`
-102. `wallet_resendwallettransactions.py`
-103. `wallet_send.py`
-104. `wallet_sendall.py`
-105. `wallet_sendmany.py`
-106. `wallet_signrawtransactionwithwallet.py`
-107. `wallet_simulaterawtx.py`
-108. `wallet_spend_unconfirmed.py`
-109. `wallet_startup.py`
-110. `wallet_timelock.py`
-111. `wallet_transactiontime_rescan.py`
-112. `wallet_txn_clone.py`
-113. `wallet_txn_doublespend.py`
-114. `wallet_v3_txs.py`
+30. `mempool_updatefromblock.py`
+31. `wallet_pq_active_ranged.py`
+32. `wallet_pq_backup_recovery.py`
+33. `wallet_pq_create_tx.py`
+34. `wallet_pq_descriptors.py`
+35. `wallet_pq_psbt.py`
+36. `wallet_pq_send.py`
+37. `wallet_pq_sendall.py`
+38. `wallet_pq_sendmany.py`
+39. `wallet_pq_signrawtransaction.py`
+40. `feature_assumeutxo.py`
+41. `feature_assumevalid.py`
+42. `feature_bip68_sequence.py`
+43. `feature_block.py`
+44. `feature_blocksdir.py`
+45. `feature_blocksxor.py`
+46. `feature_cltv.py`
+47. `feature_coinstatsindex.py`
+48. `feature_csv_activation.py`
+49. `feature_fastprune.py`
+50. `feature_index_prune.py`
+51. `feature_loadblock.py`
+52. `feature_pruning.py`
+53. `feature_reindex.py`
+54. `feature_reindex_init.py`
+55. `feature_reindex_readonly.py`
+56. `feature_remove_pruned_files_on_startup.py`
+57. `feature_utxo_set_hash.py`
+58. `feature_versionbits_warning.py`
+59. `rpc_psbt.py`
+60. `wallet_abandonconflict.py`
+61. `wallet_address_types.py`
+62. `wallet_assumeutxo.py`
+63. `wallet_avoid_mixing_output_types.py`
+64. `wallet_avoidreuse.py`
+65. `wallet_backup.py`
+66. `wallet_balance.py`
+67. `wallet_basic.py`
+68. `wallet_blank.py`
+69. `wallet_bumpfee.py`
+70. `wallet_change_address.py`
+71. `wallet_coinbase_category.py`
+72. `wallet_conflicts.py`
+73. `wallet_create_tx.py`
+74. `wallet_createwallet.py`
+75. `wallet_createwalletdescriptor.py`
+76. `wallet_crosschain.py`
+77. `wallet_descriptor.py`
+78. `wallet_disable.py`
+79. `wallet_encryption.py`
+80. `wallet_fallbackfee.py`
+81. `wallet_fast_rescan.py`
+82. `wallet_fundrawtransaction.py`
+83. `wallet_gethdkeys.py`
+84. `wallet_groups.py`
+85. `wallet_hd.py`
+86. `wallet_importdescriptors.py`
+87. `wallet_importprunedfunds.py`
+88. `wallet_keypool.py`
+89. `wallet_keypool_topup.py`
+90. `wallet_labels.py`
+91. `wallet_listdescriptors.py`
+92. `wallet_listreceivedby.py`
+93. `wallet_listsinceblock.py`
+94. `wallet_listtransactions.py`
+95. `wallet_miniscript.py`
+96. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
+97. `wallet_multisig_descriptor_psbt.py`
+98. `wallet_multiwallet.py`
+99. `wallet_orphanedreward.py`
+100. `wallet_reindex.py`
+101. `wallet_reorgsrestore.py`
+102. `wallet_rescan_unconfirmed.py`
+103. `wallet_resendwallettransactions.py`
+104. `wallet_send.py`
+105. `wallet_sendall.py`
+106. `wallet_sendmany.py`
+107. `wallet_signrawtransactionwithwallet.py`
+108. `wallet_simulaterawtx.py`
+109. `wallet_spend_unconfirmed.py`
+110. `wallet_startup.py`
+111. `wallet_timelock.py`
+112. `wallet_transactiontime_rescan.py`
+113. `wallet_txn_clone.py`
+114. `wallet_txn_doublespend.py`
+115. `wallet_v3_txs.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
@@ -480,6 +481,13 @@ reconnect and scheduler advance, removal from the unbroadcast set after peer
 delivery, suppression of repeat broadcast to later peers, no re-addition for
 already-known transactions, and cleanup before confirmation under the current
 legacy-compatible PQC profile.
+The inherited mempool update-from-block reorg-accounting confidence gap is now
+also part of the required gate: `mempool_updatefromblock.py` covers descendant
+and ancestor count/size reconstruction for a 100-transaction tournament graph
+re-added from disconnected blocks, disconnect-pool trimming at the
+`MAX_DISCONNECTED_TX_POOL_BYTES` boundary with coupled child removal, and
+too-long-chain handling when non-standardly mined chains return to the mempool
+under normal chain limits in the current legacy-compatible PQC profile.
 The remaining key backlog families are:
 
 1. remaining mempool and mining policy suites not yet given explicit PQ gating treatment

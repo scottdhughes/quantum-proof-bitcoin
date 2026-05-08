@@ -714,10 +714,10 @@
   },
   {
     "name": "mempool_updatefromblock.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited mempool update-from-block reorg accounting gate: the suite exercises descendant and ancestor count/size reconstruction for a 100-transaction tournament graph re-added from disconnected blocks, disconnect-pool trimming at the MAX_DISCONNECTED_TX_POOL_BYTES boundary with child removal coupled to parent trimming, and too-long-chain handling when non-standardly mined chains are returned to the mempool under normal chain limits in the current legacy-compatible PQC profile."
   },
   {
     "name": "mining_basic.py",

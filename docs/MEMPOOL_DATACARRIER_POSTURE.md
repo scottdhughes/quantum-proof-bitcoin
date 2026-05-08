@@ -34,7 +34,7 @@ This posture note does **not** mean:
 
 - every remaining mempool policy suite is owned by this tranche
 - dust, ephemeral-dust, expiry, package relay, package RBF, persistence, reorg,
-  update-from-block, mining-template, or prior-release compatibility behavior is
+  mining-template or prior-release compatibility behavior is
   covered
   here
 - PQ-native witness-size stress replaces this inherited OP_RETURN policy
@@ -77,7 +77,8 @@ Targeted confidence pass run on 2026-05-04:
   [mempool_sigoplimit.py](MEMPOOL_SIGOPLIMIT_POSTURE.md),
   [mempool_spend_coinbase.py](MEMPOOL_SPEND_COINBASE_POSTURE.md), and
   [mempool_truc.py](MEMPOOL_TRUC_POSTURE.md), and
-  [mempool_unbroadcast.py](MEMPOOL_UNBROADCAST_POSTURE.md)
+  [mempool_unbroadcast.py](MEMPOOL_UNBROADCAST_POSTURE.md), and
+  [mempool_updatefromblock.py](MEMPOOL_UPDATEFROMBLOCK_POSTURE.md)
 - the preferred asset-dependent follow-on remains
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py)
 - without those assets, the local follow-on should be another bounded mempool
