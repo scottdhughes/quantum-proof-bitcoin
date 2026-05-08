@@ -693,10 +693,10 @@
   },
   {
     "name": "mempool_spend_coinbase.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited mempool coinbase-spend maturity gate: the suite invalidates back to a height where one coinbase spend is mature for the next block and the adjacent coinbase is premature, verifies mature admission and premature rejection with bad-txns-premature-spend-of-coinbase, confirms the mature spend when mined, and then accepts the formerly premature spend after height advances under the current legacy-compatible PQC profile."
   },
   {
     "name": "mempool_truc.py",
