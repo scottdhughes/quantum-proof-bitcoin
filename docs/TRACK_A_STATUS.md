@@ -67,7 +67,9 @@ behavior in the same gate, keep `mempool_unbroadcast.py` inherited mempool
 unbroadcast delivery behavior in the same gate, keep
 `mempool_updatefromblock.py` inherited mempool update-from-block reorg
 accounting behavior in the same gate, keep `mining_basic.py` inherited mining
-RPC and block-template behavior in the same gate,
+RPC and block-template behavior in the same gate, keep
+`mining_getblocktemplate_longpoll.py` inherited getblocktemplate longpoll
+behavior in the same gate,
 freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
 `wallet_miniscript.py`, and
@@ -172,7 +174,8 @@ Alternate rebalance:
      resurrection, sigop resource-envelope, coinbase-spend maturity, and TRUC
      policy, plus unbroadcast delivery and update-from-block reorg accounting.
      The broad inherited mining RPC and block-template gate is now represented
-     too.
+     too, and getblocktemplate longpoll wakeup behavior is now represented as
+     the adjacent mining RPC slice.
      `wallet_backwards_compatibility.py`, `wallet_migration.py`, and
      `feature_coinstatsindex_compatibility.py` stay blocked until
      prior-release assets are available; `feature_unsupported_utxo_db.py` is
@@ -1455,10 +1458,28 @@ Still deferred:
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
-67. Recommended next PR after this tranche:
+67. `mining_getblocktemplate_longpoll.py` now owns:
+   - inherited `getblocktemplate` longpoll behavior under the current
+     legacy-compatible PQC profile
+   - stable `longpollid` reporting across successive `getblocktemplate` calls
+     when no chain or mempool event occurs
+   - longpoll wait behavior on a separate RPC connection
+   - longpoll wakeup after another connected node generates a block
+   - longpoll wakeup after the local node generates a block
+   - longpoll wakeup after a new transaction enters the mempool
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 mining_getblocktemplate_longpoll.py`
+   Fixed posture note:
+   - `MINING_GETBLOCKTEMPLATE_LONGPOLL_POSTURE.md`
+   Still deferred inside this suite:
+   - mainnet mining, package-template selection, prioritisation, orphan
+     transaction, and prior-release compatibility suites
+   - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
+     `feature_coinstatsindex_compatibility.py`, which remain blocked until
+     real prior PQBTC release assets exist
+68. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: `mining_getblocktemplate_longpoll.py` as the next local mining
-     policy
+   - alternate: `mining_mainnet.py` as the next local mining policy
      candidate after a fresh targeted pass, while
      `mempool_compatibility.py` stays previous-release blocked
    Why next:
@@ -1477,8 +1498,9 @@ Still deferred:
      TRUC policy are now frozen, and unbroadcast delivery is now frozen, so the
      adjacent update-from-block reorg-accounting gate is now frozen, so the
      broad inherited mining RPC and block-template gate is now frozen, so the
-     local follow-on can move to another bounded mining policy gate only after
-     a fresh targeted pass
+     getblocktemplate longpoll gate is now frozen, so the local follow-on can
+     move to another bounded mining policy gate only after a fresh targeted
+     pass
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -2494,6 +2516,16 @@ Aineko must ask before:
   follow-on remains `feature_coinstatsindex_compatibility.py` when real prior
   PQBTC release assets exist; otherwise the adjacent local mining candidate is
   `mining_getblocktemplate_longpoll.py` after a fresh targeted pass.
+- 2026-05-08: `mining_getblocktemplate_longpoll.py` is now promoted into the
+  canonical `pq_required` gate and locally revalidated with the build-tree
+  functional runner. The owned boundary covers stable `longpollid` reporting,
+  longpoll wait behavior on a separate RPC connection, wakeup after another
+  node generates a block, wakeup after the local node generates a block, and
+  wakeup after a new mempool transaction enters under the current
+  legacy-compatible PQC profile. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist; otherwise the adjacent local mining candidate is
+  `mining_mainnet.py` after a fresh targeted pass.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
