@@ -707,10 +707,10 @@
   },
   {
     "name": "mempool_unbroadcast.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited mempool unbroadcast delivery gate: the suite exercises local wallet and raw transaction entry into the unbroadcast set, unbroadcast count and per-entry reporting, mempool.dat persistence across restart, rebroadcast after reconnect and scheduler advance, removal from the unbroadcast set after peer delivery, no repeat broadcast to later peers, no re-addition for already-known transactions, and cleanup before confirmation under the current legacy-compatible PQC profile."
   },
   {
     "name": "mempool_updatefromblock.py",
