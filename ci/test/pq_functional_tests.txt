@@ -44,6 +44,7 @@ mempool_reorg.py
 mempool_resurrect.py
 mempool_sigoplimit.py
 mempool_spend_coinbase.py
+mempool_truc.py
 rpc_psbt.py
 wallet_abandonconflict.py
 wallet_address_types.py
