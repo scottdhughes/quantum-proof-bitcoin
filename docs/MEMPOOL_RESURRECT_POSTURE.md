@@ -31,7 +31,7 @@ small one-node mempool resurrection boundary:
 
 This posture note does **not** mean:
 
-- the broader mempool reorg, relay, TRUC, sigop-limit, spend-coinbase, or
+- the broader mempool reorg, relay, unbroadcast, sigop-limit, spend-coinbase, or
   mining-template suites are owned by this tranche
 - prior-release mempool compatibility behavior is covered without real prior
   PQBTC release assets
@@ -71,8 +71,9 @@ Targeted confidence pass run on 2026-05-07:
   [mempool_reorg.py](MEMPOOL_REORG_POSTURE.md),
   [mempool_pq_limits.py](MEMPOOL_PQ_LIMITS_POSTURE.md),
   [mempool_pq_stress.py](MEMPOOL_PQ_STRESS_POSTURE.md),
-  [mempool_sigoplimit.py](MEMPOOL_SIGOPLIMIT_POSTURE.md), and
-  [mempool_spend_coinbase.py](MEMPOOL_SPEND_COINBASE_POSTURE.md)
+  [mempool_sigoplimit.py](MEMPOOL_SIGOPLIMIT_POSTURE.md),
+  [mempool_spend_coinbase.py](MEMPOOL_SPEND_COINBASE_POSTURE.md), and
+  [mempool_truc.py](MEMPOOL_TRUC_POSTURE.md)
 - the preferred asset-dependent follow-on remains
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py)
 - without those assets, the local follow-on should be another bounded mempool

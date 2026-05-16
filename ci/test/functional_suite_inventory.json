@@ -700,10 +700,10 @@
   },
   {
     "name": "mempool_truc.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited TRUC/v3 mempool policy gate: the suite exercises v3 transaction size and child-size limits, direct acceptance, replacement, and inheritance checks, reorg restoration that bypasses direct mempool TRUC topology enforcement, nondefault package-limit interactions, package ancestor checks, sibling eviction behavior, testmempoolaccept inheritance diagnostics, and minrelay package combinations under the current legacy-compatible PQC profile."
   },
   {
     "name": "mempool_unbroadcast.py",

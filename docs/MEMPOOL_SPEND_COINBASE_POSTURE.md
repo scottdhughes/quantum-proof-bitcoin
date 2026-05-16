@@ -31,7 +31,7 @@ suite owns the mempool coinbase-spend maturity boundary:
 
 This posture note does **not** mean:
 
-- the broader TRUC, unbroadcast, update-from-block, mining-template, or orphan
+- the broader unbroadcast, update-from-block, mining-template, or orphan
   transaction suites are owned by this tranche
 - prior-release mempool compatibility behavior is covered without real prior
   PQBTC release assets
@@ -71,6 +71,7 @@ Targeted confidence pass run on 2026-05-07:
   [mempool_reorg.py](MEMPOOL_REORG_POSTURE.md),
   [mempool_resurrect.py](MEMPOOL_RESURRECT_POSTURE.md),
   [mempool_sigoplimit.py](MEMPOOL_SIGOPLIMIT_POSTURE.md),
+  [mempool_truc.py](MEMPOOL_TRUC_POSTURE.md),
   [mempool_pq_limits.py](MEMPOOL_PQ_LIMITS_POSTURE.md), and
   [mempool_pq_stress.py](MEMPOOL_PQ_STRESS_POSTURE.md)
 - the preferred asset-dependent follow-on remains
