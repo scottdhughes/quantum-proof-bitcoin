@@ -1,48 +1,48 @@
-# PQBTC `mempool_truc.py` Posture
+# PQBTC `mempool_unbroadcast.py` Posture
 
 ## Status: ACTIVE
-## Spec-ID: MEMPOOL-TRUC-POSTURE-v1
+## Spec-ID: MEMPOOL-UNBROADCAST-POSTURE-v1
 ## Updated: 2026-05-08
 ## Frozen-By: track-a-phase1-20260508
 ## Consensus-Relevant: NO
 
 ## Purpose
 
-Define the owned Track A contract for inherited TRUC/v3 mempool policy under
-the current legacy-compatible PQC profile.
+Define the owned Track A contract for inherited mempool unbroadcast delivery
+policy under the current legacy-compatible PQC profile.
 
 ## Current Owned Surface
 
 The current passing
-[mempool_truc.py](../test/functional/mempool_truc.py) suite owns the TRUC/v3
-mempool policy boundary:
+[mempool_unbroadcast.py](../test/functional/mempool_unbroadcast.py) suite owns
+the local unbroadcast delivery boundary:
 
-- v3 transactions over the TRUC maximum vsize are rejected while equivalent v2
-  transactions remain accepted
-- children of v3 transactions enforce the TRUC child-size limit
-- v3 and v2 replacements preserve direct TRUC policy and inheritance checks
-- reorg restoration can re-enter disconnected transactions even when the
-  resulting mempool shape would violate direct TRUC admission topology
-- nondefault ancestor and descendant package limits still override TRUC package
-  admission where appropriate
-- package ancestor checks reject multiparent, oversized-child, and
-  three-generation TRUC package shapes
-- sibling eviction works only under the expected individual and package
-  submission rules and keeps RBF fee and feerate constraints intact
-- `testmempoolaccept` reports TRUC inheritance violations consistently for
-  independent, in-package, and in-mempool parent cases
-- minrelay combinations keep the expected distinction between zero-fee TRUC
-  parents paid by children and non-TRUC equivalents
+- locally submitted raw transactions enter the unbroadcast set
+- wallet-originated transactions enter the unbroadcast set when wallet support
+  is compiled
+- `getmempoolinfo()["unbroadcastcount"]` and verbose `getrawmempool`
+  `unbroadcast` flags report the expected pending-delivery state
+- unbroadcast transactions persist through `mempool.dat` after node restart
+- after peers reconnect and the scheduler advances, the unbroadcast
+  transactions are delivered to the peer mempool
+- delivered transactions leave the first node's unbroadcast set
+- a later peer connection does not receive repeat announcements for already
+  delivered transactions
+- rebroadcasting an already-known transaction does not re-add it to the
+  unbroadcast set
+- transactions removed by block confirmation are removed from the unbroadcast
+  set before delivery confirmation
 
 ## What This Does Not Mean
 
 This posture note does **not** mean:
 
-- the update-from-block, mining-template, or orphan transaction
-  suites are owned by this tranche
+- the update-from-block, mining-template, or orphan transaction suites are
+  owned by this tranche
 - prior-release mempool compatibility behavior is covered without real prior
   PQBTC release assets
-- PQ-native witness-size stress replaces this inherited TRUC policy surface
+- PQ-native witness-size stress replaces this inherited unbroadcast delivery
+  surface
 
 Those remain separate required gates or backlog decisions.
 
@@ -50,18 +50,19 @@ Those remain separate required gates or backlog decisions.
 
 Targeted confidence pass run on 2026-05-08:
 
-- `build/test/functional/test_runner.py --jobs=1 mempool_truc.py`
+- `build/test/functional/test_runner.py --jobs=1 mempool_unbroadcast.py`
   - result: passed
   - current posture:
-    - TRUC size, inheritance, and replacement policy remains stable
-    - reorg restoration and sibling eviction boundaries keep their expected
-      outcomes
-    - package ancestor and minrelay combinations remain green under the current
-      legacy-compatible PQC profile
+    - unbroadcast accounting and per-entry reporting remain stable
+    - restart persistence and peer delivery clear the unbroadcast state as
+      expected
+    - confirmation cleanup removes transactions from the unbroadcast set under
+      the current legacy-compatible PQC profile
 
 ## Interpretation
 
-- `mempool_truc.py` is now a required inherited TRUC/v3 mempool policy gate
+- `mempool_unbroadcast.py` is now a required inherited mempool unbroadcast
+  delivery gate
 - it complements, but does not replace,
   [mempool_accept.py](MEMPOOL_ACCEPT_POSTURE.md),
   [mempool_accept_wtxid.py](MEMPOOL_ACCEPT_WTXID_POSTURE.md),
@@ -79,7 +80,7 @@ Targeted confidence pass run on 2026-05-08:
   [mempool_resurrect.py](MEMPOOL_RESURRECT_POSTURE.md),
   [mempool_sigoplimit.py](MEMPOOL_SIGOPLIMIT_POSTURE.md),
   [mempool_spend_coinbase.py](MEMPOOL_SPEND_COINBASE_POSTURE.md),
-  [mempool_unbroadcast.py](MEMPOOL_UNBROADCAST_POSTURE.md),
+  [mempool_truc.py](MEMPOOL_TRUC_POSTURE.md),
   [mempool_pq_limits.py](MEMPOOL_PQ_LIMITS_POSTURE.md), and
   [mempool_pq_stress.py](MEMPOOL_PQ_STRESS_POSTURE.md)
 - the preferred asset-dependent follow-on remains

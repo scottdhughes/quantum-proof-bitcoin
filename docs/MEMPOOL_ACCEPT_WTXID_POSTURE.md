@@ -36,7 +36,7 @@ owns the single-node wtxid/non-witness-data mempool boundary:
 
 This posture note does **not** mean:
 
-- the full mempool package, persistence, expiry, reorg, unbroadcast, or mining
+- the full mempool package, persistence, expiry, reorg, update-from-block, or mining
   policy families are owned here
 - package relay or package RBF behavior is covered
 - broad P2P relay behavior beyond this single-node wtxid rebroadcast check is
@@ -80,7 +80,8 @@ Targeted confidence pass run on 2026-05-04:
   [mempool_resurrect.py](MEMPOOL_RESURRECT_POSTURE.md),
   [mempool_sigoplimit.py](MEMPOOL_SIGOPLIMIT_POSTURE.md),
   [mempool_spend_coinbase.py](MEMPOOL_SPEND_COINBASE_POSTURE.md), and
-  [mempool_truc.py](MEMPOOL_TRUC_POSTURE.md)
+  [mempool_truc.py](MEMPOOL_TRUC_POSTURE.md), and
+  [mempool_unbroadcast.py](MEMPOOL_UNBROADCAST_POSTURE.md)
 - the preferred asset-dependent follow-on remains
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py)
 - without those assets, the local follow-on should be another bounded mempool

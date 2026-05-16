@@ -63,7 +63,8 @@ resurrection behavior in the same gate, keep `mempool_sigoplimit.py`
 inherited mempool sigop resource-envelope behavior in the same gate, keep
 `mempool_spend_coinbase.py` inherited mempool coinbase-spend maturity behavior
 in the same gate, keep `mempool_truc.py` inherited TRUC/v3 mempool policy
-behavior in the same gate,
+behavior in the same gate, keep `mempool_unbroadcast.py` inherited mempool
+unbroadcast delivery behavior in the same gate,
 freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
 `wallet_miniscript.py`, and
@@ -166,7 +167,7 @@ Alternate rebalance:
      expiry, mempool-limit, package-limit, and one-more-descendant carveout
      tranches, plus package RBF, package accounting, persistence, reorg,
      resurrection, sigop resource-envelope, coinbase-spend maturity, and TRUC
-     policy.
+     policy, plus unbroadcast delivery.
      `wallet_backwards_compatibility.py`, `wallet_migration.py`, and
      `feature_coinstatsindex_compatibility.py` stay blocked until
      prior-release assets are available; `feature_unsupported_utxo_db.py` is
@@ -1008,7 +1009,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_ACCEPT_POSTURE.md`
    Still deferred inside this suite:
-   - remaining mempool unbroadcast and mining policy suites
+   - remaining mempool update-from-block and mining policy suites
    - `feature_unsupported_utxo_db.py` and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1029,7 +1030,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_ACCEPT_WTXID_POSTURE.md`
    Still deferred inside this suite:
-   - remaining mempool unbroadcast and mining policy suites
+   - remaining mempool update-from-block and mining policy suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1049,7 +1050,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_DATACARRIER_POSTURE.md`
    Still deferred inside this suite:
-   - remaining mempool unbroadcast and mining policy suites
+   - remaining mempool update-from-block and mining policy suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1071,7 +1072,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_DUST_POSTURE.md`
    Still deferred inside this suite:
-   - remaining mempool unbroadcast and mining policy suites
+   - remaining mempool update-from-block and mining policy suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1095,7 +1096,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_EPHEMERAL_DUST_POSTURE.md`
    Still deferred inside this suite:
-   - remaining mempool unbroadcast and mining policy suites
+   - remaining mempool update-from-block and mining policy suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1113,7 +1114,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_EXPIRY_POSTURE.md`
    Still deferred inside this suite:
-   - remaining mempool unbroadcast and mining policy suites
+   - remaining mempool update-from-block and mining policy suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1133,7 +1134,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_LIMIT_POSTURE.md`
    Still deferred inside this suite:
-   - remaining mempool unbroadcast and mining policy suites
+   - remaining mempool update-from-block and mining policy suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1156,7 +1157,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_PACKAGE_LIMITS_POSTURE.md`
    Still deferred inside this suite:
-   - remaining mempool unbroadcast and mining policy suites
+   - remaining mempool update-from-block and mining policy suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1179,7 +1180,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_PACKAGE_ONEMORE_POSTURE.md`
    Still deferred inside this suite:
-   - remaining mempool unbroadcast and mining policy suites
+   - remaining mempool update-from-block and mining policy suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1226,7 +1227,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_PACKAGES_POSTURE.md`
    Still deferred inside this suite:
-   - unbroadcast, mining policy, and prior-release compatibility suites
+   - update-from-block, mining policy, and prior-release compatibility suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1251,7 +1252,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_PERSIST_POSTURE.md`
    Still deferred inside this suite:
-   - unbroadcast, mining policy, and prior-release compatibility suites
+   - update-from-block, mining policy, and prior-release compatibility suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1274,7 +1275,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_REORG_POSTURE.md`
    Still deferred inside this suite:
-   - unbroadcast, mining policy, and prior-release compatibility suites
+   - update-from-block, mining policy, and prior-release compatibility suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1294,7 +1295,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_RESURRECT_POSTURE.md`
    Still deferred inside this suite:
-   - unbroadcast, mining policy, and prior-release compatibility suites
+   - update-from-block, mining policy, and prior-release compatibility suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1316,7 +1317,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_SIGOPLIMIT_POSTURE.md`
    Still deferred inside this suite:
-   - unbroadcast, mining policy, and prior-release compatibility suites
+   - update-from-block, mining policy, and prior-release compatibility suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1337,7 +1338,7 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_SPEND_COINBASE_POSTURE.md`
    Still deferred inside this suite:
-   - unbroadcast, mining policy, and prior-release compatibility suites
+   - update-from-block, mining policy, and prior-release compatibility suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
@@ -1363,14 +1364,40 @@ Still deferred:
    Fixed posture note:
    - `MEMPOOL_TRUC_POSTURE.md`
    Still deferred inside this suite:
-   - unbroadcast, update-from-block, mining policy, orphan transaction, and
+   - update-from-block, mining policy, orphan transaction, and
      prior-release compatibility suites
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
-64. Recommended next PR after this tranche:
+64. `mempool_unbroadcast.py` now owns:
+   - inherited mempool unbroadcast delivery policy under the current
+     legacy-compatible PQC profile
+   - local raw transaction entry into the unbroadcast set
+   - wallet-originated transaction entry into the unbroadcast set when wallet
+     support is compiled
+   - `getmempoolinfo()["unbroadcastcount"]` and verbose `getrawmempool`
+     unbroadcast flag reporting
+   - `mempool.dat` persistence of unbroadcast state across restart
+   - delivery to a peer after reconnect and scheduler advance
+   - removal from the first node's unbroadcast set after peer delivery
+   - no repeat broadcast to later peer connections after delivery
+   - no re-addition to the unbroadcast set when an already-known transaction is
+     rebroadcast
+   - removal from the unbroadcast set before block confirmation when the
+     transaction leaves the mempool
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 mempool_unbroadcast.py`
+   Fixed posture note:
+   - `MEMPOOL_UNBROADCAST_POSTURE.md`
+   Still deferred inside this suite:
+   - update-from-block, mining policy, orphan transaction, and prior-release
+     compatibility suites
+   - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
+     `feature_coinstatsindex_compatibility.py`, which remain blocked until
+     real prior PQBTC release assets exist
+65. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: `mempool_unbroadcast.py` as the next local mempool policy
+   - alternate: `mempool_updatefromblock.py` as the next local mempool policy
      candidate after a fresh targeted pass, while
      `mempool_compatibility.py` stays previous-release blocked
    Why next:
@@ -1386,8 +1413,9 @@ Still deferred:
      carveout policy are now frozen, and package RBF plus package accounting
      are now frozen, and mempool persistence, reorg, and resurrection behavior
      are now frozen, and sigop resource-envelope, coinbase-spend maturity, and
-     TRUC policy are now frozen, so the adjacent local mempool follow-on should
-     be another bounded policy gate only after a fresh targeted pass
+     TRUC policy are now frozen, and unbroadcast delivery is now frozen, so the
+     adjacent local mempool follow-on should be another bounded policy gate
+     only after a fresh targeted pass
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -2372,6 +2400,16 @@ Aineko must ask before:
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
   assets exist; otherwise the adjacent local mempool candidate is
   `mempool_unbroadcast.py` after a fresh targeted pass.
+- 2026-05-08: `mempool_unbroadcast.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers unbroadcast accounting, mempool.dat
+  persistence across restart, peer delivery after reconnect and scheduler
+  advance, suppression of repeat announcements to later peers, no re-addition
+  for already-known transactions, and confirmation cleanup under the current
+  legacy-compatible PQC profile. The next owned follow-on remains
+  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
+  assets exist; otherwise the adjacent local mempool candidate is
+  `mempool_updatefromblock.py` after a fresh targeted pass.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
