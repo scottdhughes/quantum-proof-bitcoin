@@ -38,7 +38,7 @@ mempool policy boundary:
 
 This posture note does **not** mean:
 
-- the update-from-block, mining-template, or orphan transaction
+- the mining-template or orphan transaction
   suites are owned by this tranche
 - prior-release mempool compatibility behavior is covered without real prior
   PQBTC release assets
@@ -80,11 +80,11 @@ Targeted confidence pass run on 2026-05-08:
   [mempool_sigoplimit.py](MEMPOOL_SIGOPLIMIT_POSTURE.md),
   [mempool_spend_coinbase.py](MEMPOOL_SPEND_COINBASE_POSTURE.md),
   [mempool_unbroadcast.py](MEMPOOL_UNBROADCAST_POSTURE.md),
+  [mempool_updatefromblock.py](MEMPOOL_UPDATEFROMBLOCK_POSTURE.md),
   [mempool_pq_limits.py](MEMPOOL_PQ_LIMITS_POSTURE.md), and
   [mempool_pq_stress.py](MEMPOOL_PQ_STRESS_POSTURE.md)
 - the preferred asset-dependent follow-on remains
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py)
 - without those assets, the local follow-on should be another bounded mempool
   or mining `pq_backlog` migration decision, with
-  `mempool_updatefromblock.py` the adjacent candidate after a fresh targeted
-  pass
+  `mining_basic.py` the adjacent candidate after a fresh targeted pass

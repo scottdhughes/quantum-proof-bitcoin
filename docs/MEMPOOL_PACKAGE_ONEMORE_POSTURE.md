@@ -41,7 +41,7 @@ This posture note does **not** mean:
 
 - every remaining mempool package suite is owned by this tranche
 - broad package RBF, package relay, persistence, broad reorg behavior,
-  update-from-block
+  mining-template behavior
   policy, mining-template behavior, or prior-release compatibility behavior is
   covered here
 - PQ-native witness-size stress replaces this inherited one-more-descendant
@@ -85,7 +85,8 @@ Targeted confidence pass run on 2026-05-05:
   [mempool_sigoplimit.py](MEMPOOL_SIGOPLIMIT_POSTURE.md),
   [mempool_spend_coinbase.py](MEMPOOL_SPEND_COINBASE_POSTURE.md), and
   [mempool_truc.py](MEMPOOL_TRUC_POSTURE.md), and
-  [mempool_unbroadcast.py](MEMPOOL_UNBROADCAST_POSTURE.md)
+  [mempool_unbroadcast.py](MEMPOOL_UNBROADCAST_POSTURE.md), and
+  [mempool_updatefromblock.py](MEMPOOL_UPDATEFROMBLOCK_POSTURE.md)
 - the preferred asset-dependent follow-on remains
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py)
 - without those assets, the local follow-on should be another bounded mempool

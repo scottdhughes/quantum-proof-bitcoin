@@ -38,7 +38,7 @@ single-node `testmempoolaccept` and raw transaction policy surface:
 This posture note does **not** mean:
 
 - every remaining mempool functional suite is owned by this tranche
-- package relay, package RBF, expiry, persistence, reorg, update-from-block, or
+- package relay, package RBF, expiry, persistence, reorg, or
   mining-template behavior is covered here
 - PQ-native witness-size stress replaces this inherited policy surface
 - prior-release compatibility suites can run without real prior PQBTC release
@@ -84,7 +84,8 @@ this worktree.
   [mempool_sigoplimit.py](MEMPOOL_SIGOPLIMIT_POSTURE.md),
   [mempool_spend_coinbase.py](MEMPOOL_SPEND_COINBASE_POSTURE.md), and
   [mempool_truc.py](MEMPOOL_TRUC_POSTURE.md), and
-  [mempool_unbroadcast.py](MEMPOOL_UNBROADCAST_POSTURE.md)
+  [mempool_unbroadcast.py](MEMPOOL_UNBROADCAST_POSTURE.md), and
+  [mempool_updatefromblock.py](MEMPOOL_UPDATEFROMBLOCK_POSTURE.md)
 - the preferred asset-dependent follow-on remains
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py)
 - without those assets, the local follow-on should be another bounded mempool
