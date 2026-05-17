@@ -728,10 +728,10 @@
   },
   {
     "name": "mining_getblocktemplate_longpoll.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited getblocktemplate longpoll gate: the suite exercises stable longpollid values when no chain or mempool event occurs, longpoll wait behavior on a separate RPC connection, wakeup after another node generates a block, wakeup after the local node generates a block, and wakeup after a new mempool transaction enters under the current legacy-compatible PQC profile."
   },
   {
     "name": "mining_mainnet.py",
