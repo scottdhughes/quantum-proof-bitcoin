@@ -86,5 +86,6 @@ Targeted confidence pass run on 2026-05-08:
 - the preferred asset-dependent follow-on remains
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py)
 - without those assets, the local follow-on should be another bounded mempool
-  or mining `pq_backlog` migration decision, with `mining_basic.py` the
-  adjacent candidate after a fresh targeted pass
+  or mining `pq_backlog` migration decision, with
+  `mining_getblocktemplate_longpoll.py` the adjacent candidate after a fresh
+  targeted pass

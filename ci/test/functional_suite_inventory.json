@@ -721,10 +721,10 @@
   },
   {
     "name": "mining_basic.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited mining RPC and block-template policy gate: the suite exercises getmininginfo fields, getblocktemplate witness commitment, versionbits and -blockversion behavior, submitblock and submitheader validation, block-template fee and sigop ordering, -blockmintxfee filtering, BIP94 timewarp protection, pruned-block submitblock storage, blockmaxweight and blockreservedweight boundaries, and generated coinbase height-locktime behavior under the current legacy-compatible PQC profile."
   },
   {
     "name": "mining_getblocktemplate_longpoll.py",

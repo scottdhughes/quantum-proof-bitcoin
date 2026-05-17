@@ -54,6 +54,8 @@ Targeted confidence pass run on 2026-04-12:
   restored legacy block ceiling under PQ-capable script validation
 - it is a very small contract, but it is directly tied to the launch block
   profile and already belongs in the required PQ gate
+- broader mining RPC and block-template behavior is now covered separately by
+  [mining_basic.py](MINING_BASIC_POSTURE.md)
 - the next clean follow-on is
   [feature_pq_reorg.py](../test/functional/feature_pq_reorg.py), which is the
   adjacent PQ-native reorg/mempool reconciliation surface and is already green

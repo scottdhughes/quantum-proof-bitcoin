@@ -66,7 +66,8 @@ in the same gate, keep `mempool_truc.py` inherited TRUC/v3 mempool policy
 behavior in the same gate, keep `mempool_unbroadcast.py` inherited mempool
 unbroadcast delivery behavior in the same gate, keep
 `mempool_updatefromblock.py` inherited mempool update-from-block reorg
-accounting behavior in the same gate,
+accounting behavior in the same gate, keep `mining_basic.py` inherited mining
+RPC and block-template behavior in the same gate,
 freeze the new
 `feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
 `wallet_miniscript.py`, and
@@ -170,6 +171,8 @@ Alternate rebalance:
      tranches, plus package RBF, package accounting, persistence, reorg,
      resurrection, sigop resource-envelope, coinbase-spend maturity, and TRUC
      policy, plus unbroadcast delivery and update-from-block reorg accounting.
+     The broad inherited mining RPC and block-template gate is now represented
+     too.
      `wallet_backwards_compatibility.py`, `wallet_migration.py`, and
      `feature_coinstatsindex_compatibility.py` stay blocked until
      prior-release assets are available; `feature_unsupported_utxo_db.py` is
@@ -1422,9 +1425,40 @@ Still deferred:
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
-66. Recommended next PR after this tranche:
+66. `mining_basic.py` now owns:
+   - inherited mining RPC and block-template policy under the current
+     legacy-compatible PQC profile
+   - `getmininginfo` chain, height, bits, target, difficulty, next-block,
+     networkhashps, and pooled transaction fields
+   - `getblocktemplate` default witness commitment construction
+   - `-blockversion` override behavior and normal versionbits template behavior
+     after restart
+   - `getblocktemplate` segwit-rule enforcement and proposal capability
+   - `submitblock` and `submitheader` decode, missing-ancestor,
+     bad-merkle-root, nonfinal, bad-prevblk, old-time, duplicate, and active-tip
+     outcomes
+   - block-template transaction fee and sigop ordering
+   - `-blockmintxfee` filtering across many configured fee-rate boundaries
+   - BIP94 timewarp protection at the first-block retarget-period boundary
+   - pruned-block `submitblock` replay when the pruning run exposes a pruned
+     historical block
+   - `-blockmaxweight` and `-blockreservedweight` block-template packing and
+     invalid startup value rejection
+   - generated coinbase height-locktime behavior
+   Minimum validation target:
+   - `build/test/functional/test_runner.py --jobs=1 mining_basic.py`
+   Fixed posture note:
+   - `MINING_BASIC_POSTURE.md`
+   Still deferred inside this suite:
+   - longpoll, mainnet mining, package-template selection, prioritisation,
+     orphan transaction, and prior-release compatibility suites
+   - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
+     `feature_coinstatsindex_compatibility.py`, which remain blocked until
+     real prior PQBTC release assets exist
+67. Recommended next PR after this tranche:
    - preferred: `feature_coinstatsindex_compatibility.py`
-   - alternate: `mining_basic.py` as the next local mining policy
+   - alternate: `mining_getblocktemplate_longpoll.py` as the next local mining
+     policy
      candidate after a fresh targeted pass, while
      `mempool_compatibility.py` stays previous-release blocked
    Why next:
@@ -1442,8 +1476,9 @@ Still deferred:
      are now frozen, and sigop resource-envelope, coinbase-spend maturity, and
      TRUC policy are now frozen, and unbroadcast delivery is now frozen, so the
      adjacent update-from-block reorg-accounting gate is now frozen, so the
-     local follow-on can move to a bounded mining policy gate only after a
-     fresh targeted pass
+     broad inherited mining RPC and block-template gate is now frozen, so the
+     local follow-on can move to another bounded mining policy gate only after
+     a fresh targeted pass
    - `wallet_backwards_compatibility.py` and `wallet_migration.py` remain
      useful, but both stay asset-dependent after the current
      startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
@@ -2448,6 +2483,17 @@ Aineko must ask before:
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
   assets exist; otherwise the adjacent local mining candidate is
   `mining_basic.py` after a fresh targeted pass.
+- 2026-05-08: `mining_basic.py` is now promoted into the canonical
+  `pq_required` gate and locally revalidated with the build-tree functional
+  runner. The owned boundary covers `getmininginfo`, `getblocktemplate`
+  witness commitment and version behavior, `submitblock` and `submitheader`
+  validation, block-template fee and sigop ordering, `-blockmintxfee`
+  filtering, BIP94 timewarp protection, pruned-block replay, block weight and
+  reserved-weight startup boundaries, and generated coinbase height-locktime
+  behavior under the current legacy-compatible PQC profile. The next owned
+  follow-on remains `feature_coinstatsindex_compatibility.py` when real prior
+  PQBTC release assets exist; otherwise the adjacent local mining candidate is
+  `mining_getblocktemplate_longpoll.py` after a fresh targeted pass.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
