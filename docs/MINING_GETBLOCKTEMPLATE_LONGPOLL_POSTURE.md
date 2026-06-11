@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: MINING-GETBLOCKTEMPLATE-LONGPOLL-POSTURE-v1
-## Updated: 2026-05-08
+## Updated: 2026-06-11
 ## Frozen-By: track-a-phase1-20260508
 ## Consensus-Relevant: NO
 
@@ -60,5 +60,5 @@ Targeted confidence pass run on 2026-05-08:
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py)
 - without those assets, the local follow-on should be another bounded mining
   `pq_backlog` migration decision, with
-  `mining_prioritisetransaction.py` the adjacent candidate after a fresh
+  `mining_template_verification.py` the adjacent candidate after a fresh
   targeted pass

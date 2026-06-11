@@ -742,10 +742,10 @@
   },
   {
     "name": "mining_prioritisetransaction.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited mining prioritise-transaction gate: the suite exercises prioritisetransaction and getprioritisedtransactions RPC argument validation, fee-delta persistence across replacement and restart boundaries, modified-fee accounting for diamond-shaped mempool packages, mining selection effects for prioritised and deprioritised transactions, relay-fee override admission for a free transaction, and getblocktemplate refresh after prioritisation changes under the current legacy-compatible PQC profile."
   },
   {
     "name": "mining_template_verification.py",
