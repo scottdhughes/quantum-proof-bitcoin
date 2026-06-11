@@ -735,10 +735,10 @@
   },
   {
     "name": "mining_mainnet.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited alternate-mainnet difficulty-adjustment mining gate: the suite loads deterministic alternate mainnet block data, mines the first 2015 blocks at difficulty 1, verifies getmininginfo current and next retarget fields at the first retarget boundary, accepts the first block of the second retarget period at difficulty 4, and confirms getblock still reports historical difficulty, bits, and target values for earlier blocks under the current legacy-compatible PQC profile."
   },
   {
     "name": "mining_prioritisetransaction.py",

@@ -49,6 +49,7 @@ mempool_unbroadcast.py
 mempool_updatefromblock.py
 mining_basic.py
 mining_getblocktemplate_longpoll.py
+mining_mainnet.py
 rpc_psbt.py
 wallet_abandonconflict.py
 wallet_address_types.py
