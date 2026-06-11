@@ -749,10 +749,10 @@
   },
   {
     "name": "mining_template_verification.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Now promoted into pq_required as the inherited getblocktemplate proposal-mode verification gate: the suite exercises valid proposal checks without mutating chainstate, malformed and invalid block rejection reasons, difficulty, merkle-root, timestamp, and best-prevblk boundaries, transaction-bearing proposal validation without UTXO mutation, overspend and double-spend rejection, and concurrent proposal checks under the current legacy-compatible PQC profile."
   },
   {
     "name": "p2p_1p1c_network.py",

@@ -73,7 +73,7 @@ Targeted confidence pass run on 2026-05-08:
   [mempool_updatefromblock.py](MEMPOOL_UPDATEFROMBLOCK_POSTURE.md)
 - the preferred asset-dependent follow-on remains
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py)
-- without those assets, the local follow-on should be another bounded mining
-  `pq_backlog` migration decision, with
-  `mining_template_verification.py` the adjacent candidate after a fresh
-  targeted pass
+- [mining_template_verification.py](MINING_TEMPLATE_VERIFICATION_POSTURE.md)
+  now owns the adjacent getblocktemplate proposal-verification surface
+- without prior-release assets, the remaining backlog is asset-dependent rather
+  than another local mining-template promotion
