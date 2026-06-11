@@ -14,118 +14,11 @@ active, use this file to choose the next safe step for `quantum-proof-bitcoin`.
 
 ## Current Objective
 
-Keep the decaying miniscript multisig funding/signing/finalization surface in
-`wallet_miniscript_decaying_multisig_descriptor_psbt.py` frozen, keep the
-current `feature_block.py` invalid-branch/transport/mempool tranche frozen,
-freeze the new `wallet_miniscript.py`, `rpc_createmultisig.py`,
-`wallet_multisig_descriptor_psbt.py`, keep `feature_blocksdir.py`,
-`feature_blocksxor.py`, `feature_fastprune.py`,
-`feature_remove_pruned_files_on_startup.py`, and `feature_index_prune.py`
-block storage and prune-lifecycle behavior in the canonical `pq_required`
-gate, keep `feature_loadblock.py` bootstrap/import behavior in the same gate,
-keep `feature_pruning.py` broad pruning lifecycle behavior in the same gate,
-keep `feature_utxo_set_hash.py` txoutset-hash behavior in the same gate, and
-keep `feature_coinstatsindex.py` txoutset/index behavior in the same gate, and
-keep `feature_reindex.py` restart/reindex behavior in the same gate, and
-keep `feature_reindex_init.py` init-time block-index recovery behavior in the
-same gate, and
-keep `feature_reindex_readonly.py` immutable/read-only blockstore reindex
-behavior in the same gate, and
-keep `feature_versionbits_warning.py` unknown-versionbits warning behavior in
-the same gate, and
-keep `feature_bip68_sequence.py` BIP68 sequence-lock behavior in the same
-gate, and
-keep `feature_cltv.py` CLTV activation and validation behavior in the same
-gate, and
-keep `feature_csv_activation.py` BIP68/BIP112/BIP113 CSV activation behavior
-in the same gate, and
-keep
-`feature_pq_block_limits.py`, `feature_pq_reorg.py`, and
-`mempool_pq_limits.py`, and `mempool_pq_stress.py` boundaries, keep
-`mempool_accept.py` inherited raw transaction mempool-acceptance behavior in
-the same gate, keep `mempool_accept_wtxid.py` inherited wtxid-aware
-mempool-acceptance behavior in the same gate, keep `mempool_datacarrier.py`
-inherited datacarrier policy behavior in the same gate, keep
-`mempool_dust.py` inherited dust relay policy behavior in the same gate,
-keep `mempool_ephemeral_dust.py` inherited ephemeral-dust package policy
-behavior in the same gate, keep `mempool_expiry.py` inherited mempool expiry
-policy behavior in the same gate, keep `mempool_limit.py` inherited mempool
-size, eviction, and package-limit policy behavior in the same gate, keep
-`mempool_package_limits.py` inherited package ancestor/descendant limit
-policy behavior in the same gate, keep `mempool_package_onemore.py`
-inherited one-more-descendant package carveout behavior in the same gate, keep
-`mempool_package_rbf.py` inherited package RBF behavior in the same gate, keep
-`mempool_packages.py` inherited mempool ancestor/descendant tracking behavior
-in the same gate, keep `mempool_persist.py` inherited mempool persistence
-behavior in the same gate, keep `mempool_reorg.py` inherited mempool reorg
-behavior in the same gate, keep `mempool_resurrect.py` inherited mempool
-resurrection behavior in the same gate, keep `mempool_sigoplimit.py`
-inherited mempool sigop resource-envelope behavior in the same gate, keep
-`mempool_spend_coinbase.py` inherited mempool coinbase-spend maturity behavior
-in the same gate, keep `mempool_truc.py` inherited TRUC/v3 mempool policy
-behavior in the same gate, keep `mempool_unbroadcast.py` inherited mempool
-unbroadcast delivery behavior in the same gate, keep
-`mempool_updatefromblock.py` inherited mempool update-from-block reorg
-accounting behavior in the same gate, keep `mining_basic.py` inherited mining
-RPC and block-template behavior in the same gate, keep
-`mining_getblocktemplate_longpoll.py` inherited getblocktemplate longpoll
-behavior in the same gate,
-freeze the new
-`feature_pqsig_basic.py`, `feature_pqsig_multisig.py`,
-`wallet_miniscript.py`, and
-`feature_assumevalid.py` boundaries, keep
-`feature_assumeutxo.py`, `wallet_assumeutxo.py`, `feature_assumevalid.py`,
-`feature_block.py`, the restored `rpc_psbt.py`, `wallet_miniscript.py`,
-`wallet_miniscript_decaying_multisig_descriptor_psbt.py`, and
-`wallet_multisig_descriptor_psbt.py` wallet-side
-funding/signing/finalization surface and `wallet_address_types.py`
-address/RPC boundary plus `wallet_fundrawtransaction.py` raw funding boundary
-and `wallet_send.py`, `wallet_sendall.py`, and `wallet_sendmany.py` inherited
-send-path boundaries and `wallet_resendwallettransactions.py` rebroadcast
-boundary and `wallet_reindex.py` wallet/reindex boundary in the canonical
-`pq_required` gate plus `wallet_fast_rescan.py` descriptor-wallet fast-rescan
-boundary and `wallet_rescan_unconfirmed.py` unconfirmed-rescan boundary, then
-keep `wallet_reorgsrestore.py` wallet reorg-restore behavior in the same gate,
-keep `wallet_transactiontime_rescan.py` transaction-time rescan behavior in the
-same gate, keep `wallet_backup.py` backup/restore behavior in the same gate,
-keep `wallet_startup.py` load-on-startup behavior in the same gate, then
-keep `wallet_blank.py` blank descriptor-wallet behavior and
-`wallet_createwallet.py` wallet creation behavior in the same gate, then
-keep `wallet_multiwallet.py` multiwallet lifecycle behavior in the same gate,
-then
-keep the `wallet_descriptor.py`, `wallet_disable.py`, `wallet_encryption.py`,
-`wallet_gethdkeys.py`, `wallet_hd.py`, `wallet_keypool.py`,
-`wallet_keypool_topup.py`, and `wallet_listdescriptors.py`
-key-management and descriptor-maintenance behavior in the same gate, then
-keep `wallet_balance.py`, `wallet_coinbase_category.py`, `wallet_labels.py`,
-`wallet_listreceivedby.py`, `wallet_listsinceblock.py`, and
-`wallet_listtransactions.py` accounting, label, and transaction-listing
-behavior in the same gate, then
-keep `wallet_avoid_mixing_output_types.py`, `wallet_avoidreuse.py`,
-`wallet_change_address.py`, `wallet_fallbackfee.py`, `wallet_groups.py`, and
-`wallet_spend_unconfirmed.py` coin-selection and spend-policy behavior in the
-same gate, then
-keep `wallet_abandonconflict.py`, `wallet_bumpfee.py`, `wallet_conflicts.py`,
-`wallet_txn_clone.py`, and `wallet_txn_doublespend.py` fee-bump and
-transaction-conflict behavior in the same gate, then
-keep `wallet_basic.py`, `wallet_create_tx.py`, and `wallet_simulaterawtx.py`
-transaction construction, simulation, and broad basic wallet behavior in the
-same gate, then
-keep `wallet_importdescriptors.py` and
-`wallet_signrawtransactionwithwallet.py` descriptor import and raw-signing
-behavior in the same gate, then
-keep `wallet_importprunedfunds.py`, `wallet_timelock.py`,
-`wallet_orphanedreward.py`, and `wallet_v3_txs.py` remaining wallet
-transaction-breadth behavior in the same gate, then
-keep `wallet_createwalletdescriptor.py` and `wallet_crosschain.py`
-descriptor-creation and cross-chain wallet-file behavior in the same gate,
-then
-return `mining_prioritisetransaction.py` as the current next owned repo-local
-CI/docs promotion slice. Keep
-`feature_coinstatsindex_compatibility.py`,
-`feature_unsupported_utxo_db.py`, `mempool_compatibility.py`,
-`wallet_backwards_compatibility.py`, and `wallet_migration.py`
-deferred until previous-release fixtures are available.
+Keep the live `pq_required` gate aligned with the repo as it exists today.
+`mining_prioritisetransaction.py` is already promoted in the live inventory,
+there are no longer any open PRs claiming the adjacent bookkeeping files, and
+the next owned bounded follow-on is now the
+`mining_template_verification.py` promotion slice itself.
 
 ## Current Working Thesis
 
@@ -134,93 +27,59 @@ deferred until previous-release fixtures are available.
   continuation of inherited Bitcoin chain history.
 - Blockstream's Liquid/Simplicity work is a benchmark and adjacent migration
   reference, not a reason to reset the repo.
-- The best progress in this window is one owned product-facing migration slice,
-  not broad speculative redesign.
+- The best progress in this window is one bounded CI/docs promotion slice at a
+  time, not broad speculative redesign.
 
 ## Current Follow-On Candidates
 
-Reading rule for this section:
-
-- when older tranche notes later in this file say things like "the next owned
-  follow-on remains `feature_coinstatsindex_compatibility.py`", treat those
-  as tranche-local historical snapshots only
-- the controlling current repo-wide handoff is the live recommendation in this
-  section, which now treats `mining_prioritisetransaction.py` as the current
-  next owned CI/docs promotion slice after the later wallet-manager, send-path,
-  CLI hotfix, and merged docs-pack work
-
 Preferred next owned tranche:
 
-1. `mining_prioritisetransaction.py`
-   - Why next: the docs-pack PR `#84` is already merged, the
-     `mining_mainnet.py` CI/docs promotion has now already landed in the live
-     repo, the nearby asset-dependent compatibility backlog remains blocked
-     locally, and the smallest unblocked repo-local `pq_backlog` follow-on is
-     now the inherited mining fee-delta policy gate promotion.
-   - Exact files for that next PR:
+1. `mining_template_verification.py` promotion slice
+   - Why next: `mining_basic.py`, `mining_getblocktemplate_longpoll.py`,
+     `mining_mainnet.py`, and `mining_prioritisetransaction.py` are already
+     represented in `pq_required`, and
+     `mining_template_verification.py` is now the adjacent mining backlog
+     suite with a passing low-cost targeted run in the live tree.
+   - Exact files for the next PR:
      - `ci/test/pq_functional_tests.txt`
      - `ci/test/functional_suite_inventory.json`
      - `docs/CI_COMPLETENESS.md`
      - `docs/MINING_BASIC_POSTURE.md`
      - `docs/MINING_GETBLOCKTEMPLATE_LONGPOLL_POSTURE.md`
      - `docs/MINING_MAINNET_POSTURE.md`
-     - new `docs/MINING_PRIORITISETRANSACTION_POSTURE.md`
-   - Why that file list is exact:
-     - merged PR `#84` touched docs only, but none of its files overlap the
-       seven exact `mining_prioritisetransaction.py` promotion files
-     - `mining_prioritisetransaction.py` is still absent from
-       `ci/test/pq_functional_tests.txt`
-     - `mining_prioritisetransaction.py` still has `policy_class: pq_backlog` in
-       `ci/test/functional_suite_inventory.json`
-     - that live inventory entry still carries only the generic backlog note;
-       the bounded promotion slice should replace it with the specific
-       fee-delta accounting gate summary that the live required mempool posture
-       docs already describe
-     - `docs/CI_COMPLETENESS.md` still shows the pre-promotion
-       inventory-summary counts (`pq_required` `118`, `pq_backlog` `7`)
-       and still does not mention `mining_prioritisetransaction.py`
-     - `python3 ci/test/check_ci_inventory.py` already passes on the live
-       pre-promotion inventory, so there is no separate validator-repair task
-       hidden inside this slice
-     - `docs/MINING_PRIORITISETRANSACTION_POSTURE.md` still does not exist
-     - `docs/MINING_BASIC_POSTURE.md` and
-       `docs/MINING_GETBLOCKTEMPLATE_LONGPOLL_POSTURE.md`, plus the newly
-       promoted `docs/MINING_MAINNET_POSTURE.md`, already point at
-       `mining_prioritisetransaction.py` as the adjacent candidate
-     - after this promotion lands, those three adjacent mining posture docs,
-       plus the new `docs/MINING_PRIORITISETRANSACTION_POSTURE.md`, should
-       advance their local next-candidate note to
-       `mining_template_verification.py`
+     - `docs/MINING_PRIORITISETRANSACTION_POSTURE.md`
+     - `docs/MINING_TEMPLATE_VERIFICATION_POSTURE.md`
    - Minimum validation only:
-     - `build/test/functional/test_runner.py --jobs=1 mining_prioritisetransaction.py`
-   - Recovery-path note:
-     - the older stale salvage branch and detached recovery worktrees are now
-       historical to the already-landed `mining_mainnet.py` slice, not this
-       next tranche
-     - the safe next move for this follow-on remains a fresh branch from the
-       current mainline state rather than any reuse of that stale
-       `mining_mainnet.py` salvage patch
-   - What stays deferred:
+     - `build/test/functional/test_runner.py --jobs=1 mining_template_verification.py`
+   - Stays deferred:
      - `feature_coinstatsindex_compatibility.py`
      - `feature_unsupported_utxo_db.py`
      - `mempool_compatibility.py`
      - `wallet_backwards_compatibility.py`
      - `wallet_migration.py`
-     - `mining_template_verification.py`
-     - all six remain live `pq_backlog` entries today
-     - the full live `pq_backlog` set is seven entries today because
-       `mining_prioritisetransaction.py` itself is still backlog until this
-       promotion slice lands
+     - broader mining policy or resource-envelope claims beyond the inherited
+       `mining_template_verification.py` functional contract
 
-Alternate when release fixtures exist:
+Alternate rebalance:
 
-2. `feature_coinstatsindex_compatibility.py`
-   - Why alternate: it remains the preferred nearby chainstate/index follow-on
-     once real prior PQBTC release assets exist locally.
+2. Asset-dependent backlog only
+   - Why alternate: after the mining-template slice, every remaining
+     `pq_backlog` suite depends on prior-release assets that do not yet exist
+     in the local tree.
 
-Still deferred:
+## Current Queue
 
-3. TapMiniscript activation or replacement semantics
+1. Keep this handoff synced to the live inventory state:
+   - `pq_required`: 119
+   - `pq_backlog`: 6
+   - active next bounded slice: `mining_template_verification.py`
+2. Open the bounded `mining_template_verification.py` CI/docs promotion slice
+   when someone is ready to take it, because no open PR currently claims the
+   shared bookkeeping files it needs.
+3. After the next bounded mining promotion lands, reassess the remaining
+   backlog, which should collapse to the five asset-dependent suites listed in
+   the deferred set above.
+
 
 ## Historical Queue Ledger
 
@@ -1531,9 +1390,9 @@ queue differs from the current repo-wide recommendation.
      required gate, so any local alternate should be a fresh bounded migration
      decision outside those surfaces
    - this dated tranche note is now superseded by the live repo-local handoff
-     in `Current Follow-On Candidates` above, which treats
-     `mining_prioritisetransaction.py` as the current next owned slice after
-     the later wallet-manager, send-path, CLI hotfix, and merged docs-pack work
+     in `Current Follow-On Candidates` above; the intervening
+     `mining_prioritisetransaction.py` slice has since landed, and the live
+     next owned slice is now `mining_template_verification.py`
    - the first two inherited mempool acceptance gates plus datacarrier, dust,
      ephemeral-dust, expiry, limit, package-limit, and one-more-descendant
      carveout policy are now frozen, and package RBF plus package accounting
@@ -2572,9 +2431,10 @@ above as the controlling live next-PR handoff when these older notes disagree.
   legacy-compatible PQC profile. The next owned follow-on remains
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
   assets exist; otherwise the adjacent local mining candidate is
-  `mining_mainnet.py` after a fresh targeted pass. That dated note is now
-  superseded by the live repo-local handoff above, which treats
-  `mining_prioritisetransaction.py` as the current next owned CI/docs
+  `mining_mainnet.py` after a fresh targeted pass. That dated note was later
+  followed by the now-landed `mining_prioritisetransaction.py` slice and is
+  superseded by the live repo-local handoff above, which now treats
+  `mining_template_verification.py` as the current next owned CI/docs
   promotion slice.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
@@ -2618,119 +2478,19 @@ above as the controlling live next-PR handoff when these older notes disagree.
 ## Blockers
 
 - There is no current local blocker for the bounded
-  `mining_prioritisetransaction.py` promotion slice: the live harness already
-  passes, the CI inventory validator already passes, and the remaining work is
-  the owned CI/docs promotion of that gate rather than additional harness or
-  consensus-surface repair.
+  `mining_template_verification.py` promotion slice: the live harness already
+  passes, the CI inventory validator already passes, and there are currently no
+  open PRs claiming the shared bookkeeping files this next slice needs.
 - `feature_coinstatsindex_compatibility.py` remains blocked until real prior
   PQBTC release assets are available to the compatibility harness.
-- `feature_unsupported_utxo_db.py` remains blocked locally until real prior
-  PQBTC release assets are available to the previous-release harness.
-- `mempool_compatibility.py` remains blocked locally until real prior PQBTC
+- `feature_unsupported_utxo_db.py` remains blocked until real prior PQBTC
   release assets are available to the previous-release harness.
-- There is no current blocker in the restored broad wallet
-  funding/signing/finalization surface: `rpc_psbt.py`,
-  `wallet_miniscript.py`,
-  `wallet_miniscript_decaying_multisig_descriptor_psbt.py`, and
-  `wallet_multisig_descriptor_psbt.py` pass targeted validation in the current
-  tree.
-- There is no current blocker in the restored inherited wallet send-path
-  surface: `wallet_send.py`, `wallet_sendall.py`, and `wallet_sendmany.py` pass
-  targeted validation in the current tree.
-- There is no current blocker in the restored inherited wallet rebroadcast
-  surface: `wallet_resendwallettransactions.py` passes targeted validation in
-  the current tree.
-- There is no current blocker in the restored inherited wallet reindex surface:
-  `wallet_reindex.py` passes targeted validation in the current tree.
-- There is no current blocker in the restored inherited wallet fast-rescan
-  surface: `wallet_fast_rescan.py` passes targeted validation in the current
-  tree.
-- There is no current blocker in the restored inherited wallet
-  unconfirmed-rescan surface: `wallet_rescan_unconfirmed.py` passes targeted
-  validation in the current tree.
-- There is no current blocker in the restored inherited wallet reorg-restore
-  surface: `wallet_reorgsrestore.py` passes targeted validation in the current
-  tree.
-- There is no current blocker in the restored inherited wallet transaction-time
-  rescan surface: `wallet_transactiontime_rescan.py` passes targeted validation
-  in the current tree.
-- There is no current blocker in the restored inherited wallet backup/restore
-  surface: `wallet_backup.py` passes targeted validation in the current tree.
-- There is no current blocker in the restored inherited wallet startup surface:
-  `wallet_startup.py` passes targeted validation in the current tree.
-- There is no current blocker in the restored inherited blank-wallet and
-  createwallet surfaces: `wallet_blank.py` and `wallet_createwallet.py` pass
-  targeted validation in the current tree.
-- There is no current blocker in the restored inherited multiwallet lifecycle
-  surface: `wallet_multiwallet.py` passes targeted validation in the current
-  tree.
-- There is no current blocker in the restored inherited wallet
-  key-management and descriptor-maintenance surfaces: `wallet_descriptor.py`,
-  `wallet_disable.py`, `wallet_encryption.py`, `wallet_gethdkeys.py`,
-  `wallet_hd.py`, `wallet_keypool.py`, `wallet_keypool_topup.py`, and
-  `wallet_listdescriptors.py` pass targeted validation in the current tree.
-- There is no current blocker in the restored inherited wallet accounting,
-  label, and transaction-listing surfaces: `wallet_balance.py`,
-  `wallet_coinbase_category.py`, `wallet_labels.py`,
-  `wallet_listreceivedby.py`, `wallet_listsinceblock.py`, and
-  `wallet_listtransactions.py` pass targeted validation in the current tree.
-- There is no current blocker in the restored inherited wallet coin-selection
-  and spend-policy surfaces: `wallet_avoid_mixing_output_types.py`,
-  `wallet_avoidreuse.py`, `wallet_change_address.py`,
-  `wallet_fallbackfee.py`, `wallet_groups.py`, and
-  `wallet_spend_unconfirmed.py` pass targeted validation in the current tree.
-- There is no current blocker in the restored inherited wallet bumpfee and
-  transaction-conflict surfaces: `wallet_abandonconflict.py`,
-  `wallet_bumpfee.py`, `wallet_conflicts.py`, `wallet_txn_clone.py`, and
-  `wallet_txn_doublespend.py` pass targeted validation in the current tree.
-- There is no current blocker in the restored inherited wallet
-  transaction-construction, simulation, and broad basic wallet surfaces:
-  `wallet_basic.py`, `wallet_create_tx.py`, and `wallet_simulaterawtx.py` pass
-  targeted validation in the current tree.
-- There is no current blocker in the restored inherited wallet descriptor-import
-  and raw-signing surfaces: `wallet_importdescriptors.py` and
-  `wallet_signrawtransactionwithwallet.py` pass targeted validation in the
-  current tree.
-- There is no current blocker in the restored inherited wallet
-  import-pruned-funds, timelock, orphaned reward, and v3/TRUC surfaces:
-  `wallet_importprunedfunds.py`, `wallet_timelock.py`,
-  `wallet_orphanedreward.py`, and `wallet_v3_txs.py` pass targeted validation
-  in the current tree.
-- There is no current blocker in the restored inherited wallet
-  descriptor-creation and cross-chain wallet-file surfaces:
-  `wallet_createwalletdescriptor.py` and `wallet_crosschain.py` pass targeted
-  validation in the current tree.
-- There is no current blocker in the block storage and prune-lifecycle
-  surfaces: `feature_blocksdir.py`, `feature_blocksxor.py`,
-  `feature_fastprune.py`, `feature_remove_pruned_files_on_startup.py`, and
-  `feature_index_prune.py` pass targeted validation in the current tree.
-- There is no current blocker in the bootstrap/import surface:
-  `feature_loadblock.py` passes targeted validation in the current tree.
-- There is no current blocker in the txoutset-hash surface:
-  `feature_utxo_set_hash.py` passes targeted validation in the current tree.
-- There is no current blocker in the txoutset/index surface:
-  `feature_coinstatsindex.py` passes targeted validation in the current tree.
-- There is no current blocker in the restart/reindex surface:
-  `feature_reindex.py` passes targeted validation in the current tree.
-- There is no current blocker in the init-time block-index recovery surface:
-  `feature_reindex_init.py` passes targeted validation in the current tree.
-- There is no current blocker in the read-only blockstore reindex surface:
-  `feature_reindex_readonly.py` passes targeted validation in the current
-  tree.
-- There is no current blocker in the unknown-versionbits warning surface:
-  `feature_versionbits_warning.py` passes targeted validation in the current
-  tree.
-- There is no current blocker in the BIP68 sequence-lock surface:
-  `feature_bip68_sequence.py` passes targeted validation in the current tree.
-- There is no current blocker in the CLTV validation surface:
-  `feature_cltv.py` passes targeted validation in the current tree.
-- There is no current blocker in the CSV activation surface:
-  `feature_csv_activation.py` passes targeted validation in the current tree.
-- There is no current blocker in the broad pruning surface:
-  `feature_pruning.py` passes targeted validation in the current tree.
-- `wallet_backwards_compatibility.py` remains blocked locally until
-  previous-release fixtures are available.
-- `wallet_migration.py` remains blocked locally until previous-release fixtures
-  are available.
-- There is no current `OPS_SLO` blocker. The refreshed `2026-04-06` evidence
-  bundle satisfies the frozen signoff thresholds.
+- `mempool_compatibility.py` remains blocked until real prior PQBTC release
+  assets are available to the previous-release harness.
+- `wallet_backwards_compatibility.py` remains blocked until prior wallet
+  fixtures are available.
+- `wallet_migration.py` remains blocked until prior wallet fixtures are
+  available.
+- There is no current low-cost local validation blocker on
+  `mining_template_verification.py`; the targeted functional run passes in the
+  live tree.
