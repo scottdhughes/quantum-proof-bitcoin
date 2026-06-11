@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-05-06
+## Updated: 2026-06-11
 ## Current Phase: Phase 1 - Wallet And Block Surface Expansion
 
 ## Purpose
@@ -120,10 +120,12 @@ transaction-breadth behavior in the same gate, then
 keep `wallet_createwalletdescriptor.py` and `wallet_crosschain.py`
 descriptor-creation and cross-chain wallet-file behavior in the same gate,
 then
-return the next owned follow-on to `feature_coinstatsindex_compatibility.py`
-when real prior PQBTC release assets exist. Locally,
-`wallet_backwards_compatibility.py` and `wallet_migration.py` remain blocked
-until previous-release fixtures are available.
+return `mining_prioritisetransaction.py` as the current next owned repo-local
+CI/docs promotion slice. Keep
+`feature_coinstatsindex_compatibility.py`,
+`feature_unsupported_utxo_db.py`, `mempool_compatibility.py`,
+`wallet_backwards_compatibility.py`, and `wallet_migration.py`
+deferred until previous-release fixtures are available.
 
 ## Current Working Thesis
 
@@ -137,56 +139,94 @@ until previous-release fixtures are available.
 
 ## Current Follow-On Candidates
 
+Reading rule for this section:
+
+- when older tranche notes later in this file say things like "the next owned
+  follow-on remains `feature_coinstatsindex_compatibility.py`", treat those
+  as tranche-local historical snapshots only
+- the controlling current repo-wide handoff is the live recommendation in this
+  section, which now treats `mining_prioritisetransaction.py` as the current
+  next owned CI/docs promotion slice after the later wallet-manager, send-path,
+  CLI hotfix, and merged docs-pack work
+
 Preferred next owned tranche:
 
-1. `feature_coinstatsindex_compatibility.py`
-   - Why next: the core assumeutxo activation surface and the adjacent
-     wallet-side background-sync surface are now frozen, so the remaining
-     nearby chainstate/index follow-on is cross-version coinstats
-     compatibility once real prior PQBTC release assets exist.
+1. `mining_prioritisetransaction.py`
+   - Why next: the docs-pack PR `#84` is already merged, the
+     `mining_mainnet.py` CI/docs promotion has now already landed in the live
+     repo, the nearby asset-dependent compatibility backlog remains blocked
+     locally, and the smallest unblocked repo-local `pq_backlog` follow-on is
+     now the inherited mining fee-delta policy gate promotion.
+   - Exact files for that next PR:
+     - `ci/test/pq_functional_tests.txt`
+     - `ci/test/functional_suite_inventory.json`
+     - `docs/CI_COMPLETENESS.md`
+     - `docs/MINING_BASIC_POSTURE.md`
+     - `docs/MINING_GETBLOCKTEMPLATE_LONGPOLL_POSTURE.md`
+     - `docs/MINING_MAINNET_POSTURE.md`
+     - new `docs/MINING_PRIORITISETRANSACTION_POSTURE.md`
+   - Why that file list is exact:
+     - merged PR `#84` touched docs only, but none of its files overlap the
+       seven exact `mining_prioritisetransaction.py` promotion files
+     - `mining_prioritisetransaction.py` is still absent from
+       `ci/test/pq_functional_tests.txt`
+     - `mining_prioritisetransaction.py` still has `policy_class: pq_backlog` in
+       `ci/test/functional_suite_inventory.json`
+     - that live inventory entry still carries only the generic backlog note;
+       the bounded promotion slice should replace it with the specific
+       fee-delta accounting gate summary that the live required mempool posture
+       docs already describe
+     - `docs/CI_COMPLETENESS.md` still shows the pre-promotion
+       inventory-summary counts (`pq_required` `118`, `pq_backlog` `7`)
+       and still does not mention `mining_prioritisetransaction.py`
+     - `python3 ci/test/check_ci_inventory.py` already passes on the live
+       pre-promotion inventory, so there is no separate validator-repair task
+       hidden inside this slice
+     - `docs/MINING_PRIORITISETRANSACTION_POSTURE.md` still does not exist
+     - `docs/MINING_BASIC_POSTURE.md` and
+       `docs/MINING_GETBLOCKTEMPLATE_LONGPOLL_POSTURE.md`, plus the newly
+       promoted `docs/MINING_MAINNET_POSTURE.md`, already point at
+       `mining_prioritisetransaction.py` as the adjacent candidate
+     - after this promotion lands, those three adjacent mining posture docs,
+       plus the new `docs/MINING_PRIORITISETRANSACTION_POSTURE.md`, should
+       advance their local next-candidate note to
+       `mining_template_verification.py`
+   - Minimum validation only:
+     - `build/test/functional/test_runner.py --jobs=1 mining_prioritisetransaction.py`
+   - Recovery-path note:
+     - the older stale salvage branch and detached recovery worktrees are now
+       historical to the already-landed `mining_mainnet.py` slice, not this
+       next tranche
+     - the safe next move for this follow-on remains a fresh branch from the
+       current mainline state rather than any reuse of that stale
+       `mining_mainnet.py` salvage patch
+   - What stays deferred:
+     - `feature_coinstatsindex_compatibility.py`
+     - `feature_unsupported_utxo_db.py`
+     - `mempool_compatibility.py`
+     - `wallet_backwards_compatibility.py`
+     - `wallet_migration.py`
+     - `mining_template_verification.py`
+     - all six remain live `pq_backlog` entries today
+     - the full live `pq_backlog` set is seven entries today because
+       `mining_prioritisetransaction.py` itself is still backlog until this
+       promotion slice lands
 
-Alternate rebalance:
+Alternate when release fixtures exist:
 
-2. Remaining repo-local `pq_backlog` triage
-   - Why alternate: if the asset-dependent coinstats compatibility path stays
-     blocked locally, the restart/reindex family is now covered by required
-     gates for generic restart-time reindex, init-time block-index recovery,
-     and read-only blockstore recovery, and the unknown-versionbits warning
-     BIP68 sequence-lock, CLTV, and CSV activation surfaces are now covered by
-     the required gate, so the next local step should be a fresh bounded
-     migration decision outside those surfaces,
-     without re-litigating the now-owned descriptor, miniscript, address/RPC,
-     raw funding, inherited send-path, rebroadcast, reindex, fast-rescan,
-     unconfirmed-rescan, reorg-restore, transaction-time-rescan, backup,
-     startup, blank-wallet, createwallet, multiwallet, descriptor, encryption,
-     HD, keypool, descriptor-listing, accounting, label, transaction-listing,
-     coin-selection, spend-policy, bumpfee/conflict, basic wallet,
-     transaction-construction, simulation, raw-signing, and import-descriptor
-     tranches, or the current import-pruned-funds, timelock, orphaned reward,
-     v3/TRUC transaction, descriptor-creation, and cross-chain wallet-file
-     tranches, or the current block storage, prune-lifecycle, broad pruning,
-     bootstrap/import, txoutset-hash, txoutset/index, restart/reindex,
-     init-recovery, read-only blockstore, versionbits-warning, and
-     sequence-lock, CLTV, CSV-activation, raw mempool-acceptance,
-     wtxid-aware mempool-acceptance, datacarrier, dust, ephemeral-dust,
-     expiry, mempool-limit, package-limit, and one-more-descendant carveout
-     tranches, plus package RBF, package accounting, persistence, reorg,
-     resurrection, sigop resource-envelope, coinbase-spend maturity, and TRUC
-     policy, plus unbroadcast delivery and update-from-block reorg accounting.
-     The broad inherited mining RPC and block-template gate is now represented
-     too, and getblocktemplate longpoll wakeup behavior is now represented as
-     the adjacent mining RPC slice.
-     `wallet_backwards_compatibility.py`, `wallet_migration.py`, and
-     `feature_coinstatsindex_compatibility.py` stay blocked until
-     prior-release assets are available; `feature_unsupported_utxo_db.py` is
-     also previous-release dependent and skipped locally without those assets,
-     and `mempool_compatibility.py` is previous-release dependent too.
+2. `feature_coinstatsindex_compatibility.py`
+   - Why alternate: it remains the preferred nearby chainstate/index follow-on
+     once real prior PQBTC release assets exist locally.
 
 Still deferred:
 
 3. TapMiniscript activation or replacement semantics
 
-## Current Queue
+## Historical Queue Ledger
+
+Entries below are the tranche-by-tranche freeze ledger. Use Current Follow-On
+Candidates above as the controlling live next-PR handoff when this historical
+queue differs from the current repo-wide recommendation.
 
 1. This slice freezes `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
    as:
@@ -1477,7 +1517,7 @@ Still deferred:
    - `mempool_compatibility.py`, `feature_unsupported_utxo_db.py`, and
      `feature_coinstatsindex_compatibility.py`, which remain blocked until
      real prior PQBTC release assets exist
-68. Recommended next PR after this tranche:
+68. Historical next PR after this tranche at the time:
    - preferred: `feature_coinstatsindex_compatibility.py`
    - alternate: `mining_mainnet.py` as the next local mining policy
      candidate after a fresh targeted pass, while
@@ -1490,6 +1530,10 @@ Still deferred:
      CSV activation, and broad pruning surfaces are now represented in the
      required gate, so any local alternate should be a fresh bounded migration
      decision outside those surfaces
+   - this dated tranche note is now superseded by the live repo-local handoff
+     in `Current Follow-On Candidates` above, which treats
+     `mining_prioritisetransaction.py` as the current next owned slice after
+     the later wallet-manager, send-path, CLI hotfix, and merged docs-pack work
    - the first two inherited mempool acceptance gates plus datacarrier, dust,
      ephemeral-dust, expiry, limit, package-limit, and one-more-descendant
      carveout policy are now frozen, and package RBF plus package accounting
@@ -1659,6 +1703,9 @@ Aineko must ask before:
 - `OPS_SLO.md`
 
 ## Decision Log
+
+Entries below are dated decision snapshots. Use Current Follow-On Candidates
+above as the controlling live next-PR handoff when these older notes disagree.
 
 - 2026-04-06: Track A confirmed as the repo anchor. No Liquid/Simplicity reset.
 - 2026-04-13: `SHRINCS_DECISION_TRACK.md` added to keep SHRINCS-family
@@ -2525,7 +2572,10 @@ Aineko must ask before:
   legacy-compatible PQC profile. The next owned follow-on remains
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
   assets exist; otherwise the adjacent local mining candidate is
-  `mining_mainnet.py` after a fresh targeted pass.
+  `mining_mainnet.py` after a fresh targeted pass. That dated note is now
+  superseded by the live repo-local handoff above, which treats
+  `mining_prioritisetransaction.py` as the current next owned CI/docs
+  promotion slice.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -2567,6 +2617,11 @@ Aineko must ask before:
 
 ## Blockers
 
+- There is no current local blocker for the bounded
+  `mining_prioritisetransaction.py` promotion slice: the live harness already
+  passes, the CI inventory validator already passes, and the remaining work is
+  the owned CI/docs promotion of that gate rather than additional harness or
+  consensus-surface repair.
 - `feature_coinstatsindex_compatibility.py` remains blocked until real prior
   PQBTC release assets are available to the compatibility harness.
 - `feature_unsupported_utxo_db.py` remains blocked locally until real prior
