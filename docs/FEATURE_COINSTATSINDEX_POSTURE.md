@@ -66,3 +66,8 @@ Targeted confidence pass run on 2026-04-30:
 - the environment-dependent alternate is
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py),
   which stays relevant when previous-release test data is available
+- that compatibility alternate remains blocked by the explicit prior-release
+  asset boundary in
+  [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md):
+  the current harness needs PQBTC `v28.2` `pqbtcd` and `pqbtc-cli` binaries in
+  the previous-release layout before it can be promoted honestly

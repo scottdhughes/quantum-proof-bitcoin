@@ -532,7 +532,9 @@ The remaining key backlog families are:
 
 1. prior-release-dependent mempool, validation, chainstate, and wallet
    compatibility suites that require real PQBTC release assets before they can
-   receive a durable required-gate decision
+   receive a durable required-gate decision; see
+   [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md) for
+   the exact current asset layout and blocker
 2. broader dual-profile and legacy-only coverage that still needs durable
    ownership and migration boundaries
 
