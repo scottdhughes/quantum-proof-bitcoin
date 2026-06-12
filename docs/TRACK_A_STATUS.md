@@ -16,9 +16,11 @@ active, use this file to choose the next safe step for `quantum-proof-bitcoin`.
 
 Keep the live `pq_required` gate aligned with the repo as it exists today.
 `mining_prioritisetransaction.py` is already promoted in the live inventory,
-there are no longer any open PRs claiming the adjacent bookkeeping files, and
-the next owned bounded follow-on is now the
-`mining_template_verification.py` promotion slice itself.
+and PR `#156` has now landed the adjacent
+`mining_template_verification.py` promotion files. The next owned follow-on is
+now the asset-dependent
+`feature_coinstatsindex_compatibility.py` promotion when real prior PQBTC
+release assets exist locally.
 
 ## Current Working Thesis
 
@@ -34,51 +36,49 @@ the next owned bounded follow-on is now the
 
 Preferred next owned tranche:
 
-1. `mining_template_verification.py` promotion slice
-   - Why next: `mining_basic.py`, `mining_getblocktemplate_longpoll.py`,
-     `mining_mainnet.py`, and `mining_prioritisetransaction.py` are already
-     represented in `pq_required`, and
-     `mining_template_verification.py` is now the adjacent mining backlog
-     suite with a passing low-cost targeted run in the live tree.
+1. `feature_coinstatsindex_compatibility.py` promotion slice after real prior
+   PQBTC release assets exist locally
+   - Why next: now that `mining_template_verification.py` has landed, the
+     remaining `pq_backlog` is five asset-dependent suites, and
+     `feature_coinstatsindex_compatibility.py` is the nearest
+     chainstate/index compatibility follow-on already named by the adjacent
+     required posture notes.
    - Exact files for the next PR:
      - `ci/test/pq_functional_tests.txt`
      - `ci/test/functional_suite_inventory.json`
      - `docs/CI_COMPLETENESS.md`
-     - `docs/MINING_BASIC_POSTURE.md`
-     - `docs/MINING_GETBLOCKTEMPLATE_LONGPOLL_POSTURE.md`
-     - `docs/MINING_MAINNET_POSTURE.md`
-     - `docs/MINING_PRIORITISETRANSACTION_POSTURE.md`
-     - `docs/MINING_TEMPLATE_VERIFICATION_POSTURE.md`
+     - `docs/FEATURE_COINSTATSINDEX_POSTURE.md`
    - Minimum validation only:
-     - `build/test/functional/test_runner.py --jobs=1 mining_template_verification.py`
+     - `build/test/functional/test_runner.py --jobs=1 feature_coinstatsindex_compatibility.py`
+     - expected local precondition: real prior PQBTC release assets must exist
+       locally or the suite remains skipped
    - Stays deferred:
-     - `feature_coinstatsindex_compatibility.py`
      - `feature_unsupported_utxo_db.py`
      - `mempool_compatibility.py`
      - `wallet_backwards_compatibility.py`
      - `wallet_migration.py`
-     - broader mining policy or resource-envelope claims beyond the inherited
-       `mining_template_verification.py` functional contract
+     - broader prior-release wallet and mempool migration decisions beyond the
+       bounded coinstats compatibility gate
 
 Alternate rebalance:
 
-2. Asset-dependent backlog only
-   - Why alternate: after the mining-template slice, every remaining
-     `pq_backlog` suite depends on prior-release assets that do not yet exist
-     in the local tree.
+2. No new local `pq_backlog` promotion until prior-release assets exist
+   - Why alternate: PR `#156` already landed the
+     `mining_template_verification.py` bookkeeping files, and every remaining
+     `pq_backlog` suite is blocked on prior-release assets rather than another
+     cheap local mining or mempool pass.
 
 ## Current Queue
 
 1. Keep this handoff synced to the live inventory state:
-   - `pq_required`: 119
-   - `pq_backlog`: 6
-   - active next bounded slice: `mining_template_verification.py`
-2. Open the bounded `mining_template_verification.py` CI/docs promotion slice
-   when someone is ready to take it, because no open PR currently claims the
-   shared bookkeeping files it needs.
-3. After the next bounded mining promotion lands, reassess the remaining
-   backlog, which should collapse to the five asset-dependent suites listed in
-   the deferred set above.
+   - `pq_required`: 120
+   - `pq_backlog`: 5
+   - latest landed bounded slice: `mining_template_verification.py` in PR
+     `#156`
+2. When real prior PQBTC release assets exist locally, open the bounded
+   `feature_coinstatsindex_compatibility.py` promotion slice.
+3. Until those assets exist, the remaining backlog stays deferred to the five
+   asset-dependent suites listed above.
 
 
 ## Historical Queue Ledger
@@ -1391,8 +1391,10 @@ queue differs from the current repo-wide recommendation.
      decision outside those surfaces
    - this dated tranche note is now superseded by the live repo-local handoff
      in `Current Follow-On Candidates` above; the intervening
-     `mining_prioritisetransaction.py` slice has since landed, and the live
-     next owned slice is now `mining_template_verification.py`
+     `mining_prioritisetransaction.py` and `mining_template_verification.py`
+     slices have since landed, and the live next owned slice is now the
+     asset-dependent `feature_coinstatsindex_compatibility.py` promotion once
+     real prior PQBTC release assets exist locally
    - the first two inherited mempool acceptance gates plus datacarrier, dust,
      ephemeral-dust, expiry, limit, package-limit, and one-more-descendant
      carveout policy are now frozen, and package RBF plus package accounting
@@ -2432,10 +2434,11 @@ above as the controlling live next-PR handoff when these older notes disagree.
   `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
   assets exist; otherwise the adjacent local mining candidate is
   `mining_mainnet.py` after a fresh targeted pass. That dated note was later
-  followed by the now-landed `mining_prioritisetransaction.py` slice and is
-  superseded by the live repo-local handoff above, which now treats
-  `mining_template_verification.py` as the current next owned CI/docs
-  promotion slice.
+  followed by the now-landed `mining_prioritisetransaction.py` and
+  `mining_template_verification.py` slices and is superseded by the live
+  repo-local handoff above, which now treats the asset-dependent
+  `feature_coinstatsindex_compatibility.py` promotion as the next owned slice
+  once real prior PQBTC release assets exist locally.
 - 2026-04-06: Full `OPS_SLO` evidence bundle refreshed at
   `docs/artifacts/ops-slo/2026-04-06` and validated at signoff.
 - 2026-04-06: Targeted `OPS_SLO` sanity check completed without running the full
@@ -2477,10 +2480,9 @@ above as the controlling live next-PR handoff when these older notes disagree.
 
 ## Blockers
 
-- There is no current local blocker for the bounded
-  `mining_template_verification.py` promotion slice: the live harness already
-  passes, the CI inventory validator already passes, and there are currently no
-  open PRs claiming the shared bookkeeping files this next slice needs.
+- There is no current low-cost repo-local `pq_backlog` slice after the landed
+  `mining_template_verification.py` promotion; the remaining backlog requires
+  prior-release assets before another durable gate decision.
 - `feature_coinstatsindex_compatibility.py` remains blocked until real prior
   PQBTC release assets are available to the compatibility harness.
 - `feature_unsupported_utxo_db.py` remains blocked until real prior PQBTC
@@ -2492,5 +2494,5 @@ above as the controlling live next-PR handoff when these older notes disagree.
 - `wallet_migration.py` remains blocked until prior wallet fixtures are
   available.
 - There is no current low-cost local validation blocker on
-  `mining_template_verification.py`; the targeted functional run passes in the
-  live tree.
+  `mining_template_verification.py`; the targeted functional run passed in the
+  live tree and the promotion work landed in PR `#156`.
