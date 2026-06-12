@@ -22,6 +22,14 @@ now the asset-dependent
 `feature_coinstatsindex_compatibility.py` promotion when real prior PQBTC
 release assets exist locally.
 
+The current asset boundary is recorded in
+[PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md). The
+compatibility harness maps `280200` to `v28.2` and expects PQBTC-named
+previous-release binaries at `releases/v28.2/bin/pqbtcd` and
+`releases/v28.2/bin/pqbtc-cli` unless `PREVIOUS_RELEASES_DIR` points at an
+equivalent layout. Current inspection found no such local assets, and the
+available GitHub release assets are not executable previous-release binaries.
+
 ## Current Working Thesis
 
 - `quantum-proof-bitcoin` stays on Track A: native post-quantum Bitcoin.
@@ -77,8 +85,10 @@ Alternate rebalance:
      `#156`
 2. When real prior PQBTC release assets exist locally, open the bounded
    `feature_coinstatsindex_compatibility.py` promotion slice.
-3. Until those assets exist, the remaining backlog stays deferred to the five
-   asset-dependent suites listed above.
+3. Until those assets exist, do not promote another `pq_backlog` suite. The
+   remaining backlog stays deferred to the five asset-dependent suites listed
+   above and in
+   [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md).
 
 
 ## Historical Queue Ledger
@@ -2483,6 +2493,11 @@ above as the controlling live next-PR handoff when these older notes disagree.
 - There is no current low-cost repo-local `pq_backlog` slice after the landed
   `mining_template_verification.py` promotion; the remaining backlog requires
   prior-release assets before another durable gate decision.
+- The exact prior-release asset precondition is documented in
+  [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md):
+  the immediate compatibility harness needs PQBTC `v28.2` binaries named
+  `pqbtcd` and `pqbtc-cli` in the previous-release layout, with source and
+  checksums recorded before any gate promotion.
 - `feature_coinstatsindex_compatibility.py` remains blocked until real prior
   PQBTC release assets are available to the compatibility harness.
 - `feature_unsupported_utxo_db.py` remains blocked until real prior PQBTC
