@@ -17,9 +17,10 @@ active, use this file to choose the next safe step for `quantum-proof-bitcoin`.
 Keep the live `pq_required` gate aligned with the repo as it exists today.
 `mining_prioritisetransaction.py` is already promoted in the live inventory,
 and PR `#156` has now landed the adjacent
-`mining_template_verification.py` promotion files. The current bounded decision
-classifies `feature_coinstatsindex_compatibility.py` as `legacy_only` because no
-PQBTC v28.2 release lineage or compatible prior-release artifact exists.
+`mining_template_verification.py` promotion files. PR `#159` classified
+`feature_coinstatsindex_compatibility.py` as `legacy_only`. The current bounded
+decision does the same for `feature_unsupported_utxo_db.py` because its old
+database fixture comes from Bitcoin Core v0.14.3, not a prior PQBTC release.
 
 The current asset boundary is recorded in
 [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md). The
@@ -29,7 +30,9 @@ previous-release binaries at `releases/v28.2/bin/pqbtcd` and
 equivalent layout. The source audit found no authentic PQBTC artifact matching
 that contract; the available v1 tags identify as v30.2 and already use the
 fixed coinstats-index path. The suite remains inherited reference coverage, not
-a skipped candidate for promotion.
+a skipped candidate for promotion. The unsupported-UTXO suite has the same
+provenance boundary: Track A does not support migrating a Bitcoin Core 0.14
+datadir into the new PQBTC chain.
 
 ## Current Working Thesis
 
@@ -45,11 +48,12 @@ a skipped candidate for promotion.
 
 Preferred next owned tranche:
 
-1. `feature_unsupported_utxo_db.py` one-suite PQ relevance decision
-   - Why next: after resolving the coinstats compatibility boundary, this is
-     the next chainstate-facing previous-release suite in the remaining
-     `pq_backlog`. It hard-codes v0.14.3 and needs an explicit decision about
-     whether that inherited database format belongs on PQBTC's migration path.
+1. `mempool_compatibility.py` one-suite PQ relevance decision
+   - Why next: after resolving the two chainstate-facing previous-release
+     boundaries, this is the next suite in the remaining `pq_backlog`. It
+     hard-codes Bitcoin Core v0.20.1 and needs an explicit decision about
+     whether bidirectional `mempool.dat` compatibility belongs on PQBTC's
+     migration path.
    - Exact files for the next PR:
      - `ci/test/functional_suite_inventory.json`
      - `docs/CI_COMPLETENESS.md`
@@ -57,20 +61,19 @@ Preferred next owned tranche:
      - `docs/TRACK_A_STATUS.md`
    - Minimum validation only:
      - `python3 ci/test/check_ci_inventory.py`
-     - `build/test/functional/test_runner.py --jobs=1 feature_unsupported_utxo_db.py`
+     - `build/test/functional/test_runner.py --jobs=1 mempool_compatibility.py`
      - expected local result without authentic prior assets: skipped, which is
        boundary evidence rather than promotion evidence
    - Stays deferred:
-     - `mempool_compatibility.py`
      - `wallet_backwards_compatibility.py`
      - `wallet_migration.py`
-     - broader prior-release wallet and mempool migration decisions
+     - broader prior-release wallet migration decisions
 
 Alternate rebalance:
 
-2. Stop after the coinstats classification until authentic prior-release
+2. Stop after the chainstate classifications until authentic prior-release
    evidence exists
-   - Why alternate: the four remaining `pq_backlog` suites all depend on
+   - Why alternate: the three remaining `pq_backlog` suites all depend on
      inherited previous-release formats and may resolve to explicit legacy
      boundaries rather than required PQ gates.
 
@@ -78,15 +81,15 @@ Alternate rebalance:
 
 1. Keep this handoff synced to the live inventory state:
    - `pq_required`: 120
-   - `pq_backlog`: 4
-   - `legacy_only`: 10
-   - latest landed bounded slice: `mining_template_verification.py` in PR
-     `#156`
-2. Land the bounded `feature_coinstatsindex_compatibility.py` legacy-boundary
-   decision without adding the skipped suite to `pq_required`.
-3. Then review `feature_unsupported_utxo_db.py` as the next one-suite PQ
-   relevance decision. The other three prior-release suites remain deferred as
-   listed above and in
+   - `pq_backlog`: 3
+   - `legacy_only`: 11
+   - latest landed bounded slice: `feature_coinstatsindex_compatibility.py`
+     legacy-boundary decision in PR `#159`
+2. Land the bounded `feature_unsupported_utxo_db.py` legacy-boundary decision
+   without adding the skipped suite to `pq_required`.
+3. Then review `mempool_compatibility.py` as the next one-suite PQ relevance
+   decision. The two wallet previous-release suites remain deferred as listed
+   above and in
    [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md).
 
 
