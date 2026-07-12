@@ -113,10 +113,10 @@
   },
   {
     "name": "feature_coinstatsindex_compatibility.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "legacy_only",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Consensus or chainstate-facing coverage should receive an explicit PQ migration decision in later CI follow-up."
+    "notes": "Explicit inherited Bitcoin Core v28.2 coinstats-index migration coverage. This repository has no PQBTC v28.2 release lineage or compatible prior-release binaries, while the available PQBTC v1 tags identify as v30.2 and already use the fixed index path. Retained as legacy_only reference coverage rather than a PQBTC previous-release guarantee or required PQ gate."
   },
   {
     "name": "feature_config_args.py",

@@ -2,12 +2,13 @@
 
 ## Status: ACTIVE
 ## Spec-ID: PREVIOUS-RELEASE-ASSET-BOUNDARY-v1
-## Updated: 2026-06-11
+## Updated: 2026-07-12
 
 ## Purpose
 
-Record the current blocker for previous-release functional suites so Track A
-does not promote skipped compatibility tests as required gates.
+Record the provenance boundary and suite-level decisions for previous-release
+functional coverage so Track A does not promote skipped compatibility tests as
+required gates.
 
 ## Required Harness Shape
 
@@ -40,33 +41,43 @@ Current inspection found no usable previous-release PQBTC binary assets:
   `bitcoin-28.2-*` archives and is therefore not enough to prove a prior-PQBTC
   compatibility gate
 
-## Source Decision
+## Coinstats Compatibility Decision
 
-Do not promote `feature_coinstatsindex_compatibility.py` from `pq_backlog` until
-real PQBTC previous-release binaries are available outside the git-tracked
-tree.
+The 2026-07-12 source audit found no authentic artifact that can satisfy this
+suite's intended PQBTC compatibility claim:
 
-Acceptable sources are:
+- the fork releases still expose no executable PQBTC assets
+- the exact `v1.0.0` workflow run retained only an expired Windows executable
+  bundle, while the `v1.0.0-rc1` run produced no executable artifact
+- both PQBTC v1 tags identify as v30.2 and already contain the fixed
+  `indexes/coinstatsindex` path, so they cannot supply the old v28.2
+  `indexes/coinstats` format under test
+- public artifact search found no separate archived PQBTC binaries
+- the repository's `v28.2` tag remains inherited Bitcoin Core source, not a
+  PQBTC release
 
-1. an existing local PQBTC archive unpacked into the harness layout above
-2. a reproducible build of the intended prior PQBTC release, staged outside
-   git-tracked source and exposed through `PREVIOUS_RELEASES_DIR`
-3. downloaded PQBTC release artifacts with executable binaries and documented
-   checksums
+`feature_coinstatsindex_compatibility.py` is therefore classified as
+`legacy_only`. It remains useful as inherited Bitcoin Core reference coverage,
+but it is not a PQBTC previous-release guarantee and must not enter
+`pq_required` by placing unrelated binaries under a `v28.2` directory name.
 
-When assets exist, record their source and SHA256 checksums before promotion.
-Do not commit large generated binaries or downloaded release payloads.
+## Reconsideration Boundary
+
+Reopen this decision only if an authentic PQBTC release predating the fixed
+coinstats-index path is found and its version and chain parameters match the
+test's compatibility assumptions. Record the source tag or commit, build
+recipe, target platform, and SHA256 checksums before rerunning the suite. Do not
+commit large generated binaries or downloaded release payloads.
 
 ## Remaining Asset-Dependent Suites
 
-The current `pq_backlog` is entirely previous-release or prior-fixture
-dependent:
+After the coinstats compatibility decision, four `pq_backlog` suites remain
+previous-release or prior-fixture dependent and require separate decisions:
 
-1. `feature_coinstatsindex_compatibility.py`
-2. `feature_unsupported_utxo_db.py`
-3. `mempool_compatibility.py`
-4. `wallet_backwards_compatibility.py`
-5. `wallet_migration.py`
+1. `feature_unsupported_utxo_db.py`
+2. `mempool_compatibility.py`
+3. `wallet_backwards_compatibility.py`
+4. `wallet_migration.py`
 
 ## Validation Snapshot
 
@@ -74,7 +85,9 @@ Current local validation without previous-release assets:
 
 - `python3 ci/test/check_ci_inventory.py`
   - result: passed
-  - counts: `pq_required: 120`, `pq_backlog: 5`
+  - counts: `pq_required: 120`, `pq_backlog: 4`, `legacy_only: 10`
 - `build/test/functional/test_runner.py --jobs=1 feature_coinstatsindex_compatibility.py`
   - result: skipped
   - skip reason: previous releases not available or disabled
+  - interpretation: confirms that this run is not evidence for a required PQ
+    gate
