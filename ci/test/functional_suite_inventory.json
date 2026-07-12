@@ -581,10 +581,10 @@
   },
   {
     "name": "mempool_compatibility.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "legacy_only",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Policy and resource-envelope coverage should gain an explicit PQ gating decision in later CI follow-up."
+    "notes": "Explicit inherited Bitcoin Core v0.20.1 bidirectional mempool.dat serialization coverage. This repository has no PQBTC v0.20.1 release lineage, and Track A does not support upgrading from or downgrading to an old Bitcoin Core node. Retained as legacy_only reference coverage rather than a PQBTC previous-release guarantee or required PQ gate."
   },
   {
     "name": "mempool_datacarrier.py",

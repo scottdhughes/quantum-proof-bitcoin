@@ -37,9 +37,9 @@ The current functional corpus has `276` tracked test files, classified as:
 | Class | Count |
 |---|---|
 | `pq_required` | `120` |
-| `pq_backlog` | `3` |
+| `pq_backlog` | `2` |
 | `dual_profile` | `142` |
-| `legacy_only` | `11` |
+| `legacy_only` | `12` |
 
 Current required PQ-first gates:
 
@@ -540,6 +540,12 @@ rejection and reindex behavior, but this repository has no PQBTC v0.14.3
 release lineage and Track A does not support migration from an old Bitcoin Core
 datadir. The mechanics remain useful reference coverage without becoming a
 required PQBTC previous-release gate.
+The inherited `mempool_compatibility.py` suite is now `legacy_only` as well. It
+moves `mempool.dat` in both directions between Bitcoin Core v0.20.1 and the
+current node to enforce an upstream serialization upgrade/downgrade contract.
+PQBTC has no v0.20.1 release lineage and does not support that cross-product
+migration path, so the mechanics remain reference coverage rather than a
+required PQBTC gate.
 The remaining key backlog families are:
 
 1. prior-release-dependent mempool, validation, chainstate, and wallet
@@ -557,6 +563,7 @@ Explicit legacy-only coverage in this tranche includes:
 3. legacy message-signing flows
 4. inherited Bitcoin Core v28.2 coinstats-index migration coverage
 5. inherited Bitcoin Core v0.14.3 chainstate-database migration coverage
+6. inherited Bitcoin Core v0.20.1 `mempool.dat` migration coverage
 
 Inherited Taproot-specific suites remain `legacy_only` in the current CI contract,
 while `feature_taproot_replacement_deployment.py` and

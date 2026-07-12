@@ -31,6 +31,13 @@ node with `version=140300`. The framework maps that version to:
 - `releases/v0.14.3/bin/pqbtcd`
 - `releases/v0.14.3/bin/pqbtc-cli`
 
+The mempool serialization decision covers
+[mempool_compatibility.py](../test/functional/mempool_compatibility.py). That
+suite starts its legacy node with `version=200100`, which maps to:
+
+- `releases/v0.20.1/bin/pqbtcd`
+- `releases/v0.20.1/bin/pqbtc-cli`
+
 If `PREVIOUS_RELEASES_DIR` is set, the same versioned layouts are expected below
 that directory instead.
 
@@ -43,8 +50,8 @@ Current inspection found no usable previous-release PQBTC binary assets:
 - the fork's GitHub releases currently expose no executable release assets:
   - `v1.0.0` has no assets
   - `v1.0.0-rc1` has only `RELEASE_V1_RC1.md` and `RUNBOOK_V1_RC1.md`
-- the checked `v28.2` tag is an inherited signed Bitcoin Core final tag, not a
-  PQBTC release-asset source
+- the checked `v28.2`, `v0.14.3`, and `v0.20.1` tags are inherited signed
+  Bitcoin Core releases, not PQBTC release-asset sources
 - `test/get_previous_releases.py` downloads upstream Bitcoin Core
   `bitcoin-28.2-*` archives and is therefore not enough to prove a prior-PQBTC
   compatibility gate
@@ -84,9 +91,25 @@ prove a prior-PQBTC compatibility guarantee. `feature_unsupported_utxo_db.py`
 is therefore classified as `legacy_only` reference coverage and remains
 outside `pq_required`.
 
+## Mempool Compatibility Decision
+
+The 2026-07-12 repository audit confirms that `v0.20.1` is an inherited signed
+Bitcoin Core release whose source tree builds `bitcoind` and `bitcoin-cli` and
+contains no PQBTC or PQ signature implementation. The suite moves
+`mempool.dat` from the old node to the current node, adds current serialization
+state, then moves the file back to the old node and requires both transactions
+to load.
+
+That bidirectional contract protects a Bitcoin Core upgrade and downgrade path
+that PQBTC never shipped and does not support. Building or renaming the
+inherited Bitcoin binaries could exercise the file-format mechanics, but it
+would not prove prior-PQBTC compatibility. `mempool_compatibility.py` is
+therefore classified as `legacy_only` reference coverage and remains outside
+`pq_required`.
+
 ## Reconsideration Boundaries
 
-Reopen either decision only if an authentic PQBTC release matching the suite's
+Reopen these decisions only if an authentic PQBTC release matching the suite's
 historical format, version, and chain assumptions is found. Record the source
 tag or commit, build recipe, target platform, and SHA256 checksums before
 rerunning the suite. Do not commit large generated binaries or downloaded
@@ -94,13 +117,12 @@ release payloads.
 
 ## Remaining Asset-Dependent Suites
 
-After the coinstats and unsupported-UTXO decisions, three `pq_backlog` suites
-remain previous-release or prior-fixture dependent and require separate
+After the coinstats, unsupported-UTXO, and mempool decisions, two `pq_backlog`
+suites remain previous-release or prior-fixture dependent and require separate
 decisions:
 
-1. `mempool_compatibility.py`
-2. `wallet_backwards_compatibility.py`
-3. `wallet_migration.py`
+1. `wallet_backwards_compatibility.py`
+2. `wallet_migration.py`
 
 ## Validation Snapshot
 
@@ -108,8 +130,8 @@ Current local validation without previous-release assets:
 
 - `python3 ci/test/check_ci_inventory.py`
   - result: passed
-  - counts: `pq_required: 120`, `pq_backlog: 3`, `legacy_only: 11`
-- `build/test/functional/test_runner.py --jobs=1 feature_unsupported_utxo_db.py`
+  - counts: `pq_required: 120`, `pq_backlog: 2`, `legacy_only: 12`
+- `build/test/functional/test_runner.py --jobs=1 mempool_compatibility.py`
   - result: skipped
   - skip reason: previous releases not available or disabled
   - interpretation: confirms that this run is not evidence for a required PQ
