@@ -10,9 +10,9 @@ Record the provenance boundary and suite-level decisions for previous-release
 functional coverage so Track A does not promote skipped compatibility tests as
 required gates.
 
-## Required Harness Shape
+## Observed Harness Shapes
 
-The immediate Track A candidate is
+The resolved coinstats decision covers
 [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py).
 That suite calls `skip_if_no_previous_releases()` and starts two nodes with
 `versions=[None, 280200]`.
@@ -23,8 +23,16 @@ default local layout is:
 - `releases/v28.2/bin/pqbtcd`
 - `releases/v28.2/bin/pqbtc-cli`
 
-If `PREVIOUS_RELEASES_DIR` is set, the same `v28.2/bin/pqbtcd` and
-`v28.2/bin/pqbtc-cli` layout is expected below that directory instead.
+The unsupported-UTXO decision covers
+[feature_unsupported_utxo_db.py](../test/functional/feature_unsupported_utxo_db.py).
+That suite also calls `skip_if_no_previous_releases()` and starts its legacy
+node with `version=140300`. The framework maps that version to:
+
+- `releases/v0.14.3/bin/pqbtcd`
+- `releases/v0.14.3/bin/pqbtc-cli`
+
+If `PREVIOUS_RELEASES_DIR` is set, the same versioned layouts are expected below
+that directory instead.
 
 ## Current Local State
 
@@ -61,23 +69,38 @@ suite's intended PQBTC compatibility claim:
 but it is not a PQBTC previous-release guarantee and must not enter
 `pq_required` by placing unrelated binaries under a `v28.2` directory name.
 
-## Reconsideration Boundary
+## Unsupported UTXO DB Decision
 
-Reopen this decision only if an authentic PQBTC release predating the fixed
-coinstats-index path is found and its version and chain parameters match the
-test's compatibility assumptions. Record the source tag or commit, build
-recipe, target platform, and SHA256 checksums before rerunning the suite. Do not
-commit large generated binaries or downloaded release payloads.
+The 2026-07-12 repository audit confirms that `v0.14.3` is an inherited signed
+Bitcoin Core release. Its source tree builds `bitcoind` and `bitcoin-cli` and
+contains no PQBTC or PQ signature implementation. The functional suite uses it
+to create an old Bitcoin chainstate database before checking current-node
+rejection and `-reindex-chainstate` recovery.
+
+Track A launches PQBTC as a new chain at block 0 and does not support migrating
+a Bitcoin Core 0.14 datadir into PQBTC. Building or renaming the inherited
+Bitcoin binaries could exercise the old database mechanics, but it would not
+prove a prior-PQBTC compatibility guarantee. `feature_unsupported_utxo_db.py`
+is therefore classified as `legacy_only` reference coverage and remains
+outside `pq_required`.
+
+## Reconsideration Boundaries
+
+Reopen either decision only if an authentic PQBTC release matching the suite's
+historical format, version, and chain assumptions is found. Record the source
+tag or commit, build recipe, target platform, and SHA256 checksums before
+rerunning the suite. Do not commit large generated binaries or downloaded
+release payloads.
 
 ## Remaining Asset-Dependent Suites
 
-After the coinstats compatibility decision, four `pq_backlog` suites remain
-previous-release or prior-fixture dependent and require separate decisions:
+After the coinstats and unsupported-UTXO decisions, three `pq_backlog` suites
+remain previous-release or prior-fixture dependent and require separate
+decisions:
 
-1. `feature_unsupported_utxo_db.py`
-2. `mempool_compatibility.py`
-3. `wallet_backwards_compatibility.py`
-4. `wallet_migration.py`
+1. `mempool_compatibility.py`
+2. `wallet_backwards_compatibility.py`
+3. `wallet_migration.py`
 
 ## Validation Snapshot
 
@@ -85,8 +108,8 @@ Current local validation without previous-release assets:
 
 - `python3 ci/test/check_ci_inventory.py`
   - result: passed
-  - counts: `pq_required: 120`, `pq_backlog: 4`, `legacy_only: 10`
-- `build/test/functional/test_runner.py --jobs=1 feature_coinstatsindex_compatibility.py`
+  - counts: `pq_required: 120`, `pq_backlog: 3`, `legacy_only: 11`
+- `build/test/functional/test_runner.py --jobs=1 feature_unsupported_utxo_db.py`
   - result: skipped
   - skip reason: previous releases not available or disabled
   - interpretation: confirms that this run is not evidence for a required PQ

@@ -469,10 +469,10 @@
   },
   {
     "name": "feature_unsupported_utxo_db.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "legacy_only",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Previous-release-dependent chainstate coverage; skipped locally until real prior PQBTC release assets are available to the compatibility harness."
+    "notes": "Explicit inherited Bitcoin Core v0.14.3 chainstate-database migration coverage. This repository has no PQBTC v0.14.3 release lineage, and Track A launches PQBTC as a new chain rather than supporting migration from a Bitcoin Core 0.14 datadir. Retained as legacy_only reference coverage rather than a PQBTC previous-release guarantee or required PQ gate."
   },
   {
     "name": "feature_utxo_set_hash.py",

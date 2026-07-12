@@ -37,9 +37,9 @@ The current functional corpus has `276` tracked test files, classified as:
 | Class | Count |
 |---|---|
 | `pq_required` | `120` |
-| `pq_backlog` | `4` |
+| `pq_backlog` | `3` |
 | `dual_profile` | `142` |
-| `legacy_only` | `10` |
+| `legacy_only` | `11` |
 
 Current required PQ-first gates:
 
@@ -534,6 +534,12 @@ repository has no PQBTC v28.2 release lineage or authentic compatible binaries.
 The available PQBTC v1 tags identify as v30.2 and cannot supply the old index
 format the suite is intended to exercise. This classification records the
 boundary without promoting a skipped test or fabricating release provenance.
+The inherited `feature_unsupported_utxo_db.py` suite is also now `legacy_only`:
+it creates a Bitcoin Core v0.14.3 chainstate database and checks current-node
+rejection and reindex behavior, but this repository has no PQBTC v0.14.3
+release lineage and Track A does not support migration from an old Bitcoin Core
+datadir. The mechanics remain useful reference coverage without becoming a
+required PQBTC previous-release gate.
 The remaining key backlog families are:
 
 1. prior-release-dependent mempool, validation, chainstate, and wallet
@@ -550,6 +556,7 @@ Explicit legacy-only coverage in this tranche includes:
 2. SegWit/pre-SegWit transition tests
 3. legacy message-signing flows
 4. inherited Bitcoin Core v28.2 coinstats-index migration coverage
+5. inherited Bitcoin Core v0.14.3 chainstate-database migration coverage
 
 Inherited Taproot-specific suites remain `legacy_only` in the current CI contract,
 while `feature_taproot_replacement_deployment.py` and
