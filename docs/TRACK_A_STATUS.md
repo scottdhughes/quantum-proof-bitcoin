@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-06-11
+## Updated: 2026-07-12
 ## Current Phase: Phase 1 - Wallet And Block Surface Expansion
 
 ## Purpose
@@ -17,18 +17,19 @@ active, use this file to choose the next safe step for `quantum-proof-bitcoin`.
 Keep the live `pq_required` gate aligned with the repo as it exists today.
 `mining_prioritisetransaction.py` is already promoted in the live inventory,
 and PR `#156` has now landed the adjacent
-`mining_template_verification.py` promotion files. The next owned follow-on is
-now the asset-dependent
-`feature_coinstatsindex_compatibility.py` promotion when real prior PQBTC
-release assets exist locally.
+`mining_template_verification.py` promotion files. The current bounded decision
+classifies `feature_coinstatsindex_compatibility.py` as `legacy_only` because no
+PQBTC v28.2 release lineage or compatible prior-release artifact exists.
 
 The current asset boundary is recorded in
 [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md). The
 compatibility harness maps `280200` to `v28.2` and expects PQBTC-named
 previous-release binaries at `releases/v28.2/bin/pqbtcd` and
 `releases/v28.2/bin/pqbtc-cli` unless `PREVIOUS_RELEASES_DIR` points at an
-equivalent layout. Current inspection found no such local assets, and the
-available GitHub release assets are not executable previous-release binaries.
+equivalent layout. The source audit found no authentic PQBTC artifact matching
+that contract; the available v1 tags identify as v30.2 and already use the
+fixed coinstats-index path. The suite remains inherited reference coverage, not
+a skipped candidate for promotion.
 
 ## Current Working Thesis
 
@@ -44,50 +45,48 @@ available GitHub release assets are not executable previous-release binaries.
 
 Preferred next owned tranche:
 
-1. `feature_coinstatsindex_compatibility.py` promotion slice after real prior
-   PQBTC release assets exist locally
-   - Why next: now that `mining_template_verification.py` has landed, the
-     remaining `pq_backlog` is five asset-dependent suites, and
-     `feature_coinstatsindex_compatibility.py` is the nearest
-     chainstate/index compatibility follow-on already named by the adjacent
-     required posture notes.
+1. `feature_unsupported_utxo_db.py` one-suite PQ relevance decision
+   - Why next: after resolving the coinstats compatibility boundary, this is
+     the next chainstate-facing previous-release suite in the remaining
+     `pq_backlog`. It hard-codes v0.14.3 and needs an explicit decision about
+     whether that inherited database format belongs on PQBTC's migration path.
    - Exact files for the next PR:
-     - `ci/test/pq_functional_tests.txt`
      - `ci/test/functional_suite_inventory.json`
      - `docs/CI_COMPLETENESS.md`
-     - `docs/FEATURE_COINSTATSINDEX_POSTURE.md`
+     - `docs/PREVIOUS_RELEASE_ASSET_BOUNDARY.md`
+     - `docs/TRACK_A_STATUS.md`
    - Minimum validation only:
-     - `build/test/functional/test_runner.py --jobs=1 feature_coinstatsindex_compatibility.py`
-     - expected local precondition: real prior PQBTC release assets must exist
-       locally or the suite remains skipped
+     - `python3 ci/test/check_ci_inventory.py`
+     - `build/test/functional/test_runner.py --jobs=1 feature_unsupported_utxo_db.py`
+     - expected local result without authentic prior assets: skipped, which is
+       boundary evidence rather than promotion evidence
    - Stays deferred:
-     - `feature_unsupported_utxo_db.py`
      - `mempool_compatibility.py`
      - `wallet_backwards_compatibility.py`
      - `wallet_migration.py`
-     - broader prior-release wallet and mempool migration decisions beyond the
-       bounded coinstats compatibility gate
+     - broader prior-release wallet and mempool migration decisions
 
 Alternate rebalance:
 
-2. No new local `pq_backlog` promotion until prior-release assets exist
-   - Why alternate: PR `#156` already landed the
-     `mining_template_verification.py` bookkeeping files, and every remaining
-     `pq_backlog` suite is blocked on prior-release assets rather than another
-     cheap local mining or mempool pass.
+2. Stop after the coinstats classification until authentic prior-release
+   evidence exists
+   - Why alternate: the four remaining `pq_backlog` suites all depend on
+     inherited previous-release formats and may resolve to explicit legacy
+     boundaries rather than required PQ gates.
 
 ## Current Queue
 
 1. Keep this handoff synced to the live inventory state:
    - `pq_required`: 120
-   - `pq_backlog`: 5
+   - `pq_backlog`: 4
+   - `legacy_only`: 10
    - latest landed bounded slice: `mining_template_verification.py` in PR
      `#156`
-2. When real prior PQBTC release assets exist locally, open the bounded
-   `feature_coinstatsindex_compatibility.py` promotion slice.
-3. Until those assets exist, do not promote another `pq_backlog` suite. The
-   remaining backlog stays deferred to the five asset-dependent suites listed
-   above and in
+2. Land the bounded `feature_coinstatsindex_compatibility.py` legacy-boundary
+   decision without adding the skipped suite to `pq_required`.
+3. Then review `feature_unsupported_utxo_db.py` as the next one-suite PQ
+   relevance decision. The other three prior-release suites remain deferred as
+   listed above and in
    [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md).
 
 

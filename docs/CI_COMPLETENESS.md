@@ -37,9 +37,9 @@ The current functional corpus has `276` tracked test files, classified as:
 | Class | Count |
 |---|---|
 | `pq_required` | `120` |
-| `pq_backlog` | `5` |
+| `pq_backlog` | `4` |
 | `dual_profile` | `142` |
-| `legacy_only` | `9` |
+| `legacy_only` | `10` |
 
 Current required PQ-first gates:
 
@@ -528,13 +528,19 @@ reject reasons, difficulty, merkle-root, timestamp, and best-prevblk
 boundaries, transaction-bearing proposal checks without UTXO mutation,
 overspend and double-spend rejection, and concurrent proposal validation under
 the current legacy-compatible PQC profile.
+The inherited `feature_coinstatsindex_compatibility.py` suite is now
+`legacy_only`: it hard-codes Bitcoin Core v28.2 migration behavior, but this
+repository has no PQBTC v28.2 release lineage or authentic compatible binaries.
+The available PQBTC v1 tags identify as v30.2 and cannot supply the old index
+format the suite is intended to exercise. This classification records the
+boundary without promoting a skipped test or fabricating release provenance.
 The remaining key backlog families are:
 
 1. prior-release-dependent mempool, validation, chainstate, and wallet
-   compatibility suites that require real PQBTC release assets before they can
-   receive a durable required-gate decision; see
+   compatibility suites that still require individual PQ relevance decisions;
+   see
    [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md) for
-   the exact current asset layout and blocker
+   the current provenance boundary
 2. broader dual-profile and legacy-only coverage that still needs durable
    ownership and migration boundaries
 
@@ -543,6 +549,7 @@ Explicit legacy-only coverage in this tranche includes:
 1. Taproot-specific tests
 2. SegWit/pre-SegWit transition tests
 3. legacy message-signing flows
+4. inherited Bitcoin Core v28.2 coinstats-index migration coverage
 
 Inherited Taproot-specific suites remain `legacy_only` in the current CI contract,
 while `feature_taproot_replacement_deployment.py` and

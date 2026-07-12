@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: FEATURE-COINSTATSINDEX-POSTURE-v1
-## Updated: 2026-04-30
+## Updated: 2026-07-12
 ## Frozen-By: track-a-phase1-20260413
 ## Consensus-Relevant: YES
 
@@ -36,9 +36,11 @@ owns a narrow txoutset/index slice:
 This posture note does **not** mean:
 
 - the inherited default MiniWallet mempool/send path is owned
-- previous-release coinstats index compatibility is owned in this local harness
+- inherited Bitcoin Core v28.2 coinstats-index migration is on the PQBTC
+  migration path
 
-Those remain separate follow-on surfaces.
+The first remains a separate follow-on surface. The second is retained as
+explicit `legacy_only` reference coverage.
 
 ## Confidence Snapshot
 
@@ -63,11 +65,13 @@ Targeted confidence pass run on 2026-04-30:
 - the adjacent restart/index follow-on,
   [feature_reindex.py](../test/functional/feature_reindex.py), is now covered
   by the required gate
-- the environment-dependent alternate is
+- the inherited alternate,
   [feature_coinstatsindex_compatibility.py](../test/functional/feature_coinstatsindex_compatibility.py),
-  which stays relevant when previous-release test data is available
-- that compatibility alternate remains blocked by the explicit prior-release
-  asset boundary in
-  [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md):
-  the current harness needs PQBTC `v28.2` `pqbtcd` and `pqbtc-cli` binaries in
-  the previous-release layout before it can be promoted honestly
+  is now `legacy_only`
+- the compatibility suite hard-codes `versions=[None, 280200]`, but the
+  inherited `v28.2` tag is Bitcoin Core rather than PQBTC, and the available
+  PQBTC v1 tags identify as v30.2 and already use the fixed index path
+- the provenance audit and reconsideration boundary are recorded in
+  [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md)
+- this decision does not claim a passing PQBTC previous-release compatibility
+  test; it prevents a skipped inherited suite from being promoted as one
