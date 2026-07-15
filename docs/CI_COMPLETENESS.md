@@ -37,9 +37,9 @@ The current functional corpus has `276` tracked test files, classified as:
 | Class | Count |
 |---|---|
 | `pq_required` | `120` |
-| `pq_backlog` | `2` |
+| `pq_backlog` | `1` |
 | `dual_profile` | `142` |
-| `legacy_only` | `12` |
+| `legacy_only` | `13` |
 
 Current required PQ-first gates:
 
@@ -546,15 +546,18 @@ current node to enforce an upstream serialization upgrade/downgrade contract.
 PQBTC has no v0.20.1 release lineage and does not support that cross-product
 migration path, so the mechanics remain reference coverage rather than a
 required PQBTC gate.
-The remaining key backlog families are:
-
-1. prior-release-dependent mempool, validation, chainstate, and wallet
-   compatibility suites that still require individual PQ relevance decisions;
-   see
-   [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md) for
-   the current provenance boundary
-2. broader dual-profile and legacy-only coverage that still needs durable
-   ownership and migration boundaries
+The inherited `wallet_backwards_compatibility.py` suite is now `legacy_only`.
+It loads wallets in both directions between the current node and Bitcoin Core
+v0.20.1 through v25.0, covering legacy BDB wallets, descriptor-version
+boundaries, transaction and keypool preservation, and legacy-to-descriptor
+migration behavior. PQBTC never shipped that release lineage and does not
+support those cross-product wallet upgrade and downgrade paths, so the suite
+remains inherited reference coverage rather than a required PQBTC gate.
+The final `pq_backlog` suite is `wallet_migration.py`; it requires a separate
+decision about its inherited Bitcoin Core v28.2 BDB-to-descriptor migration
+contract. See
+[PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md) for
+the current provenance boundary.
 
 Explicit legacy-only coverage in this tranche includes:
 
@@ -564,6 +567,7 @@ Explicit legacy-only coverage in this tranche includes:
 4. inherited Bitcoin Core v28.2 coinstats-index migration coverage
 5. inherited Bitcoin Core v0.14.3 chainstate-database migration coverage
 6. inherited Bitcoin Core v0.20.1 `mempool.dat` migration coverage
+7. inherited Bitcoin Core v0.20.1 through v25.0 wallet upgrade and downgrade coverage
 
 Inherited Taproot-specific suites remain `legacy_only` in the current CI contract,
 while `feature_taproot_replacement_deployment.py` and

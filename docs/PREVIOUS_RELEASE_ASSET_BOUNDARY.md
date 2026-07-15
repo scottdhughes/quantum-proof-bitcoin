@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: PREVIOUS-RELEASE-ASSET-BOUNDARY-v1
-## Updated: 2026-07-12
+## Updated: 2026-07-15
 
 ## Purpose
 
@@ -38,6 +38,14 @@ suite starts its legacy node with `version=200100`, which maps to:
 - `releases/v0.20.1/bin/pqbtcd`
 - `releases/v0.20.1/bin/pqbtc-cli`
 
+The wallet backwards-compatibility decision covers
+[wallet_backwards_compatibility.py](../test/functional/wallet_backwards_compatibility.py).
+That suite calls `skip_if_no_previous_releases()` and starts six historical
+nodes with versions `250000`, `240001`, `230000`, `220000`, `210000`, and
+`200100`. The framework maps them to `v25.0`, `v24.0.1`, `v23.0`, `v22.0`,
+`v0.21.0`, and `v0.20.1`, with `pqbtcd` and `pqbtc-cli` expected under each
+version's `releases/<tag>/bin/` directory.
+
 If `PREVIOUS_RELEASES_DIR` is set, the same versioned layouts are expected below
 that directory instead.
 
@@ -50,8 +58,9 @@ Current inspection found no usable previous-release PQBTC binary assets:
 - the fork's GitHub releases currently expose no executable release assets:
   - `v1.0.0` has no assets
   - `v1.0.0-rc1` has only `RELEASE_V1_RC1.md` and `RUNBOOK_V1_RC1.md`
-- the checked `v28.2`, `v0.14.3`, and `v0.20.1` tags are inherited signed
-  Bitcoin Core releases, not PQBTC release-asset sources
+- the checked `v28.2`, `v0.14.3`, `v0.20.1`, `v0.21.0`, `v22.0`, `v23.0`,
+  `v24.0.1`, and `v25.0` tags are inherited signed Bitcoin Core releases, not
+  PQBTC release-asset sources
 - `test/get_previous_releases.py` downloads upstream Bitcoin Core
   `bitcoin-28.2-*` archives and is therefore not enough to prove a prior-PQBTC
   compatibility gate
@@ -107,6 +116,34 @@ would not prove prior-PQBTC compatibility. `mempool_compatibility.py` is
 therefore classified as `legacy_only` reference coverage and remains outside
 `pq_required`.
 
+## Wallet Backwards-Compatibility Decision
+
+The 2026-07-15 repository audit confirms that the suite's six historical tags
+are inherited signed Bitcoin Core releases, while the fork's only PQBTC release
+tags are `v1.0.0-rc1` and `v1.0.0`. Both PQBTC tags identify as v30.2, neither
+provides the historical binaries required by this harness, and the published
+releases expose no executable PQBTC assets.
+
+The suite protects Bitcoin Core wallet transitions that PQBTC never shipped:
+
+- current descriptor wallets are copied to v0.21.0 through v25.0 and reopened
+  on the current node while preserving transaction and keypool state; v0.20.1
+  rejects those wallets, and v0.21.0 rejects wallets containing `tr()`
+  descriptors
+- descriptor wallets created by v0.21.0 through v25.0 are restored on the
+  current node and copied back to their source release without an automatic
+  incompatible upgrade
+- legacy BDB wallets created by v0.20.1 through v25.0 must be migrated rather
+  than loaded directly; the suite also checks v22 inactive-HD-chain keypool
+  cleanup during migration and current-node startup handling of legacy wallets
+
+These cross-version load, upgrade, downgrade, and migration contracts do not
+represent a supported prior-PQBTC wallet path. Building or renaming the
+inherited Bitcoin binaries could exercise the upstream wallet mechanics but
+would not prove PQBTC compatibility. `wallet_backwards_compatibility.py` is
+therefore classified as `legacy_only` reference coverage and remains outside
+`pq_required`.
+
 ## Reconsideration Boundaries
 
 Reopen these decisions only if an authentic PQBTC release matching the suite's
@@ -117,12 +154,11 @@ release payloads.
 
 ## Remaining Asset-Dependent Suites
 
-After the coinstats, unsupported-UTXO, and mempool decisions, two `pq_backlog`
-suites remain previous-release or prior-fixture dependent and require separate
-decisions:
+After the coinstats, unsupported-UTXO, mempool, and wallet-backwards decisions,
+one `pq_backlog` suite remains previous-release dependent and requires a
+separate decision:
 
-1. `wallet_backwards_compatibility.py`
-2. `wallet_migration.py`
+1. `wallet_migration.py`
 
 ## Validation Snapshot
 
@@ -130,8 +166,8 @@ Current local validation without previous-release assets:
 
 - `python3 ci/test/check_ci_inventory.py`
   - result: passed
-  - counts: `pq_required: 120`, `pq_backlog: 2`, `legacy_only: 12`
-- `build/test/functional/test_runner.py --jobs=1 mempool_compatibility.py`
+  - counts: `pq_required: 120`, `pq_backlog: 1`, `legacy_only: 13`
+- `build/test/functional/test_runner.py --jobs=1 wallet_backwards_compatibility.py`
   - result: skipped
   - skip reason: previous releases not available or disabled
   - interpretation: confirms that this run is not evidence for a required PQ

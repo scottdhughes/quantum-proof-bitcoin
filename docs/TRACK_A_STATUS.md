@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-07-12
+## Updated: 2026-07-15
 ## Current Phase: Phase 1 - Wallet And Block Surface Expansion
 
 ## Purpose
@@ -19,9 +19,11 @@ Keep the live `pq_required` gate aligned with the repo as it exists today.
 and PR `#156` has now landed the adjacent
 `mining_template_verification.py` promotion files. PR `#159` classified
 `feature_coinstatsindex_compatibility.py` as `legacy_only`, and PR `#160` did
-the same for `feature_unsupported_utxo_db.py`. The current bounded decision
-classifies `mempool_compatibility.py` as `legacy_only` because its bidirectional
-serialization contract uses Bitcoin Core v0.20.1, not a prior PQBTC release.
+the same for `feature_unsupported_utxo_db.py`. PR `#161` classified
+`mempool_compatibility.py` as `legacy_only`. The current bounded decision also
+classifies `wallet_backwards_compatibility.py` as `legacy_only` because its
+v0.20.1-through-v25.0 wallet transitions use Bitcoin Core releases, not a prior
+PQBTC release lineage.
 
 The current asset boundary is recorded in
 [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md). The
@@ -34,7 +36,9 @@ fixed coinstats-index path. The suite remains inherited reference coverage, not
 a skipped candidate for promotion. The unsupported-UTXO suite has the same
 provenance boundary: Track A does not support migrating a Bitcoin Core 0.14
 datadir into the new PQBTC chain. Nor does it support upgrading from or
-downgrading to Bitcoin Core v0.20.1 through a shared `mempool.dat` file.
+downgrading to Bitcoin Core v0.20.1 through a shared `mempool.dat` file. The
+same boundary applies to loading, upgrading, downgrading, or migrating wallet
+files across inherited Bitcoin Core v0.20.1 through v25.0 releases.
 
 ## Current Working Thesis
 
@@ -50,12 +54,11 @@ downgrading to Bitcoin Core v0.20.1 through a shared `mempool.dat` file.
 
 Preferred next owned tranche:
 
-1. `wallet_backwards_compatibility.py` one-suite PQ relevance decision
-   - Why next: after resolving the chainstate and mempool previous-release
-     boundaries, this is the next suite in the remaining `pq_backlog`. It spans
-     Bitcoin Core v0.20.1, v0.21.0, v22.0, v23.0, v24.0.1, and v25.0 and needs
-     an explicit decision about whether those wallet upgrade paths belong on
-     PQBTC's migration path.
+1. `wallet_migration.py` one-suite PQ relevance decision
+   - Why next: this is the final suite in `pq_backlog`. It uses Bitcoin Core
+     v28.2 to create legacy BDB wallets and checks their migration to current
+     descriptor wallets, so it needs an explicit decision about whether that
+     inherited migration contract belongs on PQBTC's supported path.
    - Exact files for the next PR:
      - `ci/test/functional_suite_inventory.json`
      - `docs/CI_COMPLETENESS.md`
@@ -63,34 +66,31 @@ Preferred next owned tranche:
      - `docs/TRACK_A_STATUS.md`
    - Minimum validation only:
      - `python3 ci/test/check_ci_inventory.py`
-     - `build/test/functional/test_runner.py --jobs=1 wallet_backwards_compatibility.py`
+     - `build/test/functional/test_runner.py --jobs=1 wallet_migration.py`
      - expected local result without authentic prior assets: skipped, which is
        boundary evidence rather than promotion evidence
    - Stays deferred:
-     - `wallet_migration.py`
-     - the final separate prior-release wallet migration decision
+     - no other `pq_backlog` suite; this is the final inventory disposition
 
 Alternate rebalance:
 
-2. Stop after the chainstate and mempool classifications until authentic prior-release
+2. Stop after the wallet-backwards classification until authentic prior-release
    evidence exists
-   - Why alternate: the two remaining `pq_backlog` suites both depend on
-     inherited previous-release formats and may resolve to explicit legacy
-     boundaries rather than required PQ gates.
+   - Why alternate: the final `pq_backlog` suite depends on an inherited
+     previous-release wallet format and may resolve to an explicit legacy
+     boundary rather than a required PQ gate.
 
 ## Current Queue
 
 1. Keep this handoff synced to the live inventory state:
    - `pq_required`: 120
-   - `pq_backlog`: 2
-   - `legacy_only`: 12
-   - latest landed bounded slice: `feature_unsupported_utxo_db.py`
-     legacy-boundary decision in PR `#160`
-2. Land the bounded `mempool_compatibility.py` legacy-boundary decision without
-   adding the skipped suite to `pq_required`.
-3. Then review `wallet_backwards_compatibility.py` as the next one-suite PQ
-   relevance decision. `wallet_migration.py` remains deferred as listed above
-   and in
+   - `pq_backlog`: 1
+   - `legacy_only`: 13
+   - latest bounded slice: `wallet_backwards_compatibility.py`
+     legacy-boundary decision
+2. Review `wallet_migration.py` as the final one-suite PQ relevance decision
+   without treating a skipped run as promotion evidence. Its provenance
+   boundary is listed above and in
    [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md).
 
 
