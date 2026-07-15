@@ -1494,10 +1494,10 @@
   },
   {
     "name": "wallet_backwards_compatibility.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "legacy_only",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Explicit inherited Bitcoin Core v0.20.1 through v25.0 wallet upgrade and downgrade coverage. The suite exercises legacy BDB and descriptor wallet loading, descriptor-version boundaries, transaction and keypool preservation, and legacy-to-descriptor migration behavior across releases PQBTC never shipped. Retained as legacy_only reference coverage rather than a supported PQBTC wallet migration path or required PQ gate."
   },
   {
     "name": "wallet_balance.py",
