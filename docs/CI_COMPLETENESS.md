@@ -37,9 +37,9 @@ The current functional corpus has `276` tracked test files, classified as:
 | Class | Count |
 |---|---|
 | `pq_required` | `120` |
-| `pq_backlog` | `1` |
+| `pq_backlog` | `0` |
 | `dual_profile` | `142` |
-| `legacy_only` | `13` |
+| `legacy_only` | `14` |
 
 Current required PQ-first gates:
 
@@ -553,11 +553,15 @@ boundaries, transaction and keypool preservation, and legacy-to-descriptor
 migration behavior. PQBTC never shipped that release lineage and does not
 support those cross-product wallet upgrade and downgrade paths, so the suite
 remains inherited reference coverage rather than a required PQBTC gate.
-The final `pq_backlog` suite is `wallet_migration.py`; it requires a separate
-decision about its inherited Bitcoin Core v28.2 BDB-to-descriptor migration
-contract. See
+The inherited `wallet_migration.py` suite is now `legacy_only`. It creates
+legacy BDB wallets with Bitcoin Core v28.2 and verifies current-node conversion
+to SQLite descriptor wallets, including watch-only and solvables partitioning,
+wallet-data preservation, backup creation, and failure rollback. PQBTC has no
+v28.2 release lineage and does not support migration from an upstream Bitcoin
+Core wallet, so this remains reference coverage rather than a required PQBTC
+gate. No suites remain in `pq_backlog`; see
 [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md) for
-the current provenance boundary.
+the completed provenance boundary.
 
 Explicit legacy-only coverage in this tranche includes:
 
@@ -568,6 +572,7 @@ Explicit legacy-only coverage in this tranche includes:
 5. inherited Bitcoin Core v0.14.3 chainstate-database migration coverage
 6. inherited Bitcoin Core v0.20.1 `mempool.dat` migration coverage
 7. inherited Bitcoin Core v0.20.1 through v25.0 wallet upgrade and downgrade coverage
+8. inherited Bitcoin Core v28.2 legacy BDB-to-descriptor wallet migration coverage
 
 Inherited Taproot-specific suites remain `legacy_only` in the current CI contract,
 while `feature_taproot_replacement_deployment.py` and
@@ -591,5 +596,8 @@ Until a separate ownership model or `CODEOWNERS` file exists, all current workfl
 
 Still deferred after this tranche:
 
-1. converting additional `pq_backlog` suites into required PQ gates or documenting permanent dual-profile boundaries for them
-2. promoting high-value suites from `pq_backlog` once each bounded confidence pass is stable
+1. selecting any future promotion candidate from `dual_profile` through a
+   separate risk-based posture decision rather than extending this completed
+   backlog mechanically
+2. defining explicit entry criteria for any new `pq_backlog` suite so the
+   zero-backlog inventory remains a meaningful reviewed baseline

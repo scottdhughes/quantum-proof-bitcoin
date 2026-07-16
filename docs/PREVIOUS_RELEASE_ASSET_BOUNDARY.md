@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: PREVIOUS-RELEASE-ASSET-BOUNDARY-v1
-## Updated: 2026-07-15
+## Updated: 2026-07-16
 
 ## Purpose
 
@@ -45,6 +45,15 @@ nodes with versions `250000`, `240001`, `230000`, `220000`, `210000`, and
 `200100`. The framework maps them to `v25.0`, `v24.0.1`, `v23.0`, `v22.0`,
 `v0.21.0`, and `v0.20.1`, with `pqbtcd` and `pqbtc-cli` expected under each
 version's `releases/<tag>/bin/` directory.
+
+The wallet migration decision covers
+[wallet_migration.py](../test/functional/wallet_migration.py). That suite calls
+`skip_if_no_previous_releases()` and starts a current node plus an old node with
+`version=280200` and `-deprecatedrpc=create_bdb`. The old node therefore uses
+the same expected v28.2 binary layout:
+
+- `releases/v28.2/bin/pqbtcd`
+- `releases/v28.2/bin/pqbtc-cli`
 
 If `PREVIOUS_RELEASES_DIR` is set, the same versioned layouts are expected below
 that directory instead.
@@ -144,6 +153,36 @@ would not prove PQBTC compatibility. `wallet_backwards_compatibility.py` is
 therefore classified as `legacy_only` reference coverage and remains outside
 `pq_required`.
 
+## Wallet Migration Decision
+
+The 2026-07-16 repository audit confirms that the old node is the inherited
+signed Bitcoin Core v28.2 release, not a PQBTC release. Its source and generated
+manuals identify Bitcoin Core, `bitcoind`, and `bitcoin-cli`, and contain no
+PQBTC or post-quantum implementation. The fork's `v1.0.0-rc1` and `v1.0.0`
+tags instead identify as v30.2 and provide no executable prior-release assets
+for this v28.2 harness.
+
+The suite creates legacy BDB wallets through the v28.2 node and tests current
+Bitcoin Core migration mechanics across a broad inherited surface:
+
+- conversion to SQLite descriptor wallets with timestamped legacy backups,
+  address, balance, transaction, metadata, keypool, encryption, and wallet-flag
+  preservation
+- partitioning imported scripts and partial-key multisig state into spendable,
+  watch-only, and solvables wallets across raw scripts, P2WSH, miniscript, and
+  Taproot cases
+- named, unnamed, direct-file, absolute, relative, and nested wallet paths,
+  plus restoration of the BDB backup on the old node
+- rollback and cleanup for migration, destination-wallet, cross-chain load,
+  and pruned-history failures while preserving the original BDB wallet
+
+Those checks protect migration from a Bitcoin Core v28.2 wallet format that
+PQBTC never shipped and does not support as an upgrade source. Building or
+renaming the inherited binaries could exercise the upstream migration
+mechanics, but it would not prove a prior-PQBTC wallet guarantee.
+`wallet_migration.py` is therefore classified as `legacy_only` reference
+coverage and remains outside `pq_required`.
+
 ## Reconsideration Boundaries
 
 Reopen these decisions only if an authentic PQBTC release matching the suite's
@@ -154,11 +193,9 @@ release payloads.
 
 ## Remaining Asset-Dependent Suites
 
-After the coinstats, unsupported-UTXO, mempool, and wallet-backwards decisions,
-one `pq_backlog` suite remains previous-release dependent and requires a
-separate decision:
-
-1. `wallet_migration.py`
+None. The coinstats, unsupported-UTXO, mempool, wallet-backwards, and wallet
+migration suites now have explicit `legacy_only` dispositions, and no suite
+remains in `pq_backlog`.
 
 ## Validation Snapshot
 
@@ -166,8 +203,8 @@ Current local validation without previous-release assets:
 
 - `python3 ci/test/check_ci_inventory.py`
   - result: passed
-  - counts: `pq_required: 120`, `pq_backlog: 1`, `legacy_only: 13`
-- `build/test/functional/test_runner.py --jobs=1 wallet_backwards_compatibility.py`
+  - counts: `pq_required: 120`, `pq_backlog: 0`, `legacy_only: 14`
+- `build/test/functional/test_runner.py --jobs=1 wallet_migration.py`
   - result: skipped
   - skip reason: previous releases not available or disabled
   - interpretation: confirms that this run is not evidence for a required PQ

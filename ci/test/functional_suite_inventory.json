@@ -1705,10 +1705,10 @@
   },
   {
     "name": "wallet_migration.py",
-    "policy_class": "pq_backlog",
+    "policy_class": "legacy_only",
     "owner": "@scottdhughes",
     "tracking_issue": "#15",
-    "notes": "Wallet behavior still needs an explicit PQ-vs-dual-profile disposition in later CI follow-up."
+    "notes": "Explicit inherited Bitcoin Core v28.2 legacy BDB-to-descriptor migration coverage. The suite creates BDB wallets with an upstream v28.2 node and verifies current-node SQLite descriptor conversion, watch-only and solvables partitioning, data preservation, backups, and failure rollback across wallet and script shapes. PQBTC has no v28.2 release lineage or supported Bitcoin Core wallet migration path. Retained as legacy_only reference coverage rather than a PQBTC migration guarantee or required PQ gate."
   },
   {
     "name": "wallet_miniscript.py",
