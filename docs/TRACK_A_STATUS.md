@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-07-15
+## Updated: 2026-07-16
 ## Current Phase: Phase 1 - Wallet And Block Surface Expansion
 
 ## Purpose
@@ -20,10 +20,10 @@ and PR `#156` has now landed the adjacent
 `mining_template_verification.py` promotion files. PR `#159` classified
 `feature_coinstatsindex_compatibility.py` as `legacy_only`, and PR `#160` did
 the same for `feature_unsupported_utxo_db.py`. PR `#161` classified
-`mempool_compatibility.py` as `legacy_only`. The current bounded decision also
-classifies `wallet_backwards_compatibility.py` as `legacy_only` because its
-v0.20.1-through-v25.0 wallet transitions use Bitcoin Core releases, not a prior
-PQBTC release lineage.
+`mempool_compatibility.py` as `legacy_only`, and PR `#162` did the same for
+`wallet_backwards_compatibility.py`. The current bounded decision classifies
+`wallet_migration.py` as `legacy_only` because it migrates BDB wallets created
+by Bitcoin Core v28.2, not a prior PQBTC release.
 
 The current asset boundary is recorded in
 [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md). The
@@ -38,7 +38,10 @@ provenance boundary: Track A does not support migrating a Bitcoin Core 0.14
 datadir into the new PQBTC chain. Nor does it support upgrading from or
 downgrading to Bitcoin Core v0.20.1 through a shared `mempool.dat` file. The
 same boundary applies to loading, upgrading, downgrading, or migrating wallet
-files across inherited Bitcoin Core v0.20.1 through v25.0 releases.
+files across inherited Bitcoin Core v0.20.1 through v25.0 releases, including
+the v28.2 BDB-to-descriptor migration contract in `wallet_migration.py`. All
+tracked suites now have an explicit policy class and none remains in
+`pq_backlog`.
 
 ## Current Working Thesis
 
@@ -54,44 +57,40 @@ files across inherited Bitcoin Core v0.20.1 through v25.0 releases.
 
 Preferred next owned tranche:
 
-1. `wallet_migration.py` one-suite PQ relevance decision
-   - Why next: this is the final suite in `pq_backlog`. It uses Bitcoin Core
-     v28.2 to create legacy BDB wallets and checks their migration to current
-     descriptor wallets, so it needs an explicit decision about whether that
-     inherited migration contract belongs on PQBTC's supported path.
-   - Exact files for the next PR:
-     - `ci/test/functional_suite_inventory.json`
-     - `docs/CI_COMPLETENESS.md`
-     - `docs/PREVIOUS_RELEASE_ASSET_BOUNDARY.md`
-     - `docs/TRACK_A_STATUS.md`
-   - Minimum validation only:
+1. Close the current Track A inventory tranche and select any future gate from
+   a fresh risk-based posture review
+   - Why next: all `276` tracked functional suites now have explicit policy
+     classes and `pq_backlog` is empty. The inventory no longer implies an
+     automatic next promotion.
+   - Minimum closeout evidence:
      - `python3 ci/test/check_ci_inventory.py`
-     - `build/test/functional/test_runner.py --jobs=1 wallet_migration.py`
-     - expected local result without authentic prior assets: skipped, which is
-       boundary evidence rather than promotion evidence
+     - a clean post-merge Promotion Matrix on `main`
+   - Before another promotion PR:
+     - identify one concrete confidence gap from the current `dual_profile` or
+       policy docs
+     - record its owner, tracking issue, bounded contract, and targeted test
+       before changing its policy class
    - Stays deferred:
-     - no other `pq_backlog` suite; this is the final inventory disposition
+     - broad mechanical review of all `dual_profile` suites
+     - a PQBTC wallet migration guarantee without an authentic prior-PQBTC
+       wallet lineage
 
 Alternate rebalance:
 
-2. Stop after the wallet-backwards classification until authentic prior-release
-   evidence exists
-   - Why alternate: the final `pq_backlog` suite depends on an inherited
-     previous-release wallet format and may resolve to an explicit legacy
-     boundary rather than a required PQ gate.
+2. Hold the current inventory as the reviewed baseline
+   - Why alternate: zero backlog is a valid stopping point until a new
+     risk-ranked PQ confidence gap is selected explicitly.
 
 ## Current Queue
 
 1. Keep this handoff synced to the live inventory state:
    - `pq_required`: 120
-   - `pq_backlog`: 1
-   - `legacy_only`: 13
-   - latest bounded slice: `wallet_backwards_compatibility.py`
+   - `pq_backlog`: 0
+   - `legacy_only`: 14
+   - latest bounded slice: `wallet_migration.py`
      legacy-boundary decision
-2. Review `wallet_migration.py` as the final one-suite PQ relevance decision
-   without treating a skipped run as promotion evidence. Its provenance
-   boundary is listed above and in
-   [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md).
+2. Do not infer another promotion from queue order. Select the next Track A
+   tranche through the fresh posture review described above.
 
 
 ## Historical Queue Ledger
