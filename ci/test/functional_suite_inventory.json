@@ -120,10 +120,10 @@
   },
   {
     "name": "feature_config_args.py",
-    "policy_class": "dual_profile",
+    "policy_class": "pq_required",
     "owner": "@scottdhughes",
-    "tracking_issue": "#15",
-    "notes": "Retained under the current non-gating dual-profile contract."
+    "tracking_issue": "#165",
+    "notes": "Now promoted into pq_required as the narrow PQBTC configuration-namespace gate: the suite verifies pqbtc.conf discovery and diagnostics, explicit and ignored configuration-file handling, includeconf behavior, and datadir/config precedence under the current PQBTC operator namespace; platform default datadir names and broader binary, GUI, service, user-agent, and network identity remain outside this contract."
   },
   {
     "name": "feature_csv_activation.py",
