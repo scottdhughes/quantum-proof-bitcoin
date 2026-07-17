@@ -78,7 +78,7 @@ jobs:
         uses: ./.github/actions/save-caches
 
       - name: Upload fuzz binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-fuzz-binary-${{ github.run_id }}
           path: ${{ env.BASE_BUILD_DIR }}/bin/fuzz
@@ -121,7 +121,7 @@ jobs:
           cache-provider: ${{ needs.runners.outputs.provider }}
 
       - name: Download fuzz binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: linux-fuzz-binary-${{ github.run_id }}
           path: ${{ env.BASE_BUILD_DIR }}/bin
@@ -228,7 +228,7 @@ jobs:
 
       - name: Restore Ccache cache
         id: ccache-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ github.job }}-${{ matrix.job-type }}-ccache-${{ github.run_id }}
@@ -240,7 +240,7 @@ jobs:
           FILE_ENV: ${{ matrix.file-env }}
 
       - name: Save Ccache cache
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         if: github.event_name != 'pull_request' && steps.ccache-cache.outputs.cache-hit != 'true'
         with:
           path: ${{ env.CCACHE_DIR }}
@@ -294,13 +294,13 @@ jobs:
           sed -i '1s/^/set(ENV{CMAKE_POLICY_VERSION_MINIMUM} 3.5)\n/' "${VCPKG_INSTALLATION_ROOT}/scripts/ports.cmake"
 
       - name: vcpkg tools cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: C:/vcpkg/downloads/tools
           key: ${{ github.job }}-vcpkg-tools
 
       - name: Restore vcpkg binary cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         id: vcpkg-binary-cache
         with:
           path: ~/AppData/Local/vcpkg/archives
@@ -311,7 +311,7 @@ jobs:
           cmake -B build -Werror=dev --preset vs2022 -DCMAKE_TOOLCHAIN_FILE="${VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake" ${{ matrix.generate-options }}
 
       - name: Save vcpkg binary cache
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         if: github.event_name != 'pull_request' && steps.vcpkg-binary-cache.outputs.cache-hit != 'true' && matrix.job-type == 'standard'
         with:
           path: ~/AppData/Local/vcpkg/archives
@@ -401,7 +401,7 @@ jobs:
         uses: ./.github/actions/save-caches
 
       - name: Upload built executables
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: x86_64-w64-mingw32-executables-${{ github.run_id }}
           path: |
@@ -423,7 +423,7 @@ jobs:
       - *CHECKOUT
 
       - name: Download built executables
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: x86_64-w64-mingw32-executables-${{ github.run_id }}
 
