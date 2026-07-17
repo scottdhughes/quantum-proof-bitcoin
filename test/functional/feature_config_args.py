@@ -180,9 +180,31 @@ class ConfArgsTest(BitcoinTestFramework):
         with open(inc_conf_file2_path, 'w', encoding='utf-8') as conf:
             conf.write('')  # clear
 
+    def test_default_datadir_namespace(self):
+        self.log.info("Test that the platform default data directory uses the PQBTC namespace")
+
+        if platform.system() == "Windows":
+            legacy_datadir = Path(os.environ["APPDATA"]) / "PQBTC"
+            expected_datadir = (
+                legacy_datadir
+                if legacy_datadir.exists()
+                else Path(os.environ["LOCALAPPDATA"]) / "PQBTC"
+            )
+        else:
+            home = Path(os.environ.get("HOME") or "/")
+            expected_datadir = home / (
+                "Library/Application Support/PQBTC"
+                if platform.system() == "Darwin"
+                else ".pqbtc"
+            )
+
+        with self.nodes[0].assert_debug_log(expected_msgs=[f"Default data directory {expected_datadir}"]):
+            self.start_node(0)
+        self.stop_node(0)
+
     def test_config_file_log(self):
-        # Disable this test for windows currently because trying to override
-        # the default datadir through the environment does not seem to work.
+        # SHGetSpecialFolderPathW does not honor the synthetic APPDATA and
+        # LOCALAPPDATA child environment used by get_temp_default_datadir().
         if platform.system() == "Windows":
             return
 
@@ -429,8 +451,8 @@ class ConfArgsTest(BitcoinTestFramework):
         self.stop_node(0)
 
     def test_ignored_default_conf(self):
-        # Disable this test for windows currently because trying to override
-        # the default datadir through the environment does not seem to work.
+        # SHGetSpecialFolderPathW does not honor the synthetic APPDATA and
+        # LOCALAPPDATA child environment used by get_temp_default_datadir().
         if platform.system() == "Windows":
             return
 
@@ -491,6 +513,7 @@ class ConfArgsTest(BitcoinTestFramework):
         self.nodes[0].replace_in_config([('testnet4=', 'regtest='), ('[testnet4]', '[regtest]')])
 
     def run_test(self):
+        self.test_default_datadir_namespace()
         self.test_log_buffer()
         self.test_args_log()
         self.test_seed_peers()

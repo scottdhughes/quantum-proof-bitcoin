@@ -38,6 +38,22 @@ The owned contract is recorded in
 policy-class changes return to `HOLD` until another bounded risk review selects
 a concrete PQ-specific gap.
 
+## Follow-Up Hardening Outcome
+
+Issue `#170` narrows one residual risk inside the already required
+`feature_config_args.py` gate without selecting another suite or changing an
+inventory policy class. The suite now asserts the startup-reported platform
+default data-directory namespace: `.pqbtc` on Linux and other Unix-like
+platforms, `Library/Application Support/PQBTC` on macOS, and `PQBTC` under the
+Windows roaming legacy path when it exists or the local application-data path
+otherwise.
+
+The two tests that rely on synthetic Windows `APPDATA` or `LOCALAPPDATA`
+overrides remain excluded on Windows. Production resolves those locations
+through `SHGetSpecialFolderPathW`, so a child environment override is not an
+equivalent test mechanism. The branch promotion matrix is the acceptance gate
+for the actual Windows and macOS paths.
+
 ## Review Method
 
 The review used Bitcoin Core v30.2 as the inherited baseline. The live fork
@@ -86,9 +102,10 @@ apart from the completed `wallet_migration.py` `legacy_only` boundary.
 | Taproot replacement deployment and active seams | the five `feature_taproot_replacement_*.py` required gates | `rpc_blockchain.py` is overlapping evidence, not an uncovered gate |
 | PQBTC operator namespace | source changes in `src/common/args.cpp` select `pqbtc.conf`; `NAMING.md` treats configuration separation as a launch contract | No required functional gate currently owns the `pqbtc.conf` path |
 
-The selected contract is deliberately narrower than all operator naming. It
-does not claim complete binary, GUI, service-file, default-datadir, or network
-identity coverage.
+The original selection contract was deliberately narrower than all operator
+naming and did not claim complete binary, GUI, service-file, default-datadir,
+or network identity coverage. Issue `#170` subsequently closes only the
+platform default-datadir namespace part of that residual boundary.
 
 ## Candidate 1: `feature_config_args.py`
 
@@ -127,8 +144,9 @@ The suite must continue to verify:
   change
 - inherited configuration parsing remains available under the renamed file
 
-The suite does not directly prove platform default datadir names such as
-`.pqbtc` or `Library/Application Support/PQBTC`.
+The original promotion contract did not directly prove platform default
+datadir names such as `.pqbtc` or `Library/Application Support/PQBTC`. Issue
+`#170` subsequently adds that bounded assertion to the already required gate.
 
 ### Targeted Test
 
@@ -278,7 +296,9 @@ environment evidence, not product failures.
 
 ## Residual Risks And Non-Goals
 
-- The selected suite does not assert platform default datadir names.
+- The suite does not emulate alternate Windows shell-folder locations through
+  synthetic `APPDATA` or `LOCALAPPDATA` child environments; it validates the
+  actual shell-folder path selected on the Windows runner.
 - It does not validate all binary, service, GUI, user-agent, or network-magic
   naming surfaces.
 - It does not add cryptographic or consensus evidence; those areas already
