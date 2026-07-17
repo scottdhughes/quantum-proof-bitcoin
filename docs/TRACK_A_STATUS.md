@@ -3,7 +3,7 @@
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
 ## Updated: 2026-07-16
-## Current Phase: Phase 1 - Wallet And Block Surface Expansion
+## Current Phase: Phase 1 - Inventory Tranche Closed; Risk Review Pending
 
 ## Purpose
 
@@ -21,9 +21,14 @@ and PR `#156` has now landed the adjacent
 `feature_coinstatsindex_compatibility.py` as `legacy_only`, and PR `#160` did
 the same for `feature_unsupported_utxo_db.py`. PR `#161` classified
 `mempool_compatibility.py` as `legacy_only`, and PR `#162` did the same for
-`wallet_backwards_compatibility.py`. The current bounded decision classifies
+`wallet_backwards_compatibility.py`. PR `#163` classified
 `wallet_migration.py` as `legacy_only` because it migrates BDB wallets created
-by Bitcoin Core v28.2, not a prior PQBTC release.
+by Bitcoin Core v28.2, not a prior PQBTC release. That merge closed the current
+inventory tranche at `pq_required: 120`, `pq_backlog: 0`, `legacy_only: 14`,
+and `dual_profile: 142`. Promotion Matrix run `#106` (`29540363398`) then
+completed on `main` at merge commit
+`f363c99d4ef40a822477eef84b3afecfc76329fc` with all `26/26` checks
+successful on attempt 1.
 
 The current asset boundary is recorded in
 [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md). The
@@ -57,19 +62,15 @@ tracked suites now have an explicit policy class and none remains in
 
 Preferred next owned tranche:
 
-1. Close the current Track A inventory tranche and select any future gate from
-   a fresh risk-based posture review
-   - Why next: all `276` tracked functional suites now have explicit policy
-     classes and `pq_backlog` is empty. The inventory no longer implies an
-     automatic next promotion.
-   - Minimum closeout evidence:
-     - `python3 ci/test/check_ci_inventory.py`
-     - a clean post-merge Promotion Matrix on `main`
+1. Run a separate risk-based posture review before selecting any future gate
+   - Why next: the current inventory tranche is closed, all `276` tracked
+     functional suites have explicit policy classes, and `pq_backlog` is empty.
+     The inventory no longer implies an automatic next promotion.
    - Before another promotion PR:
      - identify one concrete confidence gap from the current `dual_profile` or
        policy docs
-     - record its owner, tracking issue, bounded contract, and targeted test
-       before changing its policy class
+     - record its owner, tracking issue, bounded contract, targeted test, and
+       acceptable CI cost before changing its policy class
    - Stays deferred:
      - broad mechanical review of all `dual_profile` suites
      - a PQBTC wallet migration guarantee without an authentic prior-PQBTC
@@ -83,12 +84,13 @@ Alternate rebalance:
 
 ## Current Queue
 
-1. Keep this handoff synced to the live inventory state:
+1. Preserve the closed inventory baseline:
    - `pq_required`: 120
    - `pq_backlog`: 0
    - `legacy_only`: 14
-   - latest bounded slice: `wallet_migration.py`
-     legacy-boundary decision
+   - `dual_profile`: 142
+   - closeout evidence: PR `#163` and Promotion Matrix run `#106`, with all
+     `26/26` checks successful
 2. Do not infer another promotion from queue order. Select the next Track A
    tranche through the fresh posture review described above.
 
@@ -903,9 +905,11 @@ queue differs from the current repo-wide recommendation.
    - `WALLET_CROSSCHAIN_DESCRIPTOR_CREATION_POSTURE.md`
    Still deferred inside this suite:
    - `wallet_backwards_compatibility.py` and `wallet_migration.py`, which are
-     skipped locally because previous-release fixtures are unavailable
-   - `feature_coinstatsindex_compatibility.py`, which remains blocked until
-     real prior PQBTC release assets exist
+     skipped locally at this historical checkpoint because previous-release
+     fixtures are unavailable
+   - `feature_coinstatsindex_compatibility.py`, which was still awaiting a
+     release-asset boundary decision at this checkpoint; later bounded
+     decisions classified all three suites as `legacy_only`
 47. `mempool_accept.py` now owns:
    - inherited raw transaction mempool acceptance under the current
      legacy-compatible PQC profile
@@ -1862,8 +1866,9 @@ above as the controlling live next-PR handoff when these older notes disagree.
   bounded full-block invalid-branch, transport-oversize, and resurrection
   harness surface. The next local owned follow-on shifts to
   `feature_coinstatsindex.py`, while
-  `feature_coinstatsindex_compatibility.py` remains blocked until real prior
-  PQBTC release assets exist.
+  `feature_coinstatsindex_compatibility.py` was still awaiting a release-asset
+  boundary decision at this dated checkpoint. PR `#159` later classified it as
+  `legacy_only`.
 - 2026-04-23: `rpc_psbt.py` and `wallet_multisig_descriptor_psbt.py` are now
   promoted into the canonical `pq_required` gate. The inherited pre-taproot
   PSBT RPC surface, watch-only multisig descriptor partial-signature flow,
@@ -2094,11 +2099,12 @@ above as the controlling live next-PR handoff when these older notes disagree.
   `pq_required` gate and locally revalidated with the build-tree functional
   runner. The owned boundary covers restored inherited descriptor import and
   raw transaction signing behavior under the current legacy-compatible PQC
-  profile. `wallet_migration.py` remains blocked locally because
-  previous-release fixtures are unavailable. The next owned follow-on remains
-  `feature_coinstatsindex_compatibility.py` when real prior PQBTC release
-  assets exist, with remaining wallet transaction breadth beyond this
-  raw-signing/import gate as the local alternate.
+  profile. `wallet_migration.py` was still locally blocked at this dated
+  checkpoint because previous-release fixtures were unavailable. PR `#163`
+  later classified it as `legacy_only`. The next owned follow-on at that time
+  remained `feature_coinstatsindex_compatibility.py`, with remaining wallet
+  transaction breadth beyond this raw-signing/import gate as the local
+  alternate.
 - 2026-04-29: `wallet_importprunedfunds.py`, `wallet_timelock.py`,
   `wallet_orphanedreward.py`, and `wallet_v3_txs.py` are now promoted into the
   canonical `pq_required` gate and locally revalidated with the build-tree
@@ -2492,24 +2498,14 @@ above as the controlling live next-PR handoff when these older notes disagree.
 
 ## Blockers
 
-- There is no current low-cost repo-local `pq_backlog` slice after the landed
-  `mining_template_verification.py` promotion; the remaining backlog requires
-  prior-release assets before another durable gate decision.
-- The exact prior-release asset precondition is documented in
-  [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md):
-  the immediate compatibility harness needs PQBTC `v28.2` binaries named
-  `pqbtcd` and `pqbtc-cli` in the previous-release layout, with source and
-  checksums recorded before any gate promotion.
-- `feature_coinstatsindex_compatibility.py` remains blocked until real prior
-  PQBTC release assets are available to the compatibility harness.
-- `feature_unsupported_utxo_db.py` remains blocked until real prior PQBTC
-  release assets are available to the previous-release harness.
-- `mempool_compatibility.py` remains blocked until real prior PQBTC release
-  assets are available to the previous-release harness.
-- `wallet_backwards_compatibility.py` remains blocked until prior wallet
-  fixtures are available.
-- `wallet_migration.py` remains blocked until prior wallet fixtures are
-  available.
-- There is no current low-cost local validation blocker on
-  `mining_template_verification.py`; the targeted functional run passed in the
-  live tree and the promotion work landed in PR `#156`.
+- There is no active inventory blocker. The current tranche is closed with no
+  suites in `pq_backlog`.
+- A future promotion requires a separately reviewed PQ confidence gap with a
+  named owner, tracking issue, bounded contract, targeted test, and acceptable
+  CI cost. Until that selection exists, holding the zero-backlog inventory is
+  the intended baseline rather than a blocked state.
+- The five inherited previous-release compatibility suites are `legacy_only`,
+  not asset-blocked promotion candidates. Do not reopen them or fabricate
+  PQBTC v28.2 assets unless the supported migration policy changes. Their
+  provenance boundary remains documented in
+  [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md).
