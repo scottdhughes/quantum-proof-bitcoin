@@ -271,10 +271,9 @@ jobs:
       - *CHECKOUT
 
       - name: Configure Developer Command Prompt for Microsoft Visual C++
-        # Using microsoft/setup-msbuild is not enough.
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
+        # setup-msbuild only adds MSBuild to PATH; native builds need the full VC environment.
+        shell: pwsh
+        run: py -3 .github/ci-windows-env.py
 
       - name: Get tool information
         shell: pwsh
