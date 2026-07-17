@@ -3,7 +3,7 @@
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
 ## Updated: 2026-07-17
-## Current Phase: Phase 1 - Config Namespace Gate Promoted; Baseline Hold
+## Current Phase: Phase 1 - Config Namespace Hardened; Baseline Hold
 
 ## Purpose
 
@@ -29,6 +29,13 @@ because the required replacement-deployment suite already owns that evidence.
 This separate slice promotes only `feature_config_args.py` under issue `#165`.
 The resulting baseline is `pq_required: 121`, `pq_backlog: 0`,
 `legacy_only: 14`, and `dual_profile: 141`.
+
+Issue `#170` is the bounded follow-up inside that already required gate. It
+asserts the startup-reported platform default data-directory namespace on
+Linux, macOS, and Windows while retaining the explicit Windows boundary for
+tests that depend on synthetic shell-folder environment overrides. It changes
+no inventory policy class, so the reviewed baseline remains `pq_required: 121`,
+`pq_backlog: 0`, `legacy_only: 14`, and `dual_profile: 141`.
 
 The current asset boundary is recorded in
 [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md). The
@@ -63,9 +70,9 @@ tracked suites now have an explicit policy class and none remains in
 Preferred next owned tranche:
 
 1. Hold the reviewed post-promotion baseline
-   - Why next: the selected configuration-namespace gap is closed, all `276`
-     tracked functional suites retain explicit policy classes, and
-     `pq_backlog` remains empty.
+   - Why next: the selected configuration-namespace gap and its platform
+     default-datadir follow-up are closed, all `276` tracked functional suites
+     retain explicit policy classes, and `pq_backlog` remains empty.
    - `tool_bitcoin.py` remains deferred; its low runtime does not replace the
      missing dedicated issue and cross-platform/optional-IPC boundary.
    - `rpc_blockchain.py` remains rejected because its replacement-deployment
@@ -89,6 +96,7 @@ Future selection boundary:
    - `dual_profile`: 141
    - selection evidence: PR `#166` and
      [TRACK_A_RISK_REVIEW.md](TRACK_A_RISK_REVIEW.md)
+   - follow-up hardening: issue `#170`, with no inventory policy-class change
    - owned contract:
      [FEATURE_CONFIG_ARGS_POSTURE.md](FEATURE_CONFIG_ARGS_POSTURE.md)
 2. `HOLD`: do not infer another promotion from queue order. Require a fresh
@@ -2499,7 +2507,8 @@ above as the controlling live next-PR handoff when these older notes disagree.
 ## Blockers
 
 - There is no active inventory blocker. The selected configuration-namespace
-  gap is promoted and no suites remain in `pq_backlog`.
+  gap is promoted, its platform default-datadir namespace is asserted, and no
+  suites remain in `pq_backlog`.
 - A further promotion requires a newly reviewed PQ confidence gap with a named
   owner, open tracking issue, bounded contract, targeted test, and acceptable
   CI cost. Until another selection exists, `HOLD` is the intended baseline
