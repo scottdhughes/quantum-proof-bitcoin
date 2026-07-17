@@ -2,8 +2,8 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-07-16
-## Current Phase: Phase 1 - Inventory Tranche Closed; Risk Review Pending
+## Updated: 2026-07-17
+## Current Phase: Phase 1 - Config Namespace Gate Promoted; Baseline Hold
 
 ## Purpose
 
@@ -14,21 +14,21 @@ active, use this file to choose the next safe step for `quantum-proof-bitcoin`.
 
 ## Current Objective
 
-Keep the live `pq_required` gate aligned with the repo as it exists today.
-`mining_prioritisetransaction.py` is already promoted in the live inventory,
-and PR `#156` has now landed the adjacent
-`mining_template_verification.py` promotion files. PR `#159` classified
-`feature_coinstatsindex_compatibility.py` as `legacy_only`, and PR `#160` did
-the same for `feature_unsupported_utxo_db.py`. PR `#161` classified
-`mempool_compatibility.py` as `legacy_only`, and PR `#162` did the same for
-`wallet_backwards_compatibility.py`. PR `#163` classified
-`wallet_migration.py` as `legacy_only` because it migrates BDB wallets created
-by Bitcoin Core v28.2, not a prior PQBTC release. That merge closed the current
-inventory tranche at `pq_required: 120`, `pq_backlog: 0`, `legacy_only: 14`,
-and `dual_profile: 142`. Promotion Matrix run `#106` (`29540363398`) then
-completed on `main` at merge commit
+Keep the live `pq_required` gate aligned with the repo as it exists today. PR
+`#163` closed the initial inventory tranche at `pq_required: 120`,
+`pq_backlog: 0`, `legacy_only: 14`, and `dual_profile: 142`. Promotion Matrix
+run `#106` (`29540363398`) then completed on `main` at merge commit
 `f363c99d4ef40a822477eef84b3afecfc76329fc` with all `26/26` checks
 successful on attempt 1.
+
+PR `#166` then landed the bounded dual-profile risk review. It selected
+`feature_config_args.py` because the launch-facing `pqbtc.conf` namespace had
+no required functional owner, deferred `tool_bitcoin.py` pending a dedicated
+issue and a bounded cross-platform contract, and rejected `rpc_blockchain.py`
+because the required replacement-deployment suite already owns that evidence.
+This separate slice promotes only `feature_config_args.py` under issue `#165`.
+The resulting baseline is `pq_required: 121`, `pq_backlog: 0`,
+`legacy_only: 14`, and `dual_profile: 141`.
 
 The current asset boundary is recorded in
 [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md). The
@@ -62,37 +62,37 @@ tracked suites now have an explicit policy class and none remains in
 
 Preferred next owned tranche:
 
-1. Run a separate risk-based posture review before selecting any future gate
-   - Why next: the current inventory tranche is closed, all `276` tracked
-     functional suites have explicit policy classes, and `pq_backlog` is empty.
-     The inventory no longer implies an automatic next promotion.
-   - Before another promotion PR:
-     - identify one concrete confidence gap from the current `dual_profile` or
-       policy docs
-     - record its owner, tracking issue, bounded contract, targeted test, and
-       acceptable CI cost before changing its policy class
-   - Stays deferred:
-     - broad mechanical review of all `dual_profile` suites
-     - a PQBTC wallet migration guarantee without an authentic prior-PQBTC
-       wallet lineage
+1. Hold the reviewed post-promotion baseline
+   - Why next: the selected configuration-namespace gap is closed, all `276`
+     tracked functional suites retain explicit policy classes, and
+     `pq_backlog` remains empty.
+   - `tool_bitcoin.py` remains deferred; its low runtime does not replace the
+     missing dedicated issue and cross-platform/optional-IPC boundary.
+   - `rpc_blockchain.py` remains rejected because its replacement-deployment
+     evidence duplicates an existing required gate.
 
-Alternate rebalance:
+Future selection boundary:
 
-2. Hold the current inventory as the reviewed baseline
-   - Why alternate: zero backlog is a valid stopping point until a new
-     risk-ranked PQ confidence gap is selected explicitly.
+2. Run another bounded risk review only when new evidence identifies a
+   launch-critical PQ confidence gap
+   - record the affected PQ path, owner, open issue, bounded contract, targeted
+     command, expected CI cost, and promotion/rejection criteria before any
+     further policy-class change
+   - do not select a suite from inventory order or low runtime alone
 
 ## Current Queue
 
-1. Preserve the closed inventory baseline:
-   - `pq_required`: 120
+1. Preserve the reviewed post-promotion baseline:
+   - `pq_required`: 121
    - `pq_backlog`: 0
    - `legacy_only`: 14
-   - `dual_profile`: 142
-   - closeout evidence: PR `#163` and Promotion Matrix run `#106`, with all
-     `26/26` checks successful
-2. Do not infer another promotion from queue order. Select the next Track A
-   tranche through the fresh posture review described above.
+   - `dual_profile`: 141
+   - selection evidence: PR `#166` and
+     [TRACK_A_RISK_REVIEW.md](TRACK_A_RISK_REVIEW.md)
+   - owned contract:
+     [FEATURE_CONFIG_ARGS_POSTURE.md](FEATURE_CONFIG_ARGS_POSTURE.md)
+2. `HOLD`: do not infer another promotion from queue order. Require a fresh
+   risk decision before changing another policy class.
 
 
 ## Historical Queue Ledger
@@ -2498,12 +2498,12 @@ above as the controlling live next-PR handoff when these older notes disagree.
 
 ## Blockers
 
-- There is no active inventory blocker. The current tranche is closed with no
-  suites in `pq_backlog`.
-- A future promotion requires a separately reviewed PQ confidence gap with a
-  named owner, tracking issue, bounded contract, targeted test, and acceptable
-  CI cost. Until that selection exists, holding the zero-backlog inventory is
-  the intended baseline rather than a blocked state.
+- There is no active inventory blocker. The selected configuration-namespace
+  gap is promoted and no suites remain in `pq_backlog`.
+- A further promotion requires a newly reviewed PQ confidence gap with a named
+  owner, open tracking issue, bounded contract, targeted test, and acceptable
+  CI cost. Until another selection exists, `HOLD` is the intended baseline
+  rather than a blocked state.
 - The five inherited previous-release compatibility suites are `legacy_only`,
   not asset-blocked promotion candidates. Do not reopen them or fabricate
   PQBTC v28.2 assets unless the supported migration policy changes. Their

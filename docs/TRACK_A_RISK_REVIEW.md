@@ -11,8 +11,8 @@ Select `feature_config_args.py` as the next bounded Track A promotion
 candidate. The suite closes a launch-facing PQBTC configuration namespace gap
 that is not currently owned by a `pq_required` functional gate.
 
-This review does not change any inventory policy class. The current baseline
-remains:
+This review PR did not change any inventory policy class. Its reviewed
+baseline was:
 
 - `pq_required`: 120
 - `pq_backlog`: 0
@@ -21,6 +21,22 @@ remains:
 
 Promotion, posture documentation, inventory bookkeeping, targeted validation,
 and CI evidence belong in a separate PR tracked by issue `#165`.
+
+## Separate Promotion Outcome
+
+The separate bounded promotion slice implements the selected
+`feature_config_args.py` contract without promoting either deferred/rejected
+candidate. Its resulting baseline is:
+
+- `pq_required`: 121
+- `pq_backlog`: 0
+- `legacy_only`: 14
+- `dual_profile`: 141
+
+The owned contract is recorded in
+[FEATURE_CONFIG_ARGS_POSTURE.md](FEATURE_CONFIG_ARGS_POSTURE.md). Further
+policy-class changes return to `HOLD` until another bounded risk review selects
+a concrete PQ-specific gap.
 
 ## Review Method
 
@@ -271,9 +287,9 @@ environment evidence, not product failures.
   but it must be selected through another explicit risk decision.
 - No other `dual_profile` suite is promoted by implication.
 
-## Next Bounded Slice
+## Promotion Slice Contract
 
-Open a separate promotion PR for `feature_config_args.py` under issue `#165`:
+The separate promotion PR for `feature_config_args.py` under issue `#165`:
 
 1. add a configuration-namespace posture document
 2. change exactly one inventory policy class to `pq_required`
@@ -281,5 +297,5 @@ Open a separate promotion PR for `feature_config_args.py` under issue `#165`:
 4. run inventory validation and the targeted functional test
 5. merge only after required checks are green
 
-If that bounded contract cannot be maintained, record `HOLD` and preserve the
-zero-backlog baseline.
+If that bounded contract cannot be maintained in a future revision, revert to
+`HOLD` and preserve the zero-backlog baseline.

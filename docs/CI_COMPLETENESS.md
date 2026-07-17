@@ -36,9 +36,9 @@ The current functional corpus has `276` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
-| `pq_required` | `120` |
+| `pq_required` | `121` |
 | `pq_backlog` | `0` |
-| `dual_profile` | `142` |
+| `dual_profile` | `141` |
 | `legacy_only` | `14` |
 
 Current required PQ-first gates:
@@ -95,74 +95,75 @@ Current required PQ-first gates:
 50. `feature_blocksxor.py`
 51. `feature_cltv.py`
 52. `feature_coinstatsindex.py`
-53. `feature_csv_activation.py`
-54. `feature_fastprune.py`
-55. `feature_index_prune.py`
-56. `feature_loadblock.py`
-57. `feature_pruning.py`
-58. `feature_reindex.py`
-59. `feature_reindex_init.py`
-60. `feature_reindex_readonly.py`
-61. `feature_remove_pruned_files_on_startup.py`
-62. `feature_utxo_set_hash.py`
-63. `feature_versionbits_warning.py`
-64. `rpc_psbt.py`
-65. `wallet_abandonconflict.py`
-66. `wallet_address_types.py`
-67. `wallet_assumeutxo.py`
-68. `wallet_avoid_mixing_output_types.py`
-69. `wallet_avoidreuse.py`
-70. `wallet_backup.py`
-71. `wallet_balance.py`
-72. `wallet_basic.py`
-73. `wallet_blank.py`
-74. `wallet_bumpfee.py`
-75. `wallet_change_address.py`
-76. `wallet_coinbase_category.py`
-77. `wallet_conflicts.py`
-78. `wallet_create_tx.py`
-79. `wallet_createwallet.py`
-80. `wallet_createwalletdescriptor.py`
-81. `wallet_crosschain.py`
-82. `wallet_descriptor.py`
-83. `wallet_disable.py`
-84. `wallet_encryption.py`
-85. `wallet_fallbackfee.py`
-86. `wallet_fast_rescan.py`
-87. `wallet_fundrawtransaction.py`
-88. `wallet_gethdkeys.py`
-89. `wallet_groups.py`
-90. `wallet_hd.py`
-91. `wallet_importdescriptors.py`
-92. `wallet_importprunedfunds.py`
-93. `wallet_keypool.py`
-94. `wallet_keypool_topup.py`
-95. `wallet_labels.py`
-96. `wallet_listdescriptors.py`
-97. `wallet_listreceivedby.py`
-98. `wallet_listsinceblock.py`
-99. `wallet_listtransactions.py`
-100. `wallet_miniscript.py`
-101. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
-102. `wallet_multisig_descriptor_psbt.py`
-103. `wallet_multiwallet.py`
-104. `wallet_orphanedreward.py`
-105. `wallet_reindex.py`
-106. `wallet_reorgsrestore.py`
-107. `wallet_rescan_unconfirmed.py`
-108. `wallet_resendwallettransactions.py`
-109. `wallet_send.py`
-110. `wallet_sendall.py`
-111. `wallet_sendmany.py`
-112. `wallet_signrawtransactionwithwallet.py`
-113. `wallet_simulaterawtx.py`
-114. `wallet_spend_unconfirmed.py`
-115. `wallet_startup.py`
-116. `wallet_timelock.py`
-117. `wallet_transactiontime_rescan.py`
-118. `wallet_txn_clone.py`
-119. `wallet_txn_doublespend.py`
-120. `wallet_v3_txs.py`
+53. `feature_config_args.py`
+54. `feature_csv_activation.py`
+55. `feature_fastprune.py`
+56. `feature_index_prune.py`
+57. `feature_loadblock.py`
+58. `feature_pruning.py`
+59. `feature_reindex.py`
+60. `feature_reindex_init.py`
+61. `feature_reindex_readonly.py`
+62. `feature_remove_pruned_files_on_startup.py`
+63. `feature_utxo_set_hash.py`
+64. `feature_versionbits_warning.py`
+65. `rpc_psbt.py`
+66. `wallet_abandonconflict.py`
+67. `wallet_address_types.py`
+68. `wallet_assumeutxo.py`
+69. `wallet_avoid_mixing_output_types.py`
+70. `wallet_avoidreuse.py`
+71. `wallet_backup.py`
+72. `wallet_balance.py`
+73. `wallet_basic.py`
+74. `wallet_blank.py`
+75. `wallet_bumpfee.py`
+76. `wallet_change_address.py`
+77. `wallet_coinbase_category.py`
+78. `wallet_conflicts.py`
+79. `wallet_create_tx.py`
+80. `wallet_createwallet.py`
+81. `wallet_createwalletdescriptor.py`
+82. `wallet_crosschain.py`
+83. `wallet_descriptor.py`
+84. `wallet_disable.py`
+85. `wallet_encryption.py`
+86. `wallet_fallbackfee.py`
+87. `wallet_fast_rescan.py`
+88. `wallet_fundrawtransaction.py`
+89. `wallet_gethdkeys.py`
+90. `wallet_groups.py`
+91. `wallet_hd.py`
+92. `wallet_importdescriptors.py`
+93. `wallet_importprunedfunds.py`
+94. `wallet_keypool.py`
+95. `wallet_keypool_topup.py`
+96. `wallet_labels.py`
+97. `wallet_listdescriptors.py`
+98. `wallet_listreceivedby.py`
+99. `wallet_listsinceblock.py`
+100. `wallet_listtransactions.py`
+101. `wallet_miniscript.py`
+102. `wallet_miniscript_decaying_multisig_descriptor_psbt.py`
+103. `wallet_multisig_descriptor_psbt.py`
+104. `wallet_multiwallet.py`
+105. `wallet_orphanedreward.py`
+106. `wallet_reindex.py`
+107. `wallet_reorgsrestore.py`
+108. `wallet_rescan_unconfirmed.py`
+109. `wallet_resendwallettransactions.py`
+110. `wallet_send.py`
+111. `wallet_sendall.py`
+112. `wallet_sendmany.py`
+113. `wallet_signrawtransactionwithwallet.py`
+114. `wallet_simulaterawtx.py`
+115. `wallet_spend_unconfirmed.py`
+116. `wallet_startup.py`
+117. `wallet_timelock.py`
+118. `wallet_transactiontime_rescan.py`
+119. `wallet_txn_clone.py`
+120. `wallet_txn_doublespend.py`
+121. `wallet_v3_txs.py`
 
 The previous wallet-confidence gap is closed in this tranche by promoting the
 existing PQ wallet suites into the required gate and adding PQ-native wallet,
@@ -528,6 +529,12 @@ reject reasons, difficulty, merkle-root, timestamp, and best-prevblk
 boundaries, transaction-bearing proposal checks without UTXO mutation,
 overspend and double-spend rejection, and concurrent proposal validation under
 the current legacy-compatible PQC profile.
+The risk-reviewed PQBTC configuration-namespace confidence gap is now also
+part of the required gate: `feature_config_args.py` covers `pqbtc.conf`
+discovery and diagnostics, explicit and ignored configuration-file handling,
+`includeconf`, and datadir/config precedence. This bounded gate does not claim
+platform default datadir names or broader binary, GUI, service, user-agent, or
+network identity coverage; those remain separate risk decisions.
 The inherited `feature_coinstatsindex_compatibility.py` suite is now
 `legacy_only`: it hard-codes Bitcoin Core v28.2 migration behavior, but this
 repository has no PQBTC v28.2 release lineage or authentic compatible binaries.
