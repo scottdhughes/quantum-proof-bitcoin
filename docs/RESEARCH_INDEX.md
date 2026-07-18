@@ -21,6 +21,11 @@ answer specific classes of questions instead of listing every file in `docs/`.
   all 38 applicable external/pure ACVP cases, pinned two-oracle deterministic
   and randomized interoperability, malformed-input and sanitizer evidence, and
   timings without changing consensus behavior.
+- An equivalent isolated FIPS 204 `ML-DSA-44` comparator now provides all 70
+  applicable external/pure ACVP cases, exact and randomized differential
+  evidence, malformed-input and sanitizer coverage, timings, and a raw-payload
+  cost model. Its documented implementation-lineage limitation keeps external
+  cryptographic review as an unsatisfied gate.
 - No PDF papers are currently checked into this repo.
 - Delving Bitcoin now provides concrete adjacent research references that are
   directly relevant to Track A, especially around SHRINCS / SHRIMPS and
@@ -75,6 +80,9 @@ answer specific classes of questions instead of listing every file in `docs/`.
 - [SLH_DSA_SHA2_128S_REFERENCE.md](SLH_DSA_SHA2_128S_REFERENCE.md)
   Isolated standards-conformance and measurement baseline for the first final-
   standard candidate.
+- [ML_DSA_44_REFERENCE.md](ML_DSA_44_REFERENCE.md)
+  Isolated FIPS 204 comparator, provenance record, and measured implementation
+  baseline for the second final-standard candidate.
 - [PQSIG_INTERNALS.md](PQSIG_INTERNALS.md)
   Best internal explainer for how the signature system is assembled.
 - [PQSIG_WIRE_FORMAT.md](PQSIG_WIRE_FORMAT.md)

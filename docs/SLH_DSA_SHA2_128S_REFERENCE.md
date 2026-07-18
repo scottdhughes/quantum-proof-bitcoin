@@ -168,9 +168,8 @@ Not established:
 
 ## Next Gate
 
-The next bounded slice is an equivalent isolated `ML-DSA-44` comparator using
-the same provenance, complete selected-profile ACVP, differential,
-randomized-signing, malformed-input, sanitizer, and measurement contract. A
-measured selection memo follows that comparator. No candidate should enter
-`src/crypto`, Script, wallet activation, or the `ALG_ID` registry before a
-selection and external cryptographic review.
+The equivalent isolated `ML-DSA-44` comparator is now recorded in
+`ML_DSA_44_REFERENCE.md`. The next bounded slice is a measured candidate-
+selection memo comparing the two final-standard baselines. No candidate should
+enter `src/crypto`, Script, wallet activation, or the `ALG_ID` registry before
+a selection and external cryptographic review.

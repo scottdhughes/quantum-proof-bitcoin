@@ -1,0 +1,174 @@
+{
+  "schema_version": 2,
+  "profile": {
+    "name": "ML-DSA-44",
+    "standard": "FIPS 204",
+    "nist_security_category": 2,
+    "signature_interface": "external",
+    "message_mode": "pure",
+    "public_key_bytes": 1312,
+    "private_key_bytes": 2560,
+    "keygen_seed_bytes": 32,
+    "randomizer_bytes": 32,
+    "signature_bytes": 2420,
+    "prototype_message_bytes": 32,
+    "prototype_context_hex": "50514254432f74782d7369676e61747572652f7631",
+    "prototype_context_ascii": "PQBTC/tx-signature/v1",
+    "exact_vector_signing": "deterministic_or_fixed_randomizer",
+    "production_signing_if_selected": "hedged_randomized"
+  },
+  "acvp_coverage": {
+    "keygen": {
+      "group_id": 1,
+      "test_case_ids": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+    },
+    "siggen": [
+      {
+        "group_id": 1,
+        "deterministic": true,
+        "signature_interface": "external",
+        "message_mode": "pure",
+        "test_case_ids": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+      },
+      {
+        "group_id": 13,
+        "deterministic": false,
+        "signature_interface": "external",
+        "message_mode": "pure",
+        "test_case_ids": [181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195]
+      }
+    ],
+    "sigver": {
+      "group_id": 1,
+      "signature_interface": "external",
+      "message_mode": "pure",
+      "test_case_ids": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      "accepted_test_case_ids": [6, 7, 11]
+    },
+    "total_cases": 70
+  },
+  "system_cost_model": {
+    "held_rc2_signature_bytes": 4480,
+    "held_rc2_public_key_bytes": 33,
+    "block_weight_limit": 16000000,
+    "witness_weight_per_byte": 1,
+    "non_witness_weight_per_byte": 4
+  },
+  "sources": {
+    "nist_fips204": {
+      "url": "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.204.pdf",
+      "sha256": "57239b9f84c03227eda3ca0991204dc7764c79af9ce2e6824eda774918d46b6b",
+      "published": "2024-08-13"
+    },
+    "nist_fips204_potential_updates": {
+      "url": "https://csrc.nist.gov/files/pubs/fips/204/final/docs/fips-204-potential-updates.xlsx",
+      "sha256": "0e8ba77b46db71fda2c18e67111303335745a938686cad6faf35eac148f7ed3e",
+      "last_updated": "2026-02-27",
+      "status": "potential corrections; not official changes"
+    },
+    "nist_fips204_section6_guidance": {
+      "url": "https://csrc.nist.gov/csrc/media/Projects/post-quantum-cryptography/documents/faq/fips204-sec6-03192025.pdf",
+      "sha256": "4a1d4b8d5aefef56069eb91bd464d5b5e177372e03bdde2541655e8e24d7a056",
+      "dated": "2025-03-19"
+    },
+    "nist_acvp": {
+      "repository": "https://github.com/usnistgov/ACVP-Server",
+      "commit": "15c0f3deeefbfa8cb6cd32a99e1ca3b738c66bf0",
+      "files": {
+        "gen-val/json-files/ML-DSA-keyGen-FIPS204/prompt.json": "02fad612a060bbcf3bbbd164caf7e9da964ba385c90e08bcd26516e3bf8a023d",
+        "gen-val/json-files/ML-DSA-keyGen-FIPS204/expectedResults.json": "58dca0195226491c9cb117e1f0ec4cb11d4a1e3bd8b0f955371d80c99d4e8810",
+        "gen-val/json-files/ML-DSA-sigGen-FIPS204/prompt.json": "4305197be3c17be8f99338086eb8033ff2400f7d5b816123fc28b184c6e77a55",
+        "gen-val/json-files/ML-DSA-sigGen-FIPS204/expectedResults.json": "7b70ffeba6efe24e90760c751a7ebc4907931600645ebfa3f8a2459164d0a95d",
+        "gen-val/json-files/ML-DSA-sigVer-FIPS204/prompt.json": "2a9b7fcbefdd8e69dd6fbe6b4abb7130d855e8429aaa6f4904385e68b7e63d3a",
+        "gen-val/json-files/ML-DSA-sigVer-FIPS204/expectedResults.json": "33e0ea7dd9c3b0206712da50286ad746864371433977225ab77e8aae76358842"
+      }
+    },
+    "openssl": {
+      "repository": "https://github.com/openssl/openssl",
+      "commit": "aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f",
+      "version": "3.6.3",
+      "documentation": "https://docs.openssl.org/3.6/man7/EVP_SIGNATURE-ML-DSA/",
+      "role": "separate prototype oracle; not a node dependency"
+    },
+    "mldsa_native": {
+      "repository": "https://github.com/pq-code-package/mldsa-native",
+      "commit": "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
+      "tag": "v1.0.0-beta2",
+      "license_expression": "Apache-2.0 OR ISC OR MIT",
+      "role": "portable-C prototype oracle; not vendored or linked into the node",
+      "lineage_limit": "mldsa-native is forked from the pq-crystals reference implementation; agreement with OpenSSL is strong differential evidence but not independent cryptographic review"
+    }
+  },
+  "vectors": {
+    "nist_keygen_tg1_tc1": {
+      "source": "ML-DSA-keyGen-FIPS204 tgId=1 tcId=1",
+      "seed_hex": "d71361c000f9a7bc99dfb425bcb6bb27c32c36ab444ff3708b2d93b4e66d5b5b",
+      "expected_private_key_sha256": "0196ccbde5fbd1804e8c784efb83998338076d586fe73ee07ba712ccc9fc32c2",
+      "expected_public_key_sha256": "451a808c522218fadbdab146fc12004b0741c7d069f238f43ad77216159f6a34"
+    },
+    "nist_siggen_tg1_tc1": {
+      "source": "ML-DSA-sigGen-FIPS204 tgId=1 tcId=1",
+      "group_id": 1,
+      "test_case_id": 1,
+      "deterministic": true,
+      "private_key_sha256": "5133df4ce6a2cf72399803405a1600fb7ebfca1ac09c8bbadb2a02504fc4ae60",
+      "message_bytes": 952,
+      "message_sha256": "3beb5f226c998410d63f638d30f9b4d94bc6564438c9cd1939fba88eef0bddc6",
+      "context_bytes": 111,
+      "context_sha256": "e69ad6b1149978cd99812796460133cbc127083df7e798007a18db92d30adf57",
+      "expected_signature_sha256": "f2554d7153750b4deed79f80e5aa237a219fc92f83e59e7317c8d2089c4e7b91"
+    },
+    "nist_siggen_tg13_tc181": {
+      "source": "ML-DSA-sigGen-FIPS204 tgId=13 tcId=181",
+      "group_id": 13,
+      "test_case_id": 181,
+      "deterministic": false,
+      "private_key_sha256": "fec77accd3a4e370db672a296dbb9c25f6265905b4cb54c207fceaa7ed485de1",
+      "message_bytes": 4519,
+      "message_sha256": "68d044fd79bb981d8bd154722fb9f8838856ccc57cb6cad69fd98a0bd41ab659",
+      "context_bytes": 0,
+      "context_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "randomizer_hex": "31cfa3107e691b2ba6957f5ded6d2cd9ba9d5794dd897c2ca2484a8021e9e36a",
+      "expected_signature_sha256": "8a17b6ff3f9633cd3c7cd0687d6384408e145bfd3725f6c57a8a2727f50ec989"
+    },
+    "nist_sigver_tg1": {
+      "source": "ML-DSA-sigVer-FIPS204 tgId=1",
+      "parameter_set": "ML-DSA-44",
+      "signature_interface": "external",
+      "message_mode": "pure",
+      "cases": [
+        {
+          "test_case_id": 1,
+          "expected_valid": false,
+          "public_key_sha256": "12f2e34ddc986a2fbdaf02b23d40cb76812e27fa58fc7923f0ea3ed231a51baf",
+          "message_bytes": 5175,
+          "message_sha256": "beff03f14d1abd94f18f26eae8646847dab314851c5c5ad7ac5663070646af8e",
+          "context_bytes": 35,
+          "context_sha256": "b798606615bcca6fc12f0a4e8d6fac7d4113ff288902c0331f7917d190706e30",
+          "signature_bytes": 2420,
+          "signature_sha256": "3fdac3f646a9ca430fa4ab902f571f3068f68b181bb8a68b75833935a0f83045"
+        },
+        {
+          "test_case_id": 6,
+          "expected_valid": true,
+          "public_key_sha256": "830ec0e82d91984439162f18aaa237a5614854c423dec21891ce2744addee251",
+          "message_bytes": 3965,
+          "message_sha256": "08685bc2d793bbbe4424cc6517b6699753c9fbd3710c6110d1dbf59f21c88f1f",
+          "context_bytes": 180,
+          "context_sha256": "791e1e57ea411b939b6db0110cddcd65f2613a0f117181fc0dac700f7313f189",
+          "signature_bytes": 2420,
+          "signature_sha256": "0025f9651848cbd3714d4f2af984d9838277d9267f96c61b068aa3b172a461b0"
+        }
+      ]
+    },
+    "pqbtc_sighash_v1": {
+      "source": "repo-defined deterministic interoperability vector",
+      "seed_hex": "d71361c000f9a7bc99dfb425bcb6bb27c32c36ab444ff3708b2d93b4e66d5b5b",
+      "message_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "context_hex": "50514254432f74782d7369676e61747572652f7631",
+      "expected_private_key_sha256": "0196ccbde5fbd1804e8c784efb83998338076d586fe73ee07ba712ccc9fc32c2",
+      "expected_public_key_sha256": "451a808c522218fadbdab146fc12004b0741c7d069f238f43ad77216159f6a34",
+      "expected_signature_sha256": "98094b39d9ae1ad76fc734f9e0199ad37315dd4eb7a22f29561582239f64e131"
+    }
+  }
+}

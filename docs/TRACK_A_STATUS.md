@@ -21,10 +21,10 @@ secure real value or described as establishing its claimed `2^40` signing
 budget or NIST Level 1 security. `PQSIG_PRODUCTION_READINESS.md` is the
 controlling evidence and replacement-gate record.
 
-The next implementation lane is isolated standards conformance: first a FIPS
-205 `SLH-DSA-SHA2-128s` prototype, then a FIPS 204 `ML-DSA-44` comparator. No
-inventory policy class, `ALG_ID`, Script rule, or consensus accepted set changes
-as part of this safety closeout.
+The current implementation lane is isolated standards evidence. The FIPS 205
+`SLH-DSA-SHA2-128s` prototype and FIPS 204 `ML-DSA-44` comparator are both
+implemented without changing an inventory policy class, `ALG_ID`, Script rule,
+wallet path, or consensus accepted set.
 
 The first isolated reference slice is recorded in
 `SLH_DSA_SHA2_128S_REFERENCE.md`. It pins NIST ACVP and portable-C source
@@ -55,9 +55,20 @@ The slice changed no functional-suite inventory policy class, so the reviewed
 baseline remains `pq_required: 121`, `pq_backlog: 0`, `legacy_only: 14`, and
 `dual_profile: 141`.
 
-The next cryptographic implementation slice is the equivalent isolated
-`ML-DSA-44` comparator; the production and consensus-integration hold remains
-in force.
+The isolated `ML-DSA-44` comparator is recorded in
+`ML_DSA_44_REFERENCE.md`. It pins FIPS 204, NIST's potential-updates and
+Section 6 guidance artifacts, all 70 applicable external/pure ACVP cases,
+OpenSSL 3.6.3, and `mldsa-native` `v1.0.0-beta2`. The two codebases agree on
+all official and repo-defined exact outputs, cross-verify native randomized
+signatures, reject the bounded malformed/mutated corpus, and pass the adapter
+ASan/UBSan tranche. Ten-run arm64 timings and a raw-payload cost model are
+recorded. `mldsa-native` descends from the `pq-crystals` reference
+implementation, so the result is differential evidence rather than independent
+cryptographic review.
+
+The next bounded cryptographic slice is a measured SLH-DSA versus ML-DSA
+selection memo. It may explicitly retain `HOLD`; no consensus integration is
+authorized by either green reference harness.
 
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,
@@ -146,8 +157,10 @@ Cryptography implementation lane:
 
 3. Build isolated final-standard reference prototypes
    - retain the completed FIPS 205 `SLH-DSA-SHA2-128s` evidence baseline
-   - build the equivalent FIPS 204 `ML-DSA-44` comparator next
-   - require official vectors and an independent differential oracle
+   - retain the completed FIPS 204 `ML-DSA-44` comparator baseline
+   - compare both candidates in a separate measured selection memo
+   - preserve the documented implementation-lineage limit and require external
+     cryptographic review before consensus work
    - do not allocate or activate an `ALG_ID` in the prototype slices
 
 ## Current Queue
