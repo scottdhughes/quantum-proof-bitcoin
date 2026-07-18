@@ -58,12 +58,25 @@ than a local patch.
 
 - NIST FIPS 204 standardizes ML-DSA:
   https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.204.pdf
+- NIST's 2026-02-23 FIPS 204 planning note points to a potential-updates
+  spreadsheet. The 2026-07-18 refresh matches the SHA256 already pinned by the
+  ML-DSA comparator, so it changes no selected-profile vector bytes:
+  https://csrc.nist.gov/pubs/fips/204/final
+- NIST's PQC FIPS FAQ, last revised 2026-06-16 for the key-format question,
+  permits the ML-DSA key-generation seed to represent the stored or transported
+  private key when standard derivation reproduces the required outputs:
+  https://csrc.nist.gov/Projects/post-quantum-cryptography/faqs
 - NIST FIPS 205 standardizes SLH-DSA:
   https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.205.pdf
 - NIST SP 800-230 is an initial public draft, not a final standard. Its
   Bitcoin-oriented `SLH-DSA-*-128-24` profiles have a strict `2^24`
-  signatures-per-key limit and are not approved for general-purpose use:
+  signatures-per-key limit and are not approved for general-purpose use. Its
+  public comment period is closed, but NIST has not published a final:
   https://csrc.nist.gov/pubs/sp/800/230/ipd
+- NIST CSWP 39upd1 is final cryptographic-agility guidance. Any PQBTC agility
+  mechanism must use explicit algorithm binding and must not reinterpret an
+  existing output under replacement signature semantics:
+  https://csrc.nist.gov/pubs/cswp/39/upd1/considerations-for-achieving-crypto-agility/final
 - Kudinov and Nick's Bitcoin-specific hash-signature work is a 2025 preprint,
   not a NIST standard:
   https://eprint.iacr.org/2025/2203
@@ -86,15 +99,22 @@ authentication-set construction, and hypertree addressing are security
 invariants, not optional serialization details. Incrementally repairing rc2
 would amount to implementing and reviewing a new consensus algorithm.
 
-FIPS 205 is the conservative first implementation target because it is final,
-stateless, hash-based, and has compact public keys. Its 7,856-byte signatures
-increase block-space and bandwidth cost relative to rc2. FIPS 204 is a useful
-standardized efficiency comparator, but it adds structured-lattice assumptions
-and much larger public keys. The isolated ML-DSA-44 comparator now passes its
-complete selected-profile ACVP and two-codebase differential contract, but its
-portable oracle descends from the `pq-crystals` reference implementation and
-does not replace independent cryptographic review. Neither profile is selected
-for activation by this record.
+FIPS 205 remains the conservative fallback because it is final, stateless,
+hash-based, and has compact public keys. Its 7,856-byte signatures impose high
+block-space, bandwidth, signer, and hardware-wallet costs. FIPS 204 adds
+structured-lattice assumptions and much larger public keys, but offers a much
+smaller combined payload and substantially faster signing. The isolated
+ML-DSA-44 comparator now passes its complete selected-profile ACVP and
+two-codebase differential contract, but its portable oracle descends from the
+`pq-crystals` reference implementation and does not replace independent
+cryptographic review.
+
+`PQSIG_CANDIDATE_SELECTION.md` selects `ML-DSA-44` as the primary engineering
+candidate because its raw key-plus-signature payload, signing latency, and
+verification latency fit PQBTC materially better than the current
+`SLH-DSA-SHA2-128s` baseline. The hash-based profile remains the conservative
+fallback. This prioritizes evidence and design work; neither profile is
+selected for activation by this record.
 
 ## Implementation Direction
 
@@ -117,9 +137,10 @@ for activation by this record.
    a final publication and an explicit one-key-per-output usage-limit design.
 6. Retire rc2 or replace it with a ground-up, exact construction. Do not patch
    isolated symptoms while retaining the current security claims.
-7. Produce a measured SLH-DSA versus ML-DSA selection memo. The memo may retain
-   `HOLD`; neither a smaller signature nor faster benchmark is sufficient by
-   itself to select a consensus primitive.
+7. Apply the measured decision in `PQSIG_CANDIDATE_SELECTION.md`: advance
+   `ML-DSA-44` only through independent implementation evidence, external
+   cryptographic review, and worst-case system measurements. Preserve
+   `SLH-DSA-SHA2-128s` as the fallback and keep production on `HOLD`.
 
 ## Required Gates Before Consensus Integration
 

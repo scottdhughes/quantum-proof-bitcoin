@@ -66,9 +66,16 @@ recorded. `mldsa-native` descends from the `pq-crystals` reference
 implementation, so the result is differential evidence rather than independent
 cryptographic review.
 
-The next bounded cryptographic slice is a measured SLH-DSA versus ML-DSA
-selection memo. It may explicitly retain `HOLD`; no consensus integration is
-authorized by either green reference harness.
+The measured decision in `PQSIG_CANDIDATE_SELECTION.md` selects FIPS 204
+`ML-DSA-44` as the primary engineering candidate and retains FIPS 205
+`SLH-DSA-SHA2-128s` as the conservative fallback. Production remains on
+`HOLD`; no consensus integration is authorized by the selection or either
+green reference harness.
+
+The next bounded cryptographic work is to obtain a genuinely independent
+ML-DSA implementation and external cryptographic review, then close
+supported-platform and worst-case system measurements. A consensus-design
+specification follows only after those gates.
 
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,
@@ -155,13 +162,16 @@ Future selection boundary:
 
 Cryptography implementation lane:
 
-3. Build isolated final-standard reference prototypes
+3. Advance the selected ML-DSA-44 engineering evidence
    - retain the completed FIPS 205 `SLH-DSA-SHA2-128s` evidence baseline
    - retain the completed FIPS 204 `ML-DSA-44` comparator baseline
-   - compare both candidates in a separate measured selection memo
-   - preserve the documented implementation-lineage limit and require external
-     cryptographic review before consensus work
-   - do not allocate or activate an `ALG_ID` in the prototype slices
+   - apply `ML_DSA_44_ENGINEERING_CANDIDATE` as an evidence priority, not
+     production approval
+   - close the documented implementation-lineage limit with a genuinely
+     independent implementation
+   - require external cryptographic review and supported-platform worst-case
+     measurements before consensus-design work
+   - do not allocate or activate an `ALG_ID` in the evidence slices
 
 ## Current Queue
 
@@ -180,6 +190,10 @@ Cryptography implementation lane:
      [FEATURE_CONFIG_ARGS_POSTURE.md](FEATURE_CONFIG_ARGS_POSTURE.md)
 2. `HOLD`: do not infer another promotion from queue order. Require a fresh
    risk decision before changing another policy class.
+3. Cryptographic production remains on `HOLD` while `ML-DSA-44` advances only
+   as the selected engineering candidate. The next gates are independent
+   implementation evidence, external cryptographic review, and worst-case
+   system measurements; Script and wallet integration remain out of scope.
 
 
 ## Historical Queue Ledger
@@ -1673,6 +1687,12 @@ Aineko must ask before:
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
 
+- 2026-07-18: The measured final-standard comparison selected FIPS 204
+  `ML-DSA-44` as `ML_DSA_44_ENGINEERING_CANDIDATE`, retained FIPS 205
+  `SLH-DSA-SHA2-128s` as the conservative fallback, and kept production on
+  `HOLD`. The selection authorizes independent implementation, external-review,
+  and worst-case measurement work only. It does not authorize consensus,
+  Script, wallet, or `ALG_ID` changes.
 - 2026-07-18: Cryptographic conformance review placed all production activation
   on hold. The rc2 implementation does not enforce the WOTS+C fixed-sum rule,
   does not implement the cited PORS+FP grinding/authentication-set behavior,
@@ -2596,6 +2616,11 @@ above as the controlling live next-PR handoff when these older notes disagree.
 - There is no active inventory blocker. The selected configuration-namespace
   gap is promoted, its platform default-datadir namespace is asserted, and no
   suites remain in `pq_backlog`.
+- Production cryptography remains blocked on independent ML-DSA implementation
+  evidence, external cryptographic review, constant-time and secret-erasure
+  analysis, supported-platform and worst-case validation cost, and a separate
+  consensus-design specification. Engineering-candidate selection closes none
+  of those gates.
 - A further promotion requires a newly reviewed PQ confidence gap with a named
   owner, open tracking issue, bounded contract, targeted test, and acceptable
   CI cost. Until another selection exists, `HOLD` is the intended baseline
