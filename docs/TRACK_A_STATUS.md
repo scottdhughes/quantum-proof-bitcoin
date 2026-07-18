@@ -26,6 +26,12 @@ The next implementation lane is isolated standards conformance: first a FIPS
 inventory policy class, `ALG_ID`, Script rule, or consensus accepted set changes
 as part of this safety closeout.
 
+The first isolated reference slice is recorded in
+`SLH_DSA_SHA2_128S_REFERENCE.md`. It pins NIST ACVP and portable-C source
+commits, requires official keygen/sign/verify outcomes plus full byte agreement
+between OpenSSL and `slhdsa-c`, and records initial arm64 timings without adding
+either implementation to the node.
+
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,
 `pq_backlog: 0`, `legacy_only: 14`, and `dual_profile: 142`. Promotion Matrix
@@ -1598,6 +1604,7 @@ Aineko must ask before:
 - `SHRINCS_DECISION_TRACK.md`
 - `PQSIG_PROFILE_COMPARISON.md`
 - `PQSIG_PRODUCTION_READINESS.md`
+- `SLH_DSA_SHA2_128S_REFERENCE.md`
 - `GENESIS_AND_NETWORK_POSTURE.md`
 - `RESEARCH_INDEX.md`
 - `PSBT_REPLACEMENT_TRANCHE.md`

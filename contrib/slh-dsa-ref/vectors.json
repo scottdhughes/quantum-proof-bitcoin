@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "profile": {
+    "name": "SLH-DSA-SHA2-128s",
+    "standard": "FIPS 205",
+    "signature_interface": "external",
+    "message_mode": "pure",
+    "public_key_bytes": 32,
+    "private_key_bytes": 64,
+    "keygen_seed_bytes": 48,
+    "signature_bytes": 7856,
+    "prototype_message_bytes": 32,
+    "prototype_context_hex": "50514254432f74782d7369676e61747572652f7631",
+    "prototype_context_ascii": "PQBTC/tx-signature/v1",
+    "test_signing": "deterministic",
+    "production_signing_if_selected": "randomized"
+  },
+  "system_cost_model": {
+    "held_rc2_signature_bytes": 4480,
+    "block_weight_limit": 16000000,
+    "signature_witness_weight_per_byte": 1
+  },
+  "sources": {
+    "nist_acvp": {
+      "repository": "https://github.com/usnistgov/ACVP-Server",
+      "commit": "15c0f3deeefbfa8cb6cd32a99e1ca3b738c66bf0",
+      "files": {
+        "gen-val/json-files/SLH-DSA-keyGen-FIPS205/prompt.json": "bce170976f257ee3dfc8c54ea46722ccb553539847daa6d8048f0216cc28b51c",
+        "gen-val/json-files/SLH-DSA-keyGen-FIPS205/expectedResults.json": "f35f74b6676d6b369c87e88c36698f28c14d5929d31e507d910288c69258afee",
+        "gen-val/json-files/SLH-DSA-sigGen-FIPS205/prompt.json": "afa673eacdf0aec53512a159159b7632684adfcd0d88f8640a7f6f5796aacdc8",
+        "gen-val/json-files/SLH-DSA-sigGen-FIPS205/expectedResults.json": "71e8e0f7e4b0cfd1747314299204d9d4d50968d200a4ae873921eaa7aabeaad1",
+        "gen-val/json-files/SLH-DSA-sigVer-FIPS205/prompt.json": "4e7beb1233e47baa0acdd36417c66c45811aa40a4e32ffdb1a35d93b13b289fb",
+        "gen-val/json-files/SLH-DSA-sigVer-FIPS205/expectedResults.json": "259f5e2a0665de0adc0fefa45b5db3a2a6ed13c3c44d14bdaf64a80aee12c687"
+      }
+    },
+    "openssl": {
+      "minimum_version": "3.5.0",
+      "documentation": "https://docs.openssl.org/3.5/man7/EVP_SIGNATURE-SLH-DSA/",
+      "role": "independent prototype oracle; not a node dependency"
+    },
+    "slhdsa_c": {
+      "repository": "https://github.com/slh-dsa/slhdsa-c",
+      "commit": "2b111e076a3bf0b6041651cf8746acf5ade56cc7",
+      "license_expression": "Apache-2.0 OR ISC OR MIT",
+      "role": "independent portable-C oracle; not vendored or linked into the node"
+    }
+  },
+  "vectors": {
+    "nist_keygen_tg1_tc1": {
+      "source": "SLH-DSA-keyGen-FIPS205 tgId=1 tcId=1",
+      "seed_hex": "173d04c938c1c36bf289c3c022d04b1463ae23c41aa546da589774ac20b745c40d794777914c99766827f0f09ca972be",
+      "expected_private_key_hex": "173d04c938c1c36bf289c3c022d04b1463ae23c41aa546da589774ac20b745c40d794777914c99766827f0f09ca972be0162c10219d422adba1359e6aa65299c",
+      "expected_public_key_hex": "0d794777914c99766827f0f09ca972be0162c10219d422adba1359e6aa65299c"
+    },
+    "nist_siggen_tg19_tc161": {
+      "source": "SLH-DSA-sigGen-FIPS205 tgId=19 tcId=161",
+      "deterministic": true,
+      "signature_interface": "external",
+      "message_mode": "pure",
+      "private_key_hex": "9ae2f36b1eb8295acdaa5589d996788f06977d16ac51524d770152e02de29c8adb30f66d17e197683997000bc98342af9b0862379ca9f32edb1a2ef3a9262207",
+      "message_hex": "20",
+      "context_hex": "0610d63cca608f79c617f1c311fb4cf35d63982536a41b2c305a21d56641ad213b9b0253e8518f46642033680f25f91d936c184f78f6170864be8e59a6f399fa7f01e80b19df5f76b3111c4eac7febbeb4c7c9ff3b2c2324a61b3348c84257816ee0e8fbe3aee55c6c547c9b1abe239707569cfd7408da68fdccb9fe3bcbca2fac370ccf17f31551c53e07169520f0601a6e14937204b87bb0ffeff8ffab9a736a12bc0b1e3d051ce90f022d848a68ecc5b8aad63f354269422b0d1d0ffe60c86b8ba0fd0db518c44454c8b46dfaa7bd1dfef75f7305ff0b10cac037024a70b1c470282b4885ebbd181edb3f4052330362106780b0243893b7e983f97230e3",
+      "expected_signature_sha256": "8ceee1f1b9feeb53f65e63a54c2ef252bfa4307df171ecdc2367923ef63d5223"
+    },
+    "nist_sigver_tg19": {
+      "source": "SLH-DSA-sigVer-FIPS205 tgId=19",
+      "parameter_set": "SLH-DSA-SHA2-128s",
+      "signature_interface": "external",
+      "message_mode": "pure",
+      "cases": [
+        {
+          "test_case_id": 253,
+          "expected_valid": false,
+          "public_key_hex": "7958846fc89119a3776fb1e129b09a09412124223f267550272aea4111c502ba",
+          "message_bytes": 439,
+          "message_sha256": "8d6d44b0c899304f6367c1145b829fab34028e4484e4d8bf14d24bcf7b94856e",
+          "context_bytes": 119,
+          "context_sha256": "490a02b3b4f51da3ad0b0138edec9ada9cf308ea85a1abea0c5c2c6784f2268f",
+          "signature_bytes": 7856,
+          "signature_sha256": "e240cbc0d396bf20c3f05b1c203824bb4f089587d264bd96ec73893989f77385"
+        },
+        {
+          "test_case_id": 266,
+          "expected_valid": true,
+          "public_key_hex": "cf5339f7b748f3b48c0bbf22392e6f4254aeaa7d529078de7c056d3e71973df5",
+          "message_bytes": 24,
+          "message_sha256": "c2c767245bc7243ed27f0455eaf3e0393f3447e7c365c620933d6b2c15a8391a",
+          "context_bytes": 255,
+          "context_sha256": "87b5b27a181a56b2e7e3ca8dc161f75875c1d3ad3a6a9b72fc584bdb63aa7e9e",
+          "signature_bytes": 7856,
+          "signature_sha256": "8afce9948aa64e564daacd9467a39577a5241823196844d4452edd250c3052bb"
+        }
+      ]
+    },
+    "pqbtc_sighash_v1": {
+      "source": "repo-defined deterministic interoperability vector",
+      "seed_hex": "173d04c938c1c36bf289c3c022d04b1463ae23c41aa546da589774ac20b745c40d794777914c99766827f0f09ca972be",
+      "message_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "context_hex": "50514254432f74782d7369676e61747572652f7631",
+      "expected_private_key_hex": "173d04c938c1c36bf289c3c022d04b1463ae23c41aa546da589774ac20b745c40d794777914c99766827f0f09ca972be0162c10219d422adba1359e6aa65299c",
+      "expected_public_key_hex": "0d794777914c99766827f0f09ca972be0162c10219d422adba1359e6aa65299c",
+      "expected_signature_sha256": "14bf1a85f8fed8e18c61a3dfb25393527056da47b2d627e652bcfc4a105600e4"
+    }
+  }
+}

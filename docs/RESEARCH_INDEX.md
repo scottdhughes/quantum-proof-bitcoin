@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: RESEARCH-INDEX-v1
-## Updated: 2026-04-06
+## Updated: 2026-07-18
 ## Consensus-Relevant: NO
 
 ## Purpose
@@ -15,7 +15,11 @@ answer specific classes of questions instead of listing every file in `docs/`.
 
 ## Current State
 
-- The repo has a strong internal design corpus in Markdown.
+- The implemented rc2 profile is under a production release hold; integration
+  coverage does not establish its claimed cryptographic security.
+- An isolated FIPS 205 `SLH-DSA-SHA2-128s` reference harness now provides
+  pinned official keygen/sign/verify vectors, two-oracle interoperability, and
+  initial timings without changing consensus behavior.
 - No PDF papers are currently checked into this repo.
 - Delving Bitcoin now provides concrete adjacent research references that are
   directly relevant to Track A, especially around SHRINCS / SHRIMPS and
@@ -65,6 +69,11 @@ answer specific classes of questions instead of listing every file in `docs/`.
 
 ## PQSig Construction And Encoding
 
+- [PQSIG_PRODUCTION_READINESS.md](PQSIG_PRODUCTION_READINESS.md)
+  Controlling cryptographic release hold and replacement gates.
+- [SLH_DSA_SHA2_128S_REFERENCE.md](SLH_DSA_SHA2_128S_REFERENCE.md)
+  Isolated standards-conformance and measurement baseline for the first final-
+  standard candidate.
 - [PQSIG_INTERNALS.md](PQSIG_INTERNALS.md)
   Best internal explainer for how the signature system is assembled.
 - [PQSIG_WIRE_FORMAT.md](PQSIG_WIRE_FORMAT.md)

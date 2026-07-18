@@ -24,6 +24,7 @@ integration.
 
 - [Protocol Specification](docs/Spec.md) - Normative spec with MUST/SHOULD language
 - [Signature Production Readiness](docs/PQSIG_PRODUCTION_READINESS.md) - Controlling cryptographic evidence, release hold, and replacement gates
+- [SLH-DSA-SHA2-128s Reference](docs/SLH_DSA_SHA2_128S_REFERENCE.md) - Isolated FIPS 205 vector, interoperability, and measurement baseline
 - [Core Diff Plan](docs/CORE_DIFF_PLAN.md) - Bitcoin Core fork implementation phases
 
 ## Status
