@@ -24,6 +24,7 @@ integration.
 
 - [Protocol Specification](Spec.md) - Normative spec with MUST/SHOULD language
 - [Signature Production Readiness](PQSIG_PRODUCTION_READINESS.md) - Controlling cryptographic evidence, release hold, and replacement gates
+- [SLH-DSA-SHA2-128s Reference](SLH_DSA_SHA2_128S_REFERENCE.md) - Isolated FIPS 205 vector, interoperability, and measurement baseline
 - [Core Diff Plan](CORE_DIFF_PLAN.md) - Bitcoin Core fork implementation phases
 - [Track A: Native PQ Bitcoin](TRACK_A_NATIVE_PQ_BITCOIN.md) - Strategic anchor, scope, non-goals, and how adjacent approaches fit
 - [Track A 90-Day Roadmap](TRACK_A_90_DAY_ROADMAP.md) - Concrete execution plan for April 6, 2026 through July 5, 2026
