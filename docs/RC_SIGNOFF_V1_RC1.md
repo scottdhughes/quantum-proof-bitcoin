@@ -1,9 +1,12 @@
 # PQBTC v1.0.0-rc1 Sign-off Evidence
 
-## Status: FROZEN
+## Status: FROZEN HISTORICAL - RELEASE HOLD
 ## Spec-ID: RC-SIGNOFF-v1.0.0-rc1
 ## Frozen-By: rc-stack-20260223
 ## Consensus-Relevant: NO
+
+> **Superseded:** This is immutable historical integration evidence, not a
+> current production sign-off. See `PQSIG_PRODUCTION_READINESS.md`.
 
 ## Scope
 This document captures immutable pre-tag evidence for `v1.0.0-rc1` from the

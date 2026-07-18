@@ -97,7 +97,7 @@ The current tranche treats the following as the owned PQBTC contract:
 
 - identifier `pqbtc`
 - subtype `1`
-- binary value carrying the fixed-size PQ signature for the active profile
+- binary value carrying the fixed-size PQ signature for the implemented profile
 - key material bound to the active `pk_script`
 
 This is the current PQ-native bridge between wallet signing and PSBT

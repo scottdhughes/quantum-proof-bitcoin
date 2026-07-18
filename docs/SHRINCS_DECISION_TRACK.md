@@ -1,9 +1,16 @@
 # PQBTC SHRINCS-Family Decision Track
 
-## Status: ACTIVE
+## Status: SUPERSEDED - RELEASE HOLD
 ## Spec-ID: SHRINCS-DECISION-TRACK-v1
 ## Started: 2026-04-13
 ## Consensus-Relevant: NO
+
+## Supersession Notice
+
+This is a historical sequencing memo. Its statements that rc2 can remain a
+shipping baseline are withdrawn by `PQSIG_PRODUCTION_READINESS.md`. rc2 remains
+useful only as a held integration fixture, and no replacement may activate
+without the standards-conformance and review gates in that record.
 
 ## Purpose
 
@@ -14,14 +21,15 @@ This document is a sequencing rule, not an activation decision.
 
 ## Current Truth
 
-- The live chain profile remains `PQSig rc2` on `ALG_ID=0x01`.
-- The current active signature path is already hash-based and SPHINCS-family in
-  construction (`WOTS+C` + `PORS+FP` + hypertree), with fixed 33-byte
-  `PK_script` encoding and fixed 4480-byte signatures.
-- PQBTC therefore already has real PQ signing and verification. The open
-  question is not "should the repo become post-quantum at all," but "should the
-  current active profile later be replaced by a stronger or more practical
-  SHRINCS-family alternative?"
+- The implemented research profile remains `PQSig rc2` on `ALG_ID=0x01`, under
+  a production release hold.
+- The implemented signature path is hash-based in shape and claims a
+  SPHINCS-family construction (`WOTS+C` + `PORS+FP` + hypertree), with fixed
+  33-byte `PK_script` encoding and fixed 4480-byte signatures. Its conformance
+  and security claims are not established.
+- PQBTC has working Bitcoin integration around a PQ-shaped signature fixture.
+  It does not yet have a cryptographically approved production signature
+  profile.
 
 ## Decision Rule
 
@@ -44,7 +52,8 @@ ability to reason about causality.
 PQBTC is on track for SHRINCS-family evaluation only if all of the following
 stay true:
 
-1. `PQSig rc2` remains the stable execution baseline for current Track A work.
+1. `PQSig rc2` remains only a stable, held regression baseline for current
+   Track A integration work.
 2. The future-profile lane stays explicitly separate from required-gate tranche
    ownership.
 3. Any future-profile candidate is judged against operator and wallet reality,
@@ -83,8 +92,8 @@ stay true:
 ### 5. Launch Fit
 
 - Does the candidate meaningfully improve the launch story?
-- Is the benefit large enough to justify redoing the active profile before a
-  block-0 launch?
+- Is the benefit large enough to justify replacing the held profile before any
+  block-0 launch proposal?
 - If not, should it instead become a post-launch or later-`ALG_ID` migration
   candidate?
 
@@ -107,22 +116,18 @@ Before any proposal to replace `PQSig rc2`, require:
 
 The default near-term choice is:
 
-- keep shipping Track A on `PQSig rc2`
-- keep the current wallet / PSBT / CI / ops work focused on the active profile
-- treat SHRINCS, SHRIMPS, and other adjacent ideas as an evidence-gathering lane
-  until the repo has enough execution maturity to compare them cleanly
+- do not ship rc2 or represent it as production-ready cryptography
+- preserve current wallet / PSBT / CI / ops work as integration evidence
+- build isolated FIPS 205 and FIPS 204 reference prototypes before proposing a
+  new consensus profile
 
 ## Immediate Next Steps
 
-1. Keep current Track A tranche work anchored to the active rc2 profile.
-2. Build a small comparison memo between:
-   - current `PQSig rc2`
-   - a concrete SHRINCS-family candidate
-   - any compact-signature follow-on worth serious consideration later
-3. Decide whether the first future-profile step should be:
-   - a docs-only adoption memo
-   - a neutral `ALG_ID` allocation with explicit present-day rejection
-   - or a real implementation branch outside the current required gate
+1. Preserve the rc2 production hold and executable conformance evidence.
+2. Build an isolated `SLH-DSA-SHA2-128s` reference prototype.
+3. Build an isolated `ML-DSA-44` comparator.
+4. Make no `ALG_ID`, Script, or activation change until the readiness gates are
+   met in a separate proposal.
 
 ## Non-Goals
 

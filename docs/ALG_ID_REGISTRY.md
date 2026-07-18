@@ -20,7 +20,7 @@ Define the assigned script-layer `ALG_ID` values, their lifecycle states, and th
 | ALG_ID | Profile | State | Owning Specs | Activation Notes |
 | --- | --- | --- | --- | --- |
 | `0x00` | none | `RESERVED_INVALID` | none | Permanent invalid sentinel; MUST fail. |
-| `0x01` | `rc2` | `ACTIVE` | `PQSIG_WIRE_FORMAT.md`, `PQSIG_INTERNALS.md`, `Spec.md` | Current GA PQSig profile. |
+| `0x01` | `rc2` | `ACTIVE` | `PQSIG_WIRE_FORMAT.md`, `PQSIG_INTERNALS.md`, `Spec.md` | Parser-active research profile; production release held by `PQSIG_PRODUCTION_READINESS.md`. |
 | `0x02` | `future-0x02` | `ALLOCATED_FUTURE` | `PQSIG_0X02_WIRE_FORMAT.md`, `PQSIG_0X02_INTERNALS.md` | Allocated for fixture and harness work only; still invalid in current releases. |
 | `0x03-0xff` | none | `UNALLOCATED` | none | Invalid until a future allocation freezes the profile and activates it later. |
 

@@ -4,28 +4,31 @@ A Bitcoin Core fork with post-quantum signatures from genesis.
 
 ## Overview
 
-This project implements a Bitcoin-like UTXO chain using hash-based post-quantum signatures (WOTS+C / PORS+FP in the SPHINCS framework) instead of ECDSA/Schnorr.
+This project is a Bitcoin Core-derived research chain for evaluating
+post-quantum transaction signatures and their wallet, policy, and consensus
+integration.
 
 ### Key Properties
 
 | Property | Value |
 |----------|-------|
-| Signature scheme | PQSig rc2 (WOTS+C + PORS+FP) |
+| Implemented research profile | PQSig rc2 (`ALG_ID=0x01`) |
 | Signature size | 4,480 bytes |
 | Public key size | 33 bytes (1-byte ALG_ID + 32-byte core) |
-| Max signatures/key | 2^40 |
-| Security level | NIST Level 1 (~128-bit classical) |
+| Production approval | None - release hold |
+| Claimed security/budget | Not established for the rc2 implementation |
 | Block weight | 16,000,000 WU |
 | PoW | SHA-256d (unchanged from Bitcoin) |
 
 ## Documentation
 
 - [Protocol Specification](Spec.md) - Normative spec with MUST/SHOULD language
+- [Signature Production Readiness](PQSIG_PRODUCTION_READINESS.md) - Controlling cryptographic evidence, release hold, and replacement gates
 - [Core Diff Plan](CORE_DIFF_PLAN.md) - Bitcoin Core fork implementation phases
 - [Track A: Native PQ Bitcoin](TRACK_A_NATIVE_PQ_BITCOIN.md) - Strategic anchor, scope, non-goals, and how adjacent approaches fit
 - [Track A 90-Day Roadmap](TRACK_A_90_DAY_ROADMAP.md) - Concrete execution plan for April 6, 2026 through July 5, 2026
 - [SHRINCS Decision Track](SHRINCS_DECISION_TRACK.md) - Controlled evaluation lane for SHRINCS-family adoption without destabilizing active Track A work
-- [Signature Profile Comparison Memo](PQSIG_PROFILE_COMPARISON.md) - Decision memo comparing active `PQSig rc2` against SHRINCS-style and SHRIMPS-style candidates
+- [Signature Profile Comparison Memo](PQSIG_PROFILE_COMPARISON.md) - Historical comparison memo, superseded by the production-readiness hold
 - [Genesis And Network Posture](GENESIS_AND_NETWORK_POSTURE.md) - Launch interpretation for a fresh block-0 chain, network identity, and non-goals around inherited Bitcoin history
 - [Research Index](RESEARCH_INDEX.md) - Curated map of the repo's internal research corpus and key external references
 - [Watch-Only `pq(...)` Contract](PQ_DESCRIPTOR_WATCHONLY_CONTRACT.md) - Fixed public PQ descriptor boundaries, import behavior, and test-backed expectations
@@ -35,14 +38,15 @@ This project implements a Bitcoin-like UTXO chain using hash-based post-quantum 
 
 ## Status
 
-**`v1.0.0` held; `v1.0.0-rc2` active** - the project is on the rc2 mitigation
-track after retiring the old `ALG_ID=0x00` profile before GA.
+**Research only - production release hold.** The implemented rc2 signature path
+does not conform to security-critical WOTS+C/PORS+FP invariants claimed by the
+draft specification. Do not use it to secure real funds or describe it as
+production quantum-resistant cryptography.
 
-The repo already includes frozen PQ-only consensus, descriptor-native PQ wallet
-managers, PQ PSBT signing/finalization support, and deterministic wallet
-backup/recovery coverage. Current work is focused on confidence/gating
-completeness, Taproot replacement migration coverage, and operational
-hardening rather than first-pass wallet implementation.
+The repo's consensus, wallet, PSBT, backup/recovery, and CI work remains useful
+integration evidence. It does not establish cryptographic security. The next
+cryptography work is an isolated final-standard prototype and independent
+conformance evaluation, not an rc2 release.
 
 ## RC Documentation
 

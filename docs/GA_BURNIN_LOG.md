@@ -1,9 +1,13 @@
 # PQBTC v1 RC Burn-in Log
 
-## Status: TRACKED
+## Status: HISTORICAL - RELEASE HOLD
 ## Spec-ID: GA-BURNIN-LOG-v1
 ## Frozen-By: ga-governance-20260223
 ## Consensus-Relevant: NO
+
+> **Superseded:** Passing burn-in evidence below does not establish
+> cryptographic conformance. Current release posture is controlled by
+> `PQSIG_PRODUCTION_READINESS.md`.
 
 ## Window
 
@@ -21,7 +25,7 @@ into the post-v1 operator bundle defined by `docs/OPS_SLO.md`. Checked-in operat
 ## RC2 Reset (2026-03-06)
 
 1. `v1.0.0` GA on the original `ALG_ID=0x00` profile is held.
-2. The active release path is now `v1.0.0-rc2`.
+2. The active release path at that time became `v1.0.0-rc2`.
 3. The controlled verify path changed on `2026-03-06`:
    - `src/crypto/pqsig/pqsig.cpp`
    - `src/crypto/pqsig/pqsig.h`

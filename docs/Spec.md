@@ -1,7 +1,14 @@
-# Quantum-Proof Bitcoin Fork (Genesis Chain) — Protocol Spec v0 (DRAFT)
+# Quantum-Proof Bitcoin Fork (Genesis Chain) — Protocol Spec v0 (DRAFT, RELEASE HOLD)
 
-Status: Draft
-Last-Updated: 2026-04-06
+Status: Draft - Not Approved For Production
+Last-Updated: 2026-07-18
+
+> **Controlling safety notice:** This draft records intended and implemented
+> rc2 behavior, but the implementation does not satisfy security-critical
+> invariants of the cited WOTS+C/PORS+FP construction. Its `2^40` signing bound
+> and NIST Level 1 claim are not established. No signature profile in this repo
+> is approved to secure real value. See
+> [PQSIG_PRODUCTION_READINESS.md](PQSIG_PRODUCTION_READINESS.md).
 
 This document is a developer-facing protocol specification for a Bitcoin Core-derived chain
 starting from a new genesis block (height 0), with post-quantum (PQ) signatures required
@@ -10,8 +17,8 @@ for transaction authorization from genesis.
 Normative language: "MUST", "MUST NOT", "SHOULD", "SHOULD NOT", "MAY" are
 to be interpreted as in RFC 2119.
 
-Primary external reference for the PQ signature construction and parameter
-selection used here:
+Primary external research reference for the intended PQ signature construction
+and parameter selection described here:
 
 - Mikhail Kudinov and Jonas Nick, "Hash-based Signature Schemes for Bitcoin"
   (IACR ePrint 2025/2203)
@@ -71,10 +78,12 @@ The chain uses Bitcoin-style transactions with witness support and weight accoun
 ## 4. PQ Signature System ("PQSig v0")
 
 ### 4.1 High-Level Construction
-PQSig v0 is a stateless, hash-based signature scheme in the SPHINCS framework, using:
+PQSig v0 intends to define a stateless, hash-based signature scheme in the
+SPHINCS framework, using:
 - WOTS+C for the one-time layer, and
 - PORS+FP for the few-time layer,
-with hypertree parameters chosen for q_s = 2^40 max signatures per public key.
+with hypertree parameters intended for q_s = 2^40 max signatures per public
+key. The current rc2 implementation does not establish this property.
 
 (See "Hash-based Signature Schemes for Bitcoin" for the WOTS+C, PORS+FP,
 SPHINCS-family substitution, and parameter-table background behind this
@@ -88,7 +97,8 @@ construction.)
 - PRFmsg output length: 256 bits (32 bytes).
 
 ### 4.3 Parameter Set (Consensus-Critical)
-PQSig v0 MUST use the following fixed parameter set (Table 1 row "W+C P+FP 2^40"):
+The intended PQSig v0 construction uses the following fixed parameter set
+(Table 1 row "W+C P+FP 2^40"):
 - q_s = 2^40
 - h = 44
 - d = 4
@@ -127,6 +137,11 @@ v0 rule:
   - the secret key,
   - the transaction digest,
   - and any explicit optional randomness input opt (if supported).
+
+Conformance status: rc2 does not implement this rule. It derives one `R`,
+performs no WOTS+C fixed-sum search or PORS+FP authentication-set search, and
+requires all encoded layer counters to be zero. This mismatch is a release
+blocker, not an approved alternative construction.
 
 ### 4.6 Public Key and Signature Encodings
 
@@ -220,7 +235,8 @@ Policy SHOULD enforce:
 
 ## 9. Upgrade and Versioning (Plan)
 - ALG_ID byte in PK_script provides a clean hook for future signature versions.
-- The active GA profile is PQSig rc2 with `ALG_ID = 0x01`; see `ALG_ID_REGISTRY.md`.
+- The implemented research profile is PQSig rc2 with `ALG_ID = 0x01`; it is
+  under the production hold in `PQSIG_PRODUCTION_READINESS.md`.
 - `ALG_ID = 0x02` is allocated to the neutral `future-0x02` fixture path and remains invalid in current releases.
 - Assigned values, lifecycle state, allocation rules, and reuse prohibitions are defined in `ALG_ID_REGISTRY.md`.
 - Current parser compatibility and explicit non-negotiation rules are frozen in `ALG_ID_PARSER_COMPAT.md`.

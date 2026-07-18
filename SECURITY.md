@@ -2,12 +2,20 @@
 
 ## Supported Versions
 
-See our website for versions of Bitcoin Core that are currently supported with
-security updates: https://bitcoincore.org/en/lifecycle/#schedule
+No PQBTC version is supported for production use. The implemented rc2
+signature profile is under an explicit cryptographic release hold; do not use
+it to secure real funds. See
+[`docs/PQSIG_PRODUCTION_READINESS.md`](docs/PQSIG_PRODUCTION_READINESS.md).
+
+The inherited Bitcoin Core lifecycle does not make this fork a supported
+Bitcoin Core release.
 
 ## Reporting a Vulnerability
 
-To report security issues send an email to security@bitcoincore.org (not for support).
+Use this repository's private GitHub security-advisory channel for sensitive
+PQBTC findings. Do not send fork-specific findings to the Bitcoin Core security
+contacts below. Those contacts apply only when a finding also affects upstream
+Bitcoin Core.
 
 The following keys may be used to communicate sensitive information to developers:
 
