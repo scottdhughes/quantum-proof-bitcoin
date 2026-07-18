@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "profile": {
     "name": "SLH-DSA-SHA2-128s",
     "standard": "FIPS 205",
@@ -8,12 +8,43 @@
     "public_key_bytes": 32,
     "private_key_bytes": 64,
     "keygen_seed_bytes": 48,
+    "randomizer_bytes": 16,
     "signature_bytes": 7856,
     "prototype_message_bytes": 32,
     "prototype_context_hex": "50514254432f74782d7369676e61747572652f7631",
     "prototype_context_ascii": "PQBTC/tx-signature/v1",
-    "test_signing": "deterministic",
+    "exact_vector_signing": "deterministic_or_fixed_randomizer",
     "production_signing_if_selected": "randomized"
+  },
+  "acvp_coverage": {
+    "keygen": {
+      "group_id": 1,
+      "test_case_ids": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    },
+    "siggen": [
+      {
+        "group_id": 19,
+        "deterministic": true,
+        "signature_interface": "external",
+        "message_mode": "pure",
+        "test_case_ids": [157, 158, 159, 160, 161, 162, 163]
+      },
+      {
+        "group_id": 55,
+        "deterministic": false,
+        "signature_interface": "external",
+        "message_mode": "pure",
+        "test_case_ids": [469, 470, 471, 472, 473, 474, 475]
+      }
+    ],
+    "sigver": {
+      "group_id": 19,
+      "signature_interface": "external",
+      "message_mode": "pure",
+      "test_case_ids": [253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266],
+      "accepted_test_case_ids": [258, 266]
+    },
+    "total_cases": 38
   },
   "system_cost_model": {
     "held_rc2_signature_bytes": 4480,
@@ -34,8 +65,10 @@
       }
     },
     "openssl": {
-      "minimum_version": "3.5.0",
-      "documentation": "https://docs.openssl.org/3.5/man7/EVP_SIGNATURE-SLH-DSA/",
+      "repository": "https://github.com/openssl/openssl",
+      "commit": "aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f",
+      "version": "3.6.3",
+      "documentation": "https://docs.openssl.org/3.6/man7/EVP_SIGNATURE-SLH-DSA/",
       "role": "independent prototype oracle; not a node dependency"
     },
     "slhdsa_c": {

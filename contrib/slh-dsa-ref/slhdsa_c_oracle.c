@@ -15,6 +15,7 @@
 #define KEYGEN_SEED_SIZE 48
 #define PRIVATE_KEY_SIZE 64
 #define PUBLIC_KEY_SIZE 32
+#define RANDOMIZER_SIZE 16
 #define SIGNATURE_SIZE 7856
 
 static uint64_t MonotonicNs(void)
@@ -96,20 +97,29 @@ cleanup:
     return result;
 }
 
-static int RunSign(const char* key_hex, const char* message_hex, const char* context_hex)
+static int RunSign(
+    const char* key_hex,
+    const char* message_hex,
+    const char* context_hex,
+    const char* randomizer_hex)
 {
     size_t key_size = 0;
     size_t message_size = 0;
     size_t context_size = 0;
+    size_t randomizer_size = 0;
     uint8_t* private_key = DecodeHex(key_hex, &key_size);
     uint8_t* message = DecodeHex(message_hex, &message_size);
     uint8_t* context_string = DecodeHex(context_hex, &context_size);
+    uint8_t* randomizer =
+        randomizer_hex == NULL ? NULL : DecodeHex(randomizer_hex, &randomizer_size);
     uint8_t public_key[PUBLIC_KEY_SIZE];
     uint8_t* signature = NULL;
     int result = 1;
 
     if (private_key == NULL || key_size != PRIVATE_KEY_SIZE || message == NULL ||
-        context_string == NULL || context_size > 255) {
+        context_string == NULL || context_size > 255 ||
+        (randomizer_hex != NULL &&
+         (randomizer == NULL || randomizer_size != RANDOMIZER_SIZE))) {
         fprintf(stderr, "slhdsa_c_oracle: invalid sign input\n");
         goto cleanup;
     }
@@ -125,7 +135,7 @@ static int RunSign(const char* key_hex, const char* message_hex, const char* con
         context_string,
         context_size,
         private_key,
-        NULL,
+        randomizer,
         &slh_dsa_sha2_128s);
     const uint64_t sign_ns = MonotonicNs() - sign_started;
     if (signature_size != SIGNATURE_SIZE) {
@@ -157,6 +167,7 @@ static int RunSign(const char* key_hex, const char* message_hex, const char* con
 
 cleanup:
     free(signature);
+    free(randomizer);
     free(context_string);
     free(message);
     free(private_key);
@@ -182,6 +193,12 @@ static int RunVerify(
     if (public_key == NULL || key_size != PUBLIC_KEY_SIZE || message == NULL ||
         context_string == NULL || context_size > 255 || signature == NULL) {
         fprintf(stderr, "slhdsa_c_oracle: invalid verify input\n");
+        goto cleanup;
+    }
+    if (signature_size != SIGNATURE_SIZE) {
+        printf("verified=0\n");
+        printf("verify_ns=0\n");
+        result = 0;
         goto cleanup;
     }
     const uint64_t verify_started = MonotonicNs();
@@ -211,13 +228,25 @@ cleanup:
 int main(const int argc, char** argv)
 {
     if (argc == 3 && strcmp(argv[1], "keygen") == 0) return RunKeygen(argv[2]);
-    if (argc == 5 && strcmp(argv[1], "sign") == 0) return RunSign(argv[2], argv[3], argv[4]);
+    if (argc == 5 && strcmp(argv[1], "sign") == 0) {
+        return RunSign(argv[2], argv[3], argv[4], NULL);
+    }
+    if (argc == 6 && strcmp(argv[1], "sign-with-randomizer") == 0) {
+        return RunSign(argv[2], argv[3], argv[4], argv[5]);
+    }
     if (argc == 6 && strcmp(argv[1], "verify") == 0) {
         return RunVerify(argv[2], argv[3], argv[4], argv[5]);
     }
 
     fprintf(stderr, "usage: %s keygen <seed-hex>\n", argv[0]);
     fprintf(stderr, "       %s sign <sk-hex> <message-hex> <context-hex>\n", argv[0]);
-    fprintf(stderr, "       %s verify <pk-hex> <message-hex> <context-hex> <signature-hex>\n", argv[0]);
+    fprintf(stderr,
+            "       %s sign-with-randomizer <sk-hex> <message-hex> "
+            "<context-hex> <randomizer-hex>\n",
+            argv[0]);
+    fprintf(stderr,
+            "       %s verify <pk-hex> <message-hex> <context-hex> "
+            "<signature-hex>\n",
+            argv[0]);
     return 2;
 }

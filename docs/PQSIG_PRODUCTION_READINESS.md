@@ -97,12 +97,14 @@ record.
 
 1. Maintain the isolated `SLH-DSA-SHA2-128s` prototype in
    `SLH_DSA_SHA2_128S_REFERENCE.md` against the exact FIPS 205 API, encodings,
-   context rules, and test vectors. Do not assign an active `ALG_ID` or connect
-   it to Script yet.
+   context rules, and test vectors. Its complete selected-profile ACVP,
+   randomized interoperability, mutation, and bounded sanitizer tranche is
+   green. Do not assign an active `ALG_ID` or connect it to Script yet.
 2. Implement or bind an isolated `ML-DSA-44` comparator for size, signing,
    verification, wallet, and block-economics measurements.
-3. Use OpenSSL 3.5 or later only as a prototype and differential-test oracle.
-   Do not introduce a host OpenSSL dependency into consensus verification.
+3. Use the OpenSSL 3.6.3 runtime and pinned source checkout only as a prototype
+   and differential-test oracle. Do not introduce a host OpenSSL dependency
+   into consensus verification.
 4. Obtain a second independent implementation or vector source for every
    candidate. A repo-local signer and repo-local verifier are not independent
    evidence.
