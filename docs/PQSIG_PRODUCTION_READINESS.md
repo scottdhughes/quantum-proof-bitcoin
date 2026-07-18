@@ -90,8 +90,11 @@ FIPS 205 is the conservative first implementation target because it is final,
 stateless, hash-based, and has compact public keys. Its 7,856-byte signatures
 increase block-space and bandwidth cost relative to rc2. FIPS 204 is a useful
 standardized efficiency comparator, but it adds structured-lattice assumptions
-and much larger public keys. Neither profile is selected for activation by this
-record.
+and much larger public keys. The isolated ML-DSA-44 comparator now passes its
+complete selected-profile ACVP and two-codebase differential contract, but its
+portable oracle descends from the `pq-crystals` reference implementation and
+does not replace independent cryptographic review. Neither profile is selected
+for activation by this record.
 
 ## Implementation Direction
 
@@ -100,8 +103,10 @@ record.
    context rules, and test vectors. Its complete selected-profile ACVP,
    randomized interoperability, mutation, and bounded sanitizer tranche is
    green. Do not assign an active `ALG_ID` or connect it to Script yet.
-2. Implement or bind an isolated `ML-DSA-44` comparator for size, signing,
-   verification, wallet, and block-economics measurements.
+2. Maintain the isolated FIPS 204 `ML-DSA-44` comparator in
+   `ML_DSA_44_REFERENCE.md`. Its 70-case ACVP, randomized interoperability,
+   mutation, sanitizer, timing, and raw-payload evidence is green. Preserve the
+   recorded implementation-lineage limitation.
 3. Use the OpenSSL 3.6.3 runtime and pinned source checkout only as a prototype
    and differential-test oracle. Do not introduce a host OpenSSL dependency
    into consensus verification.
@@ -112,6 +117,9 @@ record.
    a final publication and an explicit one-key-per-output usage-limit design.
 6. Retire rc2 or replace it with a ground-up, exact construction. Do not patch
    isolated symptoms while retaining the current security claims.
+7. Produce a measured SLH-DSA versus ML-DSA selection memo. The memo may retain
+   `HOLD`; neither a smaller signature nor faster benchmark is sufficient by
+   itself to select a consensus primitive.
 
 ## Required Gates Before Consensus Integration
 

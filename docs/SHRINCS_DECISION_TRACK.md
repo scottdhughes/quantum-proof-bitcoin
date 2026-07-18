@@ -109,8 +109,8 @@ Before any proposal to replace `PQSig rc2`, require:
 6. wallet, descriptor, and PSBT impact analysis
 7. recovery and operator-backup analysis
 8. a recommendation memo that says either:
-   - stay on `rc2` for launch
-   - or pivot before launch for explicitly stated reasons
+   - retain the production `HOLD`
+   - or select a final-standard candidate for a separate engineering proposal
 
 ## Near-Term Default
 
@@ -124,9 +124,10 @@ The default near-term choice is:
 ## Immediate Next Steps
 
 1. Preserve the rc2 production hold and executable conformance evidence.
-2. Build an isolated `SLH-DSA-SHA2-128s` reference prototype.
-3. Build an isolated `ML-DSA-44` comparator.
-4. Make no `ALG_ID`, Script, or activation change until the readiness gates are
+2. Retain the completed isolated `SLH-DSA-SHA2-128s` reference prototype.
+3. Retain the completed isolated `ML-DSA-44` comparator.
+4. Produce a measured candidate-selection memo or explicitly retain `HOLD`.
+5. Make no `ALG_ID`, Script, or activation change until the readiness gates are
    met in a separate proposal.
 
 ## Non-Goals
