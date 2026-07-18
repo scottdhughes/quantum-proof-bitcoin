@@ -32,6 +32,15 @@ commits, requires official keygen/sign/verify outcomes plus full byte agreement
 between OpenSSL and `slhdsa-c`, and records initial arm64 timings without adding
 either implementation to the node.
 
+PR `#174` landed that reference slice at merge commit
+`0ed5785269ff08df2d55494aca0a0d9538c14743`. Its duplicate push and
+pull-request CI/Gatekeeper workflows completed all `8/8` checks successfully.
+Post-merge Promotion Matrix run `29633591881` completed `21/21` jobs
+successfully, and the merge commit completed all `26/26` checks successfully.
+The slice changed no functional-suite inventory policy class, so the reviewed
+baseline remains `pq_required: 121`, `pq_backlog: 0`, `legacy_only: 14`, and
+`dual_profile: 141`.
+
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,
 `pq_backlog: 0`, `legacy_only: 14`, and `dual_profile: 142`. Promotion Matrix
