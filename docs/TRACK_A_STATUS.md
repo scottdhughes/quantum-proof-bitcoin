@@ -46,7 +46,16 @@ applicable external/pure SHA2-128s ACVP cases: 10 keygen, 7 deterministic
 siggen, 7 randomized siggen, and 14 sigver. It pins OpenSSL 3.6.3 source,
 requires cross-verification and randomized-signature diversity, exercises
 context and malformed-input boundaries, and runs both adapters under ASan and
-UBSan. The next cryptographic implementation slice is the equivalent isolated
+UBSan. PR `#176` landed that evidence tranche at merge commit
+`2358eab6b72976423ad0fe37961466fc7f3554fa`. Its duplicate push and
+pull-request CI/Gatekeeper workflows completed all `8/8` checks successfully.
+Post-merge Promotion Matrix run `29649847118` completed `21/21` jobs
+successfully, and the merge commit completed all `26/26` checks successfully.
+The slice changed no functional-suite inventory policy class, so the reviewed
+baseline remains `pq_required: 121`, `pq_backlog: 0`, `legacy_only: 14`, and
+`dual_profile: 141`.
+
+The next cryptographic implementation slice is the equivalent isolated
 `ML-DSA-44` comparator; the production and consensus-integration hold remains
 in force.
 
