@@ -2,8 +2,8 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-07-17
-## Current Phase: Phase 1 - Config Namespace Hardened; Baseline Hold
+## Updated: 2026-07-18
+## Current Phase: Phase 1 - Cryptographic Production Hold
 
 ## Purpose
 
@@ -13,6 +13,18 @@ This file is the working handoff for Aineko. When no more specific repo task is
 active, use this file to choose the next safe step for `quantum-proof-bitcoin`.
 
 ## Current Objective
+
+Preserve the completed CI inventory baseline while moving Track A onto an
+explicit cryptographic production hold. The implemented rc2 path remains a
+research and Bitcoin-integration fixture only; it must not be released to
+secure real value or described as establishing its claimed `2^40` signing
+budget or NIST Level 1 security. `PQSIG_PRODUCTION_READINESS.md` is the
+controlling evidence and replacement-gate record.
+
+The next implementation lane is isolated standards conformance: first a FIPS
+205 `SLH-DSA-SHA2-128s` prototype, then a FIPS 204 `ML-DSA-44` comparator. No
+inventory policy class, `ALG_ID`, Script rule, or consensus accepted set changes
+as part of this safety closeout.
 
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,
@@ -63,7 +75,9 @@ tracked suites now have an explicit policy class and none remains in
 
 ## Current Working Thesis
 
-- `quantum-proof-bitcoin` stays on Track A: native post-quantum Bitcoin.
+- `quantum-proof-bitcoin` stays on Track A as a post-quantum Bitcoin research
+  and integration project; production activation is held until a conformant,
+  independently reviewed signature profile passes its release gates.
 - Track A assumes PQBTC launches as a new chain at block 0, not as an in-place
   continuation of inherited Bitcoin chain history.
 - Blockstream's Liquid/Simplicity work is a benchmark and adjacent migration
@@ -83,6 +97,8 @@ Preferred next owned tranche:
      missing dedicated issue and cross-platform/optional-IPC boundary.
    - `rpc_blockchain.py` remains rejected because its replacement-deployment
      evidence duplicates an existing required gate.
+   - production release remains blocked independently of CI inventory status;
+     green rc2 tests are regression evidence, not cryptographic approval.
 
 Future selection boundary:
 
@@ -92,6 +108,14 @@ Future selection boundary:
      command, expected CI cost, and promotion/rejection criteria before any
      further policy-class change
    - do not select a suite from inventory order or low runtime alone
+
+Cryptography implementation lane:
+
+3. Build isolated final-standard reference prototypes
+   - start with FIPS 205 `SLH-DSA-SHA2-128s`
+   - compare FIPS 204 `ML-DSA-44`
+   - require official vectors and an independent differential oracle
+   - do not allocate or activate an `ALG_ID` in the prototype slices
 
 ## Current Queue
 
@@ -1573,6 +1597,7 @@ Aineko must ask before:
 - `TRACK_A_90_DAY_ROADMAP.md`
 - `SHRINCS_DECISION_TRACK.md`
 - `PQSIG_PROFILE_COMPARISON.md`
+- `PQSIG_PRODUCTION_READINESS.md`
 - `GENESIS_AND_NETWORK_POSTURE.md`
 - `RESEARCH_INDEX.md`
 - `PSBT_REPLACEMENT_TRANCHE.md`
@@ -1601,13 +1626,19 @@ Aineko must ask before:
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
 
+- 2026-07-18: Cryptographic conformance review placed all production activation
+  on hold. The rc2 implementation does not enforce the WOTS+C fixed-sum rule,
+  does not implement the cited PORS+FP grinding/authentication-set behavior,
+  and does not establish its claimed hypertree signing budget. rc2 remains a
+  research integration fixture. `PQSIG_PRODUCTION_READINESS.md` defines the
+  standards-based replacement lane and hold exit criteria.
 - 2026-04-06: Track A confirmed as the repo anchor. No Liquid/Simplicity reset.
 - 2026-04-13: `SHRINCS_DECISION_TRACK.md` added to keep SHRINCS-family
   evaluation explicit but separate: the repo can study or benchmark a future
   profile in parallel, but the active Track A execution baseline remains
   `PQSig rc2` until a dedicated go / no-go decision says otherwise.
 - 2026-04-13: `PQSIG_PROFILE_COMPARISON.md` added as the first concrete
-  decision memo: the active launch recommendation remains `PQSig rc2`, a
+  decision memo: the then-active launch recommendation remained `PQSig rc2`, a
   SHRINCS-style profile is the main pre-launch comparison target, and
   SHRIMPS-style work stays a later compact-signature lane until wallet,
   recovery, and implementation costs are made concrete.

@@ -5,6 +5,8 @@
 #include <crypto/pqsig/pqsig.h>
 #include <crypto/pqsig/pqsig_internal.h>
 #include <crypto/pqsig/params.h>
+#include <crypto/pqsig/porsfp.h>
+#include <crypto/pqsig/wotsc.h>
 #include <test/data/pqsig/future_vectors.json.h>
 #include <test/data/pqsig/invalid_vectors.json.h>
 #include <test/data/pqsig/kat_v1.json.h>
@@ -277,6 +279,81 @@ void ApplyMutation(
 }
 
 } // namespace
+
+BOOST_AUTO_TEST_CASE(pqsig_rc2_release_hold_conformance_evidence)
+{
+    std::array<uint8_t, pqsig::MSG32_SIZE> sk_seed{};
+    std::array<uint8_t, pqsig::params::N> pk_seed{};
+    for (size_t i = 0; i < sk_seed.size(); ++i) sk_seed[i] = static_cast<uint8_t>(i);
+    for (size_t i = 0; i < pk_seed.size(); ++i) pk_seed[i] = static_cast<uint8_t>(i + 32);
+
+    std::array<uint8_t, pqsig::params::N> low_message{};
+    std::array<uint8_t, pqsig::params::N> high_message{};
+    high_message.fill(0xff);
+    std::array<uint8_t, pqsig::params::HT_WOTS_SIZE> low_signature{};
+    std::array<uint8_t, pqsig::params::HT_WOTS_SIZE> advanced_signature{};
+
+    pqsig::wotsc::FillLayerSignature(
+        std::span<uint8_t>{low_signature},
+        std::span<const uint8_t>{sk_seed},
+        std::span<const uint8_t>{pk_seed},
+        std::span<const uint8_t>{low_message},
+        /*layer=*/0,
+        /*leaf_index=*/0,
+        /*metrics=*/nullptr);
+
+    uint32_t low_sum{0};
+    uint32_t high_sum{0};
+    for (size_t chunk_index = 0; chunk_index < pqsig::params::L; ++chunk_index) {
+        const uint8_t low_digit = pqsig::wotsc::MessageNibble(low_message, chunk_index);
+        const uint8_t high_digit = pqsig::wotsc::MessageNibble(high_message, chunk_index);
+        low_sum += low_digit;
+        high_sum += high_digit;
+        const auto advanced = pqsig::wotsc::AdvanceChain(
+            std::span<const uint8_t>{low_signature}.subspan(chunk_index * pqsig::params::N, pqsig::params::N),
+            std::span<const uint8_t>{pk_seed},
+            /*layer=*/0,
+            /*leaf_index=*/0,
+            chunk_index,
+            low_digit,
+            high_digit - low_digit,
+            /*metrics=*/nullptr);
+        std::copy(
+            advanced.begin(),
+            advanced.end(),
+            advanced_signature.begin() + static_cast<ptrdiff_t>(chunk_index * pqsig::params::N));
+    }
+
+    std::array<uint8_t, pqsig::params::HT_WOTS_SIZE> low_public{};
+    std::array<uint8_t, pqsig::params::HT_WOTS_SIZE> high_public{};
+    pqsig::wotsc::ReconstructPublicChunks(
+        low_public,
+        std::span<const uint8_t>{low_signature},
+        std::span<const uint8_t>{low_message},
+        /*layer=*/0,
+        /*leaf_index=*/0,
+        std::span<const uint8_t>{pk_seed},
+        /*metrics=*/nullptr);
+    pqsig::wotsc::ReconstructPublicChunks(
+        high_public,
+        std::span<const uint8_t>{advanced_signature},
+        std::span<const uint8_t>{high_message},
+        /*layer=*/0,
+        /*leaf_index=*/0,
+        std::span<const uint8_t>{pk_seed},
+        /*metrics=*/nullptr);
+
+    BOOST_CHECK_EQUAL_COLLECTIONS(low_public.begin(), low_public.end(), high_public.begin(), high_public.end());
+    BOOST_CHECK_EQUAL(low_sum, 0U);
+    BOOST_CHECK_EQUAL(high_sum, pqsig::params::L * (pqsig::params::W - 1));
+    BOOST_CHECK_NE(low_sum, pqsig::params::SWN);
+    BOOST_CHECK_NE(high_sum, pqsig::params::SWN);
+
+    std::array<uint8_t, 64> repeated_index_hmsg{};
+    const auto indices = pqsig::porsfp::DeriveIndices(repeated_index_hmsg);
+    BOOST_CHECK(std::all_of(indices.begin(), indices.end(), [](const uint16_t index) { return index == 0; }));
+    BOOST_CHECK(std::adjacent_find(indices.begin(), indices.end()) != indices.end());
+}
 
 BOOST_AUTO_TEST_CASE(pqsig_kat_vectors)
 {

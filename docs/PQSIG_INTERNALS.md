@@ -1,12 +1,24 @@
 # PQSig Internals
 
-## Status: FROZEN
+## Status: FROZEN IMPLEMENTATION - RELEASE HOLD
 ## Spec-ID: PQSIG-INTERNALS-rc2
 ## Frozen-By: issue-48-rc2-reprofile-20260306
 ## Consensus-Relevant: YES
 
 ## Scope
-Consensus-locked internal parameterization for the PQSig rc2 profile in PQBTC.
+Consensus-locked internal behavior for the PQSig rc2 research profile in
+PQBTC. "Frozen" describes compatibility with the currently implemented parser
+and verifier; it does not mean the construction is cryptographically validated
+or approved for production. The controlling decision is
+`PQSIG_PRODUCTION_READINESS.md`.
+
+## Conformance Warning
+
+The behavior below diverges from security-critical rules of the cited WOTS+C
+and PORS+FP construction. In particular, rc2 does not enforce the WOTS+C fixed
+digit sum, does not grind for distinct PORS indices or a bounded authentication
+set, and does not implement the cited hypertree addressing model. The claimed
+`q_s=2^40` and security level therefore do not follow from these constants.
 
 ## Fixed Parameter Set
 - `q_s = 2^40`
@@ -37,7 +49,7 @@ Consensus-locked internal parameterization for the PQSig rc2 profile in PQBTC.
 - Hypertree auth paths bind those leaf public keys to an exact Merkle root.
 - Verification succeeds only when the reconstructed final layer root matches `PK.root` byte-for-byte.
 
-## Safety Properties
+## Parser And Encoding Properties
 - Parser treats signature and key inputs as hostile.
 - Parameter values are immutable consensus constants.
 - `ALG_ID` classification and parser/version-handling rules are defined in `ALG_ID_PARSER_COMPAT.md`; assigned values and lifecycle state are governed by `ALG_ID_REGISTRY.md`.

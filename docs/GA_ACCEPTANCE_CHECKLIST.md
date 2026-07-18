@@ -1,6 +1,6 @@
 # PQBTC v1.0.0 GA Acceptance Checklist
 
-## Status: TRACKED
+## Status: RELEASE_HOLD
 ## Spec-ID: GA-CHECKLIST-v1.0.0
 ## Frozen-By: ga-governance-20260223
 ## Consensus-Relevant: NO
@@ -9,10 +9,23 @@
 
 Define hard, evidence-backed release gates for promoting from `v1.0.0-rc1` to `v1.0.0`.
 
-## Release Posture Update (2026-03-06)
+## Cryptographic Release Hold (2026-07-18)
+
+The March 2026 GA decision below is retained as historical evidence and is
+superseded for all future release activity.
+
+1. No rc2 tag, binary, or network is approved to secure real value.
+2. Existing regression, burn-in, and integration checks do not establish the
+   claimed WOTS+C/PORS+FP security properties.
+3. `PQSIG_PRODUCTION_READINESS.md` is the controlling cryptographic decision.
+4. GA cannot return to `PRECHECK` until a replacement candidate satisfies that
+   record's standards-conformance, independent-test, system-integration, and
+   external-review gates.
+
+## Historical Release Posture Update (2026-03-06)
 
 1. `v1.0.0` GA on the original `ALG_ID=0x00` profile is held.
-2. The active mitigation path is `v1.0.0-rc2`.
+2. The active mitigation path at that time was `v1.0.0-rc2`.
 3. rc2 retires `ALG_ID=0x00`, introduces `ALG_ID=0x01`, and resets burn-in because the controlled verify path changed.
 
 ## Scope Rebaseline (Safety-Only GA)
@@ -96,6 +109,8 @@ Rules:
    - proceed via `v1.0.0-rc2` path until all blockers are resolved and PRECHECK is rerun
 
 ## Decision Record
+
+Historical record; superseded by the 2026-07-18 cryptographic release hold.
 
 - Decision date (UTC): 2026-03-09
 - Approver: Scott Hughes

@@ -1,21 +1,25 @@
 # PQBTC v1.0.0-rc1 Release Notes
 
-## Status: TRACKED
+## Status: HISTORICAL - RELEASE HOLD
 ## Spec-ID: RELEASE-v1.0.0-rc1
 ## Frozen-By: rc-prep-20260223
 ## Consensus-Relevant: NO
+
+> **Superseded:** This document records the 2026 rc1/rc2 release process. It is
+> not current release authorization. All PQBTC signature profiles are under the
+> production hold in `PQSIG_PRODUCTION_READINESS.md`.
 
 ## Summary
 
 `v1.0.0-rc1` is the PQ-first release candidate for node/consensus delivery.
 
-## Release Posture Update (2026-03-06)
+## Historical Release Posture Update (2026-03-06)
 
 `v1.0.0` GA on the original profile is held.
 
 Reason:
 1. issue `#48` exposed an accepted-set weakness in the old `ALG_ID=0x00` profile.
-2. the active release path is now `v1.0.0-rc2`.
+2. the active release path at that time became `v1.0.0-rc2`.
 3. rc2 retires `ALG_ID=0x00` before GA and introduces the exact public-root profile under `ALG_ID=0x01`.
 
 ## Locked v1 Decisions

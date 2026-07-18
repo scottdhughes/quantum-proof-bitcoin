@@ -1,9 +1,13 @@
 # PQBTC v1.0.0-rc1 Operator/Tester Runbook
 
-## Status: TRACKED
+## Status: HISTORICAL - RELEASE HOLD
 ## Spec-ID: RUNBOOK-v1.0.0-rc1
 ## Frozen-By: rc-prep-20260223
 ## Consensus-Relevant: NO
+
+> **Superseded:** This runbook is historical test evidence, not permission to
+> operate a real-value network. Current release posture is controlled by
+> `PQSIG_PRODUCTION_READINESS.md`.
 
 ## Scope
 
