@@ -26,6 +26,10 @@ answer specific classes of questions instead of listing every file in `docs/`.
   evidence, malformed-input and sanitizer coverage, timings, and a raw-payload
   cost model. Its documented implementation-lineage limitation keeps external
   cryptographic review as an unsatisfied gate.
+- `PQSIG_CANDIDATE_SELECTION.md` selects `ML-DSA-44` as the primary
+  engineering candidate, retains `SLH-DSA-SHA2-128s` as the conservative
+  fallback, and preserves the production release hold. No consensus or wallet
+  integration is authorized by that selection.
 - No PDF papers are currently checked into this repo.
 - Delving Bitcoin now provides concrete adjacent research references that are
   directly relevant to Track A, especially around SHRINCS / SHRIMPS and
@@ -77,6 +81,9 @@ answer specific classes of questions instead of listing every file in `docs/`.
 
 - [PQSIG_PRODUCTION_READINESS.md](PQSIG_PRODUCTION_READINESS.md)
   Controlling cryptographic release hold and replacement gates.
+- [PQSIG_CANDIDATE_SELECTION.md](PQSIG_CANDIDATE_SELECTION.md)
+  Measured comparison, official-standards refresh, engineering selection, and
+  rejection/fallback gates for ML-DSA-44 versus SLH-DSA-SHA2-128s.
 - [SLH_DSA_SHA2_128S_REFERENCE.md](SLH_DSA_SHA2_128S_REFERENCE.md)
   Isolated standards-conformance and measurement baseline for the first final-
   standard candidate.
@@ -137,6 +144,17 @@ answer specific classes of questions instead of listing every file in `docs/`.
 
 ## External References
 
+- NIST FIPS 204:
+  [Module-Lattice-Based Digital Signature Standard](https://csrc.nist.gov/pubs/fips/204/final)
+  Controlling final standard and potential-updates boundary for ML-DSA.
+- NIST FIPS 205:
+  [Stateless Hash-Based Digital Signature Standard](https://csrc.nist.gov/pubs/fips/205/final)
+  Controlling final standard for the retained SLH-DSA fallback.
+- NIST CSWP 39upd1, June 29, 2026:
+  [Considerations for Achieving Crypto Agility](https://csrc.nist.gov/pubs/cswp/39/upd1/considerations-for-achieving-crypto-agility/final)
+  Current official agility framing. PQBTC applies it through explicit,
+  immutable algorithm binding rather than reinterpretation of existing
+  outputs.
 - Blockstream Research, March 3, 2026:
   [Quantum-resistant transaction signing on Liquid using Simplicity smart contracts](https://blog.blockstream.com/blockstream-research-demonstrates-quantum-resistant-transaction-signing-on-liquid-using-simplicity-smart-contracts/)
   Use as an adjacent benchmark for opt-in deployment on a Bitcoin-like system,

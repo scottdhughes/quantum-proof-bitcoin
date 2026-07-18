@@ -30,6 +30,9 @@ This document is a sequencing rule, not an activation decision.
 - PQBTC has working Bitcoin integration around a PQ-shaped signature fixture.
   It does not yet have a cryptographically approved production signature
   profile.
+- `PQSIG_CANDIDATE_SELECTION.md` selects FIPS 204 `ML-DSA-44` as the primary
+  engineering candidate and retains FIPS 205 `SLH-DSA-SHA2-128s` as the
+  conservative fallback. Production remains on `HOLD`.
 
 ## Decision Rule
 
@@ -38,6 +41,8 @@ This document is a sequencing rule, not an activation decision.
   architecture override.
 - Do evaluate SHRINCS-family options in parallel, with explicit acceptance
   criteria and a clean go / no-go checkpoint before launch-facing signoff.
+- Do not reinterpret the ML-DSA engineering selection as consensus approval or
+  as permission to weaken the SLH-DSA fallback evidence.
 
 The repo should avoid mixing two kinds of uncertainty in one step:
 
@@ -112,23 +117,34 @@ Before any proposal to replace `PQSig rc2`, require:
    - retain the production `HOLD`
    - or select a final-standard candidate for a separate engineering proposal
 
+`PQSIG_CANDIDATE_SELECTION.md` satisfies item 8 by selecting `ML-DSA-44` for
+engineering work while retaining the production hold. Items 2, 3, 5, 6, and 7
+remain future consensus-design work, and independent implementation plus
+external cryptographic review remain mandatory before that work starts.
+
 ## Near-Term Default
 
 The default near-term choice is:
 
 - do not ship rc2 or represent it as production-ready cryptography
 - preserve current wallet / PSBT / CI / ops work as integration evidence
-- build isolated FIPS 205 and FIPS 204 reference prototypes before proposing a
-  new consensus profile
+- retain the isolated FIPS 205 and FIPS 204 reference evidence
+- focus the next evidence work on the selected ML-DSA-44 candidate without
+  entering consensus code
 
 ## Immediate Next Steps
 
 1. Preserve the rc2 production hold and executable conformance evidence.
 2. Retain the completed isolated `SLH-DSA-SHA2-128s` reference prototype.
 3. Retain the completed isolated `ML-DSA-44` comparator.
-4. Produce a measured candidate-selection memo or explicitly retain `HOLD`.
-5. Make no `ALG_ID`, Script, or activation change until the readiness gates are
-   met in a separate proposal.
+4. Apply the measured `ML_DSA_44_ENGINEERING_CANDIDATE` decision without
+   treating it as production approval.
+5. Obtain a genuinely independent ML-DSA implementation and external
+   cryptographic review.
+6. Measure supported-platform and worst-case transaction and block costs.
+7. Only after those gates, write a separate consensus-design specification.
+8. Make no `ALG_ID`, Script, wallet, or activation change until the readiness
+   gates are met in a separate proposal.
 
 ## Non-Goals
 
