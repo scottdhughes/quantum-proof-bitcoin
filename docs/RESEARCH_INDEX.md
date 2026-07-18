@@ -18,8 +18,9 @@ answer specific classes of questions instead of listing every file in `docs/`.
 - The implemented rc2 profile is under a production release hold; integration
   coverage does not establish its claimed cryptographic security.
 - An isolated FIPS 205 `SLH-DSA-SHA2-128s` reference harness now provides
-  pinned official keygen/sign/verify vectors, two-oracle interoperability, and
-  initial timings without changing consensus behavior.
+  all 38 applicable external/pure ACVP cases, pinned two-oracle deterministic
+  and randomized interoperability, malformed-input and sanitizer evidence, and
+  timings without changing consensus behavior.
 - No PDF papers are currently checked into this repo.
 - Delving Bitcoin now provides concrete adjacent research references that are
   directly relevant to Track A, especially around SHRINCS / SHRIMPS and

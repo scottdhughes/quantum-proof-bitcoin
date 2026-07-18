@@ -19,6 +19,7 @@
 #define KEYGEN_SEED_SIZE 48
 #define PRIVATE_KEY_SIZE 64
 #define PUBLIC_KEY_SIZE 32
+#define RANDOMIZER_SIZE 16
 #define SIGNATURE_SIZE 7856
 
 static uint64_t MonotonicNs(void)
@@ -100,7 +101,8 @@ static EVP_PKEY* GenerateKey(const unsigned char* seed, uint64_t* elapsed_ns)
     }
 
     OSSL_PARAM parameters[] = {
-        OSSL_PARAM_construct_octet_string(OSSL_PKEY_PARAM_SLH_DSA_SEED, (void*)seed, KEYGEN_SEED_SIZE),
+        OSSL_PARAM_construct_octet_string(
+            OSSL_PKEY_PARAM_SLH_DSA_SEED, (void*)seed, KEYGEN_SEED_SIZE),
         OSSL_PARAM_construct_end(),
     };
     if (EVP_PKEY_CTX_set_params(context, parameters) <= 0) {
@@ -134,7 +136,8 @@ static EVP_PKEY* ImportPrivateKey(const unsigned char* private_key)
         return NULL;
     }
     OSSL_PARAM parameters[] = {
-        OSSL_PARAM_construct_octet_string(OSSL_PKEY_PARAM_PRIV_KEY, (void*)private_key, PRIVATE_KEY_SIZE),
+        OSSL_PARAM_construct_octet_string(
+            OSSL_PKEY_PARAM_PRIV_KEY, (void*)private_key, PRIVATE_KEY_SIZE),
         OSSL_PARAM_construct_octet_string(OSSL_PKEY_PARAM_PUB_KEY, public_key, PUBLIC_KEY_SIZE),
         OSSL_PARAM_construct_end(),
     };
@@ -184,7 +187,8 @@ static int VerifySignature(
     uint64_t* verify_ns)
 {
     OSSL_PARAM parameters[] = {
-        OSSL_PARAM_construct_octet_string(OSSL_SIGNATURE_PARAM_CONTEXT_STRING, context_string, context_size),
+        OSSL_PARAM_construct_octet_string(
+            OSSL_SIGNATURE_PARAM_CONTEXT_STRING, context_string, context_size),
         OSSL_PARAM_construct_end(),
     };
     EVP_SIGNATURE* algorithm = EVP_SIGNATURE_fetch(NULL, ALGORITHM, NULL);
@@ -214,16 +218,26 @@ static int SignAndVerify(
     const size_t message_size,
     unsigned char* context_string,
     const size_t context_size,
+    unsigned char* test_entropy,
+    const size_t test_entropy_size,
+    const int randomized,
     unsigned char* signature,
     uint64_t* sign_ns,
     uint64_t* verify_ns)
 {
-    int deterministic = 1;
-    OSSL_PARAM parameters[] = {
-        OSSL_PARAM_construct_octet_string(OSSL_SIGNATURE_PARAM_CONTEXT_STRING, context_string, context_size),
-        OSSL_PARAM_construct_int(OSSL_SIGNATURE_PARAM_DETERMINISTIC, &deterministic),
-        OSSL_PARAM_construct_end(),
-    };
+    int deterministic = randomized ? 0 : 1;
+    OSSL_PARAM parameters[4];
+    size_t parameter_index = 0;
+    parameters[parameter_index++] = OSSL_PARAM_construct_octet_string(
+        OSSL_SIGNATURE_PARAM_CONTEXT_STRING, context_string, context_size);
+    if (test_entropy != NULL) {
+        parameters[parameter_index++] = OSSL_PARAM_construct_octet_string(
+            OSSL_SIGNATURE_PARAM_TEST_ENTROPY, test_entropy, test_entropy_size);
+    } else {
+        parameters[parameter_index++] = OSSL_PARAM_construct_int(
+            OSSL_SIGNATURE_PARAM_DETERMINISTIC, &deterministic);
+    }
+    parameters[parameter_index] = OSSL_PARAM_construct_end();
     EVP_SIGNATURE* algorithm = EVP_SIGNATURE_fetch(NULL, ALGORITHM, NULL);
     EVP_PKEY_CTX* sign_context = EVP_PKEY_CTX_new_from_pkey(NULL, key, NULL);
     size_t signature_size = SIGNATURE_SIZE;
@@ -291,21 +305,31 @@ cleanup:
     return result;
 }
 
-static int RunSign(const char* key_hex, const char* message_hex, const char* context_hex)
+static int RunSign(
+    const char* key_hex,
+    const char* message_hex,
+    const char* context_hex,
+    const char* randomizer_hex,
+    const int randomized)
 {
     size_t key_size = 0;
     size_t message_size = 0;
     size_t context_size = 0;
+    size_t randomizer_size = 0;
     unsigned char* private_key = DecodeHex(key_hex, &key_size);
     unsigned char* message = DecodeHex(message_hex, &message_size);
     unsigned char* context_string = DecodeHex(context_hex, &context_size);
+    unsigned char* randomizer =
+        randomizer_hex == NULL ? NULL : DecodeHex(randomizer_hex, &randomizer_size);
     unsigned char* signature = NULL;
     uint64_t sign_ns = 0;
     uint64_t verify_ns = 0;
     int result = 1;
 
     if (private_key == NULL || key_size != PRIVATE_KEY_SIZE || message == NULL ||
-        context_string == NULL || context_size > 255) {
+        context_string == NULL || context_size > 255 ||
+        (randomizer_hex != NULL &&
+         (randomizer == NULL || randomizer_size != RANDOMIZER_SIZE))) {
         fprintf(stderr, "openssl_oracle: invalid sign input\n");
         goto cleanup;
     }
@@ -318,6 +342,9 @@ static int RunSign(const char* key_hex, const char* message_hex, const char* con
                                  message_size,
                                  context_string,
                                  context_size,
+                                 randomizer,
+                                 randomizer_size,
+                                 randomized,
                                  signature,
                                  &sign_ns,
                                  &verify_ns)) {
@@ -334,6 +361,7 @@ static int RunSign(const char* key_hex, const char* message_hex, const char* con
 
 cleanup:
     free(signature);
+    free(randomizer);
     free(context_string);
     free(message);
     free(private_key);
@@ -360,6 +388,12 @@ static int RunVerify(
     if (public_key == NULL || key_size != PUBLIC_KEY_SIZE || message == NULL ||
         context_string == NULL || context_size > 255 || signature == NULL) {
         fprintf(stderr, "openssl_oracle: invalid verify input\n");
+        goto cleanup;
+    }
+    if (signature_size != SIGNATURE_SIZE) {
+        printf("verified=0\n");
+        printf("verify_ns=0\n");
+        result = 0;
         goto cleanup;
     }
     EVP_PKEY* key = ImportPublicKey(public_key);
@@ -391,13 +425,29 @@ cleanup:
 int main(const int argc, char** argv)
 {
     if (argc == 3 && strcmp(argv[1], "keygen") == 0) return RunKeygen(argv[2]);
-    if (argc == 5 && strcmp(argv[1], "sign") == 0) return RunSign(argv[2], argv[3], argv[4]);
+    if (argc == 5 && strcmp(argv[1], "sign") == 0) {
+        return RunSign(argv[2], argv[3], argv[4], NULL, 0);
+    }
+    if (argc == 5 && strcmp(argv[1], "sign-randomized") == 0) {
+        return RunSign(argv[2], argv[3], argv[4], NULL, 1);
+    }
+    if (argc == 6 && strcmp(argv[1], "sign-with-randomizer") == 0) {
+        return RunSign(argv[2], argv[3], argv[4], argv[5], 0);
+    }
     if (argc == 6 && strcmp(argv[1], "verify") == 0) {
         return RunVerify(argv[2], argv[3], argv[4], argv[5]);
     }
 
     fprintf(stderr, "usage: %s keygen <seed-hex>\n", argv[0]);
     fprintf(stderr, "       %s sign <sk-hex> <message-hex> <context-hex>\n", argv[0]);
-    fprintf(stderr, "       %s verify <pk-hex> <message-hex> <context-hex> <signature-hex>\n", argv[0]);
+    fprintf(stderr, "       %s sign-randomized <sk-hex> <message-hex> <context-hex>\n", argv[0]);
+    fprintf(stderr,
+            "       %s sign-with-randomizer <sk-hex> <message-hex> "
+            "<context-hex> <randomizer-hex>\n",
+            argv[0]);
+    fprintf(stderr,
+            "       %s verify <pk-hex> <message-hex> <context-hex> "
+            "<signature-hex>\n",
+            argv[0]);
     return 2;
 }

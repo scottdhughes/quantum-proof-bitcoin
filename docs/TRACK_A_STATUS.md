@@ -41,6 +41,15 @@ The slice changed no functional-suite inventory policy class, so the reviewed
 baseline remains `pq_required: 121`, `pq_backlog: 0`, `legacy_only: 14`, and
 `dual_profile: 141`.
 
+The follow-up SLH-DSA evidence tranche expands that isolated harness to all 38
+applicable external/pure SHA2-128s ACVP cases: 10 keygen, 7 deterministic
+siggen, 7 randomized siggen, and 14 sigver. It pins OpenSSL 3.6.3 source,
+requires cross-verification and randomized-signature diversity, exercises
+context and malformed-input boundaries, and runs both adapters under ASan and
+UBSan. The next cryptographic implementation slice is the equivalent isolated
+`ML-DSA-44` comparator; the production and consensus-integration hold remains
+in force.
+
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,
 `pq_backlog: 0`, `legacy_only: 14`, and `dual_profile: 142`. Promotion Matrix
@@ -127,8 +136,8 @@ Future selection boundary:
 Cryptography implementation lane:
 
 3. Build isolated final-standard reference prototypes
-   - start with FIPS 205 `SLH-DSA-SHA2-128s`
-   - compare FIPS 204 `ML-DSA-44`
+   - retain the completed FIPS 205 `SLH-DSA-SHA2-128s` evidence baseline
+   - build the equivalent FIPS 204 `ML-DSA-44` comparator next
    - require official vectors and an independent differential oracle
    - do not allocate or activate an `ALG_ID` in the prototype slices
 
