@@ -30,12 +30,18 @@ This separate slice promotes only `feature_config_args.py` under issue `#165`.
 The resulting baseline is `pq_required: 121`, `pq_backlog: 0`,
 `legacy_only: 14`, and `dual_profile: 141`.
 
-Issue `#170` is the bounded follow-up inside that already required gate. It
-asserts the startup-reported platform default data-directory namespace on
-Linux, macOS, and Windows while retaining the explicit Windows boundary for
-tests that depend on synthetic shell-folder environment overrides. It changes
-no inventory policy class, so the reviewed baseline remains `pq_required: 121`,
-`pq_backlog: 0`, `legacy_only: 14`, and `dual_profile: 141`.
+PR `#171` landed the bounded issue `#170` follow-up inside that already
+required gate at merge commit
+`31afe4e0c12fd9ef1d0f0f86ded40164288f17a8`. It asserts the startup-reported
+platform default data-directory namespace on Linux, macOS, and Windows while
+retaining the explicit Windows boundary for tests that depend on synthetic
+shell-folder environment overrides. Branch Promotion Matrix run `29617449196`
+completed `21/21` jobs successfully; post-merge Promotion Matrix run
+`29621132550` also completed `21/21` jobs successfully, and the merge commit
+completed all `26/26` checks successfully. Issue `#170` is closed. The slice
+changed no inventory policy class, so the reviewed baseline remains
+`pq_required: 121`, `pq_backlog: 0`, `legacy_only: 14`, and
+`dual_profile: 141`.
 
 The current asset boundary is recorded in
 [PREVIOUS_RELEASE_ASSET_BOUNDARY.md](PREVIOUS_RELEASE_ASSET_BOUNDARY.md). The
@@ -96,7 +102,10 @@ Future selection boundary:
    - `dual_profile`: 141
    - selection evidence: PR `#166` and
      [TRACK_A_RISK_REVIEW.md](TRACK_A_RISK_REVIEW.md)
-   - follow-up hardening: issue `#170`, with no inventory policy-class change
+   - follow-up hardening: PR `#171`, closed issue `#170`, merge commit
+     `31afe4e0c12fd9ef1d0f0f86ded40164288f17a8`, branch matrix `21/21`,
+     post-merge matrix `21/21`, and merge-commit checks `26/26`, with no
+     inventory policy-class change
    - owned contract:
      [FEATURE_CONFIG_ARGS_POSTURE.md](FEATURE_CONFIG_ARGS_POSTURE.md)
 2. `HOLD`: do not infer another promotion from queue order. Require a fresh
