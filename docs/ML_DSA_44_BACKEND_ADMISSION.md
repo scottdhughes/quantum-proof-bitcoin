@@ -1,0 +1,178 @@
+# ML-DSA-44 Backend Admission
+
+## Status: ISOLATED_PROTOTYPE_ADMITTED - RELEASE_HOLD
+## Spec-ID: ML-DSA-44-BACKEND-ADMISSION-v1
+## Decided: 2026-07-19
+## Evidence-Updated: 2026-07-19
+## Consensus-Relevant: NO
+
+## Decision
+
+The explicit disposition is:
+
+> **`MLDSA_NATIVE_PORTABLE_C_ISOLATED_PROTOTYPE`**
+
+The pinned `mldsa-native` `v1.0.0-beta2` portable-C path may be used in a
+separate `contrib/` prototype to implement and test the project-owned
+hedged-signing wrapper. The production backend remains `NONE`, and
+`RELEASE_HOLD` remains in force.
+
+This decision does not vendor or link a backend. It authorizes one bounded
+prototype lane only. It does not authorize node, wallet, Script, consensus,
+`ALG_ID`, or functional-suite inventory changes. OpenSSL 3.6.3 and libcrux
+0.0.10 remain comparator oracles, not production dependencies.
+
+The machine-readable disposition is
+`contrib/ml-dsa-engineering/backend_admission.json`. CI checks that its source
+pins match the frozen comparator and that no production backend or closed
+release gate is recorded.
+
+## Selection Boundary
+
+Algorithm conformance is not the differentiator in this decision. All three
+pinned implementations pass the frozen ML-DSA-44 comparator. Backend admission
+also requires a reviewable entropy boundary, secret lifetime, production/test
+API separation, toolchain fit, advisory posture, and reproducible source pin.
+
+| Gate | OpenSSL 3.6.3 | mldsa-native beta2 portable C | libcrux 0.0.10 portable |
+| --- | --- | --- | --- |
+| Exact FIPS 204 evidence | Pass | Pass | Pass |
+| Hedged entropy boundary | Internal OpenSSL DRBG, but deterministic and test-entropy controls are public parameters | High-level randomized API calls an integrator-owned `mld_randombytes` hook and propagates RNG failure | Signing API requires the caller to supply the 32-byte randomizer |
+| Secret cleanup | Randomizer and signing temporaries are cleansed in the reviewed source; provider and caller key lifetimes remain unreviewed | Signing allocations and randomizer are zeroized; upstream explicitly warns that compiler-created copies remain possible | Signing-key wrapper is clonable raw bytes without an evident zeroizing `Drop` |
+| Side-channel evidence | No supported PQBTC binary evidence | Portable C uses constant-time patterns and upstream dynamic checks; CBMC covers memory/type/selected-UB properties, not compiled timing | Formal scope covers selected arithmetic, NTT, and serialization; not the complete implementation or compiled timing |
+| Build fit | Would add a full provider dependency to a node that does not otherwise link OpenSSL | Portable C, minimal dependencies, single-compilation-unit support, and static API qualification fit a narrow C/C++ wrapper | Would add Rust 1.89, Cargo dependency resolution, and a new FFI boundary |
+| Lifecycle | Stable 3.6 series, broad maintenance surface | Latest tagged release found on 2026-07-19; substantial post-tag API churn requires a later re-pin | Fresh 0.0.10 release with four prior ML-DSA advisories fixed by version |
+| License | Apache-2.0 | Apache-2.0 OR ISC OR MIT | Apache-2.0 |
+| Disposition | `ORACLE_ONLY` | `ISOLATED_PROTOTYPE_ADMITTED` | `ORACLE_ONLY` |
+
+These are source and integration assessments, not claims that an upstream
+project is insecure. The selected prototype path remains unapproved for
+production until PQBTC validates the exact wrapper binary and closes the
+project gates below.
+
+## Candidate Findings
+
+### OpenSSL 3.6.3
+
+OpenSSL's ML-DSA provider generates per-message randomness through its private
+DRBG, returns failure when generation fails, and cleanses its local randomizer.
+It also exposes `deterministic` and `test-entropy` signature parameters. A
+PQBTC wrapper could suppress those controls, but the resulting dependency
+would include a large provider and configuration surface that the node does
+not otherwise require. Provider selection, dynamic configuration, key object
+lifetime, and the exact module boundary would all need separate review.
+
+OpenSSL remains the strongest general-purpose differential oracle in this
+repository. It is not the narrowest production integration.
+
+### mldsa-native v1.0.0-beta2 portable C
+
+The high-level `mldsa_signature` entry point implements randomized signing,
+calls the integrator-provided random-byte hook, returns `MLD_ERR_RNG_FAIL` on
+failure, clears signing temporaries, and supports an explicit rejection-loop
+bound. The source can be compiled as one C translation unit and can mark all
+upstream public entry points `static`, allowing a project wrapper to export
+only its hedged operation.
+
+The upstream release describes the portable C backend as production-ready
+within its documented verification scope. PQBTC does not adopt that conclusion
+for its own product: the exact integration, compiler output, operating-system
+RBG adapters, caller-owned key memory, failure paths, and supported platforms
+have not been reviewed. The source descends from the PQ-Crystals reference
+implementation, so this admission also does not add independent design review.
+
+The beta tag was still the newest tagged release on the evidence date, while
+the default branch had substantial API and proof work after the tag. The
+prototype therefore stays pinned to the comparator commit. Any later production
+proposal must select a then-current tagged source, explain every change from
+this pin, and rerun the complete evidence package.
+
+### libcrux-ml-dsa 0.0.10 portable Rust
+
+libcrux provides valuable separate-lineage interoperability evidence and
+formally verified components. Its current signing API accepts randomizer bytes
+from the caller, its signing-key wrapper is clonable, and the reviewed type has
+no evident zeroizing destructor. A production wrapper would have to add an RNG
+and secret-owning boundary around the crate, then cross a new Rust/C++ FFI and
+toolchain boundary.
+
+RustSec records four prior `libcrux-ml-dsa` advisories. Version 0.0.10 is above
+the published fixed versions, and the frozen portable path passes the two
+repo-retained advisory regressions. This is useful evidence, not a reason to
+prefer a wider integration boundary for the first prototype.
+
+## Frozen Prototype Build Contract
+
+The next implementation slice must use the exact source pin in
+`backend_admission.json` and satisfy all of these conditions:
+
+1. compile only ML-DSA-44 and the portable C arithmetic/FIPS 202 paths;
+2. use one translation unit and mark upstream APIs `static`;
+3. disable SUPERCOP aliases and export only a project-owned hedged-signing
+   wrapper plus the strict verification operation needed for self-checking;
+4. set the signing-attempt bound to `814` and return no partial result when it
+   is exhausted;
+5. provide project-owned random-byte and zeroization hooks inside that same
+   compiled module;
+6. expose no caller-supplied `rnd`, deterministic mode, seed, ACVP operation,
+   or entropy callback from the production-shaped wrapper;
+7. self-verify every generated signature before release; and
+8. remain under `contrib/` with no node, wallet, Script, consensus, `ALG_ID`,
+   packaging, or inventory connection.
+
+The prototype must have two builds. The production-shaped build exports only
+the restricted wrapper. A separately named test build may expose deterministic
+or fixed-randomizer operations for official-vector testing. CI must inspect the
+production-shaped symbol table and fail if a deterministic or internal signing
+entry point is exported.
+
+## Gates That Remain Open
+
+Prototype admission closes no production finding:
+
+| Gate | Tracking | State after this decision |
+| --- | --- | --- |
+| Entropy and fail-closed binding | #184 | partial design only; no real wrapper or platform RBG test |
+| Supported-platform side channels | #185 | open |
+| Fault model and injected faults | #186 | open |
+| End-to-end secret erasure | #187 | open |
+| Structure-aware fuzzing and resource limits | #188 | open |
+| Backend advisories, SBOM, and reproducible build | #189 | open |
+| Wallet and key format | #190 | open |
+| Independent human cryptographic review | #181 | open |
+
+The current comparator, Wolfram arithmetic model, and this admission review are
+AI-assisted engineering evidence. None is the independent human review required
+by issue #181.
+
+## Validation
+
+Run the bounded decision checks with:
+
+```bash
+python3 -m unittest ci.test.test_ml_dsa_backend_admission
+python3 -m unittest ci.test.test_ml_dsa_hedged_signing_contract
+python3 -m unittest discover -s ci/test -p 'test_*dsa_reference.py'
+python3 contrib/ml-dsa-ref/compare_oracles.py --manifest-only
+python3 contrib/slh-dsa-ref/compare_oracles.py --manifest-only
+python3 ci/test/check_ci_inventory.py
+```
+
+No command above compiles or admits a production cryptographic backend.
+
+## Primary Sources
+
+- NIST FIPS 204 and potential-updates notice:
+  https://csrc.nist.gov/pubs/fips/204/final
+- OpenSSL 3.6 ML-DSA signature interface:
+  https://docs.openssl.org/3.6/man7/EVP_SIGNATURE-ML-DSA/
+- OpenSSL 3.6 release and vulnerability status:
+  https://www.openssl-library.org/news/openssl-3.6-notes/
+- mldsa-native beta2 release and verification scope:
+  https://github.com/pq-code-package/mldsa-native/releases/tag/v1.0.0-beta2
+- mldsa-native source and soundness record:
+  https://github.com/pq-code-package/mldsa-native
+- libcrux ML-DSA 0.0.10 source:
+  https://github.com/celabshq/libcrux/tree/libcrux-ml-dsa-v0.0.10/libcrux-ml-dsa
+- RustSec libcrux-ml-dsa advisory inventory:
+  https://rustsec.org/packages/libcrux-ml-dsa.html

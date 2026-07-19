@@ -41,8 +41,13 @@ answer specific classes of questions instead of listing every file in `docs/`.
 - `ML_DSA_44_HEDGED_SIGNING_CONTRACT.md` defines the first remediation design
   boundary: internally generated 32-byte `rnd`, hedged-only production API,
   fail-closed errors, serialized callers, self-verification, lifecycle limits,
-  and explicit rollback residual risk. Its executable model is not a selected
-  backend or production implementation, so issue `#184` remains open.
+  and explicit rollback residual risk. Its executable model is not the
+  admitted backend wrapper or a production implementation, so issue `#184`
+  remains open.
+- `ML_DSA_44_BACKEND_ADMISSION.md` admits the pinned `mldsa-native` portable-C
+  path for an isolated wrapper prototype. The production backend remains
+  `NONE`; OpenSSL and libcrux remain oracles, every release gate remains open,
+  and no node or consensus integration is authorized.
 - No PDF papers are currently checked into this repo.
 - Delving Bitcoin now provides concrete adjacent research references that are
   directly relevant to Track A, especially around SHRINCS / SHRIMPS and
@@ -114,6 +119,9 @@ answer specific classes of questions instead of listing every file in `docs/`.
 - [ML_DSA_44_HEDGED_SIGNING_CONTRACT.md](ML_DSA_44_HEDGED_SIGNING_CONTRACT.md)
   Project-owned hedged-signing entropy, failure, concurrency, and lifecycle
   contract for the bounded issue `#184` remediation lane.
+- [ML_DSA_44_BACKEND_ADMISSION.md](ML_DSA_44_BACKEND_ADMISSION.md)
+  Pinned three-candidate backend comparison and the portable-C isolated
+  prototype admission, with an explicit `NONE` production backend.
 - [ML_DSA_44_WOLFRAM_ORACLE.md](ML_DSA_44_WOLFRAM_ORACLE.md)
   Supplemental exact-arithmetic cross-check for bounded FIPS 204 algebra,
   encoding boundaries, and malformed hint rejection. It is not another native

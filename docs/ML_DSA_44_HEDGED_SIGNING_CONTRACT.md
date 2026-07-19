@@ -20,6 +20,12 @@ concurrency behavior testable, but it is not a cryptographic implementation.
 It is not linked into the node, wallet, Script, or an `ALG_ID`, and it does not
 close issue `#184` or remove `RELEASE_HOLD`.
 
+`ML_DSA_44_BACKEND_ADMISSION.md` admits the pinned `mldsa-native` portable-C
+path for a separate isolated wrapper prototype. That decision supplies a
+bounded implementation target for this contract, not a production backend.
+The production backend remains `NONE`, and all platform, lifecycle, review,
+and release gates remain open.
+
 ## Standards Basis
 
 FIPS 204 makes hedged signing the default and permits deterministic signing as
@@ -82,6 +88,14 @@ production FFI. In a real binding, entropy acquisition and
 boundary. Passing `rnd` across an opaque provider, process, device, or FFI
 boundary does not satisfy this contract unless that complete boundary is
 specified and shown to meet FIPS 204.
+
+For the admitted isolated prototype, the intended module is one portable-C
+translation unit containing the project wrapper, project random-byte and
+zeroization hooks, and the pinned `mldsa-native` source. All upstream entry
+points are `static`; only the project hedged-signing wrapper and strict
+verification surface may be exported. A separately named test build may expose
+fixed-randomizer operations for official vectors, but those symbols may not
+appear in the production-shaped prototype.
 
 ## Entropy Contract
 
@@ -186,17 +200,18 @@ They cover:
 
 ## Exit Criteria
 
-This contract can be bound to a real backend only in a separate proposal that:
+The isolated prototype may bind this contract only under
+`ML_DSA_44_BACKEND_ADMISSION.md`. A production proposal still must:
 
-1. freezes the backend, source revision, build, supported platforms, and secret
-   ownership types;
-2. keeps entropy generation and `ML-DSA.Sign_internal` in one reviewed module
-   and implements the production API without linking test/CAVP entry points;
-3. uses reviewed OS and hardware RBG adapters with injected failure coverage;
-4. demonstrates compiler-resistant cleanup across language and FFI boundaries;
-5. adds fork/process and supported VM-clone tests at the platform layer;
-6. passes side-channel, fault, fuzzing, advisory, and lifecycle gates; and
-7. receives re-review under issue `#181` against the exact implementation
+1. re-pin a then-current tagged backend, freeze the imported source and build,
+   and define supported platforms and secret ownership types;
+2. keep entropy generation and `ML-DSA.Sign_internal` in one reviewed module
+   and implement the production API without linking test/ACVP entry points;
+3. use reviewed OS and hardware RBG adapters with injected failure coverage;
+4. demonstrate compiler-resistant cleanup across language and FFI boundaries;
+5. add fork/process and supported VM-clone tests at the platform layer;
+6. pass side-channel, fault, fuzzing, advisory, and lifecycle gates; and
+7. receive re-review under issue `#181` against the exact implementation
    commit.
 
 Until then, this is a misuse-resistant design target only. It authorizes no
