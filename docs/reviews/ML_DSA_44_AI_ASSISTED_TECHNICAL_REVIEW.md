@@ -22,12 +22,15 @@ No present practical forgery, key-recovery defect, memory-safety defect, or veri
 
 Seven Medium findings remain open: production entropy/failure semantics; side-channel assurance; fault resistance; secret erasure; structure-aware fuzzing and resource limits; backend-specific advisory accounting; and the wallet/key/serialization contract. The candidate remains viable for research, but the correct gate disposition is **`REMEDIATE_AND_REREVIEW`**.
 
+After this assessment, PR #191 added a supplemental Wolfram Language exact-arithmetic model for bounded FIPS 204 algebra and encoding rules. That evidence strengthens the arithmetic cross-check but is not a fourth cryptographic implementation, external review, or production approval.
+
 ## Scope, revisions, and pins
 
 | Item | Exact value |
 | --- | --- |
 | Frozen cryptographic baseline | `6ffd47881fc2071724fa6e31fb3cf9557a64b467` |
 | Main reviewed for package status | `6cff49f33768993d6652b3d22dd5330c64e64c7f` |
+| Post-review supplemental main | `22aacb02948c6061e38153063de26a9982cf5044` (PR #191) |
 | Reproduction workflow head | `7f618aa2c9a57665cd93c4b90ce704dd4b63651d` |
 | Reproduction run | [29698982348](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/29698982348) |
 | NIST ACVP Server | `15c0f3deeefbfa8cb6cd32a99e1ca3b738c66bf0` |
@@ -36,6 +39,8 @@ Seven Medium findings remain open: production entropy/failure semantics; side-ch
 | libcrux-ml-dsa 0.0.10 | `c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd` |
 
 The workflow fails if any frozen comparator input differs from the baseline. It verifies exact Git pins, selected source hashes, the libcrux crate hash, and the manifest-pinned FIPS 204, potential-updates, and Section 6 guidance artifacts.
+
+PR #191 changed no frozen comparator input. Its separate exact model covers NTT/INTT identities, direct negacyclic multiplication, centered reduction, `Power2Round`, decomposition and hint boundaries, strict hint encoding, Montgomery congruence, field facts, and Appendix B twiddle factors. The managed Wolfram 15.0 kernel passed all 18 tests. Its documented boundary excludes SHAKE, sampling, key generation, signing, verification, native overflow, memory safety, leakage, faults, and erasure.
 
 The reviewed profile is final FIPS 204 external, pure ML-DSA-44. The prototype signs exactly one 32-byte Bitcoin-style sighash as the message with context `PQBTC/tx-signature/v1`. Sizes are seed 32 bytes, public key 1,312 bytes, expanded signing key 2,560 bytes, randomizer 32 bytes, and signature 2,420 bytes. Deterministic or caller-fixed `rnd` is limited to evidence generation; the stated future posture is hedged randomized signing.
 
@@ -92,7 +97,7 @@ The benchmark medians in the JSON are directional single-runner measurements onl
 
 **Severity/Disposition/Confidence:** Medium / OPEN / High that the evidence gap exists; no practical exploit claimed.
 **Affected code:** every proposed backend/compiler/optimization/CPU and hardware-signer path.
-**Evidence:** mldsa-native and libcrux contain meaningful constant-time/declassification intent, but the package has no optimized-binary review, dudect/ctgrind/cache campaign, remote-timing analysis, TVLA, power, or EM evidence. Signing rejection behavior is observable and justified only at source level.
+**Evidence:** mldsa-native and libcrux contain meaningful constant-time/declassification intent, but the package has no optimized-binary review, dudect/ctgrind/cache campaign, remote-timing analysis, TVLA, power, or EM evidence. Signing rejection behavior is observable and justified only at source level. Published Dilithium/ML-DSA work includes practical single-trace, rejected-signature, and public-template attacks. Cryspen also states that libcrux does not prove side-channel resistance of the compiled executable and that platform wrappers, intrinsics, compilers, and other unverified layers remain in its trust boundary.
 **Preconditions/impact:** repeated attacker-chosen signing under a long-lived key can amplify small leakage; feasibility depends on platform and attacker proximity.
 **Recommendation:** freeze supported builds; map secret-bearing operations and approved declassifications; inspect assembly; run software leakage tests and appropriate hardware TVLA/power/EM testing; analyze rejection-count distributions; retain regression artifacts.
 **Tracking:** [#185](https://github.com/scottdhughes/quantum-proof-bitcoin/issues/185).
@@ -128,7 +133,7 @@ The benchmark medians in the JSON are directional single-runner measurements onl
 
 **Severity/Disposition/Confidence:** Medium / OPEN / High.
 **Affected contract:** provenance reporting and future optimized-backend admission.
-**Evidence:** libcrux 0.0.10 portable passes hard-coded regressions for RUSTSEC-2026-0076/0077. Current RustSec also lists AVX2/x86-64 RUSTSEC-2026-0125/0126, fixed in 0.0.9. The portable 0.0.10 path is not shown vulnerable, but the package-wide `libcrux_disclosed_advisory_regressions: PASS` label does not record them as fixed-by-version/not exercised, and the workflow lacks a current all-dependency advisory scan. OpenSSL 3.6.3 contains the prior CLI truncation fix; the adapter uses EVP, not the affected `openssl dgst` path.
+**Evidence:** libcrux 0.0.10 portable passes hard-coded regressions for RUSTSEC-2026-0076/0077. Current RustSec also lists AVX2/x86-64 RUSTSEC-2026-0125/0126, fixed in 0.0.9. The pinned crate lock includes `libcrux-intrinsics` 0.0.8; the AArch64 fallback defect in transitive advisory RUSTSEC-2025-0133 was fixed in 0.0.4, so that lock is not affected. The portable 0.0.10 path is not shown vulnerable, but the package-wide `libcrux_disclosed_advisory_regressions: PASS` label does not record these advisories as fixed-by-version/not exercised, and the workflow lacks a current all-dependency advisory scan. OpenSSL 3.6.3 contains the prior CLI truncation fix; the adapter uses EVP, not the affected `openssl dgst` path.
 **Preconditions/impact:** backend changes or new advisories can silently invalidate assurance; this is not an active-vulnerability claim against the frozen paths.
 **Recommendation:** dated per-backend/per-architecture inventory with `PASS`/`NOT_APPLICABLE`/`UNTESTED`; current cargo-audit/OSV/upstream scans; 0125/0126 regressions before AVX2 admission; scheduled refresh.
 **Tracking:** [#189](https://github.com/scottdhughes/quantum-proof-bitcoin/issues/189).
@@ -148,7 +153,7 @@ The benchmark medians in the JSON are directional single-runner measurements onl
 2. **32-byte Bitcoin sighash and context — `PASS`.** The sighash bytes are the pure-ML-DSA message, not HashML-DSA or external `mu`; the context separates the prototype. A later protocol must freeze sighash, algorithm, version, network, and context semantics.
 3. **32-byte seed, expanded-key reconstruction, and public-key derivation — `PASS`.** Exact outputs agree with ACVP/oracles, and NIST permits seed representation subject to deterministic standardized regeneration. Wallet semantics remain F-07.
 4. **Separation of deterministic vectors from hedged production signing — `FINDING`.** Documentation is clear, but no misuse-resistant production API/build boundary or fail-closed entropy contract exists. F-01.
-5. **Sampling, rejection, norms, NTT, decomposition, and hints — `PASS`.** The 70 ACVP cases, exact signatures, three-way agreement, randomized verification, and hint regressions provide strong functional evidence; not a full proof or leakage/fault assessment.
+5. **Sampling, rejection, norms, NTT, decomposition, and hints — `PASS`.** The 70 ACVP cases, exact signatures, three-way agreement, randomized verification, and hint regressions provide strong functional evidence. PR #191 adds an independent exact-arithmetic cross-check for bounded NTT, reduction, decomposition, hint, and encoding rules; neither evidence set is a full proof or leakage/fault assessment.
 6. **Exact/canonical public-key and signature parsing — `PASS`.** Tested paths enforce exact sizes and reject truncated, extended, mutated, and structured malformed values consistently. Untested state/resource space remains F-05.
 7. **Highest-risk decoder states and advisory regressions — `FINDING`.** 0076/0077 pass, but structure-aware fuzzing, optimized-backend regressions, wider current advisories, Rust dynamic analysis, and resource testing remain. F-05/F-06.
 8. **Three-oracle independence — `LIMITATION`.** Strong differential conformance evidence, not independent design validation: mldsa-native has PQ-Crystals lineage; libcrux is separate with reference influence; common specification/vector/compiler/hardware assumptions remain.
@@ -163,7 +168,7 @@ The benchmark medians in the JSON are directional single-runner measurements onl
 
 ## Limitations and residual risk
 
-No qualified independent human has adopted this report. The potential-updates workbook was provenance-checked, not adjudicated row by row. No full formal proof, compiler equivalence proof, supported-platform timing/cache test, physical leakage or fault campaign, long-duration fuzzing, Rust sanitizer/Miri campaign, allocation-failure study, or worst-case aggregate block-validation campaign was performed. No node, Script, wallet, descriptor, PSBT, hardware-signer, activation, migration, or policy design is frozen. Advisory status is time-sensitive. This report does not rehabilitate `PQSig rc2`.
+No qualified independent human has adopted this report. The potential-updates workbook was provenance-checked, not adjudicated row by row. The supplemental Wolfram exact model covers only its documented bounded algebra and encoding contract and is not a fourth signing implementation. No full formal proof, compiler equivalence proof, supported-platform timing/cache test, physical leakage or fault campaign, long-duration fuzzing, Rust sanitizer/Miri campaign, allocation-failure study, or worst-case aggregate block-validation campaign was performed. No node, Script, wallet, descriptor, PSBT, hardware-signer, activation, migration, or policy design is frozen. Advisory status is time-sensitive. This report does not rehabilitate `PQSig rc2`.
 
 ## Gate disposition
 
@@ -181,4 +186,7 @@ Issue #181 must remain open and `RELEASE_HOLD` must remain in force. After remed
 - [NIST Section 6 guidance](https://csrc.nist.gov/csrc/media/Projects/post-quantum-cryptography/documents/faq/fips204-sec6-03192025.pdf)
 - [OpenSSL 3.6 vulnerability list](https://www.openssl-library.org/news/vulnerabilities-3.6/)
 - [RustSec 0076](https://rustsec.org/advisories/RUSTSEC-2026-0076.html), [0077](https://rustsec.org/advisories/RUSTSEC-2026-0077.html), [0125](https://rustsec.org/advisories/RUSTSEC-2026-0125.html), and [0126](https://rustsec.org/advisories/RUSTSEC-2026-0126.html)
+- [RustSec 2025-0133](https://rustsec.org/advisories/RUSTSEC-2025-0133.html)
+- [Cryspen: strengths and limits of formal verification](https://cryspen.com/post/strengths-and-limitations/)
+- [IACR ePrint 2024/512](https://eprint.iacr.org/2024/512), [IACR ePrint 2025/582](https://eprint.iacr.org/2025/582), and [IACR ePrint 2026/56](https://eprint.iacr.org/2026/56)
 - [IACR ePrint 2018/211](https://eprint.iacr.org/2018/211) and [IACR ePrint 2022/824](https://eprint.iacr.org/2022/824)
