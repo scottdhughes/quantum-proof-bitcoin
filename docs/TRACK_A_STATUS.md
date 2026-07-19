@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-07-18
+## Updated: 2026-07-19
 ## Current Phase: Phase 1 - Cryptographic Production Hold
 
 ## Purpose
@@ -58,13 +58,15 @@ baseline remains `pq_required: 121`, `pq_backlog: 0`, `legacy_only: 14`, and
 The isolated `ML-DSA-44` comparator is recorded in
 `ML_DSA_44_REFERENCE.md`. It pins FIPS 204, NIST's potential-updates and
 Section 6 guidance artifacts, all 70 applicable external/pure ACVP cases,
-OpenSSL 3.6.3, and `mldsa-native` `v1.0.0-beta2`. The two codebases agree on
-all official and repo-defined exact outputs, cross-verify native randomized
-signatures, reject the bounded malformed/mutated corpus, and pass the adapter
-ASan/UBSan tranche. Ten-run arm64 timings and a raw-payload cost model are
-recorded. `mldsa-native` descends from the `pq-crystals` reference
-implementation, so the result is differential evidence rather than independent
-cryptographic review.
+OpenSSL 3.6.3, `mldsa-native` `v1.0.0-beta2`, and libcrux 0.0.10. The three
+codebases agree on all official and repo-defined exact outputs, cross-verify
+randomized signatures, and reject the bounded malformed/mutated corpus. The
+two portable-C adapters pass the ASan/UBSan tranche, while the exact libcrux
+release passes both disclosed advisory regressions and repo-level malformed-
+hint checks without panic. Ten-run arm64 timings and a raw-payload cost model
+are recorded. The qualified libcrux result closes the independent
+implementation evidence gate but is not independent design, external
+cryptographic review, or production approval.
 
 The measured decision in `PQSIG_CANDIDATE_SELECTION.md` selects FIPS 204
 `ML-DSA-44` as the primary engineering candidate and retains FIPS 205
@@ -72,10 +74,10 @@ The measured decision in `PQSIG_CANDIDATE_SELECTION.md` selects FIPS 204
 `HOLD`; no consensus integration is authorized by the selection or either
 green reference harness.
 
-The next bounded cryptographic work is to obtain a genuinely independent
-ML-DSA implementation and external cryptographic review, then close
-supported-platform and worst-case system measurements. A consensus-design
-specification follows only after those gates.
+The next bounded cryptographic work is an external-review package for the
+frozen ML-DSA-44 profile and its three-oracle evidence. Supported-platform and
+worst-case system measurements remain the following separate gate. A
+consensus-design specification follows only after both gates.
 
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,
@@ -167,10 +169,11 @@ Cryptography implementation lane:
    - retain the completed FIPS 204 `ML-DSA-44` comparator baseline
    - apply `ML_DSA_44_ENGINEERING_CANDIDATE` as an evidence priority, not
      production approval
-   - close the documented implementation-lineage limit with a genuinely
-     independent implementation
-   - require external cryptographic review and supported-platform worst-case
-     measurements before consensus-design work
+   - retain the completed three-oracle independent implementation evidence and
+     its qualified reference-influence disclosure
+   - obtain external cryptographic review as the next bounded gate
+   - require supported-platform worst-case measurements before
+     consensus-design work
    - do not allocate or activate an `ALG_ID` in the evidence slices
 
 ## Current Queue
@@ -191,9 +194,10 @@ Cryptography implementation lane:
 2. `HOLD`: do not infer another promotion from queue order. Require a fresh
    risk decision before changing another policy class.
 3. Cryptographic production remains on `HOLD` while `ML-DSA-44` advances only
-   as the selected engineering candidate. The next gates are independent
-   implementation evidence, external cryptographic review, and worst-case
-   system measurements; Script and wallet integration remain out of scope.
+   as the selected engineering candidate. Independent implementation evidence
+   is complete; the next gates are external cryptographic review and
+   worst-case system measurements. Script and wallet integration remain out of
+   scope.
 
 
 ## Historical Queue Ledger
@@ -1687,6 +1691,14 @@ Aineko must ask before:
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
 
+- 2026-07-19: The isolated ML-DSA-44 comparator added pinned libcrux 0.0.10 as
+  a third oracle. All 70 selected-profile ACVP cases, exact bytes, randomized
+  cross-verification, bounded malformed inputs, the two disclosed libcrux
+  advisory regressions, and repo-defined malformed-hint cases pass. The frozen
+  assessment is `separate_implementation_lineage_with_reference_influence`:
+  independent implementation evidence is complete, while independent design,
+  external cryptographic review, production implementation quality, and
+  consensus approval remain unestablished.
 - 2026-07-18: The measured final-standard comparison selected FIPS 204
   `ML-DSA-44` as `ML_DSA_44_ENGINEERING_CANDIDATE`, retained FIPS 205
   `SLH-DSA-SHA2-128s` as the conservative fallback, and kept production on
@@ -2616,11 +2628,11 @@ above as the controlling live next-PR handoff when these older notes disagree.
 - There is no active inventory blocker. The selected configuration-namespace
   gap is promoted, its platform default-datadir namespace is asserted, and no
   suites remain in `pq_backlog`.
-- Production cryptography remains blocked on independent ML-DSA implementation
-  evidence, external cryptographic review, constant-time and secret-erasure
-  analysis, supported-platform and worst-case validation cost, and a separate
-  consensus-design specification. Engineering-candidate selection closes none
-  of those gates.
+- Production cryptography remains blocked on external cryptographic review,
+  constant-time and secret-erasure analysis, supported-platform and worst-case
+  validation cost, and a separate consensus-design specification. The
+  independent ML-DSA implementation evidence gate is complete; it closes none
+  of these remaining gates.
 - A further promotion requires a newly reviewed PQ confidence gap with a named
   owner, open tracking issue, bounded contract, targeted test, and acceptable
   CI cost. Until another selection exists, `HOLD` is the intended baseline

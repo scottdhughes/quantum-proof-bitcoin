@@ -3,6 +3,7 @@
 ## Status: RELEASE_HOLD
 ## Spec-ID: PQSIG-PRODUCTION-READINESS-v1
 ## Decided: 2026-07-18
+## Evidence-Updated: 2026-07-19
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -105,9 +106,12 @@ block-space, bandwidth, signer, and hardware-wallet costs. FIPS 204 adds
 structured-lattice assumptions and much larger public keys, but offers a much
 smaller combined payload and substantially faster signing. The isolated
 ML-DSA-44 comparator now passes its complete selected-profile ACVP and
-two-codebase differential contract, but its portable oracle descends from the
-`pq-crystals` reference implementation and does not replace independent
-cryptographic review.
+three-codebase differential contract. `mldsa-native` descends from the
+`pq-crystals` reference implementation. The added libcrux portable-Rust oracle
+has separate implementation history with disclosed PQ-Crystals influence and
+no normal reference-code dependency. This closes the independent
+implementation evidence gate, but does not replace independent cryptographic
+review.
 
 `PQSIG_CANDIDATE_SELECTION.md` selects `ML-DSA-44` as the primary engineering
 candidate because its raw key-plus-signature payload, signing latency, and
@@ -125,22 +129,26 @@ selected for activation by this record.
    green. Do not assign an active `ALG_ID` or connect it to Script yet.
 2. Maintain the isolated FIPS 204 `ML-DSA-44` comparator in
    `ML_DSA_44_REFERENCE.md`. Its 70-case ACVP, randomized interoperability,
-   mutation, sanitizer, timing, and raw-payload evidence is green. Preserve the
-   recorded implementation-lineage limitation.
+   mutation, sanitizer, disclosed-advisory regression, timing, and raw-payload
+   evidence is green across OpenSSL, `mldsa-native`, and libcrux. Preserve the
+   qualified `separate_implementation_lineage_with_reference_influence`
+   assessment.
 3. Use the OpenSSL 3.6.3 runtime and pinned source checkout only as a prototype
    and differential-test oracle. Do not introduce a host OpenSSL dependency
    into consensus verification.
-4. Obtain a second independent implementation or vector source for every
-   candidate. A repo-local signer and repo-local verifier are not independent
-   evidence.
+4. Preserve a second independent implementation or vector source for every
+   candidate. The ML-DSA comparator now satisfies this implementation-evidence
+   requirement through libcrux; that evidence is not independent design or
+   external review. A repo-local signer and repo-local verifier would not be
+   independent evidence.
 5. Monitor SP 800-230, but do not activate a draft profile. Reassess only after
    a final publication and an explicit one-key-per-output usage-limit design.
 6. Retire rc2 or replace it with a ground-up, exact construction. Do not patch
    isolated symptoms while retaining the current security claims.
 7. Apply the measured decision in `PQSIG_CANDIDATE_SELECTION.md`: advance
-   `ML-DSA-44` only through independent implementation evidence, external
-   cryptographic review, and worst-case system measurements. Preserve
-   `SLH-DSA-SHA2-128s` as the fallback and keep production on `HOLD`.
+   `ML-DSA-44` only through external cryptographic review and worst-case system
+   measurements now that its independent implementation evidence is complete.
+   Preserve `SLH-DSA-SHA2-128s` as the fallback and keep production on `HOLD`.
 
 ## Required Gates Before Consensus Integration
 
@@ -163,6 +171,11 @@ of these are satisfied:
 10. independent cryptographic review and consensus-code audit
 11. public testnet soak with no real-value representation
 12. a new, explicit production go/no-go record that removes this hold
+
+For ML-DSA-44, gate 4 is now complete at the isolated comparator level. Gate 5
+has bounded evidence but remains open for exhaustive fuzzing and resource
+exhaustion. The other integration, system, review, soak, and release gates
+remain open. No completion recorded here changes the consensus accepted set.
 
 ## Hold Exit Criteria
 

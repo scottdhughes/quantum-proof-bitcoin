@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "profile": {
     "name": "ML-DSA-44",
     "standard": "FIPS 204",
@@ -97,6 +97,40 @@
       "license_expression": "Apache-2.0 OR ISC OR MIT",
       "role": "portable-C prototype oracle; not vendored or linked into the node",
       "lineage_limit": "mldsa-native is forked from the pq-crystals reference implementation; agreement with OpenSSL is strong differential evidence but not independent cryptographic review"
+    },
+    "libcrux": {
+      "repository": "https://github.com/celabshq/libcrux",
+      "commit": "c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd",
+      "tag": "libcrux-ml-dsa-v0.0.10",
+      "tag_object": "255922337dee37aa32b21dbed27785f535de0336",
+      "version": "0.0.10",
+      "published": "2026-07-16",
+      "git_tree": "0044b70c4675ba97623c9105387f592e038e837d",
+      "initial_implementation_commit": "3f14979a2b30c43572bd81fae64cc4743943b5da",
+      "crate_url": "https://static.crates.io/crates/libcrux-ml-dsa/libcrux-ml-dsa-0.0.10.crate",
+      "crate_sha256": "783ebed7cb27de6d44ef2aa662648d1a0869694f2f754f2f1ed45e959ef3b48e",
+      "license_expression": "Apache-2.0",
+      "implementation": "portable Rust ML-DSA-44 path",
+      "role": "research-only independent implementation oracle; neither vendored nor linked into the node",
+      "verification_scope": "portable and AVX2 field arithmetic, NTT polynomial arithmetic, and serialization are formally verified; the complete high-level implementation, compiler output, and side-channel behavior are not",
+      "independence_assessment": {
+        "outcome": "separate_implementation_lineage_with_reference_influence",
+        "normal_pqclean_or_pq_crystals_dependency": false,
+        "basis": "direct Rust implementation history begins at the pinned May 2024 commit; the resolved normal dependency graph does not include PQClean, pq-crystals, mldsa-native, or pqcrypto-mldsa",
+        "limit": "unit-test outputs and selected sampling/optimization comments cite PQ-Crystals; this is independent implementation evidence, not independent design, external cryptographic review, or production approval"
+      },
+      "fixed_advisories": {
+        "RUSTSEC-2026-0076": {
+          "ghsa": "GHSA-xrf2-5r3p-5wgj",
+          "fixed_in": "0.0.8",
+          "upstream_test": "bad_hint_out_of_bounds"
+        },
+        "RUSTSEC-2026-0077": {
+          "ghsa": "GHSA-cp57-fq8g-qh6v",
+          "fixed_in": "0.0.8",
+          "upstream_test": "mask_exceeds_norm"
+        }
+      }
     }
   },
   "vectors": {

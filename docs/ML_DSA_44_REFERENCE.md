@@ -1,8 +1,8 @@
 # ML-DSA-44 Reference Comparator
 
 ## Status: REFERENCE ONLY - NOT CONSENSUS
-## Spec-ID: ML-DSA-44-REFERENCE-v1
-## Updated: 2026-07-18
+## Spec-ID: ML-DSA-44-REFERENCE-v2
+## Updated: 2026-07-19
 ## Consensus-Relevant: NO
 
 ## Decision Boundary
@@ -76,6 +76,13 @@ streaming design must specify and validate the `mu` trust boundary separately.
   `aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f`
 - `mldsa-native` `v1.0.0-beta2` commit
   `9b0ee84f4cf399043eca59eca4e5f8531ca1d61b`
+- `libcrux-ml-dsa` `v0.0.10` commit
+  `c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd`, annotated tag object
+  `255922337dee37aa32b21dbed27785f535de0336`, and ML-DSA subtree
+  `0044b70c4675ba97623c9105387f592e038e837d`
+- crates.io archive
+  `libcrux-ml-dsa-0.0.10.crate`, SHA256
+  `783ebed7cb27de6d44ef2aa662648d1a0869694f2f754f2f1ed45e959ef3b48e`
 - one repo-defined 32-byte sighash/context interoperability vector
 
 Representative signature hashes are:
@@ -86,24 +93,40 @@ Representative signature hashes are:
 | NIST randomized siggen group 13 case 181 | `8a17b6ff3f9633cd3c7cd0687d6384408e145bfd3725f6c57a8a2727f50ec989` |
 | PQBTC prototype deterministic signature | `98094b39d9ae1ad76fc734f9e0199ad37315dd4eb7a22f29561582239f64e131` |
 
-The driver builds two adapters in a temporary directory. OpenSSL imports the
+The driver builds three adapters in temporary directories. OpenSSL imports the
 expanded private key and derives its public key through the provider; it does
 not assume the public key is a suffix of the ML-DSA private key.
-`mldsa-native` uses `mldsa_pk_from_sk` and the exact FIPS prefix. Both reproduce
-all selected NIST bytes, derive the same keys, cross-verify every generated
-signature, and agree byte-for-byte when given the same explicit `rnd`.
+`mldsa-native` uses `mldsa_pk_from_sk` and the exact FIPS prefix. The libcrux
+adapter uses its portable Rust ML-DSA-44 path. Its public API does not derive a
+verification key from an imported expanded signing key, so the driver first
+requires OpenSSL and `mldsa-native` to agree on that key and then supplies it
+to libcrux for signing self-verification. All three reproduce the selected
+NIST bytes, cross-verify every generated signature, and agree byte-for-byte
+when given the same explicit `rnd`.
 
-Each native randomized API is also exercised twice. All four signatures are
-distinct and accepted by both verifiers. Deterministic signing is retained for
+Each randomized API is exercised twice. All six signatures are distinct and
+accepted by all three verifiers. Deterministic signing is retained for
 reproducible evidence only; any production proposal must preserve the hedged
 randomized posture and define entropy-failure behavior. The research-only
-`mldsa-native` adapter obtains those test bytes from POSIX `/dev/urandom`; that
-wrapper is not a node entropy design and limits the full harness to macOS/Linux.
+`mldsa-native` and libcrux adapters obtain their test bytes from POSIX
+`/dev/urandom`; those wrappers are not a node entropy design and limit the full
+harness to macOS/Linux.
 
 `mldsa-native` is a fork of the `pq-crystals` reference implementation. It is a
 separate portable-C code path from OpenSSL, so agreement is meaningful
 differential evidence. Its ancestry still limits independence, and this result
 must not be described as independent cryptographic review.
+
+libcrux has a separate direct-Rust implementation history beginning at the
+pinned May 2024 commit, and its normal crate dependency graph does not include
+PQClean, `pq-crystals`, `mldsa-native`, or `pqcrypto-mldsa`. Its unit-test
+outputs and selected sampling/optimization comments cite PQ-Crystals. The
+frozen assessment is
+`separate_implementation_lineage_with_reference_influence`: this is independent
+implementation evidence, not independent design, external cryptographic
+review, or production approval. The harness also reruns the upstream
+regressions for `RUSTSEC-2026-0076` and `RUSTSEC-2026-0077` and adds two
+ML-DSA-44 malformed-hint rejections, including the old out-of-bounds shape.
 
 Run:
 
@@ -113,6 +136,8 @@ python3 contrib/ml-dsa-ref/compare_oracles.py \
   --acvp-server /path/to/pinned/ACVP-Server \
   --openssl-source /path/to/pinned/openssl \
   --mldsa-native /path/to/pinned/mldsa-native \
+  --libcrux-source /path/to/full-history/pinned/libcrux \
+  --libcrux-crate /path/to/libcrux-ml-dsa-0.0.10.crate \
   --fips204 /path/to/NIST.FIPS.204.pdf \
   --fips204-updates /path/to/fips-204-potential-updates.xlsx \
   --fips204-section6-guidance /path/to/fips204-sec6-03192025.pdf \
@@ -120,23 +145,27 @@ python3 contrib/ml-dsa-ref/compare_oracles.py \
   --sanitizers
 ```
 
-The full run requires clean source checkouts at the exact pinned commits. The
+The full run requires clean source checkouts at the exact pinned commits, a
+full-history libcrux checkout for its ancestry check, the exact pinned libcrux
+crate archive, and Rust/Cargo access to the crate's locked dependencies. The
 installed OpenSSL CLI and `pkg-config` library must both report 3.6.3. The
-adapter links that installed library; the source checkout establishes review
-provenance and is not compiled by the harness.
+OpenSSL adapter links that installed library; its source checkout establishes
+review provenance and is not compiled by the harness.
 
 ## Prototype Measurements
 
-Local arm64 macOS measurement on 2026-07-18, using OpenSSL 3.6.3 and the pinned
-portable-C oracle compiled with `-O2`. Values are medians of ten repetitions
-of the fixed PQBTC vector and are directional, not release envelopes. They
-time the adapter's cryptographic calls and exclude compilation, process
-startup, cross-verification, and OpenSSL context initialization.
+Local arm64 macOS measurement on 2026-07-19, using OpenSSL 3.6.3, the pinned
+portable-C oracle compiled with `-O2`, and the pinned portable-Rust libcrux
+oracle compiled in release mode. Values are medians of ten repetitions of the
+fixed PQBTC vector and are directional, not release envelopes. They time the
+adapter's cryptographic calls and exclude compilation, process startup,
+cross-verification, and OpenSSL context initialization.
 
 | Oracle | Keygen | Deterministic sign | Deterministic verify | Randomized sign | Randomized verify |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| OpenSSL 3.6.3 | 0.099 ms | 0.157 ms | 0.092 ms | 0.752 ms | 0.052 ms |
-| `mldsa-native` | 0.029 ms | 0.102 ms | 0.029 ms | 0.324 ms | 0.029 ms |
+| OpenSSL 3.6.3 | 0.151 ms | 0.353 ms | 0.137 ms | 0.609 ms | 0.086 ms |
+| `mldsa-native` | 0.031 ms | 0.165 ms | 0.065 ms | 0.237 ms | 0.030 ms |
+| libcrux 0.0.10 | 0.096 ms | 0.197 ms | 0.068 ms | 0.219 ms | 0.030 ms |
 
 The timing spread between deterministic and randomized calls includes random
 generation and variable rejection-sampling work. Supported-platform,
@@ -174,31 +203,36 @@ required before selection.
 Established:
 
 1. the exact final-standard ML-DSA-44 external/pure profile is frozen
-2. all 70 applicable selected-profile ACVP cases pass both codebases
+2. all 70 applicable selected-profile ACVP cases pass all three codebases
 3. deterministic and fixed-randomizer key/signature outputs agree byte-for-byte
-4. native randomized outputs are distinct and cross-verify in both directions
+4. randomized outputs are distinct and cross-verify across all three oracles
 5. empty/maximum context, malformed lengths, and 12 cryptographic mutations
    have explicit outcomes
-6. both adapters pass the bounded ASan/UBSan exercise
-7. the candidate has a reproducible ten-run performance and raw-payload model
+6. both portable-C adapters pass the bounded ASan/UBSan exercise
+7. the pinned libcrux release passes both disclosed advisory regressions and
+   the two repo-level malformed-hint rejections without panic
+8. a separate implementation lineage agrees with the full comparator contract
+9. the candidate has a reproducible ten-run performance and raw-payload model
 
 Not established:
 
 1. a production-quality consensus implementation
-2. fully independent implementation ancestry or external cryptographic review
+2. independent design or external cryptographic review
 3. constant-time signing, adequate secret erasure, or fault-attack resistance
-4. exhaustive fuzzing or sanitizer coverage of the linked OpenSSL library
+4. exhaustive fuzzing or sanitizer coverage of the linked OpenSSL and Rust
+   libraries
 5. acceptable wallet, descriptor, PSBT, hardware-signer, fee, or block behavior
 6. an activation, migration, public-key commitment, or algorithm-agility design
 
 ## Next Gate
 
-Produce a measured candidate-selection memo comparing this baseline with
-`SLH_DSA_SHA2_128S_REFERENCE.md`. The memo must evaluate security assumptions,
-implementation maturity and lineage, key/signature economics, signer and
-verifier behavior, wallet/backup impact, and reviewability. It may select a
-candidate for a separate engineering proposal or retain `HOLD`.
+Package this frozen profile, provenance record, complete three-oracle report,
+and remaining-risk statement for external cryptographic review. That review
+must cover the selected mode, randomization, rejection sampling, malformed
+keys and hints, side channels, fault behavior, secret erasure, and key
+derivation. Supported-platform and worst-case system measurements remain a
+separate gate after review intake.
 
 No candidate enters `src/crypto`, Script, wallet activation, or the `ALG_ID`
-registry before that selection, an explicit consensus design, and external
-cryptographic review.
+registry before external review, worst-case measurement, and a later explicit
+consensus design.

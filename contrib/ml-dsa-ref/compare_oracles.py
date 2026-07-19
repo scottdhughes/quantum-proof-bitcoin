@@ -10,9 +10,11 @@ import os
 import re
 import secrets
 import shlex
+import shutil
 import statistics
 import subprocess
 import sys
+import tarfile
 import tempfile
 from pathlib import Path
 
@@ -21,11 +23,24 @@ HERE = Path(__file__).resolve().parent
 MANIFEST_PATH = HERE / "vectors.json"
 OPENSSL_SOURCE = HERE / "openssl_oracle.c"
 MLDSA_NATIVE_SOURCE = HERE / "mldsa_native_oracle.c"
+LIBCRUX_SOURCE = HERE / "libcrux_oracle.rs"
 HEX_64 = re.compile(r"^[0-9a-f]{64}$")
 
 
 class ReferenceError(RuntimeError):
     pass
+
+
+class Oracle:
+    def __init__(
+        self,
+        executable: Path,
+        derives_public_key: bool = True,
+        sign_requires_public_key: bool = False,
+    ) -> None:
+        self.executable = executable
+        self.derives_public_key = derives_public_key
+        self.sign_requires_public_key = sign_requires_public_key
 
 
 def require_hex(value: str, byte_length: int, label: str) -> None:
@@ -34,8 +49,8 @@ def require_hex(value: str, byte_length: int, label: str) -> None:
 
 
 def validate_manifest(manifest: dict) -> None:
-    if manifest.get("schema_version") != 2:
-        raise ReferenceError("manifest schema_version must be 2")
+    if manifest.get("schema_version") != 3:
+        raise ReferenceError("manifest schema_version must be 3")
 
     profile = manifest["profile"]
     expected_profile = {
@@ -104,13 +119,44 @@ def validate_manifest(manifest: dict) -> None:
         raise ReferenceError("ACVP coverage does not match the frozen 70-case contract")
 
     sources = manifest["sources"]
-    for source_name in ("nist_acvp", "openssl", "mldsa_native"):
+    for source_name in ("nist_acvp", "openssl", "mldsa_native", "libcrux"):
         if re.fullmatch(r"[0-9a-f]{40}", sources[source_name]["commit"]) is None:
             raise ReferenceError(f"{source_name} commit must be a full Git SHA")
     if sources["openssl"].get("version") != "3.6.3":
         raise ReferenceError("OpenSSL source and runtime version must be 3.6.3")
     if sources["mldsa_native"].get("tag") != "v1.0.0-beta2":
         raise ReferenceError("mldsa-native tag must be v1.0.0-beta2")
+    libcrux = sources["libcrux"]
+    if libcrux.get("tag") != "libcrux-ml-dsa-v0.0.10":
+        raise ReferenceError("libcrux tag must be libcrux-ml-dsa-v0.0.10")
+    if libcrux.get("version") != "0.0.10":
+        raise ReferenceError("libcrux version must be 0.0.10")
+    for field in ("tag_object", "git_tree", "initial_implementation_commit"):
+        if re.fullmatch(r"[0-9a-f]{40}", libcrux.get(field, "")) is None:
+            raise ReferenceError(f"libcrux {field} must be a full Git object ID")
+    if HEX_64.fullmatch(libcrux.get("crate_sha256", "")) is None:
+        raise ReferenceError("libcrux crate_sha256 must be SHA256")
+    if libcrux.get("license_expression") != "Apache-2.0":
+        raise ReferenceError("libcrux license must be Apache-2.0")
+    assessment = libcrux.get("independence_assessment", {})
+    if assessment.get("outcome") != "separate_implementation_lineage_with_reference_influence":
+        raise ReferenceError("libcrux independence assessment outcome mismatch")
+    if assessment.get("normal_pqclean_or_pq_crystals_dependency") is not False:
+        raise ReferenceError("libcrux normal dependency assessment must be false")
+    expected_advisories = {
+        "RUSTSEC-2026-0076": {
+            "ghsa": "GHSA-xrf2-5r3p-5wgj",
+            "fixed_in": "0.0.8",
+            "upstream_test": "bad_hint_out_of_bounds",
+        },
+        "RUSTSEC-2026-0077": {
+            "ghsa": "GHSA-cp57-fq8g-qh6v",
+            "fixed_in": "0.0.8",
+            "upstream_test": "mask_exceeds_norm",
+        },
+    }
+    if libcrux.get("fixed_advisories") != expected_advisories:
+        raise ReferenceError("libcrux fixed-advisory contract mismatch")
     for source_name in (
         "nist_fips204",
         "nist_fips204_potential_updates",
@@ -343,6 +389,200 @@ def require_mldsa_native_source(source_dir: Path, expected_commit: str) -> None:
     if any(not (source_dir / relative_path).is_file() for relative_path in required_files):
         raise ReferenceError(f"missing mldsa-native source at {source_dir}")
     require_git_commit(source_dir, expected_commit, "mldsa-native")
+
+
+def require_libcrux_source(source_dir: Path, source: dict) -> None:
+    required_files = (
+        "LICENSE",
+        "libcrux-ml-dsa/Cargo.toml",
+        "libcrux-ml-dsa/CHANGELOG.md",
+        "libcrux-ml-dsa/src/IMPLEMENTATION-NOTES.md",
+        "libcrux-ml-dsa/src/ml_dsa_generic.rs",
+        "libcrux-ml-dsa/src/encoding/signature.rs",
+        "libcrux-ml-dsa/tests/self.rs",
+    )
+    if any(not (source_dir / relative_path).is_file() for relative_path in required_files):
+        raise ReferenceError(f"missing libcrux ML-DSA source at {source_dir}")
+    require_git_commit(source_dir, source["commit"], "libcrux")
+
+    tag_object = run(
+        ["git", "rev-parse", f"refs/tags/{source['tag']}"], cwd=source_dir
+    ).strip()
+    if tag_object != source["tag_object"]:
+        raise ReferenceError(
+            f"libcrux tag object mismatch: expected {source['tag_object']}, "
+            f"got {tag_object}"
+        )
+    tagged_commit = run(
+        ["git", "rev-parse", f"{source['tag']}^{{commit}}"], cwd=source_dir
+    ).strip()
+    if tagged_commit != source["commit"]:
+        raise ReferenceError(
+            f"libcrux tag commit mismatch: expected {source['commit']}, "
+            f"got {tagged_commit}"
+        )
+    tree = run(["git", "rev-parse", "HEAD:libcrux-ml-dsa"], cwd=source_dir).strip()
+    if tree != source["git_tree"]:
+        raise ReferenceError(
+            f"libcrux ML-DSA tree mismatch: expected {source['git_tree']}, got {tree}"
+        )
+    run(
+        [
+            "git",
+            "merge-base",
+            "--is-ancestor",
+            source["initial_implementation_commit"],
+            "HEAD",
+        ],
+        cwd=source_dir,
+    )
+    ml_dsa_history = run(
+        ["git", "log", "--reverse", "--format=%H", "--", "libcrux-ml-dsa"],
+        cwd=source_dir,
+    ).splitlines()
+    if not ml_dsa_history or ml_dsa_history[0] != source["initial_implementation_commit"]:
+        raise ReferenceError("libcrux initial ML-DSA implementation commit mismatch")
+
+    cargo_manifest = (source_dir / "libcrux-ml-dsa/Cargo.toml").read_text(
+        encoding="utf8"
+    )
+    if re.search(r'^version = "0\.0\.10"$', cargo_manifest, re.MULTILINE) is None:
+        raise ReferenceError("libcrux source package version mismatch")
+    manifest_sections = cargo_manifest.split("[dependencies]", 1)
+    if len(manifest_sections) != 2:
+        raise ReferenceError("libcrux source has no normal dependency section")
+    dependency_section = manifest_sections[1].split("\n[", 1)[0]
+    if re.search(r"pqclean|pq[-_]crystals", dependency_section, re.IGNORECASE):
+        raise ReferenceError("libcrux has an unexpected normal PQClean/PQ-Crystals dependency")
+
+
+def prepare_libcrux_crate(build_dir: Path, artifact: Path, source: dict) -> Path:
+    require_artifact(artifact, source["crate_sha256"], "libcrux ML-DSA crate")
+    expected_root = f"libcrux-ml-dsa-{source['version']}"
+    extraction_root = build_dir / "libcrux-crate"
+    extraction_root.mkdir()
+    with tarfile.open(artifact, mode="r:gz") as archive:
+        members = archive.getmembers()
+        if not members:
+            raise ReferenceError("libcrux crate archive is empty")
+        for member in members:
+            member_path = Path(member.name)
+            if (
+                member_path.is_absolute()
+                or ".." in member_path.parts
+                or member_path.parts[0] != expected_root
+                or member.issym()
+                or member.islnk()
+                or not (member.isfile() or member.isdir())
+            ):
+                raise ReferenceError(f"unsafe libcrux crate member: {member.name}")
+        if sys.version_info >= (3, 12):
+            archive.extractall(extraction_root, filter="data")
+        else:
+            archive.extractall(extraction_root)
+
+    crate_dir = extraction_root / expected_root
+    vcs_info_path = crate_dir / ".cargo_vcs_info.json"
+    cargo_manifest_path = crate_dir / "Cargo.toml"
+    cargo_lock_path = crate_dir / "Cargo.lock"
+    if not all(path.is_file() for path in (vcs_info_path, cargo_manifest_path, cargo_lock_path)):
+        raise ReferenceError("libcrux crate is missing pinned package metadata")
+    vcs_info = json.loads(vcs_info_path.read_text(encoding="utf8"))
+    if vcs_info.get("git", {}).get("sha1") != source["commit"]:
+        raise ReferenceError("libcrux crate VCS commit mismatch")
+    cargo_manifest = cargo_manifest_path.read_text(encoding="utf8")
+    for pattern, label in (
+        (r'^name = "libcrux-ml-dsa"$', "package name"),
+        (r'^version = "0\.0\.10"$', "package version"),
+        (r'^license = "Apache-2\.0"$', "license"),
+    ):
+        if re.search(pattern, cargo_manifest, re.MULTILINE) is None:
+            raise ReferenceError(f"libcrux crate {label} mismatch")
+
+    examples_dir = crate_dir / "examples"
+    adapter_path = examples_dir / "pqbtc_oracle.rs"
+    shutil.copyfile(LIBCRUX_SOURCE, adapter_path)
+    cargo_manifest_path.write_text(
+        cargo_manifest
+        + "\n[[example]]\n"
+        + 'name = "pqbtc_oracle"\n'
+        + 'path = "examples/pqbtc_oracle.rs"\n',
+        encoding="utf8",
+    )
+    return crate_dir
+
+
+def compile_libcrux_oracle(build_dir: Path, crate_dir: Path) -> Path:
+    target_dir = build_dir / "libcrux-target"
+    normal_dependencies = run(
+        [
+            "cargo",
+            "tree",
+            "--manifest-path",
+            str(crate_dir / "Cargo.toml"),
+            "--locked",
+            "--edges",
+            "normal",
+            "--no-default-features",
+            "--features",
+            "std,mldsa44",
+            "--prefix",
+            "none",
+        ]
+    )
+    if re.search(
+        r"pqclean|pq[-_]crystals|mldsa[-_]native|pqcrypto[-_]mldsa",
+        normal_dependencies,
+        re.IGNORECASE,
+    ):
+        raise ReferenceError("libcrux has an unexpected normal reference dependency")
+    run(
+        [
+            "cargo",
+            "build",
+            "--manifest-path",
+            str(crate_dir / "Cargo.toml"),
+            "--target-dir",
+            str(target_dir),
+            "--locked",
+            "--release",
+            "--no-default-features",
+            "--features",
+            "std,mldsa44",
+            "--example",
+            "pqbtc_oracle",
+        ]
+    )
+    executable = target_dir / "release" / "examples" / "pqbtc_oracle"
+    if not executable.is_file():
+        raise ReferenceError("cargo did not produce the libcrux oracle executable")
+    return executable
+
+
+def run_libcrux_security_regressions(build_dir: Path, crate_dir: Path) -> dict:
+    target_dir = build_dir / "libcrux-security-target"
+    regressions = {
+        "RUSTSEC-2026-0076": "bad_hint_out_of_bounds",
+        "RUSTSEC-2026-0077": "mask_exceeds_norm",
+    }
+    for test_name in regressions.values():
+        run(
+            [
+                "cargo",
+                "test",
+                "--manifest-path",
+                str(crate_dir / "Cargo.toml"),
+                "--target-dir",
+                str(target_dir),
+                "--locked",
+                "--test",
+                "self",
+                test_name,
+                "--",
+                "--exact",
+            ]
+        )
+    return {advisory: {"test": test, "status": "PASS"} for advisory, test in regressions.items()}
 
 
 def require_artifact(path: Path, expected_sha256: str, label: str) -> None:
@@ -689,43 +929,58 @@ def parse_oracle_output(output: str) -> dict[str, str]:
     return parsed
 
 
-def oracle_keygen(executable: Path, seed_hex: str) -> dict[str, str]:
-    return parse_oracle_output(run([str(executable), "keygen", seed_hex]))
+def oracle_keygen(oracle: Oracle, seed_hex: str) -> dict[str, str]:
+    return parse_oracle_output(run([str(oracle.executable), "keygen", seed_hex]))
 
 
-def oracle_public_key(executable: Path, private_key_hex: str) -> str:
+def oracle_public_key(oracle: Oracle, private_key_hex: str) -> str:
+    if not oracle.derives_public_key:
+        raise ReferenceError(f"oracle {oracle.executable.name} cannot derive a public key")
     result = parse_oracle_output(
-        run([str(executable), "public-key", private_key_hex])
+        run([str(oracle.executable), "public-key", private_key_hex])
     )
     public_key = result.get("pk")
     if public_key is None:
-        raise ReferenceError(f"oracle {executable.name} omitted public key")
+        raise ReferenceError(f"oracle {oracle.executable.name} omitted public key")
     return public_key
 
 
 def oracle_sign(
-    executable: Path,
+    oracle: Oracle,
     private_key_hex: str,
     message_hex: str,
     context_hex: str,
     randomizer_hex: str | None = None,
     randomized: bool = False,
+    public_key_hex: str | None = None,
 ) -> dict[str, str]:
     if randomizer_hex is not None and randomized:
         raise ReferenceError("fixed and default randomized signing are mutually exclusive")
     command = "sign-randomized" if randomized else "sign"
-    arguments = [str(executable), command, private_key_hex, message_hex, context_hex]
+    arguments = [
+        str(oracle.executable),
+        command,
+        private_key_hex,
+        message_hex,
+        context_hex,
+    ]
     if randomizer_hex is not None:
         arguments[1] = "sign-with-randomizer"
         arguments.append(randomizer_hex)
+    if oracle.sign_requires_public_key:
+        if public_key_hex is None:
+            raise ReferenceError(
+                f"oracle {oracle.executable.name} requires a public key while signing"
+            )
+        arguments.append(public_key_hex)
     result = parse_oracle_output(run(arguments))
     if result.get("verified") != "1":
-        raise ReferenceError(f"oracle {executable.name} did not self-verify")
+        raise ReferenceError(f"oracle {oracle.executable.name} did not self-verify")
     return result
 
 
 def oracle_verify(
-    executable: Path,
+    oracle: Oracle,
     public_key_hex: str,
     message_hex: str,
     context_hex: str,
@@ -734,7 +989,7 @@ def oracle_verify(
     result = parse_oracle_output(
         run(
             [
-                str(executable),
+                str(oracle.executable),
                 "verify",
                 public_key_hex,
                 message_hex,
@@ -744,7 +999,9 @@ def oracle_verify(
         )
     )
     if result.get("verified") not in {"0", "1"}:
-        raise ReferenceError(f"oracle {executable.name} returned invalid verify result")
+        raise ReferenceError(
+            f"oracle {oracle.executable.name} returned invalid verify result"
+        )
     return result
 
 
@@ -760,7 +1017,7 @@ def flip_hex_byte(value: str, byte_index: int) -> str:
 
 
 def require_verification(
-    oracles: dict[str, Path],
+    oracles: dict[str, Oracle],
     public_key_hex: str,
     message_hex: str,
     context_hex: str,
@@ -770,22 +1027,36 @@ def require_verification(
 ) -> None:
     results = {
         name: oracle_verify(
-            executable,
+            oracle,
             public_key_hex,
             message_hex,
             context_hex,
             signature_hex,
         )["verified"]
-        for name, executable in oracles.items()
+        for name, oracle in oracles.items()
     }
     require_equal(label, *results.values(), expected)
 
 
-def evaluate_acvp(profile: dict, oracles: dict[str, Path], source_cases: dict) -> None:
+def derived_public_keys(
+    oracles: dict[str, Oracle], private_key_hex: str, label: str
+) -> dict[str, str]:
+    public_keys = {
+        name: oracle_public_key(oracle, private_key_hex)
+        for name, oracle in oracles.items()
+        if oracle.derives_public_key
+    }
+    if not public_keys:
+        raise ReferenceError(f"{label} has no public-key derivation oracle")
+    require_equal(label, *public_keys.values())
+    return public_keys
+
+
+def evaluate_acvp(profile: dict, oracles: dict[str, Oracle], source_cases: dict) -> None:
     for case in source_cases["keygen_cases"]:
         results = {
-            name: oracle_keygen(executable, case["seed_hex"])
-            for name, executable in oracles.items()
+            name: oracle_keygen(oracle, case["seed_hex"])
+            for name, oracle in oracles.items()
         }
         for result in results.values():
             require_equal(
@@ -808,15 +1079,22 @@ def evaluate_acvp(profile: dict, oracles: dict[str, Path], source_cases: dict) -
         )
 
     for case in source_cases["siggen_cases"]:
+        public_keys = derived_public_keys(
+            oracles,
+            case["private_key_hex"],
+            f"oracle siggen {case['test_case_id']} public key",
+        )
+        public_key = next(iter(public_keys.values()))
         results = {
             name: oracle_sign(
-                executable,
+                oracle,
                 case["private_key_hex"],
                 case["message_hex"],
                 case["context_hex"],
                 randomizer_hex=case["randomizer_hex"],
+                public_key_hex=public_key,
             )
-            for name, executable in oracles.items()
+            for name, oracle in oracles.items()
         }
         for result in results.values():
             signature_hash(result["signature"], profile["signature_bytes"])
@@ -829,17 +1107,9 @@ def evaluate_acvp(profile: dict, oracles: dict[str, Path], source_cases: dict) -
             f"oracle siggen {case['test_case_id']} signature",
             *(result["signature"] for result in results.values()),
         )
-        public_keys = {
-            name: oracle_public_key(executable, case["private_key_hex"])
-            for name, executable in oracles.items()
-        }
-        require_equal(
-            f"oracle siggen {case['test_case_id']} public key",
-            *public_keys.values(),
-        )
         require_verification(
             oracles,
-            next(iter(public_keys.values())),
+            public_key,
             case["message_hex"],
             case["context_hex"],
             case["signature_hex"],
@@ -860,11 +1130,11 @@ def evaluate_acvp(profile: dict, oracles: dict[str, Path], source_cases: dict) -
 
 
 def build_pqbtc_material(
-    profile: dict, oracles: dict[str, Path], vector: dict
+    profile: dict, oracles: dict[str, Oracle], vector: dict
 ) -> dict[str, str]:
     generated = {
-        name: oracle_keygen(executable, vector["seed_hex"])
-        for name, executable in oracles.items()
+        name: oracle_keygen(oracle, vector["seed_hex"])
+        for name, oracle in oracles.items()
     }
     require_equal("PQBTC public key bytes", *(result["pk"] for result in generated.values()))
     require_equal("PQBTC private key bytes", *(result["sk"] for result in generated.values()))
@@ -881,10 +1151,12 @@ def build_pqbtc_material(
     )
     require_hex(material["pk"], profile["public_key_bytes"], "PQBTC public key")
     require_hex(material["sk"], profile["private_key_bytes"], "PQBTC private key")
-    for name, executable in oracles.items():
+    for name, oracle in oracles.items():
+        if not oracle.derives_public_key:
+            continue
         require_equal(
             f"{name} derived PQBTC public key",
-            oracle_public_key(executable, material["sk"]),
+            oracle_public_key(oracle, material["sk"]),
             material["pk"],
         )
     return material
@@ -892,7 +1164,7 @@ def build_pqbtc_material(
 
 def evaluate_randomized_interoperability(
     profile: dict,
-    oracles: dict[str, Path],
+    oracles: dict[str, Oracle],
     vector: dict,
     private_key_hex: str,
     public_key_hex: str,
@@ -905,13 +1177,14 @@ def evaluate_randomized_interoperability(
     for index, randomizer_hex in enumerate(randomizers, start=1):
         results = {
             name: oracle_sign(
-                executable,
+                oracle,
                 private_key_hex,
                 vector["message_hex"],
                 vector["context_hex"],
                 randomizer_hex=randomizer_hex,
+                public_key_hex=public_key_hex,
             )
-            for name, executable in oracles.items()
+            for name, oracle in oracles.items()
         }
         require_equal(
             f"fixed-randomizer signature round {index}",
@@ -932,15 +1205,16 @@ def evaluate_randomized_interoperability(
     if fixed_signatures[0] == fixed_signatures[1]:
         raise ReferenceError("distinct fixed randomizers produced the same signature")
 
-    randomized_rounds = 0
-    for name, executable in oracles.items():
+    all_randomized_signatures = []
+    for name, oracle in oracles.items():
         signatures = [
             oracle_sign(
-                executable,
+                oracle,
                 private_key_hex,
                 vector["message_hex"],
                 vector["context_hex"],
                 randomized=True,
+                public_key_hex=public_key_hex,
             )["signature"]
             for _ in range(2)
         ]
@@ -957,16 +1231,18 @@ def evaluate_randomized_interoperability(
                 "1",
                 f"{name} randomized cross-verification round {index}",
             )
-            randomized_rounds += 1
+            all_randomized_signatures.append(signature_hex)
+    if len(set(all_randomized_signatures)) != len(all_randomized_signatures):
+        raise ReferenceError("randomized signing repeated a signature across oracles")
     return {
         "fixed_randomizer_rounds": len(fixed_signatures),
-        "default_randomized_rounds": randomized_rounds,
+        "default_randomized_rounds": len(all_randomized_signatures),
     }
 
 
 def evaluate_boundaries_and_mutations(
     profile: dict,
-    oracles: dict[str, Path],
+    oracles: dict[str, Oracle],
     vector: dict,
     private_key_hex: str,
     public_key_hex: str,
@@ -979,12 +1255,13 @@ def evaluate_boundaries_and_mutations(
     for label, message_hex, context_hex in boundary_cases:
         results = {
             name: oracle_sign(
-                executable,
+                oracle,
                 private_key_hex,
                 message_hex,
                 context_hex,
+                public_key_hex=public_key_hex,
             )
-            for name, executable in oracles.items()
+            for name, oracle in oracles.items()
         }
         require_equal(
             f"{label} signature bytes",
@@ -1098,33 +1375,35 @@ def evaluate_boundaries_and_mutations(
 
     oversized_context = "00" * 256
     malformed_commands = 0
-    for executable in oracles.values():
-        commands = (
-            [str(executable), "keygen", vector["seed_hex"][:-2]],
-            [str(executable), "keygen", vector["seed_hex"] + "00"],
-            [str(executable), "public-key", private_key_hex[:-2]],
-            [str(executable), "public-key", private_key_hex + "00"],
-            [str(executable), "sign", private_key_hex[:-2], message_hex, context_hex],
-            [str(executable), "sign", private_key_hex + "00", message_hex, context_hex],
-            [str(executable), "sign", private_key_hex, message_hex, oversized_context],
+    for oracle in oracles.values():
+        executable = str(oracle.executable)
+        sign_suffix = [public_key_hex] if oracle.sign_requires_public_key else []
+        commands = [
+            [executable, "keygen", vector["seed_hex"][:-2]],
+            [executable, "keygen", vector["seed_hex"] + "00"],
+            [executable, "sign", private_key_hex[:-2], message_hex, context_hex, *sign_suffix],
+            [executable, "sign", private_key_hex + "00", message_hex, context_hex, *sign_suffix],
+            [executable, "sign", private_key_hex, message_hex, oversized_context, *sign_suffix],
             [
-                str(executable),
+                executable,
                 "sign-with-randomizer",
                 private_key_hex,
                 message_hex,
                 context_hex,
                 "00" * 31,
+                *sign_suffix,
             ],
             [
-                str(executable),
+                executable,
                 "sign-with-randomizer",
                 private_key_hex,
                 message_hex,
                 context_hex,
                 "00" * 33,
+                *sign_suffix,
             ],
             [
-                str(executable),
+                executable,
                 "verify",
                 public_key_hex[:-2],
                 message_hex,
@@ -1132,7 +1411,7 @@ def evaluate_boundaries_and_mutations(
                 deterministic_signature_hex,
             ],
             [
-                str(executable),
+                executable,
                 "verify",
                 public_key_hex + "00",
                 message_hex,
@@ -1140,16 +1419,25 @@ def evaluate_boundaries_and_mutations(
                 deterministic_signature_hex,
             ],
             [
-                str(executable),
+                executable,
                 "verify",
                 public_key_hex,
                 message_hex,
                 oversized_context,
                 deterministic_signature_hex,
             ],
-        )
+        ]
+        if oracle.derives_public_key:
+            commands.extend(
+                (
+                    [executable, "public-key", private_key_hex[:-2]],
+                    [executable, "public-key", private_key_hex + "00"],
+                )
+            )
         for index, command in enumerate(commands, start=1):
-            require_command_failure(command, f"{executable.name} malformed input {index}")
+            require_command_failure(
+                command, f"{oracle.executable.name} malformed input {index}"
+            )
             malformed_commands += 1
     return {
         "boundary_cases": len(boundary_cases),
@@ -1164,7 +1452,7 @@ def median_ms(values: list[int]) -> float:
 
 def benchmark_profile(
     profile: dict,
-    oracles: dict[str, Path],
+    oracles: dict[str, Oracle],
     vector: dict,
     iterations: int,
 ) -> dict:
@@ -1180,13 +1468,14 @@ def benchmark_profile(
     }
     for _ in range(iterations):
         deterministic_signatures = []
-        for name, executable in oracles.items():
-            generated = oracle_keygen(executable, vector["seed_hex"])
+        for name, oracle in oracles.items():
+            generated = oracle_keygen(oracle, vector["seed_hex"])
             deterministic = oracle_sign(
-                executable,
+                oracle,
                 generated["sk"],
                 vector["message_hex"],
                 vector["context_hex"],
+                public_key_hex=generated["pk"],
             )
             require_equal(
                 "PQBTC deterministic signature hash",
@@ -1194,11 +1483,12 @@ def benchmark_profile(
                 vector["expected_signature_sha256"],
             )
             randomized = oracle_sign(
-                executable,
+                oracle,
                 generated["sk"],
                 vector["message_hex"],
                 vector["context_hex"],
                 randomized=True,
+                public_key_hex=generated["pk"],
             )
             require_verification(
                 oracles,
@@ -1235,17 +1525,18 @@ def benchmark_profile(
 
 
 def evaluate_sanitized_smoke(
-    profile: dict, oracles: dict[str, Path], vector: dict
+    profile: dict, oracles: dict[str, Oracle], vector: dict
 ) -> dict:
     material = build_pqbtc_material(profile, oracles, vector)
     deterministic = {
         name: oracle_sign(
-            executable,
+            oracle,
             material["sk"],
             vector["message_hex"],
             vector["context_hex"],
+            public_key_hex=material["pk"],
         )["signature"]
-        for name, executable in oracles.items()
+        for name, oracle in oracles.items()
     }
     require_equal("sanitized deterministic signatures", *deterministic.values())
     return evaluate_boundaries_and_mutations(
@@ -1256,6 +1547,59 @@ def evaluate_sanitized_smoke(
         material["pk"],
         next(iter(deterministic.values())),
     )
+
+
+def libcrux_malformed_hint_signature(profile: dict, final_counter: int) -> str:
+    if profile["name"] != "ML-DSA-44" or profile["signature_bytes"] != 2420:
+        raise ReferenceError("libcrux malformed-hint regression requires ML-DSA-44")
+    if final_counter not in {81, 85}:
+        raise ReferenceError("libcrux malformed-hint final counter must be 81 or 85")
+
+    signature = bytearray(profile["signature_bytes"])
+    hint_offset = 32 + 4 * 576
+    signature[hint_offset : hint_offset + 21] = bytes(range(1, 22))
+    signature[hint_offset + 21 : hint_offset + 42] = bytes(range(1, 22))
+    signature[hint_offset + 42 : hint_offset + 63] = bytes(range(1, 22))
+    signature[hint_offset + 63 : hint_offset + 80] = bytes(range(1, 18))
+    signature[hint_offset + 80 : hint_offset + 84] = bytes(
+        (21, 42, 63, final_counter)
+    )
+    return signature.hex()
+
+
+def evaluate_libcrux_advisory_regressions(
+    profile: dict,
+    oracles: dict[str, Oracle],
+    public_key_hex: str,
+    message_hex: str,
+    context_hex: str,
+    upstream_report: dict,
+) -> dict:
+    expected_advisories = {"RUSTSEC-2026-0076", "RUSTSEC-2026-0077"}
+    if set(upstream_report) != expected_advisories or any(
+        result.get("status") != "PASS" for result in upstream_report.values()
+    ):
+        raise ReferenceError("libcrux upstream security regressions did not pass")
+
+    malformed_hint_cases = {
+        "bounded_counter_overflow": libcrux_malformed_hint_signature(profile, 81),
+        "historical_out_of_bounds_counter": libcrux_malformed_hint_signature(profile, 85),
+    }
+    for label, signature_hex in malformed_hint_cases.items():
+        require_verification(
+            oracles,
+            public_key_hex,
+            message_hex,
+            context_hex,
+            signature_hex,
+            "0",
+            f"libcrux {label} rejection",
+        )
+    return {
+        "upstream_release_tests": upstream_report,
+        "ml_dsa_44_malformed_hint_rejections": len(malformed_hint_cases),
+        "no_panic": "PASS",
+    }
 
 
 def block_space_model(profile: dict, cost: dict) -> dict:
@@ -1295,10 +1639,11 @@ def block_space_model(profile: dict, cost: dict) -> dict:
 
 def evaluate(
     manifest: dict,
-    oracles: dict[str, Path],
+    oracles: dict[str, Oracle],
     source_cases: dict,
     benchmark_iterations: int,
     sanitized_report: dict | None,
+    libcrux_upstream_report: dict,
 ) -> dict:
     profile = manifest["profile"]
     vector = manifest["vectors"]["pqbtc_sighash_v1"]
@@ -1307,12 +1652,13 @@ def evaluate(
 
     deterministic = {
         name: oracle_sign(
-            executable,
+            oracle,
             material["sk"],
             vector["message_hex"],
             vector["context_hex"],
+            public_key_hex=material["pk"],
         )["signature"]
-        for name, executable in oracles.items()
+        for name, oracle in oracles.items()
     }
     require_equal("PQBTC deterministic signature bytes", *deterministic.values())
     deterministic_signature = next(iter(deterministic.values()))
@@ -1332,6 +1678,14 @@ def evaluate(
         material["pk"],
         deterministic_signature,
     )
+    advisory_report = evaluate_libcrux_advisory_regressions(
+        profile,
+        oracles,
+        material["pk"],
+        vector["message_hex"],
+        vector["context_hex"],
+        libcrux_upstream_report,
+    )
     benchmark = benchmark_profile(
         profile, oracles, vector, benchmark_iterations
     )
@@ -1342,6 +1696,8 @@ def evaluate(
         "openssl_version": version_text,
         "openssl_commit": manifest["sources"]["openssl"]["commit"],
         "mldsa_native_commit": manifest["sources"]["mldsa_native"]["commit"],
+        "libcrux_commit": manifest["sources"]["libcrux"]["commit"],
+        "libcrux_version": manifest["sources"]["libcrux"]["version"],
         "checks": {
             "fips204_and_update_artifact_provenance": "PASS",
             "nist_source_provenance": "PASS",
@@ -1352,6 +1708,8 @@ def evaluate(
             "full_signature_byte_agreement": "PASS",
             "randomized_interoperability": "PASS",
             "boundary_and_mutation_rejection": "PASS",
+            "libcrux_source_and_crate_provenance": "PASS",
+            "libcrux_disclosed_advisory_regressions": "PASS",
             "adapter_asan_ubsan": "PASS" if sanitized_report is not None else "NOT_RUN",
         },
         "acvp": {
@@ -1362,6 +1720,7 @@ def evaluate(
         },
         "randomized_interoperability": randomized_report,
         "negative_testing": negative_report,
+        "libcrux_advisory_regressions": advisory_report,
         "sanitized_smoke": sanitized_report,
         "signature_sha256": {
             "nist_deterministic": manifest["vectors"]["nist_siggen_tg1_tc1"][
@@ -1372,7 +1731,10 @@ def evaluate(
             ],
             "pqbtc": vector["expected_signature_sha256"],
         },
-        "lineage_limit": manifest["sources"]["mldsa_native"]["lineage_limit"],
+        "lineage": {
+            "mldsa_native": manifest["sources"]["mldsa_native"]["lineage_limit"],
+            "libcrux": manifest["sources"]["libcrux"]["independence_assessment"],
+        },
         "block_space_model": block_space_model(profile, manifest["system_cost_model"]),
         "benchmark": benchmark,
     }
@@ -1402,6 +1764,18 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=optional_path("OPENSSL_SOURCE_DIR"),
         help="path to the pinned OpenSSL source checkout",
+    )
+    parser.add_argument(
+        "--libcrux-source",
+        type=Path,
+        default=optional_path("LIBCRUX_SOURCE_DIR"),
+        help="path to the full-history pinned celabshq/libcrux checkout",
+    )
+    parser.add_argument(
+        "--libcrux-crate",
+        type=Path,
+        default=optional_path("LIBCRUX_CRATE_PATH"),
+        help="path to the pinned libcrux-ml-dsa 0.0.10 crate archive",
     )
     parser.add_argument(
         "--fips204",
@@ -1435,7 +1809,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--sanitizers",
         action="store_true",
-        help="also build and exercise both adapters with ASan and UBSan",
+        help="also build and exercise both portable-C adapters with ASan and UBSan",
     )
     return parser.parse_args()
 
@@ -1459,6 +1833,8 @@ def main() -> int:
         acvp_server = require_path(args.acvp_server, "--acvp-server")
         mldsa_native = require_path(args.mldsa_native, "--mldsa-native")
         openssl_source = require_path(args.openssl_source, "--openssl-source")
+        libcrux_source = require_path(args.libcrux_source, "--libcrux-source")
+        libcrux_crate = require_path(args.libcrux_crate, "--libcrux-crate")
         fips204 = require_path(args.fips204, "--fips204")
         fips204_updates = require_path(args.fips204_updates, "--fips204-updates")
         section6_guidance = require_path(
@@ -1482,28 +1858,50 @@ def main() -> int:
         require_mldsa_native_source(
             mldsa_native, sources["mldsa_native"]["commit"]
         )
+        require_libcrux_source(libcrux_source, sources["libcrux"])
 
         with tempfile.TemporaryDirectory(prefix="pqbtc-ml-dsa-") as temporary:
             build_dir = Path(temporary)
+            libcrux_crate_dir = prepare_libcrux_crate(
+                build_dir, libcrux_crate, sources["libcrux"]
+            )
+            libcrux_upstream_report = run_libcrux_security_regressions(
+                build_dir, libcrux_crate_dir
+            )
             oracles = {
-                "openssl": compile_openssl_oracle(
-                    build_dir, sources["openssl"]["version"]
+                "openssl": Oracle(
+                    compile_openssl_oracle(
+                        build_dir, sources["openssl"]["version"]
+                    )
                 ),
-                "mldsa_native": compile_mldsa_native_oracle(
-                    build_dir, mldsa_native, sources["mldsa_native"]["commit"]
+                "mldsa_native": Oracle(
+                    compile_mldsa_native_oracle(
+                        build_dir, mldsa_native, sources["mldsa_native"]["commit"]
+                    )
+                ),
+                "libcrux": Oracle(
+                    compile_libcrux_oracle(build_dir, libcrux_crate_dir),
+                    derives_public_key=False,
+                    sign_requires_public_key=True,
                 ),
             }
             sanitized_report = None
             if args.sanitizers:
                 sanitized_oracles = {
-                    "openssl": compile_openssl_oracle(
-                        build_dir, sources["openssl"]["version"], sanitized=True
+                    "openssl": Oracle(
+                        compile_openssl_oracle(
+                            build_dir,
+                            sources["openssl"]["version"],
+                            sanitized=True,
+                        )
                     ),
-                    "mldsa_native": compile_mldsa_native_oracle(
-                        build_dir,
-                        mldsa_native,
-                        sources["mldsa_native"]["commit"],
-                        sanitized=True,
+                    "mldsa_native": Oracle(
+                        compile_mldsa_native_oracle(
+                            build_dir,
+                            mldsa_native,
+                            sources["mldsa_native"]["commit"],
+                            sanitized=True,
+                        )
                     ),
                 }
                 sanitized_report = evaluate_sanitized_smoke(
@@ -1517,6 +1915,7 @@ def main() -> int:
                 source_cases,
                 args.benchmark_iterations,
                 sanitized_report,
+                libcrux_upstream_report,
             )
         print(json.dumps(report, indent=2, sort_keys=True))
         return 0
