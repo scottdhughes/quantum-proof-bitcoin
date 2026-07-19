@@ -1,6 +1,6 @@
 # PQBTC Signature Production Readiness
 
-## Status: RELEASE_HOLD
+## Status: RELEASE_HOLD - AWAITING_EXTERNAL_REVIEW
 ## Spec-ID: PQSIG-PRODUCTION-READINESS-v1
 ## Decided: 2026-07-18
 ## Evidence-Updated: 2026-07-19
@@ -16,6 +16,12 @@ The implemented `ALG_ID=0x01` path remains available only as a research and
 Bitcoin-integration fixture while a standards-conformant replacement is built
 and reviewed. This decision changes release posture, not the current consensus
 accepted set.
+
+The selected `ML-DSA-44` engineering candidate now has a frozen external-review
+package in `ML_DSA_44_EXTERNAL_REVIEW.md`. Issue `#181` names the owner and
+acceptance criteria. Packaging the evidence does not satisfy the review gate;
+the project is `AWAITING_EXTERNAL_REVIEW` and this release hold remains in
+force.
 
 ## Evidence Classification
 
@@ -148,7 +154,9 @@ selected for activation by this record.
 7. Apply the measured decision in `PQSIG_CANDIDATE_SELECTION.md`: advance
    `ML-DSA-44` only through external cryptographic review and worst-case system
    measurements now that its independent implementation evidence is complete.
-   Preserve `SLH-DSA-SHA2-128s` as the fallback and keep production on `HOLD`.
+   Use `ML_DSA_44_EXTERNAL_REVIEW.md` and issue `#181` as the controlling review
+   contract. Preserve `SLH-DSA-SHA2-128s` as the fallback and keep production
+   on `HOLD`.
 
 ## Required Gates Before Consensus Integration
 
@@ -174,8 +182,9 @@ of these are satisfied:
 
 For ML-DSA-44, gate 4 is now complete at the isolated comparator level. Gate 5
 has bounded evidence but remains open for exhaustive fuzzing and resource
-exhaustion. The other integration, system, review, soak, and release gates
-remain open. No completion recorded here changes the consensus accepted set.
+exhaustion. The gate 10 review package is ready, but external review has not
+occurred. The other integration, system, review, soak, and release gates remain
+open. No completion recorded here changes the consensus accepted set.
 
 ## Hold Exit Criteria
 

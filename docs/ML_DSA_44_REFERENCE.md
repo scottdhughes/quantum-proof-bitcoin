@@ -226,10 +226,14 @@ Not established:
 
 ## Next Gate
 
-Package this frozen profile, provenance record, complete three-oracle report,
-and remaining-risk statement for external cryptographic review. That review
-must cover the selected mode, randomization, rejection sampling, malformed
-keys and hints, side channels, fault behavior, secret erasure, and key
+The frozen profile, provenance record, three-oracle reproduction contract,
+threat model, review questions, and acceptance rules are packaged in
+`ML_DSA_44_EXTERNAL_REVIEW.md`. External review is tracked by issue `#181` and
+remains unsatisfied. The current gate state is `AWAITING_EXTERNAL_REVIEW`, not
+review approval.
+
+That review must cover the selected mode, randomization, rejection sampling,
+malformed keys and hints, side channels, fault behavior, secret erasure, and key
 derivation. Supported-platform and worst-case system measurements remain a
 separate gate after review intake.
 
