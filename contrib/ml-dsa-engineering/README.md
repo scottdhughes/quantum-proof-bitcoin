@@ -1,0 +1,27 @@
+# ML-DSA-44 Engineering Contracts
+
+This directory contains executable design contracts for the selected
+`ML-DSA-44` engineering candidate. It is separate from the frozen comparator
+in `contrib/ml-dsa-ref/` and is not linked into PQBTC.
+
+`hedged_signing_contract.py` models the fail-closed boundary required before a
+future production signer can be proposed:
+
+- the public API exposes hedged signing only;
+- the 32-byte randomizer is generated inside that boundary;
+- zero, repeated, short, unavailable, or failed entropy produces no signature;
+- signing and self-verification failures produce no signature;
+- calls through one signer are serialized and randomizer reuse detection is
+  atomic across concurrent callers; and
+- the local randomizer buffer is overwritten on every return path.
+
+The module deliberately uses opaque key handles and a backend protocol. It
+does not select or vendor a cryptographic backend, provide consensus code, or
+claim that Python buffer clearing establishes production secret erasure.
+Test-only entropy injection is private to the executable contract tests.
+The private backend protocol is a model seam, not a production FFI or evidence
+that randomness generation and `ML-DSA.Sign_internal` already share a reviewed
+cryptographic-module boundary.
+
+The normative requirements, lifecycle limits, and backend admission criteria
+are in `docs/ML_DSA_44_HEDGED_SIGNING_CONTRACT.md`.

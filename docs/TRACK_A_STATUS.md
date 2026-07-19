@@ -21,10 +21,10 @@ secure real value or described as establishing its claimed `2^40` signing
 budget or NIST Level 1 security. `PQSIG_PRODUCTION_READINESS.md` is the
 controlling evidence and replacement-gate record.
 
-The current implementation lane is isolated standards evidence. The FIPS 205
-`SLH-DSA-SHA2-128s` prototype and FIPS 204 `ML-DSA-44` comparator are both
-implemented without changing an inventory policy class, `ALG_ID`, Script rule,
-wallet path, or consensus accepted set.
+The current implementation lane is isolated standards and remediation
+evidence. The FIPS 205 `SLH-DSA-SHA2-128s` prototype, FIPS 204 `ML-DSA-44`
+comparator, and hedged-signing contract are all kept outside inventory policy,
+`ALG_ID`, Script, wallet, and consensus changes.
 
 The first isolated reference slice is recorded in
 `SLH_DSA_SHA2_128S_REFERENCE.md`. It pins NIST ACVP and portable-C source
@@ -77,10 +77,23 @@ green reference harness.
 The frozen ML-DSA-44 profile and its three-oracle evidence are now packaged for
 external cryptographic review in `ML_DSA_44_EXTERNAL_REVIEW.md`. Issue `#181`
 names `@scottdhughes` as owner and records the reviewer, deliverable, severity,
-and acceptance criteria. The current state is `AWAITING_EXTERNAL_REVIEW`; the
-review itself has not occurred. Supported-platform and worst-case system
-measurements remain the following separate gate. A consensus-design
-specification follows only after both gates pass.
+and acceptance criteria. PR `#183` landed an AI-assisted technical assessment
+at merge commit `587371a818a1f5902f5ad977d9891b9d1bff0902`. It reproduced the
+frozen comparator evidence, found no Critical or High issue, and concluded
+`REMEDIATE_AND_REREVIEW` with seven Medium findings tracked by issues `#184`
+through `#190`. The qualified independent-human gate is not satisfied, so the
+current state remains `AWAITING_EXTERNAL_REVIEW` and `RELEASE_HOLD`.
+
+The first bounded remediation lane is the project-owned hedged-signing contract
+in `ML_DSA_44_HEDGED_SIGNING_CONTRACT.md`. It specifies internal 32-byte `rnd`
+generation, no production deterministic or caller-supplied mode, fail-closed
+entropy and backend errors, serialized callers, mandatory self-verification,
+and explicit fork, restart, clone, snapshot, and hardware-signer boundaries.
+Its executable Python model is not a cryptographic backend or production
+implementation. Issue `#184` remains open pending backend binding, production
+build isolation, supported-platform tests, secret-lifecycle evidence, and
+re-review. No `ALG_ID`, Script, node, wallet, or inventory policy class changes
+in this lane.
 
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,
@@ -138,8 +151,8 @@ tracked suites now have an explicit policy class and none remains in
   continuation of inherited Bitcoin chain history.
 - Blockstream's Liquid/Simplicity work is a benchmark and adjacent migration
   reference, not a reason to reset the repo.
-- The best progress in this window is one bounded CI/docs promotion slice at a
-  time, not broad speculative redesign.
+- The best progress in this window is one bounded, issue-owned cryptographic
+  remediation slice at a time, not broad speculative redesign.
 
 ## Current Follow-On Candidates
 
@@ -174,10 +187,14 @@ Cryptography implementation lane:
      production approval
    - retain the completed three-oracle independent implementation evidence and
      its qualified reference-influence disclosure
-   - use `ML_DSA_44_EXTERNAL_REVIEW.md` and issue `#181` as the frozen review
-     contract, with status `AWAITING_EXTERNAL_REVIEW`
-   - obtain and record the external cryptographic review as the next bounded
-     gate
+   - retain PR `#183` as supporting AI-assisted review evidence with
+     `REMEDIATE_AND_REREVIEW`; do not treat it as the independent-human gate
+   - use issues `#184` through `#190` as the bounded remediation ledger
+   - advance issue `#184` first through
+     `ML_DSA_44_HEDGED_SIGNING_CONTRACT.md`, without claiming the executable
+     model is a production backend or closes the finding
+   - obtain a qualifying independent-human re-review against exact remediation
+     commits before any gate disposition changes
    - require supported-platform worst-case measurements before
      consensus-design work
    - do not allocate or activate an `ALG_ID` in the evidence slices
@@ -201,9 +218,11 @@ Cryptography implementation lane:
    risk decision before changing another policy class.
 3. Cryptographic production remains on `HOLD` while `ML-DSA-44` advances only
    as the selected engineering candidate. Independent implementation evidence
-   is complete and the issue `#181` review package is ready. Status is
-   `AWAITING_EXTERNAL_REVIEW`; the next gates are completed external
-   cryptographic review and worst-case system measurements. Script and wallet
+   is complete; PR `#183` concluded `REMEDIATE_AND_REREVIEW`, and issues `#184`
+   through `#190` remain open. The issue `#184` hedged-signing contract is the
+   current bounded remediation lane, not production integration. Status remains
+   `AWAITING_EXTERNAL_REVIEW`; a qualifying independent-human re-review and
+   worst-case system measurements remain required. Script and wallet
    integration remain out of scope.
 
 
@@ -1698,6 +1717,13 @@ Aineko must ask before:
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
 
+- 2026-07-19: PR `#183` landed the AI-assisted ML-DSA-44 technical assessment
+  at merge commit `587371a818a1f5902f5ad977d9891b9d1bff0902`. Its disposition
+  is `REMEDIATE_AND_REREVIEW`: no Critical or High issue was identified, seven
+  Medium findings are tracked by issues `#184` through `#190`, and the
+  independent-human gate remains unsatisfied. The first bounded remediation
+  contract addresses issue `#184` design semantics only and does not close the
+  finding or change `RELEASE_HOLD`.
 - 2026-07-19: The selected ML-DSA-44 profile, evidence provenance,
   reproduction contract, threat model, required review questions, reviewer
   qualifications, severity rules, and deliverables were frozen in

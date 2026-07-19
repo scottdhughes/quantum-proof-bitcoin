@@ -17,11 +17,14 @@ Bitcoin-integration fixture while a standards-conformant replacement is built
 and reviewed. This decision changes release posture, not the current consensus
 accepted set.
 
-The selected `ML-DSA-44` engineering candidate now has a frozen external-review
-package in `ML_DSA_44_EXTERNAL_REVIEW.md`. Issue `#181` names the owner and
-acceptance criteria. Packaging the evidence does not satisfy the review gate;
-the project is `AWAITING_EXTERNAL_REVIEW` and this release hold remains in
-force.
+The selected `ML-DSA-44` engineering candidate has a frozen external-review
+package in `ML_DSA_44_EXTERNAL_REVIEW.md`. The AI-assisted assessment merged in
+PR `#183` reproduced the comparator evidence and concluded
+`REMEDIATE_AND_REREVIEW`: no Critical or High finding was identified, and seven
+Medium findings are tracked by issues `#184` through `#190`. That assessment is
+supporting evidence, not the signed review of an independent human
+cryptographer required by issue `#181`. The project remains
+`AWAITING_EXTERNAL_REVIEW`, and this release hold remains in force.
 
 ## Evidence Classification
 
@@ -157,6 +160,11 @@ selected for activation by this record.
    Use `ML_DSA_44_EXTERNAL_REVIEW.md` and issue `#181` as the controlling review
    contract. Preserve `SLH-DSA-SHA2-128s` as the fallback and keep production
    on `HOLD`.
+8. Use `ML_DSA_44_HEDGED_SIGNING_CONTRACT.md` as the project-owned entropy and
+   failure boundary for issue `#184`. Its executable Python model is design
+   evidence only. Do not close the finding until a selected backend implements
+   the contract in a production build, platform RNG and lifecycle tests pass,
+   and the exact implementation commit is re-reviewed.
 
 ## Required Gates Before Consensus Integration
 
@@ -182,9 +190,12 @@ of these are satisfied:
 
 For ML-DSA-44, gate 4 is now complete at the isolated comparator level. Gate 5
 has bounded evidence but remains open for exhaustive fuzzing and resource
-exhaustion. The gate 10 review package is ready, but external review has not
-occurred. The other integration, system, review, soak, and release gates remain
-open. No completion recorded here changes the consensus accepted set.
+exhaustion. The AI-assisted review is merged with a
+`REMEDIATE_AND_REREVIEW` disposition and seven open Medium findings; the gate
+10 independent-human review has not occurred. The hedged-signing contract is
+partial design evidence for issue `#184`, not a production implementation.
+The other integration, system, review, soak, and release gates remain open. No
+completion recorded here changes the consensus accepted set.
 
 ## Hold Exit Criteria
 
