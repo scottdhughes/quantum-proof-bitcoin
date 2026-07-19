@@ -1,11 +1,11 @@
 # ML-DSA-44 AI-Assisted Technical Review
 
-**Repository:** `scottdhughes/quantum-proof-bitcoin`  
-**Tracking issue:** [#181](https://github.com/scottdhughes/quantum-proof-bitcoin/issues/181)  
-**Review pull request:** [#183](https://github.com/scottdhughes/quantum-proof-bitcoin/pull/183)  
-**Review date:** 2026-07-19  
-**Conclusion:** `REMEDIATE_AND_REREVIEW`  
-**Qualified independent-human gate:** **NOT SATISFIED**  
+**Repository:** `scottdhughes/quantum-proof-bitcoin`
+**Tracking issue:** [#181](https://github.com/scottdhughes/quantum-proof-bitcoin/issues/181)
+**Review pull request:** [#183](https://github.com/scottdhughes/quantum-proof-bitcoin/pull/183)
+**Review date:** 2026-07-19
+**Conclusion:** `REMEDIATE_AND_REREVIEW`
+**Qualified independent-human gate:** **NOT SATISFIED**
 **Production/consensus status:** `RELEASE_HOLD`
 
 ## Reviewer disclosure and boundary
@@ -81,65 +81,65 @@ The benchmark medians in the JSON are directional single-runner measurements onl
 
 ### F-01 — Production hedged-signing entropy and failure contract is absent
 
-**Severity/Disposition/Confidence:** Medium / OPEN / High  
-**Affected contract:** future production signer; research CLI adapters must not become production APIs.  
-**Evidence:** documents distinguish vector signing from future hedging, but adapters expose deterministic and fixed-`rnd` commands; research paths use `/dev/urandom` or provider randomness; no project-owned DRBG, health/reseed, fork/snapshot, concurrency, or fail-closed contract exists.  
-**Preconditions/impact:** accidental deterministic default, silent entropy downgrade, repeated/attacker-influenced `rnd`, or inconsistent error handling can defeat the intended hedging. Deterministic ML-DSA is not itself alleged broken.  
-**Recommendation:** generate `rnd` internally; fail atomically on every entropy error; prohibit production fallback to zeros/deterministic mode; isolate test/CAVP fixed-`rnd`; add injected failure, fork, snapshot, restart, and concurrent-caller tests.  
+**Severity/Disposition/Confidence:** Medium / OPEN / High
+**Affected contract:** future production signer; research CLI adapters must not become production APIs.
+**Evidence:** documents distinguish vector signing from future hedging, but adapters expose deterministic and fixed-`rnd` commands; research paths use `/dev/urandom` or provider randomness; no project-owned DRBG, health/reseed, fork/snapshot, concurrency, or fail-closed contract exists.
+**Preconditions/impact:** accidental deterministic default, silent entropy downgrade, repeated/attacker-influenced `rnd`, or inconsistent error handling can defeat the intended hedging. Deterministic ML-DSA is not itself alleged broken.
+**Recommendation:** generate `rnd` internally; fail atomically on every entropy error; prohibit production fallback to zeros/deterministic mode; isolate test/CAVP fixed-`rnd`; add injected failure, fork, snapshot, restart, and concurrent-caller tests.
 **Tracking:** [#184](https://github.com/scottdhughes/quantum-proof-bitcoin/issues/184).
 
 ### F-02 — Supported-platform side-channel and repeated-signing assurance is absent
 
-**Severity/Disposition/Confidence:** Medium / OPEN / High that the evidence gap exists; no practical exploit claimed.  
-**Affected code:** every proposed backend/compiler/optimization/CPU and hardware-signer path.  
-**Evidence:** mldsa-native and libcrux contain meaningful constant-time/declassification intent, but the package has no optimized-binary review, dudect/ctgrind/cache campaign, remote-timing analysis, TVLA, power, or EM evidence. Signing rejection behavior is observable and justified only at source level.  
-**Preconditions/impact:** repeated attacker-chosen signing under a long-lived key can amplify small leakage; feasibility depends on platform and attacker proximity.  
-**Recommendation:** freeze supported builds; map secret-bearing operations and approved declassifications; inspect assembly; run software leakage tests and appropriate hardware TVLA/power/EM testing; analyze rejection-count distributions; retain regression artifacts.  
+**Severity/Disposition/Confidence:** Medium / OPEN / High that the evidence gap exists; no practical exploit claimed.
+**Affected code:** every proposed backend/compiler/optimization/CPU and hardware-signer path.
+**Evidence:** mldsa-native and libcrux contain meaningful constant-time/declassification intent, but the package has no optimized-binary review, dudect/ctgrind/cache campaign, remote-timing analysis, TVLA, power, or EM evidence. Signing rejection behavior is observable and justified only at source level.
+**Preconditions/impact:** repeated attacker-chosen signing under a long-lived key can amplify small leakage; feasibility depends on platform and attacker proximity.
+**Recommendation:** freeze supported builds; map secret-bearing operations and approved declassifications; inspect assembly; run software leakage tests and appropriate hardware TVLA/power/EM testing; analyze rejection-count distributions; retain regression artifacts.
 **Tracking:** [#185](https://github.com/scottdhughes/quantum-proof-bitcoin/issues/185).
 
 ### F-03 — Fault model and validated fault controls are absent
 
-**Severity/Disposition/Confidence:** Medium / OPEN / High that the design gap exists.  
-**Affected code:** future software and hardware signers.  
-**Evidence:** adapters self-verify generated signatures, which is useful but does not cover skipped or common-mode verification, persistent key corruption, corrupted entropy, control-flow faults, bypassed rejection checks, or faults in NTT/constants.  
-**Preconditions/impact:** platform-dependent faults can produce invalid or information-bearing outputs; published Dilithium-family work demonstrates that nonce/domain and NTT fault classes are realistic on physical targets.  
-**Recommendation:** define per-platform fault models; make verification atomic and mandatory; add key consistency/integrity controls, diversified or redundant checks where justified, deterministic fault injection, and explicit physical residual-risk treatment.  
+**Severity/Disposition/Confidence:** Medium / OPEN / High that the design gap exists.
+**Affected code:** future software and hardware signers.
+**Evidence:** adapters self-verify generated signatures, which is useful but does not cover skipped or common-mode verification, persistent key corruption, corrupted entropy, control-flow faults, bypassed rejection checks, or faults in NTT/constants.
+**Preconditions/impact:** platform-dependent faults can produce invalid or information-bearing outputs; published Dilithium-family work demonstrates that nonce/domain and NTT fault classes are realistic on physical targets.
+**Recommendation:** define per-platform fault models; make verification atomic and mandatory; add key consistency/integrity controls, diversified or redundant checks where justified, deterministic fault injection, and explicit physical residual-risk treatment.
 **Tracking:** [#186](https://github.com/scottdhughes/quantum-proof-bitcoin/issues/186).
 
 ### F-04 — End-to-end secret erasure and key-lifecycle guarantees are absent
 
-**Severity/Disposition/Confidence:** Medium / OPEN / High.  
-**Affected code:** adapters, selected upstream wrapper, FFI/provider boundaries, future wallet/signer integration.  
-**Evidence:** C adapters use ordinary heap/stack buffers and normal `free`/return for caller-owned seed, expanded key, and randomizer copies; the reviewed libcrux signing-key wrapper is clonable raw bytes without an evident zeroizing `Drop`; mldsa-native wipes many internals but not adapter/FFI copies. Research keygen intentionally prints expanded private keys.  
-**Preconditions/impact:** memory disclosure, local access, swap/hibernation, core dumps, crash telemetry, logs, or duplicated buffers can expose the full signing key.  
-**Recommendation:** project-owned secret types, restricted cloning, compiler-resistant zeroization on every exit, FFI ownership rules, optimized-output verification, memory/core-dump/logging policy, and injected-failure cleanup tests.  
+**Severity/Disposition/Confidence:** Medium / OPEN / High.
+**Affected code:** adapters, selected upstream wrapper, FFI/provider boundaries, future wallet/signer integration.
+**Evidence:** C adapters use ordinary heap/stack buffers and normal `free`/return for caller-owned seed, expanded key, and randomizer copies; the reviewed libcrux signing-key wrapper is clonable raw bytes without an evident zeroizing `Drop`; mldsa-native wipes many internals but not adapter/FFI copies. Research keygen intentionally prints expanded private keys.
+**Preconditions/impact:** memory disclosure, local access, swap/hibernation, core dumps, crash telemetry, logs, or duplicated buffers can expose the full signing key.
+**Recommendation:** project-owned secret types, restricted cloning, compiler-resistant zeroization on every exit, FFI ownership rules, optimized-output verification, memory/core-dump/logging policy, and injected-failure cleanup tests.
 **Tracking:** [#187](https://github.com/scottdhughes/quantum-proof-bitcoin/issues/187).
 
 ### F-05 — Malformed-input, differential-fuzzing, and resource evidence is too narrow
 
-**Severity/Disposition/Confidence:** Medium / OPEN / High.  
-**Affected code:** verification/parsing paths, adapters, and any later consensus verifier.  
-**Evidence:** the bounded corpus covers exact lengths, context boundaries, selected mutations, malformed commands, and two hint regressions, with C ASan/UBSan smoke coverage. It is not structure-aware or coverage-guided and does not comprehensively exercise coefficient/hint states, malicious public keys, Rust sanitizer/Miri behavior, allocation failure, stack limits, timeouts, or aggregate verification.  
-**Preconditions/impact:** arbitrary network inputs can expose backend disagreement, crash, non-canonical acceptance, resource exhaustion, or consensus divergence.  
-**Recommendation:** structure-aware generators/mutators, multi-backend differential fuzzing, current advisory corpora, C/Rust dynamic analysis, minimized retained corpora, and explicit per-operation and aggregate resource limits.  
+**Severity/Disposition/Confidence:** Medium / OPEN / High.
+**Affected code:** verification/parsing paths, adapters, and any later consensus verifier.
+**Evidence:** the bounded corpus covers exact lengths, context boundaries, selected mutations, malformed commands, and two hint regressions, with C ASan/UBSan smoke coverage. It is not structure-aware or coverage-guided and does not comprehensively exercise coefficient/hint states, malicious public keys, Rust sanitizer/Miri behavior, allocation failure, stack limits, timeouts, or aggregate verification.
+**Preconditions/impact:** arbitrary network inputs can expose backend disagreement, crash, non-canonical acceptance, resource exhaustion, or consensus divergence.
+**Recommendation:** structure-aware generators/mutators, multi-backend differential fuzzing, current advisory corpora, C/Rust dynamic analysis, minimized retained corpora, and explicit per-operation and aggregate resource limits.
 **Tracking:** [#188](https://github.com/scottdhughes/quantum-proof-bitcoin/issues/188).
 
 ### F-06 — Advisory coverage is incomplete and not backend/architecture specific
 
-**Severity/Disposition/Confidence:** Medium / OPEN / High.  
-**Affected contract:** provenance reporting and future optimized-backend admission.  
-**Evidence:** libcrux 0.0.10 portable passes hard-coded regressions for RUSTSEC-2026-0076/0077. Current RustSec also lists AVX2/x86-64 RUSTSEC-2026-0125/0126, fixed in 0.0.9. The portable 0.0.10 path is not shown vulnerable, but the package-wide `libcrux_disclosed_advisory_regressions: PASS` label does not record them as fixed-by-version/not exercised, and the workflow lacks a current all-dependency advisory scan. OpenSSL 3.6.3 contains the prior CLI truncation fix; the adapter uses EVP, not the affected `openssl dgst` path.  
-**Preconditions/impact:** backend changes or new advisories can silently invalidate assurance; this is not an active-vulnerability claim against the frozen paths.  
-**Recommendation:** dated per-backend/per-architecture inventory with `PASS`/`NOT_APPLICABLE`/`UNTESTED`; current cargo-audit/OSV/upstream scans; 0125/0126 regressions before AVX2 admission; scheduled refresh.  
+**Severity/Disposition/Confidence:** Medium / OPEN / High.
+**Affected contract:** provenance reporting and future optimized-backend admission.
+**Evidence:** libcrux 0.0.10 portable passes hard-coded regressions for RUSTSEC-2026-0076/0077. Current RustSec also lists AVX2/x86-64 RUSTSEC-2026-0125/0126, fixed in 0.0.9. The portable 0.0.10 path is not shown vulnerable, but the package-wide `libcrux_disclosed_advisory_regressions: PASS` label does not record them as fixed-by-version/not exercised, and the workflow lacks a current all-dependency advisory scan. OpenSSL 3.6.3 contains the prior CLI truncation fix; the adapter uses EVP, not the affected `openssl dgst` path.
+**Preconditions/impact:** backend changes or new advisories can silently invalidate assurance; this is not an active-vulnerability claim against the frozen paths.
+**Recommendation:** dated per-backend/per-architecture inventory with `PASS`/`NOT_APPLICABLE`/`UNTESTED`; current cargo-audit/OSV/upstream scans; 0125/0126 regressions before AVX2 admission; scheduled refresh.
 **Tracking:** [#189](https://github.com/scottdhughes/quantum-proof-bitcoin/issues/189).
 
 ### F-07 — Wallet, key representation, derivation, and serialization contract is unfrozen
 
-**Severity/Disposition/Confidence:** Medium / OPEN / High.  
-**Affected contract:** future wallet, hardware signer, descriptor/PSBT, and consensus design.  
-**Evidence:** the prototype uses standardized sizes and deterministic seed reconstruction; NIST's current FAQ permits the key-generation seed as an alternative private-key representation if standardized outputs are regenerated. No canonical persisted format, derivation domain, import consistency rule, public-key commitment, descriptor/PSBT format, hardware protocol, backup semantics, network/version binding, algorithm agility, migration, or aggregate limit is selected.  
-**Preconditions/impact:** divergent seed/expanded-key treatment can lose funds or mismatch keys; ambiguous domain/version binding can cause cross-domain misuse; unfrozen encoding/resource rules can become consensus defects.  
-**Recommendation:** independently review a versioned design specification with exact bytes, derivation/recovery checks, canonical rejection, hardware boundaries, algorithm/network/version binding, rotation/migration, and resource/fee limits before implementation.  
+**Severity/Disposition/Confidence:** Medium / OPEN / High.
+**Affected contract:** future wallet, hardware signer, descriptor/PSBT, and consensus design.
+**Evidence:** the prototype uses standardized sizes and deterministic seed reconstruction; NIST's current FAQ permits the key-generation seed as an alternative private-key representation if standardized outputs are regenerated. No canonical persisted format, derivation domain, import consistency rule, public-key commitment, descriptor/PSBT format, hardware protocol, backup semantics, network/version binding, algorithm agility, migration, or aggregate limit is selected.
+**Preconditions/impact:** divergent seed/expanded-key treatment can lose funds or mismatch keys; ambiguous domain/version binding can cause cross-domain misuse; unfrozen encoding/resource rules can become consensus defects.
+**Recommendation:** independently review a versioned design specification with exact bytes, derivation/recovery checks, canonical rejection, hardware boundaries, algorithm/network/version binding, rotation/migration, and resource/fee limits before implementation.
 **Tracking:** [#190](https://github.com/scottdhughes/quantum-proof-bitcoin/issues/190).
 
 ## Required review questions
