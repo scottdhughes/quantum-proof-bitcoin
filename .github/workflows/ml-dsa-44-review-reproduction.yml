@@ -6,7 +6,6 @@ on:
       - ".github/workflows/ml-dsa-44-review-reproduction.yml"
       - "contrib/ml-dsa-ref/**"
       - "ci/test/test_ml_dsa_reference.py"
-      - "docs/reviews/ML_DSA_44_AI_ASSISTED_TECHNICAL_REVIEW.md"
   workflow_dispatch:
 
 permissions:
@@ -25,10 +24,12 @@ jobs:
       ACVP_COMMIT: 15c0f3deeefbfa8cb6cd32a99e1ca3b738c66bf0
 
     steps:
-      - name: Checkout PQBTC
-        uses: actions/checkout@v5
+      - name: Checkout PQBTC review head
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Install build dependencies
         run: |
@@ -102,6 +103,10 @@ jobs:
 
           {
             echo "pqbtc_commit=$(git rev-parse HEAD)"
+            echo "event_name=$GITHUB_EVENT_NAME"
+            echo "github_ref=$GITHUB_REF"
+            echo "review_head_ref=${GITHUB_HEAD_REF:-}"
+            echo "review_base_ref=${GITHUB_BASE_REF:-}"
             echo "runner_os=$(uname -a)"
             echo "cc=$({ cc --version || true; } | head -n 1)"
             echo "rustc=$(rustc --version)"
@@ -146,9 +151,9 @@ jobs:
 
       - name: Upload review evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: ml-dsa-44-review-evidence-${{ github.sha }}
+          name: ml-dsa-44-review-evidence-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             ml-dsa-44-review-run.json
             ml-dsa-44-review-run.sha256
