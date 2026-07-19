@@ -1,0 +1,11 @@
+pqbtc_commit=7f618aa2c9a57665cd93c4b90ce704dd4b63651d
+event_name=pull_request
+github_ref=refs/pull/183/merge
+review_head_ref=review/ml-dsa-44-ai-assisted-assessment
+review_base_ref=main
+runner_os=Linux runnervm3jd5f 6.17.0-1020-azure #20~24.04.1-Ubuntu SMP Fri Jun 19 20:09:14 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+cc=cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+rustc=rustc 1.97.0 (2d8144b78 2026-07-07)
+cargo=cargo 1.97.0 (c980f4866 2026-06-30)
+openssl=OpenSSL 3.6.3 9 Jun 2026 (Library: OpenSSL 3.6.3 9 Jun 2026)
+python=Python 3.12.3

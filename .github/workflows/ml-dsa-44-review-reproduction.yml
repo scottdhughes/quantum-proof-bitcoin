@@ -1,0 +1,164 @@
+name: ML-DSA-44 review reproduction
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ml-dsa-44-review-reproduction.yml"
+      - "contrib/ml-dsa-ref/**"
+      - "ci/test/test_ml_dsa_reference.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    name: Reproduce pinned three-oracle evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      BASELINE: 6ffd47881fc2071724fa6e31fb3cf9557a64b467
+      OPENSSL_COMMIT: aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f
+      MLDSA_NATIVE_COMMIT: 9b0ee84f4cf399043eca59eca4e5f8531ca1d61b
+      LIBCRUX_COMMIT: c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd
+      ACVP_COMMIT: 15c0f3deeefbfa8cb6cd32a99e1ca3b738c66bf0
+
+    steps:
+      - name: Checkout PQBTC review head
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install build dependencies
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential ca-certificates curl git perl pkg-config python3
+
+      - name: Validate frozen repository inputs
+        run: |
+          set -euxo pipefail
+          git diff --exit-code "$BASELINE" -- \
+            contrib/ml-dsa-ref ci/test/test_ml_dsa_reference.py \
+            ':(exclude)contrib/ml-dsa-ref/README.md' \
+            ':(exclude)contrib/ml-dsa-ref/wolfram/**'
+          python3 contrib/ml-dsa-ref/compare_oracles.py --manifest-only
+          python3 -m unittest ci.test.test_ml_dsa_reference
+
+      - name: Fetch pinned standards artifacts and upstream sources
+        run: |
+          set -euxo pipefail
+          mkdir -p "$RUNNER_TEMP/ml-dsa-review/artifacts"
+          cd "$RUNNER_TEMP/ml-dsa-review"
+
+          curl --fail --location --retry 5 --retry-all-errors \
+            https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.204.pdf \
+            -o artifacts/NIST.FIPS.204.pdf
+          curl --fail --location --retry 5 --retry-all-errors \
+            https://csrc.nist.gov/files/pubs/fips/204/final/docs/fips-204-potential-updates.xlsx \
+            -o artifacts/fips-204-potential-updates.xlsx
+          curl --fail --location --retry 5 --retry-all-errors \
+            https://csrc.nist.gov/csrc/media/Projects/post-quantum-cryptography/documents/faq/fips204-sec6-03192025.pdf \
+            -o artifacts/fips204-sec6-03192025.pdf
+          curl --fail --location --retry 5 --retry-all-errors \
+            https://static.crates.io/crates/libcrux-ml-dsa/libcrux-ml-dsa-0.0.10.crate \
+            -o artifacts/libcrux-ml-dsa-0.0.10.crate
+
+          git clone https://github.com/usnistgov/ACVP-Server.git acvp-server
+          git -C acvp-server checkout --detach "$ACVP_COMMIT"
+          git clone https://github.com/openssl/openssl.git openssl
+          git -C openssl checkout --detach "$OPENSSL_COMMIT"
+          git clone https://github.com/pq-code-package/mldsa-native.git mldsa-native
+          git -C mldsa-native checkout --detach "$MLDSA_NATIVE_COMMIT"
+          git clone https://github.com/celabshq/libcrux.git libcrux
+          git -C libcrux checkout --detach "$LIBCRUX_COMMIT"
+
+      - name: Build pinned OpenSSL 3.6.3 out of tree
+        run: |
+          set -euxo pipefail
+          REVIEW_ROOT="$RUNNER_TEMP/ml-dsa-review"
+          OPENSSL_PREFIX="$REVIEW_ROOT/openssl-install"
+          mkdir -p "$REVIEW_ROOT/openssl-build"
+          cd "$REVIEW_ROOT/openssl-build"
+          "$REVIEW_ROOT/openssl/Configure" \
+            --prefix="$OPENSSL_PREFIX" \
+            --openssldir="$OPENSSL_PREFIX/ssl" \
+            shared
+          make -j2
+          make install_sw
+          {
+            echo "$OPENSSL_PREFIX/bin"
+          } >> "$GITHUB_PATH"
+          {
+            echo "PKG_CONFIG_PATH=$OPENSSL_PREFIX/lib64/pkgconfig:$OPENSSL_PREFIX/lib/pkgconfig"
+            echo "LD_LIBRARY_PATH=$OPENSSL_PREFIX/lib64:$OPENSSL_PREFIX/lib"
+          } >> "$GITHUB_ENV"
+
+      - name: Run complete pinned comparator
+        run: |
+          set -euxo pipefail
+          REVIEW_ROOT="$RUNNER_TEMP/ml-dsa-review"
+          REPORT="$GITHUB_WORKSPACE/ml-dsa-44-review-run.json"
+
+          {
+            echo "pqbtc_commit=$(git rev-parse HEAD)"
+            echo "event_name=$GITHUB_EVENT_NAME"
+            echo "github_ref=$GITHUB_REF"
+            echo "review_head_ref=${GITHUB_HEAD_REF:-}"
+            echo "review_base_ref=${GITHUB_BASE_REF:-}"
+            echo "runner_os=$(uname -a)"
+            echo "cc=$({ cc --version || true; } | head -n 1)"
+            echo "rustc=$(rustc --version)"
+            echo "cargo=$(cargo --version)"
+            echo "openssl=$(openssl version)"
+            echo "python=$(python3 --version)"
+          } | tee ml-dsa-44-review-toolchain.txt
+
+          python3 contrib/ml-dsa-ref/compare_oracles.py \
+            --acvp-server "$REVIEW_ROOT/acvp-server" \
+            --openssl-source "$REVIEW_ROOT/openssl" \
+            --mldsa-native "$REVIEW_ROOT/mldsa-native" \
+            --libcrux-source "$REVIEW_ROOT/libcrux" \
+            --libcrux-crate "$REVIEW_ROOT/artifacts/libcrux-ml-dsa-0.0.10.crate" \
+            --fips204 "$REVIEW_ROOT/artifacts/NIST.FIPS.204.pdf" \
+            --fips204-updates "$REVIEW_ROOT/artifacts/fips-204-potential-updates.xlsx" \
+            --fips204-section6-guidance "$REVIEW_ROOT/artifacts/fips204-sec6-03192025.pdf" \
+            --benchmark-iterations 10 \
+            --sanitizers > "$REPORT"
+
+          sha256sum "$REPORT" | tee ml-dsa-44-review-run.sha256
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path("ml-dsa-44-review-run.json").read_text())
+          assert report["status"] == "PASS"
+          assert report["acvp"] == {
+              "keygen_cases": 25,
+              "siggen_cases": 30,
+              "sigver_cases": 15,
+              "total_cases": 70,
+          }
+          assert all(value == "PASS" for value in report["checks"].values())
+          assert report["signature_sha256"] == {
+              "nist_deterministic": "f2554d7153750b4deed79f80e5aa237a219fc92f83e59e7317c8d2089c4e7b91",
+              "nist_randomized": "8a17b6ff3f9633cd3c7cd0687d6384408e145bfd3725f6c57a8a2727f50ec989",
+              "pqbtc": "98094b39d9ae1ad76fc734f9e0199ad37315dd4eb7a22f29561582239f64e131",
+          }
+          print("ML-DSA-44 review invariants verified")
+          PY
+
+      - name: Upload review evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ml-dsa-44-review-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ml-dsa-44-review-run.json
+            ml-dsa-44-review-run.sha256
+            ml-dsa-44-review-toolchain.txt
+          if-no-files-found: warn
+          retention-days: 90

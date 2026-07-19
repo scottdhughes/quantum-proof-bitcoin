@@ -1,0 +1,136 @@
+{
+  "acvp": {
+    "keygen_cases": 25,
+    "siggen_cases": 30,
+    "sigver_cases": 15,
+    "total_cases": 70
+  },
+  "benchmark": {
+    "libcrux": {
+      "deterministic": {
+        "median_sign_ms": 0.22,
+        "median_verify_ms": 0.085
+      },
+      "iterations": 10,
+      "median_keygen_ms": 0.104,
+      "randomized": {
+        "median_sign_ms": 0.308,
+        "median_verify_ms": 0.085
+      }
+    },
+    "mldsa_native": {
+      "deterministic": {
+        "median_sign_ms": 0.182,
+        "median_verify_ms": 0.081
+      },
+      "iterations": 10,
+      "median_keygen_ms": 0.091,
+      "randomized": {
+        "median_sign_ms": 0.314,
+        "median_verify_ms": 0.08
+      }
+    },
+    "openssl": {
+      "deterministic": {
+        "median_sign_ms": 0.343,
+        "median_verify_ms": 0.113
+      },
+      "iterations": 10,
+      "median_keygen_ms": 0.194,
+      "randomized": {
+        "median_sign_ms": 0.667,
+        "median_verify_ms": 0.113
+      }
+    }
+  },
+  "block_space_model": {
+    "block_weight_limit": 16000000,
+    "held_rc2_public_key_bytes": 33,
+    "held_rc2_signature_bytes": 4480,
+    "ml_dsa_public_key_bytes": 1312,
+    "ml_dsa_signature_bytes": 2420,
+    "non_witness_weight_per_byte": 4,
+    "public_key_if_non_witness_weight": {
+      "held_rc2": 132,
+      "ml_dsa_44": 5248
+    },
+    "scope": "raw payload model only; no transaction encoding or activation design",
+    "signature_only_witness_capacity": {
+      "held_rc2": 3571,
+      "ml_dsa_44": 6611
+    },
+    "signature_plus_public_key_bytes": {
+      "held_rc2": 4513,
+      "ml_dsa_44": 3732
+    },
+    "signature_plus_public_key_witness_capacity": {
+      "held_rc2": 3545,
+      "ml_dsa_44": 4287
+    },
+    "signature_size_change_percent": -45.98,
+    "witness_weight_per_byte": 1
+  },
+  "checks": {
+    "adapter_asan_ubsan": "PASS",
+    "boundary_and_mutation_rejection": "PASS",
+    "fips204_and_update_artifact_provenance": "PASS",
+    "full_signature_byte_agreement": "PASS",
+    "libcrux_disclosed_advisory_regressions": "PASS",
+    "libcrux_source_and_crate_provenance": "PASS",
+    "nist_deterministic_and_randomized_siggen": "PASS",
+    "nist_selected_profile_acvp_70_cases": "PASS",
+    "nist_sigver_all_accept_reject_cases": "PASS",
+    "nist_source_provenance": "PASS",
+    "pqbtc_sighash_vector": "PASS",
+    "randomized_interoperability": "PASS"
+  },
+  "libcrux_advisory_regressions": {
+    "ml_dsa_44_malformed_hint_rejections": 2,
+    "no_panic": "PASS",
+    "upstream_release_tests": {
+      "RUSTSEC-2026-0076": {
+        "status": "PASS",
+        "test": "bad_hint_out_of_bounds"
+      },
+      "RUSTSEC-2026-0077": {
+        "status": "PASS",
+        "test": "mask_exceeds_norm"
+      }
+    }
+  },
+  "libcrux_commit": "c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd",
+  "libcrux_version": "0.0.10",
+  "lineage": {
+    "libcrux": {
+      "basis": "direct Rust implementation history begins at the pinned May 2024 commit; the resolved normal dependency graph does not include PQClean, pq-crystals, mldsa-native, or pqcrypto-mldsa",
+      "limit": "unit-test outputs and selected sampling/optimization comments cite PQ-Crystals; this is independent implementation evidence, not independent design, external cryptographic review, or production approval",
+      "normal_pqclean_or_pq_crystals_dependency": false,
+      "outcome": "separate_implementation_lineage_with_reference_influence"
+    },
+    "mldsa_native": "mldsa-native is forked from the pq-crystals reference implementation; agreement with OpenSSL is strong differential evidence but not independent cryptographic review"
+  },
+  "mldsa_native_commit": "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
+  "negative_testing": {
+    "boundary_cases": 2,
+    "cryptographic_rejections": 12,
+    "malformed_input_rejections": 34
+  },
+  "openssl_commit": "aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f",
+  "openssl_version": "OpenSSL 3.6.3 9 Jun 2026 (Library: OpenSSL 3.6.3 9 Jun 2026)",
+  "profile": "ML-DSA-44",
+  "randomized_interoperability": {
+    "default_randomized_rounds": 6,
+    "fixed_randomizer_rounds": 2
+  },
+  "sanitized_smoke": {
+    "boundary_cases": 2,
+    "cryptographic_rejections": 12,
+    "malformed_input_rejections": 24
+  },
+  "signature_sha256": {
+    "nist_deterministic": "f2554d7153750b4deed79f80e5aa237a219fc92f83e59e7317c8d2089c4e7b91",
+    "nist_randomized": "8a17b6ff3f9633cd3c7cd0687d6384408e145bfd3725f6c57a8a2727f50ec989",
+    "pqbtc": "98094b39d9ae1ad76fc734f9e0199ad37315dd4eb7a22f29561582239f64e131"
+  },
+  "status": "PASS"
+}
