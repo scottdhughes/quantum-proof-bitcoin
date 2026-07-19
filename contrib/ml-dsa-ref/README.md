@@ -73,3 +73,13 @@ All three adapters reject any signature whose decoded length is not exactly
 `mldsa-native`, and libcrux are prototype oracles only; passing this harness
 neither makes one a node dependency nor approves ML-DSA-44 for consensus
 integration.
+
+## Supplemental Exact Model
+
+`wolfram/` contains a separately transcribed exact-integer model for bounded
+FIPS 204 algebra and hint-encoding rules. Its NTT is checked against both the
+defining transform equation and direct negacyclic multiplication, while its
+boundary tests exercise decomposition, hints, strict hint decoding, and
+Montgomery reduction. This is specification-level supplemental evidence, not a
+fourth implementation oracle, native side-channel evidence, external review,
+or production approval.
