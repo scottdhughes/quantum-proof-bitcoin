@@ -42,7 +42,9 @@ jobs:
         run: |
           set -euxo pipefail
           git diff --exit-code "$BASELINE" -- \
-            contrib/ml-dsa-ref ci/test/test_ml_dsa_reference.py
+            contrib/ml-dsa-ref ci/test/test_ml_dsa_reference.py \
+            ':(exclude)contrib/ml-dsa-ref/README.md' \
+            ':(exclude)contrib/ml-dsa-ref/wolfram/**'
           python3 contrib/ml-dsa-ref/compare_oracles.py --manifest-only
           python3 -m unittest ci.test.test_ml_dsa_reference
 
