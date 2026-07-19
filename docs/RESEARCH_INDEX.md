@@ -100,6 +100,10 @@ answer specific classes of questions instead of listing every file in `docs/`.
 - [ML_DSA_44_EXTERNAL_REVIEW.md](ML_DSA_44_EXTERNAL_REVIEW.md)
   Frozen external-review input and acceptance contract for the selected
   engineering candidate; issue `#181` tracks the still-open review gate.
+- [ML_DSA_44_WOLFRAM_ORACLE.md](ML_DSA_44_WOLFRAM_ORACLE.md)
+  Supplemental exact-arithmetic cross-check for bounded FIPS 204 algebra,
+  encoding boundaries, and malformed hint rejection. It is not another native
+  implementation oracle and does not satisfy the external-review gate.
 - [PQSIG_INTERNALS.md](PQSIG_INTERNALS.md)
   Best internal explainer for how the signature system is assembled.
 - [PQSIG_WIRE_FORMAT.md](PQSIG_WIRE_FORMAT.md)
