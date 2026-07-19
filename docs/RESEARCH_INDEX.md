@@ -34,8 +34,15 @@ answer specific classes of questions instead of listing every file in `docs/`.
   integration is authorized by that selection.
 - `ML_DSA_44_EXTERNAL_REVIEW.md` freezes the review target, provenance,
   reproduction contract, threat model, required questions, reviewer criteria,
-  severity rules, and deliverables. Issue `#181` is open with a named owner;
-  status is `AWAITING_EXTERNAL_REVIEW`, not review completion.
+  severity rules, and deliverables. The AI-assisted assessment merged in PR
+  `#183` with `REMEDIATE_AND_REREVIEW`, seven Medium findings, and no Critical
+  or High finding. Issue `#181` remains open because the independent-human
+  review gate is not satisfied.
+- `ML_DSA_44_HEDGED_SIGNING_CONTRACT.md` defines the first remediation design
+  boundary: internally generated 32-byte `rnd`, hedged-only production API,
+  fail-closed errors, serialized callers, self-verification, lifecycle limits,
+  and explicit rollback residual risk. Its executable model is not a selected
+  backend or production implementation, so issue `#184` remains open.
 - No PDF papers are currently checked into this repo.
 - Delving Bitcoin now provides concrete adjacent research references that are
   directly relevant to Track A, especially around SHRINCS / SHRIMPS and
@@ -100,6 +107,13 @@ answer specific classes of questions instead of listing every file in `docs/`.
 - [ML_DSA_44_EXTERNAL_REVIEW.md](ML_DSA_44_EXTERNAL_REVIEW.md)
   Frozen external-review input and acceptance contract for the selected
   engineering candidate; issue `#181` tracks the still-open review gate.
+- [reviews/ML_DSA_44_AI_ASSISTED_TECHNICAL_REVIEW.md](reviews/ML_DSA_44_AI_ASSISTED_TECHNICAL_REVIEW.md)
+  Reproducible supporting assessment with a `REMEDIATE_AND_REREVIEW`
+  disposition and seven Medium remediation findings. It does not satisfy the
+  independent-human gate.
+- [ML_DSA_44_HEDGED_SIGNING_CONTRACT.md](ML_DSA_44_HEDGED_SIGNING_CONTRACT.md)
+  Project-owned hedged-signing entropy, failure, concurrency, and lifecycle
+  contract for the bounded issue `#184` remediation lane.
 - [ML_DSA_44_WOLFRAM_ORACLE.md](ML_DSA_44_WOLFRAM_ORACLE.md)
   Supplemental exact-arithmetic cross-check for bounded FIPS 204 algebra,
   encoding boundaries, and malformed hint rejection. It is not another native
