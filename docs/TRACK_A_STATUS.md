@@ -74,10 +74,13 @@ The measured decision in `PQSIG_CANDIDATE_SELECTION.md` selects FIPS 204
 `HOLD`; no consensus integration is authorized by the selection or either
 green reference harness.
 
-The next bounded cryptographic work is an external-review package for the
-frozen ML-DSA-44 profile and its three-oracle evidence. Supported-platform and
-worst-case system measurements remain the following separate gate. A
-consensus-design specification follows only after both gates.
+The frozen ML-DSA-44 profile and its three-oracle evidence are now packaged for
+external cryptographic review in `ML_DSA_44_EXTERNAL_REVIEW.md`. Issue `#181`
+names `@scottdhughes` as owner and records the reviewer, deliverable, severity,
+and acceptance criteria. The current state is `AWAITING_EXTERNAL_REVIEW`; the
+review itself has not occurred. Supported-platform and worst-case system
+measurements remain the following separate gate. A consensus-design
+specification follows only after both gates pass.
 
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,
@@ -171,7 +174,10 @@ Cryptography implementation lane:
      production approval
    - retain the completed three-oracle independent implementation evidence and
      its qualified reference-influence disclosure
-   - obtain external cryptographic review as the next bounded gate
+   - use `ML_DSA_44_EXTERNAL_REVIEW.md` and issue `#181` as the frozen review
+     contract, with status `AWAITING_EXTERNAL_REVIEW`
+   - obtain and record the external cryptographic review as the next bounded
+     gate
    - require supported-platform worst-case measurements before
      consensus-design work
    - do not allocate or activate an `ALG_ID` in the evidence slices
@@ -195,9 +201,10 @@ Cryptography implementation lane:
    risk decision before changing another policy class.
 3. Cryptographic production remains on `HOLD` while `ML-DSA-44` advances only
    as the selected engineering candidate. Independent implementation evidence
-   is complete; the next gates are external cryptographic review and
-   worst-case system measurements. Script and wallet integration remain out of
-   scope.
+   is complete and the issue `#181` review package is ready. Status is
+   `AWAITING_EXTERNAL_REVIEW`; the next gates are completed external
+   cryptographic review and worst-case system measurements. Script and wallet
+   integration remain out of scope.
 
 
 ## Historical Queue Ledger
@@ -1691,6 +1698,12 @@ Aineko must ask before:
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
 
+- 2026-07-19: The selected ML-DSA-44 profile, evidence provenance,
+  reproduction contract, threat model, required review questions, reviewer
+  qualifications, severity rules, and deliverables were frozen in
+  `ML_DSA_44_EXTERNAL_REVIEW.md`. Issue `#181` names `@scottdhughes` as owner.
+  Status is `AWAITING_EXTERNAL_REVIEW`; no review result, production approval,
+  consensus change, or release-hold exit is claimed.
 - 2026-07-19: The isolated ML-DSA-44 comparator added pinned libcrux 0.0.10 as
   a third oracle. All 70 selected-profile ACVP cases, exact bytes, randomized
   cross-verification, bounded malformed inputs, the two disclosed libcrux
@@ -2628,7 +2641,8 @@ above as the controlling live next-PR handoff when these older notes disagree.
 - There is no active inventory blocker. The selected configuration-namespace
   gap is promoted, its platform default-datadir namespace is asserted, and no
   suites remain in `pq_backlog`.
-- Production cryptography remains blocked on external cryptographic review,
+- Production cryptography remains blocked on completion of issue `#181`'s
+  external cryptographic review,
   constant-time and secret-erasure analysis, supported-platform and worst-case
   validation cost, and a separate consensus-design specification. The
   independent ML-DSA implementation evidence gate is complete; it closes none

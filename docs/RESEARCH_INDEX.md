@@ -32,6 +32,10 @@ answer specific classes of questions instead of listing every file in `docs/`.
   engineering candidate, retains `SLH-DSA-SHA2-128s` as the conservative
   fallback, and preserves the production release hold. No consensus or wallet
   integration is authorized by that selection.
+- `ML_DSA_44_EXTERNAL_REVIEW.md` freezes the review target, provenance,
+  reproduction contract, threat model, required questions, reviewer criteria,
+  severity rules, and deliverables. Issue `#181` is open with a named owner;
+  status is `AWAITING_EXTERNAL_REVIEW`, not review completion.
 - No PDF papers are currently checked into this repo.
 - Delving Bitcoin now provides concrete adjacent research references that are
   directly relevant to Track A, especially around SHRINCS / SHRIMPS and
@@ -93,6 +97,9 @@ answer specific classes of questions instead of listing every file in `docs/`.
   Isolated FIPS 204 three-oracle comparator, qualified implementation-lineage
   record, disclosed-advisory regressions, and measured baseline for the second
   final-standard candidate.
+- [ML_DSA_44_EXTERNAL_REVIEW.md](ML_DSA_44_EXTERNAL_REVIEW.md)
+  Frozen external-review input and acceptance contract for the selected
+  engineering candidate; issue `#181` tracks the still-open review gate.
 - [PQSIG_INTERNALS.md](PQSIG_INTERNALS.md)
   Best internal explainer for how the signature system is assembled.
 - [PQSIG_WIRE_FORMAT.md](PQSIG_WIRE_FORMAT.md)
