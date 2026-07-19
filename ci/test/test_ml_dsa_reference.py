@@ -58,7 +58,11 @@ class MLDSAReferenceTests(unittest.TestCase):
         sources = self.manifest["sources"]
         self.assertEqual(sources["openssl"]["version"], "3.6.3")
         self.assertEqual(sources["mldsa_native"]["tag"], "v1.0.0-beta2")
-        for name in ("nist_acvp", "openssl", "mldsa_native"):
+        self.assertEqual(sources["libcrux"]["version"], "0.0.10")
+        self.assertEqual(
+            sources["libcrux"]["tag"], "libcrux-ml-dsa-v0.0.10"
+        )
+        for name in ("nist_acvp", "openssl", "mldsa_native", "libcrux"):
             self.assertRegex(sources[name]["commit"], r"^[0-9a-f]{40}$")
         for name in (
             "nist_fips204",
@@ -69,6 +73,18 @@ class MLDSAReferenceTests(unittest.TestCase):
         self.assertIn(
             "not independent cryptographic review",
             sources["mldsa_native"]["lineage_limit"],
+        )
+        assessment = sources["libcrux"]["independence_assessment"]
+        self.assertEqual(
+            assessment["outcome"],
+            "separate_implementation_lineage_with_reference_influence",
+        )
+        self.assertFalse(assessment["normal_pqclean_or_pq_crystals_dependency"])
+        self.assertIn("not independent design", assessment["limit"])
+        self.assertRegex(sources["libcrux"]["crate_sha256"], r"^[0-9a-f]{64}$")
+        self.assertEqual(
+            set(sources["libcrux"]["fixed_advisories"]),
+            {"RUSTSEC-2026-0076", "RUSTSEC-2026-0077"},
         )
 
     def test_manifest_rejects_coverage_drift(self):
@@ -93,6 +109,33 @@ class MLDSAReferenceTests(unittest.TestCase):
         self.assertNotIn("private_key + PRIVATE_KEY_SIZE - PUBLIC_KEY_SIZE", openssl_source)
         native_source = (REFERENCE_DIR / "mldsa_native_oracle.c").read_text(encoding="utf8")
         self.assertIn("mldsa_pk_from_sk", native_source)
+        libcrux_source = (REFERENCE_DIR / "libcrux_oracle.rs").read_text(
+            encoding="utf8"
+        )
+        self.assertIn("const SIGNATURE_SIZE: usize = 2420", libcrux_source)
+        self.assertIn("signature_bytes.len() != SIGNATURE_SIZE", libcrux_source)
+        self.assertIn("MLDSA44VerificationKey::new", libcrux_source)
+        self.assertIn('command == "sign-with-randomizer"', libcrux_source)
+
+    def test_libcrux_malformed_hint_regressions_are_bounded(self):
+        profile = self.manifest["profile"]
+        bounded = bytes.fromhex(
+            compare_oracles.libcrux_malformed_hint_signature(profile, 81)
+        )
+        out_of_bounds = bytes.fromhex(
+            compare_oracles.libcrux_malformed_hint_signature(profile, 85)
+        )
+        self.assertEqual(len(bounded), profile["signature_bytes"])
+        self.assertEqual(len(out_of_bounds), profile["signature_bytes"])
+        hint_offset = 32 + 4 * 576
+        self.assertEqual(
+            bounded[hint_offset + 80 : hint_offset + 84],
+            bytes((21, 42, 63, 81)),
+        )
+        self.assertEqual(
+            out_of_bounds[hint_offset + 80 : hint_offset + 84],
+            bytes((21, 42, 63, 85)),
+        )
 
     def test_manifest_only_cli(self):
         result = subprocess.run(

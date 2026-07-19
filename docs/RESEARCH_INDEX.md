@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: RESEARCH-INDEX-v1
-## Updated: 2026-07-18
+## Updated: 2026-07-19
 ## Consensus-Relevant: NO
 
 ## Purpose
@@ -22,10 +22,12 @@ answer specific classes of questions instead of listing every file in `docs/`.
   and randomized interoperability, malformed-input and sanitizer evidence, and
   timings without changing consensus behavior.
 - An equivalent isolated FIPS 204 `ML-DSA-44` comparator now provides all 70
-  applicable external/pure ACVP cases, exact and randomized differential
-  evidence, malformed-input and sanitizer coverage, timings, and a raw-payload
-  cost model. Its documented implementation-lineage limitation keeps external
-  cryptographic review as an unsatisfied gate.
+  applicable external/pure ACVP cases across OpenSSL, `mldsa-native`, and
+  libcrux, exact and randomized differential evidence, malformed-input,
+  disclosed-advisory regression and sanitizer coverage, timings, and a
+  raw-payload cost model. The qualified libcrux lineage result closes the
+  independent implementation evidence gate while keeping external
+  cryptographic review unsatisfied.
 - `PQSIG_CANDIDATE_SELECTION.md` selects `ML-DSA-44` as the primary
   engineering candidate, retains `SLH-DSA-SHA2-128s` as the conservative
   fallback, and preserves the production release hold. No consensus or wallet
@@ -88,8 +90,9 @@ answer specific classes of questions instead of listing every file in `docs/`.
   Isolated standards-conformance and measurement baseline for the first final-
   standard candidate.
 - [ML_DSA_44_REFERENCE.md](ML_DSA_44_REFERENCE.md)
-  Isolated FIPS 204 comparator, provenance record, and measured implementation
-  baseline for the second final-standard candidate.
+  Isolated FIPS 204 three-oracle comparator, qualified implementation-lineage
+  record, disclosed-advisory regressions, and measured baseline for the second
+  final-standard candidate.
 - [PQSIG_INTERNALS.md](PQSIG_INTERNALS.md)
   Best internal explainer for how the signature system is assembled.
 - [PQSIG_WIRE_FORMAT.md](PQSIG_WIRE_FORMAT.md)

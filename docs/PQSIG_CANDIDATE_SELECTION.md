@@ -3,6 +3,7 @@
 ## Status: ML_DSA_44_ENGINEERING_CANDIDATE - RELEASE_HOLD
 ## Spec-ID: PQSIG-CANDIDATE-SELECTION-v1
 ## Decided: 2026-07-18
+## Evidence-Updated: 2026-07-19
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -143,15 +144,23 @@ worst-case, adversarial-input, and full-block measurements remain required.
 
 - The SLH-DSA harness compares OpenSSL with an independently developed
   portable implementation.
-- The ML-DSA harness compares separate codebases, but `mldsa-native` descends
-  from the `pq-crystals` reference implementation. Its agreement with OpenSSL
-  is strong differential evidence, not fully independent implementation
-  evidence or external review.
+- The ML-DSA harness now compares OpenSSL, `mldsa-native`, and libcrux.
+  `mldsa-native` descends from the `pq-crystals` reference implementation.
+  libcrux has a separate direct-Rust implementation history and no normal
+  PQClean, `pq-crystals`, `mldsa-native`, or `pqcrypto-mldsa` dependency,
+  while its tests and selected implementation comments disclose PQ-Crystals
+  influence.
+- The frozen libcrux assessment is
+  `separate_implementation_lineage_with_reference_influence`. Complete
+  three-oracle byte agreement and cross-verification close the independent
+  implementation evidence gate, but do not constitute independent design or
+  external cryptographic review.
 - Both candidates require a production implementation selected for auditability
   rather than a host OpenSSL consensus dependency.
 
-SLH-DSA therefore leads on current implementation-independence evidence.
-ML-DSA does not advance to consensus work until that gap is closed.
+ML-DSA still does not advance to consensus work. The next gate is external
+specialist review, followed by supported-platform and worst-case system
+measurements.
 
 ### Signing, Entropy, And Side Channels
 
@@ -206,15 +215,13 @@ ML-DSA-44 is selected for engineering work because:
 5. the remaining ML-DSA risks are concrete gates that can be tested and
    reviewed before consensus integration
 
-SLH-DSA-SHA2-128s remains the fallback because its hash-based assumptions,
-compact keys, and stronger current implementation-independence evidence are
-valuable if ML-DSA fails review. Its signature size and signing cost make it a
-weaker first engineering fit for PQBTC.
+SLH-DSA-SHA2-128s remains the fallback because its hash-based assumptions and
+compact keys are valuable if ML-DSA fails review. Its signature size and
+signing cost make it a weaker first engineering fit for PQBTC.
 
 Selecting a primary engineering candidate is preferable to an undirected
-`HOLD`: it focuses independent implementation, audit, benchmarking, and
-protocol-design work. Production nevertheless remains on `HOLD` until all
-readiness gates pass.
+`HOLD`: it focuses external review, benchmarking, and protocol-design work.
+Production nevertheless remains on `HOLD` until all readiness gates pass.
 
 ## Rejection And Fallback Criteria
 
@@ -231,19 +238,30 @@ if any of these occur:
 5. no strict transaction, wallet, backup, and hardware-signer design can meet
    the project's usability and resource constraints
 
+## Independent Implementation Evidence
+
+Completed on 2026-07-19:
+
+1. pin libcrux 0.0.10 source, tag, subtree, initial implementation commit, and
+   exact crates.io archive
+2. require all 70 selected-profile ACVP cases, exact signature-byte agreement,
+   randomized cross-verification, malformed-input rejection, and the repo
+   vector to pass OpenSSL, `mldsa-native`, and libcrux
+3. rerun the two disclosed libcrux advisory regressions and two ML-DSA-44
+   malformed-hint rejection cases without panic
+4. record the qualified lineage assessment rather than claiming independent
+   design or external review
+
 ## Next Gates
 
-The next work is evidence acquisition, not node integration:
+The next work remains evidence acquisition, not node integration:
 
-1. add a genuinely independent ML-DSA implementation that does not descend
-   from the same reference lineage and require exact-vector and
-   cross-verification agreement
-2. obtain external cryptographic review covering the selected mode,
+1. obtain external cryptographic review covering the selected mode,
    randomization, rejection sampling, side channels, fault behavior, secret
    erasure, and key derivation
-3. measure supported-platform and worst-case signer, verifier, malformed-input,
+2. measure supported-platform and worst-case signer, verifier, malformed-input,
    multi-input transaction, and full-block costs
-4. only after those gates, write a separate consensus-design specification for
+3. only after those gates, write a separate consensus-design specification for
    canonical key commitment, reveal, context, sighash, Script limits, policy,
    activation, and algorithm binding
 
