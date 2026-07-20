@@ -126,6 +126,12 @@ isolation, and ASan/UBSan. This advances issues `#184`, `#187`, `#188`, and
 `#189` with bounded evidence but closes none of them. Production remains
 `NONE`, and no product or inventory boundary changes.
 
+PR `#194` landed that isolated wrapper prototype at merge commit
+`0eebb2229f227e43f56c51f2900fedbd801d1ecb`. Its final branch checks were
+`10/10` green, post-merge Promotion Matrix run `29721947046` was `21/21`
+green, and merge-commit checks were `26/26` green. The slice changed no
+functional-suite inventory policy class.
+
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,
 `pq_backlog: 0`, `legacy_only: 14`, and `dual_profile: 142`. Promotion Matrix
@@ -258,11 +264,11 @@ Cryptography implementation lane:
    is complete; PR `#183` concluded `REMEDIATE_AND_REREVIEW`, and issues `#184`
    through `#190` remain open. PR `#192` landed the issue `#184`
    hedged-signing design contract, and PR `#193` admitted the exact portable-C
-   backend target. The isolated wrapper prototype now implements that target;
-   production remains `NONE`. Status remains `AWAITING_EXTERNAL_REVIEW`; a
-   qualifying independent-human re-review and supported-platform worst-case
-   measurements remain required. Script and wallet integration remain out of
-   scope.
+   backend target. PR `#194` landed the isolated wrapper prototype that
+   implements that target; production remains `NONE`. Status remains
+   `AWAITING_EXTERNAL_REVIEW`; a qualifying independent-human re-review and
+   supported-platform worst-case measurements remain required. Script and
+   wallet integration remain out of scope.
 
 
 ## Historical Queue Ledger
@@ -1756,12 +1762,15 @@ Aineko must ask before:
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
 
-- 2026-07-20: The admitted portable-C wrapper prototype was implemented under
-  `contrib/` with a hashed 34-file source capsule, one translation unit, two
-  production-shaped exports, internal OS entropy, mandatory self-verification,
-  fail-closed output, atomic repeat detection, frozen-vector checks, and
-  ASan/UBSan. Test controls remain in a separate build. Production stays
-  `NONE`; issues `#181` and `#184` through `#190` remain open.
+- 2026-07-20: PR `#194` landed the admitted portable-C wrapper prototype at
+  merge commit `0eebb2229f227e43f56c51f2900fedbd801d1ecb`. Its final branch
+  checks were `10/10` green, post-merge Promotion Matrix run `29721947046` was
+  `21/21` green, and merge-commit checks were `26/26` green. The prototype has
+  a hashed 34-file source capsule, one translation unit, two production-shaped
+  exports, internal OS entropy, mandatory self-verification, fail-closed
+  output, atomic repeat detection, frozen-vector checks, and ASan/UBSan. Test
+  controls remain in a separate build. Production stays `NONE`; issues `#181`
+  and `#184` through `#190` remain open.
 - 2026-07-19: PR `#193` landed the backend-admission decision at merge commit
   `fab368979b15cb3b6a47544a4690ecb1abe6cc92`. Duplicate branch checks were
   `8/8` green, post-merge Promotion Matrix run `29709103397` was `21/21`
