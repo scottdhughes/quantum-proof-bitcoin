@@ -1,0 +1,170 @@
+name: ML-DSA-44 sustained verifier fuzzing
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ml-dsa-44-sustained-fuzz.yml"
+      - "ci/test/test_ml_dsa_sustained_fuzz.py"
+      - "contrib/ml-dsa-engineering/**"
+      - "contrib/ml-dsa-ref/vectors.json"
+      - "docs/ML_DSA_44_BACKEND_ADMISSION.md"
+      - "docs/ML_DSA_44_WRAPPER_PROTOTYPE.md"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/ml-dsa-44-sustained-fuzz.yml"
+      - "ci/test/test_ml_dsa_sustained_fuzz.py"
+      - "contrib/ml-dsa-engineering/**"
+      - "contrib/ml-dsa-ref/vectors.json"
+      - "docs/ML_DSA_44_BACKEND_ADMISSION.md"
+      - "docs/ML_DSA_44_WRAPPER_PROTOTYPE.md"
+  schedule:
+    - cron: '17 4 * * 3'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  verifier-fuzz:
+    name: Strict verifier (${{ matrix.label }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: ASan + UBSan
+            sanitizer: address-undefined
+            coverage: 'true'
+            artifact: asan-ubsan
+          - label: MSan
+            sanitizer: memory
+            coverage: 'false'
+            artifact: msan
+    env:
+      CC: clang
+      OUTPUT_DIR: ${{ runner.temp }}/ml-dsa-44-fuzz-output
+      PRIOR_DIR: ${{ runner.temp }}/ml-dsa-44-prior
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Verify toolchain
+        run: |
+          set -euxo pipefail
+          clang --version
+          llvm-profdata --version
+          llvm-cov --version
+          python3 --version
+
+      - name: Restore latest retained corpus
+        id: retained
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_NAME: ml-dsa-44-sustained-${{ matrix.artifact }}
+        run: |
+          set -euo pipefail
+          previous_run_and_attempt="$(
+            gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow ml-dsa-44-sustained-fuzz.yml \
+              --branch main \
+              --status success \
+              --limit 1 \
+              --json databaseId,attempt \
+              --jq '.[0] | select(.) | [.databaseId, .attempt] | @tsv'
+          )"
+          if [[ -z "$previous_run_and_attempt" ]]; then
+            echo "No prior successful sustained campaign is available"
+            exit 0
+          fi
+          read -r previous_run previous_attempt <<< "$previous_run_and_attempt"
+          artifact_name="$ARTIFACT_NAME-$previous_run-$previous_attempt"
+          mkdir -p "$PRIOR_DIR"
+          if ! gh run download "$previous_run" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "$artifact_name" \
+            --dir "$PRIOR_DIR"; then
+            echo "::warning title=Corpus restore unavailable::Could not download $artifact_name"
+            exit 0
+          fi
+          seed_dir="$(find "$PRIOR_DIR" -type d -name minimized-corpus -print -quit)"
+          if [[ -n "$seed_dir" ]]; then
+            echo "seed_dir=$seed_dir" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run bounded sustained campaign
+        env:
+          SANITIZER: ${{ matrix.sanitizer }}
+          COVERAGE: ${{ matrix.coverage }}
+          RETAINED_SEED_DIR: ${{ steps.retained.outputs.seed_dir }}
+        run: |
+          set -euxo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "schedule" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            campaign_seconds=1800
+            campaign_seed="$GITHUB_RUN_NUMBER"
+          else
+            campaign_seconds=60
+            campaign_seed=188
+          fi
+          args=(
+            --sanitizers
+            --sanitizer "$SANITIZER"
+            --seconds "$campaign_seconds"
+            --seed "$campaign_seed"
+            --output-dir "$OUTPUT_DIR"
+          )
+          if [[ -n "$RETAINED_SEED_DIR" ]]; then
+            args+=(--seed-corpus "$RETAINED_SEED_DIR")
+          fi
+          if [[ "$COVERAGE" == "true" ]]; then
+            args+=(--coverage)
+          fi
+          python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py "${args[@]}"
+
+      - name: Verify campaign evidence
+        if: success()
+        env:
+          EXPECTED_SANITIZER: ${{ matrix.sanitizer }}
+          COVERAGE: ${{ matrix.coverage }}
+        run: |
+          python3 - "$OUTPUT_DIR" "$EXPECTED_SANITIZER" "$COVERAGE" <<'PY'
+          import json
+          from pathlib import Path
+          import sys
+
+          output = Path(sys.argv[1])
+          report = json.loads((output / "campaign.json").read_text(encoding="utf8"))
+          assert report["schema_version"] == 1
+          assert report["status"] == "pass"
+          assert report["sanitizer"] == sys.argv[2]
+          assert report["coverage_enabled"] is (sys.argv[3] == "true")
+          assert report["minimized_corpus"]["file_count"] > 0
+          assert report["crash_artifacts"]["file_count"] == 0
+          assert (output / "SHA256SUMS").is_file()
+          if report["coverage_enabled"]:
+              assert (output / "coverage.txt").is_file()
+              assert (output / "coverage.json").is_file()
+          print(json.dumps(report, indent=2, sort_keys=True))
+          PY
+
+      - name: Upload retained corpus and evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ml-dsa-44-sustained-${{ matrix.artifact }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.OUTPUT_DIR }}
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 9

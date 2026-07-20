@@ -118,7 +118,14 @@ python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --sanitizers
 python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py --manifest-only
 python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py
 CC=clang python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py --sanitizers --runs 10000
+CC=clang python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py \
+  --sanitizers --sanitizer address-undefined --seconds 1800 \
+  --coverage --output-dir /tmp/ml-dsa-44-asan
+CC=clang python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py \
+  --sanitizers --sanitizer memory --seconds 1800 \
+  --output-dir /tmp/ml-dsa-44-msan
 python3 -m unittest ci.test.test_ml_dsa_wrapper_prototype
+python3 -m unittest ci.test.test_ml_dsa_sustained_fuzz
 ```
 
 The verifier harness deterministically regenerates and replays 207 bounded
@@ -127,10 +134,28 @@ and 27 project cases covering commitment, `z`, hint, public-key, message,
 context, length, and null-pointer boundaries. The frozen manifest records 202
 unique frames and their expected strict-wrapper result classes. Its custom
 libFuzzer mutator preserves the frame format while targeting those same
-ML-DSA-44 fields. CI runs replay with GCC and Clang and a 10,000-execution
-ASan/UBSan campaign with Clang. The 4,096-byte message cap, five-second input
-timeout, 1 GiB RSS cap, and 256 MiB allocation cap are fuzz-campaign bounds,
-not production protocol limits or exhaustive resource proofs.
+ML-DSA-44 fields. CI runs replay with GCC and Clang; the dedicated workflow
+runs the bounded sanitizer campaigns described below. The 4,096-byte message
+cap, five-second input timeout, 1 GiB RSS cap, and 256 MiB allocation cap are
+fuzz-campaign bounds, not production protocol limits or exhaustive resource
+proofs.
+
+The dedicated sustained-fuzzing workflow runs separate Linux Clang
+ASan/UBSan and MSan jobs. Pull requests and pushes use 60-second smoke
+campaigns; the weekly schedule and manual dispatch use 1,800-second campaigns.
+Each run retains the complete log, machine-readable campaign metadata,
+content-addressed SHA256 provenance, crash inputs, best-effort minimized crash
+inputs, and a coverage-minimized corpus for 90 days. ASan/UBSan also emits
+text and JSON LLVM source-coverage summaries.
+Scheduled and manual runs may seed from the most recent successful retained
+corpus; imported files are bounded to the 8,096-byte frame limit and renamed
+by content hash. Scheduled and manual campaigns use a varying recorded seed;
+pull-request and push smokes retain seed 188 for exact repeatability. MSan
+instruments the complete portable backend translation unit, but system-library
+coverage still depends on LLVM interceptors and is not an all-code proof. A
+retained crash is evidence to investigate, not an
+automatically trusted regression vector: promotion into a checked-in corpus
+still requires review.
 
 ## Residual Boundary
 
@@ -146,8 +171,11 @@ This prototype advances engineering evidence but closes no production gate:
 - issue `#187`: explicit source cleanup and sanitizer evidence do not prove
   erasure of compiler copies, registers, caller-owned keys, or crash artifacts;
 - issue `#188`: deterministic Wycheproof replay and bounded structure-aware
-  ASan/UBSan fuzzing are now implemented, but sustained multi-platform fuzzing,
-  retained regression artifacts, and production resource limits remain open;
+  ASan/UBSan and MSan campaigns with retained evidence are now implemented,
+  but multi-backend differential and adapter fuzzing, automatic advisory-case
+  ingestion, Rust coverage if a Rust backend is admitted, broader platforms,
+  minimum coverage goals, reviewed regression-vector promotion, and stack,
+  worst-case, and adversarial-batch resource limits remain open;
 - issue `#189`: the source capsule and network-free build are partial evidence,
   not an SBOM, reproducibility campaign, or ongoing advisory process;
 - issue `#190`: key ownership, formats, backup, PSBT, and hardware-wallet
