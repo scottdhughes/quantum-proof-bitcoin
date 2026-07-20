@@ -96,6 +96,25 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
         self.assertTrue(build["custom_zeroize_required"])
         self.assertTrue(build["self_verify_before_release"])
 
+    def test_implemented_prototype_remains_isolated(self):
+        evidence = self.admission["admitted_prototype"]["implementation_evidence"]
+        self.assertEqual(evidence["status"], "ISOLATED_PROTOTYPE_IMPLEMENTED")
+        self.assertEqual(evidence["source_capsule"]["files"], 34)
+        self.assertEqual(
+            evidence["source_capsule"]["capsule_sha256"],
+            "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb",
+        )
+        self.assertEqual(evidence["source_capsule"]["native_backend_files"], 0)
+        self.assertEqual(
+            evidence["production_shaped_exports"],
+            ["pqbtc_mldsa44_sign_hedged", "pqbtc_mldsa44_verify_strict"],
+        )
+        self.assertTrue(evidence["test_build_separate"])
+        self.assertFalse(evidence["test_controls_in_production_shaped_build"])
+        self.assertFalse(evidence["node_linkage"])
+        self.assertFalse(evidence["wallet_linkage"])
+        self.assertFalse(evidence["consensus_linkage"])
+
     def test_all_release_gates_remain_open(self):
         gates = self.admission["open_gates"]
         self.assertEqual(

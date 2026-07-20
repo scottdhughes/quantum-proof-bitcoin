@@ -1,0 +1,144 @@
+# ML-DSA-44 Portable Wrapper Prototype
+
+## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
+## Spec-ID: ML-DSA-44-WRAPPER-PROTOTYPE-v1
+## Updated: 2026-07-20
+## Consensus-Relevant: NO
+
+## Scope
+
+This slice implements the bounded wrapper authorized by
+`ML_DSA_44_BACKEND_ADMISSION.md`. It is an evidence artifact under `contrib/`,
+not a PQBTC production backend. It has no node, wallet, Script, consensus,
+`ALG_ID`, packaging, or functional-suite inventory connection. The production
+backend remains `NONE`, and `RELEASE_HOLD` remains in force.
+
+The wrapper uses raw key buffers because key ownership and wallet formats are
+still open under issue `#190`. That prototype ABI is not approval of a
+production key-handle or storage design.
+
+## Frozen Source Capsule
+
+The portable dependency closure is stored in
+`contrib/ml-dsa-engineering/vendor/mldsa-native/` with its upstream license and
+`SOURCE.json`. The manifest records:
+
+- upstream tag `v1.0.0-beta2`;
+- commit `9b0ee84f4cf399043eca59eca4e5f8531ca1d61b`;
+- upstream tree `c73c7029182122fce2f2dd8ac544ae990abd74a2`;
+- full upstream `git archive --format=tar` SHA256
+  `4fd08a772d0a142863593471f0c26e239bac8babc8e2a960e072f06ee89ff30b`;
+- exactly 34 required files;
+- no native backend or assembly files; and
+- capsule SHA256
+  `2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb`.
+
+The capsule hash is computed from sorted lines containing each relative path
+and file SHA256. Tests reject additions, removals, path changes, or byte
+changes. Builds require no source download. The exact vendor subtree is exempt
+from first-party include, include-guard, and spelling style checks so those
+checks cannot require edits to upstream bytes; the project wrapper and harness
+remain subject to normal repository lint.
+
+## Build Boundary
+
+`pqbtc_mldsa44.c` is the one compiled translation unit. It includes the
+project configuration, project entropy and zeroization hooks, the frozen
+portable source, repeat guard, failure mapping, self-verification, and public
+wrapper.
+
+The configuration freezes ML-DSA-44, disables native backends and SUPERCOP
+aliases, fixes the signing-attempt bound at `814`, and marks upstream internal
+and external function APIs `static`. Hidden visibility plus a dynamic symbol
+audit restricts the production-shaped shared object to exactly:
+
+```text
+pqbtc_mldsa44_sign_hedged
+pqbtc_mldsa44_verify_strict
+```
+
+A separately compiled `PQBTC_MLDSA44_TESTING` build exposes fixed-randomizer,
+seeded-keygen, entropy-failure, backend-failure, wrong-length, and forced-
+verification controls. The production-shaped symbol audit fails if any test or
+upstream entry point is exported.
+
+## Signing Behavior
+
+The wrapper validates all sizes and the 255-byte context bound before entropy
+acquisition. It obtains exactly 32 bytes inside the same translation unit that
+calls the upstream randomized signer. The source adapter is `getentropy` on
+the Linux/macOS prototype and `BCryptGenRandom` in the unvalidated Windows
+source path. There is no project DRBG, fallback source, public entropy callback,
+caller-supplied randomizer, or deterministic production mode.
+
+The module rejects source failure, a short result, an all-zero result, and an
+immediate repeat. It stores only a SHAKE256 digest of the last accepted
+randomizer. A process-wide C11 atomic lock serializes entropy acquisition,
+signing, repeat-state update, self-verification, cleanup, and result release.
+
+Signing occurs into a private temporary buffer. The wrapper requires the exact
+2,420-byte result and verifies it against the supplied 1,312-byte public key
+before copying it to the caller. Output that overlaps a key, message, or context
+is rejected without writing it. Once an exact, non-overlapping output buffer is
+accepted, every later failure leaves that complete buffer zeroed. The project
+zeroization hook uses volatile byte stores and is also used by the frozen
+backend for its signing temporaries.
+
+## Executable Evidence
+
+`run_wrapper_tests.py` builds from the checked-in capsule and verifies:
+
+- the exact source file set and aggregate hash;
+- the two-symbol production-shaped export surface;
+- the NIST ACVP key-generation `tgId=1`, `tcId=1` public/private key hashes;
+- the frozen repo signing hash previously agreed by all three comparator
+  implementations;
+- strict verification and mutated-signature rejection;
+- real OS-entropy signing twice through the production-shaped build;
+- source failure, short, all-zero, and repeated entropy;
+- backend failure, signing-attempt exhaustion mapping, wrong signature length,
+  and self-verification failure;
+- output/key alias rejection, including on another malformed argument;
+- zero output on every injected failure;
+- zeroization-hook execution; and
+- concurrent calls in which one repeated randomizer is accepted and the other
+  is rejected atomically.
+
+The dedicated workflow runs the harness and ASan/UBSan build with GCC and
+Clang on Ubuntu. The local macOS Clang harness also exercises `getentropy`.
+Injected failures validate wrapper control flow; they are not physical fault
+testing or evidence that the real rejection loop exhausted.
+
+Run the bounded checks with:
+
+```bash
+python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --manifest-only
+python3 contrib/ml-dsa-engineering/run_wrapper_tests.py
+python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --sanitizers
+python3 -m unittest ci.test.test_ml_dsa_wrapper_prototype
+```
+
+## Residual Boundary
+
+This prototype advances engineering evidence but closes no production gate:
+
+- issue `#184`: Linux/macOS OS-RBG calls and fail-closed behavior now execute,
+  but supported-platform RBG strength, fork/clone behavior, hardware signers,
+  Windows execution, and lifecycle review remain open;
+- issue `#185`: no compiled constant-time or worst-case supported-platform
+  assessment has occurred;
+- issue `#186`: self-verification and injected errors are partial controls,
+  not a complete fault model;
+- issue `#187`: explicit source cleanup and sanitizer evidence do not prove
+  erasure of compiler copies, registers, caller-owned keys, or crash artifacts;
+- issue `#188`: bounded negative tests are not structure-aware fuzzing or
+  resource-exhaustion coverage;
+- issue `#189`: the source capsule and network-free build are partial evidence,
+  not an SBOM, reproducibility campaign, or ongoing advisory process;
+- issue `#190`: key ownership, formats, backup, PSBT, and hardware-wallet
+  behavior remain unspecified; and
+- issue `#181`: no qualifying independent human cryptographic review has
+  accepted this exact implementation commit.
+
+No consensus-design work may use this prototype as production approval.
+Issues `#181` and `#184` through `#190` remain open.
