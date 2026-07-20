@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "frame_version": 1,
+  "fuzz_limits": {
+    "signature_bytes": 2421,
+    "public_key_bytes": 1313,
+    "context_bytes": 256,
+    "message_bytes": 4096,
+    "frame_bytes": 8096
+  },
+  "sources": {
+    "repo_vectors_sha256": "db9b2b9a87eaf2be9a7041fd5fcd57a810b115549ed88ffeb35e92f2559c8a04",
+    "wycheproof_vectors_sha256": "5ec04790c240c443ca8b662b8fc871834602c7cce87fcd36a193110745b2b9ea"
+  },
+  "generated_corpus": {
+    "total_cases": 207,
+    "unique_frames": 202,
+    "source_counts": {
+      "project": 27,
+      "wycheproof": 180
+    },
+    "expected_counts": {
+      "ok": 81,
+      "invalid_argument": 23,
+      "verify_rejection": 103
+    },
+    "aggregate_sha256": "555737837a1138ac2fb145e4b6258a1ecde02616911552ab883004d179625802"
+  }
+}

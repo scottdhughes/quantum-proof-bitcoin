@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repository": "https://github.com/C2SP/wycheproof",
+    "commit": "fc24cd5b787d8e496bff31b0468af693a652b0f2",
+    "license": "Apache-2.0",
+    "imported": "2026-07-20"
+  },
+  "license_file": {
+    "upstream_path": "LICENSE",
+    "git_blob_sha1": "7a4a3ea2424c09fbe48d455aed1eaa94d9124835",
+    "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd",
+    "size": 11357
+  },
+  "vector_file": {
+    "upstream_path": "testvectors_v1/mldsa_44_verify_test.json",
+    "git_blob_sha1": "44f1c08df53338b7a9ffd9c2e123e82e1cfbfaea",
+    "sha256": "5ec04790c240c443ca8b662b8fc871834602c7cce87fcd36a193110745b2b9ea",
+    "size": 1081169,
+    "algorithm": "ML-DSA-44",
+    "generator_version": "1",
+    "number_of_tests": 180
+  }
+}

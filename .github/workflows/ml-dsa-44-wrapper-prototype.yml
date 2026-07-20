@@ -34,3 +34,11 @@ jobs:
         run: |
           python3 contrib/ml-dsa-engineering/run_wrapper_tests.py
           python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --sanitizers
+          python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py --manifest-only
+          python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py
+
+      - name: Fuzz strict verifier with ASan and UBSan
+        if: matrix.compiler == 'clang'
+        env:
+          CC: clang
+        run: python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py --sanitizers --runs 10000

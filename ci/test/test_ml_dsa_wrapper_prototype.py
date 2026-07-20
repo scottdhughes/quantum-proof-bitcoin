@@ -15,6 +15,7 @@ ENGINEERING_DIR = REPO_ROOT / "contrib" / "ml-dsa-engineering"
 SOURCE_MANIFEST = ENGINEERING_DIR / "vendor" / "mldsa-native" / "SOURCE.json"
 ADMISSION = ENGINEERING_DIR / "backend_admission.json"
 PROTOTYPE_DOCUMENT = REPO_ROOT / "docs" / "ML_DSA_44_WRAPPER_PROTOTYPE.md"
+FUZZ_MANIFEST = ENGINEERING_DIR / "verifier_fuzz_corpus.json"
 
 
 class MlDsaWrapperPrototypeTest(unittest.TestCase):
@@ -76,6 +77,27 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
     def test_wrapper_build_and_behavior(self):
         subprocess.run(
             [sys.executable, str(ENGINEERING_DIR / "run_wrapper_tests.py")],
+            cwd=REPO_ROOT,
+            check=True,
+        )
+
+    def test_verifier_fuzz_corpus_is_frozen(self):
+        manifest = json.loads(FUZZ_MANIFEST.read_text(encoding="utf8"))
+        self.assertEqual(manifest["schema_version"], 1)
+        self.assertEqual(manifest["frame_version"], 1)
+        self.assertEqual(manifest["fuzz_limits"]["frame_bytes"], 8096)
+        self.assertEqual(manifest["generated_corpus"]["total_cases"], 207)
+        self.assertEqual(manifest["generated_corpus"]["unique_frames"], 202)
+        self.assertEqual(
+            manifest["generated_corpus"]["source_counts"],
+            {"project": 27, "wycheproof": 180},
+        )
+        subprocess.run(
+            [
+                sys.executable,
+                str(ENGINEERING_DIR / "run_verifier_fuzz.py"),
+                "--manifest-only",
+            ],
             cwd=REPO_ROOT,
             check=True,
         )
