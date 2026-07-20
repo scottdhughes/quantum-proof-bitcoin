@@ -138,6 +138,34 @@ class MlDsaSustainedFuzzTest(unittest.TestCase):
                     self.assertTrue(required <= command)
                     self.assertTrue(prohibited.isdisjoint(command))
 
+    def test_compiler_tool_uses_matching_versioned_fallback(self):
+        completed = (
+            subprocess.CompletedProcess(
+                args=["clang", "--print-prog-name=llvm-profdata"],
+                returncode=0,
+                stdout="llvm-profdata\n",
+                stderr="",
+            ),
+            subprocess.CompletedProcess(
+                args=["clang", "--version"],
+                returncode=0,
+                stdout="Ubuntu clang version 18.1.3\n",
+                stderr="",
+            ),
+        )
+
+        def resolve(candidate):
+            return "/usr/bin/llvm-profdata-18" if candidate == "llvm-profdata-18" else None
+
+        with mock.patch.object(
+            verifier_fuzz.subprocess,
+            "run",
+            side_effect=completed,
+        ), mock.patch.object(verifier_fuzz.shutil, "which", side_effect=resolve):
+            tool = verifier_fuzz.compiler_tool("clang", "llvm-profdata")
+
+        self.assertEqual(tool, "/usr/bin/llvm-profdata-18")
+
     def test_empty_minimized_corpus_is_a_campaign_failure(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

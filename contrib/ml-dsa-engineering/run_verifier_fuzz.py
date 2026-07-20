@@ -904,11 +904,24 @@ def compiler_tool(compiler: str, tool: str) -> str:
         stderr=subprocess.DEVNULL,
         text=True,
     )
-    candidate = completed.stdout.strip()
-    resolved = shutil.which(candidate) if candidate else None
-    if completed.returncode != 0 or resolved is None:
-        raise FuzzHarnessError(f"matching {tool} is unavailable for {compiler}")
-    return resolved
+    printed_candidate = completed.stdout.strip()
+    compiler_version = compiler_identity(compiler)
+    version_match = re.search(r"\bclang version (\d+)", compiler_version)
+    candidates = []
+    if printed_candidate and printed_candidate != tool:
+        candidates.append(printed_candidate)
+    if version_match:
+        candidates.append(f"{tool}-{version_match.group(1)}")
+    if printed_candidate:
+        candidates.append(printed_candidate)
+    candidates.append(tool)
+    for candidate in dict.fromkeys(candidates):
+        resolved = shutil.which(candidate)
+        if resolved is not None:
+            return resolved
+    raise FuzzHarnessError(
+        f"matching {tool} is unavailable for {compiler} ({compiler_version})"
+    )
 
 
 def coverage_tool_identities(compiler: str) -> dict:

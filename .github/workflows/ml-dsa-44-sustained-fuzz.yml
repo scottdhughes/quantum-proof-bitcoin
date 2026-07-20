@@ -61,8 +61,8 @@ jobs:
         run: |
           set -euxo pipefail
           clang --version
-          llvm-profdata --version
-          llvm-cov --version
+          llvm-profdata-18 --version
+          llvm-cov-18 --version
           python3 --version
 
       - name: Restore latest retained corpus
