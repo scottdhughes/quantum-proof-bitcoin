@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-07-19
+## Updated: 2026-07-20
 ## Current Phase: Phase 1 - Cryptographic Production Hold
 
 ## Purpose
@@ -23,8 +23,9 @@ controlling evidence and replacement-gate record.
 
 The current implementation lane is isolated standards and remediation
 evidence. The FIPS 205 `SLH-DSA-SHA2-128s` prototype, FIPS 204 `ML-DSA-44`
-comparator, hedged-signing contract, and backend-admission record are all kept
-outside inventory policy, `ALG_ID`, Script, wallet, and consensus changes.
+comparator, hedged-signing contract, backend-admission record, and portable-C
+wrapper prototype are all kept outside inventory policy, `ALG_ID`, Script,
+wallet, and consensus changes.
 
 The first isolated reference slice is recorded in
 `SLH_DSA_SHA2_128S_REFERENCE.md`. It pins NIST ACVP and portable-C source
@@ -103,12 +104,27 @@ successfully, and the merge commit completed all `26/26` checks successfully.
 Issue `#184` remains open because this was design evidence, not a production
 backend binding.
 
-`ML_DSA_44_BACKEND_ADMISSION.md` now records the next bounded decision:
+`ML_DSA_44_BACKEND_ADMISSION.md` records the bounded decision:
 `MLDSA_NATIVE_PORTABLE_C_ISOLATED_PROTOTYPE`. The pinned `mldsa-native`
 portable-C path is admitted only for a separate production-shaped wrapper
 prototype. The production backend remains `NONE`; OpenSSL and libcrux remain
 oracles, every release gate remains open, and no node, wallet, Script,
 consensus, `ALG_ID`, or inventory policy change is authorized.
+
+PR `#193` landed that backend-admission decision at merge commit
+`fab368979b15cb3b6a47544a4690ecb1abe6cc92`. Its duplicate branch checks were
+`8/8` green, post-merge Promotion Matrix run `29709103397` was `21/21` green,
+and merge-commit checks were `26/26` green.
+
+`ML_DSA_44_WRAPPER_PROTOTYPE.md` now records the admitted implementation. It
+checks in the exact 34-file portable source closure, compiles one translation
+unit, exports only hedged signing and strict verification from the
+production-shaped build, and keeps vectors and injected failures in a separate
+test build. The network-free harness checks source hashes, frozen vectors,
+real OS entropy, fail-closed output, concurrent repeat rejection, symbol
+isolation, and ASan/UBSan. This advances issues `#184`, `#187`, `#188`, and
+`#189` with bounded evidence but closes none of them. Production remains
+`NONE`, and no product or inventory boundary changes.
 
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,
@@ -208,7 +224,10 @@ Cryptography implementation lane:
    - retain PR `#192` and `ML_DSA_44_HEDGED_SIGNING_CONTRACT.md` as partial
      design evidence for issue `#184`; the finding remains open
    - apply `MLDSA_NATIVE_PORTABLE_C_ISOLATED_PROTOTYPE` as a bounded wrapper
-     target, not production backend approval
+     implementation, not production backend approval
+   - retain `ML_DSA_44_WRAPPER_PROTOTYPE.md` as isolated source, entropy,
+     symbol, failure, concurrency, vector, and sanitizer evidence; do not treat
+     it as supported-platform or lifecycle approval
    - keep OpenSSL and libcrux as comparator oracles and keep the production
      backend at `NONE`
    - obtain a qualifying independent-human re-review against exact remediation
@@ -238,11 +257,12 @@ Cryptography implementation lane:
    as the selected engineering candidate. Independent implementation evidence
    is complete; PR `#183` concluded `REMEDIATE_AND_REREVIEW`, and issues `#184`
    through `#190` remain open. PR `#192` landed the issue `#184`
-   hedged-signing design contract. The current bounded lane admits only the
-   pinned `mldsa-native` portable-C path for an isolated wrapper prototype;
+   hedged-signing design contract, and PR `#193` admitted the exact portable-C
+   backend target. The isolated wrapper prototype now implements that target;
    production remains `NONE`. Status remains `AWAITING_EXTERNAL_REVIEW`; a
-   qualifying independent-human re-review and worst-case system measurements
-   remain required. Script and wallet integration remain out of scope.
+   qualifying independent-human re-review and supported-platform worst-case
+   measurements remain required. Script and wallet integration remain out of
+   scope.
 
 
 ## Historical Queue Ledger
@@ -1736,6 +1756,16 @@ Aineko must ask before:
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
 
+- 2026-07-20: The admitted portable-C wrapper prototype was implemented under
+  `contrib/` with a hashed 34-file source capsule, one translation unit, two
+  production-shaped exports, internal OS entropy, mandatory self-verification,
+  fail-closed output, atomic repeat detection, frozen-vector checks, and
+  ASan/UBSan. Test controls remain in a separate build. Production stays
+  `NONE`; issues `#181` and `#184` through `#190` remain open.
+- 2026-07-19: PR `#193` landed the backend-admission decision at merge commit
+  `fab368979b15cb3b6a47544a4690ecb1abe6cc92`. Duplicate branch checks were
+  `8/8` green, post-merge Promotion Matrix run `29709103397` was `21/21`
+  green, and merge-commit checks were `26/26` green.
 - 2026-07-19: The backend comparison admitted the pinned `mldsa-native`
   `v1.0.0-beta2` portable-C path as
   `MLDSA_NATIVE_PORTABLE_C_ISOLATED_PROTOTYPE`. Its frozen next-slice contract

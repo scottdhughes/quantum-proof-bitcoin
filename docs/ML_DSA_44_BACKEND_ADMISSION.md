@@ -1,9 +1,9 @@
 # ML-DSA-44 Backend Admission
 
-## Status: ISOLATED_PROTOTYPE_ADMITTED - RELEASE_HOLD
+## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-BACKEND-ADMISSION-v1
 ## Decided: 2026-07-19
-## Evidence-Updated: 2026-07-19
+## Evidence-Updated: 2026-07-20
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -17,10 +17,11 @@ separate `contrib/` prototype to implement and test the project-owned
 hedged-signing wrapper. The production backend remains `NONE`, and
 `RELEASE_HOLD` remains in force.
 
-This decision does not vendor or link a backend. It authorizes one bounded
-prototype lane only. It does not authorize node, wallet, Script, consensus,
-`ALG_ID`, or functional-suite inventory changes. OpenSSL 3.6.3 and libcrux
-0.0.10 remain comparator oracles, not production dependencies.
+The authorized slice now vendors the exact portable dependency closure and
+compiles it only inside the isolated `contrib/` wrapper. It does not link that
+wrapper into the node, wallet, Script, consensus, packaging, or an `ALG_ID`.
+OpenSSL 3.6.3 and libcrux 0.0.10 remain comparator oracles, not production
+dependencies.
 
 The machine-readable disposition is
 `contrib/ml-dsa-engineering/backend_admission.json`. CI checks that its source
@@ -103,8 +104,8 @@ prefer a wider integration boundary for the first prototype.
 
 ## Frozen Prototype Build Contract
 
-The next implementation slice must use the exact source pin in
-`backend_admission.json` and satisfy all of these conditions:
+The implemented wrapper uses the exact source pin in `backend_admission.json`
+and is required to preserve all of these conditions:
 
 1. compile only ML-DSA-44 and the portable C arithmetic/FIPS 202 paths;
 2. use one translation unit and mark upstream APIs `static`;
@@ -120,11 +121,33 @@ The next implementation slice must use the exact source pin in
 8. remain under `contrib/` with no node, wallet, Script, consensus, `ALG_ID`,
    packaging, or inventory connection.
 
-The prototype must have two builds. The production-shaped build exports only
-the restricted wrapper. A separately named test build may expose deterministic
-or fixed-randomizer operations for official-vector testing. CI must inspect the
-production-shaped symbol table and fail if a deterministic or internal signing
-entry point is exported.
+The prototype has two builds. The production-shaped build exports only the
+restricted wrapper. A separately named test build exposes deterministic or
+fixed-randomizer operations for vector testing. CI inspects the
+production-shaped symbol table and fails if a deterministic, test, or upstream
+signing entry point is exported.
+
+## Implemented Prototype Evidence
+
+`ML_DSA_44_WRAPPER_PROTOTYPE.md` records the completed bounded implementation.
+The checked-in source capsule contains the exact 34-file portable dependency
+closure and upstream license. Its aggregate SHA256 is
+`2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb`.
+The full pinned upstream Git archive SHA256 is
+`4fd08a772d0a142863593471f0c26e239bac8babc8e2a960e072f06ee89ff30b`.
+No native backend or assembly source is present.
+
+The production-shaped shared object exports exactly
+`pqbtc_mldsa44_sign_hedged` and `pqbtc_mldsa44_verify_strict`. The test build is
+separate and exposes deterministic/fixed-randomizer and injected-failure
+controls only for evidence generation. The harness exercises real OS entropy,
+frozen key/signature hashes, strict verification, fail-closed output,
+zeroization-hook execution, concurrent repeat rejection, and ASan/UBSan.
+
+This is implementation evidence for the admitted experiment, not a production
+backend disposition. The raw-key prototype ABI, process-global serialization,
+supported-platform behavior, lifecycle, compiler output, fault model, fuzzing,
+SBOM/advisory process, and human review remain unresolved.
 
 ## Gates That Remain Open
 
@@ -132,12 +155,12 @@ Prototype admission closes no production finding:
 
 | Gate | Tracking | State after this decision |
 | --- | --- | --- |
-| Entropy and fail-closed binding | #184 | partial design only; no real wrapper or platform RBG test |
+| Entropy and fail-closed binding | #184 | isolated wrapper and Linux/macOS RBG evidence; supported-platform lifecycle remains open |
 | Supported-platform side channels | #185 | open |
 | Fault model and injected faults | #186 | open |
-| End-to-end secret erasure | #187 | open |
-| Structure-aware fuzzing and resource limits | #188 | open |
-| Backend advisories, SBOM, and reproducible build | #189 | open |
+| End-to-end secret erasure | #187 | source cleanup and sanitizer evidence only; compiler/caller/platform boundary open |
+| Structure-aware fuzzing and resource limits | #188 | bounded failure harness only; structure-aware fuzzing and resource limits open |
+| Backend advisories, SBOM, and reproducible build | #189 | pinned network-free source capsule only; SBOM, reproducibility, and monitoring open |
 | Wallet and key format | #190 | open |
 | Independent human cryptographic review | #181 | open |
 
@@ -152,13 +175,18 @@ Run the bounded decision checks with:
 ```bash
 python3 -m unittest ci.test.test_ml_dsa_backend_admission
 python3 -m unittest ci.test.test_ml_dsa_hedged_signing_contract
+python3 -m unittest ci.test.test_ml_dsa_wrapper_prototype
+python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --manifest-only
+python3 contrib/ml-dsa-engineering/run_wrapper_tests.py
+python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --sanitizers
 python3 -m unittest discover -s ci/test -p 'test_*dsa_reference.py'
 python3 contrib/ml-dsa-ref/compare_oracles.py --manifest-only
 python3 contrib/slh-dsa-ref/compare_oracles.py --manifest-only
 python3 ci/test/check_ci_inventory.py
 ```
 
-No command above compiles or admits a production cryptographic backend.
+The wrapper commands compile only the isolated production-shaped evidence
+artifact. They do not admit or link a production cryptographic backend.
 
 ## Primary Sources
 

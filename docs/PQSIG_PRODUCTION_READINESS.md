@@ -3,7 +3,7 @@
 ## Status: RELEASE_HOLD - AWAITING_EXTERNAL_REVIEW
 ## Spec-ID: PQSIG-PRODUCTION-READINESS-v1
 ## Decided: 2026-07-18
-## Evidence-Updated: 2026-07-19
+## Evidence-Updated: 2026-07-20
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -33,6 +33,15 @@ prototype under `contrib/`. The production backend remains `NONE`; OpenSSL and
 libcrux remain oracles. This narrows the next experiment without satisfying a
 production gate or authorizing node, wallet, Script, consensus, or `ALG_ID`
 work.
+
+`ML_DSA_44_WRAPPER_PROTOTYPE.md` records that bounded experiment as
+implemented. The exact portable source capsule, two-symbol production-shaped
+surface, OS-entropy signer, self-verification, failure injection, concurrent
+repeat guard, frozen vectors, and sanitizer harness are executable. The raw-key
+prototype ABI, supported-platform lifecycle, side channels, physical faults,
+complete erasure, fuzz/resource limits, SBOM/advisory operations, wallet
+formats, and independent review remain open. This changes evidence depth, not
+the production disposition.
 
 ## Evidence Classification
 
@@ -169,15 +178,16 @@ selected for activation by this record.
    contract. Preserve `SLH-DSA-SHA2-128s` as the fallback and keep production
    on `HOLD`.
 8. Use `ML_DSA_44_HEDGED_SIGNING_CONTRACT.md` as the project-owned entropy and
-   failure boundary for issue `#184`. Its executable Python model is design
-   evidence only. Do not close the finding until a selected backend implements
-   the contract in a production build, platform RNG and lifecycle tests pass,
-   and the exact implementation commit is re-reviewed.
-9. Apply `ML_DSA_44_BACKEND_ADMISSION.md` only to the next isolated prototype.
-   Use the exact pinned `mldsa-native` portable-C source, one translation unit,
-   hidden upstream symbols, project RNG and zeroization hooks, and a hedged-only
-   exported wrapper. Keep the production backend unset until the resulting
-   binary passes the open issues and independent review.
+   failure boundary for issue `#184`. Its Python model and isolated C wrapper
+   are design and prototype evidence only. Do not close the finding until a
+   production proposal freezes supported platforms and key ownership, platform
+   RNG and lifecycle tests pass, and the exact implementation commit is
+   re-reviewed.
+9. Preserve the implemented `ML_DSA_44_WRAPPER_PROTOTYPE.md` boundary: exact
+   pinned portable source, one translation unit, hidden upstream symbols,
+   project RNG and zeroization hooks, hedged-only signing, strict verification,
+   and separate test controls. Keep the production backend unset while the
+   resulting binaries remain under the open issues and independent review.
 
 ## Required Gates Before Consensus Integration
 
@@ -205,11 +215,12 @@ For ML-DSA-44, gate 4 is now complete at the isolated comparator level. Gate 5
 has bounded evidence but remains open for exhaustive fuzzing and resource
 exhaustion. The AI-assisted review is merged with a
 `REMEDIATE_AND_REREVIEW` disposition and seven open Medium findings; the gate
-10 independent-human review has not occurred. The hedged-signing contract is
-partial design evidence for issue `#184`, not a production implementation.
-The backend-admission decision selects a portable-C isolated prototype target,
-not a production dependency; every gate recorded in its machine-readable
-manifest remains open.
+10 independent-human review has not occurred. The hedged-signing contract now
+has an isolated C implementation, but its platform and lifecycle boundaries
+remain partial evidence for issue `#184`, not a production implementation.
+The backend-admission decision and wrapper prototype remain research
+dependencies only; every gate recorded in the machine-readable manifest
+remains open.
 The other integration, system, review, soak, and release gates remain open. No
 completion recorded here changes the consensus accepted set.
 

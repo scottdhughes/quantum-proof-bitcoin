@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: RESEARCH-INDEX-v1
-## Updated: 2026-07-19
+## Updated: 2026-07-20
 ## Consensus-Relevant: NO
 
 ## Purpose
@@ -41,13 +41,18 @@ answer specific classes of questions instead of listing every file in `docs/`.
 - `ML_DSA_44_HEDGED_SIGNING_CONTRACT.md` defines the first remediation design
   boundary: internally generated 32-byte `rnd`, hedged-only production API,
   fail-closed errors, serialized callers, self-verification, lifecycle limits,
-  and explicit rollback residual risk. Its executable model is not the
-  admitted backend wrapper or a production implementation, so issue `#184`
-  remains open.
+  and explicit rollback residual risk. Its Python model remains separate from
+  the implemented portable-C wrapper; neither is a production implementation,
+  so issue `#184` remains open.
 - `ML_DSA_44_BACKEND_ADMISSION.md` admits the pinned `mldsa-native` portable-C
   path for an isolated wrapper prototype. The production backend remains
   `NONE`; OpenSSL and libcrux remain oracles, every release gate remains open,
   and no node or consensus integration is authorized.
+- `ML_DSA_44_WRAPPER_PROTOTYPE.md` records that isolated implementation: an
+  exact 34-file portable source capsule, one translation unit, two-symbol
+  production-shaped surface, internal OS entropy, fail-closed self-verifying
+  signing, frozen vectors, concurrent-repeat tests, and sanitizers. It remains
+  outside the product, and all production findings remain open.
 - No PDF papers are currently checked into this repo.
 - Delving Bitcoin now provides concrete adjacent research references that are
   directly relevant to Track A, especially around SHRINCS / SHRIMPS and
@@ -122,6 +127,9 @@ answer specific classes of questions instead of listing every file in `docs/`.
 - [ML_DSA_44_BACKEND_ADMISSION.md](ML_DSA_44_BACKEND_ADMISSION.md)
   Pinned three-candidate backend comparison and the portable-C isolated
   prototype admission, with an explicit `NONE` production backend.
+- [ML_DSA_44_WRAPPER_PROTOTYPE.md](ML_DSA_44_WRAPPER_PROTOTYPE.md)
+  Implemented isolated portable-C wrapper, exact source capsule, test
+  boundary, and residual production gates.
 - [ML_DSA_44_WOLFRAM_ORACLE.md](ML_DSA_44_WOLFRAM_ORACLE.md)
   Supplemental exact-arithmetic cross-check for bounded FIPS 204 algebra,
   encoding boundaries, and malformed hint rejection. It is not another native

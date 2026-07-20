@@ -3,6 +3,7 @@
 ## Status: AWAITING_EXTERNAL_REVIEW - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-EXTERNAL-REVIEW-v1
 ## Prepared: 2026-07-19
+## Evidence-Updated: 2026-07-20
 ## Owner: @scottdhughes
 ## Tracking: https://github.com/scottdhughes/quantum-proof-bitcoin/issues/181
 ## Consensus-Relevant: NO
@@ -37,6 +38,20 @@ from that baseline:
 Any substantive change to those files or to a pinned upstream artifact requires
 an explicit review-delta assessment. A green review of this package does not
 automatically cover later code.
+
+The post-package remediation target now also includes the isolated wrapper
+recorded in `ML_DSA_44_WRAPPER_PROTOTYPE.md`. A review intended to satisfy issue
+`#181` must record the exact wrapper commit and cover at least:
+
+- `contrib/ml-dsa-engineering/pqbtc_mldsa44.c` and its public/config headers;
+- the complete `vendor/mldsa-native/` capsule and `SOURCE.json` provenance;
+- `contrib/ml-dsa-engineering/run_wrapper_tests.py` and the C smoke harness;
+- the production-shaped dynamic symbol table and compiled binaries for every
+  proposed supported platform; and
+- the machine-readable admission record and open-gate dispositions.
+
+No review of the earlier comparator baseline automatically accepts this later
+wrapper implementation.
 
 ## Frozen Candidate Contract
 
@@ -363,8 +378,11 @@ consensus design, or removal of `RELEASE_HOLD`.
   channel behavior do not.
 - The C sanitizer tranche is bounded. There is no exhaustive fuzzing, Rust
   sanitizer coverage, production parser, or resource-exhaustion campaign.
-- The research wrappers use POSIX `/dev/urandom`; they are not a node, wallet,
-  hardware-signer, or entropy-failure design.
+- The comparator oracle wrappers use POSIX `/dev/urandom`; they are not a node,
+  wallet, hardware-signer, or entropy-failure design.
+- The separate isolated wrapper uses `getentropy` on Linux/macOS and contains
+  an unvalidated Windows adapter, but it is still not a supported-platform,
+  wallet, hardware-signer, fork/clone, or production lifecycle design.
 - Existing timings are directional arm64 measurements, not supported-platform
   envelopes or worst-case block-validation results.
 - Public-key commitment, witness encoding, fee policy, stack limits, wallet and

@@ -67,6 +67,33 @@
       "custom_randombytes_inside_wrapper_module": true,
       "custom_zeroize_required": true,
       "self_verify_before_release": true
+    },
+    "implementation_evidence": {
+      "status": "ISOLATED_PROTOTYPE_IMPLEMENTED",
+      "source_capsule": {
+        "manifest": "contrib/ml-dsa-engineering/vendor/mldsa-native/SOURCE.json",
+        "files": 34,
+        "upstream_git_archive_tar_sha256": "4fd08a772d0a142863593471f0c26e239bac8babc8e2a960e072f06ee89ff30b",
+        "capsule_sha256": "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb",
+        "native_backend_files": 0
+      },
+      "translation_unit": "contrib/ml-dsa-engineering/pqbtc_mldsa44.c",
+      "production_shaped_exports": [
+        "pqbtc_mldsa44_sign_hedged",
+        "pqbtc_mldsa44_verify_strict"
+      ],
+      "test_build_separate": true,
+      "test_controls_in_production_shaped_build": false,
+      "os_entropy_adapters_in_source": [
+        "getentropy",
+        "BCryptGenRandom"
+      ],
+      "repeat_guard": "SHAKE256_DIGEST_OF_LAST_ACCEPTED_RANDOMIZER",
+      "module_signing_serialized": true,
+      "partial_output_released_on_failure": false,
+      "node_linkage": false,
+      "wallet_linkage": false,
+      "consensus_linkage": false
     }
   },
   "candidate_assessments": {
@@ -107,7 +134,7 @@
   "open_gates": [
     {
       "id": "entropy_and_failure_binding",
-      "status": "PARTIAL_DESIGN_ONLY",
+      "status": "ISOLATED_PROTOTYPE_EVIDENCE_PLATFORM_LIFECYCLE_OPEN",
       "tracking_issue": 184
     },
     {
@@ -122,17 +149,17 @@
     },
     {
       "id": "secret_lifecycle_and_erasure",
-      "status": "OPEN",
+      "status": "ISOLATED_SOURCE_AND_SANITIZER_EVIDENCE_OPEN",
       "tracking_issue": 187
     },
     {
       "id": "structure_aware_fuzzing_and_resources",
-      "status": "OPEN",
+      "status": "BOUNDED_FAILURE_HARNESS_ONLY_OPEN",
       "tracking_issue": 188
     },
     {
       "id": "backend_advisory_and_sbom_refresh",
-      "status": "OPEN",
+      "status": "PINNED_SOURCE_CAPSULE_ONLY_OPEN",
       "tracking_issue": 189
     },
     {

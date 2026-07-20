@@ -2,7 +2,7 @@
 
 ## Status: ENGINEERING_CONTRACT - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-HEDGED-SIGNING-v1
-## Updated: 2026-07-19
+## Updated: 2026-07-20
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -14,17 +14,18 @@ failure: no deterministic, all-zero, stale, caller-supplied, or partial output
 may be returned.
 
 This document is a project-owned engineering contract and partial remediation
-for issue `#184`. The executable model in
-`contrib/ml-dsa-engineering/hedged_signing_contract.py` makes the error and
-concurrency behavior testable, but it is not a cryptographic implementation.
-It is not linked into the node, wallet, Script, or an `ALG_ID`, and it does not
-close issue `#184` or remove `RELEASE_HOLD`.
+for issue `#184`. The executable Python model makes the error and concurrency
+behavior testable. The isolated portable-C implementation in
+`contrib/ml-dsa-engineering/pqbtc_mldsa44.c` now binds the same contract to the
+pinned backend without linking it into the node, wallet, Script, or an
+`ALG_ID`. This evidence does not close issue `#184` or remove `RELEASE_HOLD`.
 
 `ML_DSA_44_BACKEND_ADMISSION.md` admits the pinned `mldsa-native` portable-C
 path for a separate isolated wrapper prototype. That decision supplies a
 bounded implementation target for this contract, not a production backend.
-The production backend remains `NONE`, and all platform, lifecycle, review,
-and release gates remain open.
+That target is now implemented and tested under `contrib/`. The production
+backend remains `NONE`, and all platform, lifecycle, review, and release gates
+remain open.
 
 ## Standards Basis
 
@@ -89,13 +90,18 @@ boundary. Passing `rnd` across an opaque provider, process, device, or FFI
 boundary does not satisfy this contract unless that complete boundary is
 specified and shown to meet FIPS 204.
 
-For the admitted isolated prototype, the intended module is one portable-C
+The admitted isolated prototype is one portable-C
 translation unit containing the project wrapper, project random-byte and
 zeroization hooks, and the pinned `mldsa-native` source. All upstream entry
 points are `static`; only the project hedged-signing wrapper and strict
 verification surface may be exported. A separately named test build may expose
 fixed-randomizer operations for official vectors, but those symbols may not
 appear in the production-shaped prototype.
+
+The implemented prototype currently accepts exact raw secret/public key
+buffers because the production key-handle and ownership model remains open
+under issue `#190`. This is a testable C boundary, not approval of that raw-key
+ABI for wallets or hardware signers.
 
 ## Entropy Contract
 
@@ -149,9 +155,11 @@ remains open.
 
 The implementation must destroy `rnd`, expanded secret-key material, sampling
 state, and partial signatures on every exit path using compiler-resistant
-facilities appropriate to the selected language and backend. The Python model
-overwrites its mutable `rnd` buffer so cleanup paths are executable, but Python
-cannot establish compiler-resistant erasure. Issue `#187` remains open.
+facilities appropriate to the selected language and backend. The C prototype
+provides a volatile-store zeroization hook used by both wrapper and backend and
+passes ASan/UBSan, but that cannot prove erasure of compiler copies, registers,
+caller-owned keys, crash artifacts, or future FFI objects. Issue `#187` remains
+open.
 
 ## Concurrency And Lifecycle
 
@@ -185,6 +193,9 @@ Run the bounded contract tests with:
 
 ```bash
 python3 -m unittest ci.test.test_ml_dsa_hedged_signing_contract
+python3 -m unittest ci.test.test_ml_dsa_wrapper_prototype
+python3 contrib/ml-dsa-engineering/run_wrapper_tests.py
+python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --sanitizers
 ```
 
 They cover:
@@ -197,6 +208,13 @@ They cover:
   error;
 - cleanup of the model's mutable randomizer buffer; and
 - invalid input rejection before entropy acquisition.
+
+The C harness additionally checks the exact portable source capsule, the
+two-symbol production-shaped export surface, frozen vector hashes, real
+Linux/macOS OS-entropy signing, zero output on injected failures, the explicit
+zeroization hook, and atomic repeat rejection across concurrent callers. Test
+fault controls are absent from the production-shaped build. These are bounded
+prototype results, not supported-platform approval or physical fault evidence.
 
 ## Exit Criteria
 
