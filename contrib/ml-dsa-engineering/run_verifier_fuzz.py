@@ -6,15 +6,19 @@
 import argparse
 import ctypes
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
 from pathlib import Path
+import platform
 import re
 import shutil
 import struct
+import subprocess
 import sys
 import tempfile
+import time
 
 import run_wrapper_tests as wrapper
 
@@ -61,6 +65,16 @@ RESULT_NAMES = {
     ERR_INVALID_ARGUMENT: "invalid_argument",
     ERR_VERIFY: "verify_rejection",
 }
+SANITIZERS = {
+    "address-undefined": "fuzzer,address,undefined",
+    "memory": "fuzzer,memory",
+}
+CAMPAIGN_SCHEMA_VERSION = 1
+MAX_RETAINED_CORPUS_FILES = 4096
+MAX_RETAINED_CORPUS_BYTES = 32 * 1024 * 1024
+CAMPAIGN_TIMEOUT_ALLOWANCE_SECONDS = 30
+CORPUS_MINIMIZATION_TIMEOUT_SECONDS = 150
+CRASH_MINIMIZATION_TIMEOUT_SECONDS = 75
 
 
 class FuzzHarnessError(RuntimeError):
@@ -534,12 +548,102 @@ def corpus_filename(case: CorpusCase) -> str:
 
 
 def materialize_corpus(directory: Path, cases: list[CorpusCase]) -> None:
-    directory.mkdir()
+    directory.mkdir(parents=True, exist_ok=True)
     for case in cases:
         (directory / corpus_filename(case)).write_bytes(case.frame)
 
 
-def compile_fuzzer(compiler: str, build_dir: Path) -> Path:
+def import_seed_corpus(source: Path, destination: Path) -> int:
+    if not source.is_dir():
+        raise FuzzHarnessError(f"seed corpus is not a directory: {source}")
+    imported = 0
+    total_bytes = 0
+    candidates = [
+        path for path in sorted(source.iterdir()) if not path.is_symlink() and path.is_file()
+    ]
+    if len(candidates) > MAX_RETAINED_CORPUS_FILES:
+        raise FuzzHarnessError("retained corpus exceeds the file-count bound")
+    for path in candidates:
+        size = path.stat().st_size
+        if size > MAX_FRAME_BYTES:
+            raise FuzzHarnessError(f"retained corpus input exceeds fuzz bound: {path}")
+        total_bytes += size
+        if total_bytes > MAX_RETAINED_CORPUS_BYTES:
+            raise FuzzHarnessError("retained corpus exceeds the aggregate byte bound")
+        data = path.read_bytes()
+        if len(data) != size:
+            raise FuzzHarnessError(f"retained corpus input changed during import: {path}")
+        digest = hashlib.sha256(data).hexdigest()
+        target = destination / f"retained_{digest}.bin"
+        if not target.exists():
+            target.write_bytes(data)
+            imported += 1
+    return imported
+
+
+def directory_summary(directory: Path) -> dict:
+    digest = hashlib.sha256()
+    file_count = 0
+    total_bytes = 0
+    if directory.is_dir():
+        for path in sorted(item for item in directory.rglob("*") if item.is_file()):
+            relative = path.relative_to(directory).as_posix()
+            data = path.read_bytes()
+            file_digest = hashlib.sha256(data).hexdigest()
+            digest.update(f"{relative}\0{len(data)}\0{file_digest}\n".encode())
+            file_count += 1
+            total_bytes += len(data)
+    return {
+        "file_count": file_count,
+        "total_bytes": total_bytes,
+        "aggregate_sha256": digest.hexdigest(),
+    }
+
+
+def compiler_identity(compiler: str) -> str:
+    completed = subprocess.run(
+        [compiler, "--version"],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    return completed.stdout.splitlines()[0] if completed.stdout else compiler
+
+
+def repository_commit() -> str:
+    github_sha = os.environ.get("GITHUB_SHA")
+    if github_sha:
+        return github_sha
+    completed = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=REPO_ROOT,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    return completed.stdout.strip() if completed.returncode == 0 else "unknown"
+
+
+def repository_dirty() -> bool | None:
+    completed = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=no"],
+        cwd=REPO_ROOT,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    return bool(completed.stdout) if completed.returncode == 0 else None
+
+
+def compile_fuzzer(
+    compiler: str,
+    build_dir: Path,
+    sanitizer: str,
+    coverage: bool,
+) -> Path:
     output = build_dir / "pqbtc_mldsa44_verify_fuzz"
     command = wrapper.common_flags(compiler)
     command.extend(
@@ -548,7 +652,15 @@ def compile_fuzzer(compiler: str, build_dir: Path) -> Path:
             "-g",
             "-fno-omit-frame-pointer",
             "-fno-sanitize-recover=all",
-            "-fsanitize=fuzzer,address,undefined",
+            f"-fsanitize={SANITIZERS[sanitizer]}",
+        ]
+    )
+    if sanitizer == "memory":
+        command.extend(["-fsanitize-memory-track-origins=2", "-fPIE", "-pie"])
+    if coverage:
+        command.extend(["-fprofile-instr-generate", "-fcoverage-mapping"])
+    command.extend(
+        [
             str(wrapper.WRAPPER_SOURCE),
             str(FUZZ_SOURCE),
             "-o",
@@ -559,26 +671,395 @@ def compile_fuzzer(compiler: str, build_dir: Path) -> Path:
     return output
 
 
-def run_fuzzer(executable: Path, corpus_dir: Path, artifact_dir: Path, runs: int) -> None:
+def captured_output(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf8", errors="replace")
+    return value
+
+
+def run_fuzzer(
+    executable: Path,
+    corpus_dir: Path,
+    artifact_dir: Path,
+    log_path: Path,
+    runs: int | None,
+    seconds: int | None,
+    sanitizer: str,
+    profile_pattern: Path | None,
+    seed: int,
+) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
-    env["ASAN_OPTIONS"] = "detect_leaks=0" if sys.platform == "darwin" else "detect_leaks=1"
+    if sanitizer == "address-undefined":
+        env["ASAN_OPTIONS"] = (
+            "detect_leaks=0" if sys.platform == "darwin" else "detect_leaks=1"
+        )
     env["UBSAN_OPTIONS"] = "halt_on_error=1:print_stacktrace=1"
-    wrapper.run(
-        [
+    if sanitizer == "memory":
+        env["MSAN_OPTIONS"] = "halt_on_error=1:print_stats=1"
+    if profile_pattern is not None:
+        env["LLVM_PROFILE_FILE"] = str(profile_pattern)
+    limit = f"-max_total_time={seconds}" if seconds is not None else f"-runs={runs}"
+    command = [
+        str(executable),
+        str(corpus_dir),
+        f"-artifact_prefix={artifact_dir}{os.sep}",
+        f"-max_len={MAX_FRAME_BYTES}",
+        limit,
+        f"-seed={seed}",
+        "-timeout=5",
+        "-rss_limit_mb=1024",
+        "-malloc_limit_mb=256",
+        "-use_value_profile=1",
+        "-print_final_stats=1",
+    ]
+    wall_timeout = (
+        seconds + CAMPAIGN_TIMEOUT_ALLOWANCE_SECONDS
+        if seconds is not None
+        else None
+    )
+    try:
+        completed = subprocess.run(
+            command,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=env,
+            timeout=wall_timeout,
+        )
+    except subprocess.TimeoutExpired as error:
+        completed = subprocess.CompletedProcess(
+            args=command,
+            returncode=124,
+            stdout=captured_output(error.stdout),
+            stderr=(
+                captured_output(error.stderr)
+                + f"\ncampaign exceeded the {wall_timeout}-second wall-clock limit\n"
+            ),
+        )
+    log_path.write_text(
+        f"command: {' '.join(command)}\n\nstdout:\n{completed.stdout}\n\nstderr:\n{completed.stderr}",
+        encoding="utf8",
+    )
+    return completed
+
+
+def minimize_corpus(
+    executable: Path,
+    corpus_dir: Path,
+    destination: Path,
+    log_path: Path,
+    sanitizer: str,
+    profile_pattern: Path | None,
+) -> None:
+    destination.mkdir()
+    env = os.environ.copy()
+    if sanitizer == "address-undefined":
+        env["ASAN_OPTIONS"] = (
+            "detect_leaks=0" if sys.platform == "darwin" else "detect_leaks=1"
+        )
+    env["UBSAN_OPTIONS"] = "halt_on_error=1:print_stacktrace=1"
+    if sanitizer == "memory":
+        env["MSAN_OPTIONS"] = "halt_on_error=1:print_stats=1"
+    if profile_pattern is not None:
+        env["LLVM_PROFILE_FILE"] = str(profile_pattern)
+    command = [
+        str(executable),
+        "-merge=1",
+        str(destination),
+        str(corpus_dir),
+        f"-max_len={MAX_FRAME_BYTES}",
+        "-timeout=5",
+        "-rss_limit_mb=1024",
+        "-malloc_limit_mb=256",
+        "-max_total_time=120",
+    ]
+    try:
+        completed = subprocess.run(
+            command,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=env,
+            timeout=CORPUS_MINIMIZATION_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as error:
+        log_path.write_text(
+            f"command: {' '.join(command)}\n\nstdout:\n"
+            f"{captured_output(error.stdout)}\n\nstderr:\n"
+            f"{captured_output(error.stderr)}\ncorpus minimization exceeded the "
+            f"{CORPUS_MINIMIZATION_TIMEOUT_SECONDS}-second wall-clock limit\n",
+            encoding="utf8",
+        )
+        raise FuzzHarnessError(
+            "corpus minimization exceeded its wall-clock limit"
+        ) from error
+    log_path.write_text(
+        f"command: {' '.join(command)}\n\nstdout:\n{completed.stdout}\n\n"
+        f"stderr:\n{completed.stderr}",
+        encoding="utf8",
+    )
+    if completed.returncode != 0:
+        raise FuzzHarnessError(f"corpus minimization failed ({completed.returncode})")
+    if directory_summary(destination)["file_count"] == 0:
+        raise FuzzHarnessError("corpus minimization produced an empty corpus")
+
+
+def minimize_crash_artifacts(
+    executable: Path,
+    artifact_dir: Path,
+    output_dir: Path,
+    sanitizer: str,
+    seed: int,
+) -> list[dict]:
+    artifacts = sorted(path for path in artifact_dir.iterdir() if path.is_file())
+    if not artifacts:
+        return []
+    destination = output_dir / "minimized-crashes"
+    destination.mkdir()
+    env = os.environ.copy()
+    if sanitizer == "address-undefined":
+        env["ASAN_OPTIONS"] = (
+            "detect_leaks=0" if sys.platform == "darwin" else "detect_leaks=1"
+        )
+    env["UBSAN_OPTIONS"] = "halt_on_error=1:print_stacktrace=1"
+    if sanitizer == "memory":
+        env["MSAN_OPTIONS"] = "halt_on_error=1:print_stats=1"
+    records = []
+    log_parts = []
+    for artifact in artifacts[:4]:
+        minimized = destination / artifact.name
+        command = [
             str(executable),
-            str(corpus_dir),
-            f"-artifact_prefix={artifact_dir}{os.sep}",
+            "-minimize_crash=1",
+            f"-exact_artifact_path={minimized}",
+            "-max_total_time=60",
             f"-max_len={MAX_FRAME_BYTES}",
-            f"-runs={runs}",
-            "-seed=188",
+            f"-seed={seed}",
             "-timeout=5",
             "-rss_limit_mb=1024",
             "-malloc_limit_mb=256",
-            "-use_value_profile=1",
-            "-print_final_stats=1",
-        ],
-        env=env,
+            str(artifact),
+        ]
+        try:
+            completed = subprocess.run(
+                command,
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env=env,
+                timeout=CRASH_MINIMIZATION_TIMEOUT_SECONDS,
+            )
+            return_code = completed.returncode
+            timed_out = False
+            error_message = None
+            log_parts.append(
+                f"command: {' '.join(command)}\nstdout:\n{completed.stdout}\n"
+                f"stderr:\n{completed.stderr}\n"
+            )
+        except subprocess.TimeoutExpired as error:
+            return_code = 124
+            timed_out = True
+            error_message = (
+                "crash minimization exceeded the "
+                f"{CRASH_MINIMIZATION_TIMEOUT_SECONDS}-second wall-clock limit"
+            )
+            log_parts.append(
+                f"command: {' '.join(command)}\nstdout:\n"
+                f"{captured_output(error.stdout)}\nstderr:\n"
+                f"{captured_output(error.stderr)}\nerror: {error_message}\n"
+            )
+        except OSError as error:
+            return_code = None
+            timed_out = False
+            error_message = str(error)
+            log_parts.append(f"command: {' '.join(command)}\nerror: {error}\n")
+        records.append(
+            {
+                "original": artifact.name,
+                "original_sha256": sha256_file(artifact),
+                "return_code": return_code,
+                "timed_out": timed_out,
+                "error": error_message,
+                "minimized": minimized.name if minimized.is_file() else None,
+                "minimized_sha256": sha256_file(minimized) if minimized.is_file() else None,
+            }
+        )
+    (output_dir / "crash-minimization.log").write_text(
+        "\n".join(log_parts),
+        encoding="utf8",
     )
+    return records
+
+
+def compiler_tool(compiler: str, tool: str) -> str:
+    completed = subprocess.run(
+        [compiler, f"--print-prog-name={tool}"],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    printed_candidate = completed.stdout.strip()
+    compiler_version = compiler_identity(compiler)
+    version_match = re.search(r"\bclang version (\d+)", compiler_version)
+    candidates = []
+    if printed_candidate and printed_candidate != tool:
+        candidates.append(printed_candidate)
+    if version_match:
+        candidates.append(f"{tool}-{version_match.group(1)}")
+    if printed_candidate:
+        candidates.append(printed_candidate)
+    candidates.append(tool)
+    for candidate in dict.fromkeys(candidates):
+        resolved = shutil.which(candidate)
+        if resolved is not None:
+            return resolved
+    raise FuzzHarnessError(
+        f"matching {tool} is unavailable for {compiler} ({compiler_version})"
+    )
+
+
+def coverage_tool_identities(compiler: str) -> dict:
+    identities = {}
+    for tool in ("llvm-profdata", "llvm-cov"):
+        try:
+            path = compiler_tool(compiler, tool)
+            identities[tool] = {
+                "path": path,
+                "version": compiler_identity(path),
+            }
+        except (FuzzHarnessError, OSError) as error:
+            identities[tool] = {"error": str(error)}
+    return identities
+
+
+def write_coverage_report(compiler: str, executable: Path, output_dir: Path) -> None:
+    profiles = sorted(output_dir.glob("coverage-*.profraw"))
+    if not profiles:
+        raise FuzzHarnessError("LLVM coverage profiles are unavailable")
+    llvm_profdata = compiler_tool(compiler, "llvm-profdata")
+    llvm_cov = compiler_tool(compiler, "llvm-cov")
+    merged = output_dir / "coverage.profdata"
+    wrapper.run([llvm_profdata, "merge", "-sparse", *map(str, profiles), "-o", str(merged)])
+    report = wrapper.run(
+        [
+            llvm_cov,
+            "report",
+            str(executable),
+            f"-instr-profile={merged}",
+        ]
+    )
+    (output_dir / "coverage.txt").write_text(report, encoding="utf8")
+    exported = wrapper.run(
+        [
+            llvm_cov,
+            "export",
+            "-summary-only",
+            str(executable),
+            f"-instr-profile={merged}",
+        ]
+    )
+    parsed = json.loads(exported)
+    (output_dir / "coverage.json").write_text(
+        json.dumps(parsed, indent=2, sort_keys=True) + "\n",
+        encoding="utf8",
+    )
+
+
+def write_campaign_report(
+    output_dir: Path,
+    *,
+    compiler: str,
+    sanitizer: str,
+    coverage: bool,
+    runs: int | None,
+    seconds: int | None,
+    imported_seeds: int,
+    source_summary: dict,
+    started_at: str,
+    duration_seconds: float,
+    seed: int,
+    completed: subprocess.CompletedProcess[str],
+    processing_error: str | None,
+    crash_minimization: list[dict],
+) -> None:
+    progress_lines = [
+        line.strip()
+        for line in completed.stderr.splitlines()
+        if re.match(r"^#\d+", line.strip())
+    ]
+    final_stats = [
+        line.strip()
+        for line in completed.stderr.splitlines()
+        if line.strip().startswith("stat::")
+    ]
+    report = {
+        "schema_version": CAMPAIGN_SCHEMA_VERSION,
+        "status": (
+            "pass" if completed.returncode == 0 and processing_error is None else "fail"
+        ),
+        "return_code": completed.returncode,
+        "processing_error": processing_error,
+        "repository_commit": repository_commit(),
+        "repository_dirty": repository_dirty(),
+        "started_at": started_at,
+        "completed_at": datetime.now(timezone.utc).isoformat(),
+        "duration_seconds": round(duration_seconds, 3),
+        "platform": platform.platform(),
+        "python": platform.python_version(),
+        "compiler": compiler_identity(compiler),
+        "coverage_tools": coverage_tool_identities(compiler) if coverage else None,
+        "sanitizer": sanitizer,
+        "coverage_enabled": coverage,
+        "campaign_limit": {"runs": runs, "seconds": seconds},
+        "resource_limits": {
+            "max_frame_bytes": MAX_FRAME_BYTES,
+            "input_timeout_seconds": 5,
+            "rss_limit_mb": 1024,
+            "malloc_limit_mb": 256,
+            "seed": seed,
+        },
+        "imported_retained_seeds": imported_seeds,
+        "source_corpus": source_summary,
+        "source_files": {
+            "wrapper_sha256": sha256_file(wrapper.WRAPPER_SOURCE),
+            "fuzz_target_sha256": sha256_file(FUZZ_SOURCE),
+            "corpus_manifest_sha256": sha256_file(CORPUS_MANIFEST),
+            "wycheproof_vectors_sha256": sha256_file(WYCHEPROOF_VECTORS),
+            "source_manifest_sha256": sha256_file(wrapper.SOURCE_MANIFEST),
+            "source_capsule_sha256": json.loads(
+                wrapper.SOURCE_MANIFEST.read_text(encoding="utf8")
+            )["capsule_hash"]["value"],
+        },
+        "working_corpus": directory_summary(output_dir / "corpus"),
+        "minimized_corpus": directory_summary(output_dir / "minimized-corpus"),
+        "crash_artifacts": directory_summary(output_dir / "crashes"),
+        "minimized_crash_artifacts": directory_summary(
+            output_dir / "minimized-crashes"
+        ),
+        "crash_minimization": crash_minimization,
+        "last_progress_line": progress_lines[-1] if progress_lines else None,
+        "final_stats": final_stats,
+    }
+    (output_dir / "campaign.json").write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n",
+        encoding="utf8",
+    )
+
+
+def write_evidence_hashes(output_dir: Path) -> None:
+    lines = []
+    for path in sorted(item for item in output_dir.rglob("*") if item.is_file()):
+        if path.name == "SHA256SUMS":
+            continue
+        relative = path.relative_to(output_dir).as_posix()
+        lines.append(f"{sha256_file(path)}  {relative}\n")
+    (output_dir / "SHA256SUMS").write_text("".join(lines), encoding="utf8")
 
 
 def main() -> int:
@@ -587,11 +1068,42 @@ def main() -> int:
     )
     parser.add_argument("--manifest-only", action="store_true")
     parser.add_argument("--sanitizers", action="store_true")
-    parser.add_argument("--runs", type=int, default=1000)
+    parser.add_argument(
+        "--sanitizer",
+        choices=sorted(SANITIZERS),
+        default="address-undefined",
+    )
+    parser.add_argument("--runs", type=int)
+    parser.add_argument("--seconds", type=int)
+    parser.add_argument("--seed", type=int, default=188)
+    parser.add_argument("--output-dir", type=Path)
+    parser.add_argument("--seed-corpus", type=Path)
+    parser.add_argument("--coverage", action="store_true")
     args = parser.parse_args()
-    if args.runs < 1:
+    if args.runs is not None and args.seconds is not None:
+        raise FuzzHarnessError("--runs and --seconds are mutually exclusive")
+    if args.runs is not None and args.runs < 1:
         raise FuzzHarnessError("--runs must be positive")
+    if args.seconds is not None and args.seconds < 1:
+        raise FuzzHarnessError("--seconds must be positive")
+    if not 1 <= args.seed <= 0xFFFFFFFF:
+        raise FuzzHarnessError("--seed must be a nonzero unsigned 32-bit integer")
+    if args.coverage and not args.sanitizers:
+        raise FuzzHarnessError("--coverage requires --sanitizers")
+    if args.coverage and args.sanitizer == "memory":
+        raise FuzzHarnessError("coverage is collected only in the address-undefined campaign")
+    if not args.sanitizers and (
+        args.runs is not None
+        or args.seconds is not None
+        or args.output_dir is not None
+        or args.seed_corpus is not None
+        or args.coverage
+        or args.sanitizer != "address-undefined"
+        or args.seed != 188
+    ):
+        raise FuzzHarnessError("fuzz campaign options require --sanitizers")
 
+    wrapper.validate_source_capsule()
     wycheproof = validate_wycheproof_source()
     if args.manifest_only:
         manifest = json.loads(CORPUS_MANIFEST.read_text(encoding="utf8"))
@@ -605,6 +1117,11 @@ def main() -> int:
     compiler = os.environ.get("CC", "cc")
     if shutil.which(compiler) is None:
         raise FuzzHarnessError(f"C compiler not found: {compiler}")
+    if args.sanitizers and args.sanitizer == "memory":
+        if not sys.platform.startswith("linux"):
+            raise FuzzHarnessError("MemorySanitizer campaigns require Linux")
+        if "clang" not in compiler_identity(compiler).lower():
+            raise FuzzHarnessError("MemorySanitizer campaigns require Clang")
     with tempfile.TemporaryDirectory(prefix="pqbtc-mldsa44-verifier-fuzz-") as temporary:
         build_dir = Path(temporary)
         production_library = wrapper.compile_shared(compiler, build_dir, testing=False)
@@ -613,14 +1130,118 @@ def main() -> int:
         summary = validate_corpus_manifest(cases)
         replay_corpus(production_library, cases)
         if args.sanitizers:
-            corpus_dir = build_dir / "corpus"
-            artifact_dir = build_dir / "artifacts"
+            runs = args.runs if args.runs is not None else (None if args.seconds else 1000)
+            if args.output_dir is None:
+                output_dir = build_dir / "campaign"
+            else:
+                output_dir = args.output_dir.resolve()
+                if output_dir.exists():
+                    if not output_dir.is_dir():
+                        raise FuzzHarnessError(
+                            f"output directory path is not a directory: {output_dir}"
+                        )
+                    if any(output_dir.iterdir()):
+                        raise FuzzHarnessError(
+                            f"output directory is not empty: {output_dir}"
+                        )
+            output_dir.mkdir(parents=True, exist_ok=True)
+            corpus_dir = output_dir / "corpus"
+            artifact_dir = output_dir / "crashes"
             artifact_dir.mkdir()
             materialize_corpus(corpus_dir, cases)
-            fuzzer = compile_fuzzer(compiler, build_dir)
-            run_fuzzer(fuzzer, corpus_dir, artifact_dir, args.runs)
+            imported_seeds = 0
+            if args.seed_corpus is not None:
+                imported_seeds = import_seed_corpus(args.seed_corpus.resolve(), corpus_dir)
+            started_at = datetime.now(timezone.utc).isoformat()
+            monotonic_start = time.monotonic()
+            completed = subprocess.CompletedProcess([], 1, "", "campaign did not start")
+            processing_error = None
+            crash_minimization = []
+            try:
+                fuzzer = compile_fuzzer(
+                    compiler,
+                    build_dir,
+                    sanitizer=args.sanitizer,
+                    coverage=args.coverage,
+                )
+                profile_pattern = (
+                    output_dir / "coverage-%p.profraw" if args.coverage else None
+                )
+                completed = run_fuzzer(
+                    fuzzer,
+                    corpus_dir,
+                    artifact_dir,
+                    output_dir / "fuzzer.log",
+                    runs=runs,
+                    seconds=args.seconds,
+                    sanitizer=args.sanitizer,
+                    profile_pattern=profile_pattern,
+                    seed=args.seed,
+                )
+                if completed.returncode == 0:
+                    merge_profile = (
+                        output_dir / "coverage-merge-%p.profraw"
+                        if args.coverage
+                        else None
+                    )
+                    minimize_corpus(
+                        fuzzer,
+                        corpus_dir,
+                        output_dir / "minimized-corpus",
+                        output_dir / "corpus-minimization.log",
+                        sanitizer=args.sanitizer,
+                        profile_pattern=merge_profile,
+                    )
+                    if args.coverage:
+                        write_coverage_report(compiler, fuzzer, output_dir)
+                else:
+                    crash_minimization = minimize_crash_artifacts(
+                        fuzzer,
+                        artifact_dir,
+                        output_dir,
+                        sanitizer=args.sanitizer,
+                        seed=args.seed,
+                    )
+            except (FuzzHarnessError, wrapper.HarnessError, OSError, ValueError) as error:
+                processing_error = str(error)
+            finally:
+                write_campaign_report(
+                    output_dir,
+                    compiler=compiler,
+                    sanitizer=args.sanitizer,
+                    coverage=args.coverage,
+                    runs=runs,
+                    seconds=args.seconds,
+                    imported_seeds=imported_seeds,
+                    source_summary=summary,
+                    started_at=started_at,
+                    duration_seconds=time.monotonic() - monotonic_start,
+                    seed=args.seed,
+                    completed=completed,
+                    processing_error=processing_error,
+                    crash_minimization=crash_minimization,
+                )
+                write_evidence_hashes(output_dir)
+            if processing_error is not None:
+                evidence = (
+                    f"evidence retained in {output_dir}"
+                    if args.output_dir is not None
+                    else "temporary evidence discarded; pass --output-dir to retain it"
+                )
+                raise FuzzHarnessError(
+                    f"campaign processing failed; {evidence}: {processing_error}"
+                )
+            if completed.returncode != 0:
+                evidence = (
+                    f"evidence retained in {output_dir}"
+                    if args.output_dir is not None
+                    else "temporary evidence discarded; pass --output-dir to retain it"
+                )
+                raise FuzzHarnessError(
+                    f"fuzzer failed ({completed.returncode}); {evidence}"
+                )
 
-    mode = "sanitized fuzz" if args.sanitizers else "deterministic replay"
+    mode = f"{args.sanitizer} fuzz" if args.sanitizers else "deterministic replay"
     print(
         f"ML-DSA-44 verifier {mode} passed: {summary['total_cases']} cases, "
         f"{summary['expected_counts']['ok']} accepted"

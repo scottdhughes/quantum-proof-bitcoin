@@ -159,7 +159,7 @@ Prototype admission closes no production finding:
 | Supported-platform side channels | #185 | open |
 | Fault model and injected faults | #186 | open |
 | End-to-end secret erasure | #187 | source cleanup and sanitizer evidence only; compiler/caller/platform boundary open |
-| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay and bounded structure-aware ASan/UBSan fuzzing; sustained campaigns and production resource limits open |
+| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay plus scheduled structure-aware ASan/UBSan and MSan campaigns with retained evidence; differential/back-end coverage, advisory ingestion, adapter fuzzing, adversarial resource tests, broader platforms, and production limits open |
 | Backend advisories, SBOM, and reproducible build | #189 | pinned network-free source capsule only; SBOM, reproducibility, and monitoring open |
 | Wallet and key format | #190 | open |
 | Independent human cryptographic review | #181 | open |
