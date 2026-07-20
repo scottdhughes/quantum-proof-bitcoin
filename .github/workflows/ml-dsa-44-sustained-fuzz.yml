@@ -50,8 +50,6 @@ jobs:
             artifact: msan
     env:
       CC: clang
-      OUTPUT_DIR: ${{ runner.temp }}/ml-dsa-44-fuzz-output
-      PRIOR_DIR: ${{ runner.temp }}/ml-dsa-44-prior
 
     steps:
       - name: Checkout
@@ -73,6 +71,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           ARTIFACT_NAME: ml-dsa-44-sustained-${{ matrix.artifact }}
+          PRIOR_DIR: ${{ runner.temp }}/ml-dsa-44-prior
         run: |
           set -euo pipefail
           previous_run_and_attempt="$(
@@ -109,6 +108,7 @@ jobs:
           SANITIZER: ${{ matrix.sanitizer }}
           COVERAGE: ${{ matrix.coverage }}
           RETAINED_SEED_DIR: ${{ steps.retained.outputs.seed_dir }}
+          OUTPUT_DIR: ${{ runner.temp }}/ml-dsa-44-fuzz-output
         run: |
           set -euxo pipefail
           if [[ "$GITHUB_EVENT_NAME" == "schedule" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
@@ -138,6 +138,7 @@ jobs:
         env:
           EXPECTED_SANITIZER: ${{ matrix.sanitizer }}
           COVERAGE: ${{ matrix.coverage }}
+          OUTPUT_DIR: ${{ runner.temp }}/ml-dsa-44-fuzz-output
         run: |
           python3 - "$OUTPUT_DIR" "$EXPECTED_SANITIZER" "$COVERAGE" <<'PY'
           import json
@@ -164,7 +165,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ml-dsa-44-sustained-${{ matrix.artifact }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ env.OUTPUT_DIR }}
+          path: ${{ runner.temp }}/ml-dsa-44-fuzz-output
           if-no-files-found: warn
           retention-days: 90
           compression-level: 9
