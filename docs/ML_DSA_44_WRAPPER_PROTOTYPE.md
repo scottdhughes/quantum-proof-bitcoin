@@ -115,8 +115,22 @@ Run the bounded checks with:
 python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --manifest-only
 python3 contrib/ml-dsa-engineering/run_wrapper_tests.py
 python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --sanitizers
+python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py --manifest-only
+python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py
+CC=clang python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py --sanitizers --runs 10000
 python3 -m unittest ci.test.test_ml_dsa_wrapper_prototype
 ```
+
+The verifier harness deterministically regenerates and replays 207 bounded
+frames: 180 cases from the pinned C2SP Wycheproof ML-DSA-44 verification file
+and 27 project cases covering commitment, `z`, hint, public-key, message,
+context, length, and null-pointer boundaries. The frozen manifest records 202
+unique frames and their expected strict-wrapper result classes. Its custom
+libFuzzer mutator preserves the frame format while targeting those same
+ML-DSA-44 fields. CI runs replay with GCC and Clang and a 10,000-execution
+ASan/UBSan campaign with Clang. The 4,096-byte message cap, five-second input
+timeout, 1 GiB RSS cap, and 256 MiB allocation cap are fuzz-campaign bounds,
+not production protocol limits or exhaustive resource proofs.
 
 ## Residual Boundary
 
@@ -131,8 +145,9 @@ This prototype advances engineering evidence but closes no production gate:
   not a complete fault model;
 - issue `#187`: explicit source cleanup and sanitizer evidence do not prove
   erasure of compiler copies, registers, caller-owned keys, or crash artifacts;
-- issue `#188`: bounded negative tests are not structure-aware fuzzing or
-  resource-exhaustion coverage;
+- issue `#188`: deterministic Wycheproof replay and bounded structure-aware
+  ASan/UBSan fuzzing are now implemented, but sustained multi-platform fuzzing,
+  retained regression artifacts, and production resource limits remain open;
 - issue `#189`: the source capsule and network-free build are partial evidence,
   not an SBOM, reproducibility campaign, or ongoing advisory process;
 - issue `#190`: key ownership, formats, backup, PSBT, and hardware-wallet
