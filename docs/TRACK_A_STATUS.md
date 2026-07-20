@@ -132,6 +132,18 @@ PR `#194` landed that isolated wrapper prototype at merge commit
 green, and merge-commit checks were `26/26` green. The slice changed no
 functional-suite inventory policy class.
 
+PR `#196` landed the isolated strict-verifier fuzzing slice at merge commit
+`1b77a4a345ebb82e84aa87648da9b58d3d9f4546`. Its final branch checks were
+`10/10` green, post-merge Promotion Matrix run `29766361655` was `21/21`
+green, and the four merge-commit workflows were `26/26` green. The frozen
+corpus deterministically replays 180 pinned C2SP Wycheproof cases and 27
+project boundary cases, and the Clang tranche runs a bounded 10,000-execution
+structure-aware libFuzzer campaign with ASan/UBSan. This advances issue `#188`
+but does not close sustained multi-platform fuzzing, retained regression
+artifacts, or production resource limits. Production remains `NONE` and
+`RELEASE_HOLD`; no consensus, wallet, Script, `ALG_ID`, or functional-suite
+inventory policy changed.
+
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,
 `pq_backlog: 0`, `legacy_only: 14`, and `dual_profile: 142`. Promotion Matrix
@@ -1762,6 +1774,14 @@ Aineko must ask before:
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
 
+- 2026-07-20: PR `#196` landed the isolated strict-verifier fuzzing slice at
+  merge commit `1b77a4a345ebb82e84aa87648da9b58d3d9f4546`. Its final branch
+  checks were `10/10` green, post-merge Promotion Matrix run `29766361655` was
+  `21/21` green, and the four merge-commit workflows were `26/26` green. The
+  harness replays 207 frozen cases and runs bounded structure-aware
+  ASan/UBSan fuzzing without changing production linkage or release posture.
+  Issue `#188` remains open for sustained multi-platform campaigns, retained
+  regression artifacts, and production resource limits.
 - 2026-07-20: PR `#194` landed the admitted portable-C wrapper prototype at
   merge commit `0eebb2229f227e43f56c51f2900fedbd801d1ecb`. Its final branch
   checks were `10/10` green, post-merge Promotion Matrix run `29721947046` was
