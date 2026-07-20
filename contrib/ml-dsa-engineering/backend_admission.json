@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "decision": {
+    "id": "MLDSA_NATIVE_PORTABLE_C_ISOLATED_PROTOTYPE",
+    "decided": "2026-07-19",
+    "production_backend": "NONE",
+    "release_hold": true,
+    "authorized_scope": [
+      "research_wrapper_design",
+      "contrib_only_prototype",
+      "ci_contract_tests",
+      "documentation"
+    ],
+    "prohibited_integrations": [
+      "node",
+      "wallet",
+      "script",
+      "consensus",
+      "alg_id",
+      "functional_suite_inventory"
+    ]
+  },
+  "profile": {
+    "name": "ML-DSA-44",
+    "standard": "FIPS 204",
+    "signature_interface": "external",
+    "message_mode": "pure",
+    "public_key_bytes": 1312,
+    "private_key_bytes": 2560,
+    "signature_bytes": 2420,
+    "randomizer_bytes": 32,
+    "production_signing": "hedged_randomized_only"
+  },
+  "standards_refresh": {
+    "checked": "2026-07-19",
+    "fips_204_status": "FINAL_WITH_POTENTIAL_UPDATES",
+    "potential_updates_are_official_changes": false,
+    "selected_profile_conflict_found": false
+  },
+  "admitted_prototype": {
+    "backend": "mldsa_native_portable_c",
+    "source": {
+      "repository": "https://github.com/pq-code-package/mldsa-native",
+      "tag": "v1.0.0-beta2",
+      "commit": "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
+      "git_tree": "c73c7029182122fce2f2dd8ac544ae990abd74a2",
+      "license_expression": "Apache-2.0 OR ISC OR MIT"
+    },
+    "upstream_status": {
+      "release_label": "second_beta",
+      "latest_tag_found_on_refresh": true,
+      "upstream_portable_c_assessment": "production_ready_with_documented_verification_limits",
+      "pqbtc_assessment": "isolated_prototype_only",
+      "repin_before_production_review": true
+    },
+    "build_contract": {
+      "language": "portable_c",
+      "translation_units": 1,
+      "parameter_set": 44,
+      "native_arithmetic_backend": false,
+      "native_fips202_backend": false,
+      "external_api_qualifier": "static",
+      "supercop_aliases": false,
+      "max_signing_attempts": 814,
+      "randomized_entry_point": "mldsa_signature",
+      "deterministic_entry_points_exported": false,
+      "custom_randombytes_inside_wrapper_module": true,
+      "custom_zeroize_required": true,
+      "self_verify_before_release": true
+    }
+  },
+  "candidate_assessments": {
+    "openssl_3_6_3": {
+      "source_commit": "aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f",
+      "source_tree": "a8a306c000bc2426afd3264b2c41bc7223728475",
+      "license_expression": "Apache-2.0",
+      "conformance": "PASS",
+      "entropy_boundary": "INTERNAL_DRBG_WITH_PUBLIC_TEST_AND_DETERMINISTIC_CONTROLS",
+      "secret_erasure": "PARTIAL_SOURCE_EVIDENCE",
+      "side_channel_posture": "NO_PQBTC_BINARY_EVIDENCE",
+      "build_fit": "NEW_FULL_PROVIDER_DEPENDENCY",
+      "outcome": "ORACLE_ONLY"
+    },
+    "mldsa_native_portable_c": {
+      "source_commit": "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
+      "source_tree": "c73c7029182122fce2f2dd8ac544ae990abd74a2",
+      "license_expression": "Apache-2.0 OR ISC OR MIT",
+      "conformance": "PASS",
+      "entropy_boundary": "INTEGRATOR_HOOK_CALLED_BY_RANDOMIZED_ENTRY_POINT",
+      "secret_erasure": "STRONG_INTERNAL_SOURCE_EVIDENCE_WITH_COMPILER_COPY_LIMIT",
+      "side_channel_posture": "UPSTREAM_SOURCE_AND_DYNAMIC_EVIDENCE_REQUIRES_PQBTC_BINARY_VALIDATION",
+      "build_fit": "PORTABLE_C_SINGLE_TRANSLATION_UNIT",
+      "outcome": "ISOLATED_PROTOTYPE_ADMITTED"
+    },
+    "libcrux_ml_dsa_0_0_10_portable": {
+      "source_commit": "c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd",
+      "source_tree": "0044b70c4675ba97623c9105387f592e038e837d",
+      "license_expression": "Apache-2.0",
+      "conformance": "PASS",
+      "entropy_boundary": "CALLER_SUPPLIED_RANDOMIZER",
+      "secret_erasure": "CLONABLE_KEY_WITHOUT_ZEROIZING_DROP",
+      "side_channel_posture": "PARTIAL_FORMAL_SCOPE_WITHOUT_PQBTC_BINARY_EVIDENCE",
+      "build_fit": "NEW_RUST_1_89_AND_FFI_BOUNDARY",
+      "outcome": "ORACLE_ONLY"
+    }
+  },
+  "open_gates": [
+    {
+      "id": "entropy_and_failure_binding",
+      "status": "PARTIAL_DESIGN_ONLY",
+      "tracking_issue": 184
+    },
+    {
+      "id": "supported_platform_side_channel",
+      "status": "OPEN",
+      "tracking_issue": 185
+    },
+    {
+      "id": "fault_resistance",
+      "status": "OPEN",
+      "tracking_issue": 186
+    },
+    {
+      "id": "secret_lifecycle_and_erasure",
+      "status": "OPEN",
+      "tracking_issue": 187
+    },
+    {
+      "id": "structure_aware_fuzzing_and_resources",
+      "status": "OPEN",
+      "tracking_issue": 188
+    },
+    {
+      "id": "backend_advisory_and_sbom_refresh",
+      "status": "OPEN",
+      "tracking_issue": 189
+    },
+    {
+      "id": "wallet_and_key_format",
+      "status": "OPEN",
+      "tracking_issue": 190
+    },
+    {
+      "id": "independent_human_review",
+      "status": "OPEN",
+      "tracking_issue": 181
+    }
+  ]
+}

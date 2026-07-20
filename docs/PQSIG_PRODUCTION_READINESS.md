@@ -26,6 +26,14 @@ supporting evidence, not the signed review of an independent human
 cryptographer required by issue `#181`. The project remains
 `AWAITING_EXTERNAL_REVIEW`, and this release hold remains in force.
 
+`ML_DSA_44_BACKEND_ADMISSION.md` now records the first backend decision:
+`MLDSA_NATIVE_PORTABLE_C_ISOLATED_PROTOTYPE`. The pinned `mldsa-native`
+portable-C path may be used only for a separate production-shaped wrapper
+prototype under `contrib/`. The production backend remains `NONE`; OpenSSL and
+libcrux remain oracles. This narrows the next experiment without satisfying a
+production gate or authorizing node, wallet, Script, consensus, or `ALG_ID`
+work.
+
 ## Evidence Classification
 
 ### Observed In The Repository
@@ -165,6 +173,11 @@ selected for activation by this record.
    evidence only. Do not close the finding until a selected backend implements
    the contract in a production build, platform RNG and lifecycle tests pass,
    and the exact implementation commit is re-reviewed.
+9. Apply `ML_DSA_44_BACKEND_ADMISSION.md` only to the next isolated prototype.
+   Use the exact pinned `mldsa-native` portable-C source, one translation unit,
+   hidden upstream symbols, project RNG and zeroization hooks, and a hedged-only
+   exported wrapper. Keep the production backend unset until the resulting
+   binary passes the open issues and independent review.
 
 ## Required Gates Before Consensus Integration
 
@@ -194,6 +207,9 @@ exhaustion. The AI-assisted review is merged with a
 `REMEDIATE_AND_REREVIEW` disposition and seven open Medium findings; the gate
 10 independent-human review has not occurred. The hedged-signing contract is
 partial design evidence for issue `#184`, not a production implementation.
+The backend-admission decision selects a portable-C isolated prototype target,
+not a production dependency; every gate recorded in its machine-readable
+manifest remains open.
 The other integration, system, review, soak, and release gates remain open. No
 completion recorded here changes the consensus accepted set.
 

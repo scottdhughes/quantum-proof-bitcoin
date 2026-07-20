@@ -23,8 +23,8 @@ controlling evidence and replacement-gate record.
 
 The current implementation lane is isolated standards and remediation
 evidence. The FIPS 205 `SLH-DSA-SHA2-128s` prototype, FIPS 204 `ML-DSA-44`
-comparator, and hedged-signing contract are all kept outside inventory policy,
-`ALG_ID`, Script, wallet, and consensus changes.
+comparator, hedged-signing contract, and backend-admission record are all kept
+outside inventory policy, `ALG_ID`, Script, wallet, and consensus changes.
 
 The first isolated reference slice is recorded in
 `SLH_DSA_SHA2_128S_REFERENCE.md`. It pins NIST ACVP and portable-C source
@@ -94,6 +94,21 @@ implementation. Issue `#184` remains open pending backend binding, production
 build isolation, supported-platform tests, secret-lifecycle evidence, and
 re-review. No `ALG_ID`, Script, node, wallet, or inventory policy class changes
 in this lane.
+
+PR `#192` landed that contract and its executable model at merge commit
+`896cd74735029f2918d65bbf554fb046c59f7cc2`. Its duplicate push and
+pull-request CI/Gatekeeper workflows completed all `8/8` checks successfully.
+Post-merge Promotion Matrix run `29705831229` completed `21/21` jobs
+successfully, and the merge commit completed all `26/26` checks successfully.
+Issue `#184` remains open because this was design evidence, not a production
+backend binding.
+
+`ML_DSA_44_BACKEND_ADMISSION.md` now records the next bounded decision:
+`MLDSA_NATIVE_PORTABLE_C_ISOLATED_PROTOTYPE`. The pinned `mldsa-native`
+portable-C path is admitted only for a separate production-shaped wrapper
+prototype. The production backend remains `NONE`; OpenSSL and libcrux remain
+oracles, every release gate remains open, and no node, wallet, Script,
+consensus, `ALG_ID`, or inventory policy change is authorized.
 
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,
@@ -190,9 +205,12 @@ Cryptography implementation lane:
    - retain PR `#183` as supporting AI-assisted review evidence with
      `REMEDIATE_AND_REREVIEW`; do not treat it as the independent-human gate
    - use issues `#184` through `#190` as the bounded remediation ledger
-   - advance issue `#184` first through
-     `ML_DSA_44_HEDGED_SIGNING_CONTRACT.md`, without claiming the executable
-     model is a production backend or closes the finding
+   - retain PR `#192` and `ML_DSA_44_HEDGED_SIGNING_CONTRACT.md` as partial
+     design evidence for issue `#184`; the finding remains open
+   - apply `MLDSA_NATIVE_PORTABLE_C_ISOLATED_PROTOTYPE` as a bounded wrapper
+     target, not production backend approval
+   - keep OpenSSL and libcrux as comparator oracles and keep the production
+     backend at `NONE`
    - obtain a qualifying independent-human re-review against exact remediation
      commits before any gate disposition changes
    - require supported-platform worst-case measurements before
@@ -219,11 +237,12 @@ Cryptography implementation lane:
 3. Cryptographic production remains on `HOLD` while `ML-DSA-44` advances only
    as the selected engineering candidate. Independent implementation evidence
    is complete; PR `#183` concluded `REMEDIATE_AND_REREVIEW`, and issues `#184`
-   through `#190` remain open. The issue `#184` hedged-signing contract is the
-   current bounded remediation lane, not production integration. Status remains
-   `AWAITING_EXTERNAL_REVIEW`; a qualifying independent-human re-review and
-   worst-case system measurements remain required. Script and wallet
-   integration remain out of scope.
+   through `#190` remain open. PR `#192` landed the issue `#184`
+   hedged-signing design contract. The current bounded lane admits only the
+   pinned `mldsa-native` portable-C path for an isolated wrapper prototype;
+   production remains `NONE`. Status remains `AWAITING_EXTERNAL_REVIEW`; a
+   qualifying independent-human re-review and worst-case system measurements
+   remain required. Script and wallet integration remain out of scope.
 
 
 ## Historical Queue Ledger
@@ -1717,6 +1736,18 @@ Aineko must ask before:
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
 
+- 2026-07-19: The backend comparison admitted the pinned `mldsa-native`
+  `v1.0.0-beta2` portable-C path as
+  `MLDSA_NATIVE_PORTABLE_C_ISOLATED_PROTOTYPE`. Its frozen next-slice contract
+  uses one translation unit, static upstream symbols, project RNG and
+  zeroization hooks, portable code only, a bounded signing loop, and mandatory
+  self-verification. The production backend remains `NONE`; OpenSSL and
+  libcrux remain oracles, and every release gate remains open.
+- 2026-07-19: PR `#192` landed the project-owned hedged-signing contract and
+  executable model at merge commit
+  `896cd74735029f2918d65bbf554fb046c59f7cc2`. Duplicate branch checks were
+  `8/8` green, post-merge Promotion Matrix run `29705831229` was `21/21`
+  green, and merge-commit checks were `26/26` green. Issue `#184` remains open.
 - 2026-07-19: PR `#183` landed the AI-assisted ML-DSA-44 technical assessment
   at merge commit `587371a818a1f5902f5ad977d9891b9d1bff0902`. Its disposition
   is `REMEDIATE_AND_REREVIEW`: no Critical or High issue was identified, seven
@@ -2672,7 +2703,8 @@ above as the controlling live next-PR handoff when these older notes disagree.
   constant-time and secret-erasure analysis, supported-platform and worst-case
   validation cost, and a separate consensus-design specification. The
   independent ML-DSA implementation evidence gate is complete; it closes none
-  of these remaining gates.
+  of these remaining gates. The portable-C isolated prototype admission also
+  closes none of them.
 - A further promotion requires a newly reviewed PQ confidence gap with a named
   owner, open tracking issue, bounded contract, targeted test, and acceptable
   CI cost. Until another selection exists, `HOLD` is the intended baseline
