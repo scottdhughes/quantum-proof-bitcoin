@@ -181,6 +181,7 @@ static size_t ResizeField(
     size_t i;
 
     if (new_size > max_size) return size;
+    // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
     memmove(data + offset + new_length, data + tail_offset, tail_size);
     for (i = old_length; i < new_length; ++i) {
         data[offset + i] = (uint8_t)NextRandom(state);
@@ -239,6 +240,7 @@ size_t LLVMFuzzerCustomMutator(
     case 3:
         if (frame.signature_size == PQBTC_MLDSA44_SIGNATURE_BYTES) {
             hints = signature + PQBTC_MLDSA44_HINT_OFFSET;
+            // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
             memset(hints, 0, PQBTC_MLDSA44_HINT_INDICES + PQBTC_MLDSA44_HINT_COUNTERS);
             hints[0] = 2U;
             hints[1] = 1U;
@@ -251,6 +253,7 @@ size_t LLVMFuzzerCustomMutator(
     case 4:
         if (frame.signature_size == PQBTC_MLDSA44_SIGNATURE_BYTES) {
             hints = signature + PQBTC_MLDSA44_HINT_OFFSET;
+            // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
             memset(hints, 0, PQBTC_MLDSA44_HINT_INDICES + PQBTC_MLDSA44_HINT_COUNTERS);
             hints[0] = 1U;
             hints[1] = 1U;
@@ -263,6 +266,7 @@ size_t LLVMFuzzerCustomMutator(
     case 5:
         if (frame.signature_size == PQBTC_MLDSA44_SIGNATURE_BYTES) {
             hints = signature + PQBTC_MLDSA44_HINT_OFFSET;
+            // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
             memset(hints, 0, PQBTC_MLDSA44_HINT_INDICES + PQBTC_MLDSA44_HINT_COUNTERS);
             hints[0] = 1U;
         }

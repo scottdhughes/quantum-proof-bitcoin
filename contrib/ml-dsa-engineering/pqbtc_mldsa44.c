@@ -106,6 +106,7 @@ static int FillEntropy(uint8_t* output, size_t requested, size_t* received)
         return -1;
     }
     *received = g_test_entropy_size;
+    // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
     if (*received <= requested) memcpy(output, g_test_entropy, *received);
     return 0;
 #elif defined(_WIN32)
@@ -164,6 +165,7 @@ static int pqbtc_mldsa44_randombytes(uint8_t* ptr, size_t len)
         return -1;
     }
 
+    // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
     memcpy(g_last_randomizer_digest, digest, sizeof(digest));
     g_has_last_randomizer_digest = 1;
     pqbtc_mldsa44_zeroize(digest, sizeof(digest));
@@ -281,6 +283,7 @@ int pqbtc_mldsa44_sign_hedged(
         goto cleanup;
     }
 
+    // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
     memcpy(signature, candidate, sizeof(candidate));
     result = PQBTC_MLDSA44_OK;
 
@@ -349,6 +352,7 @@ int pqbtc_mldsa44_test_set_entropy(int mode, const uint8_t* bytes, size_t report
     }
     LockSigningModule();
     pqbtc_mldsa44_zeroize(g_test_entropy, sizeof(g_test_entropy));
+    // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
     if (reported_size != 0) memcpy(g_test_entropy, bytes, reported_size);
     g_test_entropy_size = reported_size;
     g_test_entropy_mode = mode;
@@ -439,6 +443,7 @@ int pqbtc_mldsa44_test_sign_fixed_randomizer(
     pqbtc_mldsa44_zeroize(signature, PQBTC_MLDSA44_SIGNATURE_BYTES);
     prefix[0] = 0;
     prefix[1] = (uint8_t)context_size;
+    // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
     if (context_size != 0) memcpy(prefix + 2, context, context_size);
 
     LockSigningModule();
@@ -453,6 +458,7 @@ int pqbtc_mldsa44_test_sign_fixed_randomizer(
         secret_key,
         0);
     if (backend_result == 0 && candidate_size == PQBTC_MLDSA44_SIGNATURE_BYTES) {
+        // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
         memcpy(signature, candidate, sizeof(candidate));
         result = PQBTC_MLDSA44_OK;
     } else if (backend_result == PQBTC_MLDSA44_UPSTREAM_ERR_SIGN_ATTEMPTS_EXHAUSTED) {
