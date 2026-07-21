@@ -7,6 +7,9 @@
 
 #include <pqbtc_mldsa44.h>
 
+#include <stddef.h>
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

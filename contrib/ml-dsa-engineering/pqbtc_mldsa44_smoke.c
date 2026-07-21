@@ -2,19 +2,26 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit.
 
+#include "pqbtc_mldsa44.h"
 #include "pqbtc_mldsa44_test.h"
 
 #include <pthread.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
-#define CHECK(condition)                                              \
-    do {                                                              \
-        if (!(condition)) {                                           \
-            fprintf(stderr, "wrapper smoke failure at line %d: %s\n", \
-                    __LINE__, #condition);                            \
-            return 1;                                                 \
-        }                                                             \
+static int ReportFailure(int line, const char* condition)
+{
+    // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
+    fprintf(stderr, "wrapper smoke failure at line %d: %s\n", line, condition);
+    return 1;
+}
+
+#define CHECK(condition)                               \
+    do {                                               \
+        if (!(condition)) {                            \
+            return ReportFailure(__LINE__, #condition); \
+        }                                              \
     } while (0)
 
 static const uint8_t TEST_SEED[32] = {
@@ -116,6 +123,7 @@ int main(void)
     pqbtc_mldsa44_test_reset();
     CHECK(pqbtc_mldsa44_test_keypair_from_seed(public_key, secret_key, TEST_SEED) ==
           PQBTC_MLDSA44_OK);
+    // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
     memcpy(secret_key_copy, secret_key, sizeof(secret_key_copy));
     CHECK(pqbtc_mldsa44_sign_hedged(
               secret_key,
@@ -298,6 +306,7 @@ int main(void)
 
         pqbtc_mldsa44_test_reset();
         CHECK(SetFixedEntropy(randomizer, sizeof(randomizer)) == PQBTC_MLDSA44_OK);
+        // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
         memset(cases, 0, sizeof(cases));
         for (i = 0; i < 2; ++i) {
             cases[i].secret_key = secret_key;

@@ -144,6 +144,19 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         self.assertTrue(
             plan["reporting_boundary"]["vendor_files_are_never_main_inputs"]
         )
+        self.assertEqual(
+            plan["reporting_boundary"]["clang_tidy_local_suppression"],
+            {
+                "check": "clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling",
+                "annotation": "NOLINTNEXTLINE",
+                "occurrences": 13,
+                "expected_occurrences": 13,
+                "reason": (
+                    "C11 Annex K _s functions are optional and unavailable on "
+                    "the supported Linux toolchain"
+                ),
+            },
+        )
         for evidence_source in (
             ".github/workflows/ml-dsa-44-wrapper-prototype.yml",
             ".github/workflows/promotion-matrix.yml",
@@ -177,6 +190,10 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         for check in checks:
             self.assertNotIn("/vendor/", check["input"])
             if check["kind"] == "clang-tidy":
+                self.assertIn(
+                    "--checks=clang-analyzer-*",
+                    check["command"],
+                )
                 self.assertIn(
                     "--exclude-header-filter="
                     + plan["reporting_boundary"]["vendor_header_exclude"],

@@ -52,6 +52,10 @@ versions and binary hashes. IWYU is built from exact source commit
 `6e08906c66b3009f2d590e4bd40d60fa303bf803`. The audit runs clang-tidy over
 the production wrapper, test wrapper, smoke harness, and verifier fuzz target,
 then checks both public headers for C11 self-containment.
+The optional Annex-K `_s` functions recommended by one analyzer check are
+unavailable on the supported Linux toolchain. That checker remains enabled and
+fatal for new call sites; the 13 reviewed portable API calls use localized,
+inventory-checked `NOLINTNEXTLINE` annotations.
 
 IWYU is enforced only on the first-party smoke and verifier-fuzz translation
 units and their wrapper headers. It intentionally does not propose edits for

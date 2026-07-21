@@ -35,6 +35,11 @@ TIDY_CONFIG = "src/.clang-tidy"
 IWYU_MAPPING = "contrib/devtools/iwyu/bitcoin.core.imp"
 EXPECTED_LLVM_MAJOR = 20
 EXPECTED_IWYU_COMMIT = "6e08906c66b3009f2d590e4bd40d60fa303bf803"
+ANNEX_K_TIDY_CHECK = (
+    "clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling"
+)
+CLANG_TIDY_CHECKS = "clang-analyzer-*"
+EXPECTED_ANNEX_K_SUPPRESSIONS = 13
 
 FIRST_PARTY_HEADER_FILTER = (
     r"(^|.*/)contrib/ml-dsa-engineering/pqbtc_mldsa44[^/]*\.h$"
@@ -96,6 +101,14 @@ def source_hashes() -> dict[str, str]:
     return hashes
 
 
+def annex_k_suppression_count() -> int:
+    marker = f"NOLINTNEXTLINE({ANNEX_K_TIDY_CHECK})"
+    return sum(
+        (REPO_ROOT / relative).read_text(encoding="utf8").count(marker)
+        for relative in (WRAPPER_SOURCE, SMOKE_SOURCE, FUZZ_SOURCE)
+    )
+
+
 def tidy_command(
     clang_tidy: str,
     plugin: str,
@@ -107,7 +120,7 @@ def tidy_command(
         "--quiet",
         f"--load={plugin}",
         f"--config-file={TIDY_CONFIG}",
-        "--checks=clang-analyzer-*",
+        f"--checks={CLANG_TIDY_CHECKS}",
         "--warnings-as-errors=*",
         f"--header-filter={FIRST_PARTY_HEADER_FILTER}",
         f"--exclude-header-filter={VENDOR_HEADER_EXCLUDE}",
@@ -264,6 +277,17 @@ def build_plan(
             "first_party_header_filter": FIRST_PARTY_HEADER_FILTER,
             "vendor_root": VENDOR_ROOT,
             "vendor_header_exclude": VENDOR_HEADER_EXCLUDE,
+            "clang_tidy_check_expression": CLANG_TIDY_CHECKS,
+            "clang_tidy_local_suppression": {
+                "check": ANNEX_K_TIDY_CHECK,
+                "annotation": "NOLINTNEXTLINE",
+                "occurrences": annex_k_suppression_count(),
+                "expected_occurrences": EXPECTED_ANNEX_K_SUPPRESSIONS,
+                "reason": (
+                    "C11 Annex K _s functions are optional and unavailable on "
+                    "the supported Linux toolchain"
+                ),
+            },
             "vendor_may_be_parsed_for_translation_unit_semantics": True,
             "vendor_files_are_never_main_inputs": True,
             "iwyu_excludes_single_compilation_unit_aggregator": WRAPPER_SOURCE,
@@ -319,6 +343,7 @@ def validate_plan(plan: dict[str, object]) -> None:
 
         if kind == "clang-tidy":
             required = {
+                f"--checks={CLANG_TIDY_CHECKS}",
                 f"--header-filter={FIRST_PARTY_HEADER_FILTER}",
                 f"--exclude-header-filter={VENDOR_HEADER_EXCLUDE}",
                 "--warnings-as-errors=*",
@@ -351,6 +376,14 @@ def validate_plan(plan: dict[str, object]) -> None:
         raise AuditError("static-analysis plan has no IWYU tool contract")
     if tools["iwyu"].get("source_commit") != EXPECTED_IWYU_COMMIT:
         raise AuditError("static-analysis plan does not pin the expected IWYU commit")
+    suppression = plan["reporting_boundary"].get("clang_tidy_local_suppression")
+    if (
+        not isinstance(suppression, dict)
+        or suppression.get("occurrences") != EXPECTED_ANNEX_K_SUPPRESSIONS
+        or suppression.get("expected_occurrences")
+        != EXPECTED_ANNEX_K_SUPPRESSIONS
+    ):
+        raise AuditError("unexpected Annex-K clang-tidy suppression inventory")
 
 
 def resolve_tool(command: str) -> str | None:
@@ -424,11 +457,29 @@ def version_matches_llvm_20(output: str) -> bool:
 def repository_state() -> dict[str, object]:
     commit = run_command(["git", "rev-parse", "HEAD"])
     status = run_command(["git", "status", "--porcelain", "--untracked-files=no"])
+    tracked_changes = []
+    if status.returncode == 0:
+        for line in status.stdout.splitlines():
+            path = line[3:]
+            if " -> " in path:
+                path = path.rsplit(" -> ", maxsplit=1)[1]
+            tracked_changes.append(path)
+    audit_inputs = set(EVIDENCE_SOURCES)
+    dirty_audit_inputs = sorted(
+        path
+        for path in tracked_changes
+        if path in audit_inputs or path.startswith(f"{ENGINEERING_ROOT}/")
+    )
     return {
         "commit": commit.stdout.strip() if commit.returncode == 0 else "unknown",
-        "tracked_worktree_dirty": bool(status.stdout.strip())
+        "tracked_worktree_dirty": bool(tracked_changes)
         if status.returncode == 0
         else None,
+        "tracked_changes": sorted(tracked_changes),
+        "audit_input_dirty": bool(dirty_audit_inputs)
+        if status.returncode == 0
+        else None,
+        "dirty_audit_inputs": dirty_audit_inputs,
     }
 
 
@@ -446,11 +497,12 @@ def execute_audit(plan: dict[str, object], requested_output_dir: Path) -> int:
     plan_path = output_dir / "static-analysis-plan.json"
     plan_path.write_text(json_text(plan), encoding="utf8")
 
+    repository = repository_state()
     report: dict[str, object] = {
         "schema_version": 1,
         "audit": plan["audit"],
         "status": "failed",
-        "repository": repository_state(),
+        "repository": repository,
         "plan_sha256": sha256_file(plan_path),
         "tools": {},
         "checks": [],
@@ -460,6 +512,11 @@ def execute_audit(plan: dict[str, object], requested_output_dir: Path) -> int:
     tool_results = report["tools"]
     assert isinstance(errors, list)
     assert isinstance(tool_results, dict)
+    if repository["audit_input_dirty"] is not False:
+        errors.append(
+            "tracked audit inputs must be clean: "
+            + ", ".join(repository["dirty_audit_inputs"])
+        )
 
     plan_tools = plan["tools"]
     assert isinstance(plan_tools, dict)
