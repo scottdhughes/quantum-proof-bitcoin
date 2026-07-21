@@ -154,7 +154,7 @@
     },
     {
       "id": "structure_aware_fuzzing_and_resources",
-      "status": "SUSTAINED_SANITIZER_EVIDENCE_GATE_OPEN",
+      "status": "DIFFERENTIAL_SANITIZER_EVIDENCE_RESOURCES_OPEN",
       "tracking_issue": 188
     },
     {

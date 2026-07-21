@@ -643,8 +643,17 @@ def compile_fuzzer(
     build_dir: Path,
     sanitizer: str,
     coverage: bool,
+    *,
+    differential_sources: tuple[Path, ...] = (),
+    differential_link_args: tuple[str, ...] = (),
 ) -> Path:
-    output = build_dir / "pqbtc_mldsa44_verify_fuzz"
+    differential = bool(differential_sources or differential_link_args)
+    output_name = (
+        "pqbtc_mldsa44_differential_verify_fuzz"
+        if differential
+        else "pqbtc_mldsa44_verify_fuzz"
+    )
+    output = build_dir / output_name
     command = wrapper.common_flags(compiler)
     command.extend(
         [
@@ -659,12 +668,16 @@ def compile_fuzzer(
         command.extend(["-fsanitize-memory-track-origins=2", "-fPIE", "-pie"])
     if coverage:
         command.extend(["-fprofile-instr-generate", "-fcoverage-mapping"])
+    if differential:
+        command.append("-DPQBTC_MLDSA44_DIFFERENTIAL=1")
     command.extend(
         [
             str(wrapper.WRAPPER_SOURCE),
             str(FUZZ_SOURCE),
+            *map(str, differential_sources),
             "-o",
             str(output),
+            *differential_link_args,
         ]
     )
     wrapper.run(command)
