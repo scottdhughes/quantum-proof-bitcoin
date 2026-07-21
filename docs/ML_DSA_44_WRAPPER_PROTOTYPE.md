@@ -124,8 +124,11 @@ CC=clang python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py \
 CC=clang python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py \
   --sanitizers --sanitizer memory --seconds 1800 \
   --output-dir /tmp/ml-dsa-44-msan
+python3 contrib/ml-dsa-engineering/run_differential_verifier_fuzz.py \
+  --manifest-only
 python3 -m unittest ci.test.test_ml_dsa_wrapper_prototype
 python3 -m unittest ci.test.test_ml_dsa_sustained_fuzz
+python3 -m unittest ci.test.test_ml_dsa_differential_fuzz
 ```
 
 The verifier harness deterministically regenerates and replays 207 bounded
@@ -157,6 +160,25 @@ retained crash is evidence to investigate, not an
 automatically trusted regression vector: promotion into a checked-in corpus
 still requires review.
 
+The pinned review-reproduction workflow adds a 60-second Linux Clang
+ASan/UBSan differential campaign. Its fuzz target calls the isolated wrapper,
+OpenSSL 3.6.3's explicitly selected default provider in a separate library
+context, and libcrux 0.0.10 in-process for every parsed frame and aborts
+on any setup error or accept/reject disagreement. The wrapper's exact
+invalid-argument taxonomy is still checked separately. The retained evidence
+records source and binary hashes, both external-oracle pins, the resolved
+`libcrypto` binary hash, coverage, minimized corpus, and crash artifacts. A
+separate sanitized replay executable first sends five named frozen valid,
+invalid, malformed, and null-argument frames through the same real three-way
+target exactly once. This prevents an always-accepting or
+always-rejecting well-shaped wrapper from passing that campaign merely because
+the result remained inside the wrapper's documented return-code set. It does
+not instrument the complete OpenSSL or Rust implementation bodies with the C
+sanitizers and is not long-duration or multi-platform differential evidence.
+The versioned clang-tidy/IWYU plan does not cover the differential-only branch
+or external adapter sources; those C sources are compiled with fatal warnings
+and exercised dynamically in the pinned review workflow instead.
+
 ## Residual Boundary
 
 This prototype advances engineering evidence but closes no production gate:
@@ -170,12 +192,13 @@ This prototype advances engineering evidence but closes no production gate:
   not a complete fault model;
 - issue `#187`: explicit source cleanup and sanitizer evidence do not prove
   erasure of compiler copies, registers, caller-owned keys, or crash artifacts;
-- issue `#188`: deterministic Wycheproof replay and bounded structure-aware
-  ASan/UBSan and MSan campaigns with retained evidence are now implemented,
-  but multi-backend differential and adapter fuzzing, automatic advisory-case
-  ingestion, Rust coverage if a Rust backend is admitted, broader platforms,
-  minimum coverage goals, reviewed regression-vector promotion, and stack,
-  worst-case, and adversarial-batch resource limits remain open;
+- issue `#188`: deterministic Wycheproof replay, bounded structure-aware
+  ASan/UBSan and MSan campaigns, and bounded three-backend differential
+  verifier fuzzing with retained evidence are now implemented, but stateful
+  signer fuzzing, long-duration and broader-platform differential campaigns,
+  automatic advisory-case ingestion, full Rust sanitizer coverage, minimum
+  coverage goals, reviewed regression-vector promotion, and stack, worst-case,
+  and adversarial-batch resource limits remain open;
 - issue `#189`: the source capsule and network-free build are partial evidence,
   not an SBOM, reproducibility campaign, or ongoing advisory process;
 - issue `#190`: key ownership, formats, backup, PSBT, and hardware-wallet

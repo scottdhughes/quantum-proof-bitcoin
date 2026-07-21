@@ -5,7 +5,9 @@ on:
     paths:
       - ".github/workflows/ml-dsa-44-review-reproduction.yml"
       - "contrib/ml-dsa-ref/**"
+      - "contrib/ml-dsa-engineering/**"
       - "ci/test/test_ml_dsa_reference.py"
+      - "ci/test/test_ml_dsa_differential_fuzz.py"
   workflow_dispatch:
 
 permissions:
@@ -15,7 +17,7 @@ jobs:
   reproduce:
     name: Reproduce pinned three-oracle evidence
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 150
     env:
       BASELINE: 6ffd47881fc2071724fa6e31fb3cf9557a64b467
       OPENSSL_COMMIT: aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f
@@ -25,6 +27,7 @@ jobs:
 
     steps:
       - name: Checkout PQBTC review head
+        timeout-minutes: 5
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
@@ -32,23 +35,35 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Install build dependencies
+        timeout-minutes: 20
         run: |
           set -euxo pipefail
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential ca-certificates curl git perl pkg-config python3
+            build-essential ca-certificates clang curl git perl pkg-config python3
+          rustup toolchain install 1.89.0 \
+            --profile minimal --component rustfmt --no-self-update
+          echo "RUSTUP_TOOLCHAIN=1.89.0" >> "$GITHUB_ENV"
 
       - name: Validate frozen repository inputs
+        timeout-minutes: 10
         run: |
           set -euxo pipefail
+          test "$(rustc --version | cut -d ' ' -f 2)" = "1.89.0"
           git diff --exit-code "$BASELINE" -- \
             contrib/ml-dsa-ref ci/test/test_ml_dsa_reference.py \
             ':(exclude)contrib/ml-dsa-ref/README.md' \
             ':(exclude)contrib/ml-dsa-ref/wolfram/**'
           python3 contrib/ml-dsa-ref/compare_oracles.py --manifest-only
           python3 -m unittest ci.test.test_ml_dsa_reference
+          python3 contrib/ml-dsa-engineering/run_differential_verifier_fuzz.py \
+            --manifest-only
+          rustfmt --check \
+            contrib/ml-dsa-engineering/pqbtc_mldsa44_libcrux_verify.rs
+          python3 -m unittest ci.test.test_ml_dsa_differential_fuzz
 
       - name: Fetch pinned standards artifacts and upstream sources
+        timeout-minutes: 15
         run: |
           set -euxo pipefail
           mkdir -p "$RUNNER_TEMP/ml-dsa-review/artifacts"
@@ -77,6 +92,7 @@ jobs:
           git -C libcrux checkout --detach "$LIBCRUX_COMMIT"
 
       - name: Build pinned OpenSSL 3.6.3 out of tree
+        timeout-minutes: 25
         run: |
           set -euxo pipefail
           REVIEW_ROOT="$RUNNER_TEMP/ml-dsa-review"
@@ -95,13 +111,17 @@ jobs:
           {
             echo "PKG_CONFIG_PATH=$OPENSSL_PREFIX/lib64/pkgconfig:$OPENSSL_PREFIX/lib/pkgconfig"
             echo "LD_LIBRARY_PATH=$OPENSSL_PREFIX/lib64:$OPENSSL_PREFIX/lib"
+            echo "OPENSSL_CONF=/dev/null"
           } >> "$GITHUB_ENV"
 
       - name: Run complete pinned comparator
+        timeout-minutes: 60
         run: |
           set -euxo pipefail
           REVIEW_ROOT="$RUNNER_TEMP/ml-dsa-review"
           REPORT="$GITHUB_WORKSPACE/ml-dsa-44-review-run.json"
+          FUZZ_REPORT="$GITHUB_WORKSPACE/ml-dsa-44-differential-fuzz-run.json"
+          DIFFERENTIAL_EVIDENCE="$GITHUB_WORKSPACE/ml-dsa-44-differential-fuzz"
 
           {
             echo "pqbtc_commit=$(git rev-parse HEAD)"
@@ -113,10 +133,12 @@ jobs:
             echo "cc=$({ cc --version || true; } | head -n 1)"
             echo "rustc=$(rustc --version)"
             echo "cargo=$(cargo --version)"
+            echo "rustfmt=$(rustfmt --version)"
             echo "openssl=$(openssl version)"
             echo "python=$(python3 --version)"
           } | tee ml-dsa-44-review-toolchain.txt
 
+          set +e
           python3 contrib/ml-dsa-ref/compare_oracles.py \
             --acvp-server "$REVIEW_ROOT/acvp-server" \
             --openssl-source "$REVIEW_ROOT/openssl" \
@@ -128,11 +150,80 @@ jobs:
             --fips204-section6-guidance "$REVIEW_ROOT/artifacts/fips204-sec6-03192025.pdf" \
             --benchmark-iterations 10 \
             --sanitizers > "$REPORT"
+          REVIEW_EXIT=$?
+          set -e
+          if [[ ! -s "$REPORT" ]]; then
+            printf '{"status":"FAIL","processing_error":"comparator produced no JSON report"}\n' \
+              > "$REPORT"
+          fi
+          (
+            cd "$GITHUB_WORKSPACE"
+            sha256sum ml-dsa-44-review-run.json | tee ml-dsa-44-review-run.sha256
+          )
+          if (( REVIEW_EXIT != 0 )); then
+            exit "$REVIEW_EXIT"
+          fi
 
-          sha256sum "$REPORT" | tee ml-dsa-44-review-run.sha256
-          python3 - <<'PY'
+          set +e
+          FUZZ_CC=clang \
+            python3 contrib/ml-dsa-engineering/run_differential_verifier_fuzz.py \
+              --openssl-source "$REVIEW_ROOT/openssl" \
+              --libcrux-source "$REVIEW_ROOT/libcrux" \
+              --libcrux-crate "$REVIEW_ROOT/artifacts/libcrux-ml-dsa-0.0.10.crate" \
+              --output-dir "$DIFFERENTIAL_EVIDENCE" \
+              --seconds 60 \
+              --seed 188 \
+              > "$FUZZ_REPORT"
+          FUZZ_EXIT=$?
+          set -e
+
+          if [[ ! -s "$FUZZ_REPORT" ]]; then
+            printf '{"status":"fail","processing_error":"driver produced no JSON report"}\n' \
+              > "$FUZZ_REPORT"
+          fi
+          (
+            cd "$GITHUB_WORKSPACE"
+            sha256sum ml-dsa-44-differential-fuzz-run.json | \
+              tee ml-dsa-44-differential-fuzz-run.sha256
+          )
+          EVIDENCE_EXIT=0
+          if [[ -f "$DIFFERENTIAL_EVIDENCE/SHA256SUMS" ]]; then
+            if ! (
+              cd "$DIFFERENTIAL_EVIDENCE"
+              sha256sum --check SHA256SUMS
+            ); then
+              EVIDENCE_EXIT=1
+            fi
+          else
+            EVIDENCE_EXIT=1
+          fi
+          if (( FUZZ_EXIT != 0 )); then
+            python3 - <<'PY'
           import json
           from pathlib import Path
+
+          report = json.loads(
+              Path("ml-dsa-44-differential-fuzz-run.json").read_text()
+          )
+          assert report["status"] == "fail"
+          campaign = Path("ml-dsa-44-differential-fuzz/campaign.json")
+          if campaign.is_file():
+              retained = json.loads(campaign.read_text())
+              assert retained["status"] == "fail"
+              assert retained["processing_error"] or retained["return_code"] != 0
+          print("ML-DSA-44 differential failure evidence retained")
+          PY
+            exit "$FUZZ_EXIT"
+          fi
+          if (( EVIDENCE_EXIT != 0 )); then
+            exit "$EVIDENCE_EXIT"
+          fi
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
 
           report = json.loads(Path("ml-dsa-44-review-run.json").read_text())
           assert report["status"] == "PASS"
@@ -148,11 +239,131 @@ jobs:
               "nist_randomized": "8a17b6ff3f9633cd3c7cd0687d6384408e145bfd3725f6c57a8a2727f50ec989",
               "pqbtc": "98094b39d9ae1ad76fc734f9e0199ad37315dd4eb7a22f29561582239f64e131",
           }
+          fuzz_report = json.loads(
+              Path("ml-dsa-44-differential-fuzz-run.json").read_text()
+          )
+          assert fuzz_report["status"] == "pass"
+          assert fuzz_report["return_code"] == 0
+          assert fuzz_report["sanitizer"] == "address-undefined"
+          assert fuzz_report["coverage_enabled"] is True
+          assert fuzz_report["campaign_limit"] == {"runs": None, "seconds": 60}
+          assert fuzz_report["seed"] == 188
+          assert fuzz_report["seconds"] == 60
+          checkout_head = subprocess.check_output(
+              ["git", "rev-parse", "HEAD"], text=True
+          ).strip()
+          assert fuzz_report["repository_commit"] == checkout_head
+          assert fuzz_report["repository_dirty"] is False
+          assert fuzz_report["crash_artifacts"]["file_count"] == 0
+          assert fuzz_report["source_corpus"]["total_cases"] == 207
+          assert fuzz_report["working_corpus"]["file_count"] > 0
+          assert fuzz_report["minimized_corpus"]["file_count"] > 0
+          assert fuzz_report["last_progress_line"]
+          assert fuzz_report["final_stats"]
+          assert fuzz_report["executed_units"] > 207
+          assert 59 <= fuzz_report["fuzzer_duration_seconds"] <= 95
+
+          differential = fuzz_report["differential_oracles"]
+          assert differential["fuzzer_binary_sha256"]
+          assert differential["wrapper"]["source_capsule_sha256"]
+          assert differential["openssl"]["bridge_source_sha256"]
+          openssl_runtime = differential["openssl"]["runtime"]
+          openssl_prefix = (
+              Path(os.environ["RUNNER_TEMP"])
+              / "ml-dsa-review"
+              / "openssl-install"
+          ).resolve()
+          libcrypto = Path(openssl_runtime["libcrypto_path"]).resolve()
+          assert openssl_runtime["pkg_config_version"] == "3.6.3"
+          assert Path(openssl_runtime["pkg_config_prefix"]).resolve() == openssl_prefix
+          assert openssl_runtime["libcrypto_resolution"] == "linked-dependency"
+          assert libcrypto.is_relative_to(openssl_prefix)
+          assert openssl_runtime["libcrypto_sha256"]
+          assert openssl_runtime["openssl_conf"] == "/dev/null"
+          assert "OpenSSL Default Provider" in openssl_runtime["provider_inventory"]
+          assert "version: 3.6.3" in openssl_runtime["provider_inventory"]
+          assert differential["libcrux"]["bridge_source_sha256"]
+          assert differential["libcrux"]["rlib_sha256"]
+          assert differential["libcrux"]["bridge_binary_sha256"]
+          smoke = differential["exact_replay"]
+          assert smoke["status"] == "pass"
+          assert smoke["case_count"] == 5
+          assert smoke["expected_accept_count"] == 2
+          assert smoke["expected_reject_count"] == 3
+          assert smoke["binary_sha256"]
+          assert all(
+              case["status"] == "pass" and case["return_code"] == 0
+              for case in smoke["cases"]
+          )
+          assert {case["name"] for case in smoke["cases"]} == {
+              "valid_frozen_vector",
+              "valid_empty_message_context",
+              "reject_ctilde_bit_flip",
+              "reject_hint_counter_overflow",
+              "reject_null_signature",
+          }
+          assert {
+              case["name"]: (case["expected"], case["frame_sha256"])
+              for case in smoke["cases"]
+          } == {
+              "valid_frozen_vector": (
+                  "accept",
+                  "1f1400abcc4219a5bb48c05e7f35525a9c98861f7b14fe8cfd8653dd52ca001d",
+              ),
+              "valid_empty_message_context": (
+                  "accept",
+                  "34335fc41196fad28e8970efd5386acfd0ad7aa0d1bebca6b8d6237ef97b44c4",
+              ),
+              "reject_ctilde_bit_flip": (
+                  "reject",
+                  "dd431b2d49e7ebf65bd4d6d6d14ec56e7d9bd433a9602e9aedb51218c267655f",
+              ),
+              "reject_hint_counter_overflow": (
+                  "reject",
+                  "f9ab7ac3eb9ff8a2a278abc63ed58955f939b2e281555177ad9dcaf4aab0741f",
+              ),
+              "reject_null_signature": (
+                  "reject",
+                  "ccd69d2b0691117dafce3ccaa79096cf13ce86d96fa153d21878eec5830aaaa7",
+              ),
+          }
+
+          evidence = Path("ml-dsa-44-differential-fuzz")
+          campaign_path = evidence / "campaign.json"
+          assert campaign_path.is_file()
+          assert (evidence / "coverage.json").is_file()
+          assert (evidence / "coverage.txt").is_file()
+          assert (evidence / "differential-smoke.log").is_file()
+          assert (evidence / "SHA256SUMS").is_file()
+          assert fuzz_report["evidence_sha256"] == hashlib.sha256(
+              (evidence / "SHA256SUMS").read_bytes()
+          ).hexdigest()
+          campaign = json.loads(campaign_path.read_text())
+          for key in (
+              "status",
+              "return_code",
+              "repository_commit",
+              "repository_dirty",
+              "sanitizer",
+              "coverage_enabled",
+              "campaign_limit",
+              "source_corpus",
+              "working_corpus",
+              "minimized_corpus",
+              "crash_artifacts",
+              "last_progress_line",
+              "final_stats",
+              "executed_units",
+              "fuzzer_duration_seconds",
+              "differential_oracles",
+          ):
+              assert fuzz_report[key] == campaign[key]
           print("ML-DSA-44 review invariants verified")
           PY
 
       - name: Upload review evidence
         if: always()
+        timeout-minutes: 10
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ml-dsa-44-review-evidence-${{ github.event.pull_request.head.sha || github.sha }}
@@ -160,5 +371,8 @@ jobs:
             ml-dsa-44-review-run.json
             ml-dsa-44-review-run.sha256
             ml-dsa-44-review-toolchain.txt
-          if-no-files-found: warn
+            ml-dsa-44-differential-fuzz-run.json
+            ml-dsa-44-differential-fuzz-run.sha256
+            ml-dsa-44-differential-fuzz/
+          if-no-files-found: error
           retention-days: 90

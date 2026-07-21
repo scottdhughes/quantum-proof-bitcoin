@@ -63,6 +63,12 @@ units and their wrapper headers. It intentionally does not propose edits for
 single-compilation-unit implementation and its nested `.c` files. Clang-tidy
 still parses that implementation as part of the wrapper translation unit, but
 the audit reports primary diagnostics only at first-party wrapper locations.
+The versioned static plan predates the differential adapters: it does not run
+clang-tidy/IWYU over the OpenSSL bridge, Rust bridge, exact-replay driver, or
+the differential-only target branch. The review-reproduction workflow instead
+compiles those C paths with fatal warnings and exercises them dynamically; the
+Rust bridge is checked separately with the pinned Rust 1.89.0 `rustfmt` and
+`rustc` toolchain.
 
 Each run retains the exact plan, resolved tool and source identities,
 per-command logs,
@@ -70,3 +76,27 @@ a machine-readable result, and `SHA256SUMS` in a commit-named workflow
 artifact. This is static source-analysis evidence only. It is not a proof of
 memory safety, constant-time behavior, secret erasure, or production fitness,
 and it does not alter the release hold.
+
+## Differential Verifier Fuzzing
+
+The pinned review-reproduction workflow runs a separate 60-second in-process
+differential campaign. Every parsed frame is evaluated by the admitted
+wrapper, OpenSSL 3.6.3's explicitly selected default provider in an isolated
+library context, and libcrux 0.0.10; an oracle setup error or
+accept/reject disagreement aborts through the normal libFuzzer crash path.
+Wrapper argument-error taxonomy remains a separate assertion, while the two
+external bridges normalize invalid shapes to rejection. The workflow records
+the upstream commits, crate and source hashes, bridge and binary hashes, the
+actual linked `libcrypto` path and hash, toolchains, minimized corpus, coverage,
+logs, and crash artifacts for 90 days. Before the timed campaign, a separate
+sanitized executable replays five named frozen accept/reject cases exactly once
+through the real wrapper/OpenSSL/libcrux target and records each frame hash.
+The upstream versions are pinned by the frozen reference manifest; the small
+first-party adapter sources are review inputs whose exact hashes are evidence,
+not a claim that the adapters themselves are independent implementations.
+
+This closes the former self-fulfilling `OK`/`ERR_VERIFY` oracle gap for that
+bounded Linux campaign. It is not long-duration or multi-platform
+differential evidence, and the prebuilt OpenSSL and Rust implementation bodies
+are not fully sanitizer-instrumented by the C fuzz build. It does not alter
+the release hold.

@@ -4,8 +4,15 @@
 
 #include "pqbtc_mldsa44.h"
 
+#ifdef PQBTC_MLDSA44_DIFFERENTIAL
+#include "pqbtc_mldsa44_differential.h"
+#endif
+
 #include <stddef.h>
 #include <stdint.h>
+#ifdef PQBTC_MLDSA44_DIFFERENTIAL
+#include <stdio.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 
@@ -96,11 +103,79 @@ static const uint8_t* MaybeNull(
     return (null_flags & null_flag) != 0 ? NULL : data + offset;
 }
 
+#ifdef PQBTC_MLDSA44_DIFFERENTIAL
+static void RequireDifferentialAgreement(
+    int wrapper_result,
+    const uint8_t* signature,
+    size_t signature_size,
+    const uint8_t* public_key,
+    size_t public_key_size,
+    const uint8_t* message,
+    size_t message_size,
+    const uint8_t* context,
+    size_t context_size)
+{
+    int wrapper_accept =
+        wrapper_result == PQBTC_MLDSA44_OK ? PQBTC_MLDSA44_ORACLE_ACCEPT :
+                                            PQBTC_MLDSA44_ORACLE_REJECT;
+    int openssl_accept = pqbtc_mldsa44_openssl_verify(
+        signature,
+        signature_size,
+        public_key,
+        public_key_size,
+        message,
+        message_size,
+        context,
+        context_size);
+    int libcrux_accept = pqbtc_mldsa44_libcrux_verify(
+        signature,
+        signature_size,
+        public_key,
+        public_key_size,
+        message,
+        message_size,
+        context,
+        context_size);
+
+    if ((openssl_accept != PQBTC_MLDSA44_ORACLE_REJECT &&
+         openssl_accept != PQBTC_MLDSA44_ORACLE_ACCEPT) ||
+        (libcrux_accept != PQBTC_MLDSA44_ORACLE_REJECT &&
+         libcrux_accept != PQBTC_MLDSA44_ORACLE_ACCEPT)) {
+        fprintf(
+            stderr,
+            "PQBTC_MLDSA44_DIFFERENTIAL_ORACLE_ERROR "
+            "wrapper=%d openssl=%d libcrux=%d\n",
+            wrapper_accept,
+            openssl_accept,
+            libcrux_accept);
+        fflush(stderr);
+        abort();
+    }
+    if (wrapper_accept != openssl_accept || wrapper_accept != libcrux_accept) {
+        fprintf(
+            stderr,
+            "PQBTC_MLDSA44_DIFFERENTIAL_DISAGREEMENT "
+            "wrapper=%d openssl=%d libcrux=%d\n",
+            wrapper_accept,
+            openssl_accept,
+            libcrux_accept);
+        fflush(stderr);
+        abort();
+    }
+}
+#endif
+
 int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
     struct fuzz_frame frame;
     int expected_invalid_argument;
     int result;
+#ifdef PQBTC_MLDSA44_DIFFERENTIAL
+    const uint8_t* context;
+    const uint8_t* message;
+    const uint8_t* public_key;
+    const uint8_t* signature;
+#endif
 
     if (!ParseFrame(data, size, &frame)) return 0;
 
@@ -115,6 +190,38 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         ((frame.null_flags & PQBTC_MLDSA44_FUZZ_NULL_MESSAGE) != 0 &&
          frame.message_size != 0);
 
+#ifdef PQBTC_MLDSA44_DIFFERENTIAL
+    signature = MaybeNull(
+        data,
+        frame.signature_offset,
+        frame.null_flags,
+        PQBTC_MLDSA44_FUZZ_NULL_SIGNATURE);
+    public_key = MaybeNull(
+        data,
+        frame.public_key_offset,
+        frame.null_flags,
+        PQBTC_MLDSA44_FUZZ_NULL_PUBLIC_KEY);
+    message = MaybeNull(
+        data,
+        frame.message_offset,
+        frame.null_flags,
+        PQBTC_MLDSA44_FUZZ_NULL_MESSAGE);
+    context = MaybeNull(
+        data,
+        frame.context_offset,
+        frame.null_flags,
+        PQBTC_MLDSA44_FUZZ_NULL_CONTEXT);
+
+    result = pqbtc_mldsa44_verify_strict(
+        signature,
+        frame.signature_size,
+        public_key,
+        frame.public_key_size,
+        message,
+        frame.message_size,
+        context,
+        frame.context_size);
+#else
     result = pqbtc_mldsa44_verify_strict(
         MaybeNull(
             data,
@@ -140,12 +247,25 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
             frame.null_flags,
             PQBTC_MLDSA44_FUZZ_NULL_CONTEXT),
         frame.context_size);
+#endif
 
     if (expected_invalid_argument) {
         if (result != PQBTC_MLDSA44_ERR_INVALID_ARGUMENT) abort();
     } else if (result != PQBTC_MLDSA44_OK && result != PQBTC_MLDSA44_ERR_VERIFY) {
         abort();
     }
+#ifdef PQBTC_MLDSA44_DIFFERENTIAL
+    RequireDifferentialAgreement(
+        result,
+        signature,
+        frame.signature_size,
+        public_key,
+        frame.public_key_size,
+        message,
+        frame.message_size,
+        context,
+        frame.context_size);
+#endif
     return 0;
 }
 
