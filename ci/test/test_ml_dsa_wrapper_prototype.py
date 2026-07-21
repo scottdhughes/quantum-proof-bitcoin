@@ -5,6 +5,7 @@
 
 import json
 from pathlib import Path
+import runpy
 import subprocess
 import sys
 import unittest
@@ -50,6 +51,14 @@ def load_valgrind_ct_plan(toolchain: str, compiler: str) -> dict:
         text=True,
     )
     return json.loads(completed.stdout)
+
+
+def load_valgrind_ct_analysis() -> dict[str, object]:
+    sys.path.insert(0, str(ENGINEERING_DIR))
+    try:
+        return runpy.run_path(str(VALGRIND_CT_ANALYSIS))
+    finally:
+        del sys.path[0]
 
 
 class MlDsaWrapperPrototypeTest(unittest.TestCase):
@@ -482,6 +491,47 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         self.assertIn("--no-update-lock-file --no-write-lock-file", valgrind_job)
         self.assertIn("if-no-files-found: error", valgrind_job)
         self.assertIn("timeout-minutes: 120", valgrind_job)
+
+    def test_valgrind_frame_attribution_accepts_compiler_path_variants(self):
+        frame_matches = load_valgrind_ct_analysis()["valgrind_frame_matches"]
+        self.assertTrue(callable(frame_matches))
+        expected = {
+            "file": "pqbtc_mldsa44_ct_memcheck.c",
+            "function": "ProbeSecretKeyTaint",
+        }
+        self.assertTrue(
+            frame_matches(
+                {
+                    "file": "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_memcheck.c",
+                    "function": "ProbeSecretKeyTaint",
+                },
+                expected,
+            )
+        )
+        self.assertTrue(
+            frame_matches(
+                {
+                    "file": "pqbtc_mldsa44_ct_memcheck.c",
+                    "function": "ProbeSecretKeyTaint.isra.0",
+                },
+                expected,
+            )
+        )
+        self.assertFalse(
+            frame_matches(
+                {"file": "other_probe.c", "function": "ProbeSecretKeyTaint"},
+                expected,
+            )
+        )
+        self.assertFalse(
+            frame_matches(
+                {
+                    "file": "pqbtc_mldsa44_ct_memcheck.c",
+                    "function": "ProbeAddress",
+                },
+                expected,
+            )
+        )
 
 
 if __name__ == "__main__":

@@ -20,7 +20,7 @@ import subprocess
 import sys
 import time
 import xml.etree.ElementTree as ET
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import run_wrapper_tests as wrapper_contract
 
@@ -971,6 +971,27 @@ def materialize_command(
     return materialized
 
 
+def valgrind_frame_matches(
+    frame: dict[str, object], expected_frame: dict[str, object]
+) -> bool:
+    actual_file = str(frame.get("file", "")).replace("\\", "/")
+    expected_file = str(expected_frame.get("file", "")).replace("\\", "/")
+    actual_parts = PurePosixPath(actual_file).parts
+    expected_parts = PurePosixPath(expected_file).parts
+    expected_function = str(expected_frame.get("function", ""))
+    actual_function = str(frame.get("function", ""))
+    return (
+        bool(expected_parts)
+        and len(actual_parts) >= len(expected_parts)
+        and actual_parts[-len(expected_parts) :] == expected_parts
+        and bool(expected_function)
+        and (
+            actual_function == expected_function
+            or actual_function.startswith(f"{expected_function}.")
+        )
+    )
+
+
 def parse_valgrind_xml(
     path: Path, expected_executable: Path, expected_arguments: list[str]
 ) -> dict[str, object]:
@@ -1422,13 +1443,7 @@ def execute_audit(
                 and any(
                     expected in str(error["what"])
                     and any(
-                        frame.get("file") == expected_frame.get("file")
-                        and (
-                            frame.get("function") == expected_frame.get("function")
-                            or str(frame.get("function", "")).startswith(
-                                f"{expected_frame.get('function')}."
-                            )
-                        )
+                        valgrind_frame_matches(frame, expected_frame)
                         for frame in error.get("frames", [])
                     )
                     for error in xml_result.get("errors", [])
