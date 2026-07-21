@@ -193,6 +193,40 @@ class MlDsaSustainedFuzzTest(unittest.TestCase):
                         profile_pattern=None,
                     )
 
+    def test_corpus_minimization_preserves_value_profile_features(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            corpus = root / "corpus"
+            corpus.mkdir()
+            (corpus / "seed").write_bytes(b"seed")
+
+            def run(command, **_kwargs):
+                (root / "minimized" / "seed").write_bytes(b"seed")
+                return subprocess.CompletedProcess(
+                    args=command,
+                    returncode=0,
+                    stdout="",
+                    stderr="",
+                )
+
+            with mock.patch.object(
+                verifier_fuzz.subprocess,
+                "run",
+                side_effect=run,
+            ) as run_mock:
+                verifier_fuzz.minimize_corpus(
+                    Path("fuzzer"),
+                    corpus,
+                    root / "minimized",
+                    root / "minimization.log",
+                    sanitizer="address-undefined",
+                    profile_pattern=None,
+                )
+
+            command = run_mock.call_args.args[0]
+            self.assertIn("-merge=1", command)
+            self.assertEqual(command.count("-use_value_profile=1"), 1)
+
     def test_wall_clock_timeout_preserves_campaign_log(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
