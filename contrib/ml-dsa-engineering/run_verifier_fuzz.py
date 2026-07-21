@@ -768,6 +768,7 @@ def minimize_corpus(
     command = [
         str(executable),
         "-merge=1",
+        "-use_value_profile=1",
         str(destination),
         str(corpus_dir),
         f"-max_len={MAX_FRAME_BYTES}",
