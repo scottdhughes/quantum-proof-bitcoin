@@ -2,7 +2,7 @@
 
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-WRAPPER-PROTOTYPE-v1
-## Updated: 2026-07-20
+## Updated: 2026-07-21
 ## Consensus-Relevant: NO
 
 ## Scope
@@ -126,9 +126,11 @@ CC=clang python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py \
   --output-dir /tmp/ml-dsa-44-msan
 python3 contrib/ml-dsa-engineering/run_differential_verifier_fuzz.py \
   --manifest-only
+python3 contrib/ml-dsa-engineering/run_cbmc_reproduction.py --plan-only
 python3 -m unittest ci.test.test_ml_dsa_wrapper_prototype
 python3 -m unittest ci.test.test_ml_dsa_sustained_fuzz
 python3 -m unittest ci.test.test_ml_dsa_differential_fuzz
+python3 -m unittest ci.test.test_ml_dsa_cbmc_reproduction
 ```
 
 The verifier harness deterministically regenerates and replays 207 bounded
@@ -178,6 +180,29 @@ sanitizers and is not long-duration or multi-platform differential evidence.
 The versioned clang-tidy/IWYU plan does not cover the differential-only branch
 or external adapter sources; those C sources are compiled with fatal warnings
 and exercised dynamically in the pinned review workflow instead.
+
+## Pinned Upstream CBMC Reproduction
+
+The dedicated read-only workflow checks out exact `mldsa-native` commit
+`9b0ee84f4cf399043eca59eca4e5f8531ca1d61b` and verifies its Git tree, full
+archive hash, locked Nix inputs, and critical proof infrastructure before
+running the complete normal ML-DSA-44 CBMC lane. Its frozen inventory contains
+200 proof directories and 200 unique proof UIDs. A successful reproduction
+requires 200 reported successes, zero failures and timeouts, and exact result
+name equality with that inventory. It also requires every file in the
+checked-in 34-file portable capsule to match the pinned upstream bytes.
+
+The retained report records the repository inputs, upstream and tool
+identities, proof and capsule inventories, raw result, full log, host details,
+and evidence checksums. These are upstream modular source-level safety and
+undefined-behavior contracts. They do not directly model
+`pqbtc_mldsa44_sign_hedged`, `pqbtc_mldsa44_verify_strict`, the project wrapper
+configuration, entropy and zeroization adapters, repeat guard, error mapping,
+or final single-compilation-unit binary. They also do not prove functional
+correctness, cryptographic security, constant-time or leakage resistance,
+fault resistance, thread safety, or production readiness. The reproduction
+does not replace independent human cryptographic review and does not change
+the release hold.
 
 ## Residual Boundary
 

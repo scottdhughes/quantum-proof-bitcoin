@@ -10,7 +10,7 @@
   "scope": "portable ML-DSA-44 single-compilation-unit dependency closure",
   "capsule_hash": {
     "algorithm": "sha256",
-    "construction": "SHA256 of sorted lines '<file-sha256>  ./<relative-path>\\n'",
+    "construction": "SHA256 of '<file-sha256>  ./<relative-path>\\n' lines ordered by relative path",
     "value": "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb"
   },
   "files": [
