@@ -79,7 +79,12 @@ if [[ -n "${USE_INSTRUMENTED_LIBCPP}" ]]; then
 fi
 
 if [[ "${RUN_TIDY}" == "true" ]]; then
-  ${CI_RETRY_EXE} git clone --depth=1 https://github.com/include-what-you-use/include-what-you-use -b clang_"${TIDY_LLVM_V}" /include-what-you-use
+  test -n "${IWYU_COMMIT}"
+  git init /include-what-you-use
+  git -C /include-what-you-use remote add origin https://github.com/include-what-you-use/include-what-you-use
+  ${CI_RETRY_EXE} git -C /include-what-you-use fetch --depth=1 origin "${IWYU_COMMIT}"
+  git -C /include-what-you-use checkout --detach FETCH_HEAD
+  test "$(git -C /include-what-you-use rev-parse HEAD)" = "${IWYU_COMMIT}"
   cmake -B /iwyu-build/ -G 'Unix Makefiles' -DCMAKE_PREFIX_PATH=/usr/lib/llvm-"${TIDY_LLVM_V}" -S /include-what-you-use
   make -C /iwyu-build/ install "$MAKEJOBS"
 fi

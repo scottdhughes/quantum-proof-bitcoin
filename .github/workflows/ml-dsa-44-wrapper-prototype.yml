@@ -4,12 +4,18 @@ on:
   pull_request:
     paths:
       - ".github/workflows/ml-dsa-44-wrapper-prototype.yml"
+      - "ci/test/00_setup_env_native_tidy.sh"
+      - "ci/test/01_base_install.sh"
+      - "ci/test/03_test_script.sh"
       - "ci/test/test_ml_dsa_wrapper_prototype.py"
+      - "contrib/devtools/bitcoin-tidy/**"
+      - "contrib/devtools/iwyu/bitcoin.core.imp"
       - "contrib/ml-dsa-engineering/**"
       - "contrib/ml-dsa-ref/vectors.json"
       - "docs/ML_DSA_44_BACKEND_ADMISSION.md"
       - "docs/ML_DSA_44_HEDGED_SIGNING_CONTRACT.md"
       - "docs/ML_DSA_44_WRAPPER_PROTOTYPE.md"
+      - "src/.clang-tidy"
   workflow_dispatch:
 
 permissions:
@@ -32,7 +38,47 @@ jobs:
         env:
           CC: ${{ matrix.compiler }}
         run: |
+          python3 -m unittest \
+            ci.test.test_ml_dsa_wrapper_prototype.MlDsaWrapperPrototypeTest.test_static_analysis_plan_is_pinned \
+            ci.test.test_ml_dsa_wrapper_prototype.MlDsaWrapperPrototypeTest.test_static_analysis_plan_matches_wrapper_build_variants
           python3 contrib/ml-dsa-engineering/run_wrapper_tests.py
           python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --sanitizers
           python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py --manifest-only
           python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py
+
+  static-analysis:
+    name: Isolated wrapper (clang-tidy 20 + scoped IWYU)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      DANGER_CI_ON_HOST_FOLDERS: 1
+      FILE_ENV: './ci/test/00_setup_env_native_tidy.sh'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Configure environment
+        uses: ./.github/actions/configure-environment
+
+      - name: Restore caches
+        uses: ./.github/actions/restore-caches
+
+      - name: Configure Docker
+        uses: ./.github/actions/configure-docker
+        with:
+          cache-provider: gha
+
+      - name: Run versioned static analysis
+        run: ./ci/test_run_all.sh
+
+      - name: Upload static-analysis evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ml-dsa-44-wrapper-static-analysis-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.BASE_BUILD_DIR }}/ml-dsa-44-wrapper-static-analysis
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 9

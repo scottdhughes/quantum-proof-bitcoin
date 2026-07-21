@@ -608,5 +608,15 @@ jobs:
       - name: CI script
         run: ./ci/test_run_all.sh
 
+      - name: Upload ML-DSA-44 wrapper static-analysis evidence
+        if: ${{ always() && matrix.name == 'tidy' }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ml-dsa-44-wrapper-static-analysis-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.BASE_BUILD_DIR }}/ml-dsa-44-wrapper-static-analysis
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 9
+
       - name: Save caches
         uses: ./.github/actions/save-caches

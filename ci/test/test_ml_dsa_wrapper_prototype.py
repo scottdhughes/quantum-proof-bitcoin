@@ -16,6 +16,19 @@ SOURCE_MANIFEST = ENGINEERING_DIR / "vendor" / "mldsa-native" / "SOURCE.json"
 ADMISSION = ENGINEERING_DIR / "backend_admission.json"
 PROTOTYPE_DOCUMENT = REPO_ROOT / "docs" / "ML_DSA_44_WRAPPER_PROTOTYPE.md"
 FUZZ_MANIFEST = ENGINEERING_DIR / "verifier_fuzz_corpus.json"
+STATIC_ANALYSIS = ENGINEERING_DIR / "run_static_analysis.py"
+
+
+def load_static_analysis_plan() -> dict:
+    completed = subprocess.run(
+        [sys.executable, str(STATIC_ANALYSIS), "--plan-only"],
+        cwd=REPO_ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    return json.loads(completed.stdout)
 
 
 class MlDsaWrapperPrototypeTest(unittest.TestCase):
@@ -101,6 +114,134 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
             cwd=REPO_ROOT,
             check=True,
         )
+
+    def test_static_analysis_plan_is_pinned(self):
+        plan = load_static_analysis_plan()
+        self.assertEqual(plan["schema_version"], 1)
+        self.assertEqual(plan["expected_llvm_major"], 20)
+        self.assertEqual(
+            plan["tools"]["iwyu"]["source_commit"],
+            "6e08906c66b3009f2d590e4bd40d60fa303bf803",
+        )
+        self.assertEqual(
+            plan["tools"]["iwyu"]["source_dir"], "/include-what-you-use"
+        )
+        self.assertTrue(plan["scope"]["isolated_wrapper_only"])
+        self.assertTrue(plan["scope"]["clang_tidy_wrapper_implementation"])
+        self.assertFalse(plan["scope"]["iwyu_wrapper_implementation"])
+        self.assertTrue(
+            plan["scope"]["iwyu_first_party_leaf_units_and_headers"]
+        )
+        self.assertFalse(plan["scope"]["production_integration"])
+        self.assertTrue(plan["scope"]["release_hold_unchanged"])
+        self.assertTrue(
+            plan["source_capsule"]["verified_against_checked_in_files"]
+        )
+        self.assertEqual(
+            plan["reporting_boundary"]["vendor_root"],
+            "contrib/ml-dsa-engineering/vendor",
+        )
+        self.assertTrue(
+            plan["reporting_boundary"]["vendor_files_are_never_main_inputs"]
+        )
+        for evidence_source in (
+            ".github/workflows/ml-dsa-44-wrapper-prototype.yml",
+            ".github/workflows/promotion-matrix.yml",
+            "ci/test/00_setup_env_native_tidy.sh",
+            "ci/test/01_base_install.sh",
+            "ci/test/03_test_script.sh",
+            "ci/test/test_ml_dsa_wrapper_prototype.py",
+            "contrib/ml-dsa-engineering/README.md",
+        ):
+            self.assertRegex(
+                plan["source_files"][evidence_source], r"^[0-9a-f]{64}$"
+            )
+
+        checks = plan["checks"]
+        counts = {
+            kind: sum(check["kind"] == kind for check in checks)
+            for kind in (
+                "clang-tidy",
+                "iwyu",
+                "header-self-containment",
+            )
+        }
+        self.assertEqual(
+            counts,
+            {
+                "clang-tidy": 4,
+                "iwyu": 2,
+                "header-self-containment": 2,
+            },
+        )
+        for check in checks:
+            self.assertNotIn("/vendor/", check["input"])
+            if check["kind"] == "clang-tidy":
+                self.assertIn(
+                    "--exclude-header-filter="
+                    + plan["reporting_boundary"]["vendor_header_exclude"],
+                    check["command"],
+                )
+                self.assertIn("--warnings-as-errors=*", check["command"])
+            if check["kind"] == "iwyu":
+                self.assertNotEqual(
+                    check["input"],
+                    "contrib/ml-dsa-engineering/pqbtc_mldsa44.c",
+                )
+                self.assertIn("--error=1", check["command"])
+                self.assertTrue(check["check_also"])
+                self.assertFalse(
+                    any("/vendor/" in path for path in check["check_also"])
+                )
+
+    def test_static_analysis_plan_matches_wrapper_build_variants(self):
+        plan = load_static_analysis_plan()
+        self.assertEqual(plan["tools"]["clang"]["command"], "clang-20")
+        self.assertEqual(
+            plan["tools"]["clang-tidy"]["command"], "clang-tidy-20"
+        )
+        self.assertEqual(
+            plan["tools"]["iwyu"]["command"], "include-what-you-use"
+        )
+
+        checks = {check["id"]: check for check in plan["checks"]}
+        expected_ids = {
+            "clang-tidy-wrapper-production",
+            "clang-tidy-wrapper-testing",
+            "clang-tidy-smoke-testing",
+            "clang-tidy-verifier-fuzz",
+            "iwyu-smoke-testing",
+            "iwyu-verifier-fuzz",
+            "header-self-contained-production",
+            "header-self-contained-testing",
+        }
+        self.assertEqual(set(checks), expected_ids)
+        for check in checks.values():
+            self.assertIn("-std=c11", check["command"])
+
+        testing_define = "-DPQBTC_MLDSA44_TESTING=1"
+        self.assertNotIn(
+            testing_define, checks["clang-tidy-wrapper-production"]["command"]
+        )
+        self.assertIn(
+            testing_define, checks["clang-tidy-wrapper-testing"]["command"]
+        )
+        self.assertIn(testing_define, checks["clang-tidy-smoke-testing"]["command"])
+        self.assertIn(testing_define, checks["iwyu-smoke-testing"]["command"])
+        self.assertIn("-pthread", checks["clang-tidy-smoke-testing"]["command"])
+        self.assertIn("-pthread", checks["iwyu-smoke-testing"]["command"])
+        self.assertNotIn(
+            testing_define, checks["clang-tidy-verifier-fuzz"]["command"]
+        )
+        self.assertNotIn(testing_define, checks["iwyu-verifier-fuzz"]["command"])
+
+        for check_id in (
+            "header-self-contained-production",
+            "header-self-contained-testing",
+        ):
+            self.assertIn("-x", checks[check_id]["command"])
+            self.assertIn("c-header", checks[check_id]["command"])
+            self.assertIn("-fsyntax-only", checks[check_id]["command"])
 
 
 if __name__ == "__main__":

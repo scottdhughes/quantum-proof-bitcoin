@@ -337,6 +337,10 @@ if [ "${RUN_TIDY}" = "true" ]; then
   cd "${BASE_ROOT_DIR}/src"
   python3 "/include-what-you-use/fix_includes.py" --nosafe_headers < /tmp/iwyu_ci.out
   git --no-pager diff
+
+  cd "${BASE_ROOT_DIR}"
+  python3 "${BASE_ROOT_DIR}/contrib/ml-dsa-engineering/run_static_analysis.py" \
+    --output-dir "${BASE_BUILD_DIR}/ml-dsa-44-wrapper-static-analysis"
 fi
 
 if [ "$RUN_FUZZ_TESTS" = "true" ]; then
