@@ -41,7 +41,7 @@ class MlDsaSustainedFuzzTest(unittest.TestCase):
         self.assertEqual(gate["tracking_issue"], 188)
         self.assertEqual(
             gate["status"],
-            "SUSTAINED_SANITIZER_EVIDENCE_GATE_OPEN",
+            "DIFFERENTIAL_SANITIZER_EVIDENCE_RESOURCES_OPEN",
         )
         self.assertTrue(admission["decision"]["release_hold"])
         self.assertEqual(admission["decision"]["production_backend"], "NONE")
