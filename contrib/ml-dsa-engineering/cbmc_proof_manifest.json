@@ -47,7 +47,7 @@
     "cbmc": "6.9.0",
     "cbmc_viewer": "3.12",
     "litani_source_commit": "8002c240ef4f424039ed3cc32e076c0234d01768",
-    "ninja": "1.13.2",
+    "ninja": "1.13.1",
     "nix": "2.24.9",
     "z3": "4.15.3"
   },

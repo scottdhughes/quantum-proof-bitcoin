@@ -96,6 +96,7 @@ class MlDsaCbmcReproductionTest(unittest.TestCase):
             "125e1b273afb65a6a617080a66275dadca712bce7b38df688ccd11a5de2bec61",
         )
         self.assertEqual(manifest["tools"]["cbmc"], "6.9.0")
+        self.assertEqual(manifest["tools"]["ninja"], "1.13.1")
         self.assertEqual(manifest["tools"]["z3"], "4.15.3")
         self.assertEqual(manifest["source_capsule"]["file_count"], 34)
 
