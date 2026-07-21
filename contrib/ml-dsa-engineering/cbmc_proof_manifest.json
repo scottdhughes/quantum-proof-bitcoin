@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "audit": "mldsa-native-upstream-cbmc-reproduction",
+  "profile": {
+    "parameter_set": 44,
+    "reduce_ram": false,
+    "coverage": false,
+    "parallel_jobs": 2,
+    "per_proof_timeout_seconds": 1800
+  },
+  "upstream": {
+    "repository": "https://github.com/pq-code-package/mldsa-native",
+    "tag": "v1.0.0-beta2",
+    "commit": "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
+    "git_tree": "c73c7029182122fce2f2dd8ac544ae990abd74a2",
+    "git_archive_tar_sha256": "4fd08a772d0a142863593471f0c26e239bac8babc8e2a960e072f06ee89ff30b",
+    "flake_lock_sha256": "cdc01dce87b0c9b8488baafb0e0ed5ec94064089f7b4d5b253aecfeef2ac1861",
+    "nixpkgs": {
+      "rev": "23d72dabcb3b12469f57b37170fcbc1789bd7457",
+      "nar_hash": "sha256-z5NJPSBwsLf/OfD8WTmh79tlSU8XgIbwmk6qB1/TFzY="
+    },
+    "nixpkgs_unstable": {
+      "rev": "0726a0ecb6d4e08f6adced58726b95db924cef57",
+      "nar_hash": "sha256-EHq1/OX139R1RvBzOJ0aMRT3xnWyqtHBRUBuO1gFzjI="
+    },
+    "critical_files": {
+      "nix/cbmc/cbmc-viewer.nix": "1d9d964833b3b3036b6ca44062403704917fb272301768cafb2f72543fdf2820",
+      "nix/cbmc/default.nix": "2d12efddc769f1e2a69923b4100f870adda669279570f2d43fc40f364e457e4e",
+      "nix/cbmc/litani.nix": "bf92261c2a4a5c31be0ae30c2593d512b889fdb9b09845edeefa16ab6508231d",
+      "proofs/cbmc/Makefile.common": "4273201adcd68e6ccfcca723786f1360f0b68a992ad795928628df2336d025db",
+      "proofs/cbmc/Makefile_params.common": "228c3611f3027a07abcd0b780e3dc2a8aebaec38f4cdee8e32beaf3a601e54be",
+      "proofs/cbmc/lib/summarize.py": "b3ea826df2f5d2f50032856b2e185639b7175be835eb4713251b4845008e82fd",
+      "proofs/cbmc/list_proofs.sh": "de71b107aef50c5958635d2567689434c757ed0e7685b57a5c2e7072da005e51",
+      "proofs/cbmc/mldsa_native_config_cbmc.h": "9385a0ae0b434510c17b61205501229531f4012ee7252a31936979cd36a4ce76",
+      "proofs/cbmc/run-cbmc-proofs.py": "46ce8b5df14695a335acc3dcc2a07aba79918b32a8cef2ad0084631356b404c9",
+      "scripts/tests": "7317155a350f4a2f50e94a561ad9bbd945d4162dbad949f8f49cc492055868bd"
+    }
+  },
+  "proof_inventory": {
+    "directory_count": 200,
+    "sorted_directory_names_sha256": "f9a7db98384cd6a58eadcd41681bec8dae671ba4f2c65b5f39c6d4139d79693a",
+    "proof_uid_count": 200,
+    "sorted_proof_uids_sha256": "125e1b273afb65a6a617080a66275dadca712bce7b38df688ccd11a5de2bec61"
+  },
+  "tools": {
+    "bitwuzla": "0.8.2",
+    "cbmc": "6.9.0",
+    "cbmc_viewer": "3.12",
+    "litani_source_commit": "8002c240ef4f424039ed3cc32e076c0234d01768",
+    "ninja": "1.13.2",
+    "nix": "2.24.9",
+    "z3": "4.15.3"
+  },
+  "source_capsule": {
+    "file_count": 34,
+    "aggregate_sha256": "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb"
+  },
+  "scope": {
+    "claim": "reproduction of the pinned upstream ML-DSA-44 CBMC safety and undefined-behavior contract suite",
+    "upstream_modular_cbmc_configuration": true,
+    "checked_in_capsule_byte_equivalence_required": true,
+    "pqbtc_wrapper_proven": false,
+    "pqbtc_wrapper_configuration_proven": false,
+    "functional_correctness_proven": false,
+    "constant_time_or_leakage_resistance_proven": false,
+    "rng_or_zeroization_guarantees_proven": false,
+    "compiled_binary_equivalence_proven": false,
+    "production_integration": false,
+    "release_hold_unchanged": true
+  }
+}

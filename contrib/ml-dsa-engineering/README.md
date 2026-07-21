@@ -119,6 +119,37 @@ other platform coverage, rejection-count independence, cache/speculative or
 physical leakage resistance, secret erasure, or production fitness. Issue
 `#185` and the release hold remain open.
 
+## Pinned Upstream CBMC Reproduction
+
+`run_cbmc_reproduction.py` reproduces the complete normal ML-DSA-44 CBMC lane
+from exact `mldsa-native` commit
+`9b0ee84f4cf399043eca59eca4e5f8531ca1d61b`. The versioned manifest freezes
+the commit, Git tree, full `git archive`, `flake.lock`, critical proof-runner
+files, locked Nix inputs, and a 200-directory/200-`PROOF_UID` inventory. The
+workflow uses the upstream `#cbmc` Nix shell, two parallel jobs, a 1,800-second
+per-proof timeout, property checking without coverage, ML-DSA-44 only, and no
+reduced-RAM configuration. It requires exactly 200 successes, no failures or
+timeouts, and exact equality between the result names and the frozen proof UID
+set.
+
+Before any proof runs, the audit verifies that the checked-in 34-file portable
+source capsule has the exact declared file set and is byte-for-byte equal to
+the corresponding files in the clean pinned upstream tree. Retained evidence
+includes the plan, repository and upstream identities, source and proof
+inventories, tool versions and executable hashes, system identity, raw result,
+full execution log, machine-readable report, and `SHA256SUMS`. Workflow
+permissions are read-only, and every run retains evidence for 90 days,
+including failed runs.
+
+This is a reproduction of upstream source-level safety and
+undefined-behavior contracts under upstream's modular CBMC configuration. It
+does not prove the first-party `pqbtc_mldsa44_*` wrapper, project entropy and
+zeroization hooks, repeat lock, error mapping, single-compilation-unit
+configuration, compiled binary, functional correctness, cryptographic
+security, constant-time behavior, leakage resistance, fault resistance,
+thread safety, or production fitness. It does not replace independent human
+review, close a production gate, or alter the release hold.
+
 ## Differential Verifier Fuzzing
 
 The pinned review-reproduction workflow runs a separate 60-second in-process

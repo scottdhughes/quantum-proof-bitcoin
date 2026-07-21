@@ -1,0 +1,103 @@
+name: ML-DSA-44 upstream CBMC reproduction
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ml-dsa-44-cbmc-reproduction.yml"
+      - "ci/test/test_ml_dsa_cbmc_reproduction.py"
+      - "contrib/ml-dsa-engineering/**"
+      - "docs/ML_DSA_44_WRAPPER_PROTOTYPE.md"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/ml-dsa-44-cbmc-reproduction.yml"
+      - "ci/test/test_ml_dsa_cbmc_reproduction.py"
+      - "contrib/ml-dsa-engineering/**"
+      - "docs/ML_DSA_44_WRAPPER_PROTOTYPE.md"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  cbmc:
+    name: Pinned upstream ML-DSA-44 (200 proofs)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      MLDSA_NATIVE_COMMIT: 9b0ee84f4cf399043eca59eca4e5f8531ca1d61b
+      UPSTREAM_DIR: ${{ github.workspace }}/.audit/mldsa-native
+      EVIDENCE_ROOT: /tmp/ml-dsa-44-cbmc-${{ github.run_id }}-${{ github.run_attempt }}
+      EVIDENCE_DIR: /tmp/ml-dsa-44-cbmc-${{ github.run_id }}-${{ github.run_attempt }}/audit
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Checkout pinned mldsa-native proofs
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          repository: pq-code-package/mldsa-native
+          ref: ${{ env.MLDSA_NATIVE_COMMIT }}
+          path: .audit/mldsa-native
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prepare reproduction evidence
+        run: |
+          mkdir -p "${EVIDENCE_ROOT}"
+          printf '%s\n' \
+            "repository_commit=${{ github.event.pull_request.head.sha || github.sha }}" \
+            "upstream_commit=${MLDSA_NATIVE_COMMIT}" \
+            "runner=${RUNNER_NAME}" \
+            "runner_os=${RUNNER_OS}" \
+            "runner_arch=${RUNNER_ARCH}" \
+            > "${EVIDENCE_ROOT}/workflow-context.txt"
+          python3 contrib/ml-dsa-engineering/run_cbmc_reproduction.py \
+            --plan-only > "${EVIDENCE_ROOT}/cbmc-plan-preview.json"
+
+      - name: Verify reproduction contract
+        run: python3 -m unittest ci.test.test_ml_dsa_cbmc_reproduction
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 # v30
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Record Nix version
+        run: |
+          set -o pipefail
+          nix --version 2>&1 | tee "${EVIDENCE_ROOT}/nix-version.log"
+
+      - name: Reproduce all pinned ML-DSA-44 CBMC proofs
+        run: |
+          set -o pipefail
+          nix develop --quiet --no-update-lock-file --no-write-lock-file \
+            "${UPSTREAM_DIR}#cbmc" -c \
+            python3 contrib/ml-dsa-engineering/run_cbmc_reproduction.py \
+              --upstream-source-dir "${UPSTREAM_DIR}" \
+              --output-dir "${EVIDENCE_DIR}" \
+              --parallel-jobs 2 \
+              --per-proof-timeout 1800 \
+            2>&1 | tee "${EVIDENCE_ROOT}/nix-develop.log"
+
+      - name: Upload CBMC reproduction evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ml-dsa-44-cbmc-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE_ROOT }}
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 9
