@@ -82,3 +82,74 @@ jobs:
           if-no-files-found: warn
           retention-days: 90
           compression-level: 9
+
+  valgrind-ct:
+    name: Isolated wrapper CT (${{ matrix.nix_shell }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        nix_shell:
+          - valgrind-varlat_clang20
+          - valgrind-varlat_gcc13
+    env:
+      MLDSA_NATIVE_COMMIT: 9b0ee84f4cf399043eca59eca4e5f8531ca1d61b
+      UPSTREAM_DIR: ${{ github.workspace }}/.audit/mldsa-native
+      EVIDENCE_ROOT: /tmp/ml-dsa-44-wrapper-valgrind-ct-${{ matrix.nix_shell }}-${{ github.run_id }}-${{ github.run_attempt }}
+      EVIDENCE_DIR: /tmp/ml-dsa-44-wrapper-valgrind-ct-${{ matrix.nix_shell }}-${{ github.run_id }}-${{ github.run_attempt }}/audit
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Checkout pinned mldsa-native audit environment
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          repository: pq-code-package/mldsa-native
+          ref: ${{ env.MLDSA_NATIVE_COMMIT }}
+          path: .audit/mldsa-native
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prepare provisioning evidence
+        run: |
+          mkdir -p "${EVIDENCE_ROOT}"
+          printf '%s\n' \
+            "toolchain=${{ matrix.nix_shell }}" \
+            "repository_commit=${{ github.event.pull_request.head.sha || github.sha }}" \
+            "upstream_commit=${MLDSA_NATIVE_COMMIT}" \
+            > "${EVIDENCE_ROOT}/workflow-context.txt"
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 # v30
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Record Nix version
+        run: |
+          set -o pipefail
+          nix --version 2>&1 | tee "${EVIDENCE_ROOT}/nix-version.log"
+
+      - name: Run versioned Valgrind constant-time audit
+        run: |
+          set -o pipefail
+          nix develop --quiet --no-update-lock-file --no-write-lock-file \
+            "${UPSTREAM_DIR}#${{ matrix.nix_shell }}" -c \
+            python3 contrib/ml-dsa-engineering/run_valgrind_ct_analysis.py \
+              --toolchain-id "${{ matrix.nix_shell }}" \
+              --upstream-source-dir "${UPSTREAM_DIR}" \
+              --output-dir "${EVIDENCE_DIR}" \
+            2>&1 | tee "${EVIDENCE_ROOT}/nix-develop.log"
+
+      - name: Upload Valgrind constant-time evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ml-dsa-44-wrapper-valgrind-ct-${{ matrix.nix_shell }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE_ROOT }}
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 9

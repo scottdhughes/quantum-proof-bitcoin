@@ -70,3 +70,45 @@ a machine-readable result, and `SHA256SUMS` in a commit-named workflow
 artifact. This is static source-analysis evidence only. It is not a proof of
 memory safety, constant-time behavior, secret erasure, or production fitness,
 and it does not alter the release hold.
+
+## Versioned Valgrind Constant-Time Audit
+
+`run_valgrind_ct_analysis.py` defines a separate x86_64-Linux audit for the
+isolated portable wrapper. The workflow checks out exact `mldsa-native` commit
+`9b0ee84f4cf399043eca59eca4e5f8531ca1d61b` solely for its locked Nix
+environment, then verifies the commit, Git tree, full `git archive`, and the
+KyberSlash-derived variable-latency Valgrind patch. It also requires a clean
+upstream worktree and verifies the complete `flake.lock`, its locked nixpkgs
+revision and NAR hash, and Nix 2.24.9. Lockfile updates and writes are disabled.
+The matrix uses the pinned `valgrind-varlat_clang20` and
+`valgrind-varlat_gcc13` shells, Valgrind 3.26.0, and `-O2` wrapper binaries.
+The three calibration probes use `-O0` so their intentionally secret-dependent
+operations cannot be optimized away.
+
+The analysis-only build marks the generated 32-byte randomizer secret
+immediately after the entropy source succeeds, before the wrapper's length,
+all-zero, digest, and repeat checks. It adds exactly two project
+declassifications: the all-zero and immediate-repeat predicates whose result
+is already exposed by distinct public error codes. The pinned upstream
+portable ML-DSA implementation has its own separately hashed active/inactive
+declassification inventory; the two project sites are not a claim about the
+full translation unit.
+
+The harness marks the 2,560-byte secret key undefined only after deterministic
+key generation setup, then checks five distinct successful hedged signatures,
+an immediate-repeat failure, and an all-zero failure without manually
+declassifying status values or released signatures. Separate branch,
+effective-address, and integer-division probes must all trigger the configured
+Valgrind error sentinel, including the patched variable-latency diagnostic. A
+fourth control branches on the marked secret key to prove the harness taint is
+active. Each control requires a complete Memcheck XML record, the exact binary
+and arguments, and an attributed probe stack frame. The clean wrapper run also
+enforces Memcheck memory and leak errors without project suppressions.
+
+Each compiler lane uploads the exact plan, source and tool hashes, build and
+execution logs, Valgrind XML, binaries, a machine-readable report, and
+`SHA256SUMS`. A pass is bounded to these binaries and scenarios. It does not
+establish key-generation constant time, OS-randomness-path behavior, ARM or
+other platform coverage, rejection-count independence, cache/speculative or
+physical leakage resistance, secret erasure, or production fitness. Issue
+`#185` and the release hold remain open.

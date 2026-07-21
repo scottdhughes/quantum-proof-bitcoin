@@ -15,6 +15,21 @@
 #include <stdatomic.h>
 #include <string.h>
 
+#ifdef PQBTC_MLDSA44_CT_TESTING
+#include <valgrind/memcheck.h>
+#define PQBTC_MLDSA44_CT_SECRET(ptr, len) \
+    VALGRIND_MAKE_MEM_UNDEFINED((ptr), (len))
+#define PQBTC_MLDSA44_CT_DECLASSIFY(ptr, len) \
+    VALGRIND_MAKE_MEM_DEFINED((ptr), (len))
+#else
+#define PQBTC_MLDSA44_CT_SECRET(ptr, len) \
+    do {                                    \
+    } while (0)
+#define PQBTC_MLDSA44_CT_DECLASSIFY(ptr, len) \
+    do {                                        \
+    } while (0)
+#endif
+
 #if defined(_WIN32) && !defined(PQBTC_MLDSA44_TESTING)
 #include <bcrypt.h>
 #elif !defined(PQBTC_MLDSA44_TESTING)
@@ -133,6 +148,7 @@ static int pqbtc_mldsa44_randombytes(uint8_t* ptr, size_t len)
 {
     uint8_t digest[32] = {0};
     size_t received = 0;
+    int all_zero;
 
     if (!g_entropy_active || ptr == NULL || len != PQBTC_MLDSA44_RANDOMIZER_BYTES) {
         g_entropy_result = PQBTC_MLDSA44_ERR_ENTROPY_LENGTH;
@@ -145,24 +161,36 @@ static int pqbtc_mldsa44_randombytes(uint8_t* ptr, size_t len)
         g_entropy_result = PQBTC_MLDSA44_ERR_ENTROPY_SOURCE;
         return -1;
     }
+
+    // PQBTC_CT_SECRET: generated_randomizer
+    PQBTC_MLDSA44_CT_SECRET(ptr, PQBTC_MLDSA44_RANDOMIZER_BYTES);
     if (received != len) {
         pqbtc_mldsa44_zeroize(ptr, len);
         g_entropy_result = PQBTC_MLDSA44_ERR_ENTROPY_LENGTH;
         return -1;
     }
-    if (ConstantTimeAllZero(ptr, len)) {
+
+    all_zero = ConstantTimeAllZero(ptr, len);
+    // PQBTC_CT_DECLASSIFICATION: randomizer_all_zero_predicate
+    PQBTC_MLDSA44_CT_DECLASSIFY(&all_zero, sizeof(all_zero));
+    if (all_zero) {
         pqbtc_mldsa44_zeroize(ptr, len);
         g_entropy_result = PQBTC_MLDSA44_ERR_ENTROPY_ALL_ZERO;
         return -1;
     }
 
     pqbtc_mldsa44_upstream_shake256(digest, sizeof(digest), ptr, len);
-    if (g_has_last_randomizer_digest &&
-        ConstantTimeEqual(digest, g_last_randomizer_digest, sizeof(digest))) {
-        pqbtc_mldsa44_zeroize(digest, sizeof(digest));
-        pqbtc_mldsa44_zeroize(ptr, len);
-        g_entropy_result = PQBTC_MLDSA44_ERR_ENTROPY_REPEAT;
-        return -1;
+    if (g_has_last_randomizer_digest) {
+        int repeated =
+            ConstantTimeEqual(digest, g_last_randomizer_digest, sizeof(digest));
+        // PQBTC_CT_DECLASSIFICATION: immediate_repeat_predicate
+        PQBTC_MLDSA44_CT_DECLASSIFY(&repeated, sizeof(repeated));
+        if (repeated) {
+            pqbtc_mldsa44_zeroize(digest, sizeof(digest));
+            pqbtc_mldsa44_zeroize(ptr, len);
+            g_entropy_result = PQBTC_MLDSA44_ERR_ENTROPY_REPEAT;
+            return -1;
+        }
     }
 
     // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)

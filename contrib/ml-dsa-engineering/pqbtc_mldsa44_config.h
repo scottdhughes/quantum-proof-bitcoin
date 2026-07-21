@@ -13,6 +13,13 @@
 #define MLD_CONFIG_NO_ASM
 #define MLD_CONFIG_MAX_SIGNING_ATTEMPTS 814
 
+#if defined(PQBTC_MLDSA44_CT_TESTING)
+#if !defined(PQBTC_MLDSA44_TESTING)
+#error PQBTC_MLDSA44_CT_TESTING requires PQBTC_MLDSA44_TESTING
+#endif
+#define MLD_CONFIG_CT_TESTING_ENABLED
+#endif
+
 #define MLD_CONFIG_CUSTOM_RANDOMBYTES
 #define mld_randombytes pqbtc_mldsa44_randombytes
 
