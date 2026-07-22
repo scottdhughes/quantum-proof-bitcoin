@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     env:
-      BASELINE: 6ffd47881fc2071724fa6e31fb3cf9557a64b467
+      BASELINE: 25c5359bc868b6a36f14d9f171420e1c64af8e29
       OPENSSL_COMMIT: aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f
       MLDSA_NATIVE_COMMIT: 9b0ee84f4cf399043eca59eca4e5f8531ca1d61b
       LIBCRUX_COMMIT: c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd
