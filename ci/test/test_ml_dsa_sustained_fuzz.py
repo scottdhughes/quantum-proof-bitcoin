@@ -31,6 +31,22 @@ SPEC.loader.exec_module(verifier_fuzz)
 
 
 class MlDsaSustainedFuzzTest(unittest.TestCase):
+    def test_frozen_corpus_source_hashes_match_current_inputs(self):
+        manifest = json.loads(
+            verifier_fuzz.CORPUS_MANIFEST.read_text(encoding="utf8")
+        )
+        self.assertEqual(
+            manifest["sources"],
+            {
+                "repo_vectors_sha256": hashlib.sha256(
+                    verifier_fuzz.wrapper.VECTORS.read_bytes()
+                ).hexdigest(),
+                "wycheproof_vectors_sha256": hashlib.sha256(
+                    verifier_fuzz.WYCHEPROOF_VECTORS.read_bytes()
+                ).hexdigest(),
+            },
+        )
+
     def test_machine_readable_gate_remains_open(self):
         admission = json.loads(ADMISSION.read_text(encoding="utf8"))
         gate = next(
