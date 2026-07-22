@@ -1069,6 +1069,13 @@ def prepare_miri_crate(
         raise AuditError(f"expected to remove 6 libcrux dev-dependency sections, removed {count}")
     if re.search(r"(?m)^\[.*dev-dependencies", stripped):
         raise AuditError("generated Miri manifest retains a dev-dependency section")
+    if re.search(r'(?m)^name = "pqbtc_oracle"$', stripped):
+        raise AuditError("published libcrux manifest unexpectedly defines pqbtc_oracle")
+    stripped += (
+        "\n[[example]]\n"
+        'name = "pqbtc_oracle"\n'
+        'path = "examples/pqbtc_oracle.rs"\n'
+    )
     manifest_path.write_text(stripped, encoding="utf8")
     destination = crate_dir / "examples" / "pqbtc_oracle.rs"
     if not destination.parent.is_dir():
@@ -1078,6 +1085,7 @@ def prepare_miri_crate(
         **original,
         "miri_source_sha256": expected_source,
         "removed_dev_dependency_sections": count,
+        "added_example_target": "pqbtc_oracle",
         "prepared_manifest_sha256": _sha256(manifest_path),
         "example_sha256": _sha256(destination),
     }

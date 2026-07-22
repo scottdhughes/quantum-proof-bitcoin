@@ -40,7 +40,7 @@
         "tag": "libcrux-ml-dsa-v0.0.10",
         "crate_sha256": "783ebed7cb27de6d44ef2aa662648d1a0869694f2f754f2f1ed45e959ef3b48e",
         "cargo_lock_sha256": "10e6505cebc85f9cbf7836002fe5b3b1d9c6c7d84cfc6dd5b6e1f38ebbb6648d",
-        "cargo_toml_sha256": "33e7c32f8f277ec6226c7fa0fe40e11cd73fe4ec1dd1420f9fe7a44760bd2b3a",
+        "cargo_toml_sha256": "5796c72c70ced10baba72fdb0fa2345163a2ab628b2c04d89ef883ede90f44c1",
         "full_lock_package_count": 139,
         "advisory_inventory": {
           "as_of": "2026-07-21",

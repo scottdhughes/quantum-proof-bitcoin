@@ -268,6 +268,15 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         self.assertEqual(contract["production_backend"], "NONE")
         self.assertFalse(contract["simd256_admitted"])
         self.assertEqual(contract["miri_role"], "SUPPLEMENTARY")
+        libcrux = next(
+            source
+            for source in self.ledger["source_contract"]["oracles"]
+            if source["name"] == "libcrux"
+        )
+        self.assertEqual(
+            libcrux["cargo_toml_sha256"],
+            "5796c72c70ced10baba72fdb0fa2345163a2ab628b2c04d89ef883ede90f44c1",
+        )
 
     def test_plan_only_cli_is_machine_readable_and_freezes_scope(self):
         completed = subprocess.run(
