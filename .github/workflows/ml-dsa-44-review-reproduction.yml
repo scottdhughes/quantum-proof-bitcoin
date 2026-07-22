@@ -8,9 +8,16 @@ on:
       - "contrib/ml-dsa-engineering/**"
       - "ci/test/test_ml_dsa_reference.py"
       - "ci/test/test_ml_dsa_differential_fuzz.py"
+  schedule:
+    - cron: "43 5 * * 3"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -28,6 +35,21 @@ jobs:
       LIBCRUX_DISABLE_SIMD256: "1"
 
     steps:
+      - name: Initialize failure evidence
+        env:
+          CONTEXT: ${{ runner.temp }}/ml-dsa-44-review-run-context.txt
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          {
+            echo "event_name=$GITHUB_EVENT_NAME"
+            echo "github_ref=$GITHUB_REF"
+            echo "github_sha=$GITHUB_SHA"
+            echo "expected_checkout_head=$EXPECTED_HEAD"
+            echo "github_run_id=$GITHUB_RUN_ID"
+            echo "github_run_attempt=$GITHUB_RUN_ATTEMPT"
+          } > "$CONTEXT"
+
       - name: Checkout PQBTC review head
         timeout-minutes: 5
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -49,8 +71,13 @@ jobs:
 
       - name: Validate frozen repository inputs
         timeout-minutes: 10
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          repository_status="$(git status --porcelain --untracked-files=all)"
+          test -z "$repository_status"
           test "$(rustc --version | cut -d ' ' -f 2)" = "1.89.0"
           git diff --exit-code "$BASELINE" -- \
             contrib/ml-dsa-ref ci/test/test_ml_dsa_reference.py \
@@ -63,6 +90,243 @@ jobs:
           rustfmt --check \
             contrib/ml-dsa-engineering/pqbtc_mldsa44_libcrux_verify.rs
           python3 -m unittest ci.test.test_ml_dsa_differential_fuzz
+
+      - name: Stage failure evidence
+        env:
+          CONTEXT: ${{ runner.temp }}/ml-dsa-44-review-run-context.txt
+        run: |
+          set -euo pipefail
+          cp "$CONTEXT" ml-dsa-44-review-run-context.txt
+
+      - name: Restore prior minimized differential corpus
+        id: retained
+        timeout-minutes: 10
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRIOR_DIR: ${{ runner.temp }}/ml-dsa-44-prior-review
+          PROVENANCE: ml-dsa-44-differential-retained-corpus.txt
+        run: |
+          set -euo pipefail
+          {
+            echo "event_name=$GITHUB_EVENT_NAME"
+            echo "restore_policy=latest_successful_main_run"
+          } > "$PROVENANCE"
+
+          if [[ "$GITHUB_EVENT_NAME" != "schedule" && \
+                "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]]; then
+            echo "state=not_requested_for_pull_request_smoke" >> "$PROVENANCE"
+            echo "restored=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "state=long_campaign_requires_main" >> "$PROVENANCE"
+            exit 1
+          fi
+
+          previous_run_record="$(
+            gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow ml-dsa-44-review-reproduction.yml \
+              --branch main \
+              --status success \
+              --limit 20 \
+              --json databaseId,attempt,createdAt,headSha \
+              --jq 'sort_by([.createdAt, .databaseId]) | reverse | .[0] | select(.) | [.databaseId, .attempt, .headSha] | @tsv'
+          )"
+          if [[ -z "$previous_run_record" ]]; then
+            echo "state=no_prior_successful_main_run" >> "$PROVENANCE"
+            exit 1
+          fi
+
+          IFS=$'\t' read -r previous_run previous_attempt previous_head \
+            <<< "$previous_run_record"
+          [[ "$previous_run" =~ ^[0-9]+$ ]]
+          [[ "$previous_attempt" =~ ^[0-9]+$ ]]
+          [[ "$previous_head" =~ ^[0-9a-f]{40}$ ]]
+          git merge-base --is-ancestor "$previous_head" HEAD
+          artifact_name="ml-dsa-44-review-evidence-$previous_head"
+          mkdir -p "$PRIOR_DIR"
+          gh run download "$previous_run" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "$artifact_name" \
+            --dir "$PRIOR_DIR"
+
+          prior_evidence="$PRIOR_DIR/ml-dsa-44-differential-fuzz"
+          test -f "$prior_evidence/SHA256SUMS"
+          prior_symlink="$(find "$prior_evidence" -type l -print -quit)"
+          test -z "$prior_symlink"
+
+          seed_dir="$prior_evidence/minimized-corpus"
+          test -d "$seed_dir"
+          test ! -L "$seed_dir"
+          seed_dir_relative="${seed_dir#"$PRIOR_DIR"/}"
+          test "$seed_dir_relative" = \
+            "ml-dsa-44-differential-fuzz/minimized-corpus"
+          seed_count=0
+          seed_total_bytes=0
+          while IFS= read -r -d '' seed; do
+            seed_count=$((seed_count + 1))
+            if (( seed_count > 4096 )); then
+              echo "state=minimized_corpus_file_count_exceeded" \
+                >> "$PROVENANCE"
+              exit 1
+            fi
+            if [[ ! -f "$seed" || -L "$seed" ]]; then
+              echo "state=non_regular_or_nested_minimized_corpus" \
+                >> "$PROVENANCE"
+              exit 1
+            fi
+            seed_bytes="$(stat --format=%s -- "$seed")"
+            [[ "$seed_bytes" =~ ^[0-9]+$ ]]
+            if (( seed_bytes > 8096 )); then
+              echo "state=minimized_corpus_input_size_exceeded" \
+                >> "$PROVENANCE"
+              exit 1
+            fi
+            seed_total_bytes=$((seed_total_bytes + seed_bytes))
+            if (( seed_total_bytes > 33554432 )); then
+              echo "state=minimized_corpus_total_size_exceeded" \
+                >> "$PROVENANCE"
+              exit 1
+            fi
+          done < <(
+            find "$seed_dir" -mindepth 1 -maxdepth 1 -print0
+          )
+          if (( seed_count < 1 )); then
+            echo "state=empty_minimized_corpus" >> "$PROVENANCE"
+            exit 1
+          fi
+          nested_seed_entry="$(find "$seed_dir" -mindepth 2 -print -quit)"
+          if [[ -n "$nested_seed_entry" ]]; then
+            echo "state=non_regular_or_nested_minimized_corpus" >> "$PROVENANCE"
+            exit 1
+          fi
+          (
+            cd "$prior_evidence"
+            sha256sum --check SHA256SUMS
+          )
+          python3 - "$prior_evidence/campaign.json" "$seed_dir" \
+            "$previous_head" >> "$PROVENANCE" <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          import sys
+
+          campaign_path = Path(sys.argv[1])
+          seed_dir = Path(sys.argv[2])
+          expected_head = sys.argv[3]
+          campaign = json.loads(campaign_path.read_text(encoding="utf8"))
+          digest = hashlib.sha256()
+          file_count = 0
+          total_bytes = 0
+          for path in sorted(item for item in seed_dir.rglob("*") if item.is_file()):
+              relative = path.relative_to(seed_dir).as_posix()
+              data = path.read_bytes()
+              file_digest = hashlib.sha256(data).hexdigest()
+              digest.update(f"{relative}\0{len(data)}\0{file_digest}\n".encode())
+              file_count += 1
+              total_bytes += len(data)
+          actual_summary = {
+              "file_count": file_count,
+              "total_bytes": total_bytes,
+              "aggregate_sha256": digest.hexdigest(),
+          }
+          assert campaign["status"] == "pass"
+          assert campaign["return_code"] == 0
+          assert campaign["repository_commit"] == expected_head
+          assert campaign["repository_dirty"] is False
+          assert campaign["minimized_corpus"] == actual_summary
+          assert actual_summary["file_count"] > 0
+          print(f"source_campaign_repository_commit={expected_head}")
+          print(f"source_campaign_minimized_file_count={file_count}")
+          print(f"source_campaign_minimized_total_bytes={total_bytes}")
+          print(
+              "source_campaign_minimized_aggregate_sha256="
+              f"{actual_summary['aggregate_sha256']}"
+          )
+          PY
+          source_evidence_sha256="$(
+            sha256sum "$prior_evidence/SHA256SUMS" | cut -d ' ' -f 1
+          )"
+          [[ "$source_evidence_sha256" =~ ^[0-9a-f]{64}$ ]]
+
+          {
+            echo "state=restored"
+            echo "source_run_id=$previous_run"
+            echo "source_run_attempt=$previous_attempt"
+            echo "source_head_sha=$previous_head"
+            echo "source_artifact=$artifact_name"
+            echo "seed_directory=$seed_dir_relative"
+            echo "restored_seed_file_count=$seed_count"
+            echo "source_evidence_sha256=$source_evidence_sha256"
+          } >> "$PROVENANCE"
+          {
+            echo "restored=true"
+            echo "seed_dir=$seed_dir"
+            echo "source_run_id=$previous_run"
+            echo "source_run_attempt=$previous_attempt"
+            echo "source_head_sha=$previous_head"
+            echo "source_artifact=$artifact_name"
+            echo "restored_seed_file_count=$seed_count"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Select bounded differential campaign
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          RETAINED_CORPUS_RESTORED: ${{ steps.retained.outputs.restored }}
+          RETAINED_SOURCE_RUN_ID: ${{ steps.retained.outputs.source_run_id }}
+          RETAINED_SOURCE_RUN_ATTEMPT: ${{ steps.retained.outputs.source_run_attempt }}
+          RETAINED_SOURCE_HEAD_SHA: ${{ steps.retained.outputs.source_head_sha }}
+          RETAINED_SOURCE_ARTIFACT: ${{ steps.retained.outputs.source_artifact }}
+          RETAINED_SEED_FILE_COUNT: ${{ steps.retained.outputs.restored_seed_file_count }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "schedule" || \
+                "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            campaign_seconds=1800
+            campaign_seed="$(python3 - <<'PY'
+          import os
+
+          run_id = int(os.environ["GITHUB_RUN_ID"])
+          run_attempt = int(os.environ["GITHUB_RUN_ATTEMPT"])
+          print(((run_id + run_attempt - 1) % 0xFFFFFFFF) + 1)
+          PY
+          )"
+          else
+            campaign_seconds=60
+            campaign_seed=188
+          fi
+          if [[ "$campaign_seconds" == "1800" ]]; then
+            test "$RETAINED_CORPUS_RESTORED" = "true"
+            test "$GITHUB_REF" = "refs/heads/main"
+          else
+            test "$RETAINED_CORPUS_RESTORED" = "false"
+          fi
+          [[ "$campaign_seconds" =~ ^(60|1800)$ ]]
+          [[ "$campaign_seed" =~ ^[0-9]+$ ]]
+          (( campaign_seed >= 1 && campaign_seed <= 4294967295 ))
+          checkout_head="$(git rev-parse HEAD)"
+          test "$checkout_head" = "$EXPECTED_HEAD"
+          {
+            echo "DIFFERENTIAL_CAMPAIGN_SECONDS=$campaign_seconds"
+            echo "DIFFERENTIAL_CAMPAIGN_SEED=$campaign_seed"
+          } >> "$GITHUB_ENV"
+          {
+            echo "event_name=$GITHUB_EVENT_NAME"
+            echo "github_sha=$GITHUB_SHA"
+            echo "expected_checkout_head=$EXPECTED_HEAD"
+            echo "checkout_head=$checkout_head"
+            echo "github_run_id=$GITHUB_RUN_ID"
+            echo "github_run_attempt=$GITHUB_RUN_ATTEMPT"
+            echo "campaign_seconds=$campaign_seconds"
+            echo "campaign_seed=$campaign_seed"
+            echo "retained_corpus_restored=${RETAINED_CORPUS_RESTORED:-false}"
+            echo "retained_source_run_id=$RETAINED_SOURCE_RUN_ID"
+            echo "retained_source_run_attempt=$RETAINED_SOURCE_RUN_ATTEMPT"
+            echo "retained_source_head_sha=$RETAINED_SOURCE_HEAD_SHA"
+            echo "retained_source_artifact=$RETAINED_SOURCE_ARTIFACT"
+            echo "retained_seed_file_count=$RETAINED_SEED_FILE_COUNT"
+          } > ml-dsa-44-differential-campaign-parameters.txt
 
       - name: Fetch pinned standards artifacts and upstream sources
         timeout-minutes: 15
@@ -93,6 +357,17 @@ jobs:
           git clone https://github.com/celabshq/libcrux.git libcrux
           git -C libcrux checkout --detach "$LIBCRUX_COMMIT"
 
+          test "$(git -C acvp-server rev-parse HEAD)" = "$ACVP_COMMIT"
+          test "$(git -C openssl rev-parse HEAD)" = "$OPENSSL_COMMIT"
+          test "$(git -C mldsa-native rev-parse HEAD)" = "$MLDSA_NATIVE_COMMIT"
+          test "$(git -C libcrux rev-parse HEAD)" = "$LIBCRUX_COMMIT"
+          for source in acvp-server openssl mldsa-native libcrux; do
+            source_status="$(
+              git -C "$source" status --porcelain --untracked-files=all
+            )"
+            test -z "$source_status"
+          done
+
       - name: Build pinned OpenSSL 3.6.3 out of tree
         timeout-minutes: 25
         run: |
@@ -117,7 +392,11 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Run complete pinned comparator
-        timeout-minutes: 60
+        timeout-minutes: 75
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          RETAINED_CORPUS_RESTORED: ${{ steps.retained.outputs.restored }}
+          RETAINED_SEED_DIR: ${{ steps.retained.outputs.seed_dir }}
         run: |
           set -euxo pipefail
           REVIEW_ROOT="$RUNNER_TEMP/ml-dsa-review"
@@ -166,16 +445,32 @@ jobs:
             exit "$REVIEW_EXIT"
           fi
 
+          fuzz_args=(
+            --openssl-source "$REVIEW_ROOT/openssl"
+            --libcrux-source "$REVIEW_ROOT/libcrux"
+            --libcrux-crate "$REVIEW_ROOT/artifacts/libcrux-ml-dsa-0.0.10.crate"
+            --output-dir "$DIFFERENTIAL_EVIDENCE"
+          )
+          if [[ "$DIFFERENTIAL_CAMPAIGN_SECONDS" == "1800" ]]; then
+            fuzz_args+=(--seconds 1800 --seed "$DIFFERENTIAL_CAMPAIGN_SEED")
+          else
+            test "$DIFFERENTIAL_CAMPAIGN_SECONDS" = "60"
+            test "$DIFFERENTIAL_CAMPAIGN_SEED" = "188"
+            fuzz_args+=(--seconds 60 --seed 188)
+          fi
+          if [[ "$RETAINED_CORPUS_RESTORED" == "true" ]]; then
+            test "$DIFFERENTIAL_CAMPAIGN_SECONDS" = "1800"
+            test -n "$RETAINED_SEED_DIR"
+            test -d "$RETAINED_SEED_DIR"
+            fuzz_args+=(--seed-corpus "$RETAINED_SEED_DIR")
+          else
+            test -z "$RETAINED_SEED_DIR"
+          fi
+
           set +e
           FUZZ_CC=clang \
             python3 contrib/ml-dsa-engineering/run_differential_verifier_fuzz.py \
-              --openssl-source "$REVIEW_ROOT/openssl" \
-              --libcrux-source "$REVIEW_ROOT/libcrux" \
-              --libcrux-crate "$REVIEW_ROOT/artifacts/libcrux-ml-dsa-0.0.10.crate" \
-              --output-dir "$DIFFERENTIAL_EVIDENCE" \
-              --seconds 60 \
-              --seed 188 \
-              > "$FUZZ_REPORT"
+              "${fuzz_args[@]}" > "$FUZZ_REPORT"
           FUZZ_EXIT=$?
           set -e
 
@@ -220,6 +515,8 @@ jobs:
           if (( EVIDENCE_EXIT != 0 )); then
             exit "$EVIDENCE_EXIT"
           fi
+          git diff --exit-code
+          git diff --cached --exit-code
           python3 - <<'PY'
           import hashlib
           import json
@@ -259,30 +556,62 @@ jobs:
           fuzz_report = json.loads(
               Path("ml-dsa-44-differential-fuzz-run.json").read_text()
           )
+          expected_seconds = int(os.environ["DIFFERENTIAL_CAMPAIGN_SECONDS"])
+          expected_seed = int(os.environ["DIFFERENTIAL_CAMPAIGN_SEED"])
+          retained_corpus_restored = (
+              os.environ.get("RETAINED_CORPUS_RESTORED") == "true"
+          )
+          assert expected_seconds in (60, 1800)
+          assert 1 <= expected_seed <= 0xFFFFFFFF
+          if expected_seconds == 60:
+              assert os.environ["GITHUB_EVENT_NAME"] == "pull_request"
+              assert expected_seed == 188
+          else:
+              assert os.environ["GITHUB_EVENT_NAME"] in {
+                  "schedule",
+                  "workflow_dispatch",
+              }
+              assert os.environ["GITHUB_REF"] == "refs/heads/main"
           assert fuzz_report["status"] == "pass"
           assert fuzz_report["return_code"] == 0
           assert fuzz_report["sanitizer"] == "address-undefined"
           assert fuzz_report["coverage_enabled"] is True
-          assert fuzz_report["campaign_limit"] == {"runs": None, "seconds": 60}
-          assert fuzz_report["seed"] == 188
-          assert fuzz_report["seconds"] == 60
+          assert fuzz_report["campaign_limit"] == {
+              "runs": None,
+              "seconds": expected_seconds,
+          }
+          assert fuzz_report["seed"] == expected_seed
+          assert fuzz_report["seconds"] == expected_seconds
           checkout_head = subprocess.check_output(
               ["git", "rev-parse", "HEAD"], text=True
           ).strip()
+          assert checkout_head == os.environ["EXPECTED_HEAD"]
           assert fuzz_report["repository_commit"] == checkout_head
           assert fuzz_report["repository_dirty"] is False
           assert fuzz_report["crash_artifacts"]["file_count"] == 0
+          if retained_corpus_restored:
+              assert fuzz_report["imported_retained_seeds"] > 0
+          else:
+              assert fuzz_report["imported_retained_seeds"] == 0
           assert fuzz_report["source_corpus"]["total_cases"] == 207
           assert fuzz_report["working_corpus"]["file_count"] > 0
           assert fuzz_report["minimized_corpus"]["file_count"] > 0
           assert fuzz_report["last_progress_line"]
           assert fuzz_report["final_stats"]
-          assert fuzz_report["executed_units"] > 207
-          assert 59 <= fuzz_report["fuzzer_duration_seconds"] <= 95
+          if expected_seconds == 1800:
+              assert retained_corpus_restored
+              assert fuzz_report["executed_units"] >= 500_000
+              assert 1799 <= fuzz_report["fuzzer_duration_seconds"] <= 1835
+          else:
+              assert fuzz_report["executed_units"] > 207
+              assert 59 <= fuzz_report["fuzzer_duration_seconds"] <= 95
+          assert fuzz_report["fuzzer_duration_seconds"] <= expected_seconds + 35
 
           differential = fuzz_report["differential_oracles"]
           assert differential["fuzzer_binary_sha256"]
+          assert differential["wrapper"]["commit"] == os.environ["MLDSA_NATIVE_COMMIT"]
           assert differential["wrapper"]["source_capsule_sha256"]
+          assert differential["openssl"]["commit"] == os.environ["OPENSSL_COMMIT"]
           assert differential["openssl"]["bridge_source_sha256"]
           openssl_runtime = differential["openssl"]["runtime"]
           openssl_prefix = (
@@ -299,6 +628,7 @@ jobs:
           assert openssl_runtime["openssl_conf"] == "/dev/null"
           assert "OpenSSL Default Provider" in openssl_runtime["provider_inventory"]
           assert "version: 3.6.3" in openssl_runtime["provider_inventory"]
+          assert differential["libcrux"]["commit"] == os.environ["LIBCRUX_COMMIT"]
           assert differential["libcrux"]["bridge_source_sha256"]
           assert differential["libcrux"]["rlib_sha256"]
           assert differential["libcrux"]["bridge_binary_sha256"]
@@ -351,11 +681,14 @@ jobs:
           assert (evidence / "coverage.json").is_file()
           assert (evidence / "coverage.txt").is_file()
           assert (evidence / "differential-smoke.log").is_file()
+          assert (evidence / "fuzzer.log").is_file()
           assert (evidence / "SHA256SUMS").is_file()
           assert fuzz_report["evidence_sha256"] == hashlib.sha256(
               (evidence / "SHA256SUMS").read_bytes()
           ).hexdigest()
           campaign = json.loads(campaign_path.read_text())
+          assert campaign["minimized_crash_artifacts"]["file_count"] == 0
+          assert campaign["crash_minimization"] == []
           for key in (
               "status",
               "return_code",
@@ -372,11 +705,88 @@ jobs:
               "final_stats",
               "executed_units",
               "fuzzer_duration_seconds",
+              "imported_retained_seeds",
               "differential_oracles",
           ):
               assert fuzz_report[key] == campaign[key]
+
+          fuzzer_log = (evidence / "fuzzer.log").read_text(
+              encoding="utf8", errors="replace"
+          )
+          for prohibited in (
+              "PQBTC_MLDSA44_DIFFERENTIAL_ORACLE_ERROR",
+              "PQBTC_MLDSA44_DIFFERENTIAL_DISAGREEMENT",
+              "ERROR: AddressSanitizer",
+              "SUMMARY: AddressSanitizer",
+              "SUMMARY: UndefinedBehaviorSanitizer",
+              "runtime error:",
+          ):
+              assert prohibited not in fuzzer_log
+
+          coverage = json.loads((evidence / "coverage.json").read_text())
+          assert coverage["type"] == "llvm.coverage.json.export"
+          assert len(coverage["data"]) == 1
+          coverage_files = coverage["data"][0]["files"]
+
+          def source_summary(filename):
+              matches = [
+                  record
+                  for record in coverage_files
+                  if Path(record["filename"]).name == filename
+              ]
+              assert len(matches) == 1, (filename, len(matches))
+              return matches[0]["summary"]
+
+          def checked_percent(summary, metric, floor):
+              value = summary[metric]
+              count = value["count"]
+              covered = value["covered"]
+              assert type(count) is int and type(covered) is int
+              assert count > 0
+              assert 0 <= covered <= count
+              computed = 100.0 * covered / count
+              assert abs(computed - float(value["percent"])) <= 0.01
+              assert computed + 1e-12 >= floor, (metric, computed, floor)
+              return {
+                  "count": count,
+                  "covered": covered,
+                  "percent": round(computed, 6),
+                  "required_percent": floor,
+              }
+
+          target = source_summary("pqbtc_mldsa44_verify_fuzz.c")
+          openssl_bridge = source_summary("pqbtc_mldsa44_openssl_verify.c")
+          coverage_floor_evidence = {
+              "schema_version": 1,
+              "campaign_seconds": expected_seconds,
+              "target": {
+                  "functions": checked_percent(target, "functions", 100.0),
+                  "lines": checked_percent(target, "lines", 89.0),
+                  "branches": checked_percent(target, "branches", 85.0),
+              },
+              "openssl_bridge": {
+                  "functions": checked_percent(
+                      openssl_bridge, "functions", 75.0
+                  ),
+                  "lines": checked_percent(openssl_bridge, "lines", 71.0),
+                  "branches": checked_percent(
+                      openssl_bridge, "branches", 74.0
+                  ),
+              },
+          }
+          Path("ml-dsa-44-differential-coverage-floors.json").write_text(
+              json.dumps(coverage_floor_evidence, indent=2, sort_keys=True) + "\n",
+              encoding="utf8",
+          )
           print("ML-DSA-44 review invariants verified")
           PY
+          sha256sum \
+            ml-dsa-44-review-run-context.txt \
+            ml-dsa-44-differential-campaign-parameters.txt \
+            ml-dsa-44-differential-retained-corpus.txt \
+            ml-dsa-44-differential-coverage-floors.json | \
+            tee ml-dsa-44-differential-supplemental.sha256
+          sha256sum --check ml-dsa-44-differential-supplemental.sha256
 
       - name: Upload review evidence
         if: always()
@@ -385,11 +795,26 @@ jobs:
         with:
           name: ml-dsa-44-review-evidence-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
+            ml-dsa-44-review-run-context.txt
             ml-dsa-44-review-run.json
             ml-dsa-44-review-run.sha256
             ml-dsa-44-review-toolchain.txt
             ml-dsa-44-differential-fuzz-run.json
             ml-dsa-44-differential-fuzz-run.sha256
+            ml-dsa-44-differential-campaign-parameters.txt
+            ml-dsa-44-differential-retained-corpus.txt
+            ml-dsa-44-differential-coverage-floors.json
+            ml-dsa-44-differential-supplemental.sha256
             ml-dsa-44-differential-fuzz/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload checkout-failure context
+        if: failure() && hashFiles('ml-dsa-44-review-run-context.txt') == ''
+        timeout-minutes: 5
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ml-dsa-44-review-failure-context-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ml-dsa-44-review-run-context.txt
           if-no-files-found: error
           retention-days: 90
