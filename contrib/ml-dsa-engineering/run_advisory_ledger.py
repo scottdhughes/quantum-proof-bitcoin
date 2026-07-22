@@ -20,6 +20,11 @@ REPO_ROOT = HERE.parents[1]
 LEDGER_PATH = HERE / "advisory_ledger.json"
 VECTORS_PATH = REPO_ROOT / "contrib" / "ml-dsa-ref" / "vectors.json"
 RUSTSEC_ID = re.compile(r"^RUSTSEC-\d{4}-\d{4}$")
+CVE_ID = re.compile(r"^CVE-\d{4}-\d{4,}$")
+GHSA_ID = re.compile(
+    r"^GHSA-[23456789cfghjmpqrvwxy]{4}-[23456789cfghjmpqrvwxy]{4}-[23456789cfghjmpqrvwxy]{4}$"
+)
+SEMVER = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 HEX_40 = re.compile(r"^[0-9a-f]{40}$")
 HEX_64 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -36,6 +41,45 @@ EXPECTED_ADVISORY_IDS = {
     "RUSTSEC-2026-0207",
     "RUSTSEC-2026-0208",
     "RUSTSEC-2026-0212",
+}
+EXPECTED_OPENSSL_36_IDS = {
+    "CVE-2025-11187",
+    "CVE-2025-15467",
+    "CVE-2025-15468",
+    "CVE-2025-15469",
+    "CVE-2025-66199",
+    "CVE-2025-68160",
+    "CVE-2025-69418",
+    "CVE-2025-69419",
+    "CVE-2025-69420",
+    "CVE-2025-69421",
+    "CVE-2026-22795",
+    "CVE-2026-22796",
+    "CVE-2026-2673",
+    "CVE-2026-28386",
+    "CVE-2026-28387",
+    "CVE-2026-28388",
+    "CVE-2026-28389",
+    "CVE-2026-28390",
+    "CVE-2026-31789",
+    "CVE-2026-31790",
+    "CVE-2026-34180",
+    "CVE-2026-34181",
+    "CVE-2026-34182",
+    "CVE-2026-34183",
+    "CVE-2026-35188",
+    "CVE-2026-42764",
+    "CVE-2026-42765",
+    "CVE-2026-42766",
+    "CVE-2026-42767",
+    "CVE-2026-42768",
+    "CVE-2026-42769",
+    "CVE-2026-42770",
+    "CVE-2026-45445",
+    "CVE-2026-45446",
+    "CVE-2026-45447",
+    "CVE-2026-7383",
+    "CVE-2026-9076",
 }
 EXPECTED_ADVISORY_DISPOSITIONS = {
     "RUSTSEC-2019-0035": (
@@ -157,15 +201,27 @@ def _reject_constant(value: str) -> None:
     raise AuditError(f"non-finite JSON value: {value}")
 
 
-def load_json_object(path: Path, label: str) -> dict[str, Any]:
+def parse_json_bytes(value: bytes, label: str) -> Any:
     try:
-        value = json.loads(
-            path.read_text(encoding="utf8"),
+        return json.loads(
+            value.decode("utf8"),
             object_pairs_hook=_reject_duplicate,
             parse_constant=_reject_constant,
         )
-    except (OSError, UnicodeError, json.JSONDecodeError, AuditError) as exc:
+    except (UnicodeError, json.JSONDecodeError, AuditError) as exc:
         raise AuditError(f"invalid {label}: {exc}") from exc
+
+
+def load_json_value(path: Path, label: str) -> Any:
+    try:
+        value = path.read_bytes()
+    except OSError as exc:
+        raise AuditError(f"invalid {label}: {exc}") from exc
+    return parse_json_bytes(value, label)
+
+
+def load_json_object(path: Path, label: str) -> dict[str, Any]:
+    value = load_json_value(path, label)
     if not isinstance(value, dict):
         raise AuditError(f"{label} must be a JSON object")
     return value
@@ -273,6 +329,66 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
             raise AuditError(f"{name} advisory inventory is incomplete")
         if not isinstance(inventory["current_affected_ids"], list):
             raise AuditError(f"{name} current advisory IDs must be a list")
+
+    openssl_feed = sources["openssl"].get("advisory_feed")
+    if not isinstance(openssl_feed, dict):
+        raise AuditError("openssl live advisory-feed contract is missing")
+    _require_keys(
+        openssl_feed,
+        {
+            "type",
+            "repository",
+            "path",
+            "reviewed_on",
+            "accepted_data_versions",
+            "minimum_cve_records",
+            "reviewed_branch",
+            "reviewed_empty_non_target_ranges",
+            "reviewed_branch_ids",
+        },
+        "openssl advisory feed",
+    )
+    reviewed_openssl_ids = openssl_feed["reviewed_branch_ids"]
+    if (
+        openssl_feed["type"] != "openssl-release-metadata"
+        or openssl_feed["repository"]
+        != "https://github.com/openssl/release-metadata.git"
+        or openssl_feed["path"] != "secjson"
+        or openssl_feed["reviewed_on"] != "2026-07-22"
+        or openssl_feed["accepted_data_versions"] != ["5.0", "5.1"]
+        or openssl_feed["minimum_cve_records"] != 272
+        or openssl_feed["reviewed_branch"] != "3.6"
+        or openssl_feed["reviewed_empty_non_target_ranges"]
+        != [
+            {
+                "id": "CVE-2023-2650",
+                "version": "3.1.1",
+                "lessThan": "3.1.1",
+                "status": "affected",
+                "versionType": "semver",
+            }
+        ]
+        or not isinstance(reviewed_openssl_ids, list)
+        or not all(isinstance(item, str) for item in reviewed_openssl_ids)
+        or len(reviewed_openssl_ids) != len(set(reviewed_openssl_ids))
+        or set(reviewed_openssl_ids) != EXPECTED_OPENSSL_36_IDS
+    ):
+        raise AuditError("openssl live advisory-feed contract drifted")
+
+    mldsa_feed = sources["mldsa_native"].get("advisory_feed")
+    expected_mldsa_feed = {
+        "type": "github-repository-security-advisories",
+        "url": "https://api.github.com/repos/pq-code-package/mldsa-native/security-advisories?state=published&per_page=100&page=1",
+        "accept": "application/vnd.github+json",
+        "api_version": "2022-11-28",
+        "user_agent": "pqbtc-ml-dsa-advisory-ledger/1",
+        "authenticated": False,
+        "reviewed_on": "2026-07-22",
+        "reviewed_published_ids": [],
+    }
+    if mldsa_feed != expected_mldsa_feed:
+        raise AuditError("mldsa-native live advisory-feed contract drifted")
+
     libcrux = sources["libcrux"]
     vector_libcrux = vector_sources.get("libcrux", {})
     for field in ("tag", "crate_sha256"):
@@ -284,8 +400,8 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
     if libcrux.get("full_lock_package_count") != 139:
         raise AuditError("libcrux full lock must contain 139 packages")
     expected_oracle_inventory = {
-        "openssl": ("NO_PUBLISHED_ADVISORY_AFFECTS_PIN", set()),
-        "mldsa_native": ("NO_PUBLISHED_REPOSITORY_ADVISORIES", set()),
+        "openssl": ("LIVE_FEED_NO_PUBLISHED_ADVISORY_AFFECTS_PIN", set()),
+        "mldsa_native": ("LIVE_FEED_NO_PUBLISHED_REPOSITORY_ADVISORIES", set()),
         "libcrux": (
             "EXPLICIT_SELECTED_ADVISORIES_AND_EXACT_FULL_LOCK_SCAN",
             {row[0] for row in EXPECTED_SCANNER_FINDINGS},
@@ -295,6 +411,13 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
         inventory = sources[name]["advisory_inventory"]
         if inventory["status"] != status or set(inventory["current_affected_ids"]) != current_ids:
             raise AuditError(f"{name} dated advisory disposition drifted")
+    if (
+        sources["openssl"]["advisory_inventory"]["source"]
+        != openssl_feed["repository"]
+        or sources["mldsa_native"]["advisory_inventory"]["source"]
+        != mldsa_feed["url"]
+    ):
+        raise AuditError("live advisory inventory source differs from feed contract")
 
     full_lock = ledger["source_contract"].get("full_lock", {})
     full_lock_rows = full_lock.get("packages")
@@ -525,6 +648,569 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
         or scope.get("release_hold_changed") is not False
     ):
         raise AuditError("the advisory tranche cannot change production or release-hold state")
+
+
+def _semver_tuple(value: Any, label: str) -> tuple[int, int, int]:
+    if not isinstance(value, str):
+        raise AuditError(f"{label} must be a string")
+    match = SEMVER.fullmatch(value)
+    if match is None:
+        raise AuditError(f"{label} is not a supported numeric semver: {value!r}")
+    return tuple(int(part) for part in match.groups())  # type: ignore[return-value]
+
+
+def _git_value(repository: Path, *arguments: str) -> str:
+    try:
+        return subprocess.run(
+            ["git", "-C", str(repository), *arguments],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        ).stdout.strip()
+    except subprocess.CalledProcessError as exc:
+        detail = exc.stderr.strip() or exc.stdout.strip()
+        raise AuditError(f"cannot validate OpenSSL feed Git provenance: {detail}") from exc
+
+
+def _sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def _canonical_json_sha256(value: Any) -> str:
+    return _sha256_bytes(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf8")
+    )
+
+
+def _legacy_custom_range_is_outside_36(version: Any, upper: Any) -> bool:
+    def legacy_major(value: Any) -> int | None:
+        if not isinstance(value, str):
+            return None
+        match = re.fullmatch(
+            r"(?:fips-)?(\d+)\.\d+\.\d+(?:[a-z]+|-[a-z0-9]+)?",
+            value,
+        )
+        return int(match.group(1)) if match is not None else None
+
+    lower_major = legacy_major(version)
+    upper_major = legacy_major(upper)
+    return lower_major is not None and upper_major is not None and max(
+        lower_major, upper_major
+    ) <= 1
+
+
+def _normalize_openssl_version(
+    row: Any,
+    *,
+    cve_id: str,
+    pin: tuple[int, int, int],
+    branch_lower: tuple[int, int, int],
+    branch_upper: tuple[int, int, int],
+    reviewed_empty_ranges: set[tuple[str, str, str, str, str]],
+) -> tuple[bool, bool, dict[str, Any]]:
+    if not isinstance(row, dict):
+        raise AuditError(f"{cve_id} version entries must be objects")
+    status = row.get("status")
+    if not isinstance(status, str) or status not in {"affected", "unaffected"}:
+        raise AuditError(f"{cve_id} has unsupported version status {status!r}")
+
+    if set(row) == {"version", "status"}:
+        version = _semver_tuple(row["version"], f"{cve_id} exact version")
+        relevant = branch_lower <= version < branch_upper
+        return relevant, version == pin, {
+            "version": row["version"],
+            "status": status,
+            "match": "exact",
+        }
+
+    version_type = row.get("versionType")
+    if version_type == "custom":
+        if set(row) != {"version", "lessThan", "status", "versionType"}:
+            raise AuditError(f"{cve_id} has an unsupported custom version-range shape")
+        if not _legacy_custom_range_is_outside_36(row["version"], row["lessThan"]):
+            raise AuditError(
+                f"{cve_id} has a custom range that cannot be excluded from OpenSSL 3.6"
+            )
+        return False, False, {
+            "version": row["version"],
+            "lessThan": row["lessThan"],
+            "status": status,
+            "versionType": version_type,
+        }
+    if version_type != "semver":
+        raise AuditError(f"{cve_id} has unsupported versionType {version_type!r}")
+
+    allowed_base = {"version", "status", "versionType"}
+    has_less_than = "lessThan" in row
+    has_less_equal = "lessThanOrEqual" in row
+    if has_less_than and has_less_equal:
+        raise AuditError(f"{cve_id} version range has two upper bounds")
+    expected_keys = set(allowed_base)
+    if has_less_than:
+        expected_keys.add("lessThan")
+    if has_less_equal:
+        expected_keys.add("lessThanOrEqual")
+    if set(row) != expected_keys:
+        raise AuditError(f"{cve_id} has an unsupported semver range shape")
+
+    lower = _semver_tuple(row["version"], f"{cve_id} lower bound")
+    if not has_less_than and not has_less_equal:
+        relevant = branch_lower <= lower < branch_upper
+        return relevant, lower == pin, {
+            "version": row["version"],
+            "status": status,
+            "versionType": version_type,
+            "match": "exact",
+        }
+
+    upper_name = "lessThan" if has_less_than else "lessThanOrEqual"
+    upper = _semver_tuple(row[upper_name], f"{cve_id} upper bound")
+    if lower > upper:
+        raise AuditError(f"{cve_id} semver range is reversed")
+    if has_less_than and lower == upper:
+        if branch_lower <= lower < branch_upper:
+            raise AuditError(f"{cve_id} has an empty range inside OpenSSL 3.6")
+        identity = (
+            cve_id,
+            row["version"],
+            row[upper_name],
+            status,
+            version_type,
+        )
+        if identity not in reviewed_empty_ranges:
+            raise AuditError(f"{cve_id} has an unreviewed empty non-target range")
+        return False, False, {
+            "version": row["version"],
+            upper_name: row[upper_name],
+            "status": status,
+            "versionType": version_type,
+            "empty_non_target_range": True,
+        }
+    upper_reaches_branch = upper > branch_lower or (
+        has_less_equal and upper == branch_lower
+    )
+    relevant = lower < branch_upper and upper_reaches_branch
+    contains_pin = lower <= pin and (
+        pin < upper if has_less_than else pin <= upper
+    )
+    return relevant, contains_pin, {
+        "version": row["version"],
+        upper_name: row[upper_name],
+        "status": status,
+        "versionType": version_type,
+    }
+
+
+def validate_openssl_advisory_feed(
+    ledger: dict[str, Any], repository: Path
+) -> dict[str, Any]:
+    source = _source_by_name(ledger)["openssl"]
+    contract = source["advisory_feed"]
+    if not repository.is_dir():
+        raise AuditError("OpenSSL advisory feed is not a directory")
+    origin = _git_value(repository, "remote", "get-url", "origin")
+    if origin != contract["repository"]:
+        raise AuditError("OpenSSL advisory-feed Git origin drifted")
+    before = {
+        "commit": _git_value(repository, "rev-parse", "HEAD"),
+        "tree": _git_value(repository, "rev-parse", "HEAD^{tree}"),
+        "secjson_tree": _git_value(repository, "rev-parse", f"HEAD:{contract['path']}"),
+        "committed_at": _git_value(repository, "show", "-s", "--format=%cI", "HEAD"),
+    }
+    if any(HEX_40.fullmatch(before[field]) is None for field in ("commit", "tree", "secjson_tree")):
+        raise AuditError("OpenSSL advisory-feed provenance is not a full Git identity")
+    if _git_value(repository, "status", "--porcelain=v1", "--untracked-files=all"):
+        raise AuditError("OpenSSL advisory-feed checkout is dirty")
+
+    feed_dir = repository / contract["path"]
+    if not feed_dir.is_dir() or feed_dir.is_symlink():
+        raise AuditError("OpenSSL advisory-feed secjson directory is missing or unsafe")
+    paths = sorted(feed_dir.iterdir(), key=lambda item: item.name)
+    cve_paths: list[Path] = []
+    for path in paths:
+        if path.is_symlink() or not path.is_file():
+            raise AuditError(f"OpenSSL advisory-feed path is not a regular file: {path.name}")
+        if path.name == "statements.json":
+            continue
+        if re.fullmatch(r"CVE-\d{4}-\d{4,}\.json", path.name) is None:
+            raise AuditError(f"unexpected OpenSSL advisory-feed file: {path.name}")
+        cve_paths.append(path)
+    statements_path = feed_dir / "statements.json"
+    if not statements_path.is_file() or statements_path.is_symlink():
+        raise AuditError("OpenSSL advisory feed is missing statements.json")
+    load_json_object(statements_path, "OpenSSL statements metadata")
+
+    pin = _semver_tuple(source["version"], "OpenSSL oracle pin")
+    branch_parts = contract["reviewed_branch"].split(".")
+    if len(branch_parts) != 2 or not all(part.isdigit() for part in branch_parts):
+        raise AuditError("OpenSSL reviewed branch is malformed")
+    branch_lower = (int(branch_parts[0]), int(branch_parts[1]), 0)
+    branch_upper = (branch_lower[0], branch_lower[1] + 1, 0)
+    discovered: dict[str, dict[str, Any]] = {}
+    relevant_records: list[dict[str, Any]] = []
+    exact_pin_affected: set[str] = set()
+    data_versions: dict[str, int] = {}
+    manifest_lines: list[str] = []
+    non_target_irregular_ranges: list[dict[str, Any]] = []
+    reviewed_empty_ranges = {
+        (
+            item["id"],
+            item["version"],
+            item["lessThan"],
+            item["status"],
+            item["versionType"],
+        )
+        for item in contract["reviewed_empty_non_target_ranges"]
+    }
+    seen_empty_ranges: set[tuple[str, str, str, str, str]] = set()
+
+    for path in paths:
+        manifest_lines.append(f"{_sha256(path)}  {path.name}")
+    for path in cve_paths:
+        record = load_json_object(path, f"OpenSSL CVE record {path.name}")
+        _require_keys(
+            record,
+            {"containers", "cveMetadata", "dataType", "dataVersion"},
+            f"OpenSSL CVE record {path.name}",
+        )
+        metadata = record["cveMetadata"]
+        containers = record["containers"]
+        if not isinstance(metadata, dict) or not isinstance(containers, dict):
+            raise AuditError(f"OpenSSL CVE record {path.name} has invalid metadata")
+        cve_id = metadata.get("cveId")
+        filename_id = path.stem
+        if CVE_ID.fullmatch(str(cve_id)) is None or cve_id != filename_id:
+            raise AuditError(f"OpenSSL CVE filename/metadata identity mismatch: {path.name}")
+        if cve_id in discovered:
+            raise AuditError(f"duplicate OpenSSL CVE identity: {cve_id}")
+        if metadata.get("state") != "PUBLISHED":
+            raise AuditError(f"OpenSSL CVE {cve_id} is not in PUBLISHED state")
+        data_version = record["dataVersion"]
+        if (
+            record["dataType"] != "CVE_RECORD"
+            or data_version not in contract["accepted_data_versions"]
+        ):
+            raise AuditError(f"OpenSSL CVE {cve_id} has an unreviewed CVE schema version")
+        if set(containers) != {"cna"} or not isinstance(containers["cna"], dict):
+            raise AuditError(f"OpenSSL CVE {cve_id} has unreviewed containers")
+        affected_rows = containers["cna"].get("affected")
+        if not isinstance(affected_rows, list) or len(affected_rows) != 1:
+            raise AuditError(f"OpenSSL CVE {cve_id} must have one affected product")
+        affected = affected_rows[0]
+        if not isinstance(affected, dict):
+            raise AuditError(f"OpenSSL CVE {cve_id} affected product is malformed")
+        _require_keys(
+            affected,
+            {"defaultStatus", "product", "vendor", "versions"},
+            f"OpenSSL CVE {cve_id} affected product",
+        )
+        if (
+            affected["vendor"] != "OpenSSL"
+            or affected["product"] != "OpenSSL"
+            or affected["defaultStatus"] != "unaffected"
+        ):
+            raise AuditError(f"OpenSSL CVE {cve_id} product/default status drifted")
+        versions = affected["versions"]
+        if not isinstance(versions, list) or not versions:
+            raise AuditError(f"OpenSSL CVE {cve_id} has no version ranges")
+
+        normalized_ranges: list[dict[str, Any]] = []
+        matching_statuses: list[str] = []
+        is_branch_relevant = False
+        for row in versions:
+            relevant, contains_pin, normalized = _normalize_openssl_version(
+                row,
+                cve_id=cve_id,
+                pin=pin,
+                branch_lower=branch_lower,
+                branch_upper=branch_upper,
+                reviewed_empty_ranges=reviewed_empty_ranges,
+            )
+            if relevant:
+                is_branch_relevant = True
+                normalized_ranges.append(normalized)
+            if normalized.get("empty_non_target_range") is True:
+                non_target_irregular_ranges.append({"id": cve_id, "range": normalized})
+                seen_empty_ranges.add(
+                    (
+                        cve_id,
+                        normalized["version"],
+                        normalized["lessThan"],
+                        normalized["status"],
+                        normalized["versionType"],
+                    )
+                )
+            if contains_pin:
+                matching_statuses.append(normalized["status"])
+        if len(matching_statuses) > 1:
+            raise AuditError(f"OpenSSL CVE {cve_id} has overlapping ranges at {source['version']}")
+        if matching_statuses == ["affected"]:
+            exact_pin_affected.add(cve_id)
+        if is_branch_relevant:
+            relevant_records.append(
+                {
+                    "id": cve_id,
+                    "data_version": data_version,
+                    "sha256": _sha256(path),
+                    "ranges": normalized_ranges,
+                }
+            )
+        discovered[cve_id] = {"data_version": data_version}
+        data_versions[data_version] = data_versions.get(data_version, 0) + 1
+
+    branch_ids = {item["id"] for item in relevant_records}
+    missing_reviewed = set(contract["reviewed_branch_ids"]) - branch_ids
+    if missing_reviewed:
+        raise AuditError(
+            f"OpenSSL 3.6 advisory baseline is missing reviewed IDs: {sorted(missing_reviewed)}"
+        )
+    if len(discovered) < contract["minimum_cve_records"]:
+        raise AuditError(
+            "OpenSSL advisory feed is truncated: "
+            f"found {len(discovered)}, require at least {contract['minimum_cve_records']}"
+        )
+    if seen_empty_ranges != reviewed_empty_ranges:
+        raise AuditError("OpenSSL reviewed empty-range inventory drifted")
+    expected_affected = set(source["advisory_inventory"]["current_affected_ids"])
+    if exact_pin_affected != expected_affected:
+        raise AuditError(
+            f"OpenSSL {source['version']} advisory status drifted; "
+            f"affected={sorted(exact_pin_affected)}"
+        )
+
+    after = {
+        "commit": _git_value(repository, "rev-parse", "HEAD"),
+        "tree": _git_value(repository, "rev-parse", "HEAD^{tree}"),
+        "secjson_tree": _git_value(repository, "rev-parse", f"HEAD:{contract['path']}"),
+    }
+    if after != {field: before[field] for field in after}:
+        raise AuditError("OpenSSL advisory-feed checkout changed during validation")
+    if _git_value(repository, "status", "--porcelain=v1", "--untracked-files=all"):
+        raise AuditError("OpenSSL advisory-feed checkout changed during validation")
+
+    return {
+        "status": "PASS",
+        "repository": origin,
+        **before,
+        "record_count": len(discovered),
+        "minimum_record_count": contract["minimum_cve_records"],
+        "data_versions": dict(sorted(data_versions.items())),
+        "branch": contract["reviewed_branch"],
+        "branch_relevant_ids": sorted(branch_ids),
+        "exact_pin": source["version"],
+        "exact_pin_affected_ids": sorted(exact_pin_affected),
+        "secjson_manifest_sha256": _sha256_bytes(
+            ("\n".join(manifest_lines) + "\n").encode("utf8")
+        ),
+        "non_target_irregular_ranges": non_target_irregular_ranges,
+        "relevant_records": sorted(relevant_records, key=lambda item: item["id"]),
+    }
+
+
+def _parse_final_http_headers(raw_headers: str) -> tuple[int, dict[str, list[str]]]:
+    if not isinstance(raw_headers, str) or not raw_headers.strip():
+        raise AuditError("mldsa-native response headers are missing")
+    blocks: list[list[str]] = []
+    current: list[str] = []
+    for line in raw_headers.replace("\r\n", "\n").split("\n"):
+        if line.startswith("HTTP/"):
+            if current:
+                blocks.append(current)
+            current = [line]
+        elif current:
+            current.append(line)
+    if current:
+        blocks.append(current)
+    if not blocks:
+        raise AuditError("mldsa-native response has no HTTP status line")
+    final = blocks[-1]
+    status_match = re.fullmatch(r"HTTP/\S+\s+(\d{3})(?:\s+.*)?", final[0])
+    if status_match is None:
+        raise AuditError("mldsa-native final HTTP status line is malformed")
+    headers: dict[str, list[str]] = {}
+    for line in final[1:]:
+        if not line:
+            continue
+        if line[:1].isspace() or ":" not in line:
+            raise AuditError("mldsa-native response contains a malformed header")
+        name, value = line.split(":", 1)
+        normalized_name = name.strip().lower()
+        if not normalized_name:
+            raise AuditError("mldsa-native response contains an empty header name")
+        headers.setdefault(normalized_name, []).append(value.strip())
+    return int(status_match.group(1)), headers
+
+
+def validate_mldsa_native_advisory_feed(
+    ledger: dict[str, Any],
+    body_bytes: bytes,
+    raw_headers: str,
+    fetch: dict[str, Any],
+    request: dict[str, Any],
+    curl_exit_code: int,
+) -> dict[str, Any]:
+    source = _source_by_name(ledger)["mldsa_native"]
+    contract = source["advisory_feed"]
+    expected_request = {
+        "url": contract["url"],
+        "accept": contract["accept"],
+        "api_version": contract["api_version"],
+        "user_agent": contract["user_agent"],
+        "authenticated": False,
+    }
+    if request != expected_request:
+        raise AuditError("mldsa-native advisory request contract drifted")
+    if not isinstance(fetch, dict):
+        raise AuditError("mldsa-native curl metadata is missing")
+
+    def json_integer(value: Any) -> bool:
+        return isinstance(value, int) and not isinstance(value, bool)
+
+    if (
+        not json_integer(curl_exit_code)
+        or not json_integer(fetch.get("exitcode"))
+        or curl_exit_code != 0
+        or fetch.get("exitcode") != curl_exit_code
+    ):
+        raise AuditError(f"mldsa-native advisory fetch failed: curl {fetch.get('exitcode')!r}")
+    response_code = fetch.get("response_code", fetch.get("http_code"))
+    if "response_code" in fetch and "http_code" in fetch:
+        if fetch["response_code"] != fetch["http_code"]:
+            raise AuditError("mldsa-native curl HTTP status fields disagree")
+    if not json_integer(response_code) or response_code != 200:
+        raise AuditError(f"mldsa-native advisory fetch returned HTTP {response_code!r}")
+    if (
+        fetch.get("url_effective") != contract["url"]
+        or not json_integer(fetch.get("num_redirects"))
+        or fetch.get("num_redirects") != 0
+    ):
+        raise AuditError("mldsa-native advisory fetch redirected or changed URL")
+    content_type = fetch.get("content_type")
+    if (
+        not isinstance(content_type, str)
+        or content_type.split(";", 1)[0].strip().lower() != "application/json"
+    ):
+        raise AuditError("mldsa-native advisory fetch did not return JSON")
+    size_download = fetch.get("size_download")
+    if not json_integer(size_download) or size_download != len(body_bytes):
+        raise AuditError("mldsa-native advisory body size does not match curl metadata")
+
+    header_status, headers = _parse_final_http_headers(raw_headers)
+    if header_status != 200 or header_status != response_code:
+        raise AuditError("mldsa-native HTTP status evidence is inconsistent")
+
+    def one_header(name: str) -> str:
+        values = headers.get(name, [])
+        if len(values) != 1:
+            raise AuditError(f"mldsa-native response requires one {name} header")
+        return values[0]
+
+    header_content_type = one_header("content-type")
+    if (
+        header_content_type.split(";", 1)[0].strip().lower()
+        != "application/json"
+    ):
+        raise AuditError("mldsa-native response content type is not JSON")
+    if one_header("x-github-api-version-selected") != contract["api_version"]:
+        raise AuditError("mldsa-native selected GitHub API version drifted")
+    if one_header("x-ratelimit-resource") != "core":
+        raise AuditError("mldsa-native response has an unexpected rate-limit resource")
+    for name in (
+        "x-ratelimit-limit",
+        "x-ratelimit-remaining",
+        "x-ratelimit-used",
+        "x-ratelimit-reset",
+    ):
+        value = one_header(name)
+        if re.fullmatch(r"\d+", value) is None:
+            raise AuditError(f"mldsa-native response has malformed {name}")
+    link_values = headers.get("link", [])
+    if any(re.search(r'rel\s*=\s*["\']?next["\']?', value, re.IGNORECASE) for value in link_values):
+        raise AuditError("mldsa-native advisory pagination is incomplete")
+
+    body = parse_json_bytes(body_bytes, "mldsa-native advisory response")
+    if not isinstance(body, list):
+        raise AuditError("mldsa-native advisory response must be a JSON array")
+    advisory_ids: list[str] = []
+    for entry in body:
+        if not isinstance(entry, dict):
+            raise AuditError("mldsa-native advisory entries must be objects")
+        advisory_id = entry.get("ghsa_id")
+        if not isinstance(advisory_id, str) or GHSA_ID.fullmatch(advisory_id) is None:
+            raise AuditError("mldsa-native advisory entry has an invalid GHSA identity")
+        advisory_ids.append(advisory_id)
+    if len(advisory_ids) != len(set(advisory_ids)):
+        raise AuditError("mldsa-native advisory response contains duplicate GHSA IDs")
+    reviewed = set(contract["reviewed_published_ids"])
+    if set(advisory_ids) != reviewed:
+        raise AuditError(
+            "mldsa-native published GHSA inventory requires review: "
+            f"{sorted(advisory_ids)}"
+        )
+    if set(source["advisory_inventory"]["current_affected_ids"]) != reviewed:
+        raise AuditError("mldsa-native inventory and feed contract disagree")
+
+    return {
+        "status": "PASS",
+        "request_url": contract["url"],
+        "curl_exit_code": curl_exit_code,
+        "http_status": header_status,
+        "content_type": header_content_type,
+        "api_version": contract["api_version"],
+        "published_advisory_ids": sorted(advisory_ids),
+        "body_sha256": _sha256_bytes(body_bytes),
+        "headers_sha256": _sha256_bytes(raw_headers.encode("utf8")),
+        "fetch_sha256": _canonical_json_sha256(fetch),
+        "request_sha256": _canonical_json_sha256(request),
+    }
+
+
+def validate_oracle_feed_summaries(
+    ledger: dict[str, Any],
+    openssl_feed: dict[str, Any] | None,
+    mldsa_native_feed: dict[str, Any] | None,
+) -> dict[str, dict[str, Any]]:
+    if openssl_feed is None or mldsa_native_feed is None:
+        raise AuditError("OpenSSL and mldsa-native live advisory evidence are required")
+    sources = _source_by_name(ledger)
+    openssl_contract = sources["openssl"]["advisory_feed"]
+    if (
+        openssl_feed.get("status") != "PASS"
+        or openssl_feed.get("repository") != openssl_contract["repository"]
+        or openssl_feed.get("exact_pin") != sources["openssl"]["version"]
+        or openssl_feed.get("exact_pin_affected_ids")
+        != sources["openssl"]["advisory_inventory"]["current_affected_ids"]
+        or not isinstance(openssl_feed.get("record_count"), int)
+        or openssl_feed["record_count"] < openssl_contract["minimum_cve_records"]
+        or not set(openssl_contract["reviewed_branch_ids"]).issubset(
+            set(openssl_feed.get("branch_relevant_ids", []))
+        )
+        or any(
+            HEX_40.fullmatch(str(openssl_feed.get(field, ""))) is None
+            for field in ("commit", "tree", "secjson_tree")
+        )
+        or HEX_64.fullmatch(str(openssl_feed.get("secjson_manifest_sha256", "")))
+        is None
+    ):
+        raise AuditError("normalized OpenSSL live advisory evidence drifted")
+    if (
+        mldsa_native_feed.get("status") != "PASS"
+        or mldsa_native_feed.get("request_url")
+        != sources["mldsa_native"]["advisory_feed"]["url"]
+        or mldsa_native_feed.get("http_status") != 200
+        or mldsa_native_feed.get("curl_exit_code") != 0
+        or mldsa_native_feed.get("api_version")
+        != sources["mldsa_native"]["advisory_feed"]["api_version"]
+        or mldsa_native_feed.get("published_advisory_ids")
+        != sources["mldsa_native"]["advisory_feed"]["reviewed_published_ids"]
+        or any(
+            HEX_64.fullmatch(str(mldsa_native_feed.get(field, ""))) is None
+            for field in ("body_sha256", "headers_sha256", "fetch_sha256", "request_sha256")
+        )
+    ):
+        raise AuditError("normalized mldsa-native live advisory evidence drifted")
+    return {"openssl": openssl_feed, "mldsa_native": mldsa_native_feed}
 
 
 def _finding_tuple(entry: dict[str, Any], kind: str, category: str | None) -> tuple[Any, ...]:
@@ -845,16 +1531,34 @@ def validate_evidence(
     osv: dict[str, Any] | None,
     sbom: dict[str, Any] | None,
     miri: dict[str, Any] | None,
+    openssl_feed: dict[str, Any] | None,
+    mldsa_native_feed: dict[str, Any] | None,
     compiled_backend: str,
     called_backend: str,
     architecture: str,
     cargo_audit_exit_code: int,
     osv_exit_code: int,
 ) -> dict[str, Any]:
-    if any(value is None for value in (cargo_audit, osv, sbom, miri)):
-        raise AuditError("cargo-audit, OSV, SBOM, and Miri evidence are all required")
+    if any(
+        value is None
+        for value in (
+            cargo_audit,
+            osv,
+            sbom,
+            miri,
+            openssl_feed,
+            mldsa_native_feed,
+        )
+    ):
+        raise AuditError(
+            "cargo-audit, OSV, SBOM, Miri, OpenSSL, and mldsa-native evidence "
+            "are all required"
+        )
     vectors = load_json_object(VECTORS_PATH, "reference vectors")
     validate_ledger(ledger, vectors)
+    oracle_feed_validation = validate_oracle_feed_summaries(
+        ledger, openssl_feed, mldsa_native_feed
+    )
     contract = ledger["execution_contract"]
     for label, actual, expected in (
         ("compiled backend", compiled_backend, contract["compiled_backend"]),
@@ -911,6 +1615,7 @@ def validate_evidence(
             }
             for source in ledger["source_contract"]["oracles"]
         ],
+        "oracle_advisory_feed_validation": oracle_feed_validation,
         "full_lock_inventory": [
             {
                 "name": package["name"],
@@ -1182,6 +1887,35 @@ def write_sha256s(directory: Path) -> None:
     checksum_path.write_text("\n".join(lines) + "\n", encoding="utf8")
 
 
+def validate_oracle_feed_paths(
+    ledger: dict[str, Any],
+    *,
+    openssl_repository: Path,
+    mldsa_body_path: Path,
+    mldsa_headers_path: Path,
+    mldsa_fetch_path: Path,
+    mldsa_request_path: Path,
+    mldsa_curl_exit_code: int,
+) -> dict[str, dict[str, Any]]:
+    try:
+        body_bytes = mldsa_body_path.read_bytes()
+        raw_headers = mldsa_headers_path.read_text(encoding="utf8")
+    except (OSError, UnicodeError) as exc:
+        raise AuditError(f"cannot read mldsa-native advisory evidence: {exc}") from exc
+    openssl_summary = validate_openssl_advisory_feed(ledger, openssl_repository)
+    mldsa_summary = validate_mldsa_native_advisory_feed(
+        ledger,
+        body_bytes,
+        raw_headers,
+        load_json_object(mldsa_fetch_path, "mldsa-native curl metadata"),
+        load_json_object(mldsa_request_path, "mldsa-native request metadata"),
+        mldsa_curl_exit_code,
+    )
+    return validate_oracle_feed_summaries(
+        ledger, openssl_summary, mldsa_summary
+    )
+
+
 def build_plan(ledger: dict[str, Any]) -> dict[str, Any]:
     return {
         "schema_version": 1,
@@ -1193,6 +1927,11 @@ def build_plan(ledger: dict[str, Any]) -> dict[str, Any]:
         ),
         "selected_graph_packages": ledger["source_contract"]["selected_graph"]["package_count"],
         "tracked_advisory_ids": sorted(entry["id"] for entry in ledger["advisories"]),
+        "oracle_advisory_feeds": {
+            source["name"]: source["advisory_feed"]
+            for source in ledger["source_contract"]["oracles"]
+            if "advisory_feed" in source
+        },
         "miri": {
             "role": ledger["miri"]["role"],
             "required": ledger["miri"]["required"],
@@ -1206,6 +1945,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--plan-only", action="store_true")
     parser.add_argument("--prepare-miri-crate", action="store_true")
     parser.add_argument("--validate-selected-graph", action="store_true")
+    parser.add_argument("--validate-oracle-feeds", action="store_true")
     parser.add_argument("--ledger", type=Path, default=LEDGER_PATH)
     parser.add_argument("--vectors", type=Path, default=VECTORS_PATH)
     parser.add_argument("--cargo-audit", type=Path)
@@ -1214,6 +1954,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--miri", type=Path)
     parser.add_argument("--rustsec-db", type=Path)
     parser.add_argument("--crate-dir", type=Path)
+    parser.add_argument("--openssl-advisory-feed", type=Path)
+    parser.add_argument("--mldsa-native-advisories", type=Path)
+    parser.add_argument("--mldsa-native-response-headers", type=Path)
+    parser.add_argument("--mldsa-native-fetch", type=Path)
+    parser.add_argument("--mldsa-native-request", type=Path)
+    parser.add_argument("--mldsa-native-curl-exit-code", type=int)
     parser.add_argument(
         "--miri-source",
         type=Path,
@@ -1254,6 +2000,38 @@ def main() -> int:
             selected = validate_selected_graph(ledger, args.crate_dir)
             print(json.dumps(selected, indent=2, sort_keys=True))
             return 0
+        feed_required = {
+            "--openssl-advisory-feed": args.openssl_advisory_feed,
+            "--mldsa-native-advisories": args.mldsa_native_advisories,
+            "--mldsa-native-response-headers": args.mldsa_native_response_headers,
+            "--mldsa-native-fetch": args.mldsa_native_fetch,
+            "--mldsa-native-request": args.mldsa_native_request,
+            "--mldsa-native-curl-exit-code": args.mldsa_native_curl_exit_code,
+        }
+        missing_feeds = [name for name, value in feed_required.items() if value is None]
+        if args.validate_oracle_feeds:
+            if missing_feeds:
+                raise AuditError(
+                    "missing required oracle-feed arguments: "
+                    + ", ".join(missing_feeds)
+                )
+            assert args.openssl_advisory_feed is not None
+            assert args.mldsa_native_advisories is not None
+            assert args.mldsa_native_response_headers is not None
+            assert args.mldsa_native_fetch is not None
+            assert args.mldsa_native_request is not None
+            assert args.mldsa_native_curl_exit_code is not None
+            summaries = validate_oracle_feed_paths(
+                ledger,
+                openssl_repository=args.openssl_advisory_feed,
+                mldsa_body_path=args.mldsa_native_advisories,
+                mldsa_headers_path=args.mldsa_native_response_headers,
+                mldsa_fetch_path=args.mldsa_native_fetch,
+                mldsa_request_path=args.mldsa_native_request,
+                mldsa_curl_exit_code=args.mldsa_native_curl_exit_code,
+            )
+            print(json.dumps(summaries, indent=2, sort_keys=True))
+            return 0
         required = {
             "--cargo-audit": args.cargo_audit,
             "--osv": args.osv,
@@ -1267,6 +2045,7 @@ def main() -> int:
             "--compiled-backend": args.compiled_backend,
             "--called-backend": args.called_backend,
             "--architecture": args.architecture,
+            **feed_required,
         }
         missing = [name for name, value in required.items() if value is None]
         if missing:
@@ -1279,7 +2058,23 @@ def main() -> int:
         assert args.crate_dir is not None
         assert args.cargo_audit_exit_code is not None
         assert args.osv_exit_code is not None
+        assert args.openssl_advisory_feed is not None
+        assert args.mldsa_native_advisories is not None
+        assert args.mldsa_native_response_headers is not None
+        assert args.mldsa_native_fetch is not None
+        assert args.mldsa_native_request is not None
+        assert args.mldsa_native_curl_exit_code is not None
         assert output_dir is not None
+
+        oracle_feeds = validate_oracle_feed_paths(
+            ledger,
+            openssl_repository=args.openssl_advisory_feed,
+            mldsa_body_path=args.mldsa_native_advisories,
+            mldsa_headers_path=args.mldsa_native_response_headers,
+            mldsa_fetch_path=args.mldsa_native_fetch,
+            mldsa_request_path=args.mldsa_native_request,
+            mldsa_curl_exit_code=args.mldsa_native_curl_exit_code,
+        )
 
         report = validate_evidence(
             ledger=ledger,
@@ -1287,6 +2082,8 @@ def main() -> int:
             osv=load_json_object(args.osv, "OSV report"),
             sbom=load_json_object(args.sbom, "CycloneDX SBOM"),
             miri=load_json_object(args.miri, "Miri report"),
+            openssl_feed=oracle_feeds["openssl"],
+            mldsa_native_feed=oracle_feeds["mldsa_native"],
             compiled_backend=args.compiled_backend,
             called_backend=args.called_backend,
             architecture=args.architecture,
@@ -1303,6 +2100,14 @@ def main() -> int:
             "osv": _sha256(args.osv),
             "sbom": _sha256(args.sbom),
             "miri": _sha256(args.miri),
+            "mldsa_native_advisories": _sha256(args.mldsa_native_advisories),
+            "mldsa_native_response_headers": _sha256(
+                args.mldsa_native_response_headers
+            ),
+            "mldsa_native_fetch": _sha256(args.mldsa_native_fetch),
+            "mldsa_native_request": _sha256(args.mldsa_native_request),
+            "openssl_secjson_manifest": oracle_feeds["openssl"]
+            ["secjson_manifest_sha256"],
         }
         output_dir.mkdir(parents=True, exist_ok=True)
         report_path = output_dir / "advisory-ledger-report.json"

@@ -60,6 +60,46 @@ EXPECTED_SELECTED_LEDGER_IDS = {
     "RUSTSEC-2026-0212",
 }
 
+OPENSSL_REVIEWED_36_IDS = {
+    "CVE-2025-11187",
+    "CVE-2025-15467",
+    "CVE-2025-15468",
+    "CVE-2025-15469",
+    "CVE-2025-66199",
+    "CVE-2025-68160",
+    "CVE-2025-69418",
+    "CVE-2025-69419",
+    "CVE-2025-69420",
+    "CVE-2025-69421",
+    "CVE-2026-22795",
+    "CVE-2026-22796",
+    "CVE-2026-2673",
+    "CVE-2026-28386",
+    "CVE-2026-28387",
+    "CVE-2026-28388",
+    "CVE-2026-28389",
+    "CVE-2026-28390",
+    "CVE-2026-31789",
+    "CVE-2026-31790",
+    "CVE-2026-34180",
+    "CVE-2026-34181",
+    "CVE-2026-34182",
+    "CVE-2026-34183",
+    "CVE-2026-35188",
+    "CVE-2026-42764",
+    "CVE-2026-42765",
+    "CVE-2026-42766",
+    "CVE-2026-42767",
+    "CVE-2026-42768",
+    "CVE-2026-42769",
+    "CVE-2026-42770",
+    "CVE-2026-45445",
+    "CVE-2026-45446",
+    "CVE-2026-45447",
+    "CVE-2026-7383",
+    "CVE-2026-9076",
+}
+
 
 def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -229,6 +269,192 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             ],
         }
 
+    def oracle_source(self, name: str) -> dict[str, object]:
+        return next(
+            source
+            for source in self.ledger["source_contract"]["oracles"]
+            if source["name"] == name
+        )
+
+    def openssl_feed_summary(self) -> dict[str, object]:
+        source = self.oracle_source("openssl")
+        feed = source["advisory_feed"]
+        return {
+            "status": "PASS",
+            "repository": feed["repository"],
+            "commit": "eafb178d9fdde541157e1a2eafc5c3db7db05a5a",
+            "tree": "9d2bf1bf2b5becc1dd49ab3602ad4c1fe605981d",
+            "secjson_tree": "68602ed5f20c17189a8a76b534ff497eba0eac94",
+            "committed_at": "2026-07-20T16:08:14+00:00",
+            "record_count": 272,
+            "minimum_record_count": 272,
+            "data_versions": {"5.0": 224, "5.1": 48},
+            "branch": "3.6",
+            "branch_relevant_ids": sorted(OPENSSL_REVIEWED_36_IDS),
+            "exact_pin": source["version"],
+            "exact_pin_affected_ids": [],
+            "secjson_manifest_sha256": "0" * 64,
+            "relevant_records": [],
+        }
+
+    def mldsa_feed_summary(self) -> dict[str, object]:
+        feed = self.oracle_source("mldsa_native")["advisory_feed"]
+        return {
+            "status": "PASS",
+            "request_url": feed["url"],
+            "curl_exit_code": 0,
+            "http_status": 200,
+            "content_type": "application/json; charset=utf-8",
+            "api_version": feed["api_version"],
+            "published_advisory_ids": [],
+            "body_sha256": hashlib.sha256(b"[]").hexdigest(),
+            "headers_sha256": "1" * 64,
+            "fetch_sha256": "2" * 64,
+            "request_sha256": "3" * 64,
+        }
+
+    def openssl_cve(
+        self,
+        cve_id: str,
+        *,
+        lower: str = "3.6.0",
+        upper: str = "3.6.3",
+        inclusive: bool = False,
+        data_version: str = "5.1",
+    ) -> dict[str, object]:
+        version = {
+            "version": lower,
+            "status": "affected",
+            "versionType": "semver",
+            ("lessThanOrEqual" if inclusive else "lessThan"): upper,
+        }
+        return {
+            "dataType": "CVE_RECORD",
+            "dataVersion": data_version,
+            "cveMetadata": {"cveId": cve_id, "state": "PUBLISHED"},
+            "containers": {
+                "cna": {
+                    "affected": [
+                        {
+                            "vendor": "OpenSSL",
+                            "product": "OpenSSL",
+                            "defaultStatus": "unaffected",
+                            "versions": [version],
+                        }
+                    ]
+                }
+            },
+        }
+
+    def write_openssl_feed(
+        self,
+        root: Path,
+        *,
+        upper: str = "3.6.3",
+        inclusive: bool = False,
+    ) -> Path:
+        repository = root / "release-metadata"
+        secjson = repository / "secjson"
+        secjson.mkdir(parents=True)
+        for index, cve_id in enumerate(sorted(OPENSSL_REVIEWED_36_IDS)):
+            record = self.openssl_cve(
+                cve_id,
+                upper=upper if index == 0 else "3.6.3",
+                inclusive=inclusive if index == 0 else False,
+                data_version="5.0" if index == 0 else "5.1",
+            )
+            (secjson / f"{cve_id}.json").write_text(
+                json.dumps(record, sort_keys=True) + "\n", encoding="utf8"
+            )
+        irregular_id = "CVE-2023-2650"
+        irregular = self.openssl_cve(
+            irregular_id, lower="3.1.1", upper="3.1.1", data_version="5.0"
+        )
+        (secjson / f"{irregular_id}.json").write_text(
+            json.dumps(irregular, sort_keys=True) + "\n", encoding="utf8"
+        )
+        filler_count = 272 - len(OPENSSL_REVIEWED_36_IDS) - 1
+        for index in range(filler_count):
+            cve_id = f"CVE-2099-{10000 + index}"
+            record = self.openssl_cve(
+                cve_id, lower="1.0.0", upper="1.0.1", data_version="5.0"
+            )
+            (secjson / f"{cve_id}.json").write_text(
+                json.dumps(record, sort_keys=True) + "\n", encoding="utf8"
+            )
+        (secjson / "statements.json").write_text(
+            '{"disputed": [], "statements": []}\n', encoding="utf8"
+        )
+        subprocess.run(["git", "init", "-q", str(repository)], check=True)
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repository),
+                "remote",
+                "add",
+                "origin",
+                "https://github.com/openssl/release-metadata.git",
+            ],
+            check=True,
+        )
+        self.commit_fixture(repository, "baseline")
+        return repository
+
+    def commit_fixture(self, repository: Path, message: str) -> None:
+        subprocess.run(["git", "-C", str(repository), "add", "--all"], check=True)
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repository),
+                "-c",
+                "user.name=PQBTC Tests",
+                "-c",
+                "user.email=pqbtc-tests@example.invalid",
+                "commit",
+                "-q",
+                "-m",
+                message,
+            ],
+            check=True,
+        )
+
+    def mldsa_feed_inputs(self):
+        feed = self.oracle_source("mldsa_native")["advisory_feed"]
+        body = []
+        body_bytes = b"[]"
+        headers = "\r\n".join(
+            (
+                "HTTP/2 200",
+                "content-type: application/json; charset=utf-8",
+                f"x-github-api-version-selected: {feed['api_version']}",
+                "x-ratelimit-resource: core",
+                "x-ratelimit-limit: 60",
+                "x-ratelimit-remaining: 59",
+                "x-ratelimit-used: 1",
+                "x-ratelimit-reset: 2147483647",
+                "",
+                "",
+            )
+        )
+        fetch = {
+            "exitcode": 0,
+            "http_code": 200,
+            "url_effective": feed["url"],
+            "content_type": "application/json; charset=utf-8",
+            "size_download": len(body_bytes),
+            "num_redirects": 0,
+        }
+        request = {
+            "url": feed["url"],
+            "accept": feed["accept"],
+            "api_version": feed["api_version"],
+            "user_agent": feed["user_agent"],
+            "authenticated": False,
+        }
+        return body, body_bytes, headers, fetch, request
+
     def validate_exact_evidence(self, **overrides):
         contract = self.ledger["execution_contract"]
         arguments = {
@@ -237,6 +463,8 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             "osv": self.osv_evidence(),
             "sbom": self.sbom_evidence(),
             "miri": self.miri_evidence(),
+            "openssl_feed": self.openssl_feed_summary(),
+            "mldsa_native_feed": self.mldsa_feed_summary(),
             "compiled_backend": contract["compiled_backend"],
             "called_backend": contract["called_backend"],
             "architecture": contract["architecture"],
@@ -316,6 +544,238 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         )
         self.assertEqual(report["miri"]["role"], "SUPPLEMENTARY")
         self.assertEqual(report["miri"]["status"], "PASS")
+        self.assertEqual(
+            report["oracle_advisory_feed_validation"]["openssl"]
+            ["exact_pin_affected_ids"],
+            [],
+        )
+        self.assertEqual(
+            report["oracle_advisory_feed_validation"]["mldsa_native"]
+            ["published_advisory_ids"],
+            [],
+        )
+
+    def test_openssl_live_feed_semver_boundaries_are_fail_closed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = self.write_openssl_feed(Path(temporary))
+            summary = advisory.validate_openssl_advisory_feed(
+                self.ledger, repository
+            )
+            self.assertEqual(summary["record_count"], 272)
+            self.assertEqual(summary["exact_pin_affected_ids"], [])
+            self.assertEqual(
+                set(summary["branch_relevant_ids"]), OPENSSL_REVIEWED_36_IDS
+            )
+
+        for upper, inclusive in (("3.6.4", False), ("3.6.3", True)):
+            with self.subTest(upper=upper, inclusive=inclusive):
+                with tempfile.TemporaryDirectory() as temporary:
+                    repository = self.write_openssl_feed(
+                        Path(temporary), upper=upper, inclusive=inclusive
+                    )
+                    with self.assertRaisesRegex(advisory.AuditError, "3.6.3"):
+                        advisory.validate_openssl_advisory_feed(
+                            self.ledger, repository
+                        )
+
+    def test_openssl_live_feed_rejects_truncation_and_malformed_identity(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = self.write_openssl_feed(Path(temporary))
+            removed = sorted(OPENSSL_REVIEWED_36_IDS)[0]
+            (repository / "secjson" / f"{removed}.json").unlink()
+            self.commit_fixture(repository, "remove reviewed CVE")
+            with self.assertRaisesRegex(advisory.AuditError, "missing"):
+                advisory.validate_openssl_advisory_feed(self.ledger, repository)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = self.write_openssl_feed(Path(temporary))
+            cve_id = sorted(OPENSSL_REVIEWED_36_IDS)[0]
+            path = repository / "secjson" / f"{cve_id}.json"
+            path.write_text(
+                '{"dataType":"CVE_RECORD","dataType":"CVE_RECORD"}\n',
+                encoding="utf8",
+            )
+            self.commit_fixture(repository, "duplicate JSON key")
+            with self.assertRaisesRegex(advisory.AuditError, "duplicate JSON key"):
+                advisory.validate_openssl_advisory_feed(self.ledger, repository)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = self.write_openssl_feed(Path(temporary))
+            cve_id = sorted(OPENSSL_REVIEWED_36_IDS)[0]
+            path = repository / "secjson" / f"{cve_id}.json"
+            record = json.loads(path.read_text(encoding="utf8"))
+            record["cveMetadata"]["cveId"] = "CVE-2099-99999"
+            path.write_text(json.dumps(record) + "\n", encoding="utf8")
+            self.commit_fixture(repository, "mismatched identity")
+            with self.assertRaisesRegex(advisory.AuditError, "filename"):
+                advisory.validate_openssl_advisory_feed(self.ledger, repository)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = self.write_openssl_feed(Path(temporary))
+            path = repository / "secjson" / "CVE-2099-10000.json"
+            record = json.loads(path.read_text(encoding="utf8"))
+            version = record["containers"]["cna"]["affected"][0]["versions"][0]
+            version.update(
+                {
+                    "version": "1.1.1 through 3.6.4",
+                    "lessThan": "1.1.1z",
+                    "versionType": "custom",
+                }
+            )
+            path.write_text(json.dumps(record) + "\n", encoding="utf8")
+            self.commit_fixture(repository, "ambiguous custom range")
+            with self.assertRaisesRegex(advisory.AuditError, "custom range"):
+                advisory.validate_openssl_advisory_feed(self.ledger, repository)
+
+    def test_openssl_live_feed_records_only_provably_non_target_empty_ranges(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = self.write_openssl_feed(Path(temporary))
+            summary = advisory.validate_openssl_advisory_feed(
+                self.ledger, repository
+            )
+            self.assertEqual(
+                summary["non_target_irregular_ranges"][0]["id"],
+                "CVE-2023-2650",
+            )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = self.write_openssl_feed(Path(temporary))
+            path = repository / "secjson" / "CVE-2099-10000.json"
+            record = json.loads(path.read_text(encoding="utf8"))
+            version = record["containers"]["cna"]["affected"][0]["versions"][0]
+            version["version"] = "3.1.2"
+            version["lessThan"] = "3.1.2"
+            path.write_text(json.dumps(record) + "\n", encoding="utf8")
+            self.commit_fixture(repository, "unreviewed non-target empty range")
+            with self.assertRaisesRegex(advisory.AuditError, "unreviewed empty"):
+                advisory.validate_openssl_advisory_feed(self.ledger, repository)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = self.write_openssl_feed(Path(temporary), upper="3.6.0")
+            with self.assertRaisesRegex(advisory.AuditError, "inside OpenSSL 3.6"):
+                advisory.validate_openssl_advisory_feed(self.ledger, repository)
+
+    def test_mldsa_native_live_feed_rejects_advisories_http_and_pagination(self):
+        _body, body_bytes, headers, fetch, request = self.mldsa_feed_inputs()
+        summary = advisory.validate_mldsa_native_advisory_feed(
+            self.ledger, body_bytes, headers, fetch, request, 0
+        )
+        self.assertEqual(summary["published_advisory_ids"], [])
+
+        advisory_body = b'[{"ghsa_id":"GHSA-2345-6789-cfgh"}]'
+        advisory_fetch = copy.deepcopy(fetch)
+        advisory_fetch["size_download"] = len(advisory_body)
+        with self.assertRaisesRegex(advisory.AuditError, "GHSA"):
+            advisory.validate_mldsa_native_advisory_feed(
+                self.ledger,
+                advisory_body,
+                headers,
+                advisory_fetch,
+                request,
+                0,
+            )
+
+        failed_fetch = copy.deepcopy(fetch)
+        failed_fetch["exitcode"] = 22
+        failed_fetch["http_code"] = 429
+        failed_headers = headers.replace("HTTP/2 200", "HTTP/2 429")
+        with self.assertRaises(advisory.AuditError):
+            advisory.validate_mldsa_native_advisory_feed(
+                self.ledger,
+                body_bytes,
+                failed_headers,
+                failed_fetch,
+                request,
+                22,
+            )
+
+        paginated_headers = headers.replace(
+            "content-type:",
+            'link: <https://api.github.com/example?page=2>; rel="next"\r\n'
+            "content-type:",
+        )
+        with self.assertRaisesRegex(advisory.AuditError, "pagination"):
+            advisory.validate_mldsa_native_advisory_feed(
+                self.ledger,
+                body_bytes,
+                paginated_headers,
+                fetch,
+                request,
+                0,
+            )
+
+        bad_content_fetch = copy.deepcopy(fetch)
+        bad_content_fetch["content_type"] = "application/jsonp"
+        bad_content_headers = headers.replace(
+            "application/json; charset=utf-8", "application/jsonp"
+        )
+        with self.assertRaisesRegex(advisory.AuditError, "JSON"):
+            advisory.validate_mldsa_native_advisory_feed(
+                self.ledger,
+                body_bytes,
+                bad_content_headers,
+                bad_content_fetch,
+                request,
+                0,
+            )
+
+        fractional_size_fetch = copy.deepcopy(fetch)
+        fractional_size_fetch["size_download"] = 2.9
+        with self.assertRaisesRegex(advisory.AuditError, "body size"):
+            advisory.validate_mldsa_native_advisory_feed(
+                self.ledger,
+                body_bytes,
+                headers,
+                fractional_size_fetch,
+                request,
+                0,
+            )
+
+    def test_live_oracle_feed_cli_validates_raw_inputs_end_to_end(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            repository = self.write_openssl_feed(root)
+            _body, body_bytes, headers, fetch, request = self.mldsa_feed_inputs()
+            body_path = root / "mldsa-native-advisories.json"
+            headers_path = root / "mldsa-native-response-headers.txt"
+            fetch_path = root / "mldsa-native-fetch.json"
+            request_path = root / "mldsa-native-request.json"
+            body_path.write_bytes(body_bytes)
+            headers_path.write_text(headers, encoding="utf8")
+            fetch_path.write_text(json.dumps(fetch) + "\n", encoding="utf8")
+            request_path.write_text(json.dumps(request) + "\n", encoding="utf8")
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(DRIVER),
+                    "--validate-oracle-feeds",
+                    "--openssl-advisory-feed",
+                    str(repository),
+                    "--mldsa-native-advisories",
+                    str(body_path),
+                    "--mldsa-native-response-headers",
+                    str(headers_path),
+                    "--mldsa-native-fetch",
+                    str(fetch_path),
+                    "--mldsa-native-request",
+                    str(request_path),
+                    "--mldsa-native-curl-exit-code",
+                    "0",
+                ],
+                cwd=REPO_ROOT,
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            self.assertEqual(
+                completed.returncode, 0, completed.stdout + completed.stderr
+            )
+            report = json.loads(completed.stdout)
+            self.assertEqual(report["openssl"]["exact_pin_affected_ids"], [])
+            self.assertEqual(
+                report["mldsa_native"]["published_advisory_ids"], []
+            )
 
     def test_new_rustsec_database_advisory_fails_closed(self):
         cargo = self.cargo_audit_evidence()
@@ -506,7 +966,14 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
                     self.validate_exact_evidence(sbom=sbom)
 
     def test_scan_sbom_and_supplementary_miri_evidence_are_all_required(self):
-        for field in ("cargo_audit", "osv", "sbom", "miri"):
+        for field in (
+            "cargo_audit",
+            "osv",
+            "sbom",
+            "miri",
+            "openssl_feed",
+            "mldsa_native_feed",
+        ):
             with self.subTest(field=field):
                 with self.assertRaises(advisory.AuditError):
                     self.validate_exact_evidence(**{field: None})
@@ -524,6 +991,17 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             "persist-credentials: false",
             "timeout-minutes: 180",
             "run_advisory_ledger.py",
+            "openssl/release-metadata.git",
+            "mldsa-native/security-advisories?state=published&per_page=100&page=1",
+            "--validate-oracle-feeds",
+            "--openssl-advisory-feed",
+            "--mldsa-native-advisories",
+            "--mldsa-native-curl-exit-code",
+            "mldsa-native-response-headers.txt",
+            "openssl-release-metadata-secjson.tar.gz",
+            "--fail-with-body",
+            "--proto '=https'",
+            "X-GitHub-Api-Version:",
             "ci.test.test_ml_dsa_backend_admission",
             "ci.test.test_ml_dsa_sustained_fuzz",
             "cargo-audit",
@@ -555,6 +1033,7 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         self.assertNotIn("pull-requests: write", workflow)
         self.assertNotIn("security-events: write", workflow)
         self.assertNotIn("gh pr", workflow)
+        self.assertNotIn("Authorization:", workflow)
         self.assertNotIn("docs/reviews/evidence", workflow)
 
     def test_comparator_no_longer_claims_package_wide_advisory_pass(self):

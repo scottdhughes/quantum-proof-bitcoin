@@ -57,10 +57,14 @@ and are accepted only under their exact reviewed outside-selected-graph
 dispositions.
 
 The scheduled read-only workflow pins cargo-audit, OSV Scanner,
-cargo-cyclonedx, and Miri. It retains the RustSec commit, exact OSV database
-snapshot, raw scans, lock and graph evidence, SBOM, Miri logs, normalized
-report, and verified checksums for 90 days. The Miri source exercises only the
-portable ML-DSA-44 Rust path with both automatic SIMD paths disabled.
+cargo-cyclonedx, and Miri. It also validates the official live OpenSSL
+release-metadata corpus against exact 3.6.3 semver ranges and requires the
+public mldsa-native repository-advisory API to remain a complete empty result.
+It retains raw feed bodies and headers, OpenSSL commit/tree/archive evidence,
+the RustSec commit, exact OSV database snapshot, raw scans, lock and graph
+evidence, SBOM, Miri logs, normalized report, and verified checksums for 90
+days. The Miri source exercises only the portable ML-DSA-44 Rust path with both
+automatic SIMD paths disabled.
 
 This is technical issue-#189 remediation plus supplementary issue-#188
 evidence. Exact-commit independent re-review remains pending under issue #181,
