@@ -11,7 +11,6 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
-import sys
 import tomllib
 from typing import Any
 

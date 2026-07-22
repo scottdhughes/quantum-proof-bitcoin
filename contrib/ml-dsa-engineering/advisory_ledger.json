@@ -607,7 +607,7 @@
         "cargo_audit_category": "unmaintained",
         "selected_graph": false,
         "disposition": "NOT_APPLICABLE_CURRENT_SELECTED_GRAPH",
-        "reason": "Present in the broad lock through an unselected hax macro dependency edge; absent from the exact selected cargo tree."
+        "reason": "Present in the broad lock through an unselected hax-lib macro dependency edge; absent from the exact selected cargo tree."
       },
       {
         "id": "RUSTSEC-2026-0190",
