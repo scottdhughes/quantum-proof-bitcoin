@@ -145,7 +145,7 @@ artifacts, or production resource limits. Production remains `NONE` and
 `RELEASE_HOLD`; no consensus, wallet, Script, `ALG_ID`, or functional-suite
 inventory policy changed.
 
-The next seven bounded evidence tranches are also merged. PR `#198`
+The next eight bounded evidence tranches are also merged. PR `#198`
 (`f7b6f24936d1d0321ce33ca7245662db744348bc`) added sustained sanitizer
 campaigns; PR `#199` (`840dbffdf2fe29d87c0da2b6fe2a9147c35f4ee7`) hardened
 value-profile corpus minimization; PR `#200`
@@ -158,9 +158,15 @@ differential verifier campaign; PR `#203`
 (`257d3c1a8ee74cccbbb87d54880a7bde58c68f39`) reproduced all 200 upstream
 ML-DSA-44 CBMC proofs; and PR `#204`
 (`cb2c4b77ed534a7c342e95d764f2fb998bd702aa`) added the fail-closed advisory,
-SBOM, full-lock, and portable-Miri ledger. These are isolated engineering
-evidence only. Production remains `NONE`, issue-owned gaps remain open, and
-the release hold is unchanged.
+SBOM, full-lock, and portable-Miri ledger. PR `#205` landed the live OpenSSL
+and `mldsa-native` advisory feeds at merge commit
+`9ca23911e7570cc550ea80f4d58159b5fe2de6e4`. Its merge commit completed
+`30/30` checks successfully, including Promotion Matrix run `29948058770`.
+Advisory-ledger run `29948058829` verified `41/41` retained checksums, 272
+OpenSSL records with all 37 reviewed 3.6 identifiers and zero affecting exact
+3.6.3, and zero published `mldsa-native` advisories. These are isolated
+engineering evidence only. Production remains `NONE`, issue-owned gaps remain
+open, and the release hold is unchanged.
 
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,
@@ -225,16 +231,19 @@ tracked suites now have an explicit policy class and none remains in
 
 Preferred next owned tranche:
 
-1. Hold the reviewed post-promotion baseline
-   - Why next: the selected configuration-namespace gap and its platform
-     default-datadir follow-up are closed, all `276` tracked functional suites
-     retain explicit policy classes, and `pq_backlog` remains empty.
-   - `tool_bitcoin.py` remains deferred; its low runtime does not replace the
-     missing dedicated issue and cross-platform/optional-IPC boundary.
-   - `rpc_blockchain.py` remains rejected because its replacement-deployment
-     evidence duplicates an existing required gate.
-   - production release remains blocked independently of CI inventory status;
-     green rc2 tests are regression evidence, not cryptographic approval.
+1. Run the retained-corpus 1,800-second three-oracle differential campaign
+   under issue `#188`
+   - restore the prior minimized differential corpus and require a nonzero
+     imported-seed count before the campaign starts
+   - exercise OpenSSL, `mldsa-native`, and libcrux for the full 1,800 seconds
+     on exact merged `main`, with the varying seed recorded in the evidence
+   - require zero crashes, oracle errors, or disagreements, at least 500,000
+     executions, a nonempty minimized corpus, the defined coverage floors,
+     verified checksums, and retained evidence artifacts
+   - keep pull-request campaigns bounded at 60 seconds; use the scheduled or
+     manual promotion path for the 1,800-second campaign
+   - keep production at `NONE` and `RELEASE_HOLD`; this tranche authorizes no
+     consensus, wallet, Script, `ALG_ID`, or inventory-policy change
 
 Future selection boundary:
 

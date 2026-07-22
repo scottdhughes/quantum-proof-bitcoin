@@ -180,11 +180,19 @@ review, close a production gate, or alter the release hold.
 
 ## Differential Verifier Fuzzing
 
-The pinned review-reproduction workflow runs a separate 60-second in-process
-differential campaign. Every parsed frame is evaluated by the admitted
+On pull requests, the pinned review-reproduction workflow runs a separate
+60-second in-process differential campaign. Scheduled and manually dispatched
+runs require the latest successful `main` minimized differential corpus and
+use a 1,800-second campaign; an unavailable or invalid prior artifact fails
+before the long campaign starts. The retained-corpus container is validated
+under explicit file-count, per-input, and aggregate-size bounds; symlinks,
+nested or special entries, and changing inputs fail closed. A successful
+restore must import at least one seed whose content is not already in the
+fixed source corpus. Every parsed frame is evaluated by the admitted
 wrapper, OpenSSL 3.6.3's explicitly selected default provider in an isolated
-library context, and libcrux 0.0.10; an oracle setup error or
-accept/reject disagreement aborts through the normal libFuzzer crash path.
+library context, and libcrux 0.0.10. An oracle setup error or accept/reject
+disagreement aborts through the normal
+libFuzzer crash path.
 Wrapper argument-error taxonomy remains a separate assertion, while the two
 external bridges normalize invalid shapes to rejection. The workflow records
 the upstream commits, crate and source hashes, bridge and binary hashes, the
@@ -196,8 +204,9 @@ The upstream versions are pinned by the frozen reference manifest; the small
 first-party adapter sources are review inputs whose exact hashes are evidence,
 not a claim that the adapters themselves are independent implementations.
 
-This closes the former self-fulfilling `OK`/`ERR_VERIFY` oracle gap for that
-bounded Linux campaign. It is not long-duration or multi-platform
+This closes the former self-fulfilling `OK`/`ERR_VERIFY` oracle gap for these
+bounded Linux campaigns. The configured long-duration path becomes evidence
+only after it succeeds on the exact merged commit; it is not multi-platform
 differential evidence, and the prebuilt OpenSSL and Rust implementation bodies
 are not fully sanitizer-instrumented by the C fuzz build. It does not alter
 the release hold.

@@ -17,6 +17,7 @@ from pathlib import Path
 import re
 import shlex
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -376,6 +377,218 @@ def replay_differential_smoke(
     return records
 
 
+def filesystem_identity(status: os.stat_result) -> tuple[int, int, int, int, int]:
+    return (
+        status.st_dev,
+        status.st_ino,
+        status.st_mode,
+        status.st_size,
+        status.st_mtime_ns,
+    )
+
+
+def open_corpus_directory(path: Path, label: str) -> int:
+    try:
+        expected = path.lstat()
+    except FileNotFoundError as error:
+        raise DifferentialFuzzError(f"{label} does not exist: {path}") from error
+    if stat.S_ISLNK(expected.st_mode):
+        raise DifferentialFuzzError(f"{label} must not be a symlink: {path}")
+    if not stat.S_ISDIR(expected.st_mode):
+        raise DifferentialFuzzError(f"{label} is not a directory: {path}")
+    flags = os.O_RDONLY
+    flags |= getattr(os, "O_DIRECTORY", 0)
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    flags |= getattr(os, "O_CLOEXEC", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as error:
+        raise DifferentialFuzzError(f"cannot open {label}: {path}: {error}") from error
+    actual = os.fstat(descriptor)
+    if filesystem_identity(actual) != filesystem_identity(expected):
+        os.close(descriptor)
+        raise DifferentialFuzzError(f"{label} changed during import: {path}")
+    return descriptor
+
+
+def read_corpus_file(
+    directory_descriptor: int,
+    name: str,
+    display_path: Path,
+    label: str,
+) -> bytes:
+    try:
+        expected = os.stat(
+            name,
+            dir_fd=directory_descriptor,
+            follow_symlinks=False,
+        )
+    except OSError as error:
+        raise DifferentialFuzzError(
+            f"cannot inspect {label}: {display_path}: {error}"
+        ) from error
+    if stat.S_ISLNK(expected.st_mode):
+        raise DifferentialFuzzError(f"{label} must not be a symlink: {display_path}")
+    if not stat.S_ISREG(expected.st_mode):
+        raise DifferentialFuzzError(f"{label} is not a regular file: {display_path}")
+    if expected.st_size > verifier_fuzz.MAX_FRAME_BYTES:
+        raise DifferentialFuzzError(f"{label} exceeds fuzz bound: {display_path}")
+
+    flags = os.O_RDONLY
+    flags |= getattr(os, "O_NOFOLLOW", 0)
+    flags |= getattr(os, "O_NONBLOCK", 0)
+    flags |= getattr(os, "O_CLOEXEC", 0)
+    try:
+        descriptor = os.open(name, flags, dir_fd=directory_descriptor)
+    except OSError as error:
+        raise DifferentialFuzzError(
+            f"cannot open {label}: {display_path}: {error}"
+        ) from error
+    try:
+        opened = os.fstat(descriptor)
+        if filesystem_identity(opened) != filesystem_identity(expected):
+            raise DifferentialFuzzError(
+                f"{label} changed during import: {display_path}"
+            )
+        remaining = verifier_fuzz.MAX_FRAME_BYTES + 1
+        chunks = []
+        while remaining:
+            chunk = os.read(descriptor, min(remaining, 64 * 1024))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        data = b"".join(chunks)
+        after = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+    if len(data) > verifier_fuzz.MAX_FRAME_BYTES:
+        raise DifferentialFuzzError(f"{label} exceeds fuzz bound: {display_path}")
+    if (
+        filesystem_identity(after) != filesystem_identity(opened)
+        or len(data) != opened.st_size
+    ):
+        raise DifferentialFuzzError(f"{label} changed during import: {display_path}")
+    return data
+
+
+def import_seed_corpus(source: Path, destination: Path) -> int:
+    """Import a flat retained corpus without trusting its filesystem layout."""
+    source_descriptor = open_corpus_directory(source, "seed corpus")
+    try:
+        candidates = []
+        with os.scandir(source_descriptor) as entries:
+            for entry in entries:
+                candidates.append(entry.name)
+                if len(candidates) > verifier_fuzz.MAX_RETAINED_CORPUS_FILES:
+                    raise DifferentialFuzzError(
+                        "retained corpus exceeds the file-count bound"
+                    )
+        candidates.sort()
+
+        retained: dict[str, bytes] = {}
+        total_bytes = 0
+        for name in candidates:
+            path = source / name
+            data = read_corpus_file(
+                source_descriptor,
+                name,
+                path,
+                "retained corpus input",
+            )
+            total_bytes += len(data)
+            if total_bytes > verifier_fuzz.MAX_RETAINED_CORPUS_BYTES:
+                raise DifferentialFuzzError(
+                    "retained corpus exceeds the aggregate byte bound"
+                )
+            digest = hashlib.sha256(data).hexdigest()
+            previous = retained.setdefault(digest, data)
+            if previous != data:
+                raise DifferentialFuzzError(
+                    f"retained corpus SHA256 collision detected: {path}"
+                )
+    finally:
+        os.close(source_descriptor)
+
+    destination_status = destination.lstat()
+    if stat.S_ISLNK(destination_status.st_mode) or not stat.S_ISDIR(
+        destination_status.st_mode
+    ):
+        raise DifferentialFuzzError(
+            f"working corpus is not a regular directory: {destination}"
+        )
+
+    destination_contents: dict[str, bytes] = {}
+    for path in sorted(destination.iterdir(), key=lambda item: item.name):
+        before = path.lstat()
+        if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode):
+            raise DifferentialFuzzError(
+                f"working corpus input is not a regular file: {path}"
+            )
+        if before.st_size > verifier_fuzz.MAX_FRAME_BYTES:
+            raise DifferentialFuzzError(
+                f"working corpus input exceeds fuzz bound: {path}"
+            )
+        data = path.read_bytes()
+        after = path.lstat()
+        identity_before = (
+            before.st_dev,
+            before.st_ino,
+            before.st_mode,
+            before.st_size,
+            before.st_mtime_ns,
+        )
+        identity_after = (
+            after.st_dev,
+            after.st_ino,
+            after.st_mode,
+            after.st_size,
+            after.st_mtime_ns,
+        )
+        if identity_after != identity_before or len(data) != before.st_size:
+            raise DifferentialFuzzError(
+                f"working corpus input changed during import: {path}"
+            )
+        digest = hashlib.sha256(data).hexdigest()
+        previous = destination_contents.setdefault(digest, data)
+        if previous != data:
+            raise DifferentialFuzzError(
+                f"working corpus SHA256 collision detected: {path}"
+            )
+
+    imported = 0
+    for digest, data in retained.items():
+        target = destination / f"retained_{digest}.bin"
+        if target.exists() or target.is_symlink():
+            target_status = target.lstat()
+            if stat.S_ISLNK(target_status.st_mode) or not stat.S_ISREG(
+                target_status.st_mode
+            ):
+                raise DifferentialFuzzError(
+                    f"retained corpus destination is not a regular file: {target}"
+                )
+            if target.read_bytes() != data:
+                raise DifferentialFuzzError(
+                    f"retained corpus destination hash collision: {target}"
+                )
+            continue
+        if digest in destination_contents:
+            if destination_contents[digest] != data:
+                raise DifferentialFuzzError(
+                    f"working corpus SHA256 collision detected: {target}"
+                )
+            continue
+        with target.open("xb") as output:
+            output.write(data)
+        if target.read_bytes() != data:
+            raise DifferentialFuzzError(
+                f"retained corpus destination changed during import: {target}"
+            )
+        destination_contents[digest] = data
+        imported += 1
+    return imported
+
+
 def add_differential_metadata(
     output_dir: Path,
     manifest: dict,
@@ -505,6 +718,7 @@ def run_campaign(
     *,
     seconds: int,
     seed: int,
+    seed_corpus: Path | None = None,
 ) -> dict:
     input_status = git_input_status(source_hashes)
     output_dir = output_dir.resolve()
@@ -534,6 +748,7 @@ def run_campaign(
     smoke_records: list[dict] = []
     source_manifest: dict = {}
     fuzzer_duration_seconds: float | None = None
+    imported_seeds = 0
 
     with tempfile.TemporaryDirectory(prefix="pqbtc-mldsa44-differential-") as temporary:
         build_dir = Path(temporary)
@@ -562,6 +777,12 @@ def run_campaign(
             source_summary = verifier_fuzz.validate_corpus_manifest(cases)
             verifier_fuzz.replay_corpus(production_library, cases)
             verifier_fuzz.materialize_corpus(corpus_dir, cases)
+            if seed_corpus is not None:
+                imported_seeds = import_seed_corpus(seed_corpus, corpus_dir)
+                if imported_seeds == 0:
+                    raise DifferentialFuzzError(
+                        "retained seed corpus contributed no novel inputs"
+                    )
 
             crate_dir = reference.prepare_libcrux_crate(
                 build_dir, libcrux_crate, sources["libcrux"]
@@ -635,7 +856,7 @@ def run_campaign(
                 coverage=True,
                 runs=None,
                 seconds=seconds,
-                imported_seeds=0,
+                imported_seeds=imported_seeds,
                 source_summary=source_summary,
                 started_at=started_at,
                 duration_seconds=time.monotonic() - monotonic_start,
@@ -679,6 +900,7 @@ def run_campaign(
         "repository_dirty": campaign["repository_dirty"],
         "seed": seed,
         "seconds": seconds,
+        "imported_retained_seeds": campaign["imported_retained_seeds"],
         "source_corpus": campaign["source_corpus"],
         "working_corpus": campaign["working_corpus"],
         "minimized_corpus": campaign["minimized_corpus"],
@@ -701,6 +923,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--seconds", type=int, default=60)
     parser.add_argument("--seed", type=int, default=188)
+    parser.add_argument("--seed-corpus", type=Path)
     return parser.parse_args()
 
 
@@ -740,6 +963,7 @@ def main() -> int:
             require_path(args.output_dir, "--output-dir"),
             seconds=args.seconds,
             seed=args.seed,
+            seed_corpus=args.seed_corpus,
         )
         print(json.dumps(report, indent=2, sort_keys=True))
         return 0

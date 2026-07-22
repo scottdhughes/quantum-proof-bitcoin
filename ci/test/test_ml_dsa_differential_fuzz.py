@@ -6,6 +6,7 @@
 import importlib.util
 import hashlib
 import json
+from contextlib import ExitStack
 from pathlib import Path
 import subprocess
 import sys
@@ -95,6 +96,260 @@ class MlDsaDifferentialFuzzTest(unittest.TestCase):
             WORKFLOW,
         ):
             self.assertIn(str(path.relative_to(REPO_ROOT)), inventory)
+
+    def test_seed_corpus_cli_preserves_the_60_second_default(self):
+        with mock.patch.object(
+            sys,
+            "argv",
+            [str(DRIVER), "--seed-corpus", "retained-corpus"],
+        ):
+            args = differential.parse_args()
+
+        self.assertEqual(args.seconds, 60)
+        self.assertEqual(args.seed, 188)
+        self.assertEqual(args.seed_corpus, Path("retained-corpus"))
+
+    def test_retained_seed_import_is_bounded_deduplicated_and_content_addressed(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source"
+            destination = root / "destination"
+            source.mkdir()
+            destination.mkdir()
+            arbitrary_seed = b"not a decoded verifier frame"
+            second_seed = bytes(range(32))
+            (destination / "project_existing.bin").write_bytes(arbitrary_seed)
+            (source / "first").write_bytes(arbitrary_seed)
+            (source / "duplicate").write_bytes(arbitrary_seed)
+            (source / "second").write_bytes(second_seed)
+
+            imported = differential.import_seed_corpus(source, destination)
+
+            self.assertEqual(imported, 1)
+            arbitrary_digest = hashlib.sha256(arbitrary_seed).hexdigest()
+            self.assertFalse(
+                (destination / f"retained_{arbitrary_digest}.bin").exists()
+            )
+            second_digest = hashlib.sha256(second_seed).hexdigest()
+            self.assertEqual(
+                (destination / f"retained_{second_digest}.bin").read_bytes(),
+                second_seed,
+            )
+            self.assertEqual(
+                differential.import_seed_corpus(source, destination),
+                0,
+            )
+
+    def test_retained_seed_import_rejects_unsafe_container_entries(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+
+            source = root / "nested-source"
+            destination = root / "nested-destination"
+            source.mkdir()
+            destination.mkdir()
+            (source / "valid-first").write_bytes(b"seed")
+            (source / "nested").mkdir()
+            with self.assertRaisesRegex(
+                differential.DifferentialFuzzError,
+                "not a regular file",
+            ):
+                differential.import_seed_corpus(source, destination)
+            self.assertEqual(list(destination.iterdir()), [])
+
+            source = root / "symlink-source"
+            destination = root / "symlink-destination"
+            source.mkdir()
+            destination.mkdir()
+            target = root / "symlink-target"
+            target.write_bytes(b"seed")
+            (source / "linked").symlink_to(target)
+            with self.assertRaisesRegex(
+                differential.DifferentialFuzzError,
+                "must not be a symlink",
+            ):
+                differential.import_seed_corpus(source, destination)
+
+            source_link = root / "source-link"
+            source_link.symlink_to(source, target_is_directory=True)
+            with self.assertRaisesRegex(
+                differential.DifferentialFuzzError,
+                "seed corpus must not be a symlink",
+            ):
+                differential.import_seed_corpus(source_link, destination)
+
+    def test_retained_seed_import_enforces_each_resource_bound(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "source"
+            destination = root / "destination"
+            source.mkdir()
+            destination.mkdir()
+            (source / "oversized").write_bytes(
+                bytes(differential.verifier_fuzz.MAX_FRAME_BYTES + 1)
+            )
+            with self.assertRaisesRegex(
+                differential.DifferentialFuzzError,
+                "exceeds fuzz bound",
+            ):
+                differential.import_seed_corpus(source, destination)
+
+            (source / "oversized").unlink()
+            (source / "one").write_bytes(b"1")
+            (source / "two").write_bytes(b"2")
+            with mock.patch.object(
+                differential.verifier_fuzz,
+                "MAX_RETAINED_CORPUS_FILES",
+                1,
+            ), self.assertRaisesRegex(
+                differential.DifferentialFuzzError,
+                "file-count bound",
+            ):
+                differential.import_seed_corpus(source, destination)
+
+            with mock.patch.object(
+                differential.verifier_fuzz,
+                "MAX_RETAINED_CORPUS_BYTES",
+                1,
+            ), self.assertRaisesRegex(
+                differential.DifferentialFuzzError,
+                "aggregate byte bound",
+            ):
+                differential.import_seed_corpus(source, destination)
+
+    def test_campaign_propagates_the_exact_imported_seed_count(self):
+        completed = subprocess.CompletedProcess(
+            args=["fuzzer"],
+            returncode=0,
+            stdout="",
+            stderr="stat::number_of_executed_units: 123\n",
+        )
+        smoke_records = [
+            {
+                "name": name,
+                "status": "pass",
+                "expected": "accept" if index == 0 else "reject",
+            }
+            for index, name in enumerate(differential.SMOKE_CASE_NAMES)
+        ]
+        manifest = {
+            "sources": {
+                "openssl": {"version": "3.6.3", "commit": "openssl-commit"},
+                "libcrux": {
+                    "version": "0.0.10",
+                    "commit": "libcrux-commit",
+                    "crate_sha256": "crate-sha256",
+                },
+            }
+        }
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            retained = root / "retained"
+            retained.mkdir()
+            (retained / "one").write_bytes(b"arbitrary retained seed")
+            fuzz = differential.verifier_fuzz
+            wrapper = fuzz.wrapper
+            reference = differential.reference
+            patch_specs = (
+                (differential, "git_input_status", []),
+                (
+                    differential,
+                    "compile_libcrux_bridge",
+                    (root / "bridge", root / "rlib"),
+                ),
+                (
+                    differential,
+                    "compile_differential_targets",
+                    (root / "fuzzer", root / "replay", "clang"),
+                ),
+                (differential, "openssl_runtime_provenance", {}),
+                (differential, "replay_differential_smoke", smoke_records),
+                (differential, "command_identity", "tool test"),
+                (reference, "require_openssl_source", None),
+                (reference, "require_libcrux_source", None),
+                (reference, "require_artifact", None),
+                (reference, "prepare_libcrux_crate", root),
+                (wrapper, "validate_source_capsule", {}),
+                (wrapper, "compile_shared", root / "mock-library"),
+                (fuzz, "validate_wycheproof_source", {}),
+                (fuzz, "project_corpus", []),
+                (fuzz, "wycheproof_corpus", []),
+                (fuzz, "validate_corpus_manifest", {}),
+                (fuzz, "replay_corpus", None),
+                (fuzz, "run_fuzzer", completed),
+                (fuzz, "minimize_corpus", None),
+                (fuzz, "write_coverage_report", None),
+                (fuzz, "compiler_identity", "clang test"),
+                (fuzz, "coverage_tool_identities", {}),
+            )
+            with ExitStack() as stack:
+                for target, attribute, return_value in patch_specs:
+                    stack.enter_context(
+                        mock.patch.object(
+                            target,
+                            attribute,
+                            return_value=return_value,
+                        )
+                    )
+                report = differential.run_campaign(
+                    manifest,
+                    {},
+                    root / "openssl",
+                    root / "libcrux",
+                    root / "libcrux.crate",
+                    root / "output",
+                    seconds=1,
+                    seed=7,
+                    seed_corpus=retained,
+                )
+                with mock.patch.object(
+                    differential,
+                    "import_seed_corpus",
+                    return_value=0,
+                ), self.assertRaisesRegex(
+                    differential.DifferentialFuzzError,
+                    "contributed no novel inputs",
+                ):
+                    differential.run_campaign(
+                        manifest,
+                        {},
+                        root / "openssl",
+                        root / "libcrux",
+                        root / "libcrux.crate",
+                        root / "zero-novel-output",
+                        seconds=1,
+                        seed=7,
+                        seed_corpus=retained,
+                    )
+                baseline_report = differential.run_campaign(
+                    manifest,
+                    {},
+                    root / "openssl",
+                    root / "libcrux",
+                    root / "libcrux.crate",
+                    root / "baseline-output",
+                    seconds=1,
+                    seed=7,
+                )
+
+            campaign = json.loads(
+                (root / "output" / "campaign.json").read_text(encoding="utf8")
+            )
+            self.assertEqual(campaign["imported_retained_seeds"], 1)
+            self.assertEqual(report["imported_retained_seeds"], 1)
+            self.assertEqual(baseline_report["imported_retained_seeds"], 0)
+            zero_novel = json.loads(
+                (root / "zero-novel-output" / "campaign.json").read_text(
+                    encoding="utf8"
+                )
+            )
+            self.assertEqual(zero_novel["imported_retained_seeds"], 0)
+            self.assertEqual(
+                zero_novel["processing_error"],
+                "retained seed corpus contributed no novel inputs",
+            )
+            self.assertEqual(zero_novel["final_stats"], [])
 
     def test_exact_replay_cases_match_frozen_frames(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -306,15 +561,22 @@ class MlDsaDifferentialFuzzTest(unittest.TestCase):
         workflow = WORKFLOW.read_text(encoding="utf8")
         for required in (
             '"contrib/ml-dsa-engineering/**"',
+            'cron: "43 5 * * 3"',
+            "actions: read",
             "run_differential_verifier_fuzz.py",
             "RUSTUP_TOOLCHAIN=1.89.0",
             "FUZZ_CC=clang",
             "--seconds 60",
             "--seed 188",
+            "--seconds 1800",
             "sha256sum --check SHA256SUMS",
             'smoke["case_count"] == 5',
             'fuzz_report["executed_units"] > 207',
-            'fuzz_report["fuzzer_duration_seconds"] <= 95',
+            'fuzz_report["executed_units"] >= 500_000',
+            'fuzz_report["fuzzer_duration_seconds"]',
+            "expected_seconds + 35",
+            "--seed-corpus",
+            'fuzz_report["imported_retained_seeds"] > 0',
             'openssl_runtime["libcrypto_resolution"] == "linked-dependency"',
             'openssl_runtime["openssl_conf"] == "/dev/null"',
             "if-no-files-found: error",
@@ -322,6 +584,43 @@ class MlDsaDifferentialFuzzTest(unittest.TestCase):
             "ml-dsa-44-differential-fuzz-run.sha256",
             "ml-dsa-44-differential-fuzz/",
             "retention-days: 90",
+        ):
+            self.assertIn(required, workflow)
+
+    def test_long_workflow_fails_closed_on_retained_corpus_and_coverage(self):
+        workflow = WORKFLOW.read_text(encoding="utf8")
+        for required in (
+            "restore_policy=latest_successful_main_run",
+            "--branch main",
+            "--status success",
+            "--json databaseId,attempt,createdAt,headSha",
+            "git merge-base --is-ancestor",
+            "prior_symlink=",
+            'sha256sum --check SHA256SUMS',
+            "seed_count > 4096",
+            "seed_bytes > 8096",
+            "seed_total_bytes > 33554432",
+            'campaign["repository_commit"] == expected_head',
+            'campaign["repository_dirty"] is False',
+            'campaign["minimized_corpus"] == actual_summary',
+            'test "$RETAINED_CORPUS_RESTORED" = "true"',
+            'test "$GITHUB_REF" = "refs/heads/main"',
+            'fuzz_report["imported_retained_seeds"] > 0',
+            '1799 <= fuzz_report["fuzzer_duration_seconds"] <= 1835',
+            '"PQBTC_MLDSA44_DIFFERENTIAL_ORACLE_ERROR"',
+            '"PQBTC_MLDSA44_DIFFERENTIAL_DISAGREEMENT"',
+            'source_summary("pqbtc_mldsa44_verify_fuzz.c")',
+            'source_summary("pqbtc_mldsa44_openssl_verify.c")',
+            'checked_percent(target, "functions", 100.0)',
+            'checked_percent(target, "lines", 89.0)',
+            'checked_percent(target, "branches", 85.0)',
+            'openssl_bridge, "functions", 75.0',
+            'checked_percent(openssl_bridge, "lines", 71.0)',
+            'openssl_bridge, "branches", 74.0',
+            'expected_checkout_head=$EXPECTED_HEAD',
+            '${{ runner.temp }}/ml-dsa-44-review-run-context.txt',
+            'ml-dsa-44-differential-coverage-floors.json',
+            'ml-dsa-44-differential-supplemental.sha256',
         ):
             self.assertIn(required, workflow)
 
