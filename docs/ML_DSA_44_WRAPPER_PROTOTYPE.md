@@ -211,21 +211,26 @@ This prototype advances engineering evidence but closes no production gate:
 - issue `#184`: Linux/macOS OS-RBG calls and fail-closed behavior now execute,
   but supported-platform RBG strength, fork/clone behavior, hardware signers,
   Windows execution, and lifecycle review remain open;
-- issue `#185`: no compiled constant-time or worst-case supported-platform
-  assessment has occurred;
+- issue `#185`: a bounded x86_64 Valgrind constant-time/variable-latency audit
+  with calibrated controls has passed, but ARM, Windows, cache, speculative,
+  physical-leakage, rejection-count, and production-binary coverage remain
+  open;
 - issue `#186`: self-verification and injected errors are partial controls,
   not a complete fault model;
 - issue `#187`: explicit source cleanup and sanitizer evidence do not prove
   erasure of compiler copies, registers, caller-owned keys, or crash artifacts;
 - issue `#188`: deterministic Wycheproof replay, bounded structure-aware
   ASan/UBSan and MSan campaigns, and bounded three-backend differential
-  verifier fuzzing with retained evidence are now implemented, but stateful
-  signer fuzzing, long-duration and broader-platform differential campaigns,
-  automatic advisory-case ingestion, full Rust sanitizer coverage, minimum
+  verifier fuzzing with retained evidence and supplementary portable libcrux
+  Miri execution are now implemented, but stateful signer fuzzing,
+  long-duration and broader-platform differential campaigns, full Rust
+  sanitizer coverage, minimum
   coverage goals, reviewed regression-vector promotion, and stack, worst-case,
   and adversarial-batch resource limits remain open;
-- issue `#189`: the source capsule and network-free build are partial evidence,
-  not an SBOM, reproducibility campaign, or ongoing advisory process;
+- issue `#189`: a dated fail-closed selected-graph advisory ledger, full-lock
+  cargo-audit/OSV scans, selected dependency graph, CycloneDX SBOM, and weekly
+  retained refresh are implemented; exact-commit independent re-review remains
+  open;
 - issue `#190`: key ownership, formats, backup, PSBT, and hardware-wallet
   behavior remain unspecified; and
 - issue `#181`: no qualifying independent human cryptographic review has

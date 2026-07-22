@@ -247,8 +247,10 @@ Completed on 2026-07-19:
 2. require all 70 selected-profile ACVP cases, exact signature-byte agreement,
    randomized cross-verification, malformed-input rejection, and the repo
    vector to pass OpenSSL, `mldsa-native`, and libcrux
-3. rerun the two disclosed libcrux advisory regressions and two ML-DSA-44
-   malformed-hint rejection cases without panic
+3. rerun the two retained upstream libcrux security tests on their ML-DSA-65
+   scope and two exact ML-DSA-44 RUSTSEC-2026-0076 malformed-hint rejection
+   cases without panic; retain `UNTESTED` for exact ML-DSA-44
+   RUSTSEC-2026-0077 coverage
 4. record the qualified lineage assessment rather than claiming independent
    design or external review
 

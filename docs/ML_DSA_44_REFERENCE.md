@@ -209,8 +209,9 @@ Established:
 5. empty/maximum context, malformed lengths, and 12 cryptographic mutations
    have explicit outcomes
 6. both portable-C adapters pass the bounded ASan/UBSan exercise
-7. the pinned libcrux release passes both disclosed advisory regressions and
-   the two repo-level malformed-hint rejections without panic
+7. both retained upstream libcrux security tests pass on their ML-DSA-65
+   scope, and two exact ML-DSA-44 RUSTSEC-2026-0076 malformed-hint cases reject
+   without panic; exact ML-DSA-44 RUSTSEC-2026-0077 coverage remains untested
 8. a separate implementation lineage agrees with the full comparator contract
 9. the candidate has a reproducible ten-run performance and raw-payload model
 

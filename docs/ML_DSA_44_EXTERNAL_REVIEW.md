@@ -184,8 +184,11 @@ sha256sum ml-dsa-44-review-run.json
 On macOS, use `shasum -a 256` for the final report if `sha256sum` is absent.
 The report must contain `"status": "PASS"`, 70 ACVP cases, the three expected
 signature hashes above, and `PASS` for every entry under `checks`, including
-`adapter_asan_ubsan`. The two disclosed libcrux advisory regressions and both
-repo-defined malformed-hint regressions must pass.
+`adapter_asan_ubsan`. Both retained upstream libcrux security tests must pass
+and be reported as ML-DSA-65. Both repo-defined exact ML-DSA-44
+RUSTSEC-2026-0076 malformed-hint cases must reject without panic. The reviewer
+must retain the explicit `UNTESTED` disposition for an exact ML-DSA-44
+RUSTSEC-2026-0077 regression unless separate evidence is supplied.
 
 The complete report has no universal expected SHA256 because it contains host-
 specific benchmark values. The run also exercises fresh randomized-signing

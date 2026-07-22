@@ -59,8 +59,12 @@ randomized signature-generation cases, and all 15 signature-verification
 accept/reject cases against all three oracles. It also checks complete
 signature-byte agreement, cross-verification, randomized-signature diversity,
 empty and maximum contexts, malformed lengths, key/message/context/signature
-mutations, the two disclosed libcrux advisory regressions, and bounded
-ASan/UBSan runs for the two portable-C adapters. The JSON report includes
+mutations, the two retained upstream libcrux security tests, two exact
+ML-DSA-44 malformed-hint regression cases, and bounded ASan/UBSan runs for the two
+portable-C adapters. The upstream tests are accurately labeled ML-DSA-65; the
+comparator no longer treats them as a package-wide advisory PASS. The complete
+dated advisory inventory and scheduled dependency scans are defined by
+`contrib/ml-dsa-engineering/advisory_ledger.json`. The JSON report includes
 ten-run timing medians and an explicitly scoped raw-payload block-space model.
 
 The current `mldsa-native` and libcrux research adapters use POSIX

@@ -119,17 +119,10 @@
         "basis": "direct Rust implementation history begins at the pinned May 2024 commit; the resolved normal dependency graph does not include PQClean, pq-crystals, mldsa-native, or pqcrypto-mldsa",
         "limit": "unit-test outputs and selected sampling/optimization comments cite PQ-Crystals; this is independent implementation evidence, not independent design, external cryptographic review, or production approval"
       },
-      "fixed_advisories": {
-        "RUSTSEC-2026-0076": {
-          "ghsa": "GHSA-xrf2-5r3p-5wgj",
-          "fixed_in": "0.0.8",
-          "upstream_test": "bad_hint_out_of_bounds"
-        },
-        "RUSTSEC-2026-0077": {
-          "ghsa": "GHSA-cp57-fq8g-qh6v",
-          "fixed_in": "0.0.8",
-          "upstream_test": "mask_exceeds_norm"
-        }
+      "advisory_ledger": {
+        "path": "contrib/ml-dsa-engineering/advisory_ledger.json",
+        "schema_version": 1,
+        "inventory_date": "2026-07-21"
       }
     }
   },

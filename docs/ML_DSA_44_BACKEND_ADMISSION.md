@@ -3,7 +3,7 @@
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-BACKEND-ADMISSION-v1
 ## Decided: 2026-07-19
-## Evidence-Updated: 2026-07-20
+## Evidence-Updated: 2026-07-21
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -40,9 +40,9 @@ API separation, toolchain fit, advisory posture, and reproducible source pin.
 | Exact FIPS 204 evidence | Pass | Pass | Pass |
 | Hedged entropy boundary | Internal OpenSSL DRBG, but deterministic and test-entropy controls are public parameters | High-level randomized API calls an integrator-owned `mld_randombytes` hook and propagates RNG failure | Signing API requires the caller to supply the 32-byte randomizer |
 | Secret cleanup | Randomizer and signing temporaries are cleansed in the reviewed source; provider and caller key lifetimes remain unreviewed | Signing allocations and randomizer are zeroized; upstream explicitly warns that compiler-created copies remain possible | Signing-key wrapper is clonable raw bytes without an evident zeroizing `Drop` |
-| Side-channel evidence | No supported PQBTC binary evidence | Portable C uses constant-time patterns and upstream dynamic checks; CBMC covers memory/type/selected-UB properties, not compiled timing | Formal scope covers selected arithmetic, NTT, and serialization; not the complete implementation or compiled timing |
+| Side-channel evidence | No supported PQBTC binary evidence | Bounded x86_64 Valgrind constant-time/variable-latency audit passes with calibrated positive controls; ARM, Windows, cache/speculative/physical leakage, rejection-count independence, and production binaries remain open. CBMC covers memory/type/selected-UB properties, not timing | Formal scope covers selected arithmetic, NTT, and serialization; not the complete implementation or compiled timing |
 | Build fit | Would add a full provider dependency to a node that does not otherwise link OpenSSL | Portable C, minimal dependencies, single-compilation-unit support, and static API qualification fit a narrow C/C++ wrapper | Would add Rust 1.89, Cargo dependency resolution, and a new FFI boundary |
-| Lifecycle | Stable 3.6 series, broad maintenance surface | Latest tagged release found on 2026-07-19; substantial post-tag API churn requires a later re-pin | Fresh 0.0.10 release with four prior ML-DSA advisories fixed by version |
+| Lifecycle | Stable 3.6 series, broad maintenance surface | Latest tagged release found on 2026-07-19; substantial post-tag API churn requires a later re-pin | Fresh 0.0.10 release; dated ledger covers nine libcrux-family and three rand/rand_core selected-graph RustSec entries |
 | License | Apache-2.0 | Apache-2.0 OR ISC OR MIT | Apache-2.0 |
 | Disposition | `ORACLE_ONLY` | `ISOLATED_PROTOTYPE_ADMITTED` | `ORACLE_ONLY` |
 
@@ -97,10 +97,15 @@ no evident zeroizing destructor. A production wrapper would have to add an RNG
 and secret-owning boundary around the crate, then cross a new Rust/C++ FFI and
 toolchain boundary.
 
-RustSec records four prior `libcrux-ml-dsa` advisories. Version 0.0.10 is above
-the published fixed versions, and the frozen portable path passes the two
-repo-retained advisory regressions. This is useful evidence, not a reason to
-prefer a wider integration boundary for the first prototype.
+The dated ledger now records all 12 current RustSec entries across the 16
+packages in the selected graph: nine libcrux-family entries plus three patched
+rand/rand_core entries. Every selected pin is at or above its published fixed
+version, but regression status is reported separately from version status.
+The exact ML-DSA-44 portable malformed-hint check for RUSTSEC-2026-0076 passes;
+the retained upstream 0076/0077 tests are explicitly labeled ML-DSA-65, and an
+exact ML-DSA-44 0077 regression remains untested. The AVX2-specific 0125/0126
+regressions block any future SIMD256 admission. This is useful evidence, not a
+reason to prefer a wider integration boundary for the first prototype.
 
 ## Frozen Prototype Build Contract
 
@@ -147,7 +152,9 @@ zeroization-hook execution, concurrent repeat rejection, and ASan/UBSan.
 This is implementation evidence for the admitted experiment, not a production
 backend disposition. The raw-key prototype ABI, process-global serialization,
 supported-platform behavior, lifecycle, compiler output, fault model, fuzzing,
-SBOM/advisory process, and human review remain unresolved.
+exact-commit advisory re-review and human review remain unresolved. The
+scheduled advisory/SBOM workflow and supplementary portable Miri lane are
+described in `ML_DSA_44_ADVISORY_LEDGER.md`.
 
 ## Gates That Remain Open
 
@@ -156,11 +163,11 @@ Prototype admission closes no production finding:
 | Gate | Tracking | State after this decision |
 | --- | --- | --- |
 | Entropy and fail-closed binding | #184 | isolated wrapper and Linux/macOS RBG evidence; supported-platform lifecycle remains open |
-| Supported-platform side channels | #185 | open |
+| Supported-platform side channels | #185 | bounded x86_64 Valgrind constant-time/variable-latency evidence; broader platforms and leakage models open |
 | Fault model and injected faults | #186 | open |
 | End-to-end secret erasure | #187 | source cleanup and sanitizer evidence only; compiler/caller/platform boundary open |
-| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay plus scheduled structure-aware ASan/UBSan and MSan campaigns with retained evidence; differential/back-end coverage, advisory ingestion, adapter fuzzing, adversarial resource tests, broader platforms, and production limits open |
-| Backend advisories, SBOM, and reproducible build | #189 | pinned network-free source capsule only; SBOM, reproducibility, and monitoring open |
+| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential fuzzing, and supplementary portable Miri evidence; stateful/adversarial resource limits and broader production coverage remain open |
+| Backend advisories, SBOM, and reproducible build | #189 | dated fail-closed ledger, full-lock cargo-audit/OSV scans, exact selected graph, CycloneDX SBOM, and weekly retained refresh implemented; exact-commit independent re-review remains open |
 | Wallet and key format | #190 | open |
 | Independent human cryptographic review | #181 | open |
 

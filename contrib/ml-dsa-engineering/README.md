@@ -43,6 +43,30 @@ candidate comparison are in `docs/ML_DSA_44_BACKEND_ADMISSION.md`.
 The implemented evidence and remaining boundaries are in
 `docs/ML_DSA_44_WRAPPER_PROTOTYPE.md`.
 
+## Advisory Ledger, SBOM, and Portable Miri
+
+`advisory_ledger.json` replaces the former two-ID, package-wide libcrux
+advisory PASS with a dated, per-advisory contract covering all current
+RustSec entries across the selected graph. It separates the published
+139-package lock universe, the exact 16-package selected portable graph, and
+the conservative 24-component CycloneDX normal-dependency/target closure. The
+driver fails on a new or missing selected-package RustSec advisory, scanner
+finding, alias, version, full-lock package, graph edge, backend, architecture,
+SBOM component, or evidence input. Current full-lock findings remain visible
+and are accepted only under their exact reviewed outside-selected-graph
+dispositions.
+
+The scheduled read-only workflow pins cargo-audit, OSV Scanner,
+cargo-cyclonedx, and Miri. It retains the RustSec commit, exact OSV database
+snapshot, raw scans, lock and graph evidence, SBOM, Miri logs, normalized
+report, and verified checksums for 90 days. The Miri source exercises only the
+portable ML-DSA-44 Rust path with both automatic SIMD paths disabled.
+
+This is technical issue-#189 remediation plus supplementary issue-#188
+evidence. Exact-commit independent re-review remains pending under issue #181,
+the production backend remains `NONE`, and the release hold is unchanged. See
+`docs/ML_DSA_44_ADVISORY_LEDGER.md` for the full disposition.
+
 ## Versioned Static-Analysis Audit
 
 `run_static_analysis.py` defines the isolated wrapper's versioned
