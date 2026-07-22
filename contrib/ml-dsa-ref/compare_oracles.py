@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import platform
 import re
 import secrets
 import shlex
@@ -143,20 +144,15 @@ def validate_manifest(manifest: dict) -> None:
         raise ReferenceError("libcrux independence assessment outcome mismatch")
     if assessment.get("normal_pqclean_or_pq_crystals_dependency") is not False:
         raise ReferenceError("libcrux normal dependency assessment must be false")
-    expected_advisories = {
-        "RUSTSEC-2026-0076": {
-            "ghsa": "GHSA-xrf2-5r3p-5wgj",
-            "fixed_in": "0.0.8",
-            "upstream_test": "bad_hint_out_of_bounds",
-        },
-        "RUSTSEC-2026-0077": {
-            "ghsa": "GHSA-cp57-fq8g-qh6v",
-            "fixed_in": "0.0.8",
-            "upstream_test": "mask_exceeds_norm",
-        },
+    expected_advisory_ledger = {
+        "path": "contrib/ml-dsa-engineering/advisory_ledger.json",
+        "schema_version": 1,
+        "inventory_date": "2026-07-21",
     }
-    if libcrux.get("fixed_advisories") != expected_advisories:
-        raise ReferenceError("libcrux fixed-advisory contract mismatch")
+    if libcrux.get("advisory_ledger") != expected_advisory_ledger:
+        raise ReferenceError("libcrux advisory-ledger pointer mismatch")
+    if "fixed_advisories" in libcrux:
+        raise ReferenceError("libcrux retains the superseded two-advisory contract")
     for source_name in (
         "nist_fips204",
         "nist_fips204_potential_updates",
@@ -265,10 +261,15 @@ def load_manifest() -> dict:
     return manifest
 
 
-def run(command: list[str], cwd: Path | None = None) -> str:
+def run(
+    command: list[str],
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+) -> str:
     result = subprocess.run(
         command,
         cwd=cwd,
+        env=env,
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -280,6 +281,15 @@ def run(command: list[str], cwd: Path | None = None) -> str:
             f"{result.stderr.strip()}"
         )
     return result.stdout
+
+
+def portable_libcrux_environment() -> dict[str, str]:
+    environment = os.environ.copy()
+    environment["LIBCRUX_DISABLE_SIMD128"] = "1"
+    environment["LIBCRUX_DISABLE_SIMD256"] = "1"
+    environment.pop("LIBCRUX_ENABLE_SIMD128", None)
+    environment.pop("LIBCRUX_ENABLE_SIMD256", None)
+    return environment
 
 
 def require_command_failure(command: list[str], label: str) -> None:
@@ -514,6 +524,7 @@ def prepare_libcrux_crate(build_dir: Path, artifact: Path, source: dict) -> Path
 
 def compile_libcrux_oracle(build_dir: Path, crate_dir: Path) -> Path:
     target_dir = build_dir / "libcrux-target"
+    environment = portable_libcrux_environment()
     normal_dependencies = run(
         [
             "cargo",
@@ -528,7 +539,8 @@ def compile_libcrux_oracle(build_dir: Path, crate_dir: Path) -> Path:
             "std,mldsa44",
             "--prefix",
             "none",
-        ]
+        ],
+        env=environment,
     )
     if re.search(
         r"pqclean|pq[-_]crystals|mldsa[-_]native|pqcrypto[-_]mldsa",
@@ -551,7 +563,8 @@ def compile_libcrux_oracle(build_dir: Path, crate_dir: Path) -> Path:
             "std,mldsa44",
             "--example",
             "pqbtc_oracle",
-        ]
+        ],
+        env=environment,
     )
     executable = target_dir / "release" / "examples" / "pqbtc_oracle"
     if not executable.is_file():
@@ -561,6 +574,7 @@ def compile_libcrux_oracle(build_dir: Path, crate_dir: Path) -> Path:
 
 def run_libcrux_security_regressions(build_dir: Path, crate_dir: Path) -> dict:
     target_dir = build_dir / "libcrux-security-target"
+    environment = portable_libcrux_environment()
     regressions = {
         "RUSTSEC-2026-0076": "bad_hint_out_of_bounds",
         "RUSTSEC-2026-0077": "mask_exceeds_norm",
@@ -575,14 +589,38 @@ def run_libcrux_security_regressions(build_dir: Path, crate_dir: Path) -> dict:
                 "--target-dir",
                 str(target_dir),
                 "--locked",
+                "--no-default-features",
+                "--features",
+                "std,mldsa44,mldsa65,mldsa87",
                 "--test",
                 "self",
                 test_name,
                 "--",
                 "--exact",
-            ]
+            ],
+            env=environment,
         )
-    return {advisory: {"test": test, "status": "PASS"} for advisory, test in regressions.items()}
+    return {
+        "execution": {
+            "runner_architecture": platform.machine().lower(),
+            "compiled_backend": "portable",
+            "called_backend": "multiplexed_portable_resolution",
+            "parameter_set": "ML-DSA-65",
+            "default_features": False,
+            "features": ["mldsa44", "mldsa65", "mldsa87", "std"],
+            "simd128_disabled": True,
+            "simd256_disabled": True,
+        },
+        "results": {
+            advisory: {
+                "test": test,
+                "status": "PASS",
+                "parameter_set": "ML-DSA-65",
+                "called_backend": "multiplexed_portable_resolution",
+            }
+            for advisory, test in regressions.items()
+        },
+    }
 
 
 def require_artifact(path: Path, expected_sha256: str, label: str) -> None:
@@ -1576,10 +1614,17 @@ def evaluate_libcrux_advisory_regressions(
     upstream_report: dict,
 ) -> dict:
     expected_advisories = {"RUSTSEC-2026-0076", "RUSTSEC-2026-0077"}
-    if set(upstream_report) != expected_advisories or any(
-        result.get("status") != "PASS" for result in upstream_report.values()
+    upstream_results = upstream_report.get("results", {})
+    execution = upstream_report.get("execution", {})
+    if set(upstream_results) != expected_advisories or any(
+        result.get("status") != "PASS" for result in upstream_results.values()
     ):
         raise ReferenceError("libcrux upstream security regressions did not pass")
+    if execution.get("compiled_backend") != "portable" or not all(
+        execution.get(field) is True
+        for field in ("simd128_disabled", "simd256_disabled")
+    ):
+        raise ReferenceError("libcrux upstream regressions were not portable-only")
 
     malformed_hint_cases = {
         "bounded_counter_overflow": libcrux_malformed_hint_signature(profile, 81),
@@ -1596,9 +1641,30 @@ def evaluate_libcrux_advisory_regressions(
             f"libcrux {label} rejection",
         )
     return {
-        "upstream_release_tests": upstream_report,
-        "ml_dsa_44_malformed_hint_rejections": len(malformed_hint_cases),
-        "no_panic": "PASS",
+        "execution": execution,
+        "advisories": {
+            "RUSTSEC-2026-0076": {
+                "pinned_version_status": "NOT_AFFECTED",
+                "upstream_release_test": upstream_results["RUSTSEC-2026-0076"],
+                "pqbtc_exact_regression": {
+                    "parameter_set": "ML-DSA-44",
+                    "called_backend": "portable",
+                    "cases": len(malformed_hint_cases),
+                    "status": "PASS",
+                },
+            },
+            "RUSTSEC-2026-0077": {
+                "pinned_version_status": "NOT_AFFECTED",
+                "upstream_release_test": upstream_results["RUSTSEC-2026-0077"],
+                "pqbtc_exact_regression": {
+                    "parameter_set": "ML-DSA-44",
+                    "called_backend": "portable",
+                    "status": "UNTESTED",
+                    "reason": "retained upstream regression is ML-DSA-65",
+                },
+            },
+        },
+        "bounded_no_panic_result": "PASS",
     }
 
 
@@ -1709,7 +1775,7 @@ def evaluate(
             "randomized_interoperability": "PASS",
             "boundary_and_mutation_rejection": "PASS",
             "libcrux_source_and_crate_provenance": "PASS",
-            "libcrux_disclosed_advisory_regressions": "PASS",
+            "libcrux_executed_security_regressions": "PASS",
             "adapter_asan_ubsan": "PASS" if sanitized_report is not None else "NOT_RUN",
         },
         "acvp": {

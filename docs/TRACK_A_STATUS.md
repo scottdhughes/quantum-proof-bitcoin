@@ -62,10 +62,11 @@ Section 6 guidance artifacts, all 70 applicable external/pure ACVP cases,
 OpenSSL 3.6.3, `mldsa-native` `v1.0.0-beta2`, and libcrux 0.0.10. The three
 codebases agree on all official and repo-defined exact outputs, cross-verify
 randomized signatures, and reject the bounded malformed/mutated corpus. The
-two portable-C adapters pass the ASan/UBSan tranche, while the exact libcrux
-release passes both disclosed advisory regressions and repo-level malformed-
-hint checks without panic. Ten-run arm64 timings and a raw-payload cost model
-are recorded. The qualified libcrux result closes the independent
+two portable-C adapters pass the ASan/UBSan tranche. Both retained upstream
+libcrux security tests pass on their ML-DSA-65 scope; two exact ML-DSA-44
+RUSTSEC-2026-0076 malformed-hint cases reject without panic, while exact
+ML-DSA-44 RUSTSEC-2026-0077 coverage remains untested. Ten-run arm64 timings
+and a raw-payload cost model are recorded. The qualified libcrux result closes the independent
 implementation evidence gate but is not independent design, external
 cryptographic review, or production approval.
 

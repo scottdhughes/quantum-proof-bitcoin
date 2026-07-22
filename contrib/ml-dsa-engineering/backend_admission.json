@@ -115,7 +115,7 @@
       "conformance": "PASS",
       "entropy_boundary": "INTEGRATOR_HOOK_CALLED_BY_RANDOMIZED_ENTRY_POINT",
       "secret_erasure": "STRONG_INTERNAL_SOURCE_EVIDENCE_WITH_COMPILER_COPY_LIMIT",
-      "side_channel_posture": "UPSTREAM_SOURCE_AND_DYNAMIC_EVIDENCE_REQUIRES_PQBTC_BINARY_VALIDATION",
+      "side_channel_posture": "BOUNDED_X86_64_VALGRIND_CT_EVIDENCE_BROADER_PLATFORMS_AND_LEAKAGE_MODELS_OPEN",
       "build_fit": "PORTABLE_C_SINGLE_TRANSLATION_UNIT",
       "outcome": "ISOLATED_PROTOTYPE_ADMITTED"
     },
@@ -128,6 +128,14 @@
       "secret_erasure": "CLONABLE_KEY_WITHOUT_ZEROIZING_DROP",
       "side_channel_posture": "PARTIAL_FORMAL_SCOPE_WITHOUT_PQBTC_BINARY_EVIDENCE",
       "build_fit": "NEW_RUST_1_89_AND_FFI_BOUNDARY",
+      "advisory_evidence": {
+        "ledger": "contrib/ml-dsa-engineering/advisory_ledger.json",
+        "inventory_date": "2026-07-21",
+        "full_lock_packages": 139,
+        "selected_graph_packages": 16,
+        "scheduled_refresh": true,
+        "exact_commit_re_review": "PENDING"
+      },
       "outcome": "ORACLE_ONLY"
     }
   },
@@ -139,7 +147,7 @@
     },
     {
       "id": "supported_platform_side_channel",
-      "status": "OPEN",
+      "status": "BOUNDED_X86_64_VALGRIND_EVIDENCE_BROADER_PLATFORMS_OPEN",
       "tracking_issue": 185
     },
     {
@@ -154,12 +162,12 @@
     },
     {
       "id": "structure_aware_fuzzing_and_resources",
-      "status": "DIFFERENTIAL_SANITIZER_EVIDENCE_RESOURCES_OPEN",
+      "status": "DIFFERENTIAL_SANITIZER_AND_SUPPLEMENTARY_MIRI_EVIDENCE_RESOURCES_OPEN",
       "tracking_issue": 188
     },
     {
       "id": "backend_advisory_and_sbom_refresh",
-      "status": "PINNED_SOURCE_CAPSULE_ONLY_OPEN",
+      "status": "TECHNICAL_LEDGER_AND_SCHEDULED_SCAN_IMPLEMENTED_RE_REVIEW_OPEN",
       "tracking_issue": 189
     },
     {

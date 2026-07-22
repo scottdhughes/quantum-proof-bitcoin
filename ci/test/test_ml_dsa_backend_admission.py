@@ -122,6 +122,19 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
             {181, 184, 185, 186, 187, 188, 189, 190},
         )
         self.assertNotIn("CLOSED", {gate["status"] for gate in gates})
+        advisory_gate = next(
+            gate for gate in gates if gate["tracking_issue"] == 189
+        )
+        self.assertEqual(
+            advisory_gate["status"],
+            "TECHNICAL_LEDGER_AND_SCHEDULED_SCAN_IMPLEMENTED_RE_REVIEW_OPEN",
+        )
+        libcrux = self.admission["candidate_assessments"][
+            "libcrux_ml_dsa_0_0_10_portable"
+        ]
+        self.assertEqual(libcrux["advisory_evidence"]["full_lock_packages"], 139)
+        self.assertEqual(libcrux["advisory_evidence"]["selected_graph_packages"], 16)
+        self.assertEqual(libcrux["advisory_evidence"]["exact_commit_re_review"], "PENDING")
 
     def test_normative_document_records_same_disposition(self):
         decision = DECISION_PATH.read_text(encoding="utf8")

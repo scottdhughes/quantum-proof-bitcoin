@@ -1,0 +1,371 @@
+name: ML-DSA-44 advisory ledger
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ml-dsa-44-advisory-ledger.yml"
+      - ".github/workflows/ml-dsa-44-review-reproduction.yml"
+      - "contrib/ml-dsa-ref/**"
+      - "contrib/ml-dsa-engineering/advisory_ledger.json"
+      - "contrib/ml-dsa-engineering/backend_admission.json"
+      - "contrib/ml-dsa-engineering/README.md"
+      - "contrib/ml-dsa-engineering/run_advisory_ledger.py"
+      - "contrib/ml-dsa-engineering/libcrux-miri/**"
+      - "ci/test/test_ml_dsa_advisory_ledger.py"
+      - "ci/test/test_ml_dsa_backend_admission.py"
+      - "ci/test/test_ml_dsa_reference.py"
+      - "ci/test/test_ml_dsa_sustained_fuzz.py"
+      - "docs/ML_DSA_44_ADVISORY_LEDGER.md"
+      - "docs/ML_DSA_44_BACKEND_ADMISSION.md"
+      - "docs/ML_DSA_44_EXTERNAL_REVIEW.md"
+      - "docs/ML_DSA_44_REFERENCE.md"
+      - "docs/ML_DSA_44_WRAPPER_PROTOTYPE.md"
+      - "docs/PQSIG_CANDIDATE_SELECTION.md"
+      - "docs/TRACK_A_STATUS.md"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/ml-dsa-44-advisory-ledger.yml"
+      - ".github/workflows/ml-dsa-44-review-reproduction.yml"
+      - "contrib/ml-dsa-ref/**"
+      - "contrib/ml-dsa-engineering/advisory_ledger.json"
+      - "contrib/ml-dsa-engineering/backend_admission.json"
+      - "contrib/ml-dsa-engineering/README.md"
+      - "contrib/ml-dsa-engineering/run_advisory_ledger.py"
+      - "contrib/ml-dsa-engineering/libcrux-miri/**"
+      - "ci/test/test_ml_dsa_advisory_ledger.py"
+      - "ci/test/test_ml_dsa_backend_admission.py"
+      - "ci/test/test_ml_dsa_reference.py"
+      - "ci/test/test_ml_dsa_sustained_fuzz.py"
+      - "docs/ML_DSA_44_ADVISORY_LEDGER.md"
+      - "docs/ML_DSA_44_BACKEND_ADMISSION.md"
+      - "docs/ML_DSA_44_EXTERNAL_REVIEW.md"
+      - "docs/ML_DSA_44_REFERENCE.md"
+      - "docs/ML_DSA_44_WRAPPER_PROTOTYPE.md"
+      - "docs/PQSIG_CANDIDATE_SELECTION.md"
+      - "docs/TRACK_A_STATUS.md"
+  schedule:
+    - cron: "17 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ml-dsa-44-advisory-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  audit:
+    name: Pinned advisory, SBOM, and portable Miri audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      ML_DSA_COMPILED_BACKEND: portable
+      ML_DSA_CALLED_BACKEND: portable
+      ML_DSA_ARCHITECTURE: x86_64
+      ML_DSA_TARGET_TRIPLE: x86_64-unknown-linux-gnu
+      LIBCRUX_DISABLE_SIMD128: "1"
+      LIBCRUX_DISABLE_SIMD256: "1"
+      CARGO_AUDIT_VERSION: "0.22.2"
+      OSV_SCANNER_VERSION: "2.4.0"
+      CARGO_CYCLONEDX_VERSION: "0.5.9"
+      MIRI_TOOLCHAIN: nightly-2026-07-20
+
+    steps:
+      - name: Checkout exact audit head
+        timeout-minutes: 5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Validate checked-in contracts
+        timeout-minutes: 5
+        run: |
+          set -euxo pipefail
+          python3 contrib/ml-dsa-engineering/run_advisory_ledger.py --plan-only
+          python3 -m unittest ci.test.test_ml_dsa_advisory_ledger
+          python3 -m unittest ci.test.test_ml_dsa_backend_admission
+          python3 -m unittest ci.test.test_ml_dsa_reference
+          python3 -m unittest ci.test.test_ml_dsa_sustained_fuzz
+
+      - name: Acquire and verify exact tools and scan inputs
+        timeout-minutes: 25
+        run: |
+          set -euxo pipefail
+          AUDIT_ROOT="$RUNNER_TEMP/ml-dsa-advisory"
+          TOOLS="$AUDIT_ROOT/tools"
+          SOURCES="$AUDIT_ROOT/sources"
+          EVIDENCE="$GITHUB_WORKSPACE/ml-dsa-44-advisory-evidence"
+          OSV_CACHE="$EVIDENCE/osv-db-cache"
+          mkdir -p "$TOOLS" "$SOURCES" "$EVIDENCE" \
+            "$OSV_CACHE/osv-scanner/crates.io"
+
+          curl --fail --location --retry 5 --retry-all-errors \
+            "https://github.com/RustSec/rustsec/releases/download/cargo-audit/v${CARGO_AUDIT_VERSION}/cargo-audit-x86_64-unknown-linux-gnu-v${CARGO_AUDIT_VERSION}.tgz" \
+            -o "$TOOLS/cargo-audit.tgz"
+          echo "ab28a1bdb54db4d5d8ad5981cf1f959410370b3d28250dbd35f6a44248620e39  $TOOLS/cargo-audit.tgz" | sha256sum --check
+          mkdir "$TOOLS/cargo-audit-extract"
+          tar -xzf "$TOOLS/cargo-audit.tgz" -C "$TOOLS/cargo-audit-extract"
+          install -m 0755 \
+            "$(find "$TOOLS/cargo-audit-extract" -type f -name cargo-audit -print -quit)" \
+            "$TOOLS/cargo-audit"
+
+          curl --fail --location --retry 5 --retry-all-errors \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" \
+            -o "$TOOLS/osv-scanner"
+          echo "15314940c10d26af9c6649f150b8a47c1262e8fc7e17b1d1029b0e479e8ed8a0  $TOOLS/osv-scanner" | sha256sum --check
+          chmod 0755 "$TOOLS/osv-scanner"
+
+          curl --fail --location --retry 5 --retry-all-errors \
+            "https://github.com/CycloneDX/cyclonedx-rust-cargo/releases/download/cargo-cyclonedx-${CARGO_CYCLONEDX_VERSION}/cargo-cyclonedx-x86_64-unknown-linux-gnu.tar.xz" \
+            -o "$TOOLS/cargo-cyclonedx.tar.xz"
+          echo "fb8dbee9f182173e062a64a387b21a0badc6fab8b2abf9294973f012972bf6d8  $TOOLS/cargo-cyclonedx.tar.xz" | sha256sum --check
+          mkdir "$TOOLS/cargo-cyclonedx-extract"
+          tar -xJf "$TOOLS/cargo-cyclonedx.tar.xz" \
+            -C "$TOOLS/cargo-cyclonedx-extract"
+          install -m 0755 \
+            "$(find "$TOOLS/cargo-cyclonedx-extract" -type f -name cargo-cyclonedx -print -quit)" \
+            "$TOOLS/cargo-cyclonedx"
+
+          curl --fail --location --retry 5 --retry-all-errors \
+            -D "$EVIDENCE/osv-db-headers.txt" \
+            https://osv-vulnerabilities.storage.googleapis.com/crates.io/all.zip \
+            -o "$OSV_CACHE/osv-scanner/crates.io/all.zip"
+          (
+            cd "$EVIDENCE"
+            sha256sum osv-db-cache/osv-scanner/crates.io/all.zip \
+              > osv-db.sha256
+          )
+
+          curl --fail --location --retry 5 --retry-all-errors \
+            https://static.crates.io/crates/libcrux-ml-dsa/libcrux-ml-dsa-0.0.10.crate \
+            -o "$SOURCES/libcrux-ml-dsa-0.0.10.crate"
+          echo "783ebed7cb27de6d44ef2aa662648d1a0869694f2f754f2f1ed45e959ef3b48e  $SOURCES/libcrux-ml-dsa-0.0.10.crate" | sha256sum --check
+          tar -xzf "$SOURCES/libcrux-ml-dsa-0.0.10.crate" -C "$SOURCES"
+
+          git clone --depth 1 https://github.com/RustSec/advisory-db.git \
+            "$SOURCES/advisory-db"
+          cp "$SOURCES/libcrux-ml-dsa-0.0.10.crate" \
+            "$EVIDENCE/libcrux-ml-dsa-0.0.10.crate"
+          git -C "$SOURCES/advisory-db" archive --format=tar.gz \
+            --output="$EVIDENCE/rustsec-advisory-db.tar.gz" HEAD
+          curl --fail --location --retry 5 --retry-all-errors \
+            https://static.rust-lang.org/dist/2026-07-20/channel-rust-nightly.toml \
+            -o "$EVIDENCE/channel-rust-nightly.toml"
+          echo "1bf70a4f1406732dd79957ccc0d0afc78bdc69cdfa3b5f57857ab56727e05d56  $EVIDENCE/channel-rust-nightly.toml" | sha256sum --check
+          rustup toolchain install "$MIRI_TOOLCHAIN" \
+            --profile minimal --component miri --no-self-update
+
+          CRATE="$SOURCES/libcrux-ml-dsa-0.0.10"
+          cargo fetch --manifest-path "$CRATE/Cargo.toml" --locked \
+            --target "$ML_DSA_TARGET_TRIPLE"
+
+          MIRI_RUSTC="$(rustc +"$MIRI_TOOLCHAIN" --version)"
+          test "$(uname -m)" = "$ML_DSA_ARCHITECTURE"
+          test "$MIRI_RUSTC" = \
+            "rustc 1.99.0-nightly (9f36de775 2026-07-19)"
+          {
+            echo "repository_commit=$(git rev-parse HEAD)"
+            if [[ -z "$(git status --porcelain --untracked-files=no)" ]]; then
+              echo "repository_dirty=false"
+            else
+              echo "repository_dirty=true"
+            fi
+            echo "runner=$(uname -a)"
+            echo "python=$(python3 --version)"
+            echo "cargo=$(cargo --version)"
+            echo "cargo_audit=$($TOOLS/cargo-audit --version)"
+            echo "osv_scanner=$($TOOLS/osv-scanner --version)"
+            echo "cargo_cyclonedx=$($TOOLS/cargo-cyclonedx cyclonedx --version)"
+            echo "miri_rustc=$MIRI_RUSTC"
+            echo "rustsec_commit=$(git -C "$SOURCES/advisory-db" rev-parse HEAD)"
+            echo "rustsec_tree=$(git -C "$SOURCES/advisory-db" rev-parse 'HEAD^{tree}')"
+          } | tee "$EVIDENCE/toolchain.txt"
+          {
+            sha256sum "$TOOLS/cargo-audit" | awk '{print $1 "  cargo-audit"}'
+            sha256sum "$TOOLS/osv-scanner" | awk '{print $1 "  osv-scanner"}'
+            sha256sum "$TOOLS/cargo-cyclonedx" \
+              | awk '{print $1 "  cargo-cyclonedx"}'
+          } > "$EVIDENCE/tool-binary-digests.txt"
+
+          {
+            echo "AUDIT_ROOT=$AUDIT_ROOT"
+            echo "TOOLS=$TOOLS"
+            echo "SOURCES=$SOURCES"
+            echo "EVIDENCE=$EVIDENCE"
+            echo "OSV_CACHE=$OSV_CACHE"
+            echo "CRATE=$CRATE"
+            echo "MIRI_RUSTC=$MIRI_RUSTC"
+          } >> "$GITHUB_ENV"
+
+      - name: Generate exact graph and CycloneDX evidence
+        timeout-minutes: 10
+        run: |
+          set -euxo pipefail
+          CARGO_NET_OFFLINE=true cargo tree \
+            --manifest-path "$CRATE/Cargo.toml" \
+            --locked --target "$ML_DSA_TARGET_TRIPLE" \
+            --edges normal,build --no-default-features \
+            --features std,mldsa44 --prefix none \
+            | tee "$EVIDENCE/selected-cargo-tree.txt"
+          CARGO_NET_OFFLINE=true cargo metadata \
+            --manifest-path "$CRATE/Cargo.toml" \
+            --locked --format-version 1 \
+            --filter-platform "$ML_DSA_TARGET_TRIPLE" \
+            --no-default-features --features std,mldsa44 \
+            > "$EVIDENCE/cargo-metadata.json"
+          SOURCE_DATE_EPOCH=0 CARGO_NET_OFFLINE=true \
+            "$TOOLS/cargo-cyclonedx" cyclonedx \
+              --manifest-path "$CRATE/Cargo.toml" \
+              --format json --spec-version 1.5 --all \
+              --no-default-features --features std,mldsa44 \
+              --target "$ML_DSA_TARGET_TRIPLE" --no-build-deps \
+              --override-filename pqbtc-libcrux-selected
+          cp "$CRATE/pqbtc-libcrux-selected.json" \
+            "$EVIDENCE/libcrux-ml-dsa-0.0.10-portable.cdx.json"
+          cp "$CRATE/Cargo.lock" "$EVIDENCE/libcrux-full-Cargo.lock"
+
+      - name: Run complete retained cargo-audit and OSV scans
+        timeout-minutes: 10
+        run: |
+          set -uxo pipefail
+          set +e
+          "$TOOLS/cargo-audit" audit \
+            --db "$SOURCES/advisory-db" --no-fetch --json \
+            --file "$CRATE/Cargo.lock" \
+            > "$EVIDENCE/cargo-audit.json" \
+            2> "$EVIDENCE/cargo-audit.log"
+          CARGO_AUDIT_EXIT=$?
+          OSV_SCANNER_LOCAL_DB_CACHE_DIRECTORY="$OSV_CACHE" \
+            "$TOOLS/osv-scanner" scan source --offline --all-packages \
+              --format json --lockfile "$CRATE/Cargo.lock" \
+              --output-file "$EVIDENCE/osv.json" \
+              > "$EVIDENCE/osv.log" 2>&1
+          OSV_EXIT=$?
+          set -e
+          printf '%s\n' "$CARGO_AUDIT_EXIT" \
+            | tee "$EVIDENCE/cargo-audit.exit-code"
+          printf '%s\n' "$OSV_EXIT" | tee "$EVIDENCE/osv.exit-code"
+          {
+            echo "CARGO_AUDIT_EXIT=$CARGO_AUDIT_EXIT"
+            echo "OSV_EXIT=$OSV_EXIT"
+          } >> "$GITHUB_ENV"
+
+      - name: Run pinned portable Miri smoke
+        timeout-minutes: 75
+        run: |
+          set -euxo pipefail
+          MIRI_CRATE="$AUDIT_ROOT/libcrux-miri"
+          cp -a "$CRATE" "$MIRI_CRATE"
+          cp "$MIRI_CRATE/Cargo.lock" "$EVIDENCE/miri-full-Cargo.lock"
+          python3 contrib/ml-dsa-engineering/run_advisory_ledger.py \
+            --prepare-miri-crate --crate-dir "$MIRI_CRATE" \
+            > "$EVIDENCE/miri-prepare.json"
+          cp "$MIRI_CRATE/Cargo.toml" "$EVIDENCE/miri-prepared-Cargo.toml"
+          cp "$MIRI_CRATE/examples/pqbtc_oracle.rs" \
+            "$EVIDENCE/miri-pqbtc-oracle.rs"
+
+          CARGO_NET_OFFLINE=true cargo tree \
+            --manifest-path "$MIRI_CRATE/Cargo.toml" \
+            --target "$ML_DSA_TARGET_TRIPLE" \
+            --edges normal,build --no-default-features \
+            --features std,mldsa44 --prefix none \
+            | tee "$EVIDENCE/miri-selected-cargo-tree.txt"
+          python3 contrib/ml-dsa-engineering/run_advisory_ledger.py \
+            --validate-selected-graph --crate-dir "$MIRI_CRATE" \
+            > "$EVIDENCE/miri-selected-graph.json"
+          cp "$MIRI_CRATE/Cargo.lock" "$EVIDENCE/miri-prepared-Cargo.lock"
+          cargo +"$MIRI_TOOLCHAIN" miri setup \
+            2>&1 | tee "$EVIDENCE/miri-setup.log"
+
+          set +e
+          CARGO_NET_OFFLINE=true \
+            MIRIFLAGS="-Zmiri-strict-provenance -Zmiri-symbolic-alignment-check -Zmiri-tree-borrows" \
+            cargo +"$MIRI_TOOLCHAIN" miri run \
+              --manifest-path "$MIRI_CRATE/Cargo.toml" \
+              --target "$ML_DSA_TARGET_TRIPLE" \
+              --locked --no-default-features --features std,mldsa44 \
+              --example pqbtc_oracle \
+              2>&1 | tee "$EVIDENCE/miri.log"
+          MIRI_EXIT=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "$MIRI_EXIT" | tee "$EVIDENCE/miri.exit-code"
+
+          MIRI_STATUS=FAIL
+          if (( MIRI_EXIT == 0 )); then
+            MIRI_STATUS=PASS
+          fi
+          export MIRI_STATUS
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          evidence = Path(os.environ["EVIDENCE"])
+          report = {
+              "schema_version": 1,
+              "status": os.environ["MIRI_STATUS"],
+              "role": "SUPPLEMENTARY",
+              "toolchain": os.environ["MIRI_TOOLCHAIN"],
+              "rustc": os.environ["MIRI_RUSTC"],
+              "compiled_backend": os.environ["ML_DSA_COMPILED_BACKEND"],
+              "called_backend": os.environ["ML_DSA_CALLED_BACKEND"],
+              "architecture": os.environ["ML_DSA_ARCHITECTURE"],
+              "target_triple": os.environ["ML_DSA_TARGET_TRIPLE"],
+              "tests": [
+                  {"name": "portable_keygen_sign_verify", "status": os.environ["MIRI_STATUS"]},
+                  {"name": "bit_flip_rejection", "status": os.environ["MIRI_STATUS"]},
+                  {"name": "malformed_hint_rejection", "status": os.environ["MIRI_STATUS"]},
+              ],
+          }
+          (evidence / "miri.json").write_text(
+              json.dumps(report, indent=2, sort_keys=True) + "\n",
+              encoding="utf8",
+          )
+          PY
+
+      - name: Adjudicate all evidence against the ledger
+        timeout-minutes: 10
+        run: |
+          set -euxo pipefail
+          python3 contrib/ml-dsa-engineering/run_advisory_ledger.py \
+            --cargo-audit "$EVIDENCE/cargo-audit.json" \
+            --osv "$EVIDENCE/osv.json" \
+            --sbom "$EVIDENCE/libcrux-ml-dsa-0.0.10-portable.cdx.json" \
+            --miri "$EVIDENCE/miri.json" \
+            --rustsec-db "$SOURCES/advisory-db" \
+            --crate-dir "$CRATE" \
+            --cargo-audit-exit-code "$CARGO_AUDIT_EXIT" \
+            --osv-exit-code "$OSV_EXIT" \
+            --output-dir "$EVIDENCE"
+          (
+            cd "$EVIDENCE"
+            sha256sum --check SHA256SUMS
+          )
+
+      - name: Finalize retained checksums
+        if: always()
+        timeout-minutes: 10
+        run: |
+          set -euxo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/ml-dsa-44-advisory-evidence"
+          cd "$GITHUB_WORKSPACE/ml-dsa-44-advisory-evidence"
+          printf 'job_status=%s\n' '${{ job.status }}' > job-status.txt
+          find . -type f ! -name SHA256SUMS -print0 \
+            | sort -z \
+            | xargs -0 sha256sum > SHA256SUMS
+          sha256sum --check SHA256SUMS
+
+      - name: Upload advisory evidence
+        if: always()
+        timeout-minutes: 10
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ml-dsa-44-advisory-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ml-dsa-44-advisory-evidence/
+          if-no-files-found: error
+          retention-days: 90

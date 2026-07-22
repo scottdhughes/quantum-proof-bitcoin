@@ -83,9 +83,14 @@ class MLDSAReferenceTests(unittest.TestCase):
         self.assertIn("not independent design", assessment["limit"])
         self.assertRegex(sources["libcrux"]["crate_sha256"], r"^[0-9a-f]{64}$")
         self.assertEqual(
-            set(sources["libcrux"]["fixed_advisories"]),
-            {"RUSTSEC-2026-0076", "RUSTSEC-2026-0077"},
+            sources["libcrux"]["advisory_ledger"],
+            {
+                "path": "contrib/ml-dsa-engineering/advisory_ledger.json",
+                "schema_version": 1,
+                "inventory_date": "2026-07-21",
+            },
         )
+        self.assertNotIn("fixed_advisories", sources["libcrux"])
 
     def test_manifest_rejects_coverage_drift(self):
         mutated = copy.deepcopy(self.manifest)
