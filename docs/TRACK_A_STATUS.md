@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-07-20
+## Updated: 2026-07-22
 ## Current Phase: Phase 1 - Cryptographic Production Hold
 
 ## Purpose
@@ -144,6 +144,23 @@ but does not close sustained multi-platform fuzzing, retained regression
 artifacts, or production resource limits. Production remains `NONE` and
 `RELEASE_HOLD`; no consensus, wallet, Script, `ALG_ID`, or functional-suite
 inventory policy changed.
+
+The next seven bounded evidence tranches are also merged. PR `#198`
+(`f7b6f24936d1d0321ce33ca7245662db744348bc`) added sustained sanitizer
+campaigns; PR `#199` (`840dbffdf2fe29d87c0da2b6fe2a9147c35f4ee7`) hardened
+value-profile corpus minimization; PR `#200`
+(`d43449ffe1015db6ca10311d40af8197320bfeab`) added versioned
+clang-tidy/IWYU evidence; PR `#201`
+(`37b1330a717acd39be4465a9110119b3db1eee89`) added the bounded Valgrind
+constant-time lane; PR `#202`
+(`d8b632db4a5b97215534044504f1d28712cfa08c`) added the three-oracle
+differential verifier campaign; PR `#203`
+(`257d3c1a8ee74cccbbb87d54880a7bde58c68f39`) reproduced all 200 upstream
+ML-DSA-44 CBMC proofs; and PR `#204`
+(`cb2c4b77ed534a7c342e95d764f2fb998bd702aa`) added the fail-closed advisory,
+SBOM, full-lock, and portable-Miri ledger. These are isolated engineering
+evidence only. Production remains `NONE`, issue-owned gaps remain open, and
+the release hold is unchanged.
 
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,

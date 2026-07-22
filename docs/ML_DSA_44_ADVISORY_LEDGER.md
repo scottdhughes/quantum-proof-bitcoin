@@ -18,12 +18,24 @@ mldsa-native repository-advisory feed, respectively. Cargo advisory scanners
 apply only to the libcrux crate and its published `Cargo.lock`; an empty Cargo
 result is not claimed for either C source oracle.
 
-The C-oracle rows are a frozen manual review dated 2026-07-21. The weekly job
-refreshes RustSec and OSV evidence, but it does not yet query or semantically
-compare the OpenSSL and mldsa-native feeds. A new advisory in either feed must
-be handled by a dated ledger refresh (or future feed automation). This
-freshness limitation is one reason issue #189 remains open; the workflow must
-not be described as proving current all-oracle advisory status.
+The dated C-oracle rows retain the 2026-07-21 disposition, while every relevant
+workflow run now acquires and validates both public machine feeds. OpenSSL is
+checked from the current Git head of the official `openssl/release-metadata`
+`secjson` corpus. The validator requires the reviewed 272-record completeness
+floor, all 37 reviewed OpenSSL 3.6 records, supported CVE 5.0/5.1 structures,
+and exact semver evaluation for the 3.6.3 pin. A missing record, ambiguous
+range, malformed schema, or newly affecting advisory fails closed.
+The sole reviewed upstream irregularity is CVE-2023-2650's empty exclusive
+`3.1.1` to `3.1.1` row; it is outside 3.6, exactly allowlisted, and retained in
+the normalized report. Any other empty range fails pending review.
+
+The mldsa-native public GitHub repository-advisory response is required to be
+HTTP 200, JSON, API-version pinned, non-paginated, and an empty array. Any
+published advisory stops the job for review. This feed does not expose private
+draft advisories or replace monitoring of disclosures published outside the
+repository. Cargo advisory scanners still apply only to the libcrux crate and
+its published `Cargo.lock`; no package-ecosystem result is claimed for either
+C source oracle.
 
 Three dependency scopes remain separate:
 
@@ -105,6 +117,10 @@ changed finding fails until it is explicitly reviewed.
 The read-only workflow pins and hashes cargo-audit 0.22.2, OSV Scanner 2.4.0,
 and cargo-cyclonedx 0.5.9. Each run also retains:
 
+- the raw OpenSSL `secjson` archive, current repository commit/root/subtree
+  identities, normalized 3.6 ranges, and exact 3.6.3 affected-ID result;
+- the raw mldsa-native advisory body, response headers, curl metadata, request
+  contract, exit code, and normalized published-ID result;
 - the current RustSec database commit and every database entry found across all
   16 selected package names;
 - the exact OSV crates.io database ZIP, response headers, and SHA256;

@@ -13,10 +13,67 @@
         "commit": "aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f",
         "advisory_inventory": {
           "as_of": "2026-07-21",
-          "source": "https://www.openssl-library.org/news/vulnerabilities-3.6/",
-          "status": "NO_PUBLISHED_ADVISORY_AFFECTS_PIN",
+          "source": "https://github.com/openssl/release-metadata.git",
+          "status": "LIVE_FEED_NO_PUBLISHED_ADVISORY_AFFECTS_PIN",
           "current_affected_ids": [],
-          "refresh": "manual review of the official OpenSSL 3.6 vulnerability feed on every oracle repin and scheduled ledger refresh"
+          "refresh": "automated structured-feed validation on pull requests, pushes to main, the weekly schedule, and manual dispatch"
+        },
+        "advisory_feed": {
+          "type": "openssl-release-metadata",
+          "repository": "https://github.com/openssl/release-metadata.git",
+          "path": "secjson",
+          "reviewed_on": "2026-07-22",
+          "accepted_data_versions": ["5.0", "5.1"],
+          "minimum_cve_records": 272,
+          "reviewed_branch": "3.6",
+          "reviewed_empty_non_target_ranges": [
+            {
+              "id": "CVE-2023-2650",
+              "version": "3.1.1",
+              "lessThan": "3.1.1",
+              "status": "affected",
+              "versionType": "semver"
+            }
+          ],
+          "reviewed_branch_ids": [
+            "CVE-2025-11187",
+            "CVE-2025-15467",
+            "CVE-2025-15468",
+            "CVE-2025-15469",
+            "CVE-2025-66199",
+            "CVE-2025-68160",
+            "CVE-2025-69418",
+            "CVE-2025-69419",
+            "CVE-2025-69420",
+            "CVE-2025-69421",
+            "CVE-2026-22795",
+            "CVE-2026-22796",
+            "CVE-2026-2673",
+            "CVE-2026-28386",
+            "CVE-2026-28387",
+            "CVE-2026-28388",
+            "CVE-2026-28389",
+            "CVE-2026-28390",
+            "CVE-2026-31789",
+            "CVE-2026-31790",
+            "CVE-2026-34180",
+            "CVE-2026-34181",
+            "CVE-2026-34182",
+            "CVE-2026-34183",
+            "CVE-2026-35188",
+            "CVE-2026-42764",
+            "CVE-2026-42765",
+            "CVE-2026-42766",
+            "CVE-2026-42767",
+            "CVE-2026-42768",
+            "CVE-2026-42769",
+            "CVE-2026-42770",
+            "CVE-2026-45445",
+            "CVE-2026-45446",
+            "CVE-2026-45447",
+            "CVE-2026-7383",
+            "CVE-2026-9076"
+          ]
         },
         "role": "source-pinned oracle; not a node dependency"
       },
@@ -26,10 +83,20 @@
         "commit": "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
         "advisory_inventory": {
           "as_of": "2026-07-21",
-          "source": "https://api.github.com/repos/pq-code-package/mldsa-native/security-advisories",
-          "status": "NO_PUBLISHED_REPOSITORY_ADVISORIES",
+          "source": "https://api.github.com/repos/pq-code-package/mldsa-native/security-advisories?state=published&per_page=100&page=1",
+          "status": "LIVE_FEED_NO_PUBLISHED_REPOSITORY_ADVISORIES",
           "current_affected_ids": [],
-          "refresh": "manual source and repository-advisory review on every oracle repin and scheduled ledger refresh; no package-ecosystem scanner covers this source snapshot"
+          "refresh": "automated public repository-advisory validation on pull requests, pushes to main, the weekly schedule, and manual dispatch; no package-ecosystem scanner covers this source snapshot"
+        },
+        "advisory_feed": {
+          "type": "github-repository-security-advisories",
+          "url": "https://api.github.com/repos/pq-code-package/mldsa-native/security-advisories?state=published&per_page=100&page=1",
+          "accept": "application/vnd.github+json",
+          "api_version": "2022-11-28",
+          "user_agent": "pqbtc-ml-dsa-advisory-ledger/1",
+          "authenticated": false,
+          "reviewed_on": "2026-07-22",
+          "reviewed_published_ids": []
         },
         "role": "source-pinned portable-C prototype oracle"
       },

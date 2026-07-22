@@ -72,6 +72,11 @@ jobs:
       OSV_SCANNER_VERSION: "2.4.0"
       CARGO_CYCLONEDX_VERSION: "0.5.9"
       MIRI_TOOLCHAIN: nightly-2026-07-20
+      OPENSSL_ADVISORY_REPOSITORY: "https://github.com/openssl/release-metadata.git"
+      MLDSA_NATIVE_ADVISORY_URL: "https://api.github.com/repos/pq-code-package/mldsa-native/security-advisories?state=published&per_page=100&page=1"
+      MLDSA_NATIVE_ADVISORY_ACCEPT: application/vnd.github+json
+      MLDSA_NATIVE_ADVISORY_API_VERSION: "2022-11-28"
+      MLDSA_NATIVE_ADVISORY_USER_AGENT: pqbtc-ml-dsa-advisory-ledger/1
 
     steps:
       - name: Checkout exact audit head
@@ -101,8 +106,70 @@ jobs:
           SOURCES="$AUDIT_ROOT/sources"
           EVIDENCE="$GITHUB_WORKSPACE/ml-dsa-44-advisory-evidence"
           OSV_CACHE="$EVIDENCE/osv-db-cache"
+          export EVIDENCE
           mkdir -p "$TOOLS" "$SOURCES" "$EVIDENCE" \
             "$OSV_CACHE/osv-scanner/crates.io"
+
+          git clone --depth 1 "$OPENSSL_ADVISORY_REPOSITORY" \
+            "$SOURCES/openssl-release-metadata" \
+            2>&1 | tee "$EVIDENCE/openssl-release-metadata-clone.log"
+          git -C "$SOURCES/openssl-release-metadata" archive \
+            --format=tar.gz \
+            --output="$EVIDENCE/openssl-release-metadata-secjson.tar.gz" \
+            HEAD secjson
+          {
+            echo "repository=$OPENSSL_ADVISORY_REPOSITORY"
+            echo "commit=$(git -C "$SOURCES/openssl-release-metadata" rev-parse HEAD)"
+            echo "tree=$(git -C "$SOURCES/openssl-release-metadata" rev-parse 'HEAD^{tree}')"
+            echo "secjson_tree=$(git -C "$SOURCES/openssl-release-metadata" rev-parse 'HEAD:secjson')"
+            echo "committed_at=$(git -C "$SOURCES/openssl-release-metadata" show -s --format=%cI HEAD)"
+          } | tee "$EVIDENCE/openssl-release-metadata.txt"
+
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          evidence = Path(os.environ["EVIDENCE"])
+          request = {
+              "url": os.environ["MLDSA_NATIVE_ADVISORY_URL"],
+              "accept": os.environ["MLDSA_NATIVE_ADVISORY_ACCEPT"],
+              "api_version": os.environ["MLDSA_NATIVE_ADVISORY_API_VERSION"],
+              "user_agent": os.environ["MLDSA_NATIVE_ADVISORY_USER_AGENT"],
+              "authenticated": False,
+          }
+          (evidence / "mldsa-native-request.json").write_text(
+              json.dumps(request, indent=2, sort_keys=True) + "\n",
+              encoding="utf8",
+          )
+          PY
+          set +e
+          curl --fail-with-body --silent --show-error --proto '=https' \
+            --connect-timeout 15 --max-time 60 \
+            --retry 3 --retry-delay 2 --retry-all-errors \
+            --header "Accept: $MLDSA_NATIVE_ADVISORY_ACCEPT" \
+            --header "X-GitHub-Api-Version: $MLDSA_NATIVE_ADVISORY_API_VERSION" \
+            --user-agent "$MLDSA_NATIVE_ADVISORY_USER_AGENT" \
+            --dump-header "$EVIDENCE/mldsa-native-response-headers.txt" \
+            --output "$EVIDENCE/mldsa-native-advisories.json" \
+            --write-out '%{json}\n' \
+            "$MLDSA_NATIVE_ADVISORY_URL" \
+            > "$EVIDENCE/mldsa-native-fetch.json" \
+            2> "$EVIDENCE/mldsa-native-curl.stderr"
+          MLDSA_NATIVE_ADVISORY_CURL_EXIT=$?
+          set -e
+          printf '%s\n' "$MLDSA_NATIVE_ADVISORY_CURL_EXIT" \
+            | tee "$EVIDENCE/mldsa-native-curl.exit-code"
+
+          python3 contrib/ml-dsa-engineering/run_advisory_ledger.py \
+            --validate-oracle-feeds \
+            --openssl-advisory-feed "$SOURCES/openssl-release-metadata" \
+            --mldsa-native-advisories "$EVIDENCE/mldsa-native-advisories.json" \
+            --mldsa-native-response-headers "$EVIDENCE/mldsa-native-response-headers.txt" \
+            --mldsa-native-fetch "$EVIDENCE/mldsa-native-fetch.json" \
+            --mldsa-native-request "$EVIDENCE/mldsa-native-request.json" \
+            --mldsa-native-curl-exit-code "$MLDSA_NATIVE_ADVISORY_CURL_EXIT" \
+            > "$EVIDENCE/oracle-feed-early-validation.json"
 
           curl --fail --location --retry 5 --retry-all-errors \
             "https://github.com/RustSec/rustsec/releases/download/cargo-audit/v${CARGO_AUDIT_VERSION}/cargo-audit-x86_64-unknown-linux-gnu-v${CARGO_AUDIT_VERSION}.tgz" \
@@ -184,6 +251,9 @@ jobs:
             echo "miri_rustc=$MIRI_RUSTC"
             echo "rustsec_commit=$(git -C "$SOURCES/advisory-db" rev-parse HEAD)"
             echo "rustsec_tree=$(git -C "$SOURCES/advisory-db" rev-parse 'HEAD^{tree}')"
+            echo "openssl_advisory_commit=$(git -C "$SOURCES/openssl-release-metadata" rev-parse HEAD)"
+            echo "openssl_advisory_tree=$(git -C "$SOURCES/openssl-release-metadata" rev-parse 'HEAD^{tree}')"
+            echo "mldsa_native_advisory_url=$MLDSA_NATIVE_ADVISORY_URL"
           } | tee "$EVIDENCE/toolchain.txt"
           {
             sha256sum "$TOOLS/cargo-audit" | awk '{print $1 "  cargo-audit"}'
@@ -200,6 +270,7 @@ jobs:
             echo "OSV_CACHE=$OSV_CACHE"
             echo "CRATE=$CRATE"
             echo "MIRI_RUSTC=$MIRI_RUSTC"
+            echo "MLDSA_NATIVE_ADVISORY_CURL_EXIT=$MLDSA_NATIVE_ADVISORY_CURL_EXIT"
           } >> "$GITHUB_ENV"
 
       - name: Generate exact graph and CycloneDX evidence
@@ -337,6 +408,12 @@ jobs:
             --osv "$EVIDENCE/osv.json" \
             --sbom "$EVIDENCE/libcrux-ml-dsa-0.0.10-portable.cdx.json" \
             --miri "$EVIDENCE/miri.json" \
+            --openssl-advisory-feed "$SOURCES/openssl-release-metadata" \
+            --mldsa-native-advisories "$EVIDENCE/mldsa-native-advisories.json" \
+            --mldsa-native-response-headers "$EVIDENCE/mldsa-native-response-headers.txt" \
+            --mldsa-native-fetch "$EVIDENCE/mldsa-native-fetch.json" \
+            --mldsa-native-request "$EVIDENCE/mldsa-native-request.json" \
+            --mldsa-native-curl-exit-code "$MLDSA_NATIVE_ADVISORY_CURL_EXIT" \
             --rustsec-db "$SOURCES/advisory-db" \
             --crate-dir "$CRATE" \
             --cargo-audit-exit-code "$CARGO_AUDIT_EXIT" \
