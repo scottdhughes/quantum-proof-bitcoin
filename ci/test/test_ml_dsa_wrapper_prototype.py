@@ -129,11 +129,11 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         self.assertEqual(manifest["schema_version"], 1)
         self.assertEqual(manifest["frame_version"], 1)
         self.assertEqual(manifest["fuzz_limits"]["frame_bytes"], 8096)
-        self.assertEqual(manifest["generated_corpus"]["total_cases"], 207)
-        self.assertEqual(manifest["generated_corpus"]["unique_frames"], 202)
+        self.assertEqual(manifest["generated_corpus"]["total_cases"], 245)
+        self.assertEqual(manifest["generated_corpus"]["unique_frames"], 240)
         self.assertEqual(
             manifest["generated_corpus"]["source_counts"],
-            {"project": 27, "wycheproof": 180},
+            {"project": 27, "promoted": 38, "wycheproof": 180},
         )
         subprocess.run(
             [

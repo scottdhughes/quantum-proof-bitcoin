@@ -4,6 +4,8 @@
 # file COPYING or https://opensource.org/license/mit.
 
 import argparse
+import base64
+import binascii
 import ctypes
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -31,6 +33,8 @@ WYCHEPROOF_DIR = HERE / "fuzz_sources" / "wycheproof"
 WYCHEPROOF_SOURCE = WYCHEPROOF_DIR / "SOURCE.json"
 WYCHEPROOF_LICENSE = WYCHEPROOF_DIR / "LICENSE"
 WYCHEPROOF_VECTORS = WYCHEPROOF_DIR / "mldsa_44_verify_test.json"
+PROMOTED_DIR = HERE / "fuzz_sources" / "promoted"
+PROMOTED_SOURCE = PROMOTED_DIR / "SOURCE.json"
 
 FRAME_HEADER = struct.Struct("<BBHHHH")
 FRAME_VERSION = 1
@@ -64,6 +68,90 @@ RESULT_NAMES = {
     OK: "ok",
     ERR_INVALID_ARGUMENT: "invalid_argument",
     ERR_VERIFY: "verify_rejection",
+}
+PROMOTED_SOURCE_IDENTITY = {
+    "repository": "https://github.com/scottdhughes/quantum-proof-bitcoin",
+    "repository_commit": "6d237f467f3a55d5cc48ca584a060251bdbf97dc",
+    "workflow": ".github/workflows/ml-dsa-44-review-reproduction.yml",
+    "workflow_run_id": 29971871087,
+    "workflow_run_attempt": 1,
+    "job_id": 89095408293,
+    "artifact_id": 8550615906,
+    "artifact_name": (
+        "ml-dsa-44-review-evidence-"
+        "6d237f467f3a55d5cc48ca584a060251bdbf97dc"
+    ),
+    "artifact_digest": (
+        "sha256:5566d45b97bdca1bdf7050d68d85a840"
+        "7048526bcbf042aac9450dbeadd14288"
+    ),
+    "artifact_size_bytes": 1676931,
+    "artifact_created_at": "2026-07-23T02:08:43Z",
+    "artifact_expires_at": "2026-10-21T01:28:10Z",
+    "evidence_manifest_sha256": (
+        "7230ab2f48a125df4a82ee4efe976c5929d279e7e8cf3bb8abd0aad5394fd6fe"
+    ),
+    "retained_source_run_id": 29863344728,
+    "retained_source_run_attempt": 1,
+    "retained_source_head_sha": "37b1330a717acd39be4465a9110119b3db1eee89",
+    "retained_source_artifact": (
+        "ml-dsa-44-review-evidence-"
+        "37b1330a717acd39be4465a9110119b3db1eee89"
+    ),
+    "campaign_seed": 4202067318,
+    "campaign_seconds": 1800,
+    "promoted_at": "2026-07-23",
+}
+PROMOTED_SELECTION = {
+    "rule": (
+        "SHA256(frame) absent from both the baseline unique frames "
+        "and the imported retained frames"
+    ),
+    "candidate_minimized_cases": 141,
+    "candidate_minimized_bytes": 493706,
+    "candidate_minimized_aggregate_sha256": (
+        "96b2fe1c21cbdfebb00c429bd26040cc09d2abb622ecee766954c32b6f61575b"
+    ),
+    "baseline_generated_cases": 207,
+    "baseline_unique_frames": 202,
+    "imported_retained_unique_frames": 72,
+    "candidate_baseline_overlap": 50,
+    "candidate_retained_overlap": 53,
+    "baseline_retained_overlap": 0,
+    "selected_cases": 38,
+    "selected_bytes": 120844,
+    "expected_counts": {
+        "invalid_argument": 13,
+        "verify_rejection": 25,
+    },
+    "inventory_sha256_format": (
+        "lowercase digest followed by LF, lexicographically sorted"
+    ),
+    "candidate_sha256_inventory_sha256": (
+        "c6320986ab7d421b615db05bb35e56793b855f0b01d41cb200a67485a7c2208d"
+    ),
+    "baseline_sha256_inventory_sha256": (
+        "eb11480400e8ef376e4612ac584fa7eeda80f02f270590ceac5e62e60c25e72a"
+    ),
+    "retained_sha256_inventory_sha256": (
+        "27768fcaf1337f1658325e0824c52ce246600459ef18c809f23822a6ae5b4b24"
+    ),
+    "selected_sha256_inventory_sha256": (
+        "0c5b39103c4b18df8ad0e10a2f973fd226053e6d609480bef41b0108f6bdbfd5"
+    ),
+    "metadata_sha256_format": (
+        "for each SHA256-sorted case: sha256 NUL decimal_size NUL "
+        "expected_result NUL artifact_member LF"
+    ),
+    "metadata_sha256": (
+        "3e9e972fdba69f3fc2c77df31f4e43b4797eb4f32537e3d72d2387f4c17975df"
+    ),
+    "frames_sha256_format": (
+        "for each SHA256-sorted case: uint32_le(size) followed by frame bytes"
+    ),
+    "frames_sha256": (
+        "a63099a9e7cbfadb72a1487509288e613d91b3b8dcd0c62cc013810c08fc27b0"
+    ),
 }
 SANITIZERS = {
     "address-undefined": "fuzzer,address,undefined",
@@ -159,6 +247,286 @@ def validate_wycheproof_source() -> dict:
     if any(test["result"] not in {"valid", "invalid"} for test in tests):
         raise FuzzHarnessError("unsupported Wycheproof expected result")
     return vectors
+
+
+def reject_duplicate_json_keys(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise FuzzHarnessError(f"duplicate JSON key in promoted source: {key}")
+        result[key] = value
+    return result
+
+
+def reject_nonfinite_json_constant(value):
+    raise FuzzHarnessError(f"non-finite JSON value in promoted source: {value}")
+
+
+def exact_json_value(actual, expected) -> bool:
+    if type(actual) is not type(expected):
+        return False
+    if type(expected) is dict:
+        return set(actual) == set(expected) and all(
+            exact_json_value(actual[key], expected[key]) for key in expected
+        )
+    if type(expected) is list:
+        return len(actual) == len(expected) and all(
+            exact_json_value(left, right) for left, right in zip(actual, expected)
+        )
+    return actual == expected
+
+
+def load_promoted_source_manifest(source_path: Path = PROMOTED_SOURCE) -> dict:
+    source_path = source_path.absolute()
+    source_dir = source_path.parent
+    if source_dir.is_symlink() or not source_dir.is_dir():
+        raise FuzzHarnessError("promoted source directory must be a regular directory")
+    try:
+        entries = sorted(source_dir.iterdir(), key=lambda path: path.name)
+    except OSError as error:
+        raise FuzzHarnessError(
+            f"cannot inspect promoted source directory: {error}"
+        ) from error
+    if [path.name for path in entries] != ["SOURCE.json"]:
+        raise FuzzHarnessError(
+            "promoted source capsule file set differs from SOURCE.json"
+        )
+    if source_path.name != "SOURCE.json" or any(
+        path.is_symlink() or not path.is_file() for path in entries
+    ):
+        raise FuzzHarnessError("promoted source capsule contains a non-regular entry")
+
+    try:
+        manifest = json.loads(
+            source_path.read_text(encoding="utf8"),
+            object_pairs_hook=reject_duplicate_json_keys,
+            parse_constant=reject_nonfinite_json_constant,
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise FuzzHarnessError(
+            f"cannot parse promoted source capsule: {error}"
+        ) from error
+    if type(manifest) is not dict or set(manifest) != {
+        "schema_version",
+        "frame_version",
+        "source",
+        "selection",
+        "derivation",
+        "cases",
+    }:
+        raise FuzzHarnessError("unexpected promoted source manifest fields")
+    if (
+        type(manifest["schema_version"]) is not int
+        or type(manifest["frame_version"]) is not int
+        or manifest["schema_version"] != 1
+        or manifest["frame_version"] != FRAME_VERSION
+    ):
+        raise FuzzHarnessError("unsupported promoted source manifest schema")
+    if not exact_json_value(manifest["source"], PROMOTED_SOURCE_IDENTITY):
+        raise FuzzHarnessError("unexpected promoted source identity")
+    if not exact_json_value(manifest["selection"], PROMOTED_SELECTION):
+        raise FuzzHarnessError("unexpected promoted source selection metadata")
+    return manifest
+
+
+def validate_digest_inventory(
+    values, label: str, expected_count: int, expected_sha256: str
+) -> set[str]:
+    if type(values) is not list or len(values) != expected_count:
+        raise FuzzHarnessError(f"unexpected {label} inventory count")
+    if any(
+        type(value) is not str or re.fullmatch(r"[0-9a-f]{64}", value) is None
+        for value in values
+    ):
+        raise FuzzHarnessError(f"invalid {label} inventory digest")
+    if values != sorted(set(values)):
+        raise FuzzHarnessError(f"{label} inventory is not unique and sorted")
+    digest = hashlib.sha256("".join(f"{value}\n" for value in values).encode())
+    if digest.hexdigest() != expected_sha256:
+        raise FuzzHarnessError(f"{label} inventory aggregate differs")
+    return set(values)
+
+
+def validate_promoted_source(source_path: Path = PROMOTED_SOURCE) -> list[CorpusCase]:
+    manifest = load_promoted_source_manifest(source_path)
+    derivation = manifest["derivation"]
+    if type(derivation) is not dict or set(derivation) != {
+        "hash_algorithm",
+        "inventory_format",
+        "set_rule",
+        "candidate_minimized_sha256",
+        "baseline_unique_sha256",
+        "imported_retained_sha256",
+    }:
+        raise FuzzHarnessError("unexpected promoted source derivation fields")
+    expected_derivation_strings = {
+        "hash_algorithm": "SHA-256",
+        "inventory_format": PROMOTED_SELECTION["inventory_sha256_format"],
+        "set_rule": (
+            "selected case SHA256 set equals candidate minimized SHA256 set "
+            "minus baseline unique SHA256 set minus imported retained SHA256 set"
+        ),
+    }
+    if any(
+        type(derivation[key]) is not str
+        or derivation[key] != expected_derivation_strings[key]
+        for key in expected_derivation_strings
+    ):
+        raise FuzzHarnessError("unexpected promoted source derivation contract")
+    candidate_hashes = validate_digest_inventory(
+        derivation["candidate_minimized_sha256"],
+        "candidate minimized",
+        PROMOTED_SELECTION["candidate_minimized_cases"],
+        PROMOTED_SELECTION["candidate_sha256_inventory_sha256"],
+    )
+    baseline_inventory = validate_digest_inventory(
+        derivation["baseline_unique_sha256"],
+        "baseline unique",
+        PROMOTED_SELECTION["baseline_unique_frames"],
+        PROMOTED_SELECTION["baseline_sha256_inventory_sha256"],
+    )
+    retained_hashes = validate_digest_inventory(
+        derivation["imported_retained_sha256"],
+        "imported retained",
+        PROMOTED_SELECTION["imported_retained_unique_frames"],
+        PROMOTED_SELECTION["retained_sha256_inventory_sha256"],
+    )
+    if len(candidate_hashes & baseline_inventory) != PROMOTED_SELECTION[
+        "candidate_baseline_overlap"
+    ]:
+        raise FuzzHarnessError("candidate/baseline overlap count differs")
+    if len(candidate_hashes & retained_hashes) != PROMOTED_SELECTION[
+        "candidate_retained_overlap"
+    ]:
+        raise FuzzHarnessError("candidate/retained overlap count differs")
+    if len(baseline_inventory & retained_hashes) != PROMOTED_SELECTION[
+        "baseline_retained_overlap"
+    ]:
+        raise FuzzHarnessError("baseline/retained overlap count differs")
+    records = manifest["cases"]
+    if (
+        type(records) is not list
+        or len(records) != PROMOTED_SELECTION["selected_cases"]
+    ):
+        raise FuzzHarnessError("unexpected promoted source case count")
+
+    cases = []
+    metadata_digest = hashlib.sha256()
+    frames_digest = hashlib.sha256()
+    expected_counts = {"invalid_argument": 0, "verify_rejection": 0}
+    total_bytes = 0
+    previous_digest = None
+    frame_digests = set()
+    artifact_members = set()
+    expected_results = {
+        "invalid_argument": ERR_INVALID_ARGUMENT,
+        "verify_rejection": ERR_VERIFY,
+    }
+    for record in records:
+        if type(record) is not dict or set(record) != {
+            "artifact_member",
+            "expected_result",
+            "frame_base64",
+            "sha256",
+            "size",
+        }:
+            raise FuzzHarnessError("unexpected promoted source case fields")
+        artifact_member = record["artifact_member"]
+        expected_name = record["expected_result"]
+        encoded = record["frame_base64"]
+        frame_sha256 = record["sha256"]
+        size = record["size"]
+        if (
+            type(artifact_member) is not str
+            or re.fullmatch(
+                r"ml-dsa-44-differential-fuzz/minimized-corpus/[0-9a-f]{40}",
+                artifact_member,
+            )
+            is None
+        ):
+            raise FuzzHarnessError("invalid promoted source artifact member")
+        if type(expected_name) is not str or expected_name not in expected_results:
+            raise FuzzHarnessError("unsupported promoted source expected result")
+        if type(encoded) is not str:
+            raise FuzzHarnessError("promoted source frame base64 must be a string")
+        if (
+            type(frame_sha256) is not str
+            or re.fullmatch(r"[0-9a-f]{64}", frame_sha256) is None
+        ):
+            raise FuzzHarnessError("invalid promoted source frame SHA256")
+        if type(size) is not int or not 1 <= size <= MAX_FRAME_BYTES:
+            raise FuzzHarnessError("invalid promoted source frame size")
+        if previous_digest is not None and frame_sha256 <= previous_digest:
+            raise FuzzHarnessError(
+                "promoted source frames are not strictly SHA256-sorted"
+            )
+        previous_digest = frame_sha256
+        if frame_sha256 in frame_digests or artifact_member in artifact_members:
+            raise FuzzHarnessError("duplicate promoted source frame")
+
+        try:
+            frame = base64.b64decode(encoded, validate=True)
+        except (ValueError, binascii.Error) as error:
+            raise FuzzHarnessError("invalid promoted source frame base64") from error
+        if base64.b64encode(frame).decode("ascii") != encoded:
+            raise FuzzHarnessError("non-canonical promoted source frame base64")
+        if len(frame) != size:
+            raise FuzzHarnessError("promoted source frame size mismatch")
+        if hashlib.sha256(frame).hexdigest() != frame_sha256:
+            raise FuzzHarnessError("promoted source frame SHA256 mismatch")
+        if hashlib.sha1(frame).hexdigest() != artifact_member.rsplit("/", 1)[1]:
+            raise FuzzHarnessError("promoted source artifact member SHA1 mismatch")
+        decoded = decode_frame(frame)
+        if (
+            encode_frame(
+                decoded.signature,
+                decoded.public_key,
+                decoded.context,
+                decoded.message,
+                decoded.null_flags,
+            )
+            != frame
+        ):
+            raise FuzzHarnessError("promoted source frame is not canonical")
+
+        metadata_digest.update(
+            (
+                f"{frame_sha256}\0{size}\0{expected_name}\0"
+                f"{artifact_member}\n"
+            ).encode()
+        )
+        frames_digest.update(len(frame).to_bytes(4, "little"))
+        frames_digest.update(frame)
+        expected_counts[expected_name] += 1
+        total_bytes += len(frame)
+        frame_digests.add(frame_sha256)
+        artifact_members.add(artifact_member)
+        cases.append(
+            CorpusCase(
+                name=f"sha256_{frame_sha256}",
+                source="promoted",
+                frame=frame,
+                expected=expected_results[expected_name],
+            )
+        )
+
+    selected_hashes = validate_digest_inventory(
+        sorted(frame_digests),
+        "selected",
+        PROMOTED_SELECTION["selected_cases"],
+        PROMOTED_SELECTION["selected_sha256_inventory_sha256"],
+    )
+    if selected_hashes != candidate_hashes - baseline_inventory - retained_hashes:
+        raise FuzzHarnessError("promoted source set derivation differs")
+    if expected_counts != PROMOTED_SELECTION["expected_counts"]:
+        raise FuzzHarnessError("promoted source expected-result counts differ")
+    if total_bytes != PROMOTED_SELECTION["selected_bytes"]:
+        raise FuzzHarnessError("promoted source total byte count differs")
+    if metadata_digest.hexdigest() != PROMOTED_SELECTION["metadata_sha256"]:
+        raise FuzzHarnessError("promoted source metadata aggregate differs")
+    if frames_digest.hexdigest() != PROMOTED_SELECTION["frames_sha256"]:
+        raise FuzzHarnessError("promoted source frame aggregate differs")
+    return cases
 
 
 def encode_frame(
@@ -477,9 +845,37 @@ def validate_corpus_manifest(cases: list[CorpusCase]) -> dict:
     expected_sources = {
         "repo_vectors_sha256": sha256_file(wrapper.VECTORS),
         "wycheproof_vectors_sha256": sha256_file(WYCHEPROOF_VECTORS),
+        "promoted_source_sha256": sha256_file(PROMOTED_SOURCE),
     }
     if manifest.get("sources") != expected_sources:
         raise FuzzHarnessError("verifier fuzz source hashes differ from the frozen manifest")
+    identities = [(case.source, case.name) for case in cases]
+    if len(set(identities)) != len(identities):
+        raise FuzzHarnessError("verifier fuzz corpus contains duplicate case identities")
+    filenames = [corpus_filename(case) for case in cases]
+    if len(set(filenames)) != len(filenames):
+        raise FuzzHarnessError("verifier fuzz corpus contains colliding filenames")
+    promoted_hashes = {
+        hashlib.sha256(case.frame).hexdigest()
+        for case in cases
+        if case.source == "promoted"
+    }
+    baseline_hashes = {
+        hashlib.sha256(case.frame).hexdigest()
+        for case in cases
+        if case.source != "promoted"
+    }
+    capsule_cases = validate_promoted_source()
+    capsule_hashes = {
+        hashlib.sha256(case.frame).hexdigest() for case in capsule_cases
+    }
+    derivation = load_promoted_source_manifest()["derivation"]
+    if promoted_hashes != capsule_hashes:
+        raise FuzzHarnessError("promoted corpus differs from the source capsule")
+    if baseline_hashes != set(derivation["baseline_unique_sha256"]):
+        raise FuzzHarnessError("generated baseline differs from derivation inventory")
+    if promoted_hashes & baseline_hashes:
+        raise FuzzHarnessError("promoted source overlaps the generated baseline corpus")
     summary = corpus_summary(cases)
     if manifest.get("generated_corpus") != summary:
         raise FuzzHarnessError(
@@ -1045,6 +1441,7 @@ def write_campaign_report(
             "fuzz_target_sha256": sha256_file(FUZZ_SOURCE),
             "corpus_manifest_sha256": sha256_file(CORPUS_MANIFEST),
             "wycheproof_vectors_sha256": sha256_file(WYCHEPROOF_VECTORS),
+            "promoted_source_sha256": sha256_file(PROMOTED_SOURCE),
             "source_manifest_sha256": sha256_file(wrapper.SOURCE_MANIFEST),
             "source_capsule_sha256": json.loads(
                 wrapper.SOURCE_MANIFEST.read_text(encoding="utf8")
@@ -1119,13 +1516,20 @@ def main() -> int:
 
     wrapper.validate_source_capsule()
     wycheproof = validate_wycheproof_source()
+    promoted = validate_promoted_source()
     if args.manifest_only:
         manifest = json.loads(CORPUS_MANIFEST.read_text(encoding="utf8"))
-        if manifest.get("sources", {}).get("wycheproof_vectors_sha256") != sha256_file(
-            WYCHEPROOF_VECTORS
-        ):
-            raise FuzzHarnessError("corpus manifest does not pin the Wycheproof vector file")
-        print("ML-DSA-44 verifier fuzz sources OK: 180 pinned Wycheproof cases")
+        expected_sources = {
+            "repo_vectors_sha256": sha256_file(wrapper.VECTORS),
+            "wycheproof_vectors_sha256": sha256_file(WYCHEPROOF_VECTORS),
+            "promoted_source_sha256": sha256_file(PROMOTED_SOURCE),
+        }
+        if manifest.get("sources") != expected_sources:
+            raise FuzzHarnessError("corpus manifest does not pin every fuzz source")
+        print(
+            "ML-DSA-44 verifier fuzz sources OK: "
+            "180 pinned Wycheproof cases + 38 promoted regressions"
+        )
         return 0
 
     compiler = os.environ.get("CC", "cc")
@@ -1140,7 +1544,11 @@ def main() -> int:
         build_dir = Path(temporary)
         production_library = wrapper.compile_shared(compiler, build_dir, testing=False)
         test_library = wrapper.compile_shared(compiler, build_dir, testing=True)
-        cases = project_corpus(test_library) + wycheproof_corpus(wycheproof)
+        cases = (
+            project_corpus(test_library)
+            + wycheproof_corpus(wycheproof)
+            + promoted
+        )
         summary = validate_corpus_manifest(cases)
         replay_corpus(production_library, cases)
         if args.sanitizers:

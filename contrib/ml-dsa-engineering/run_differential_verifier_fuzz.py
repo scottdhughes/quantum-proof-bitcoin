@@ -98,6 +98,7 @@ def validate_local_inputs(manifest: dict) -> dict:
         HERE / "pqbtc_mldsa44_config.h",
         verifier_fuzz.FUZZ_SOURCE,
         verifier_fuzz.CORPUS_MANIFEST,
+        verifier_fuzz.PROMOTED_SOURCE,
         verifier_fuzz.WYCHEPROOF_SOURCE,
         verifier_fuzz.WYCHEPROOF_LICENSE,
         verifier_fuzz.WYCHEPROOF_VECTORS,
@@ -314,16 +315,17 @@ def compile_differential_targets(
     return fuzzer, replay, compiler
 
 
-def replay_differential_smoke(
+def replay_differential_cases(
     executable: Path,
     cases: list[verifier_fuzz.CorpusCase],
     output_dir: Path,
+    *,
+    input_directory: str,
+    log_filename: str,
+    expected_label,
 ) -> list[dict]:
-    selected_by_name = {case.name: case for case in cases if case.source == "project"}
-    if set(SMOKE_CASE_NAMES) - selected_by_name.keys():
-        raise DifferentialFuzzError("differential smoke corpus is incomplete")
-    smoke_dir = output_dir / "differential-smoke-inputs"
-    smoke_dir.mkdir()
+    replay_dir = output_dir / input_directory
+    replay_dir.mkdir()
     records = []
     log_parts = []
     env = os.environ.copy()
@@ -332,15 +334,14 @@ def replay_differential_smoke(
     )
     env["UBSAN_OPTIONS"] = "halt_on_error=1:print_stacktrace=1"
     env["LLVM_PROFILE_FILE"] = str(output_dir / "coverage-replay-%p.profraw")
-    for index, name in enumerate(SMOKE_CASE_NAMES):
-        case = selected_by_name[name]
-        path = smoke_dir / f"{index:02d}-{name}"
+    for index, case in enumerate(cases):
+        path = replay_dir / f"{index:02d}-{case.name}"
         path.write_bytes(case.frame)
         record = {
-            "name": name,
+            "name": case.name,
             "source": case.source,
             "frame_sha256": hashlib.sha256(case.frame).hexdigest(),
-            "expected": "accept" if case.expected == verifier_fuzz.OK else "reject",
+            "expected": expected_label(case),
         }
         command = [str(executable), str(path)]
         try:
@@ -366,15 +367,57 @@ def replay_differential_smoke(
             stderr = verifier_fuzz.captured_output(error.stderr)
         records.append(record)
         log_parts.append(
-            f"case: {name}\ncommand: {shlex.join(command)}\n"
+            f"case: {case.name}\ncommand: {shlex.join(command)}\n"
             f"status: {record['status']}\nreturn_code: {record['return_code']}\n"
             f"stdout:\n{stdout}\nstderr:\n{stderr}\n"
         )
-    (output_dir / "differential-smoke.log").write_text(
+    (output_dir / log_filename).write_text(
         "\n".join(log_parts),
         encoding="utf8",
     )
     return records
+
+
+def replay_differential_smoke(
+    executable: Path,
+    cases: list[verifier_fuzz.CorpusCase],
+    output_dir: Path,
+) -> list[dict]:
+    selected_by_name = {case.name: case for case in cases if case.source == "project"}
+    if set(SMOKE_CASE_NAMES) - selected_by_name.keys():
+        raise DifferentialFuzzError("differential smoke corpus is incomplete")
+    selected = [selected_by_name[name] for name in SMOKE_CASE_NAMES]
+    return replay_differential_cases(
+        executable,
+        selected,
+        output_dir,
+        input_directory="differential-smoke-inputs",
+        log_filename="differential-smoke.log",
+        expected_label=lambda case: (
+            "accept" if case.expected == verifier_fuzz.OK else "reject"
+        ),
+    )
+
+
+def replay_promoted_regressions(
+    executable: Path,
+    cases: list[verifier_fuzz.CorpusCase],
+    output_dir: Path,
+) -> list[dict]:
+    selected = sorted(
+        (case for case in cases if case.source == "promoted"),
+        key=lambda case: case.name,
+    )
+    if len(selected) != verifier_fuzz.PROMOTED_SELECTION["selected_cases"]:
+        raise DifferentialFuzzError("promoted regression corpus is incomplete")
+    return replay_differential_cases(
+        executable,
+        selected,
+        output_dir,
+        input_directory="differential-promoted-inputs",
+        log_filename="differential-promoted.log",
+        expected_label=lambda case: verifier_fuzz.RESULT_NAMES[case.expected],
+    )
 
 
 def filesystem_identity(status: os.stat_result) -> tuple[int, int, int, int, int]:
@@ -601,6 +644,7 @@ def add_differential_metadata(
     crate_dir: Path | None,
     openssl_runtime: dict | None,
     smoke_records: list[dict],
+    promoted_records: list[dict],
     input_status: list[str] | None,
     fuzzer_duration_seconds: float | None,
 ) -> dict:
@@ -685,6 +729,28 @@ def add_differential_metadata(
                 else None
             ),
         },
+        "promoted_regression_replay": {
+            "status": (
+                "pass"
+                if len(promoted_records)
+                == verifier_fuzz.PROMOTED_SELECTION["selected_cases"]
+                and all(record["status"] == "pass" for record in promoted_records)
+                else ("fail" if promoted_records else "not_run")
+            ),
+            "case_count": len(promoted_records),
+            "expected_accept_count": 0,
+            "expected_reject_count": len(promoted_records),
+            "expected_result_counts": {
+                name: sum(record["expected"] == name for record in promoted_records)
+                for name in ("invalid_argument", "verify_rejection")
+            },
+            "cases": promoted_records,
+            "binary_sha256": (
+                sha256_file(replay)
+                if replay is not None and replay.is_file()
+                else None
+            ),
+        },
         "coverage_scope": {
             "instrumented": [
                 "pqbtc_mldsa44 wrapper and vendored portable C backend",
@@ -746,6 +812,7 @@ def run_campaign(
     replay: Path | None = None
     openssl_runtime: dict | None = None
     smoke_records: list[dict] = []
+    promoted_records: list[dict] = []
     source_manifest: dict = {}
     fuzzer_duration_seconds: float | None = None
     imported_seeds = 0
@@ -755,6 +822,7 @@ def run_campaign(
         try:
             source_manifest = verifier_fuzz.wrapper.validate_source_capsule()
             wycheproof = verifier_fuzz.validate_wycheproof_source()
+            promoted = verifier_fuzz.validate_promoted_source()
             sources = manifest["sources"]
             reference.require_openssl_source(
                 openssl_source, sources["openssl"]["commit"]
@@ -771,9 +839,11 @@ def run_campaign(
             test_library = verifier_fuzz.wrapper.compile_shared(
                 compiler, build_dir, testing=True
             )
-            cases = verifier_fuzz.project_corpus(
-                test_library
-            ) + verifier_fuzz.wycheproof_corpus(wycheproof)
+            cases = (
+                verifier_fuzz.project_corpus(test_library)
+                + verifier_fuzz.wycheproof_corpus(wycheproof)
+                + promoted
+            )
             source_summary = verifier_fuzz.validate_corpus_manifest(cases)
             verifier_fuzz.replay_corpus(production_library, cases)
             verifier_fuzz.materialize_corpus(corpus_dir, cases)
@@ -806,6 +876,19 @@ def run_campaign(
                 raise DifferentialFuzzError(
                     "exact differential smoke replay failed for: "
                     + ", ".join(failed_smoke_cases)
+                )
+            promoted_records = replay_promoted_regressions(
+                replay, cases, output_dir
+            )
+            failed_promoted_cases = [
+                record["name"]
+                for record in promoted_records
+                if record["status"] != "pass"
+            ]
+            if failed_promoted_cases:
+                raise DifferentialFuzzError(
+                    "promoted differential replay failed for: "
+                    + ", ".join(failed_promoted_cases)
                 )
             fuzzer_started = time.monotonic()
             completed = verifier_fuzz.run_fuzzer(
@@ -877,6 +960,7 @@ def run_campaign(
                 crate_dir,
                 openssl_runtime,
                 smoke_records,
+                promoted_records,
                 input_status,
                 fuzzer_duration_seconds,
             )
@@ -940,6 +1024,7 @@ def main() -> int:
         source_hashes = validate_local_inputs(manifest)
         verifier_fuzz.wrapper.validate_source_capsule()
         verifier_fuzz.validate_wycheproof_source()
+        verifier_fuzz.validate_promoted_source()
         if args.manifest_only:
             print(
                 "ML-DSA-44 differential verifier fuzz inputs OK: "

@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-07-22
+## Updated: 2026-07-23
 ## Current Phase: Phase 1 - Cryptographic Production Hold
 
 ## Purpose
@@ -168,6 +168,23 @@ OpenSSL records with all 37 reviewed 3.6 identifiers and zero affecting exact
 engineering evidence only. Production remains `NONE`, issue-owned gaps remain
 open, and the release hold is unchanged.
 
+PR `#206` landed the retained-corpus 1,800-second differential path at merge
+commit `6d237f467f3a55d5cc48ca584a060251bdbf97dc`. Exact-main workflow run
+`29971871087` restored the prior minimized corpus, imported 72 novel seeds,
+completed 1,571,144 executions across 1,801.169 measured fuzzer seconds, and
+reported zero crashes, oracle errors, or disagreements. Its minimized corpus
+contained 141 frames. The follow-up permanent regression capsule promotes the
+38 frames that were absent from both the 202 unique fixed frames and all 72
+imported retained frames. They total 120,844 bytes and replay as 13 argument
+errors plus 25 verification rejections through the production-shaped wrapper
+and the wrapper/OpenSSL/libcrux differential binary. Sorted SHA-256
+inventories permanently record all 141 candidates, 202 baseline frames, and
+72 imported retained frames so the 38-case set difference remains auditable
+after the workflow artifact expires. These remain opaque
+regression seeds, not independent test vectors or proof of completeness.
+Issue `#188` remains open, production remains `NONE`, and the release hold is
+unchanged.
+
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,
 `pq_backlog: 0`, `legacy_only: 14`, and `dual_profile: 142`. Promotion Matrix
@@ -231,17 +248,18 @@ tracked suites now have an explicit policy class and none remains in
 
 Preferred next owned tranche:
 
-1. Run the retained-corpus 1,800-second three-oracle differential campaign
-   under issue `#188`
-   - restore the prior minimized differential corpus and require a nonzero
-     imported-seed count before the campaign starts
-   - exercise OpenSSL, `mldsa-native`, and libcrux for the full 1,800 seconds
-     on exact merged `main`, with the varying seed recorded in the evidence
-   - require zero crashes, oracle errors, or disagreements, at least 500,000
-     executions, a nonempty minimized corpus, the defined coverage floors,
-     verified checksums, and retained evidence artifacts
-   - keep pull-request campaigns bounded at 60 seconds; use the scheduled or
-     manual promotion path for the 1,800-second campaign
+1. Add bounded stateful signer and seeded-key-generation fuzzing under issue
+   `#188`
+   - exercise deterministic seeded key generation, fresh and repeated
+     randomizers, short/zero/failed entropy, invalid arguments, backend
+     failures, signature zeroing, alias rejection, and successful strict
+     self-verification
+   - reset state for every input and assert the exact entropy-consumption and
+     repeat-state transition contract before and after failures
+   - retain separate ASan/UBSan and MSan lanes so uninstrumented external
+     implementations do not contaminate the memory-sanitizer result
+   - keep the already-pinned comparator as a correctness preflight and record
+     exact corpus, duration, seed, crash, and sanitizer evidence
    - keep production at `NONE` and `RELEASE_HOLD`; this tranche authorizes no
      consensus, wallet, Script, `ALG_ID`, or inventory-policy change
 
@@ -1800,6 +1818,14 @@ Aineko must ask before:
 
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
+
+- 2026-07-23: Exact-main differential run `29971871087` passed at
+  `6d237f467f3a55d5cc48ca584a060251bdbf97dc` for 1,801.169 measured fuzzer
+  seconds and 1,571,144 executions after importing 72 novel retained seeds.
+  The permanent source corpus now includes all 38 newly minimized frames,
+  with exact artifact provenance and mandatory wrapper plus three-oracle
+  replay. Issue `#188`, production backend `NONE`, and `RELEASE_HOLD` remain
+  unchanged.
 
 - 2026-07-20: PR `#196` landed the isolated strict-verifier fuzzing slice at
   merge commit `1b77a4a345ebb82e84aa87648da9b58d3d9f4546`. Its final branch

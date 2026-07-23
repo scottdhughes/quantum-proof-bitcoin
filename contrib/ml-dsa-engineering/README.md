@@ -188,7 +188,15 @@ before the long campaign starts. The retained-corpus container is validated
 under explicit file-count, per-input, and aggregate-size bounds; symlinks,
 nested or special entries, and changing inputs fail closed. A successful
 restore must import at least one seed whose content is not already in the
-fixed source corpus. Every parsed frame is evaluated by the admitted
+fixed source corpus. The permanent source corpus now contains 245 named cases:
+27 project boundaries, 180 pinned C2SP Wycheproof cases, and 38 minimized
+regressions promoted from exact-main workflow run `29971871087`. The promoted
+text capsule pins the run, job, artifact, campaign seed, frame encoding,
+per-frame SHA-256 and size, expected wrapper result, and aggregate hashes; its
+full candidate, baseline, and retained SHA-256 inventories preserve the exact
+set-difference receipt after the source artifact expires. Its 13 argument
+errors and 25 verification rejections replay before fuzzing.
+Every parsed frame is evaluated by the admitted
 wrapper, OpenSSL 3.6.3's explicitly selected default provider in an isolated
 library context, and libcrux 0.0.10. An oracle setup error or accept/reject
 disagreement aborts through the normal
@@ -199,14 +207,20 @@ the upstream commits, crate and source hashes, bridge and binary hashes, the
 actual linked `libcrypto` path and hash, toolchains, minimized corpus, coverage,
 logs, and crash artifacts for 90 days. Before the timed campaign, a separate
 sanitized executable replays five named frozen accept/reject cases exactly once
-through the real wrapper/OpenSSL/libcrux target and records each frame hash.
+through the real wrapper/OpenSSL/libcrux target and then replays all 38
+promoted regressions through the same three-oracle binary. It records each
+frame hash, expected wrapper taxonomy, return code, and replay status.
 The upstream versions are pinned by the frozen reference manifest; the small
 first-party adapter sources are review inputs whose exact hashes are evidence,
 not a claim that the adapters themselves are independent implementations.
 
 This closes the former self-fulfilling `OK`/`ERR_VERIFY` oracle gap for these
-bounded Linux campaigns. The configured long-duration path becomes evidence
-only after it succeeds on the exact merged commit; it is not multi-platform
-differential evidence, and the prebuilt OpenSSL and Rust implementation bodies
-are not fully sanitizer-instrumented by the C fuzz build. It does not alter
-the release hold.
+bounded Linux campaigns. Exact-main run `29971871087` completed the configured
+1,800-second path at commit
+`6d237f467f3a55d5cc48ca584a060251bdbf97dc`: 72 novel retained seeds were
+imported, 1,571,144 executions completed, and no crash, oracle error, or
+disagreement was recorded. The promoted inputs are opaque regression seeds,
+not independent test vectors or a completeness claim. This single Linux run
+is not multi-platform differential evidence, and the prebuilt OpenSSL and Rust
+implementation bodies are not fully sanitizer-instrumented by the C fuzz
+build. It does not alter the release hold.
