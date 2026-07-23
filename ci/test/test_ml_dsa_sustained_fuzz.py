@@ -3,6 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit.
 
+import base64
 import hashlib
 import importlib.util
 import json
@@ -44,8 +45,267 @@ class MlDsaSustainedFuzzTest(unittest.TestCase):
                 "wycheproof_vectors_sha256": hashlib.sha256(
                     verifier_fuzz.WYCHEPROOF_VECTORS.read_bytes()
                 ).hexdigest(),
+                "promoted_source_sha256": hashlib.sha256(
+                    verifier_fuzz.PROMOTED_SOURCE.read_bytes()
+                ).hexdigest(),
             },
         )
+
+    def test_promoted_source_is_frozen_disjoint_and_replays(self):
+        promoted = verifier_fuzz.validate_promoted_source()
+        self.assertEqual(len(promoted), 38)
+        self.assertEqual(sum(len(case.frame) for case in promoted), 120844)
+        self.assertEqual(
+            {
+                name: sum(
+                    verifier_fuzz.RESULT_NAMES[case.expected] == name
+                    for case in promoted
+                )
+                for name in ("invalid_argument", "verify_rejection")
+            },
+            {"invalid_argument": 13, "verify_rejection": 25},
+        )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            build = Path(temporary)
+            test_library = verifier_fuzz.wrapper.compile_shared(
+                "cc", build, testing=True
+            )
+            production_library = verifier_fuzz.wrapper.compile_shared(
+                "cc", build, testing=False
+            )
+            baseline = verifier_fuzz.project_corpus(
+                test_library
+            ) + verifier_fuzz.wycheproof_corpus(
+                verifier_fuzz.validate_wycheproof_source()
+            )
+            summary = verifier_fuzz.validate_corpus_manifest(
+                baseline + promoted
+            )
+            verifier_fuzz.replay_corpus(production_library, promoted)
+
+        baseline_hashes = {
+            hashlib.sha256(case.frame).hexdigest() for case in baseline
+        }
+        promoted_hashes = {
+            hashlib.sha256(case.frame).hexdigest() for case in promoted
+        }
+        source_manifest = verifier_fuzz.load_promoted_source_manifest()
+        derivation = source_manifest["derivation"]
+        candidate_hashes = set(derivation["candidate_minimized_sha256"])
+        recorded_baseline_hashes = set(derivation["baseline_unique_sha256"])
+        retained_hashes = set(derivation["imported_retained_sha256"])
+        self.assertEqual(len(candidate_hashes), 141)
+        self.assertEqual(len(recorded_baseline_hashes), 202)
+        self.assertEqual(len(retained_hashes), 72)
+        self.assertEqual(len(candidate_hashes & recorded_baseline_hashes), 50)
+        self.assertEqual(len(candidate_hashes & retained_hashes), 53)
+        self.assertTrue(recorded_baseline_hashes.isdisjoint(retained_hashes))
+        self.assertEqual(recorded_baseline_hashes, baseline_hashes)
+        self.assertEqual(
+            promoted_hashes,
+            candidate_hashes - recorded_baseline_hashes - retained_hashes,
+        )
+        self.assertEqual(len(promoted_hashes), 38)
+        self.assertTrue(promoted_hashes.isdisjoint(baseline_hashes))
+        self.assertEqual(
+            summary,
+            {
+                "total_cases": 245,
+                "unique_frames": 240,
+                "source_counts": {
+                    "project": 27,
+                    "promoted": 38,
+                    "wycheproof": 180,
+                },
+                "expected_counts": {
+                    "ok": 81,
+                    "invalid_argument": 36,
+                    "verify_rejection": 128,
+                },
+                "aggregate_sha256": (
+                    "6ee1368b01bfd758dd1c78a79bb778976"
+                    "9137f8d93055dfe9c4d040706597979"
+                ),
+            },
+        )
+
+    def test_promoted_source_rejects_tampering_and_unsafe_layouts(self):
+        source_text = verifier_fuzz.PROMOTED_SOURCE.read_text(encoding="utf8")
+        source_manifest = json.loads(source_text)
+
+        def check_rejected(
+            *, mutate=None, raw_text=None, extra_file=False, missing=False
+        ):
+            with tempfile.TemporaryDirectory() as temporary:
+                source_dir = Path(temporary)
+                source_path = source_dir / "SOURCE.json"
+                if not missing:
+                    if raw_text is None:
+                        manifest = json.loads(json.dumps(source_manifest))
+                        if mutate is not None:
+                            mutate(manifest)
+                        raw_text = json.dumps(manifest, indent=2) + "\n"
+                    source_path.write_text(raw_text, encoding="utf8")
+                if extra_file:
+                    (source_dir / "extra").write_text("unexpected", encoding="utf8")
+                with self.assertRaises(verifier_fuzz.FuzzHarnessError):
+                    verifier_fuzz.validate_promoted_source(source_path)
+
+        cases = []
+        cases.append(("missing", {"missing": True}))
+        cases.append(("extra_file", {"extra_file": True}))
+        cases.append(
+            (
+                "duplicate_key",
+                {
+                    "raw_text": source_text.replace(
+                        '  "schema_version": 1,\n',
+                        '  "schema_version": 1,\n  "schema_version": 1,\n',
+                        1,
+                    )
+                },
+            )
+        )
+        cases.append(
+            ("extra_root_field", {"mutate": lambda data: data.update(extra=True)})
+        )
+        cases.append(
+            (
+                "schema_type_confusion",
+                {"mutate": lambda data: data.update(schema_version=True)},
+            )
+        )
+        cases.append(
+            (
+                "source_identity",
+                {
+                    "mutate": lambda data: data["source"].update(
+                        workflow_run_id=1
+                    )
+                },
+            )
+        )
+        cases.append(
+            (
+                "source_type_confusion",
+                {
+                    "mutate": lambda data: data["source"].update(
+                        workflow_run_attempt=True
+                    )
+                },
+            )
+        )
+        cases.append(
+            (
+                "non_finite_json",
+                {
+                    "raw_text": source_text.replace(
+                        '"candidate_minimized_cases": 141',
+                        '"candidate_minimized_cases": NaN',
+                        1,
+                    )
+                },
+            )
+        )
+        cases.append(
+            (
+                "selection_metadata",
+                {
+                    "mutate": lambda data: data["selection"].update(
+                        selected_cases=37
+                    )
+                },
+            )
+        )
+        cases.append(
+            (
+                "derivation_inventory_order",
+                {
+                    "mutate": lambda data: data["derivation"][
+                        "candidate_minimized_sha256"
+                    ].__setitem__(
+                        slice(0, 2),
+                        list(
+                            reversed(
+                                data["derivation"][
+                                    "candidate_minimized_sha256"
+                                ][:2]
+                            )
+                        ),
+                    )
+                },
+            )
+        )
+        cases.append(
+            (
+                "invalid_base64",
+                {
+                    "mutate": lambda data: data["cases"][0].update(
+                        frame_base64="!"
+                    )
+                },
+            )
+        )
+        cases.append(
+            (
+                "wrong_size",
+                {
+                    "mutate": lambda data: data["cases"][0].update(
+                        size=data["cases"][0]["size"] + 1
+                    )
+                },
+            )
+        )
+        cases.append(
+            (
+                "wrong_hash",
+                {
+                    "mutate": lambda data: data["cases"][0].update(
+                        sha256="0" * 64
+                    )
+                },
+            )
+        )
+        cases.append(
+            (
+                "unsupported_result",
+                {
+                    "mutate": lambda data: data["cases"][0].update(
+                        expected_result="ok"
+                    )
+                },
+            )
+        )
+        cases.append(
+            (
+                "unsorted",
+                {
+                    "mutate": lambda data: data["cases"].__setitem__(
+                        slice(0, 2), list(reversed(data["cases"][:2]))
+                    )
+                },
+            )
+        )
+
+        def install_malformed_frame(data):
+            frame = b"\x02" + bytes(9)
+            record = data["cases"][0]
+            record.update(
+                artifact_member=(
+                    "ml-dsa-44-differential-fuzz/minimized-corpus/"
+                    + hashlib.sha1(frame).hexdigest()
+                ),
+                frame_base64=base64.b64encode(frame).decode("ascii"),
+                sha256=hashlib.sha256(frame).hexdigest(),
+                size=len(frame),
+            )
+            data["cases"].sort(key=lambda item: item["sha256"])
+
+        cases.append(("malformed_frame", {"mutate": install_malformed_frame}))
+        for label, arguments in cases:
+            with self.subTest(label=label):
+                check_rejected(**arguments)
 
     def test_machine_readable_gate_remains_open(self):
         admission = json.loads(ADMISSION.read_text(encoding="utf8"))

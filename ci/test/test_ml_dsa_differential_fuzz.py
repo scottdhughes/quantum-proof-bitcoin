@@ -93,6 +93,7 @@ class MlDsaDifferentialFuzzTest(unittest.TestCase):
             OPENSSL_BRIDGE,
             LIBCRUX_BRIDGE,
             REPLAY_SOURCE,
+            differential.verifier_fuzz.PROMOTED_SOURCE,
             WORKFLOW,
         ):
             self.assertIn(str(path.relative_to(REPO_ROOT)), inventory)
@@ -232,6 +233,16 @@ class MlDsaDifferentialFuzzTest(unittest.TestCase):
             }
             for index, name in enumerate(differential.SMOKE_CASE_NAMES)
         ]
+        promoted_records = [
+            {
+                "name": case.name,
+                "status": "pass",
+                "expected": differential.verifier_fuzz.RESULT_NAMES[
+                    case.expected
+                ],
+            }
+            for case in differential.verifier_fuzz.validate_promoted_source()
+        ]
         manifest = {
             "sources": {
                 "openssl": {"version": "3.6.3", "commit": "openssl-commit"},
@@ -265,6 +276,11 @@ class MlDsaDifferentialFuzzTest(unittest.TestCase):
                 ),
                 (differential, "openssl_runtime_provenance", {}),
                 (differential, "replay_differential_smoke", smoke_records),
+                (
+                    differential,
+                    "replay_promoted_regressions",
+                    promoted_records,
+                ),
                 (differential, "command_identity", "tool test"),
                 (reference, "require_openssl_source", None),
                 (reference, "require_libcrux_source", None),
@@ -337,6 +353,15 @@ class MlDsaDifferentialFuzzTest(unittest.TestCase):
                 (root / "output" / "campaign.json").read_text(encoding="utf8")
             )
             self.assertEqual(campaign["imported_retained_seeds"], 1)
+            promoted_replay = campaign["differential_oracles"][
+                "promoted_regression_replay"
+            ]
+            self.assertEqual(promoted_replay["status"], "pass")
+            self.assertEqual(promoted_replay["case_count"], 38)
+            self.assertEqual(
+                promoted_replay["expected_result_counts"],
+                {"invalid_argument": 13, "verify_rejection": 25},
+            )
             self.assertEqual(report["imported_retained_seeds"], 1)
             self.assertEqual(baseline_report["imported_retained_seeds"], 0)
             zero_novel = json.loads(
@@ -426,6 +451,72 @@ class MlDsaDifferentialFuzzTest(unittest.TestCase):
                 "case: reject_ctilde_bit_flip",
                 (output / "differential-smoke.log").read_text(encoding="utf8"),
             )
+
+    def test_promoted_replay_covers_every_frozen_case_and_names_failures(self):
+        cases = differential.verifier_fuzz.validate_promoted_source()
+        expected = {
+            case.name: (
+                differential.verifier_fuzz.RESULT_NAMES[case.expected],
+                hashlib.sha256(case.frame).hexdigest(),
+            )
+            for case in cases
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            executable = root / "replay-stub"
+            executable.write_text("#!/bin/sh\nexit 0\n", encoding="utf8")
+            executable.chmod(0o755)
+            output = root / "evidence"
+            output.mkdir()
+            records = differential.replay_promoted_regressions(
+                executable, cases, output
+            )
+
+            self.assertEqual(len(records), 38)
+            self.assertTrue(all(record["status"] == "pass" for record in records))
+            self.assertEqual(
+                {
+                    record["name"]: (
+                        record["expected"],
+                        record["frame_sha256"],
+                    )
+                    for record in records
+                },
+                expected,
+            )
+            self.assertEqual(
+                {
+                    name: sum(record["expected"] == name for record in records)
+                    for name in ("invalid_argument", "verify_rejection")
+                },
+                {"invalid_argument": 13, "verify_rejection": 25},
+            )
+            self.assertEqual(
+                len(list((output / "differential-promoted-inputs").iterdir())),
+                38,
+            )
+            self.assertTrue((output / "differential-promoted.log").is_file())
+
+            failed_name = records[0]["name"]
+            executable.write_text(
+                "#!/bin/sh\n"
+                "case \"$1\" in\n"
+                f"  *{failed_name}) exit 7 ;;\n"
+                "  *) exit 0 ;;\n"
+                "esac\n",
+                encoding="utf8",
+            )
+            failed_output = root / "failed-evidence"
+            failed_output.mkdir()
+            failed_records = differential.replay_promoted_regressions(
+                executable, cases, failed_output
+            )
+            failures = [
+                record for record in failed_records if record["status"] == "fail"
+            ]
+            self.assertEqual(len(failures), 1)
+            self.assertEqual(failures[0]["name"], failed_name)
+            self.assertEqual(failures[0]["return_code"], 7)
 
     def test_target_catches_acceptance_disagreement_and_oracle_error(self):
         compiler = "cc"
@@ -571,7 +662,14 @@ class MlDsaDifferentialFuzzTest(unittest.TestCase):
             "--seconds 1800",
             "sha256sum --check SHA256SUMS",
             'smoke["case_count"] == 5',
-            'fuzz_report["executed_units"] > 207',
+            'fuzz_report["executed_units"] > 245',
+            'promoted["case_count"] == 38',
+            'promoted["expected_accept_count"] == 0',
+            'promoted["expected_reject_count"] == 38',
+            '"invalid_argument": 13',
+            '"verify_rejection": 25',
+            "differential-promoted.log",
+            "differential-promoted-inputs",
             'fuzz_report["executed_units"] >= 500_000',
             'fuzz_report["fuzzer_duration_seconds"]',
             "expected_seconds + 35",

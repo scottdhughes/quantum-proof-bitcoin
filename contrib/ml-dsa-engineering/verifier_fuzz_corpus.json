@@ -10,20 +10,22 @@
   },
   "sources": {
     "repo_vectors_sha256": "2fe1fffc7bfe8ec7597e408449a0d6b99f6ec0f035ab6669211d4d13f376a2b9",
-    "wycheproof_vectors_sha256": "5ec04790c240c443ca8b662b8fc871834602c7cce87fcd36a193110745b2b9ea"
+    "wycheproof_vectors_sha256": "5ec04790c240c443ca8b662b8fc871834602c7cce87fcd36a193110745b2b9ea",
+    "promoted_source_sha256": "458f8902fc50e240145a2dd6bfa717c3fca14d58e792ddbafe6f985b1c45ecc0"
   },
   "generated_corpus": {
-    "total_cases": 207,
-    "unique_frames": 202,
+    "total_cases": 245,
+    "unique_frames": 240,
     "source_counts": {
       "project": 27,
-      "wycheproof": 180
+      "wycheproof": 180,
+      "promoted": 38
     },
     "expected_counts": {
       "ok": 81,
-      "invalid_argument": 23,
-      "verify_rejection": 103
+      "invalid_argument": 36,
+      "verify_rejection": 128
     },
-    "aggregate_sha256": "555737837a1138ac2fb145e4b6258a1ecde02616911552ab883004d179625802"
+    "aggregate_sha256": "6ee1368b01bfd758dd1c78a79bb7789769137f8d93055dfe9c4d040706597979"
   }
 }

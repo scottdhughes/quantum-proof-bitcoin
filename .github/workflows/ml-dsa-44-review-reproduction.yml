@@ -593,7 +593,21 @@ jobs:
               assert fuzz_report["imported_retained_seeds"] > 0
           else:
               assert fuzz_report["imported_retained_seeds"] == 0
-          assert fuzz_report["source_corpus"]["total_cases"] == 207
+          assert fuzz_report["source_corpus"] == {
+              "aggregate_sha256": "6ee1368b01bfd758dd1c78a79bb7789769137f8d93055dfe9c4d040706597979",
+              "expected_counts": {
+                  "invalid_argument": 36,
+                  "ok": 81,
+                  "verify_rejection": 128,
+              },
+              "source_counts": {
+                  "project": 27,
+                  "promoted": 38,
+                  "wycheproof": 180,
+              },
+              "total_cases": 245,
+              "unique_frames": 240,
+          }
           assert fuzz_report["working_corpus"]["file_count"] > 0
           assert fuzz_report["minimized_corpus"]["file_count"] > 0
           assert fuzz_report["last_progress_line"]
@@ -603,7 +617,7 @@ jobs:
               assert fuzz_report["executed_units"] >= 500_000
               assert 1799 <= fuzz_report["fuzzer_duration_seconds"] <= 1835
           else:
-              assert fuzz_report["executed_units"] > 207
+              assert fuzz_report["executed_units"] > 245
               assert 59 <= fuzz_report["fuzzer_duration_seconds"] <= 95
           assert fuzz_report["fuzzer_duration_seconds"] <= expected_seconds + 35
 
@@ -675,12 +689,50 @@ jobs:
               ),
           }
 
+          promoted = differential["promoted_regression_replay"]
+          assert promoted["status"] == "pass"
+          assert promoted["case_count"] == 38
+          assert promoted["expected_accept_count"] == 0
+          assert promoted["expected_reject_count"] == 38
+          assert promoted["expected_result_counts"] == {
+              "invalid_argument": 13,
+              "verify_rejection": 25,
+          }
+          assert promoted["binary_sha256"] == smoke["binary_sha256"]
+          assert all(
+              case["status"] == "pass" and case["return_code"] == 0
+              for case in promoted["cases"]
+          )
+          promoted_source_path = Path(
+              "contrib/ml-dsa-engineering/fuzz_sources/promoted/SOURCE.json"
+          )
+          promoted_source = json.loads(promoted_source_path.read_text())
+          assert differential["source_files"][
+              promoted_source_path.as_posix()
+          ] == hashlib.sha256(promoted_source_path.read_bytes()).hexdigest()
+          assert {
+              case["name"]: (case["expected"], case["frame_sha256"])
+              for case in promoted["cases"]
+          } == {
+              f"sha256_{case['sha256']}": (
+                  case["expected_result"],
+                  case["sha256"],
+              )
+              for case in promoted_source["cases"]
+          }
+
           evidence = Path("ml-dsa-44-differential-fuzz")
           campaign_path = evidence / "campaign.json"
           assert campaign_path.is_file()
           assert (evidence / "coverage.json").is_file()
           assert (evidence / "coverage.txt").is_file()
           assert (evidence / "differential-smoke.log").is_file()
+          assert (evidence / "differential-promoted.log").is_file()
+          promoted_inputs = evidence / "differential-promoted-inputs"
+          assert promoted_inputs.is_dir()
+          assert len(
+              [path for path in promoted_inputs.iterdir() if path.is_file()]
+          ) == 38
           assert (evidence / "fuzzer.log").is_file()
           assert (evidence / "SHA256SUMS").is_file()
           assert fuzz_report["evidence_sha256"] == hashlib.sha256(
