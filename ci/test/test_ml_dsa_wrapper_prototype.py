@@ -195,6 +195,7 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
             "ci/test/03_test_script.sh",
             "ci/test/test_ml_dsa_wrapper_prototype.py",
             "contrib/ml-dsa-engineering/README.md",
+            "contrib/ml-dsa-engineering/pqbtc_mldsa44_stateful_fuzz.c",
         ):
             self.assertRegex(
                 plan["source_files"][evidence_source], r"^[0-9a-f]{64}$"
@@ -212,8 +213,8 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         self.assertEqual(
             counts,
             {
-                "clang-tidy": 4,
-                "iwyu": 2,
+                "clang-tidy": 5,
+                "iwyu": 3,
                 "header-self-containment": 2,
             },
         )
@@ -257,8 +258,10 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
             "clang-tidy-wrapper-testing",
             "clang-tidy-smoke-testing",
             "clang-tidy-verifier-fuzz",
+            "clang-tidy-stateful-signer-fuzz",
             "iwyu-smoke-testing",
             "iwyu-verifier-fuzz",
+            "iwyu-stateful-signer-fuzz",
             "header-self-contained-production",
             "header-self-contained-testing",
         }
@@ -281,6 +284,14 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
             testing_define, checks["clang-tidy-verifier-fuzz"]["command"]
         )
         self.assertNotIn(testing_define, checks["iwyu-verifier-fuzz"]["command"])
+        self.assertIn(
+            testing_define,
+            checks["clang-tidy-stateful-signer-fuzz"]["command"],
+        )
+        self.assertIn(
+            testing_define,
+            checks["iwyu-stateful-signer-fuzz"]["command"],
+        )
 
         for check_id in (
             "header-self-contained-production",

@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/ml-dsa-44-sustained-fuzz.yml"
       - "ci/test/test_ml_dsa_sustained_fuzz.py"
+      - "ci/test/test_ml_dsa_stateful_signer_fuzz.py"
       - "contrib/ml-dsa-engineering/**"
       - "contrib/ml-dsa-ref/vectors.json"
       - "docs/ML_DSA_44_BACKEND_ADMISSION.md"
@@ -15,6 +16,7 @@ on:
     paths:
       - ".github/workflows/ml-dsa-44-sustained-fuzz.yml"
       - "ci/test/test_ml_dsa_sustained_fuzz.py"
+      - "ci/test/test_ml_dsa_stateful_signer_fuzz.py"
       - "contrib/ml-dsa-engineering/**"
       - "contrib/ml-dsa-ref/vectors.json"
       - "docs/ML_DSA_44_BACKEND_ADMISSION.md"
@@ -166,6 +168,363 @@ jobs:
         with:
           name: ml-dsa-44-sustained-${{ matrix.artifact }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/ml-dsa-44-fuzz-output
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 9
+
+  stateful-signer-fuzz:
+    name: Stateful signer (${{ matrix.label }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: ASan + UBSan
+            sanitizer: address-undefined
+            coverage: 'true'
+            artifact: asan-ubsan
+          - label: MSan
+            sanitizer: memory
+            coverage: 'false'
+            artifact: msan
+    env:
+      CC: clang
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify toolchain and frozen signer corpus
+        run: |
+          set -euxo pipefail
+          clang --version
+          llvm-profdata-18 --version
+          llvm-cov-18 --version
+          python3 --version
+          python3 contrib/ml-dsa-engineering/run_stateful_signer_fuzz.py \
+            --manifest-only
+
+      - name: Restore latest retained signer corpus
+        id: retained
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_NAME: ml-dsa-44-stateful-signer-${{ matrix.artifact }}
+          PRIOR_DIR: ${{ runner.temp }}/ml-dsa-44-prior-stateful-signer
+          SANITIZER: ${{ matrix.sanitizer }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          previous_run_records="$(
+            gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow ml-dsa-44-sustained-fuzz.yml \
+              --branch main \
+              --status success \
+              --limit 10 \
+              --json databaseId,attempt,createdAt,headSha \
+              --jq 'sort_by([.createdAt, .databaseId]) | reverse | .[] | [.databaseId, .attempt, .headSha] | @tsv'
+          )"
+          while read -r previous_run previous_attempt previous_head; do
+            if [[ -z "$previous_run" || -z "$previous_attempt" || -z "$previous_head" ]]; then
+              continue
+            fi
+            [[ "$previous_run" =~ ^[0-9]+$ ]]
+            [[ "$previous_attempt" =~ ^[0-9]+$ ]]
+            [[ "$previous_head" =~ ^[0-9a-f]{40}$ ]]
+            git merge-base --is-ancestor "$previous_head" HEAD
+            artifact_name="$ARTIFACT_NAME-$previous_run-$previous_attempt"
+            candidate_dir="$PRIOR_DIR/$previous_run-$previous_attempt"
+            mkdir -p "$candidate_dir"
+            if gh run download "$previous_run" \
+              --repo "$GITHUB_REPOSITORY" \
+              --name "$artifact_name" \
+              --dir "$candidate_dir"; then
+              validation_json="$PRIOR_DIR/validation-$previous_run-$previous_attempt.json"
+              python3 contrib/ml-dsa-engineering/run_stateful_signer_fuzz.py \
+                --validate-retained-evidence "$candidate_dir" \
+                --expected-retained-head "$previous_head" \
+                --expected-retained-sanitizer "$SANITIZER" \
+                > "$validation_json"
+              source_evidence_sha256="$(
+                jq -er '.source_evidence_sha256' "$validation_json"
+              )"
+              restored_seed_file_count="$(
+                jq -er '.restored_seed_file_count' "$validation_json"
+              )"
+              restored_seed_total_bytes="$(
+                jq -er '.restored_seed_total_bytes' "$validation_json"
+              )"
+              restored_seed_aggregate_sha256="$(
+                jq -er '.restored_seed_aggregate_sha256' "$validation_json"
+              )"
+              [[ "$source_evidence_sha256" =~ ^[0-9a-f]{64}$ ]]
+              [[ "$restored_seed_file_count" =~ ^[0-9]+$ ]]
+              [[ "$restored_seed_total_bytes" =~ ^[0-9]+$ ]]
+              [[ "$restored_seed_aggregate_sha256" =~ ^[0-9a-f]{64}$ ]]
+              (( restored_seed_file_count > 0 ))
+              {
+                echo "seed_dir=$candidate_dir/minimized-corpus"
+                echo "source_run=$previous_run"
+                echo "source_attempt=$previous_attempt"
+                echo "source_head=$previous_head"
+                echo "source_artifact=$artifact_name"
+                echo "source_evidence_sha256=$source_evidence_sha256"
+                echo "restored_seed_file_count=$restored_seed_file_count"
+                echo "restored_seed_total_bytes=$restored_seed_total_bytes"
+                echo "restored_seed_aggregate_sha256=$restored_seed_aggregate_sha256"
+              } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done <<< "$previous_run_records"
+          echo "No prior successful retained signer corpus is available"
+
+      - name: Run bounded stateful signer campaign
+        env:
+          SANITIZER: ${{ matrix.sanitizer }}
+          COVERAGE: ${{ matrix.coverage }}
+          RETAINED_SEED_DIR: ${{ steps.retained.outputs.seed_dir }}
+          RETAINED_SOURCE_RUN: ${{ steps.retained.outputs.source_run }}
+          RETAINED_SOURCE_ATTEMPT: ${{ steps.retained.outputs.source_attempt }}
+          RETAINED_SOURCE_HEAD: ${{ steps.retained.outputs.source_head }}
+          RETAINED_SOURCE_ARTIFACT: ${{ steps.retained.outputs.source_artifact }}
+          RETAINED_SOURCE_EVIDENCE_SHA256: ${{ steps.retained.outputs.source_evidence_sha256 }}
+          RETAINED_SOURCE_SEED_COUNT: ${{ steps.retained.outputs.restored_seed_file_count }}
+          RETAINED_SOURCE_SEED_BYTES: ${{ steps.retained.outputs.restored_seed_total_bytes }}
+          RETAINED_SOURCE_SEED_AGGREGATE_SHA256: ${{ steps.retained.outputs.restored_seed_aggregate_sha256 }}
+          OUTPUT_DIR: ${{ runner.temp }}/ml-dsa-44-stateful-signer-output
+        run: |
+          set -euxo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "schedule" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            campaign_seconds=1800
+            campaign_seed="$GITHUB_RUN_NUMBER"
+          else
+            campaign_seconds=60
+            campaign_seed=188
+          fi
+          args=(
+            --sanitizers
+            --sanitizer "$SANITIZER"
+            --seconds "$campaign_seconds"
+            --seed "$campaign_seed"
+            --output-dir "$OUTPUT_DIR"
+          )
+          if [[ -n "$RETAINED_SEED_DIR" ]]; then
+            args+=(--seed-corpus "$RETAINED_SEED_DIR")
+          fi
+          if [[ "$COVERAGE" == "true" ]]; then
+            args+=(--coverage)
+          fi
+          python3 contrib/ml-dsa-engineering/run_stateful_signer_fuzz.py \
+            "${args[@]}"
+
+      - name: Verify stateful signer evidence
+        if: success()
+        env:
+          EXPECTED_SANITIZER: ${{ matrix.sanitizer }}
+          COVERAGE: ${{ matrix.coverage }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RETAINED_SEED_DIR: ${{ steps.retained.outputs.seed_dir }}
+          RETAINED_SOURCE_RUN: ${{ steps.retained.outputs.source_run }}
+          RETAINED_SOURCE_ATTEMPT: ${{ steps.retained.outputs.source_attempt }}
+          RETAINED_SOURCE_HEAD: ${{ steps.retained.outputs.source_head }}
+          RETAINED_SOURCE_ARTIFACT: ${{ steps.retained.outputs.source_artifact }}
+          RETAINED_SOURCE_EVIDENCE_SHA256: ${{ steps.retained.outputs.source_evidence_sha256 }}
+          RETAINED_SOURCE_SEED_COUNT: ${{ steps.retained.outputs.restored_seed_file_count }}
+          RETAINED_SOURCE_SEED_BYTES: ${{ steps.retained.outputs.restored_seed_total_bytes }}
+          RETAINED_SOURCE_SEED_AGGREGATE_SHA256: ${{ steps.retained.outputs.restored_seed_aggregate_sha256 }}
+          OUTPUT_DIR: ${{ runner.temp }}/ml-dsa-44-stateful-signer-output
+        run: |
+          actual_head="$(git rev-parse HEAD)"
+          test "$actual_head" = "$EXPECTED_COMMIT"
+          python3 - "$OUTPUT_DIR" "$EXPECTED_SANITIZER" "$COVERAGE" \
+            "$EXPECTED_COMMIT" "$EVENT_NAME" "$RUN_NUMBER" \
+            "$RETAINED_SEED_DIR" <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import sys
+
+          def named_file_summary(paths):
+              digest = hashlib.sha256()
+              contents = {}
+              total_bytes = 0
+              paths = sorted(paths, key=lambda path: path.name)
+              for path in paths:
+                  assert path.is_file() and not path.is_symlink()
+                  data = path.read_bytes()
+                  file_digest = hashlib.sha256(data).hexdigest()
+                  digest.update(
+                      f"{path.name}\0{len(data)}\0{file_digest}\n".encode()
+                  )
+                  previous = contents.setdefault(file_digest, data)
+                  assert previous == data
+                  total_bytes += len(data)
+              return {
+                  "file_count": len(paths),
+                  "total_bytes": total_bytes,
+                  "aggregate_sha256": digest.hexdigest(),
+              }, contents
+
+          def content_inventory_summary(contents):
+              digest = hashlib.sha256()
+              total_bytes = 0
+              for file_digest, data in sorted(contents.items()):
+                  digest.update(f"{len(data)}\0{file_digest}\n".encode())
+                  total_bytes += len(data)
+              return {
+                  "file_count": len(contents),
+                  "total_bytes": total_bytes,
+                  "aggregate_sha256": digest.hexdigest(),
+              }
+
+          output = Path(sys.argv[1])
+          report = json.loads((output / "campaign.json").read_text(encoding="utf8"))
+          long_run = sys.argv[5] in {"schedule", "workflow_dispatch"}
+          expected_seconds = 1800 if long_run else 60
+          expected_seed = int(sys.argv[6]) if long_run else 188
+          assert report["schema_version"] == 1
+          assert report["target"] == "ml-dsa-44-stateful-signer-seeded-keygen"
+          assert report["status"] == "pass"
+          assert report["return_code"] == 0
+          assert report["processing_error"] is None
+          assert report["sanitizer"] == sys.argv[2]
+          assert report["coverage_enabled"] is (sys.argv[3] == "true")
+          assert report["repository_commit"] == sys.argv[4]
+          assert report["repository_head"] == sys.argv[4]
+          assert report["repository_dirty"] is False
+          assert report["campaign_limit"] == {
+              "runs": None,
+              "seconds": expected_seconds,
+          }
+          assert report["resource_limits"]["seed"] == expected_seed
+          assert report["resource_limits"]["harness_frame_bytes"] == 4456
+          assert report["resource_limits"]["fuzzer_max_len_bytes"] == 4456
+          assert expected_seconds - 1 <= report["fuzzer_duration_seconds"]
+          assert report["fuzzer_duration_seconds"] <= expected_seconds + 35
+          assert report["source_corpus"]["total_cases"] == 31
+          assert report["source_corpus"]["unique_frames"] == 31
+          assert (
+              report["source_corpus"]["aggregate_sha256"]
+              == "9ee9c275e59e8a4d383bd474b080406b764aafd9b219dffb522d9ef4e73f05d1"
+          )
+          for field in (
+              "driver_sha256",
+              "verifier_fuzz_driver_sha256",
+              "wrapper_test_driver_sha256",
+          ):
+              assert re.fullmatch(r"[0-9a-f]{64}", report["source_files"][field])
+          assert report["deterministic_replay"]["status"] == "pass"
+          assert report["deterministic_replay"]["case_count"] == 31
+          assert all(
+              case["status"] == "pass"
+              for case in report["deterministic_replay"]["cases"]
+          )
+          assert report["executed_units"] is not None
+          assert report["executed_units"] > 31
+          assert report["minimized_corpus"]["file_count"] > 0
+          assert report["crash_artifacts"]["file_count"] == 0
+          assert (output / "SHA256SUMS").is_file()
+          retained_source = report["retained_corpus_source"]
+          if sys.argv[7]:
+              expected_source = {
+                  "run_id": os.environ["RETAINED_SOURCE_RUN"],
+                  "run_attempt": os.environ["RETAINED_SOURCE_ATTEMPT"],
+                  "head_sha": os.environ["RETAINED_SOURCE_HEAD"],
+                  "artifact": os.environ["RETAINED_SOURCE_ARTIFACT"],
+                  "evidence_sha256": os.environ[
+                      "RETAINED_SOURCE_EVIDENCE_SHA256"
+                  ],
+                  "restored_seed_file_count": int(
+                      os.environ["RETAINED_SOURCE_SEED_COUNT"]
+                  ),
+                  "restored_seed_total_bytes": int(
+                      os.environ["RETAINED_SOURCE_SEED_BYTES"]
+                  ),
+                  "restored_seed_aggregate_sha256": os.environ[
+                      "RETAINED_SOURCE_SEED_AGGREGATE_SHA256"
+                  ],
+              }
+              assert retained_source == expected_source
+              assert re.fullmatch(r"[0-9a-f]{40}", retained_source["head_sha"])
+              assert re.fullmatch(
+                  r"[0-9a-f]{64}", retained_source["evidence_sha256"]
+              )
+              assert re.fullmatch(
+                  r"[0-9a-f]{64}",
+                  retained_source["restored_seed_aggregate_sha256"],
+              )
+              expected_source_summary = {
+                  "file_count": retained_source["restored_seed_file_count"],
+                  "total_bytes": retained_source["restored_seed_total_bytes"],
+                  "aggregate_sha256": retained_source[
+                      "restored_seed_aggregate_sha256"
+                  ],
+              }
+              seed_dir = Path(sys.argv[7])
+              actual_source, source_contents = named_file_summary(
+                  seed_dir.iterdir()
+              )
+              retained_import = report["retained_corpus_import"]
+              assert retained_import["source_summary"] == expected_source_summary
+              assert retained_import["source_summary"] == actual_source
+              assert retained_import["unique_source_summary"] == (
+                  content_inventory_summary(source_contents)
+              )
+              imported_paths = list(
+                  (output / "corpus").glob("retained_*.bin")
+              )
+              _, imported_contents = named_file_summary(imported_paths)
+              for path in imported_paths:
+                  file_digest = hashlib.sha256(path.read_bytes()).hexdigest()
+                  assert path.name == f"retained_{file_digest}.bin"
+              imported_summary = retained_import["imported_summary"]
+              assert imported_summary == content_inventory_summary(
+                  imported_contents
+              )
+              assert report["imported_retained_seeds"] == (
+                  imported_summary["file_count"]
+              )
+              assert 0 < report["imported_retained_seeds"]
+              assert (
+                  report["imported_retained_seeds"]
+                  <= retained_source["restored_seed_file_count"]
+              )
+          else:
+              assert retained_source == {
+                  "run_id": None,
+                  "run_attempt": None,
+                  "head_sha": None,
+                  "artifact": None,
+                  "evidence_sha256": None,
+                  "restored_seed_file_count": None,
+                  "restored_seed_total_bytes": None,
+                  "restored_seed_aggregate_sha256": None,
+              }
+              assert report["imported_retained_seeds"] == 0
+              assert report["retained_corpus_import"] is None
+          if report["coverage_enabled"]:
+              assert (output / "coverage.txt").is_file()
+              assert (output / "coverage.json").is_file()
+          print(json.dumps(report, indent=2, sort_keys=True))
+          PY
+          cd "$OUTPUT_DIR"
+          sha256sum --check SHA256SUMS
+
+      - name: Upload retained signer corpus and evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ml-dsa-44-stateful-signer-${{ matrix.artifact }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ml-dsa-44-stateful-signer-output
           if-no-files-found: warn
           retention-days: 90
           compression-level: 9

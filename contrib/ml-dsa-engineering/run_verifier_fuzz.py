@@ -1098,6 +1098,8 @@ def run_fuzzer(
     sanitizer: str,
     profile_pattern: Path | None,
     seed: int,
+    *,
+    max_frame_bytes: int = MAX_FRAME_BYTES,
 ) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     if sanitizer == "address-undefined":
@@ -1114,7 +1116,7 @@ def run_fuzzer(
         str(executable),
         str(corpus_dir),
         f"-artifact_prefix={artifact_dir}{os.sep}",
-        f"-max_len={MAX_FRAME_BYTES}",
+        f"-max_len={max_frame_bytes}",
         limit,
         f"-seed={seed}",
         "-timeout=5",
@@ -1162,6 +1164,8 @@ def minimize_corpus(
     log_path: Path,
     sanitizer: str,
     profile_pattern: Path | None,
+    *,
+    max_frame_bytes: int = MAX_FRAME_BYTES,
 ) -> None:
     destination.mkdir()
     env = os.environ.copy()
@@ -1180,7 +1184,7 @@ def minimize_corpus(
         "-use_value_profile=1",
         str(destination),
         str(corpus_dir),
-        f"-max_len={MAX_FRAME_BYTES}",
+        f"-max_len={max_frame_bytes}",
         "-timeout=5",
         "-rss_limit_mb=1024",
         "-malloc_limit_mb=256",
@@ -1224,6 +1228,8 @@ def minimize_crash_artifacts(
     output_dir: Path,
     sanitizer: str,
     seed: int,
+    *,
+    max_frame_bytes: int = MAX_FRAME_BYTES,
 ) -> list[dict]:
     artifacts = sorted(path for path in artifact_dir.iterdir() if path.is_file())
     if not artifacts:
@@ -1247,7 +1253,7 @@ def minimize_crash_artifacts(
             "-minimize_crash=1",
             f"-exact_artifact_path={minimized}",
             "-max_total_time=60",
-            f"-max_len={MAX_FRAME_BYTES}",
+            f"-max_len={max_frame_bytes}",
             f"-seed={seed}",
             "-timeout=5",
             "-rss_limit_mb=1024",
@@ -1465,12 +1471,13 @@ def write_campaign_report(
 
 def write_evidence_hashes(output_dir: Path) -> None:
     lines = []
+    manifest_path = output_dir / "SHA256SUMS"
     for path in sorted(item for item in output_dir.rglob("*") if item.is_file()):
-        if path.name == "SHA256SUMS":
+        if path == manifest_path:
             continue
         relative = path.relative_to(output_dir).as_posix()
         lines.append(f"{sha256_file(path)}  {relative}\n")
-    (output_dir / "SHA256SUMS").write_text("".join(lines), encoding="utf8")
+    manifest_path.write_text("".join(lines), encoding="utf8")
 
 
 def main() -> int:

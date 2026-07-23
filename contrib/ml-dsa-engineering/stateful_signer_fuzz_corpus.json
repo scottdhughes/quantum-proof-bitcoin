@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "target": "ml-dsa-44-stateful-signer-seeded-keygen",
+  "frame_version": 1,
+  "fuzz_limits": {
+    "seed_bytes": 32,
+    "randomizer_bytes": 32,
+    "message_bytes": 4096,
+    "context_bytes": 256,
+    "frame_bytes": 4456,
+    "hedged_signing_calls_per_input_max": 4
+  },
+  "sources": {
+    "repo_vectors_sha256": "2fe1fffc7bfe8ec7597e408449a0d6b99f6ec0f035ab6669211d4d13f376a2b9"
+  },
+  "required_scenarios": [
+    "fresh_a_then_fresh_b",
+    "fresh_a_then_repeat_a_then_fresh_b",
+    "fresh_a_then_short_b_then_repeat_a_then_fresh_b",
+    "fresh_a_then_source_failure_then_repeat_a_then_fresh_b",
+    "fresh_a_then_zero_then_repeat_a_then_fresh_b",
+    "fresh_a_then_invalid_then_repeat_a_then_fresh_b",
+    "backend_failure_a_then_repeat_a_then_fresh_b",
+    "attempts_exhausted_a_then_repeat_a_then_fresh_b",
+    "signature_length_failure_a_then_repeat_a_then_fresh_b",
+    "self_verify_failure_a_then_repeat_a_then_fresh_b",
+    "fresh_a_then_reset_then_reuse_a",
+    "invalid_context_preserves_repeat_state"
+  ],
+  "required_invalid_argument_variants": [
+    "null_output",
+    "short_output",
+    "long_output",
+    "alias_secret_key",
+    "alias_public_key",
+    "alias_message",
+    "alias_context",
+    "null_secret_key",
+    "short_secret_key",
+    "null_public_key",
+    "short_public_key",
+    "null_message",
+    "null_context"
+  ],
+  "generated_corpus": {
+    "total_cases": 31,
+    "unique_frames": 31,
+    "scenario_counts": {
+      "fresh_a_then_fresh_b": 4,
+      "fresh_a_then_repeat_a_then_fresh_b": 1,
+      "fresh_a_then_short_b_then_repeat_a_then_fresh_b": 4,
+      "fresh_a_then_source_failure_then_repeat_a_then_fresh_b": 1,
+      "fresh_a_then_zero_then_repeat_a_then_fresh_b": 1,
+      "fresh_a_then_invalid_then_repeat_a_then_fresh_b": 14,
+      "backend_failure_a_then_repeat_a_then_fresh_b": 1,
+      "attempts_exhausted_a_then_repeat_a_then_fresh_b": 1,
+      "signature_length_failure_a_then_repeat_a_then_fresh_b": 1,
+      "self_verify_failure_a_then_repeat_a_then_fresh_b": 1,
+      "fresh_a_then_reset_then_reuse_a": 1,
+      "invalid_context_preserves_repeat_state": 1
+    },
+    "invalid_argument_variant_counts": {
+      "null_output": 1,
+      "short_output": 1,
+      "long_output": 1,
+      "alias_secret_key": 1,
+      "alias_public_key": 1,
+      "alias_message": 2,
+      "alias_context": 1,
+      "null_secret_key": 1,
+      "short_secret_key": 1,
+      "null_public_key": 1,
+      "short_public_key": 1,
+      "null_message": 1,
+      "null_context": 1
+    },
+    "aggregate_sha256": "9ee9c275e59e8a4d383bd474b080406b764aafd9b219dffb522d9ef4e73f05d1"
+  }
+}

@@ -64,6 +64,8 @@ static int g_test_backend_result;
 static int g_test_force_signature_length;
 static int g_test_force_verify_failure;
 static atomic_size_t g_test_zeroized_bytes;
+static atomic_size_t g_test_entropy_requests;
+static atomic_size_t g_test_entropy_requested_bytes;
 #endif
 
 static void LockSigningModule(void)
@@ -112,6 +114,9 @@ static int ConstantTimeEqual(const uint8_t* left, const uint8_t* right, size_t l
 static int FillEntropy(uint8_t* output, size_t requested, size_t* received)
 {
 #ifdef PQBTC_MLDSA44_TESTING
+    atomic_fetch_add_explicit(&g_test_entropy_requests, 1, memory_order_relaxed);
+    atomic_fetch_add_explicit(
+        &g_test_entropy_requested_bytes, requested, memory_order_relaxed);
     if (g_test_entropy_mode == PQBTC_MLDSA44_TEST_ENTROPY_FAILURE) {
         *received = 0;
         return -1;
@@ -367,6 +372,8 @@ void pqbtc_mldsa44_test_reset(void)
     g_test_force_signature_length = 0;
     g_test_force_verify_failure = 0;
     atomic_store_explicit(&g_test_zeroized_bytes, 0, memory_order_relaxed);
+    atomic_store_explicit(&g_test_entropy_requests, 0, memory_order_relaxed);
+    atomic_store_explicit(&g_test_entropy_requested_bytes, 0, memory_order_relaxed);
     UnlockSigningModule();
 }
 
@@ -412,6 +419,16 @@ void pqbtc_mldsa44_test_force_verify_failure(int enabled)
 size_t pqbtc_mldsa44_test_zeroized_bytes(void)
 {
     return atomic_load_explicit(&g_test_zeroized_bytes, memory_order_relaxed);
+}
+
+size_t pqbtc_mldsa44_test_entropy_requests(void)
+{
+    return atomic_load_explicit(&g_test_entropy_requests, memory_order_relaxed);
+}
+
+size_t pqbtc_mldsa44_test_entropy_requested_bytes(void)
+{
+    return atomic_load_explicit(&g_test_entropy_requested_bytes, memory_order_relaxed);
 }
 
 int pqbtc_mldsa44_test_keypair_from_seed(
