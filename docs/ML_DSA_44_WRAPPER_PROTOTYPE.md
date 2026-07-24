@@ -2,7 +2,7 @@
 
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-WRAPPER-PROTOTYPE-v1
-## Updated: 2026-07-21
+## Updated: 2026-07-23
 ## Consensus-Relevant: NO
 
 ## Scope
@@ -118,6 +118,10 @@ python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --sanitizers
 python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py --manifest-only
 python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py
 CC=clang python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py --sanitizers --runs 10000
+python3 contrib/ml-dsa-engineering/run_stateful_signer_fuzz.py --manifest-only
+CC=clang python3 contrib/ml-dsa-engineering/run_stateful_signer_fuzz.py \
+  --sanitizers --sanitizer address-undefined --runs 10000 \
+  --output-dir /tmp/ml-dsa-44-stateful-asan
 CC=clang python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py \
   --sanitizers --sanitizer address-undefined --seconds 1800 \
   --coverage --output-dir /tmp/ml-dsa-44-asan
@@ -131,12 +135,14 @@ python3 -m unittest ci.test.test_ml_dsa_wrapper_prototype
 python3 -m unittest ci.test.test_ml_dsa_sustained_fuzz
 python3 -m unittest ci.test.test_ml_dsa_differential_fuzz
 python3 -m unittest ci.test.test_ml_dsa_cbmc_reproduction
+python3 -m unittest ci.test.test_ml_dsa_stateful_signer_fuzz
 ```
 
-The verifier harness deterministically regenerates and replays 207 bounded
+The verifier harness deterministically regenerates and replays 245 bounded
 frames: 180 cases from the pinned C2SP Wycheproof ML-DSA-44 verification file
-and 27 project cases covering commitment, `z`, hint, public-key, message,
-context, length, and null-pointer boundaries. The frozen manifest records 202
+plus 27 project cases and 38 promoted retained-corpus regressions covering
+commitment, `z`, hint, public-key, message, context, length, and null-pointer
+boundaries. The frozen manifest records 240
 unique frames and their expected strict-wrapper result classes. Its custom
 libFuzzer mutator preserves the frame format while targeting those same
 ML-DSA-44 fields. CI runs replay with GCC and Clang; the dedicated workflow
@@ -161,6 +167,35 @@ coverage still depends on LLVM interceptors and is not an all-code proof. A
 retained crash is evidence to investigate, not an
 automatically trusted regression vector: promotion into a checked-in corpus
 still requires review.
+
+The stateful signer harness adds a separate test-only target for the wrapper's
+seeded key generation and hedged-signing transition contract. Every input
+resets module state. Every parsed frame derives the same keypair twice from a
+32-byte seed and executes a bounded sequence of at most four hedged-signing
+calls. The
+checked-in 31-frame corpus covers 12 effective state-transition sequences:
+fresh and repeated randomizers, short/failed/all-zero entropy, invalid
+arguments and output aliases, injected backend/attempt/length/self-verification
+failures, output zeroing, reset-and-reuse behavior, empty and maximum-sized
+bounded messages, and 0-, 255-, and 256-byte contexts. The target asserts the
+exact entropy-request count, post-failure repeat-state transition,
+deterministic fixed-randomizer signature, strict verification, and input
+immutability.
+
+The sustained workflow runs this target in distinct Clang ASan/UBSan and MSan
+jobs so the MSan result does not include uninstrumented OpenSSL or Rust oracle
+bodies. Pull requests and pushes use 60-second smoke campaigns; weekly and
+manual runs use 1,800 seconds and may import the latest successful minimized
+stateful corpus. That restore must come from an ancestor `main` run and pass
+the complete evidence checksum inventory, campaign identity, clean-head,
+minimized-corpus digest, flat regular-file, and resource-bound checks before
+content-addressed import. The stateful evidence has its own artifact and corpus
+namespace. Immediately before copying, the importer rechecks the validated
+count, byte total, and name-bound aggregate, then records a content-addressed
+receipt for the novel imported set. These bounded
+test-only scenarios do not establish lifecycle safety across process fork,
+multi-process key isolation, worst-case signing resources, or production
+fitness.
 
 The pinned review-reproduction workflow adds a 60-second Linux Clang
 ASan/UBSan differential campaign. Its fuzz target calls the isolated wrapper,
@@ -222,8 +257,9 @@ This prototype advances engineering evidence but closes no production gate:
 - issue `#188`: deterministic Wycheproof replay, bounded structure-aware
   ASan/UBSan and MSan campaigns, and bounded three-backend differential
   verifier fuzzing with retained evidence and supplementary portable libcrux
-  Miri execution are now implemented, but stateful signer fuzzing,
-  long-duration and broader-platform differential campaigns, full Rust
+  Miri execution are now implemented; bounded stateful signer and seeded-keygen
+  fuzzing is implemented in a separate test-only lane, but long-duration
+  evidence for that lane, broader-platform differential campaigns, full Rust
   sanitizer coverage, minimum
   coverage goals, reviewed regression-vector promotion, and stack, worst-case,
   and adversarial-batch resource limits remain open;

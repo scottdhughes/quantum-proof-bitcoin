@@ -246,9 +246,9 @@ tracked suites now have an explicit policy class and none remains in
 
 ## Current Follow-On Candidates
 
-Preferred next owned tranche:
+Active owned tranche:
 
-1. Add bounded stateful signer and seeded-key-generation fuzzing under issue
+1. Land bounded stateful signer and seeded-key-generation fuzzing under issue
    `#188`
    - exercise deterministic seeded key generation, fresh and repeated
      randomizers, short/zero/failed entropy, invalid arguments, backend
@@ -259,7 +259,8 @@ Preferred next owned tranche:
    - retain separate ASan/UBSan and MSan lanes so uninstrumented external
      implementations do not contaminate the memory-sanitizer result
    - keep the already-pinned comparator as a correctness preflight and record
-     exact corpus, duration, seed, crash, and sanitizer evidence
+     exact corpus, duration, seed, crash, and sanitizer evidence; the first
+     long scheduled/manual receipt remains follow-up evidence after merge
    - keep production at `NONE` and `RELEASE_HOLD`; this tranche authorizes no
      consensus, wallet, Script, `ALG_ID`, or inventory-policy change
 
@@ -1818,6 +1819,26 @@ Aineko must ask before:
 
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
+
+- 2026-07-23: Exact-main differential run `30043023928` passed at
+  `acd2337201a10b76f6354d9b3c8501483645d122` for 1,801.155 measured fuzzer
+  seconds and 1,849,222 executions after importing 53 novel seeds from the
+  retained corpus. All 245 fixed cases, five exact replays, and 38 promoted
+  regressions replayed; no crash, sanitizer marker, oracle error, or
+  disagreement was recorded. The minimized corpus contains 143 files with
+  aggregate SHA-256
+  `ce0a707bb344f3d9e8fe3ccb6787f93a433a5c0309d9a2e3dcdcf09b802723c7`.
+  Issue `#188`, production backend `NONE`, and `RELEASE_HOLD` remain unchanged.
+
+- 2026-07-23: The next bounded issue-`#188` tranche adds a separate test-only
+  stateful signer and seeded-keygen libFuzzer target. Its fixed 31-frame corpus
+  covers all 12 effective call sequences and 13 invalid-argument variants and
+  exact entropy consumption, repeat-state transitions, output zeroing,
+  deterministic seeded key generation, fixed-randomizer signatures, and
+  strict verification. Retained imports recheck the validated count, byte
+  total, and name-bound aggregate and record the novel content inventory.
+  Separate ASan/UBSan and MSan jobs preserve the existing production boundary
+  and release hold.
 
 - 2026-07-23: Exact-main differential run `29971871087` passed at
   `6d237f467f3a55d5cc48ca584a060251bdbf97dc` for 1,801.169 measured fuzzer

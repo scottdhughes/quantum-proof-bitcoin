@@ -27,6 +27,7 @@ VENDOR_ROOT = f"{ENGINEERING_ROOT}/vendor"
 WRAPPER_SOURCE = f"{ENGINEERING_ROOT}/pqbtc_mldsa44.c"
 SMOKE_SOURCE = f"{ENGINEERING_ROOT}/pqbtc_mldsa44_smoke.c"
 FUZZ_SOURCE = f"{ENGINEERING_ROOT}/pqbtc_mldsa44_verify_fuzz.c"
+STATEFUL_FUZZ_SOURCE = f"{ENGINEERING_ROOT}/pqbtc_mldsa44_stateful_fuzz.c"
 PUBLIC_HEADER = f"{ENGINEERING_ROOT}/pqbtc_mldsa44.h"
 TEST_HEADER = f"{ENGINEERING_ROOT}/pqbtc_mldsa44_test.h"
 CONFIG_HEADER = f"{ENGINEERING_ROOT}/pqbtc_mldsa44_config.h"
@@ -70,6 +71,7 @@ EVIDENCE_SOURCES = [
     WRAPPER_SOURCE,
     SMOKE_SOURCE,
     FUZZ_SOURCE,
+    STATEFUL_FUZZ_SOURCE,
     PUBLIC_HEADER,
     TEST_HEADER,
     CONFIG_HEADER,
@@ -105,7 +107,12 @@ def annex_k_suppression_count() -> int:
     marker = f"NOLINTNEXTLINE({ANNEX_K_TIDY_CHECK})"
     return sum(
         (REPO_ROOT / relative).read_text(encoding="utf8").count(marker)
-        for relative in (WRAPPER_SOURCE, SMOKE_SOURCE, FUZZ_SOURCE)
+        for relative in (
+            WRAPPER_SOURCE,
+            SMOKE_SOURCE,
+            FUZZ_SOURCE,
+            STATEFUL_FUZZ_SOURCE,
+        )
     )
 
 
@@ -210,6 +217,18 @@ def build_plan(
             "command": tidy_command(clang_tidy, plugin, FUZZ_SOURCE),
         },
         {
+            "id": "clang-tidy-stateful-signer-fuzz",
+            "kind": "clang-tidy",
+            "input": STATEFUL_FUZZ_SOURCE,
+            "variant": "testing",
+            "command": tidy_command(
+                clang_tidy,
+                plugin,
+                STATEFUL_FUZZ_SOURCE,
+                ["-DPQBTC_MLDSA44_TESTING=1"],
+            ),
+        },
+        {
             "id": "iwyu-smoke-testing",
             "kind": "iwyu",
             "input": SMOKE_SOURCE,
@@ -229,6 +248,19 @@ def build_plan(
             "variant": "production-api",
             "check_also": [PUBLIC_HEADER],
             "command": iwyu_command(iwyu, FUZZ_SOURCE, [PUBLIC_HEADER]),
+        },
+        {
+            "id": "iwyu-stateful-signer-fuzz",
+            "kind": "iwyu",
+            "input": STATEFUL_FUZZ_SOURCE,
+            "variant": "testing",
+            "check_also": [PUBLIC_HEADER, TEST_HEADER],
+            "command": iwyu_command(
+                iwyu,
+                STATEFUL_FUZZ_SOURCE,
+                [PUBLIC_HEADER, TEST_HEADER],
+                ["-DPQBTC_MLDSA44_TESTING=1"],
+            ),
         },
         {
             "id": "header-self-contained-production",
@@ -311,8 +343,8 @@ def validate_plan(plan: dict[str, object]) -> None:
         raise AuditError("static-analysis plan has no check list")
 
     expected_counts = {
-        "clang-tidy": 4,
-        "iwyu": 2,
+        "clang-tidy": 5,
+        "iwyu": 3,
         "header-self-containment": 2,
     }
     counts = {kind: 0 for kind in expected_counts}

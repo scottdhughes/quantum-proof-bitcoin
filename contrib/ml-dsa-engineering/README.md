@@ -78,15 +78,17 @@ clang-tidy/IWYU boundary. The wrapper workflow and the Promotion Matrix tidy
 lane constrain LLVM/clang-tidy to major version 20 and record the exact tool
 versions and binary hashes. IWYU is built from exact source commit
 `6e08906c66b3009f2d590e4bd40d60fa303bf803`. The audit runs clang-tidy over
-the production wrapper, test wrapper, smoke harness, and verifier fuzz target,
-then checks both public headers for C11 self-containment.
+the production wrapper, test wrapper, smoke harness, verifier fuzz target, and
+stateful signer fuzz target, then checks both public headers for C11
+self-containment.
 The optional Annex-K `_s` functions recommended by one analyzer check are
 unavailable on the supported Linux toolchain. That checker remains enabled and
 fatal for new call sites; the 13 reviewed portable API calls use localized,
 inventory-checked `NOLINTNEXTLINE` annotations.
 
-IWYU is enforced only on the first-party smoke and verifier-fuzz translation
-units and their wrapper headers. It intentionally does not propose edits for
+IWYU is enforced only on the first-party smoke, verifier-fuzz, and stateful
+signer-fuzz translation units and their wrapper headers. It intentionally does
+not propose edits for
 `pqbtc_mldsa44.c`, because that file includes the pinned upstream
 single-compilation-unit implementation and its nested `.c` files. Clang-tidy
 still parses that implementation as part of the wrapper translation unit, but
@@ -177,6 +179,32 @@ configuration, compiled binary, functional correctness, cryptographic
 security, constant-time behavior, leakage resistance, fault resistance,
 thread safety, or production fitness. It does not replace independent human
 review, close a production gate, or alter the release hold.
+
+## Stateful Signer and Seeded-Keygen Fuzzing
+
+`run_stateful_signer_fuzz.py` owns a separate test-only libFuzzer target for
+the wrapper's deterministic seeded-key generation and hedged-signing state
+machine. Its 31 checked-in frames cover all 12 effective bounded call
+sequences, including the oversized-context preservation path, and all
+13 invalid-argument variants, plus entropy lengths and message/context
+boundaries. Every input resets the module. Every parsed frame derives the same
+keypair twice, asserts exact entropy-call accounting, and checks failure
+zeroing, repeat detection, post-failure state, fixed-randomizer output, strict
+verification, and input immutability.
+
+The sustained workflow runs separate Clang ASan/UBSan and MSan jobs with a
+60-second pull-request/push smoke and a 1,800-second scheduled/manual campaign.
+The stateful minimized corpus and machine-readable evidence use a namespace
+separate from verifier and differential evidence. A retained restore must come
+from an ancestor `main` run and pass its complete checksum inventory, campaign
+identity, clean-head, minimized-corpus digest, flat-file, and resource-bound
+checks before import. The importer recomputes that exact count, byte total,
+and name-bound aggregate immediately before copying, then records and verifies
+a content-addressed receipt for the novel frames actually added. This is
+bounded test-only
+issue-`#188` evidence; it does not connect the wrapper to production, prove
+fork/lifecycle behavior or resource limits, close the issue, or change the
+release hold.
 
 ## Differential Verifier Fuzzing
 
