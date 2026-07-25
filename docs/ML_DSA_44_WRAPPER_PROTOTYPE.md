@@ -205,7 +205,23 @@ on any setup error or accept/reject disagreement. The wrapper's exact
 invalid-argument taxonomy is still checked separately. The retained evidence
 records source and binary hashes, both external-oracle pins, the resolved
 `libcrypto` binary hash, coverage, minimized corpus, and crash artifacts. A
-separate sanitized replay executable first sends five named frozen valid,
+pull-request run is explicitly labeled `pull_request_head_smoke_only`, records
+`promotion_eligible=false`, and uploads a `review-candidate` artifact because
+the workflow and local evidence generator are controlled by that pull request.
+Scheduled or manual evidence is promotion-eligible only on `main` and retains
+the broad frozen-baseline comparison for the workflow definition, engineering
+generator tree, adapters, comparator, and the CLI, reference, and differential
+control tests. Non-main manual dispatches skip the reproduction job and cannot
+upload trusted evidence. The trusted artifact prefix is assigned only after
+the main-ref and frozen-input checks complete; earlier failures remain pending
+or rejected. A substantive change to the workflow or evidence generator
+therefore fails trusted main reproduction while this repository-local guard
+remains intact, until a separate, reviewed baseline re-pin. The local guard
+closes accidental and ordinary reviewed source drift; it cannot independently
+authenticate a malicious workflow edit that removes its own check. Evidence
+must remain advisory until that trust decision is anchored outside the
+candidate workflow.
+A separate sanitized replay executable first sends five named frozen valid,
 invalid, malformed, and null-argument frames through the same real three-way
 target exactly once. This prevents an always-accepting or
 always-rejecting well-shaped wrapper from passing that campaign merely because
@@ -257,12 +273,14 @@ This prototype advances engineering evidence but closes no production gate:
 - issue `#188`: deterministic Wycheproof replay, bounded structure-aware
   ASan/UBSan and MSan campaigns, and bounded three-backend differential
   verifier fuzzing with retained evidence and supplementary portable libcrux
-  Miri execution are now implemented; bounded stateful signer and seeded-keygen
-  fuzzing is implemented in a separate test-only lane, but long-duration
-  evidence for that lane, broader-platform differential campaigns, full Rust
-  sanitizer coverage, minimum
-  coverage goals, reviewed regression-vector promotion, and stack, worst-case,
-  and adversarial-batch resource limits remain open;
+  Miri execution are now implemented; reviewed minimized regressions and the
+  bounded stateful signer/seeded-keygen lane have exact-main 1,800-second
+  evidence. The three research oracle CLIs now enforce documented argv parser
+  limits and replay fixed plus deterministic malformed-input mutations,
+  including non-UTF-8 arguments, with separate ASan/UBSan coverage for the C
+  adapters. Broader-platform and Rust sanitizer coverage, direct verifier
+  allocation/stack/CPU measurement, adversarial-batch limits, and exact-commit
+  re-review remain open;
 - issue `#189`: a dated fail-closed selected-graph advisory ledger, full-lock
   cargo-audit/OSV scans, selected dependency graph, CycloneDX SBOM, and weekly
   retained refresh are implemented; exact-commit independent re-review remains

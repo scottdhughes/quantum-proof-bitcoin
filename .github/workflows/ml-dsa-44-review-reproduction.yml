@@ -6,6 +6,7 @@ on:
       - ".github/workflows/ml-dsa-44-review-reproduction.yml"
       - "contrib/ml-dsa-ref/**"
       - "contrib/ml-dsa-engineering/**"
+      - "ci/test/test_ml_dsa_cli_adapter_fuzz.py"
       - "ci/test/test_ml_dsa_reference.py"
       - "ci/test/test_ml_dsa_differential_fuzz.py"
   schedule:
@@ -22,6 +23,7 @@ permissions:
 
 jobs:
   reproduce:
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     name: Reproduce pinned three-oracle evidence
     runs-on: ubuntu-24.04
     timeout-minutes: 150
@@ -36,11 +38,25 @@ jobs:
 
     steps:
       - name: Initialize failure evidence
+        id: evidence_scope
         env:
           CONTEXT: ${{ runner.temp }}/ml-dsa-44-review-run-context.txt
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            evidence_trust_scope="pull_request_head_smoke_only"
+            promotion_eligible="false"
+            artifact_prefix="ml-dsa-44-review-candidate"
+          elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+            evidence_trust_scope="pending_frozen_baseline_validation"
+            promotion_eligible="false"
+            artifact_prefix="ml-dsa-44-review-pending"
+          else
+            evidence_trust_scope="rejected_non_main_dispatch"
+            promotion_eligible="false"
+            artifact_prefix="ml-dsa-44-review-rejected"
+          fi
           {
             echo "event_name=$GITHUB_EVENT_NAME"
             echo "github_ref=$GITHUB_REF"
@@ -48,7 +64,11 @@ jobs:
             echo "expected_checkout_head=$EXPECTED_HEAD"
             echo "github_run_id=$GITHUB_RUN_ID"
             echo "github_run_attempt=$GITHUB_RUN_ATTEMPT"
+            echo "baseline_commit=$BASELINE"
+            echo "evidence_trust_scope=$evidence_trust_scope"
+            echo "promotion_eligible=$promotion_eligible"
           } > "$CONTEXT"
+          echo "artifact_prefix=$artifact_prefix" >> "$GITHUB_OUTPUT"
 
       - name: Checkout PQBTC review head
         timeout-minutes: 5
@@ -70,8 +90,10 @@ jobs:
           echo "RUSTUP_TOOLCHAIN=1.89.0" >> "$GITHUB_ENV"
 
       - name: Validate frozen repository inputs
+        id: repository_inputs
         timeout-minutes: 10
         env:
+          CONTEXT: ${{ runner.temp }}/ml-dsa-44-review-run-context.txt
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euxo pipefail
@@ -79,17 +101,41 @@ jobs:
           repository_status="$(git status --porcelain --untracked-files=all)"
           test -z "$repository_status"
           test "$(rustc --version | cut -d ' ' -f 2)" = "1.89.0"
-          git diff --exit-code "$BASELINE" -- \
-            contrib/ml-dsa-ref ci/test/test_ml_dsa_reference.py \
-            ':(exclude)contrib/ml-dsa-ref/README.md' \
-            ':(exclude)contrib/ml-dsa-ref/wolfram/**'
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            git diff --exit-code "$BASELINE" -- contrib/ml-dsa-ref/vectors.json
+          else
+            test "$GITHUB_REF" = "refs/heads/main"
+            git diff --exit-code "$BASELINE" -- \
+              .github/workflows/ml-dsa-44-review-reproduction.yml \
+              contrib/ml-dsa-engineering \
+              contrib/ml-dsa-ref \
+              ci/test/test_ml_dsa_cli_adapter_fuzz.py \
+              ci/test/test_ml_dsa_differential_fuzz.py \
+              ci/test/test_ml_dsa_reference.py \
+              ':(exclude)contrib/ml-dsa-ref/README.md' \
+              ':(exclude)contrib/ml-dsa-ref/wolfram/**'
+          fi
+          python3 contrib/ml-dsa-ref/run_cli_adapter_fuzz.py --manifest-only
           python3 contrib/ml-dsa-ref/compare_oracles.py --manifest-only
-          python3 -m unittest ci.test.test_ml_dsa_reference
+          python3 -m unittest \
+            ci.test.test_ml_dsa_cli_adapter_fuzz \
+            ci.test.test_ml_dsa_reference
           python3 contrib/ml-dsa-engineering/run_differential_verifier_fuzz.py \
             --manifest-only
           rustfmt --check \
+            contrib/ml-dsa-ref/libcrux_oracle.rs \
             contrib/ml-dsa-engineering/pqbtc_mldsa44_libcrux_verify.rs
           python3 -m unittest ci.test.test_ml_dsa_differential_fuzz
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            artifact_prefix="ml-dsa-44-review-candidate"
+          else
+            sed -i \
+              -e 's/^evidence_trust_scope=.*/evidence_trust_scope=frozen_baseline_reproduction/' \
+              -e 's/^promotion_eligible=.*/promotion_eligible=true/' \
+              "$CONTEXT"
+            artifact_prefix="ml-dsa-44-review-evidence"
+          fi
+          echo "artifact_prefix=$artifact_prefix" >> "$GITHUB_OUTPUT"
 
       - name: Stage failure evidence
         env:
@@ -124,22 +170,35 @@ jobs:
           fi
 
           previous_run_record="$(
-            gh run list \
-              --repo "$GITHUB_REPOSITORY" \
-              --workflow ml-dsa-44-review-reproduction.yml \
-              --branch main \
-              --status success \
-              --limit 20 \
-              --json databaseId,attempt,createdAt,headSha \
-              --jq 'sort_by([.createdAt, .databaseId]) | reverse | .[0] | select(.) | [.databaseId, .attempt, .headSha] | @tsv'
+            {
+              gh run list \
+                --repo "$GITHUB_REPOSITORY" \
+                --workflow ml-dsa-44-review-reproduction.yml \
+                --branch main \
+                --event schedule \
+                --status success \
+                --limit 1 \
+                --json databaseId,attempt,createdAt,event,headSha \
+                --jq '.[] | [.createdAt, .databaseId, .attempt, .headSha] | @tsv'
+              gh run list \
+                --repo "$GITHUB_REPOSITORY" \
+                --workflow ml-dsa-44-review-reproduction.yml \
+                --branch main \
+                --event workflow_dispatch \
+                --status success \
+                --limit 1 \
+                --json databaseId,attempt,createdAt,event,headSha \
+                --jq '.[] | [.createdAt, .databaseId, .attempt, .headSha] | @tsv'
+            } | LC_ALL=C sort -t $'\t' -k1,1r -k2,2nr | sed -n '1p'
           )"
           if [[ -z "$previous_run_record" ]]; then
             echo "state=no_prior_successful_main_run" >> "$PROVENANCE"
             exit 1
           fi
 
-          IFS=$'\t' read -r previous_run previous_attempt previous_head \
-            <<< "$previous_run_record"
+          IFS=$'\t' read -r previous_created_at previous_run \
+            previous_attempt previous_head <<< "$previous_run_record"
+          [[ "$previous_created_at" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]
           [[ "$previous_run" =~ ^[0-9]+$ ]]
           [[ "$previous_attempt" =~ ^[0-9]+$ ]]
           [[ "$previous_head" =~ ^[0-9a-f]{40}$ ]]
@@ -254,6 +313,7 @@ jobs:
             echo "state=restored"
             echo "source_run_id=$previous_run"
             echo "source_run_attempt=$previous_attempt"
+            echo "source_run_created_at=$previous_created_at"
             echo "source_head_sha=$previous_head"
             echo "source_artifact=$artifact_name"
             echo "seed_directory=$seed_dir_relative"
@@ -265,6 +325,7 @@ jobs:
             echo "seed_dir=$seed_dir"
             echo "source_run_id=$previous_run"
             echo "source_run_attempt=$previous_attempt"
+            echo "source_run_created_at=$previous_created_at"
             echo "source_head_sha=$previous_head"
             echo "source_artifact=$artifact_name"
             echo "restored_seed_file_count=$seed_count"
@@ -522,6 +583,7 @@ jobs:
           import json
           import os
           from pathlib import Path
+          import re
           import subprocess
 
           report = json.loads(Path("ml-dsa-44-review-run.json").read_text())
@@ -536,6 +598,88 @@ jobs:
           assert (
               report["checks"]["libcrux_executed_security_regressions"]
               == "PASS"
+          )
+          expected_parser_limits = {
+              "embedded_nul_argv": "not-representable-by-execve",
+              "hex_case": "upper-or-lower-ascii",
+              "keygen_seed_bytes": 32,
+              "maximum_context_bytes": 255,
+              "maximum_message_bytes": 8192,
+              "maximum_verify_signature_bytes": 2421,
+              "private_key_bytes": 2560,
+              "public_key_bytes": 1312,
+              "randomizer_bytes": 32,
+              "selected_acvp_maximum_message_bytes": 8192,
+              "signature_bytes": 2420,
+          }
+          expected_process_limits = {
+              "address_space_limit_bytes": 1073741824,
+              "address_space_scope": "unsanitized-linux-children-only",
+              "core_size_bytes": 0,
+              "cpu_limit_seconds": 2,
+              "file_size_limit_bytes": 65536,
+              "maximum_accepted_output_bytes_per_stream": 65536,
+              "open_file_limit": 64,
+              "output_limit_scope": (
+                  "post-exit-acceptance-gate-not-streaming-cap"
+              ),
+              "rlimit_scope": "linux-children-only",
+              "scope": (
+                  "test-process-containment-not-cryptographic-resource-proof"
+              ),
+              "stack_limit_bytes": 8388608,
+              "wall_timeout_scope": "all-platforms",
+              "wall_timeout_seconds": 3,
+          }
+
+          def check_cli_report(cli_report, fixed_counts, sanitized):
+              assert cli_report["status"] == "PASS"
+              assert cli_report["target"] == "research-oracle-cli-argv"
+              assert cli_report["parser_limits"] == expected_parser_limits
+              assert cli_report["process_limits"] == expected_process_limits
+              assert re.fullmatch(
+                  r"[0-9a-f]{64}", cli_report["manifest_sha256"]
+              )
+              assert cli_report["runtime_limit_application"] == {
+                  "platform": "linux",
+                  "wall_timeout_applied": True,
+                  "linux_rlimits_applied": True,
+                  "address_space_rlimit_applied": not sanitized,
+              }
+              assert set(cli_report["adapters"]) == set(fixed_counts)
+              for name, adapter in cli_report["adapters"].items():
+                  assert adapter["sanitized"] is sanitized
+                  assert adapter["limits_applied"] == {
+                      "wall_timeout": True,
+                      "linux_rlimits": True,
+                      "address_space_rlimit": not sanitized,
+                  }
+                  assert adapter["fixed"]["case_count"] == fixed_counts[name]
+                  assert adapter["mutations"]["case_count"] == 60
+                  assert adapter["mutations"]["unique_argv_count"] == 60
+                  assert adapter["mutations"]["outcome_counts"] == {
+                      "malformed": 60
+                  }
+                  assert len(adapter["cases"]) == fixed_counts[name] + 60
+                  assert all(
+                      re.fullmatch(r"[0-9a-f]{64}", case[field])
+                      for case in adapter["cases"]
+                      for field in (
+                          "argv_sha256",
+                          "stdout_sha256",
+                          "stderr_sha256",
+                      )
+                  )
+
+          check_cli_report(
+              report["cli_adapter_fuzz"],
+              {"openssl": 70, "mldsa_native": 70, "libcrux": 69},
+              False,
+          )
+          check_cli_report(
+              report["sanitized_smoke"]["cli_adapter_fuzz"],
+              {"openssl": 70, "mldsa_native": 70},
+              True,
           )
           advisory = report["libcrux_advisory_regressions"]["advisories"]
           assert advisory["RUSTSEC-2026-0076"]["pqbtc_exact_regression"] == {
@@ -845,7 +989,7 @@ jobs:
         timeout-minutes: 10
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: ml-dsa-44-review-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          name: ${{ steps.repository_inputs.outputs.artifact_prefix || steps.evidence_scope.outputs.artifact_prefix }}-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             ml-dsa-44-review-run-context.txt
             ml-dsa-44-review-run.json

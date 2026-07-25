@@ -166,7 +166,7 @@ Prototype admission closes no production finding:
 | Supported-platform side channels | #185 | bounded x86_64 Valgrind constant-time/variable-latency evidence; broader platforms and leakage models open |
 | Fault model and injected faults | #186 | open |
 | End-to-end secret erasure | #187 | source cleanup and sanitizer evidence only; compiler/caller/platform boundary open |
-| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential fuzzing, and supplementary portable Miri evidence; stateful/adversarial resource limits and broader production coverage remain open |
+| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential/stateful fuzzing, promoted regressions, portable Miri evidence, and bounded malformed research-CLI argv replay; direct verifier allocation/stack/CPU and adversarial-batch limits, broader platform/Rust sanitizer coverage, and exact-commit re-review remain open |
 | Backend advisories, SBOM, and reproducible build | #189 | dated fail-closed ledger, full-lock cargo-audit/OSV scans, exact selected graph, CycloneDX SBOM, and weekly retained refresh implemented; exact-commit independent re-review remains open |
 | Wallet and key format | #190 | open |
 | Independent human cryptographic review | #181 | open |

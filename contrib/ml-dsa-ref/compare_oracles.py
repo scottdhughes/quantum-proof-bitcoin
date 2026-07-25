@@ -21,6 +21,11 @@ from pathlib import Path
 
 
 HERE = Path(__file__).resolve().parent
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+
+import run_cli_adapter_fuzz as cli_adapter_fuzz  # noqa: E402
+
 MANIFEST_PATH = HERE / "vectors.json"
 OPENSSL_SOURCE = HERE / "openssl_oracle.c"
 MLDSA_NATIVE_SOURCE = HERE / "mldsa_native_oracle.c"
@@ -38,10 +43,12 @@ class Oracle:
         executable: Path,
         derives_public_key: bool = True,
         sign_requires_public_key: bool = False,
+        sanitized: bool = False,
     ) -> None:
         self.executable = executable
         self.derives_public_key = derives_public_key
         self.sign_requires_public_key = sign_requires_public_key
+        self.sanitized = sanitized
 
 
 def require_hex(value: str, byte_length: int, label: str) -> None:
@@ -258,6 +265,7 @@ def load_manifest() -> dict:
     with MANIFEST_PATH.open(encoding="utf8") as manifest_file:
         manifest = json.load(manifest_file)
     validate_manifest(manifest)
+    cli_adapter_fuzz.validate_manifest()
     return manifest
 
 
@@ -1577,7 +1585,7 @@ def evaluate_sanitized_smoke(
         for name, oracle in oracles.items()
     }
     require_equal("sanitized deterministic signatures", *deterministic.values())
-    return evaluate_boundaries_and_mutations(
+    report = evaluate_boundaries_and_mutations(
         profile,
         oracles,
         vector,
@@ -1585,6 +1593,16 @@ def evaluate_sanitized_smoke(
         material["pk"],
         next(iter(deterministic.values())),
     )
+    report["cli_adapter_fuzz"] = cli_adapter_fuzz.evaluate_cli_adapters(
+        oracles,
+        seed=vector["seed_hex"],
+        private_key=material["sk"],
+        public_key=material["pk"],
+        message=vector["message_hex"],
+        context=vector["context_hex"],
+        signature=next(iter(deterministic.values())),
+    )
+    return report
 
 
 def libcrux_malformed_hint_signature(profile: dict, final_counter: int) -> str:
@@ -1744,6 +1762,15 @@ def evaluate(
         material["pk"],
         deterministic_signature,
     )
+    cli_fuzz_report = cli_adapter_fuzz.evaluate_cli_adapters(
+        oracles,
+        seed=vector["seed_hex"],
+        private_key=material["sk"],
+        public_key=material["pk"],
+        message=vector["message_hex"],
+        context=vector["context_hex"],
+        signature=deterministic_signature,
+    )
     advisory_report = evaluate_libcrux_advisory_regressions(
         profile,
         oracles,
@@ -1774,6 +1801,7 @@ def evaluate(
             "full_signature_byte_agreement": "PASS",
             "randomized_interoperability": "PASS",
             "boundary_and_mutation_rejection": "PASS",
+            "research_cli_adapter_fuzz": "PASS",
             "libcrux_source_and_crate_provenance": "PASS",
             "libcrux_executed_security_regressions": "PASS",
             "adapter_asan_ubsan": "PASS" if sanitized_report is not None else "NOT_RUN",
@@ -1786,6 +1814,7 @@ def evaluate(
         },
         "randomized_interoperability": randomized_report,
         "negative_testing": negative_report,
+        "cli_adapter_fuzz": cli_fuzz_report,
         "libcrux_advisory_regressions": advisory_report,
         "sanitized_smoke": sanitized_report,
         "signature_sha256": {
@@ -1959,7 +1988,8 @@ def main() -> int:
                             build_dir,
                             sources["openssl"]["version"],
                             sanitized=True,
-                        )
+                        ),
+                        sanitized=True,
                     ),
                     "mldsa_native": Oracle(
                         compile_mldsa_native_oracle(
@@ -1967,7 +1997,8 @@ def main() -> int:
                             mldsa_native,
                             sources["mldsa_native"]["commit"],
                             sanitized=True,
-                        )
+                        ),
+                        sanitized=True,
                     ),
                 }
                 sanitized_report = evaluate_sanitized_smoke(
@@ -1985,7 +2016,13 @@ def main() -> int:
             )
         print(json.dumps(report, indent=2, sort_keys=True))
         return 0
-    except (OSError, KeyError, ReferenceError, ValueError) as error:
+    except (
+        OSError,
+        KeyError,
+        ReferenceError,
+        ValueError,
+        cli_adapter_fuzz.CliFuzzError,
+    ) as error:
         print(f"compare_oracles.py: {error}", file=sys.stderr)
         return 1
 
