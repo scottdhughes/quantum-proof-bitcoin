@@ -36,6 +36,7 @@ readiness.
 ## Run
 
 ```bash
+python3 contrib/ml-dsa-ref/run_cli_adapter_fuzz.py --manifest-only
 python3 contrib/ml-dsa-ref/compare_oracles.py --manifest-only
 python3 contrib/ml-dsa-ref/compare_oracles.py \
   --acvp-server /path/to/pinned/ACVP-Server \
@@ -65,7 +66,50 @@ portable-C adapters. The upstream tests are accurately labeled ML-DSA-65; the
 comparator no longer treats them as a package-wide advisory PASS. The complete
 dated advisory inventory and scheduled dependency scans are defined by
 `contrib/ml-dsa-engineering/advisory_ledger.json`. The JSON report includes
-ten-run timing medians and an explicitly scoped raw-payload block-space model.
+ten-run timing medians, an explicitly scoped raw-payload block-space model, and
+the separate research-CLI malformed-input report described below.
+
+## Research CLI parser limits
+
+The OpenSSL, `mldsa-native`, and libcrux executables are research adapters, not
+node or consensus parsers. Their argv decoders accept upper- or lower-case
+ASCII hex without prefixes or whitespace and enforce these bounds before
+cryptographic work:
+
+- key-generation seed: exactly 32 bytes;
+- private key: exactly 2,560 bytes;
+- public key: exactly 1,312 bytes;
+- fixed signing randomizer: exactly 32 bytes;
+- message: at most 8,192 bytes, preserving the largest selected pinned ACVP
+  case;
+- context: at most 255 bytes; and
+- verification signature: at most 2,421 bytes. Exactly 2,420 bytes enters the
+  verifier; shorter inputs and the one-byte extension retain the historical
+  `verified=0` taxonomy, while larger inputs are malformed.
+
+The two C adapters use bounded scans and fixed decode buffers instead of
+`strlen` plus attacker-sized allocations. The Rust adapter limits argv count,
+uses `args_os`, rejects non-UTF-8 without panic, and checks each byte bound
+before allocating its decode vector. POSIX `execve` cannot represent an
+embedded NUL inside one argv value, so this process-level harness does not
+claim NUL coverage.
+
+`run_cli_adapter_fuzz.py` freezes 70 fixed cases for each C adapter and 69 for
+libcrux, then applies 60 unique deterministic malformed argv mutations to each
+executable. The cases cover arity and command errors; empty, odd, prefixed,
+whitespace, non-hex, non-UTF-8, boundary, and boundary-plus-one operands; valid
+upper/lower-case input; and the short/extended-signature rejection taxonomy.
+The same fixed and mutation corpus runs against ASan/UBSan builds of both C
+adapters. Reports retain only case labels, argument lengths and hashes,
+outcome classes, exit status, and output hashes/sizes.
+
+Every child has a three-second wall timeout. Linux children also receive
+two CPU seconds, an 8 MiB stack limit, a 64 KiB file-size limit, 64 open files,
+and disabled core dumps; unsanitized Linux children additionally receive a
+1 GiB address-space limit. The 64 KiB stdout/stderr rule is a post-exit
+acceptance gate, not a streaming memory cap. These are research-harness
+containment controls, not verifier CPU, allocation, stack, consensus, or
+network-denial-of-service limits.
 
 The current `mldsa-native` and libcrux research adapters use POSIX
 `/dev/urandom` to exercise randomized signing. Those wrapper paths are intended
@@ -74,7 +118,7 @@ implementation.
 
 All three adapters reject any signature whose decoded length is not exactly
 2,420 bytes before entering the implementation verifier. OpenSSL,
-`mldsa-native`, and libcrux are prototype oracles only; passing this harness
+`mldsa-native`, and libcrux are prototype oracles only; passing these harnesses
 neither makes one a node dependency nor approves ML-DSA-44 for consensus
 integration.
 

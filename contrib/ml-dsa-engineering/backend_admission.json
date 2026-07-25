@@ -162,7 +162,7 @@
     },
     {
       "id": "structure_aware_fuzzing_and_resources",
-      "status": "DIFFERENTIAL_SANITIZER_AND_SUPPLEMENTARY_MIRI_EVIDENCE_RESOURCES_OPEN",
+      "status": "DIFFERENTIAL_STATEFUL_SANITIZER_MIRI_AND_CLI_EVIDENCE_RESOURCES_OPEN",
       "tracking_issue": 188
     },
     {

@@ -16,24 +16,32 @@ const PRIVATE_KEY_SIZE: usize = 2560;
 const PUBLIC_KEY_SIZE: usize = 1312;
 const RANDOMIZER_SIZE: usize = 32;
 const SIGNATURE_SIZE: usize = 2420;
+const MAX_VERIFY_SIGNATURE_SIZE: usize = SIGNATURE_SIZE + 1;
+const MAX_MESSAGE_SIZE: usize = 8192;
+const MAX_CONTEXT_SIZE: usize = 255;
 
-fn decode_hex(value: &str) -> Result<Vec<u8>, String> {
-    if !value.len().is_multiple_of(2) {
-        return Err("hex input has odd length".to_owned());
+fn decode_hex(value: &str, maximum_size: usize, label: &str) -> Result<Vec<u8>, String> {
+    if value.len() > maximum_size * 2 {
+        return Err(format!(
+            "{label} exceeds the {maximum_size}-byte research limit"
+        ));
     }
-    value
-        .as_bytes()
-        .chunks_exact(2)
-        .map(|pair| {
-            let text = std::str::from_utf8(pair).map_err(|_| "hex input is not ASCII")?;
-            u8::from_str_radix(text, 16).map_err(|_| "hex input contains a non-hex digit")
-        })
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(str::to_owned)
+    if !value.len().is_multiple_of(2) {
+        return Err(format!("{label} hex input has odd length"));
+    }
+    let mut decoded = Vec::with_capacity(value.len() / 2);
+    for pair in value.as_bytes().chunks_exact(2) {
+        let text = std::str::from_utf8(pair).map_err(|_| format!("{label} is not ASCII hex"))?;
+        decoded.push(
+            u8::from_str_radix(text, 16)
+                .map_err(|_| format!("{label} contains a non-hex digit"))?,
+        );
+    }
+    Ok(decoded)
 }
 
 fn decode_array<const SIZE: usize>(value: &str, label: &str) -> Result<[u8; SIZE], String> {
-    let decoded = decode_hex(value)?;
+    let decoded = decode_hex(value, SIZE, label)?;
     decoded
         .try_into()
         .map_err(|_| format!("{label} must be {SIZE} bytes"))
@@ -83,11 +91,8 @@ fn run_sign(
         public_key_hex,
         "public key",
     )?);
-    let message = decode_hex(message_hex)?;
-    let context = decode_hex(context_hex)?;
-    if context.len() > 255 {
-        return Err("context must not exceed 255 bytes".to_owned());
-    }
+    let message = decode_hex(message_hex, MAX_MESSAGE_SIZE, "message")?;
+    let context = decode_hex(context_hex, MAX_CONTEXT_SIZE, "context")?;
     let signing_randomizer = match (fixed_randomizer_hex, randomized) {
         (Some(_), true) => return Err("fixed and random signing modes conflict".to_owned()),
         (Some(value), false) => decode_array::<RANDOMIZER_SIZE>(value, "randomizer")?,
@@ -121,12 +126,9 @@ fn run_verify(
         public_key_hex,
         "public key",
     )?);
-    let message = decode_hex(message_hex)?;
-    let context = decode_hex(context_hex)?;
-    if context.len() > 255 {
-        return Err("context must not exceed 255 bytes".to_owned());
-    }
-    let signature_bytes = decode_hex(signature_hex)?;
+    let message = decode_hex(message_hex, MAX_MESSAGE_SIZE, "message")?;
+    let context = decode_hex(context_hex, MAX_CONTEXT_SIZE, "context")?;
+    let signature_bytes = decode_hex(signature_hex, MAX_VERIFY_SIGNATURE_SIZE, "signature")?;
     if signature_bytes.len() != SIGNATURE_SIZE {
         println!("verified=0");
         println!("verify_ns=0");
@@ -146,27 +148,44 @@ fn run_verify(
     Ok(())
 }
 
-fn usage(program: &str) {
-    eprintln!("usage: {program} keygen <seed-hex>");
-    eprintln!("       {program} sign <sk-hex> <message-hex> <context-hex> <pk-hex>");
-    eprintln!("       {program} sign-randomized <sk-hex> <message-hex> <context-hex> <pk-hex>");
+fn usage() {
+    eprintln!("usage: libcrux_oracle keygen <seed-hex>");
+    eprintln!("       libcrux_oracle sign <sk-hex> <message-hex> <context-hex> <pk-hex>");
     eprintln!(
-        "       {program} sign-with-randomizer <sk-hex> <message-hex> <context-hex> <randomizer-hex> <pk-hex>"
+        "       libcrux_oracle sign-randomized <sk-hex> <message-hex> <context-hex> <pk-hex>"
     );
-    eprintln!("       {program} verify <pk-hex> <message-hex> <context-hex> <signature-hex>");
+    eprintln!(
+        "       libcrux_oracle sign-with-randomizer <sk-hex> <message-hex> <context-hex> <randomizer-hex> <pk-hex>"
+    );
+    eprintln!("       libcrux_oracle verify <pk-hex> <message-hex> <context-hex> <signature-hex>");
 }
 
 fn main() -> ExitCode {
-    let arguments: Vec<String> = env::args().collect();
+    let mut raw_arguments = env::args_os();
+    let _program = raw_arguments.next();
+    let mut arguments = Vec::with_capacity(7);
+    for argument in raw_arguments.by_ref().take(7) {
+        match argument.into_string() {
+            Ok(value) => arguments.push(value),
+            Err(_) => {
+                eprintln!("libcrux_oracle: command arguments must be UTF-8");
+                return ExitCode::FAILURE;
+            }
+        }
+    }
+    if arguments.len() > 6 || raw_arguments.next().is_some() {
+        usage();
+        return ExitCode::from(2);
+    }
     let result = match arguments.as_slice() {
-        [_, command, seed] if command == "keygen" => run_keygen(seed),
-        [_, command, private_key, message, context, public_key] if command == "sign" => {
+        [command, seed] if command == "keygen" => run_keygen(seed),
+        [command, private_key, message, context, public_key] if command == "sign" => {
             run_sign(private_key, message, context, public_key, None, false)
         }
-        [_, command, private_key, message, context, public_key] if command == "sign-randomized" => {
+        [command, private_key, message, context, public_key] if command == "sign-randomized" => {
             run_sign(private_key, message, context, public_key, None, true)
         }
-        [_, command, private_key, message, context, randomizer, public_key]
+        [command, private_key, message, context, randomizer, public_key]
             if command == "sign-with-randomizer" =>
         {
             run_sign(
@@ -178,11 +197,11 @@ fn main() -> ExitCode {
                 false,
             )
         }
-        [_, command, public_key, message, context, signature] if command == "verify" => {
+        [command, public_key, message, context, signature] if command == "verify" => {
             run_verify(public_key, message, context, signature)
         }
         _ => {
-            usage(arguments.first().map_or("libcrux_oracle", String::as_str));
+            usage();
             return ExitCode::from(2);
         }
     };

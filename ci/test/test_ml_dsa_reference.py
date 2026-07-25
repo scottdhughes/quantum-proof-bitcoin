@@ -109,7 +109,7 @@ class MLDSAReferenceTests(unittest.TestCase):
             source = (REFERENCE_DIR / source_name).read_text(encoding="utf8")
             self.assertIn("if (signature_size != SIGNATURE_SIZE)", source)
             self.assertIn('printf("verified=0\\n")', source)
-            self.assertIn('strcmp(argv[1], "public-key")', source)
+            self.assertIn('OracleCommandEquals(argv[1], "public-key")', source)
         openssl_source = (REFERENCE_DIR / "openssl_oracle.c").read_text(encoding="utf8")
         self.assertNotIn("private_key + PRIVATE_KEY_SIZE - PUBLIC_KEY_SIZE", openssl_source)
         native_source = (REFERENCE_DIR / "mldsa_native_oracle.c").read_text(encoding="utf8")
