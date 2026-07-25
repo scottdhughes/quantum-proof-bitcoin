@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef PQBTC_ML_DSA_REF_ORACLE_CLI_H
-#define PQBTC_ML_DSA_REF_ORACLE_CLI_H
+#ifndef BITCOIN_ML_DSA_REF_ORACLE_CLI_H
+#define BITCOIN_ML_DSA_REF_ORACLE_CLI_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -74,4 +74,4 @@ static inline int OracleCommandEquals(const char* actual, const char* expected)
     return expected[index] == '\0' && actual[index] == '\0';
 }
 
-#endif // PQBTC_ML_DSA_REF_ORACLE_CLI_H
+#endif // BITCOIN_ML_DSA_REF_ORACLE_CLI_H
