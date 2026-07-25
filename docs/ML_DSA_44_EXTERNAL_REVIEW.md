@@ -187,8 +187,10 @@ signature hashes above, and `PASS` for every entry under `checks`, including
 `adapter_asan_ubsan`. Both retained upstream libcrux security tests must pass
 and be reported as ML-DSA-65. Both repo-defined exact ML-DSA-44
 RUSTSEC-2026-0076 malformed-hint cases must reject without panic. The reviewer
-must retain the explicit `UNTESTED` disposition for an exact ML-DSA-44
-RUSTSEC-2026-0077 regression unless separate evidence is supplied.
+must also confirm that the source- and case-hash-bound Wycheproof ML-DSA-44
+tcIds 125 and 126 reject across all three oracles for the exact
+RUSTSEC-2026-0077 positive and negative signer-response coefficient cases at
+the infinity-norm boundary.
 
 The complete report has no universal expected SHA256 because it contains host-
 specific benchmark values. The run also exercises fresh randomized-signing

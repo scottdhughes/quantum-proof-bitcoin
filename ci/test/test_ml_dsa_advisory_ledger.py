@@ -496,6 +496,10 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         self.assertEqual(contract["production_backend"], "NONE")
         self.assertFalse(contract["simd256_admitted"])
         self.assertEqual(contract["miri_role"], "SUPPLEMENTARY")
+        self.assertEqual(
+            self.ledger["scope"]["issue_189"],
+            "REMAINS_OPEN_PENDING_SIMD_ADMISSION_REGRESSIONS_AND_RE_REVIEW",
+        )
         libcrux = next(
             source
             for source in self.ledger["source_contract"]["oracles"]
@@ -913,9 +917,22 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
                 with self.assertRaises(advisory.AuditError):
                     advisory.validate_ledger(mutated, self.vectors)
 
+    def test_issue_189_cannot_omit_open_simd_or_re_review_gates(self):
+        for scope in (
+            "REMAINS_OPEN_PENDING_SIMD_ADMISSION_REGRESSIONS",
+            "REMAINS_OPEN_PENDING_RE_REVIEW",
+        ):
+            with self.subTest(scope=scope):
+                mutated = copy.deepcopy(self.ledger)
+                mutated["scope"]["issue_189"] = scope
+                with self.assertRaisesRegex(
+                    advisory.AuditError,
+                    "SIMD256 admission regressions and exact-commit re-review",
+                ):
+                    advisory.validate_ledger(mutated, self.vectors)
+
     def test_advisory_test_dispositions_cannot_be_promoted_or_detached(self):
         for finding_id in (
-            "RUSTSEC-2026-0077",
             "RUSTSEC-2026-0125",
             "RUSTSEC-2026-0126",
         ):
@@ -929,15 +946,20 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
                 with self.assertRaisesRegex(advisory.AuditError, "disposition drifted"):
                     advisory.validate_ledger(mutated, self.vectors)
 
-        detached = copy.deepcopy(self.ledger)
-        entry = next(
-            item
-            for item in detached["advisories"]
-            if item["id"] == "RUSTSEC-2026-0076"
-        )
-        entry["evidence"] = ["nonempty but inexact"]
-        with self.assertRaisesRegex(advisory.AuditError, "not bound to exact evidence"):
-            advisory.validate_ledger(detached, self.vectors)
+        for finding_id in ("RUSTSEC-2026-0076", "RUSTSEC-2026-0077"):
+            with self.subTest(detached_finding_id=finding_id):
+                detached = copy.deepcopy(self.ledger)
+                entry = next(
+                    item
+                    for item in detached["advisories"]
+                    if item["id"] == finding_id
+                )
+                entry["evidence"] = ["nonempty but inexact"]
+                with self.assertRaisesRegex(
+                    advisory.AuditError,
+                    "not bound to exact evidence",
+                ):
+                    advisory.validate_ledger(detached, self.vectors)
 
     def test_full_lock_and_sbom_graph_fail_closed(self):
         mutated = copy.deepcopy(self.ledger)

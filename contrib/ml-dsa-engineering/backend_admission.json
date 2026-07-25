@@ -167,7 +167,7 @@
     },
     {
       "id": "backend_advisory_and_sbom_refresh",
-      "status": "TECHNICAL_LEDGER_AND_SCHEDULED_SCAN_IMPLEMENTED_RE_REVIEW_OPEN",
+      "status": "PORTABLE_REGRESSIONS_AND_SCHEDULED_SCAN_IMPLEMENTED_SIMD_AND_RE_REVIEW_OPEN",
       "tracking_issue": 189
     },
     {

@@ -240,7 +240,7 @@ if any of these occur:
 
 ## Independent Implementation Evidence
 
-Completed on 2026-07-19:
+Initial evidence completed on 2026-07-19:
 
 1. pin libcrux 0.0.10 source, tag, subtree, initial implementation commit, and
    exact crates.io archive
@@ -249,10 +249,13 @@ Completed on 2026-07-19:
    vector to pass OpenSSL, `mldsa-native`, and libcrux
 3. rerun the two retained upstream libcrux security tests on their ML-DSA-65
    scope and two exact ML-DSA-44 RUSTSEC-2026-0076 malformed-hint rejection
-   cases without panic; retain `UNTESTED` for exact ML-DSA-44
-   RUSTSEC-2026-0077 coverage
+   cases without panic
 4. record the qualified lineage assessment rather than claiming independent
    design or external review
+
+The 2026-07-25 follow-up binds pinned Wycheproof ML-DSA-44 tcIds 125 and 126
+and requires all three oracles to reject the exact RUSTSEC-2026-0077 positive
+and negative signer-response coefficient cases at the infinity-norm boundary.
 
 ## Next Gates
 

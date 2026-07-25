@@ -102,10 +102,13 @@ packages in the selected graph: nine libcrux-family entries plus three patched
 rand/rand_core entries. Every selected pin is at or above its published fixed
 version, but regression status is reported separately from version status.
 The exact ML-DSA-44 portable malformed-hint check for RUSTSEC-2026-0076 passes;
-the retained upstream 0076/0077 tests are explicitly labeled ML-DSA-65, and an
-exact ML-DSA-44 0077 regression remains untested. The AVX2-specific 0125/0126
-regressions block any future SIMD256 admission. This is useful evidence, not a
-reason to prefer a wider integration boundary for the first prototype.
+the retained upstream 0076/0077 tests are explicitly labeled ML-DSA-65, and
+pinned Wycheproof ML-DSA-44 tcIds 125 and 126 provide exact three-oracle
+regressions for positive and negative signer-response coefficients at the
+infinity-norm boundary for 0077. The
+AVX2-specific 0125/0126 regressions block any future SIMD256 admission. This is
+useful evidence, not a reason to prefer a wider integration boundary for the
+first prototype.
 
 ## Frozen Prototype Build Contract
 
@@ -167,7 +170,7 @@ Prototype admission closes no production finding:
 | Fault model and injected faults | #186 | open |
 | End-to-end secret erasure | #187 | source cleanup and sanitizer evidence only; compiler/caller/platform boundary open |
 | Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential/stateful fuzzing, promoted regressions, portable Miri evidence, and bounded malformed research-CLI argv replay; direct verifier allocation/stack/CPU and adversarial-batch limits, broader platform/Rust sanitizer coverage, and exact-commit re-review remain open |
-| Backend advisories, SBOM, and reproducible build | #189 | dated fail-closed ledger, full-lock cargo-audit/OSV scans, exact selected graph, CycloneDX SBOM, and weekly retained refresh implemented; exact-commit independent re-review remains open |
+| Backend advisories, SBOM, and reproducible build | #189 | dated fail-closed ledger, full-lock cargo-audit/OSV scans, exact selected graph, CycloneDX SBOM, weekly retained refresh, and exact portable ML-DSA-44 RUSTSEC-2026-0077 regressions implemented; exact SIMD256 RUSTSEC-2026-0125/0126 regressions before optimized-backend admission and exact-commit independent re-review remain open |
 | Wallet and key format | #190 | open |
 | Independent human cryptographic review | #181 | open |
 

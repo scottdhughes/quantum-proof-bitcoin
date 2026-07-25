@@ -30,6 +30,7 @@ MANIFEST_PATH = HERE / "vectors.json"
 OPENSSL_SOURCE = HERE / "openssl_oracle.c"
 MLDSA_NATIVE_SOURCE = HERE / "mldsa_native_oracle.c"
 LIBCRUX_SOURCE = HERE / "libcrux_oracle.rs"
+REPO_ROOT = HERE.parents[1]
 HEX_64 = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -260,11 +261,72 @@ def validate_manifest(manifest: dict) -> None:
         if HEX_64.fullmatch(pqbtc[field]) is None:
             raise ReferenceError(f"PQBTC {field} must be SHA256")
 
+    expected_norm_regression = {
+        "source": "C2SP Wycheproof ML-DSA-44 verification vectors",
+        "source_commit": "fc24cd5b787d8e496bff31b0468af693a652b0f2",
+        "source_manifest_path": (
+            "contrib/ml-dsa-engineering/fuzz_sources/wycheproof/SOURCE.json"
+        ),
+        "source_manifest_sha256": (
+            "3522cf3ae87aaa929f8d6b0e3be809665d809ce97b71cc01aa3256d7f2b0f1f2"
+        ),
+        "vector_file_path": (
+            "contrib/ml-dsa-engineering/fuzz_sources/wycheproof/"
+            "mldsa_44_verify_test.json"
+        ),
+        "vector_file_sha256": (
+            "5ec04790c240c443ca8b662b8fc871834602c7cce87fcd36a193110745b2b9ea"
+        ),
+        "parameter_set": "ML-DSA-44",
+        "expected_result": "invalid",
+        "required_flags": ["BoundaryCondition", "InfinityNormViolation"],
+        "cases": [
+            {
+                "test_case_id": 125,
+                "comment": "index 0 is exactly gamma1 - tau*eta",
+                "public_key_sha256": (
+                    "d87f8ca136ac1aa55e2d6c4521680efb3a378cbb9bc0bfb446e9c60893931ea3"
+                ),
+                "message_sha256": (
+                    "653f3f7ec47d73c38ee34378a05741e48aedb4fff7f9caf0a8abb8747ae8b241"
+                ),
+                "context_sha256": (
+                    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                ),
+                "signature_sha256": (
+                    "1bde001dd0eae0c4435341cc236a8363b58feeaaeaf02373fd9d5b1f3ef70f32"
+                ),
+            },
+            {
+                "test_case_id": 126,
+                "comment": "index 255 is exactly -(gamma1 - tau*eta)",
+                "public_key_sha256": (
+                    "d87f8ca136ac1aa55e2d6c4521680efb3a378cbb9bc0bfb446e9c60893931ea3"
+                ),
+                "message_sha256": (
+                    "653f3f7ec47d73c38ee34378a05741e48aedb4fff7f9caf0a8abb8747ae8b241"
+                ),
+                "context_sha256": (
+                    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                ),
+                "signature_sha256": (
+                    "1d217254a38c2773b3e19f24167b876595cf92fc68b5d40d4e99985c70786e20"
+                ),
+            },
+        ],
+    }
+    if vectors.get("rustsec_2026_0077_norm_regression") != expected_norm_regression:
+        raise ReferenceError("RUSTSEC-2026-0077 regression contract mismatch")
+
 
 def load_manifest() -> dict:
     with MANIFEST_PATH.open(encoding="utf8") as manifest_file:
         manifest = json.load(manifest_file)
     validate_manifest(manifest)
+    load_rustsec_2026_0077_cases(
+        manifest["profile"],
+        manifest["vectors"]["rustsec_2026_0077_norm_regression"],
+    )
     cli_adapter_fuzz.validate_manifest()
     return manifest
 
@@ -1623,6 +1685,116 @@ def libcrux_malformed_hint_signature(profile: dict, final_counter: int) -> str:
     return signature.hex()
 
 
+def load_rustsec_2026_0077_cases(profile: dict, contract: dict) -> list[dict]:
+    if profile["name"] != "ML-DSA-44":
+        raise ReferenceError("RUSTSEC-2026-0077 regression requires ML-DSA-44")
+
+    source_manifest_path = (REPO_ROOT / contract["source_manifest_path"]).resolve()
+    vector_path = (REPO_ROOT / contract["vector_file_path"]).resolve()
+    repository_root = REPO_ROOT.resolve()
+    if not source_manifest_path.is_relative_to(
+        repository_root
+    ) or not vector_path.is_relative_to(repository_root):
+        raise ReferenceError("RUSTSEC-2026-0077 source path escapes the repository")
+    require_artifact(
+        source_manifest_path,
+        contract["source_manifest_sha256"],
+        "RUSTSEC-2026-0077 Wycheproof source manifest",
+    )
+    require_artifact(
+        vector_path,
+        contract["vector_file_sha256"],
+        "RUSTSEC-2026-0077 Wycheproof vector file",
+    )
+
+    source_manifest = json.loads(source_manifest_path.read_text(encoding="utf8"))
+    if source_manifest.get("source", {}).get("commit") != contract["source_commit"]:
+        raise ReferenceError("RUSTSEC-2026-0077 Wycheproof source commit mismatch")
+    vector_record = source_manifest.get("vector_file", {})
+    if (
+        vector_record.get("sha256") != contract["vector_file_sha256"]
+        or vector_record.get("algorithm") != contract["parameter_set"]
+        or vector_record.get("number_of_tests") != 180
+    ):
+        raise ReferenceError("RUSTSEC-2026-0077 Wycheproof source metadata mismatch")
+
+    vectors = json.loads(vector_path.read_text(encoding="utf8"))
+    if (
+        vectors.get("algorithm") != contract["parameter_set"]
+        or str(vectors.get("generatorVersion")) != "1"
+        or vectors.get("numberOfTests") != 180
+    ):
+        raise ReferenceError("RUSTSEC-2026-0077 Wycheproof vector metadata mismatch")
+
+    indexed: dict[int, tuple[dict, dict]] = {}
+    for group in vectors.get("testGroups", []):
+        for test in group.get("tests", []):
+            test_case_id = test.get("tcId")
+            if not isinstance(test_case_id, int) or test_case_id in indexed:
+                raise ReferenceError(
+                    "RUSTSEC-2026-0077 Wycheproof test IDs are invalid or duplicated"
+                )
+            indexed[test_case_id] = (group, test)
+    if len(indexed) != vectors["numberOfTests"]:
+        raise ReferenceError("RUSTSEC-2026-0077 Wycheproof test count mismatch")
+
+    selected = []
+    for expected in contract["cases"]:
+        test_case_id = expected["test_case_id"]
+        if test_case_id not in indexed:
+            raise ReferenceError(
+                f"RUSTSEC-2026-0077 Wycheproof tcId {test_case_id} is missing"
+            )
+        group, test = indexed[test_case_id]
+        public_key_hex = group.get("publicKey", "")
+        message_hex = test.get("msg", "")
+        context_hex = test.get("ctx") or ""
+        signature_hex = test.get("sig", "")
+        if (
+            test.get("comment") != expected["comment"]
+            or test.get("result") != contract["expected_result"]
+            or set(test.get("flags", [])) != set(contract["required_flags"])
+        ):
+            raise ReferenceError(
+                f"RUSTSEC-2026-0077 Wycheproof tcId {test_case_id} semantics mismatch"
+            )
+        require_hex(
+            public_key_hex,
+            profile["public_key_bytes"],
+            f"RUSTSEC-2026-0077 tcId {test_case_id} public key",
+        )
+        require_hex(
+            signature_hex,
+            profile["signature_bytes"],
+            f"RUSTSEC-2026-0077 tcId {test_case_id} signature",
+        )
+        if len(bytes.fromhex(context_hex)) > 255:
+            raise ReferenceError(
+                f"RUSTSEC-2026-0077 tcId {test_case_id} context exceeds FIPS 204"
+            )
+        for value, field in (
+            (public_key_hex, "public_key_sha256"),
+            (message_hex, "message_sha256"),
+            (context_hex, "context_sha256"),
+            (signature_hex, "signature_sha256"),
+        ):
+            if sha256_hex(value) != expected[field]:
+                raise ReferenceError(
+                    f"RUSTSEC-2026-0077 Wycheproof tcId {test_case_id} "
+                    f"{field} mismatch"
+                )
+        selected.append(
+            {
+                "test_case_id": test_case_id,
+                "public_key_hex": public_key_hex,
+                "message_hex": message_hex,
+                "context_hex": context_hex,
+                "signature_hex": signature_hex,
+            }
+        )
+    return selected
+
+
 def evaluate_libcrux_advisory_regressions(
     profile: dict,
     oracles: dict[str, Oracle],
@@ -1630,7 +1802,14 @@ def evaluate_libcrux_advisory_regressions(
     message_hex: str,
     context_hex: str,
     upstream_report: dict,
+    norm_regression_contract: dict,
 ) -> dict:
+    expected_oracles = {"openssl", "mldsa_native", "libcrux"}
+    if set(oracles) != expected_oracles:
+        raise ReferenceError(
+            "libcrux advisory regressions require exactly the "
+            "openssl, mldsa_native, and libcrux oracles"
+        )
     expected_advisories = {"RUSTSEC-2026-0076", "RUSTSEC-2026-0077"}
     upstream_results = upstream_report.get("results", {})
     execution = upstream_report.get("execution", {})
@@ -1658,6 +1837,20 @@ def evaluate_libcrux_advisory_regressions(
             "0",
             f"libcrux {label} rejection",
         )
+    norm_cases = load_rustsec_2026_0077_cases(
+        profile,
+        norm_regression_contract,
+    )
+    for case in norm_cases:
+        require_verification(
+            oracles,
+            case["public_key_hex"],
+            case["message_hex"],
+            case["context_hex"],
+            case["signature_hex"],
+            "0",
+            f"libcrux RUSTSEC-2026-0077 Wycheproof tcId {case['test_case_id']}",
+        )
     return {
         "execution": execution,
         "advisories": {
@@ -1677,8 +1870,12 @@ def evaluate_libcrux_advisory_regressions(
                 "pqbtc_exact_regression": {
                     "parameter_set": "ML-DSA-44",
                     "called_backend": "portable",
-                    "status": "UNTESTED",
-                    "reason": "retained upstream regression is ML-DSA-65",
+                    "source": norm_regression_contract["source"],
+                    "test_case_ids": [
+                        case["test_case_id"] for case in norm_cases
+                    ],
+                    "cases": len(norm_cases),
+                    "status": "PASS",
                 },
             },
         },
@@ -1778,6 +1975,7 @@ def evaluate(
         vector["message_hex"],
         vector["context_hex"],
         libcrux_upstream_report,
+        manifest["vectors"]["rustsec_2026_0077_norm_regression"],
     )
     benchmark = benchmark_profile(
         profile, oracles, vector, benchmark_iterations

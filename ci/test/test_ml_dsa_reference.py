@@ -4,6 +4,7 @@ import json
 import subprocess
 import sys
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -141,6 +142,146 @@ class MLDSAReferenceTests(unittest.TestCase):
             out_of_bounds[hint_offset + 80 : hint_offset + 84],
             bytes((21, 42, 63, 85)),
         )
+
+    def test_libcrux_norm_regressions_are_exact_pinned_mldsa44_cases(self):
+        contract = self.manifest["vectors"][
+            "rustsec_2026_0077_norm_regression"
+        ]
+        cases = compare_oracles.load_rustsec_2026_0077_cases(
+            self.manifest["profile"],
+            contract,
+        )
+        self.assertEqual(
+            [case["test_case_id"] for case in cases],
+            [125, 126],
+        )
+        self.assertEqual(
+            {len(bytes.fromhex(case["public_key_hex"])) for case in cases},
+            {self.manifest["profile"]["public_key_bytes"]},
+        )
+        self.assertEqual(
+            {len(bytes.fromhex(case["signature_hex"])) for case in cases},
+            {self.manifest["profile"]["signature_bytes"]},
+        )
+        self.assertEqual(
+            {case["context_hex"] for case in cases},
+            {""},
+        )
+
+    def test_manifest_rejects_detached_norm_regression_contract(self):
+        mutated = copy.deepcopy(self.manifest)
+        mutated["vectors"]["rustsec_2026_0077_norm_regression"]["cases"][0][
+            "test_case_id"
+        ] = 124
+        with self.assertRaisesRegex(
+            compare_oracles.ReferenceError,
+            "RUSTSEC-2026-0077 regression contract",
+        ):
+            compare_oracles.validate_manifest(mutated)
+
+    def test_norm_regression_loader_rejects_path_escape(self):
+        mutated = copy.deepcopy(
+            self.manifest["vectors"]["rustsec_2026_0077_norm_regression"]
+        )
+        mutated["vector_file_path"] = "../outside.json"
+        with self.assertRaisesRegex(
+            compare_oracles.ReferenceError,
+            "source path escapes",
+        ):
+            compare_oracles.load_rustsec_2026_0077_cases(
+                self.manifest["profile"],
+                mutated,
+            )
+
+    def test_advisory_report_marks_exact_norm_regression_pass(self):
+        upstream_report = {
+            "execution": {
+                "compiled_backend": "portable",
+                "simd128_disabled": True,
+                "simd256_disabled": True,
+            },
+            "results": {
+                advisory_id: {"status": "PASS"}
+                for advisory_id in (
+                    "RUSTSEC-2026-0076",
+                    "RUSTSEC-2026-0077",
+                )
+            },
+        }
+        oracles = {
+            name: compare_oracles.Oracle(Path(name))
+            for name in ("openssl", "mldsa_native", "libcrux")
+        }
+        with mock.patch.object(
+            compare_oracles,
+            "require_verification",
+        ) as require_verification:
+            report = compare_oracles.evaluate_libcrux_advisory_regressions(
+                self.manifest["profile"],
+                oracles,
+                "00" * self.manifest["profile"]["public_key_bytes"],
+                "",
+                "",
+                upstream_report,
+                self.manifest["vectors"][
+                    "rustsec_2026_0077_norm_regression"
+                ],
+            )
+        exact = report["advisories"]["RUSTSEC-2026-0077"][
+            "pqbtc_exact_regression"
+        ]
+        self.assertEqual(exact["status"], "PASS")
+        self.assertEqual(exact["test_case_ids"], [125, 126])
+        self.assertEqual(exact["cases"], 2)
+        self.assertEqual(require_verification.call_count, 4)
+
+    def test_advisory_report_requires_exact_three_oracle_set(self):
+        upstream_report = {
+            "execution": {
+                "compiled_backend": "portable",
+                "simd128_disabled": True,
+                "simd256_disabled": True,
+            },
+            "results": {
+                advisory_id: {"status": "PASS"}
+                for advisory_id in (
+                    "RUSTSEC-2026-0076",
+                    "RUSTSEC-2026-0077",
+                )
+            },
+        }
+        oracles = {
+            name: compare_oracles.Oracle(Path(name))
+            for name in ("openssl", "mldsa_native", "libcrux")
+        }
+        cases = {
+            "missing": {
+                name: oracle
+                for name, oracle in oracles.items()
+                if name != "libcrux"
+            },
+            "extra": {
+                **oracles,
+                "unexpected": compare_oracles.Oracle(Path("unexpected")),
+            },
+        }
+        for label, candidate_oracles in cases.items():
+            with self.subTest(label=label):
+                with self.assertRaisesRegex(
+                    compare_oracles.ReferenceError,
+                    "require exactly",
+                ):
+                    compare_oracles.evaluate_libcrux_advisory_regressions(
+                        self.manifest["profile"],
+                        candidate_oracles,
+                        "00" * self.manifest["profile"]["public_key_bytes"],
+                        "",
+                        "",
+                        upstream_report,
+                        self.manifest["vectors"][
+                            "rustsec_2026_0077_norm_regression"
+                        ],
+                    )
 
     def test_manifest_only_cli(self):
         result = subprocess.run(

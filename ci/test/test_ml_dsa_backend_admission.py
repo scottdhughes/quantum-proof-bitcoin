@@ -127,7 +127,7 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
         )
         self.assertEqual(
             advisory_gate["status"],
-            "TECHNICAL_LEDGER_AND_SCHEDULED_SCAN_IMPLEMENTED_RE_REVIEW_OPEN",
+            "PORTABLE_REGRESSIONS_AND_SCHEDULED_SCAN_IMPLEMENTED_SIMD_AND_RE_REVIEW_OPEN",
         )
         libcrux = self.admission["candidate_assessments"][
             "libcrux_ml_dsa_0_0_10_portable"

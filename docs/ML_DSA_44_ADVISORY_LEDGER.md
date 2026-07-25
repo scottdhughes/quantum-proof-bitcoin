@@ -78,7 +78,7 @@ The 2026-07-21 ledger covers every RustSec entry currently present across all
 | RUSTSEC-2025-0133 | libcrux-intrinsics 0.0.8 | not affected; above fixed 0.0.4 and current runner is not AArch64 | not applicable to current architecture |
 | RUSTSEC-2026-0074 | libcrux-sha3 0.0.10 | not affected; above fixed 0.0.8 and affected incremental API is outside ML-DSA | not applicable |
 | RUSTSEC-2026-0076 | libcrux-ml-dsa 0.0.10 | not affected; above fixed 0.0.8 | PASS for two exact ML-DSA-44 portable malformed-hint rejections; upstream retained test is separately labeled ML-DSA-65 |
-| RUSTSEC-2026-0077 | libcrux-ml-dsa 0.0.10 | not affected; above fixed 0.0.8 | UNTESTED for an exact ML-DSA-44 regression; retained upstream test is ML-DSA-65 |
+| RUSTSEC-2026-0077 | libcrux-ml-dsa 0.0.10 | not affected; above fixed 0.0.8 | PASS for pinned Wycheproof ML-DSA-44 tcIds 125 and 126 with positive and negative signer-response coefficients at the infinity-norm boundary across all three oracles; upstream retained test is separately labeled ML-DSA-65 |
 | RUSTSEC-2026-0125 | libcrux-ml-dsa 0.0.10 | not affected; above fixed 0.0.9 | UNTESTED and not applicable to portable; blocks SIMD256 admission until an exact regression passes |
 | RUSTSEC-2026-0126 | libcrux-ml-dsa 0.0.10 | not affected; above fixed 0.0.9 | UNTESTED and not applicable to portable; blocks SIMD256 admission until an exact regression passes |
 | RUSTSEC-2026-0207 | libcrux-sha3 0.0.10 | not affected; at fixed 0.0.10 and advisory excludes ML-DSA use | not applicable |
@@ -156,8 +156,10 @@ claim closure of issue #189 by itself.
 
 This tranche may be engineered and merged after its required checks pass; it
 does not need to wait for an external reviewer. Issue #189 remains open for
-the exact-commit independent re-review required by issue #181. Production
-admission and any release-hold decision remain separate and unchanged.
+exact SIMD256 regressions for RUSTSEC-2026-0125 and RUSTSEC-2026-0126 before
+any optimized-backend admission, and for the exact-commit independent re-review
+required by issue #181. Production admission and any release-hold decision
+remain separate and unchanged.
 
 Primary machine inputs are:
 
