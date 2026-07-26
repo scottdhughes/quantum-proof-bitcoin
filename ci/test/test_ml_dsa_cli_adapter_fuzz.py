@@ -458,20 +458,31 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
             self.skipTest("Git unavailable")
         workflow = WORKFLOW.read_text(encoding="utf8")
         guard = pr_vector_guard_script(workflow)
-        baseline_revision = next(
-            line.split("BASELINE:", 1)[1].strip()
-            for line in workflow.splitlines()
-            if line.strip().startswith("BASELINE:")
-        )
         relative_vector_path = "contrib/ml-dsa-ref/vectors.json"
-        baseline_bytes = subprocess.run(
-            [git, "show", f"{baseline_revision}:{relative_vector_path}"],
-            cwd=REPO_ROOT,
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ).stdout
         candidate_bytes = (REFERENCE_DIR / "vectors.json").read_bytes()
+        regression_marker = (
+            b'    "rustsec_2026_0077_norm_regression": {\n'
+        )
+        following_marker = b'    "pqbtc_sighash_v1": {\n'
+        self.assertEqual(candidate_bytes.count(regression_marker), 1)
+        self.assertEqual(candidate_bytes.count(following_marker), 1)
+        regression_start = candidate_bytes.index(regression_marker)
+        regression_end = candidate_bytes.index(
+            following_marker,
+            regression_start,
+        )
+        baseline_bytes = (
+            candidate_bytes[:regression_start]
+            + candidate_bytes[regression_end:]
+        )
+        self.assertEqual(
+            hashlib.sha256(baseline_bytes).hexdigest(),
+            "2fe1fffc7bfe8ec7597e408449a0d6b99f6ec0f035ab6669211d4d13f376a2b9",
+        )
+        self.assertEqual(
+            hashlib.sha256(candidate_bytes).hexdigest(),
+            "c2a94fe4fc8e63a6bec4528b4589958772cb0ea01f669cfd8c78bed357a68633",
+        )
 
         def run_guard(current_bytes, *, committed_baseline=baseline_bytes):
             with tempfile.TemporaryDirectory() as temporary:
