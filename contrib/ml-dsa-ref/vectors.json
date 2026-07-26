@@ -188,6 +188,35 @@
         }
       ]
     },
+    "rustsec_2026_0077_norm_regression": {
+      "source": "C2SP Wycheproof ML-DSA-44 verification vectors",
+      "source_commit": "fc24cd5b787d8e496bff31b0468af693a652b0f2",
+      "source_manifest_path": "contrib/ml-dsa-engineering/fuzz_sources/wycheproof/SOURCE.json",
+      "source_manifest_sha256": "3522cf3ae87aaa929f8d6b0e3be809665d809ce97b71cc01aa3256d7f2b0f1f2",
+      "vector_file_path": "contrib/ml-dsa-engineering/fuzz_sources/wycheproof/mldsa_44_verify_test.json",
+      "vector_file_sha256": "5ec04790c240c443ca8b662b8fc871834602c7cce87fcd36a193110745b2b9ea",
+      "parameter_set": "ML-DSA-44",
+      "expected_result": "invalid",
+      "required_flags": ["BoundaryCondition", "InfinityNormViolation"],
+      "cases": [
+        {
+          "test_case_id": 125,
+          "comment": "index 0 is exactly gamma1 - tau*eta",
+          "public_key_sha256": "d87f8ca136ac1aa55e2d6c4521680efb3a378cbb9bc0bfb446e9c60893931ea3",
+          "message_sha256": "653f3f7ec47d73c38ee34378a05741e48aedb4fff7f9caf0a8abb8747ae8b241",
+          "context_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "signature_sha256": "1bde001dd0eae0c4435341cc236a8363b58feeaaeaf02373fd9d5b1f3ef70f32"
+        },
+        {
+          "test_case_id": 126,
+          "comment": "index 255 is exactly -(gamma1 - tau*eta)",
+          "public_key_sha256": "d87f8ca136ac1aa55e2d6c4521680efb3a378cbb9bc0bfb446e9c60893931ea3",
+          "message_sha256": "653f3f7ec47d73c38ee34378a05741e48aedb4fff7f9caf0a8abb8747ae8b241",
+          "context_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "signature_sha256": "1d217254a38c2773b3e19f24167b876595cf92fc68b5d40d4e99985c70786e20"
+        }
+      ]
+    },
     "pqbtc_sighash_v1": {
       "source": "repo-defined deterministic interoperability vector",
       "seed_hex": "d71361c000f9a7bc99dfb425bcb6bb27c32c36ab444ff3708b2d93b4e66d5b5b",

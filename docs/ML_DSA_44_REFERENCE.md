@@ -127,6 +127,10 @@ implementation evidence, not independent design, external cryptographic
 review, or production approval. The harness also reruns the upstream
 regressions for `RUSTSEC-2026-0076` and `RUSTSEC-2026-0077` and adds two
 ML-DSA-44 malformed-hint rejections, including the old out-of-bounds shape.
+For 0077 it binds pinned Wycheproof ML-DSA-44 tcIds 125 and 126 by source,
+case identity, and component hashes, then requires all three oracles to reject
+the positive and negative signer-response coefficient cases at the
+infinity-norm boundary.
 
 Run:
 
@@ -211,7 +215,8 @@ Established:
 6. both portable-C adapters pass the bounded ASan/UBSan exercise
 7. both retained upstream libcrux security tests pass on their ML-DSA-65
    scope, and two exact ML-DSA-44 RUSTSEC-2026-0076 malformed-hint cases reject
-   without panic; exact ML-DSA-44 RUSTSEC-2026-0077 coverage remains untested
+   without panic; exact pinned Wycheproof ML-DSA-44 RUSTSEC-2026-0077 tcIds
+   125 and 126 reject across all three oracles
 8. a separate implementation lineage agrees with the full comparator contract
 9. the candidate has a reproducible ten-run performance and raw-payload model
 

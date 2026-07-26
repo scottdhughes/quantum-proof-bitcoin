@@ -114,9 +114,9 @@ EXPECTED_ADVISORY_DISPOSITIONS = {
     ),
     "RUSTSEC-2026-0077": (
         "APPLICABLE",
-        "UNTESTED",
-        "PIN_ABOVE_FIXED_EXACT_PARAMETER_REGRESSION_MISSING",
-        "EXACT_ML_DSA_44_REGRESSION_REQUIRED_BEFORE_PRODUCTION",
+        "PASS",
+        "PIN_ABOVE_FIXED_WITH_BOUNDED_REGRESSION",
+        "RERUN_EXACT_REGRESSION_ON_REPIN",
     ),
     "RUSTSEC-2026-0097": (
         "NOT_APPLICABLE",
@@ -575,11 +575,21 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
         )
         if actual_disposition != EXPECTED_ADVISORY_DISPOSITIONS[entry["id"]]:
             raise AuditError(f"{entry['id']} dated disposition drifted")
-        if entry["id"] == "RUSTSEC-2026-0076" and entry["evidence"] != [
-            "compare_oracles.py ML-DSA-44 malformed-hint cases",
-            "upstream ML-DSA-65 bad_hint_out_of_bounds",
-        ]:
-            raise AuditError("RUSTSEC-2026-0076 PASS is not bound to exact evidence")
+        exact_regression_evidence = {
+            "RUSTSEC-2026-0076": [
+                "compare_oracles.py ML-DSA-44 malformed-hint cases",
+                "upstream ML-DSA-65 bad_hint_out_of_bounds",
+            ],
+            "RUSTSEC-2026-0077": [
+                "compare_oracles.py ML-DSA-44 Wycheproof tcIds 125 and 126",
+                "upstream ML-DSA-65 mask_exceeds_norm",
+            ],
+        }
+        if (
+            entry["id"] in exact_regression_evidence
+            and entry["evidence"] != exact_regression_evidence[entry["id"]]
+        ):
+            raise AuditError(f"{entry['id']} PASS is not bound to exact evidence")
         for alias in entry["aliases"]:
             if alias in aliases:
                 raise AuditError(f"duplicate advisory alias: {alias}")
@@ -641,8 +651,14 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
         raise AuditError("Miri source must be pinned by SHA256")
 
     scope = ledger["scope"]
-    if scope.get("issue_189") != "REMAINS_OPEN_PENDING_RE_REVIEW":
-        raise AuditError("issue #189 must remain open pending exact-commit re-review")
+    if (
+        scope.get("issue_189")
+        != "REMAINS_OPEN_PENDING_SIMD_ADMISSION_REGRESSIONS_AND_RE_REVIEW"
+    ):
+        raise AuditError(
+            "issue #189 must remain open pending exact SIMD256 admission "
+            "regressions and exact-commit re-review"
+        )
     if (
         scope.get("production_change") is not False
         or scope.get("release_hold_changed") is not False

@@ -64,11 +64,13 @@ codebases agree on all official and repo-defined exact outputs, cross-verify
 randomized signatures, and reject the bounded malformed/mutated corpus. The
 two portable-C adapters pass the ASan/UBSan tranche. Both retained upstream
 libcrux security tests pass on their ML-DSA-65 scope; two exact ML-DSA-44
-RUSTSEC-2026-0076 malformed-hint cases reject without panic, while exact
-ML-DSA-44 RUSTSEC-2026-0077 coverage remains untested. Ten-run arm64 timings
-and a raw-payload cost model are recorded. The qualified libcrux result closes the independent
-implementation evidence gate but is not independent design, external
-cryptographic review, or production approval.
+RUSTSEC-2026-0076 malformed-hint cases reject without panic, and pinned
+Wycheproof tcIds 125 and 126 provide exact ML-DSA-44 RUSTSEC-2026-0077
+rejections for positive and negative signer-response coefficients at the
+infinity-norm boundary across all three oracles.
+Ten-run arm64 timings and a raw-payload cost model are recorded. The qualified
+libcrux result closes the independent implementation evidence gate but is not
+independent design, external cryptographic review, or production approval.
 
 The measured decision in `PQSIG_CANDIDATE_SELECTION.md` selects FIPS 204
 `ML-DSA-44` as the primary engineering candidate and retains FIPS 205

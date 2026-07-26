@@ -102,7 +102,36 @@ jobs:
           test -z "$repository_status"
           test "$(rustc --version | cut -d ' ' -f 2)" = "1.89.0"
           if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
-            git diff --exit-code "$BASELINE" -- contrib/ml-dsa-ref/vectors.json
+            python3 - "$BASELINE" <<'PY'
+          import hashlib
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          vectors_path = Path("contrib/ml-dsa-ref/vectors.json")
+          expected_sha256 = {
+              "baseline": (
+                  "2fe1fffc7bfe8ec7597e408449a0d6b99f6ec0f035ab6669211d4d13f376a2b9"
+              ),
+              "current": (
+                  "c2a94fe4fc8e63a6bec4528b4589958772cb0ea01f669cfd8c78bed357a68633"
+              ),
+          }
+          baseline_bytes = subprocess.run(
+              ["git", "show", f"{sys.argv[1]}:{vectors_path.as_posix()}"],
+              check=True,
+              stdout=subprocess.PIPE,
+          ).stdout
+          actual_sha256 = {
+              "baseline": hashlib.sha256(baseline_bytes).hexdigest(),
+              "current": hashlib.sha256(vectors_path.read_bytes()).hexdigest(),
+          }
+          if actual_sha256 != expected_sha256:
+              raise SystemExit(
+                  "vectors.json differs from the exact baseline-to-"
+                  "RUSTSEC-2026-0077 PR transition"
+              )
+          PY
           else
             test "$GITHUB_REF" = "refs/heads/main"
             git diff --exit-code "$BASELINE" -- \
@@ -688,10 +717,14 @@ jobs:
               "cases": 2,
               "status": "PASS",
           }
-          assert (
-              advisory["RUSTSEC-2026-0077"]["pqbtc_exact_regression"]["status"]
-              == "UNTESTED"
-          )
+          assert advisory["RUSTSEC-2026-0077"]["pqbtc_exact_regression"] == {
+              "parameter_set": "ML-DSA-44",
+              "called_backend": "portable",
+              "source": "C2SP Wycheproof ML-DSA-44 verification vectors",
+              "test_case_ids": [125, 126],
+              "cases": 2,
+              "status": "PASS",
+          }
           assert report["signature_sha256"] == {
               "nist_deterministic": "f2554d7153750b4deed79f80e5aa237a219fc92f83e59e7317c8d2089c4e7b91",
               "nist_randomized": "8a17b6ff3f9633cd3c7cd0687d6384408e145bfd3725f6c57a8a2727f50ec989",

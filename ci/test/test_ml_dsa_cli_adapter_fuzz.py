@@ -55,6 +55,26 @@ def trusted_main_baseline_pathspec(workflow):
     return tuple(pathspec)
 
 
+def pr_vector_guard_script(workflow):
+    lines = workflow.splitlines()
+    marker = 'python3 - "$BASELINE" <<\'PY\''
+    starts = [
+        index for index, line in enumerate(lines) if line.strip() == marker
+    ]
+    if len(starts) != 1:
+        raise ValueError("PR vector-delta guard is missing or ambiguous")
+    start = starts[0] + 1
+    try:
+        end = next(
+            index
+            for index in range(start, len(lines))
+            if lines[index].strip() == "PY"
+        )
+    except StopIteration as exc:
+        raise ValueError("PR vector-delta guard has no heredoc terminator") from exc
+    return textwrap.dedent("\n".join(lines[start:end])) + "\n"
+
+
 class DummyOracle:
     def __init__(
         self,
@@ -307,6 +327,17 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
         self.assertIn(
             "python3 contrib/ml-dsa-ref/compare_oracles.py", workflow
         )
+        self.assertNotIn(
+            'advisory["RUSTSEC-2026-0077"]["pqbtc_exact_regression"]["status"]',
+            workflow,
+        )
+        for exact_field in (
+            '"source": "C2SP Wycheproof ML-DSA-44 verification vectors"',
+            '"test_case_ids": [125, 126]',
+            '"cases": 2',
+            '"status": "PASS"',
+        ):
+            self.assertIn(exact_field, workflow)
 
     def test_workflow_separates_pr_smoke_from_frozen_main_evidence(self):
         workflow = WORKFLOW.read_text(encoding="utf8")
@@ -349,7 +380,20 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
             normalized,
         )
         self.assertIn(expected_scope, normalized)
+        vector_guard = pr_vector_guard_script(workflow)
         self.assertIn(
+            '"2fe1fffc7bfe8ec7597e408449a0d6b99f6ec0f035ab6669211d4d13f376a2b9"',
+            vector_guard,
+        )
+        self.assertIn(
+            '"c2a94fe4fc8e63a6bec4528b4589958772cb0ea01f669cfd8c78bed357a68633"',
+            vector_guard,
+        )
+        self.assertIn(
+            "if actual_sha256 != expected_sha256:",
+            vector_guard,
+        )
+        self.assertNotIn(
             'git diff --exit-code "$BASELINE" -- '
             "contrib/ml-dsa-ref/vectors.json",
             normalized,
@@ -407,6 +451,126 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
                 event_name == "pull_request" or ref == "refs/heads/main",
                 expected,
             )
+
+    def test_pr_vector_guard_allows_only_exact_rustsec_0077_delta(self):
+        git = shutil.which("git")
+        if git is None:
+            self.skipTest("Git unavailable")
+        workflow = WORKFLOW.read_text(encoding="utf8")
+        guard = pr_vector_guard_script(workflow)
+        relative_vector_path = "contrib/ml-dsa-ref/vectors.json"
+        candidate_bytes = (REFERENCE_DIR / "vectors.json").read_bytes()
+        regression_marker = (
+            b'    "rustsec_2026_0077_norm_regression": {\n'
+        )
+        following_marker = b'    "pqbtc_sighash_v1": {\n'
+        self.assertEqual(candidate_bytes.count(regression_marker), 1)
+        self.assertEqual(candidate_bytes.count(following_marker), 1)
+        regression_start = candidate_bytes.index(regression_marker)
+        regression_end = candidate_bytes.index(
+            following_marker,
+            regression_start,
+        )
+        baseline_bytes = (
+            candidate_bytes[:regression_start]
+            + candidate_bytes[regression_end:]
+        )
+        self.assertEqual(
+            hashlib.sha256(baseline_bytes).hexdigest(),
+            "2fe1fffc7bfe8ec7597e408449a0d6b99f6ec0f035ab6669211d4d13f376a2b9",
+        )
+        self.assertEqual(
+            hashlib.sha256(candidate_bytes).hexdigest(),
+            "c2a94fe4fc8e63a6bec4528b4589958772cb0ea01f669cfd8c78bed357a68633",
+        )
+
+        def run_guard(current_bytes, *, committed_baseline=baseline_bytes):
+            with tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                vector_path = root / relative_vector_path
+                vector_path.parent.mkdir(parents=True)
+                vector_path.write_bytes(committed_baseline)
+                for arguments in (
+                    ("init", "--quiet"),
+                    ("add", relative_vector_path),
+                    (
+                        "-c",
+                        "user.name=PQBTC CI",
+                        "-c",
+                        "user.email=pqbtc-ci@example.invalid",
+                        "-c",
+                        "commit.gpgsign=false",
+                        "commit",
+                        "--quiet",
+                        "--no-verify",
+                        "-m",
+                        "baseline",
+                    ),
+                ):
+                    subprocess.run(
+                        [git, *arguments],
+                        cwd=root,
+                        check=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                    )
+                baseline_revision = subprocess.run(
+                    [git, "rev-parse", "HEAD"],
+                    cwd=root,
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                ).stdout.strip()
+                vector_path.write_bytes(current_bytes)
+                return subprocess.run(
+                    [sys.executable, "-", baseline_revision],
+                    cwd=root,
+                    check=False,
+                    input=guard,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                )
+
+        exact = run_guard(candidate_bytes)
+        self.assertEqual(exact.returncode, 0, exact.stdout + exact.stderr)
+
+        tampered_regression = candidate_bytes.replace(
+            b'"test_case_id": 125',
+            b'"test_case_id": 124',
+            1,
+        )
+        unrelated_drift = candidate_bytes.replace(
+            b'"signature_bytes": 2420',
+            b'"signature_bytes": 2421',
+            1,
+        )
+        cases = (
+            ("tampered regression", tampered_regression, baseline_bytes),
+            ("unrelated drift", unrelated_drift, baseline_bytes),
+            (
+                "tampered baseline",
+                candidate_bytes,
+                baseline_bytes + b"\n",
+            ),
+        )
+        for label, rejected, rejected_baseline in cases:
+            if label == "tampered baseline":
+                self.assertNotEqual(rejected_baseline, baseline_bytes)
+            else:
+                self.assertNotEqual(rejected, candidate_bytes, label)
+            with self.subTest(label=label):
+                result = run_guard(
+                    rejected,
+                    committed_baseline=rejected_baseline,
+                )
+                self.assertNotEqual(
+                    result.returncode,
+                    0,
+                    result.stdout + result.stderr,
+                )
 
     def test_trusted_main_baseline_pathspec_is_semantically_fail_closed(self):
         git = shutil.which("git")

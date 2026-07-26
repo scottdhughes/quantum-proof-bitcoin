@@ -61,10 +61,13 @@ accept/reject cases against all three oracles. It also checks complete
 signature-byte agreement, cross-verification, randomized-signature diversity,
 empty and maximum contexts, malformed lengths, key/message/context/signature
 mutations, the two retained upstream libcrux security tests, two exact
-ML-DSA-44 malformed-hint regression cases, and bounded ASan/UBSan runs for the two
-portable-C adapters. The upstream tests are accurately labeled ML-DSA-65; the
-comparator no longer treats them as a package-wide advisory PASS. The complete
-dated advisory inventory and scheduled dependency scans are defined by
+ML-DSA-44 malformed-hint regression cases, the pinned Wycheproof ML-DSA-44
+tcIds 125 and 126 for positive and negative signer-response coefficients at
+the infinity-norm boundary, and
+bounded ASan/UBSan runs for the two portable-C adapters. The upstream tests are
+accurately labeled ML-DSA-65; the comparator no longer treats them as a
+package-wide advisory PASS. The complete dated advisory inventory and
+scheduled dependency scans are defined by
 `contrib/ml-dsa-engineering/advisory_ledger.json`. The JSON report includes
 ten-run timing medians, an explicitly scoped raw-payload block-space model, and
 the separate research-CLI malformed-input report described below.

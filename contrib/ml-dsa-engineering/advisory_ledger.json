@@ -469,11 +469,11 @@
       "affected_backends_or_functions": ["ML-DSA-44 verify", "ML-DSA-65 verify", "ML-DSA-87 verify"],
       "affected_status": "NOT_AFFECTED",
       "current_path_applicability": "APPLICABLE",
-      "test_status": "UNTESTED",
-      "reason_code": "PIN_ABOVE_FIXED_EXACT_PARAMETER_REGRESSION_MISSING",
-      "reason": "The pin is above the fixed version. The retained upstream mask_exceeds_norm regression is ML-DSA-65; it is not an exact ML-DSA-44 portable regression.",
-      "evidence": ["upstream ML-DSA-65 mask_exceeds_norm"],
-      "future_admission": "EXACT_ML_DSA_44_REGRESSION_REQUIRED_BEFORE_PRODUCTION"
+      "test_status": "PASS",
+      "reason_code": "PIN_ABOVE_FIXED_WITH_BOUNDED_REGRESSION",
+      "reason": "The pin is above the fixed version. The comparator rejects the positive and negative ML-DSA-44 signer-response coefficient cases at the infinity-norm boundary from pinned Wycheproof tcIds 125 and 126 across all three oracles; the retained upstream mask_exceeds_norm test is separately identified as ML-DSA-65.",
+      "evidence": ["compare_oracles.py ML-DSA-44 Wycheproof tcIds 125 and 126", "upstream ML-DSA-65 mask_exceeds_norm"],
+      "future_admission": "RERUN_EXACT_REGRESSION_ON_REPIN"
     },
     {
       "id": "RUSTSEC-2026-0125",
@@ -709,7 +709,7 @@
   "scope": {
     "technical_remediation": "IMPLEMENTED_WHEN_WORKFLOW_GREEN",
     "external_re_review": "PENDING_EXACT_COMMIT_REVIEW_UNDER_ISSUE_181",
-    "issue_189": "REMAINS_OPEN_PENDING_RE_REVIEW",
+    "issue_189": "REMAINS_OPEN_PENDING_SIMD_ADMISSION_REGRESSIONS_AND_RE_REVIEW",
     "production_change": false,
     "release_hold_changed": false
   }
