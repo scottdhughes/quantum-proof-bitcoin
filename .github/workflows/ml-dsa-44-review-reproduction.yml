@@ -9,6 +9,7 @@ on:
       - "ci/test/test_ml_dsa_cli_adapter_fuzz.py"
       - "ci/test/test_ml_dsa_reference.py"
       - "ci/test/test_ml_dsa_differential_fuzz.py"
+      - "ci/test/test_ml_dsa_review_baseline.py"
   schedule:
     - cron: "43 5 * * 3"
   workflow_dispatch:
@@ -28,7 +29,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     env:
-      BASELINE: 25c5359bc868b6a36f14d9f171420e1c64af8e29
+      # The pointer is advanced separately after the guarded tree is reviewed.
+      BASELINE_FILE: contrib/ml-dsa-ref/review_baseline_commit.txt
       OPENSSL_COMMIT: aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f
       MLDSA_NATIVE_COMMIT: 9b0ee84f4cf399043eca59eca4e5f8531ca1d61b
       LIBCRUX_COMMIT: c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd
@@ -42,33 +44,40 @@ jobs:
         env:
           CONTEXT: ${{ runner.temp }}/ml-dsa-44-review-run-context.txt
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_BASE: ${{ github.event.pull_request.base.sha || github.sha }}
         run: |
           set -euo pipefail
           if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            baseline_mode="pull_request"
             evidence_trust_scope="pull_request_head_smoke_only"
             promotion_eligible="false"
             artifact_prefix="ml-dsa-44-review-candidate"
           elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+            baseline_mode="main"
             evidence_trust_scope="pending_frozen_baseline_validation"
             promotion_eligible="false"
             artifact_prefix="ml-dsa-44-review-pending"
           else
+            baseline_mode="main"
             evidence_trust_scope="rejected_non_main_dispatch"
             promotion_eligible="false"
             artifact_prefix="ml-dsa-44-review-rejected"
           fi
+          echo "artifact_prefix=$artifact_prefix" >> "$GITHUB_OUTPUT"
+          echo "baseline_mode=$baseline_mode" >> "$GITHUB_OUTPUT"
           {
             echo "event_name=$GITHUB_EVENT_NAME"
             echo "github_ref=$GITHUB_REF"
             echo "github_sha=$GITHUB_SHA"
             echo "expected_checkout_head=$EXPECTED_HEAD"
+            echo "expected_base_head=$EXPECTED_BASE"
             echo "github_run_id=$GITHUB_RUN_ID"
             echo "github_run_attempt=$GITHUB_RUN_ATTEMPT"
-            echo "baseline_commit=$BASELINE"
+            echo "baseline_pointer_path=$BASELINE_FILE"
+            echo "baseline_commit=pending_pointer_validation"
             echo "evidence_trust_scope=$evidence_trust_scope"
             echo "promotion_eligible=$promotion_eligible"
           } > "$CONTEXT"
-          echo "artifact_prefix=$artifact_prefix" >> "$GITHUB_OUTPUT"
 
       - name: Checkout PQBTC review head
         timeout-minutes: 5
@@ -77,6 +86,31 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Validate review baseline pointer
+        env:
+          BASELINE_MODE: ${{ steps.evidence_scope.outputs.baseline_mode }}
+          CONTEXT: ${{ runner.temp }}/ml-dsa-44-review-run-context.txt
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_BASE: ${{ github.event.pull_request.base.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          baseline="$(
+            python3 contrib/ml-dsa-ref/validate_review_baseline.py \
+              --pointer "$BASELINE_FILE" \
+              --head "$EXPECTED_HEAD" \
+              --base "$EXPECTED_BASE" \
+              --mode "$BASELINE_MODE"
+          )"
+          baseline_pointer_sha256="$(
+            sha256sum "$BASELINE_FILE" | cut -d ' ' -f 1
+          )"
+          sed -i \
+            "s/^baseline_commit=.*/baseline_commit=$baseline/" \
+            "$CONTEXT"
+          echo "baseline_pointer_sha256=$baseline_pointer_sha256" >> "$CONTEXT"
+          echo "BASELINE=$baseline" >> "$GITHUB_ENV"
 
       - name: Install build dependencies
         timeout-minutes: 20
@@ -109,14 +143,6 @@ jobs:
           import sys
 
           vectors_path = Path("contrib/ml-dsa-ref/vectors.json")
-          expected_sha256 = {
-              "baseline": (
-                  "2fe1fffc7bfe8ec7597e408449a0d6b99f6ec0f035ab6669211d4d13f376a2b9"
-              ),
-              "current": (
-                  "c2a94fe4fc8e63a6bec4528b4589958772cb0ea01f669cfd8c78bed357a68633"
-              ),
-          }
           baseline_bytes = subprocess.run(
               ["git", "show", f"{sys.argv[1]}:{vectors_path.as_posix()}"],
               check=True,
@@ -126,10 +152,18 @@ jobs:
               "baseline": hashlib.sha256(baseline_bytes).hexdigest(),
               "current": hashlib.sha256(vectors_path.read_bytes()).hexdigest(),
           }
+          expected_sha256 = {
+              "baseline": (
+                  "c2a94fe4fc8e63a6bec4528b4589958772cb0ea01f669cfd8c78bed357a68633"
+              ),
+              "current": (
+                  "c2a94fe4fc8e63a6bec4528b4589958772cb0ea01f669cfd8c78bed357a68633"
+              ),
+          }
           if actual_sha256 != expected_sha256:
               raise SystemExit(
-                  "vectors.json differs from the exact baseline-to-"
-                  "RUSTSEC-2026-0077 PR transition"
+                  "vectors.json differs from the exact frozen "
+                  "RUSTSEC-2026-0077 contract"
               )
           PY
           else
@@ -141,6 +175,8 @@ jobs:
               ci/test/test_ml_dsa_cli_adapter_fuzz.py \
               ci/test/test_ml_dsa_differential_fuzz.py \
               ci/test/test_ml_dsa_reference.py \
+              ci/test/test_ml_dsa_review_baseline.py \
+              ':(exclude)contrib/ml-dsa-ref/review_baseline_commit.txt' \
               ':(exclude)contrib/ml-dsa-ref/README.md' \
               ':(exclude)contrib/ml-dsa-ref/wolfram/**'
           fi
@@ -148,7 +184,8 @@ jobs:
           python3 contrib/ml-dsa-ref/compare_oracles.py --manifest-only
           python3 -m unittest \
             ci.test.test_ml_dsa_cli_adapter_fuzz \
-            ci.test.test_ml_dsa_reference
+            ci.test.test_ml_dsa_reference \
+            ci.test.test_ml_dsa_review_baseline
           python3 contrib/ml-dsa-engineering/run_differential_verifier_fuzz.py \
             --manifest-only
           rustfmt --check \
