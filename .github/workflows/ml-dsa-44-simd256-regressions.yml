@@ -1,17 +1,7 @@
 name: ML-DSA-44 SIMD256 advisory regressions
 
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/ml-dsa-44-simd256-regressions.yml"
-      - "contrib/ml-dsa-engineering/advisory_ledger.json"
-      - "contrib/ml-dsa-engineering/backend_admission.json"
-      - "contrib/ml-dsa-engineering/fuzz_sources/wycheproof/**"
-      - "contrib/ml-dsa-engineering/libcrux_simd256_regression.rs"
-      - "contrib/ml-dsa-engineering/run_libcrux_simd256_regressions.py"
-      - "ci/test/test_ml_dsa_simd256_regressions.py"
-      - "docs/ML_DSA_44_ADVISORY_LEDGER.md"
-      - "docs/ML_DSA_44_BACKEND_ADMISSION.md"
+  workflow_call:
   push:
     branches:
       - main

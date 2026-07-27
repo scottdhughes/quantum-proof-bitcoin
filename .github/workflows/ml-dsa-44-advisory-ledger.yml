@@ -5,15 +5,20 @@ on:
     paths:
       - ".github/workflows/ml-dsa-44-advisory-ledger.yml"
       - ".github/workflows/ml-dsa-44-review-reproduction.yml"
+      - ".github/workflows/ml-dsa-44-simd256-regressions.yml"
       - "contrib/ml-dsa-ref/**"
       - "contrib/ml-dsa-engineering/advisory_ledger.json"
       - "contrib/ml-dsa-engineering/backend_admission.json"
+      - "contrib/ml-dsa-engineering/fuzz_sources/wycheproof/**"
       - "contrib/ml-dsa-engineering/README.md"
+      - "contrib/ml-dsa-engineering/libcrux_simd256_regression.rs"
       - "contrib/ml-dsa-engineering/run_advisory_ledger.py"
+      - "contrib/ml-dsa-engineering/run_libcrux_simd256_regressions.py"
       - "contrib/ml-dsa-engineering/libcrux-miri/**"
       - "ci/test/test_ml_dsa_advisory_ledger.py"
       - "ci/test/test_ml_dsa_backend_admission.py"
       - "ci/test/test_ml_dsa_reference.py"
+      - "ci/test/test_ml_dsa_simd256_regressions.py"
       - "ci/test/test_ml_dsa_sustained_fuzz.py"
       - "docs/ML_DSA_44_ADVISORY_LEDGER.md"
       - "docs/ML_DSA_44_BACKEND_ADMISSION.md"
@@ -57,6 +62,13 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  simd256-pr-regressions:
+    name: Exact x86_64 AVX2 advisory regressions
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ml-dsa-44-simd256-regressions.yml
+
   audit:
     name: Pinned advisory, SBOM, and portable Miri audit
     runs-on: ubuntu-24.04

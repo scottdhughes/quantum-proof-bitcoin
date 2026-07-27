@@ -34,6 +34,9 @@ BACKEND_ADMISSION = ENGINEERING_DIR / "backend_admission.json"
 WORKFLOW = (
     REPO_ROOT / ".github" / "workflows" / "ml-dsa-44-simd256-regressions.yml"
 )
+ADVISORY_WORKFLOW = (
+    REPO_ROOT / ".github" / "workflows" / "ml-dsa-44-advisory-ledger.yml"
+)
 
 SPEC = importlib.util.spec_from_file_location(
     "run_libcrux_simd256_regressions",
@@ -346,10 +349,28 @@ class MlDsaSimd256RegressionsTest(unittest.TestCase):
 
     def test_workflow_is_x86_64_test_only_and_retains_untrusted_pr_evidence(self):
         workflow = WORKFLOW.read_text(encoding="utf8")
+        advisory_workflow = ADVISORY_WORKFLOW.read_text(encoding="utf8")
         self.assertIn("runs-on: ubuntu-24.04", workflow)
-        self.assertIn("pull_request:", workflow)
+        self.assertIn("workflow_call:", workflow)
+        self.assertNotIn("\n  pull_request:", workflow)
         self.assertIn("push:", workflow)
         self.assertIn("branches:\n      - main", workflow)
+        self.assertIn(
+            "uses: ./.github/workflows/ml-dsa-44-simd256-regressions.yml",
+            advisory_workflow,
+        )
+        self.assertIn(
+            "if: github.event_name == 'pull_request'",
+            advisory_workflow,
+        )
+        for path in (
+            ".github/workflows/ml-dsa-44-simd256-regressions.yml",
+            "contrib/ml-dsa-engineering/fuzz_sources/wycheproof/**",
+            "contrib/ml-dsa-engineering/libcrux_simd256_regression.rs",
+            "contrib/ml-dsa-engineering/run_libcrux_simd256_regressions.py",
+            "ci/test/test_ml_dsa_simd256_regressions.py",
+        ):
+            self.assertIn(f'      - "{path}"', advisory_workflow)
         self.assertIn("--event-name \"$GITHUB_EVENT_NAME\"", workflow)
         self.assertIn("--ref \"$GITHUB_REF\"", workflow)
         self.assertIn("--repository-commit \"$AUDIT_SHA\"", workflow)
