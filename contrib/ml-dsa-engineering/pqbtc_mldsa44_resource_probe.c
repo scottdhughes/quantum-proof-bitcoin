@@ -6,8 +6,11 @@
 
 #include "pqbtc_mldsa44.h"
 
+// IWYU pragma: no_include <bits/pthread_stack_min.h>
+// IWYU pragma: no_include <bits/types/struct_rusage.h>
+
 #include <errno.h>
-#include <limits.h>
+#include <limits.h>  // IWYU pragma: keep
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stddef.h>
@@ -170,7 +173,9 @@ int __wrap_posix_memalign(void** output, size_t alignment, size_t size)
 
 static int Fail(const char* message)
 {
-    fprintf(stderr, "ML-DSA-44 resource probe: %s\n", message);
+    fputs("ML-DSA-44 resource probe: ", stderr);
+    fputs(message, stderr);
+    fputc('\n', stderr);
     return 1;
 }
 
@@ -306,9 +311,17 @@ static int LoadBundle(const char* path)
     }
     g_bundle_size = (size_t)file_size;
     received = fread(g_bundle, 1, g_bundle_size, input);
+    if (received != g_bundle_size) {
+        fclose(input);
+        return Fail("cannot read the corpus bundle exactly");
+    }
     trailing_byte = fgetc(input);
+    if (trailing_byte != EOF || ferror(input) != 0) {
+        fclose(input);
+        return Fail("cannot read the corpus bundle exactly");
+    }
     close_result = fclose(input);
-    if (received != g_bundle_size || trailing_byte != EOF || close_result != 0) {
+    if (close_result != 0) {
         return Fail("cannot read the corpus bundle exactly");
     }
     if (memcmp(g_bundle, RESOURCE_BUNDLE_MAGIC, RESOURCE_BUNDLE_MAGIC_BYTES) != 0 ||

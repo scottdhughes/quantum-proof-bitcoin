@@ -298,9 +298,18 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
             "--stack-positive-control",
             "--cpu-positive-control",
             "--wall-positive-control",
+            "#include <limits.h>  // IWYU pragma: keep",
+            "// IWYU pragma: no_include <bits/pthread_stack_min.h>",
+            "// IWYU pragma: no_include <bits/types/struct_rusage.h>",
         ):
             self.assertIn(required, source)
+        self.assertLess(
+            source.index("if (received != g_bundle_size)"),
+            source.index("trailing_byte = fgetc(input);"),
+        )
         self.assertEqual(source.count("pqbtc_mldsa44_verify_strict("), 1)
+        self.assertNotIn('#include <bits/', source)
+        self.assertNotIn("fprintf(", source)
         self.assertNotIn("pqbtc_mldsa44_sign_hedged", source)
         self.assertNotIn("pqbtc_mldsa44_test_", source)
         self.assertNotIn('#include "pqbtc_mldsa44_test.h"', source)
