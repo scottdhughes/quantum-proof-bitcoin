@@ -1,0 +1,171 @@
+name: ML-DSA-44 SIMD256 advisory regressions
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ml-dsa-44-simd256-regressions.yml"
+      - "contrib/ml-dsa-engineering/advisory_ledger.json"
+      - "contrib/ml-dsa-engineering/backend_admission.json"
+      - "contrib/ml-dsa-engineering/fuzz_sources/wycheproof/**"
+      - "contrib/ml-dsa-engineering/libcrux_simd256_regression.rs"
+      - "contrib/ml-dsa-engineering/run_libcrux_simd256_regressions.py"
+      - "ci/test/test_ml_dsa_simd256_regressions.py"
+      - "docs/ML_DSA_44_ADVISORY_LEDGER.md"
+      - "docs/ML_DSA_44_BACKEND_ADMISSION.md"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/ml-dsa-44-simd256-regressions.yml"
+      - "contrib/ml-dsa-engineering/advisory_ledger.json"
+      - "contrib/ml-dsa-engineering/backend_admission.json"
+      - "contrib/ml-dsa-engineering/fuzz_sources/wycheproof/**"
+      - "contrib/ml-dsa-engineering/libcrux_simd256_regression.rs"
+      - "contrib/ml-dsa-engineering/run_libcrux_simd256_regressions.py"
+      - "ci/test/test_ml_dsa_simd256_regressions.py"
+      - "docs/ML_DSA_44_ADVISORY_LEDGER.md"
+      - "docs/ML_DSA_44_BACKEND_ADMISSION.md"
+  schedule:
+    - cron: "43 8 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ml-dsa-44-simd256-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  regressions:
+    name: Exact x86_64 AVX2 advisory regressions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      ARCHIVE: ${{ runner.temp }}/libcrux-ml-dsa-0.0.10.crate
+      EVIDENCE: ${{ runner.temp }}/ml-dsa-44-simd256-evidence
+      ML_DSA_TARGET_TRIPLE: x86_64-unknown-linux-gnu
+      PINNED_RUST_TOOLCHAIN: "1.89.0"
+      LIBCRUX_DISABLE_SIMD128: "1"
+      LIBCRUX_ENABLE_SIMD256: "1"
+      AUDIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      AUDIT_RUN_ID: ${{ github.run_id }}
+      AUDIT_RUN_ATTEMPT: ${{ github.run_attempt }}
+
+    steps:
+      - name: Checkout exact audit head
+        timeout-minutes: 5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact clean checkout
+        timeout-minutes: 5
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "$AUDIT_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Install exact Rust toolchain
+        timeout-minutes: 5
+        run: |
+          set -euxo pipefail
+          rustup toolchain install "$PINNED_RUST_TOOLCHAIN" \
+            --profile minimal --target "$ML_DSA_TARGET_TRIPLE" \
+            --no-self-update
+          echo "RUSTUP_TOOLCHAIN=$PINNED_RUST_TOOLCHAIN" >> "$GITHUB_ENV"
+          test "$(rustc +"$PINNED_RUST_TOOLCHAIN" --version | cut -d ' ' -f 2)" \
+            = "$PINNED_RUST_TOOLCHAIN"
+          test "$(cargo +"$PINNED_RUST_TOOLCHAIN" --version | cut -d ' ' -f 2)" \
+            = "$PINNED_RUST_TOOLCHAIN"
+
+      - name: Validate checked-in regression contract
+        timeout-minutes: 5
+        run: |
+          set -euxo pipefail
+          python3 contrib/ml-dsa-engineering/run_libcrux_simd256_regressions.py \
+            --plan-only
+          python3 -m unittest ci.test.test_ml_dsa_simd256_regressions
+
+      - name: Acquire exact libcrux release crate
+        timeout-minutes: 10
+        run: |
+          set -euxo pipefail
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            --retry 5 --retry-all-errors \
+            https://static.crates.io/crates/libcrux-ml-dsa/libcrux-ml-dsa-0.0.10.crate \
+            -o "$ARCHIVE"
+          echo "783ebed7cb27de6d44ef2aa662648d1a0869694f2f754f2f1ed45e959ef3b48e  $ARCHIVE" \
+            | sha256sum --check
+          chmod 0444 "$ARCHIVE"
+
+      - name: Run test-only portable and AVX2 regressions
+        timeout-minutes: 15
+        run: |
+          set -euxo pipefail
+          python3 contrib/ml-dsa-engineering/run_libcrux_simd256_regressions.py \
+            --crate-archive "$ARCHIVE" \
+            --output-dir "$EVIDENCE" \
+            --event-name "$GITHUB_EVENT_NAME" \
+            --ref "$GITHUB_REF" \
+            --repository-commit "$AUDIT_SHA" \
+            --run-id "$AUDIT_RUN_ID" \
+            --run-attempt "$AUDIT_RUN_ATTEMPT"
+
+      - name: Verify checkout remained exact and clean
+        if: always()
+        timeout-minutes: 5
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "$AUDIT_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Finalize retained evidence checksums
+        id: finalize_evidence
+        if: always()
+        timeout-minutes: 5
+        run: |
+          set -euxo pipefail
+          mkdir -p "$EVIDENCE"
+          printf 'job_status=%s\n' '${{ job.status }}' > "$EVIDENCE/job-status.txt"
+          find "$EVIDENCE" -type l -print -quit \
+            > "$RUNNER_TEMP/ml-dsa-44-simd256-symlink.txt"
+          if [[ -s "$RUNNER_TEMP/ml-dsa-44-simd256-symlink.txt" ]]; then
+            echo "evidence contains a symlink" >&2
+            exit 1
+          fi
+          find "$EVIDENCE" ! -type f ! -type d -print -quit \
+            > "$RUNNER_TEMP/ml-dsa-44-simd256-special.txt"
+          if [[ -s "$RUNNER_TEMP/ml-dsa-44-simd256-special.txt" ]]; then
+            echo "evidence contains a special file" >&2
+            exit 1
+          fi
+          cd "$EVIDENCE"
+          find . -type f ! -name SHA256SUMS -print0 \
+            | sort -z \
+            | xargs -0 sha256sum > SHA256SUMS
+          sha256sum --check SHA256SUMS
+
+      - name: Upload untrusted candidate evidence
+        if: ${{ always() && steps.finalize_evidence.outcome == 'success' && (github.event_name == 'pull_request' || github.ref != 'refs/heads/main') }}
+        timeout-minutes: 5
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ml-dsa-44-simd256-candidate-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ml-dsa-44-simd256-evidence/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload trusted-main evidence
+        if: ${{ always() && steps.finalize_evidence.outcome == 'success' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+        timeout-minutes: 5
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ml-dsa-44-simd256-main-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ml-dsa-44-simd256-evidence/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
