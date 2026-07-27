@@ -21,6 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 REFERENCE_DIR = REPO_ROOT / "contrib" / "ml-dsa-ref"
 DRIVER = REFERENCE_DIR / "run_cli_adapter_fuzz.py"
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ml-dsa-44-review-reproduction.yml"
+BASELINE_POINTER = REFERENCE_DIR / "review_baseline_commit.txt"
 TRUSTED_MAIN_BASELINE_PATHSPEC = (
     ".github/workflows/ml-dsa-44-review-reproduction.yml",
     "contrib/ml-dsa-engineering",
@@ -28,6 +29,8 @@ TRUSTED_MAIN_BASELINE_PATHSPEC = (
     "ci/test/test_ml_dsa_cli_adapter_fuzz.py",
     "ci/test/test_ml_dsa_differential_fuzz.py",
     "ci/test/test_ml_dsa_reference.py",
+    "ci/test/test_ml_dsa_review_baseline.py",
+    ":(exclude)contrib/ml-dsa-ref/review_baseline_commit.txt",
     ":(exclude)contrib/ml-dsa-ref/README.md",
     ":(exclude)contrib/ml-dsa-ref/wolfram/**",
 )
@@ -323,6 +326,10 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("60 mutations per adapter", result.stdout)
         workflow = WORKFLOW.read_text(encoding="utf8")
+        self.assertIn(
+            "contrib/ml-dsa-ref/review_baseline_commit.txt",
+            workflow,
+        )
         self.assertIn('contrib/ml-dsa-ref/**', workflow)
         self.assertIn(
             "python3 contrib/ml-dsa-ref/compare_oracles.py", workflow
@@ -347,14 +354,17 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
         expected_scope = textwrap.dedent(
             """\
             if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            baseline_mode="pull_request"
             evidence_trust_scope="pull_request_head_smoke_only"
             promotion_eligible="false"
             artifact_prefix="ml-dsa-44-review-candidate"
             elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+            baseline_mode="main"
             evidence_trust_scope="pending_frozen_baseline_validation"
             promotion_eligible="false"
             artifact_prefix="ml-dsa-44-review-pending"
             else
+            baseline_mode="main"
             evidence_trust_scope="rejected_non_main_dispatch"
             promotion_eligible="false"
             artifact_prefix="ml-dsa-44-review-rejected"
@@ -380,19 +390,50 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
             normalized,
         )
         self.assertIn(expected_scope, normalized)
-        vector_guard = pr_vector_guard_script(workflow)
+        pointer = BASELINE_POINTER.read_bytes()
+        self.assertEqual(len(pointer), 41)
+        self.assertEqual(pointer[-1:], b"\n")
+        self.assertRegex(pointer[:-1].decode("ascii"), r"^[0-9a-f]{40}$")
         self.assertIn(
-            '"2fe1fffc7bfe8ec7597e408449a0d6b99f6ec0f035ab6669211d4d13f376a2b9"',
-            vector_guard,
+            "BASELINE_FILE: contrib/ml-dsa-ref/review_baseline_commit.txt",
+            workflow,
         )
+        self.assertNotIn(
+            "      BASELINE: ",
+            workflow,
+        )
+        for pointer_guard in (
+            "python3 contrib/ml-dsa-ref/validate_review_baseline.py",
+            '--pointer "$BASELINE_FILE"',
+            '--head "$EXPECTED_HEAD"',
+            '--base "$EXPECTED_BASE"',
+            '--mode "$BASELINE_MODE"',
+            'echo "BASELINE=$baseline" >> "$GITHUB_ENV"',
+        ):
+            self.assertIn(pointer_guard, workflow)
+        for validator_test_integration in (
+            '- "ci/test/test_ml_dsa_review_baseline.py"',
+            "ci.test.test_ml_dsa_review_baseline",
+        ):
+            self.assertIn(validator_test_integration, workflow)
+        self.assertLess(
+            workflow.index("- name: Initialize failure evidence"),
+            workflow.index("- name: Checkout PQBTC review head"),
+        )
+        self.assertLess(
+            workflow.index("- name: Checkout PQBTC review head"),
+            workflow.index("- name: Validate review baseline pointer"),
+        )
+        vector_guard = pr_vector_guard_script(workflow)
         self.assertIn(
             '"c2a94fe4fc8e63a6bec4528b4589958772cb0ea01f669cfd8c78bed357a68633"',
             vector_guard,
         )
-        self.assertIn(
-            "if actual_sha256 != expected_sha256:",
+        self.assertNotIn(
+            "2fe1fffc7bfe8ec7597e408449a0d6b99f6ec0f035ab6669211d4d13f376a2b9",
             vector_guard,
         )
+        self.assertIn("if actual_sha256 != expected_sha256:", vector_guard)
         self.assertNotIn(
             'git diff --exit-code "$BASELINE" -- '
             "contrib/ml-dsa-ref/vectors.json",
@@ -452,7 +493,7 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
                 expected,
             )
 
-    def test_pr_vector_guard_allows_only_exact_rustsec_0077_delta(self):
+    def test_pr_vector_guard_allows_only_exact_steady_state(self):
         git = shutil.which("git")
         if git is None:
             self.skipTest("Git unavailable")
@@ -460,31 +501,12 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
         guard = pr_vector_guard_script(workflow)
         relative_vector_path = "contrib/ml-dsa-ref/vectors.json"
         candidate_bytes = (REFERENCE_DIR / "vectors.json").read_bytes()
-        regression_marker = (
-            b'    "rustsec_2026_0077_norm_regression": {\n'
-        )
-        following_marker = b'    "pqbtc_sighash_v1": {\n'
-        self.assertEqual(candidate_bytes.count(regression_marker), 1)
-        self.assertEqual(candidate_bytes.count(following_marker), 1)
-        regression_start = candidate_bytes.index(regression_marker)
-        regression_end = candidate_bytes.index(
-            following_marker,
-            regression_start,
-        )
-        baseline_bytes = (
-            candidate_bytes[:regression_start]
-            + candidate_bytes[regression_end:]
-        )
-        self.assertEqual(
-            hashlib.sha256(baseline_bytes).hexdigest(),
-            "2fe1fffc7bfe8ec7597e408449a0d6b99f6ec0f035ab6669211d4d13f376a2b9",
-        )
         self.assertEqual(
             hashlib.sha256(candidate_bytes).hexdigest(),
             "c2a94fe4fc8e63a6bec4528b4589958772cb0ea01f669cfd8c78bed357a68633",
         )
 
-        def run_guard(current_bytes, *, committed_baseline=baseline_bytes):
+        def run_guard(current_bytes, *, committed_baseline=candidate_bytes):
             with tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
                 vector_path = root / relative_vector_path
@@ -534,8 +556,15 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
                     text=True,
                 )
 
-        exact = run_guard(candidate_bytes)
-        self.assertEqual(exact.returncode, 0, exact.stdout + exact.stderr)
+        steady_state = run_guard(
+            candidate_bytes,
+            committed_baseline=candidate_bytes,
+        )
+        self.assertEqual(
+            steady_state.returncode,
+            0,
+            steady_state.stdout + steady_state.stderr,
+        )
 
         tampered_regression = candidate_bytes.replace(
             b'"test_case_id": 125',
@@ -548,17 +577,17 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
             1,
         )
         cases = (
-            ("tampered regression", tampered_regression, baseline_bytes),
-            ("unrelated drift", unrelated_drift, baseline_bytes),
+            ("tampered regression", tampered_regression, candidate_bytes),
+            ("unrelated drift", unrelated_drift, candidate_bytes),
             (
                 "tampered baseline",
                 candidate_bytes,
-                baseline_bytes + b"\n",
+                candidate_bytes + b"\n",
             ),
         )
         for label, rejected, rejected_baseline in cases:
             if label == "tampered baseline":
-                self.assertNotEqual(rejected_baseline, baseline_bytes)
+                self.assertNotEqual(rejected_baseline, candidate_bytes)
             else:
                 self.assertNotEqual(rejected, candidate_bytes, label)
             with self.subTest(label=label):
@@ -578,7 +607,23 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
             self.skipTest("Git unavailable")
         workflow = WORKFLOW.read_text(encoding="utf8")
         pathspec = trusted_main_baseline_pathspec(workflow)
+        self.assertIn(
+            ".github/workflows/ml-dsa-44-review-reproduction.yml",
+            pathspec,
+        )
+        self.assertIn(
+            ":(exclude)contrib/ml-dsa-ref/review_baseline_commit.txt",
+            pathspec,
+        )
+        self.assertNotIn(
+            "contrib/ml-dsa-ref/review_baseline_commit.txt",
+            pathspec,
+        )
         fixture_files = {
+            "contrib/ml-dsa-ref/review_baseline_commit.txt": "0" * 40 + "\n",
+            "contrib/ml-dsa-ref/validate_review_baseline.py": (
+                "# baseline validator\n"
+            ),
             ".github/workflows/ml-dsa-44-review-reproduction.yml": (
                 "name: baseline workflow\n"
             ),
@@ -595,6 +640,9 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
                 "# baseline differential test\n"
             ),
             "ci/test/test_ml_dsa_reference.py": "# baseline reference test\n",
+            "ci/test/test_ml_dsa_review_baseline.py": (
+                "# baseline validator test\n"
+            ),
         }
 
         with tempfile.TemporaryDirectory() as temporary:
@@ -652,10 +700,40 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
                 )
 
             self.assertEqual(run_guard().returncode, 0)
+            pointer = root / "contrib" / "ml-dsa-ref" / (
+                "review_baseline_commit.txt"
+            )
+            pointer.write_text(baseline + "\n", encoding="ascii")
+            self.assertEqual(
+                run_guard().returncode,
+                0,
+                "pointer-only baseline advancement must remain live",
+            )
+            run_git("add", "contrib/ml-dsa-ref/review_baseline_commit.txt")
+            run_git(
+                "-c",
+                "user.name=Trusted Evidence Test",
+                "-c",
+                "user.email=trusted-evidence@example.invalid",
+                "commit",
+                "-q",
+                "-m",
+                "advance pointer",
+            )
+            promoted_head = run_git("rev-parse", "HEAD").stdout.strip()
+            first_parent = run_git(
+                "rev-list",
+                "--first-parent",
+                promoted_head,
+            ).stdout.splitlines()
+            self.assertIn(baseline, first_parent)
+            self.assertEqual(run_guard().returncode, 0)
             guarded_paths = (
                 ".github/workflows/ml-dsa-44-review-reproduction.yml",
                 "contrib/ml-dsa-engineering/run_differential_verifier_fuzz.py",
                 "contrib/ml-dsa-ref/oracle_cli.h",
+                "contrib/ml-dsa-ref/validate_review_baseline.py",
+                "ci/test/test_ml_dsa_review_baseline.py",
             )
             for relative in guarded_paths:
                 with self.subTest(guarded_path=relative):
