@@ -175,6 +175,36 @@ class MlDsaSimd256RegressionsTest(unittest.TestCase):
         ):
             simd256.require_exact_libtest_success(wrong_test, test_name)
 
+    def test_rustc_searches_target_and_host_dependency_directories(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            target_dir = Path(temporary) / "target"
+            target_dependencies = (
+                target_dir
+                / simd256.TARGET_TRIPLE
+                / "debug"
+                / "deps"
+            )
+            host_dependencies = target_dir / "debug" / "deps"
+            target_dependencies.mkdir(parents=True)
+            host_dependencies.mkdir(parents=True)
+
+            self.assertEqual(
+                simd256.rustc_dependency_arguments(target_dir),
+                [
+                    "-L",
+                    f"dependency={target_dependencies}",
+                    "-L",
+                    f"dependency={host_dependencies}",
+                ],
+            )
+
+            shutil.rmtree(host_dependencies)
+            with self.assertRaisesRegex(
+                simd256.RegressionError,
+                "host dependency directory is missing or unsafe",
+            ):
+                simd256.rustc_dependency_arguments(target_dir)
+
     def test_rust_toolchain_version_is_exact(self):
         self.assertEqual(
             simd256.require_tool_version(

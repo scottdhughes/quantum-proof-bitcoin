@@ -635,6 +635,25 @@ def find_built_library(target_dir: Path) -> Path:
     return candidates[0]
 
 
+def rustc_dependency_arguments(target_dir: Path) -> list[str]:
+    target_dependencies = target_dir / TARGET_TRIPLE / "debug" / "deps"
+    host_dependencies = target_dir / "debug" / "deps"
+    for label, path in (
+        ("target", target_dependencies),
+        ("host", host_dependencies),
+    ):
+        if path.is_symlink() or not path.is_dir():
+            raise RegressionError(
+                f"{label} dependency directory is missing or unsafe"
+            )
+    return [
+        "-L",
+        f"dependency={target_dependencies}",
+        "-L",
+        f"dependency={host_dependencies}",
+    ]
+
+
 def write_checksums(output_dir: Path) -> None:
     rows = []
     for path in sorted(output_dir.rglob("*")):
@@ -779,7 +798,6 @@ def execute(
             timeout_seconds=900,
         )
 
-        dependencies = target_dir / TARGET_TRIPLE / "debug" / "deps"
         library = find_built_library(target_dir)
         harness_binary = work_root / "pqbtc-libcrux-simd256-regression"
         rustc_build = [
@@ -790,8 +808,7 @@ def execute(
             TARGET_TRIPLE,
             "--crate-name",
             "pqbtc_libcrux_simd256_regression",
-            "-L",
-            f"dependency={dependencies}",
+            *rustc_dependency_arguments(target_dir),
             "--extern",
             f"libcrux_ml_dsa={library}",
             "-o",
