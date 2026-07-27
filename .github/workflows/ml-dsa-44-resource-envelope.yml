@@ -70,7 +70,6 @@ jobs:
           - gcc
           - clang
     env:
-      EVIDENCE_DIR: ${{ runner.temp }}/ml-dsa-44-resource-envelope-${{ matrix.compiler }}
       PQBTC_RESOURCE_EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
 
     steps:
@@ -104,6 +103,7 @@ jobs:
         timeout-minutes: 10
         env:
           CC: ${{ matrix.compiler }}
+          EVIDENCE_DIR: ${{ runner.temp }}/ml-dsa-44-resource-envelope-${{ matrix.compiler }}
         run: |
           set -euxo pipefail
           python3 contrib/ml-dsa-engineering/run_verifier_resource_envelope.py \
@@ -113,6 +113,8 @@ jobs:
       - name: Verify retained evidence
         if: always()
         timeout-minutes: 5
+        env:
+          EVIDENCE_DIR: ${{ runner.temp }}/ml-dsa-44-resource-envelope-${{ matrix.compiler }}
         run: |
           set -euxo pipefail
           python3 contrib/ml-dsa-engineering/run_verifier_resource_envelope.py \
@@ -132,6 +134,8 @@ jobs:
       - name: Upload untrusted pull-request observation
         if: ${{ always() && github.event_name == 'pull_request' }}
         timeout-minutes: 5
+        env:
+          EVIDENCE_DIR: ${{ runner.temp }}/ml-dsa-44-resource-envelope-${{ matrix.compiler }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ml-dsa-44-resource-untrusted-pr-${{ github.event.pull_request.head.sha }}-${{ matrix.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -144,6 +148,8 @@ jobs:
       - name: Upload main observation
         if: ${{ always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
         timeout-minutes: 5
+        env:
+          EVIDENCE_DIR: ${{ runner.temp }}/ml-dsa-44-resource-envelope-${{ matrix.compiler }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ml-dsa-44-resource-main-observation-${{ github.sha }}-${{ matrix.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -156,6 +162,8 @@ jobs:
       - name: Upload untrusted non-main observation
         if: ${{ always() && github.event_name != 'pull_request' && github.ref != 'refs/heads/main' }}
         timeout-minutes: 5
+        env:
+          EVIDENCE_DIR: ${{ runner.temp }}/ml-dsa-44-resource-envelope-${{ matrix.compiler }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ml-dsa-44-resource-untrusted-candidate-${{ github.sha }}-${{ matrix.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}

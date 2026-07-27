@@ -565,6 +565,9 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
 
     def test_workflow_preserves_pr_main_trust_boundary(self):
         workflow = RESOURCE_WORKFLOW.read_text(encoding="utf8")
+        observe_job_preamble = workflow.split("  observe:\n", 1)[1].split(
+            "    steps:\n", 1
+        )[0]
         for required in (
             "pull_request:",
             "push:",
@@ -585,8 +588,14 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
             '"contrib/ml-dsa-ref/vectors.json"',
             '"contrib/ml-dsa-engineering/pqbtc_mldsa44_test.h"',
             "timeout-minutes: 30",
+            (
+                "EVIDENCE_DIR: ${{ runner.temp }}/"
+                "ml-dsa-44-resource-envelope-${{ matrix.compiler }}"
+            ),
         ):
             self.assertIn(required, workflow)
+        self.assertNotIn("${{ runner.", observe_job_preamble)
+        self.assertNotIn("EVIDENCE_DIR:", observe_job_preamble)
         self.assertNotIn("pull_request_target", workflow)
         self.assertNotIn("contents: write", workflow)
         self.assertNotIn("actions/cache", workflow)
