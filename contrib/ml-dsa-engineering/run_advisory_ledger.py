@@ -7,17 +7,20 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import shutil
+import stat
 import subprocess
 import tomllib
 from typing import Any
+import zipfile
 
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[1]
 LEDGER_PATH = HERE / "advisory_ledger.json"
+BACKEND_ADMISSION_PATH = HERE / "backend_admission.json"
 VECTORS_PATH = REPO_ROOT / "contrib" / "ml-dsa-ref" / "vectors.json"
 RUSTSEC_ID = re.compile(r"^RUSTSEC-\d{4}-\d{4}$")
 CVE_ID = re.compile(r"^CVE-\d{4}-\d{4,}$")
@@ -126,15 +129,15 @@ EXPECTED_ADVISORY_DISPOSITIONS = {
     ),
     "RUSTSEC-2026-0125": (
         "NOT_APPLICABLE",
-        "UNTESTED",
-        "PIN_ABOVE_FIXED_AND_OPTIMIZED_BACKEND_DISABLED",
-        "BLOCKED_UNTIL_EXACT_SIMD256_REGRESSION_PASSES",
+        "PASS",
+        "PIN_ABOVE_FIXED_EXACT_SIMD256_REGRESSION_CURRENT_BACKEND_DISABLED",
+        "RERUN_ON_REPIN_AND_REQUIRE_SEPARATE_SIMD256_ADMISSION_REVIEW",
     ),
     "RUSTSEC-2026-0126": (
         "NOT_APPLICABLE",
-        "UNTESTED",
-        "PIN_ABOVE_FIXED_AND_OPTIMIZED_BACKEND_DISABLED",
-        "BLOCKED_UNTIL_EXACT_SIMD256_REGRESSION_PASSES",
+        "PASS",
+        "PIN_ABOVE_FIXED_EXACT_SIMD256_REGRESSION_CURRENT_BACKEND_DISABLED",
+        "RERUN_ON_REPIN_AND_REQUIRE_SEPARATE_SIMD256_ADMISSION_REVIEW",
     ),
     "RUSTSEC-2026-0207": (
         "NOT_APPLICABLE",
@@ -181,6 +184,137 @@ EXPECTED_EXECUTION = {
     "production_backend": "NONE",
     "release_hold": True,
     "miri_role": "SUPPLEMENTARY",
+}
+SIMD256_EVIDENCE_ROOT = (
+    REPO_ROOT / "docs" / "reviews" / "evidence" / "ml-dsa-44-simd256"
+)
+SIMD256_EVIDENCE_SOURCE = (
+    "docs/reviews/evidence/ml-dsa-44-simd256/"
+    "f301227089086dad6918a76814d7227e61e2d71b/"
+    "run-30242969373-attempt-1/SOURCE.json"
+)
+EXPECTED_SIMD256_SOURCE: dict[str, Any] = {
+    "artifact": {
+        "created_at": "2026-07-27T06:31:56Z",
+        "digest": (
+            "sha256:"
+            "3c7e4bb5ce00e04186b295c9e1272b9440c5e77627cc3b320f256dd9038305a5"
+        ),
+        "expires_at": "2026-10-25T06:30:29Z",
+        "id": 8643946330,
+        "name": (
+            "ml-dsa-44-simd256-main-"
+            "f301227089086dad6918a76814d7227e61e2d71b-30242969373-1"
+        ),
+        "size_in_bytes": 10700,
+        "updated_at": "2026-07-27T06:31:56Z",
+    },
+    "promoted_on": "2026-07-27",
+    "repository": "scottdhughes/quantum-proof-bitcoin",
+    "repository_commit": "f301227089086dad6918a76814d7227e61e2d71b",
+    "retained_archive": {
+        "member_count": 20,
+        "path": (
+            "docs/reviews/evidence/ml-dsa-44-simd256/"
+            "f301227089086dad6918a76814d7227e61e2d71b/"
+            "run-30242969373-attempt-1/artifact.zip"
+        ),
+        "report_sha256": (
+            "f0a9c954a251009769e255d02e2b39cb070e39870b10b4482de2e03c26078c36"
+        ),
+        "sha256": (
+            "3c7e4bb5ce00e04186b295c9e1272b9440c5e77627cc3b320f256dd9038305a5"
+        ),
+        "sha256sums_sha256": (
+            "24856269e0972be492825f60e2abc61f5c2836785d320e7426b690fe9d841f23"
+        ),
+        "size_in_bytes": 10700,
+        "uncompressed_size": 21028,
+    },
+    "schema_version": 1,
+    "source_sha256": {
+        ".github/workflows/ml-dsa-44-simd256-regressions.yml": (
+            "e1cb16e62cf465600c1f927f669c6c90fc60fc298ea25842bbf7192ea53bbce3"
+        ),
+        "contrib/ml-dsa-engineering/libcrux_simd256_regression.rs": (
+            "babe124c26ce5ea6d0056c6314bd0475e6f98004fa099fc679429db3fca53008"
+        ),
+        "contrib/ml-dsa-engineering/run_libcrux_simd256_regressions.py": (
+            "c233679e33710e2e68582697c61f6fd1463e216a4beab62c6cfe7e9f0e9783fe"
+        ),
+    },
+    "workflow": {
+        "created_at": "2026-07-27T06:30:29Z",
+        "event": "push",
+        "job_completed_at": "2026-07-27T06:31:57Z",
+        "job_conclusion": "success",
+        "job_id": 89903861431,
+        "job_name": "Exact x86_64 AVX2 advisory regressions",
+        "job_started_at": "2026-07-27T06:30:33Z",
+        "job_status": "completed",
+        "path": ".github/workflows/ml-dsa-44-simd256-regressions.yml",
+        "ref": "refs/heads/main",
+        "run_attempt": 1,
+        "run_conclusion": "success",
+        "run_id": 30242969373,
+        "run_started_at": "2026-07-27T06:30:29Z",
+        "run_status": "completed",
+        "updated_at": "2026-07-27T06:31:58Z",
+    },
+}
+MAX_SIMD256_ARCHIVE_BYTES = 1024 * 1024
+MAX_SIMD256_MEMBER_BYTES = 512 * 1024
+MAX_SIMD256_EXPANDED_BYTES = 2 * 1024 * 1024
+SIMD256_ARCHIVE_MEMBERS = {
+    ".pqbtc-simd256-evidence",
+    "SHA256SUMS",
+    "cargo-build.log",
+    "cargo-version.log",
+    "git-head-after.log",
+    "git-head-before.log",
+    "git-status-after.log",
+    "git-status-before.log",
+    "job-status.txt",
+    "rustc-harness.log",
+    "rustc-version.log",
+    "rustsec-2026-0125.log",
+    "rustsec-2026-0126-debug-1.log",
+    "rustsec-2026-0126-debug-2.log",
+    "rustsec-2026-0126-debug-3.log",
+    "rustsec-2026-0126-release-1.log",
+    "rustsec-2026-0126-release-2.log",
+    "rustsec-2026-0126-release-3.log",
+    "simd256-regression-report.json",
+    "toolchain.txt",
+}
+SIMD256_INVNTT_TESTS = (
+    "simd::avx2::invntt::tests::inv_ntt_unreduced_max",
+    "simd::avx2::invntt::tests::inv_ntt_reduced",
+    "simd::avx2::invntt::tests::inv_ntt_reduced_large",
+)
+SIMD256_LIBTEST_SUMMARY = re.compile(
+    r"^test result: ok\. 1 passed; 0 failed; 0 ignored; "
+    r"0 measured; 33 filtered out; finished in .+$"
+)
+EXPECTED_SIMD256_EXECUTION = {
+    "architecture": "x86_64",
+    "called_backends": ["portable", "avx2"],
+    "compiled_backends": ["portable", "simd256"],
+    "default_features": False,
+    "features": ["mldsa44", "simd256", "std"],
+    "production_backend": "NONE",
+    "release_hold": True,
+    "release_hold_changed": False,
+    "required_cpu_feature": "avx2",
+    "required_environment": {
+        "LIBCRUX_DISABLE_SIMD128": "1",
+        "LIBCRUX_DISABLE_SIMD256": "UNSET",
+        "LIBCRUX_ENABLE_SIMD256": "1",
+    },
+    "rustsec_2026_0125_profile": "debug",
+    "rustsec_2026_0126_profiles": ["debug", "release"],
+    "simd256_admitted": False,
+    "target_triple": "x86_64-unknown-linux-gnu",
 }
 
 
@@ -247,6 +381,738 @@ def _unique_rows(
             raise AuditError(f"duplicate {label} entry: {key}")
         normalized.add(key)
     return normalized
+
+
+def _require_exact_json(actual: Any, expected: Any, label: str) -> None:
+    if type(actual) is not type(expected):
+        raise AuditError(f"{label} type drifted")
+    if isinstance(expected, dict):
+        _require_keys(actual, set(expected), label)
+        for key, expected_value in expected.items():
+            _require_exact_json(actual[key], expected_value, f"{label}.{key}")
+        return
+    if isinstance(expected, list):
+        if len(actual) != len(expected):
+            raise AuditError(f"{label} length drifted")
+        for index, (actual_value, expected_value) in enumerate(
+            zip(actual, expected, strict=True)
+        ):
+            _require_exact_json(
+                actual_value,
+                expected_value,
+                f"{label}[{index}]",
+            )
+        return
+    if actual != expected:
+        raise AuditError(f"{label} value drifted")
+
+
+def _require_regular_file(path: Path, label: str, maximum_bytes: int) -> os.stat_result:
+    try:
+        metadata = path.lstat()
+    except OSError as exc:
+        raise AuditError(f"{label} is unavailable: {exc}") from exc
+    if not stat.S_ISREG(metadata.st_mode):
+        raise AuditError(f"{label} must be a regular file without symlinks")
+    if metadata.st_size > maximum_bytes:
+        raise AuditError(f"{label} exceeds its size bound")
+    return metadata
+
+
+def _require_safe_evidence_capsule(
+    root: Path,
+    source_path: Path,
+    archive_path: Path,
+) -> None:
+    try:
+        relative_directory = source_path.parent.relative_to(root)
+    except ValueError as exc:
+        raise AuditError("SIMD256 evidence capsule is outside its retained root") from exc
+    if ".." in relative_directory.parts:
+        raise AuditError("SIMD256 evidence capsule contains parent traversal")
+    if archive_path.parent != source_path.parent:
+        raise AuditError("SIMD256 source and archive must share one capsule directory")
+
+    directories = [root]
+    current = root
+    for part in relative_directory.parts:
+        current /= part
+        directories.append(current)
+    for directory in directories:
+        try:
+            metadata = directory.lstat()
+        except OSError as exc:
+            raise AuditError(f"SIMD256 evidence directory is unavailable: {exc}") from exc
+        if not stat.S_ISDIR(metadata.st_mode):
+            raise AuditError("SIMD256 evidence directories must not be symlinks")
+
+    try:
+        entries = {entry.name for entry in source_path.parent.iterdir()}
+    except OSError as exc:
+        raise AuditError(f"cannot enumerate SIMD256 evidence capsule: {exc}") from exc
+    if entries != {source_path.name, archive_path.name}:
+        raise AuditError("SIMD256 evidence capsule contains missing or extra files")
+
+
+def _safe_zip_member_name(info: zipfile.ZipInfo) -> bool:
+    name = info.filename
+    path = PurePosixPath(name)
+    return (
+        info.orig_filename == name
+        and name != ""
+        and "\x00" not in name
+        and "\\" not in name
+        and not name.startswith("/")
+        and not path.is_absolute()
+        and tuple(path.parts) == (name,)
+        and name not in {".", ".."}
+    )
+
+
+def _read_zip_member(
+    archive: zipfile.ZipFile,
+    info: zipfile.ZipInfo,
+) -> bytes:
+    if info.file_size > MAX_SIMD256_MEMBER_BYTES:
+        raise AuditError(f"SIMD256 archive member is oversized: {info.filename}")
+    try:
+        with archive.open(info, "r") as member:
+            value = member.read(MAX_SIMD256_MEMBER_BYTES + 1)
+            if member.read(1):
+                raise AuditError(
+                    f"SIMD256 archive member exceeds its bound: {info.filename}"
+                )
+    except (OSError, RuntimeError, zipfile.BadZipFile) as exc:
+        raise AuditError(
+            f"cannot read SIMD256 archive member {info.filename}: {exc}"
+        ) from exc
+    if len(value) != info.file_size:
+        raise AuditError(f"SIMD256 archive member size drifted: {info.filename}")
+    return value
+
+
+def _validate_simd256_sha256s(
+    members: dict[str, bytes],
+    source: dict[str, Any],
+) -> None:
+    manifest = members["SHA256SUMS"]
+    expected_rows = [
+        f"{hashlib.sha256(members[name]).hexdigest()}  ./{name}"
+        for name in sorted(SIMD256_ARCHIVE_MEMBERS - {"SHA256SUMS"})
+    ]
+    expected_manifest = ("\n".join(expected_rows) + "\n").encode("ascii")
+    if manifest != expected_manifest:
+        raise AuditError("SIMD256 final SHA256SUMS inventory drifted")
+    retained = source["retained_archive"]
+    if hashlib.sha256(manifest).hexdigest() != retained["sha256sums_sha256"]:
+        raise AuditError("SIMD256 SHA256SUMS digest differs from SOURCE.json")
+    report = members["simd256-regression-report.json"]
+    if hashlib.sha256(report).hexdigest() != retained["report_sha256"]:
+        raise AuditError("SIMD256 report digest differs from SOURCE.json")
+
+
+def _validate_simd256_report(
+    report: dict[str, Any],
+    source: dict[str, Any],
+    members: dict[str, bytes],
+) -> None:
+    _require_keys(
+        report,
+        {
+            "schema_version",
+            "advisories",
+            "status",
+            "trust",
+            "repository_commit",
+            "workflow_run",
+            "preflight",
+            "toolchain",
+            "repository_state",
+            "crate_source",
+            "execution_contract",
+            "source_contract",
+            "results",
+            "checked_in_ledger_updated",
+        },
+        "SIMD256 report",
+    )
+    workflow = source["workflow"]
+    repository_commit = source["repository_commit"]
+    _require_exact_json(report["schema_version"], 1, "SIMD256 report schema")
+    _require_exact_json(report["status"], "PASS", "SIMD256 report status")
+    _require_exact_json(
+        report["checked_in_ledger_updated"],
+        False,
+        "SIMD256 historical ledger-update marker",
+    )
+    _require_exact_json(
+        report["trust"],
+        {
+            "event_name": "push",
+            "ref": "refs/heads/main",
+            "label": "TRUSTED_MAIN_EVIDENCE",
+            "scope": "trusted_main",
+            "may_report_pass": True,
+            "eligible_for_ledger_promotion": True,
+        },
+        "SIMD256 report trust",
+    )
+    _require_exact_json(
+        report["repository_commit"],
+        repository_commit,
+        "SIMD256 report repository commit",
+    )
+    _require_exact_json(
+        report["workflow_run"],
+        {
+            "id": str(workflow["run_id"]),
+            "attempt": str(workflow["run_attempt"]),
+        },
+        "SIMD256 report workflow run",
+    )
+    clean_repository_state = {
+        "before": {"head": repository_commit, "clean": True},
+        "after": {"head": repository_commit, "clean": True},
+    }
+    _require_exact_json(
+        report["repository_state"],
+        clean_repository_state,
+        "SIMD256 report repository state",
+    )
+    _require_exact_json(
+        report["execution_contract"],
+        EXPECTED_SIMD256_EXECUTION,
+        "SIMD256 execution contract",
+    )
+    _require_exact_json(
+        report["source_contract"],
+        {
+            "crate": "libcrux-ml-dsa 0.0.10",
+            "crate_archive_sha256": (
+                "783ebed7cb27de6d44ef2aa662648d1a0869694f2f754f2f1ed45e959ef3b48e"
+            ),
+            "crate_cargo_lock_sha256": (
+                "10e6505cebc85f9cbf7836002fe5b3b1d9c6c7d84cfc6dd5b6e1f38ebbb6648d"
+            ),
+            "crate_cargo_toml_sha256": (
+                "5796c72c70ced10baba72fdb0fa2345163a2ab628b2c04d89ef883ede90f44c1"
+            ),
+            "crate_commit": "c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd",
+            "crate_tree_sha256": (
+                "26b2206e58eb6cf4de2a49c3185a85c3961bf9b5b43cc020f63a1d1b92b75faa"
+            ),
+            "crate_vcs_info_sha256": (
+                "52ea479dc21f621e72e8d0abd130f5e202eb6aa0797bc6e7504c7e771b8227c3"
+            ),
+            "harness_sha256": (
+                "babe124c26ce5ea6d0056c6314bd0475e6f98004fa099fc679429db3fca53008"
+            ),
+            "source_manifest_sha256": (
+                "3522cf3ae87aaa929f8d6b0e3be809665d809ce97b71cc01aa3256d7f2b0f1f2"
+            ),
+            "vector_file_sha256": (
+                "5ec04790c240c443ca8b662b8fc871834602c7cce87fcd36a193110745b2b9ea"
+            ),
+            "wycheproof_commit": "fc24cd5b787d8e496bff31b0468af693a652b0f2",
+        },
+        "SIMD256 report source contract",
+    )
+    _require_exact_json(
+        report["crate_source"],
+        {
+            "archive_sha256": (
+                "783ebed7cb27de6d44ef2aa662648d1a0869694f2f754f2f1ed45e959ef3b48e"
+            ),
+            "commit": "c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd",
+            "cargo_toml_original_sha256": (
+                "5796c72c70ced10baba72fdb0fa2345163a2ab628b2c04d89ef883ede90f44c1"
+            ),
+            "cargo_toml_prepared_sha256": (
+                "5796c72c70ced10baba72fdb0fa2345163a2ab628b2c04d89ef883ede90f44c1"
+            ),
+            "cargo_lock_sha256": (
+                "10e6505cebc85f9cbf7836002fe5b3b1d9c6c7d84cfc6dd5b6e1f38ebbb6648d"
+            ),
+            "manifest_preparation": "NONE",
+            "read_only": True,
+            "unchanged": True,
+            "tree_sha256": (
+                "26b2206e58eb6cf4de2a49c3185a85c3961bf9b5b43cc020f63a1d1b92b75faa"
+            ),
+        },
+        "SIMD256 report crate source",
+    )
+
+    expected_advisories = {
+        "RUSTSEC-2026-0125": {
+            "called_backends": ["portable", "avx2"],
+            "expected_validity": {"147": True, "148": False},
+            "parameter_set": "ML-DSA-44",
+            "test_case_ids": [147, 148],
+        },
+        "RUSTSEC-2026-0126": {
+            "called_backends": ["portable", "avx2"],
+            "upstream_libtest_paths": list(SIMD256_INVNTT_TESTS),
+        },
+    }
+    _require_exact_json(
+        report["advisories"],
+        expected_advisories,
+        "SIMD256 report advisories",
+    )
+    expected_cases = [
+        {
+            "test_case_id": 147,
+            "expected_valid": True,
+            "flags": ["BoundaryCondition", "ValidSignature", "ZeroPublicKey"],
+            "public_key_sha256": (
+                "b07bcb1a9e37ac843cb678d6c3c57b960c2b0d2d5d02bc91f3b642258d75b50f"
+            ),
+            "message_sha256": (
+                "64ec88ca00b268e5ba1a35678a1b5316d212f4f366b2477232534a8aeca37f3c"
+            ),
+            "context_sha256": (
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ),
+            "signature_sha256": (
+                "5306515480c0f680da054413c248876024870eaccf8032703aaf06105c1a2191"
+            ),
+        },
+        {
+            "test_case_id": 148,
+            "expected_valid": False,
+            "flags": ["BoundaryCondition", "InvalidSignature", "ZeroPublicKey"],
+            "public_key_sha256": (
+                "b07bcb1a9e37ac843cb678d6c3c57b960c2b0d2d5d02bc91f3b642258d75b50f"
+            ),
+            "message_sha256": (
+                "64ec88ca00b268e5ba1a35678a1b5316d212f4f366b2477232534a8aeca37f3c"
+            ),
+            "context_sha256": (
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ),
+            "signature_sha256": (
+                "0642b1cb6f51243aa6292fc11caa41e6f21ac7072988b0fa939c5d73cfcc6629"
+            ),
+        },
+    ]
+    expected_results = {
+        "RUSTSEC-2026-0125": {
+            "status": "PASS",
+            "test_case_ids": [147, 148],
+            "portable_results": {"147": "valid", "148": "invalid"},
+            "avx2_results": {"147": "valid", "148": "invalid"},
+            "observations": [
+                "tcId=147 portable=1 avx2=1 expected=1",
+                "tcId=148 portable=0 avx2=0 expected=0",
+            ],
+            "profile": "debug",
+            "cases": expected_cases,
+        },
+        "RUSTSEC-2026-0126": {
+            "status": "PASS",
+            "upstream_libtest_paths": list(SIMD256_INVNTT_TESTS),
+            "profiles": ["debug", "release"],
+        },
+    }
+    _require_exact_json(
+        report["results"],
+        expected_results,
+        "SIMD256 report results",
+    )
+
+    preflight = report["preflight"]
+    if not isinstance(preflight, dict):
+        raise AuditError("SIMD256 preflight must be an object")
+    _require_keys(
+        preflight,
+        {
+            "uname_machine",
+            "platform_machine",
+            "cpu_flags",
+            "avx2",
+            "cpuinfo_sha256",
+        },
+        "SIMD256 preflight",
+    )
+    if (
+        preflight["uname_machine"] != "x86_64"
+        or preflight["platform_machine"] != "x86_64"
+        or preflight["avx2"] != "present"
+        or not isinstance(preflight["cpu_flags"], list)
+        or "avx2" not in preflight["cpu_flags"]
+        or not isinstance(preflight["cpuinfo_sha256"], str)
+        or HEX_64.fullmatch(preflight["cpuinfo_sha256"]) is None
+    ):
+        raise AuditError("SIMD256 x86_64 AVX2 preflight drifted")
+
+    toolchain = report["toolchain"]
+    if not isinstance(toolchain, dict):
+        raise AuditError("SIMD256 toolchain must be an object")
+    _require_keys(toolchain, {"cargo", "rustc", "pinned_version"}, "SIMD256 toolchain")
+    if (
+        toolchain["pinned_version"] != "1.89.0"
+        or not isinstance(toolchain["cargo"], str)
+        or not toolchain["cargo"].startswith("cargo 1.89.0 ")
+        or "\nhost: x86_64-unknown-linux-gnu\n" not in toolchain["cargo"]
+        or not isinstance(toolchain["rustc"], str)
+        or not toolchain["rustc"].startswith("rustc 1.89.0 ")
+        or "\nhost: x86_64-unknown-linux-gnu\n" not in toolchain["rustc"]
+    ):
+        raise AuditError("SIMD256 Rust toolchain drifted")
+
+    expected_head = (repository_commit + "\n").encode("ascii")
+    for phase in ("before", "after"):
+        if members[f"git-head-{phase}.log"] != expected_head:
+            raise AuditError(f"SIMD256 repository head drifted during {phase}")
+        if members[f"git-status-{phase}.log"] != b"":
+            raise AuditError(f"SIMD256 repository was dirty during {phase}")
+    if members[".pqbtc-simd256-evidence"] != (
+        b"pqbtc-libcrux-simd256-regression-v1\n"
+    ):
+        raise AuditError("SIMD256 evidence ownership marker drifted")
+    if members["job-status.txt"] != b"job_status=success\n":
+        raise AuditError("SIMD256 retained job did not complete successfully")
+    if members["rustc-harness.log"] != b"":
+        raise AuditError("SIMD256 direct harness emitted unexpected output")
+    expected_observations = (
+        b"tcId=147 portable=1 avx2=1 expected=1\n"
+        b"tcId=148 portable=0 avx2=0 expected=0\n"
+    )
+    if members["rustsec-2026-0125.log"] != expected_observations:
+        raise AuditError("RUSTSEC-2026-0125 retained observations drifted")
+
+    for profile in ("debug", "release"):
+        for index, test_name in enumerate(SIMD256_INVNTT_TESTS, start=1):
+            name = f"rustsec-2026-0126-{profile}-{index}.log"
+            try:
+                output = members[name].decode("utf8")
+            except UnicodeError as exc:
+                raise AuditError(f"{name} is not UTF-8") from exc
+            lines = [line.strip() for line in output.splitlines()]
+            summaries = [line for line in lines if line.startswith("test result:")]
+            if (
+                "FAILED" in output
+                or lines.count("running 1 test") != 1
+                or lines.count(f"test {test_name} ... ok") != 1
+                or len(summaries) != 1
+                or SIMD256_LIBTEST_SUMMARY.fullmatch(summaries[0]) is None
+            ):
+                raise AuditError(f"{name} did not prove one exact passing libtest")
+
+
+def _validate_simd256_backend_admission(
+    admission: dict[str, Any],
+    source: dict[str, Any],
+) -> None:
+    decision = admission.get("decision")
+    if not isinstance(decision, dict):
+        raise AuditError("backend admission decision is missing")
+    _require_exact_json(
+        decision,
+        {
+            "id": "MLDSA_NATIVE_PORTABLE_C_ISOLATED_PROTOTYPE",
+            "decided": "2026-07-19",
+            "production_backend": "NONE",
+            "release_hold": True,
+            "authorized_scope": [
+                "research_wrapper_design",
+                "contrib_only_prototype",
+                "ci_contract_tests",
+                "documentation",
+            ],
+            "prohibited_integrations": [
+                "node",
+                "wallet",
+                "script",
+                "consensus",
+                "alg_id",
+                "functional_suite_inventory",
+            ],
+        },
+        "backend admission decision",
+    )
+
+    assessments = admission.get("candidate_assessments")
+    if not isinstance(assessments, dict):
+        raise AuditError("backend candidate assessments are missing")
+    expected_outcomes = {
+        "openssl_3_6_3": "ORACLE_ONLY",
+        "mldsa_native_portable_c": "ISOLATED_PROTOTYPE_ADMITTED",
+        "libcrux_ml_dsa_0_0_10_portable": "ORACLE_ONLY",
+    }
+    if set(assessments) != set(expected_outcomes):
+        raise AuditError("backend candidate inventory drifted")
+    for name, expected_outcome in expected_outcomes.items():
+        candidate = assessments[name]
+        if (
+            not isinstance(candidate, dict)
+            or candidate.get("outcome") != expected_outcome
+        ):
+            raise AuditError(f"backend candidate outcome drifted: {name}")
+    libcrux = assessments.get("libcrux_ml_dsa_0_0_10_portable")
+    if not isinstance(libcrux, dict):
+        raise AuditError("libcrux candidate assessment is missing")
+    advisory_evidence = libcrux.get("advisory_evidence")
+    if not isinstance(advisory_evidence, dict):
+        raise AuditError("libcrux advisory evidence is missing")
+    if advisory_evidence.get("exact_commit_re_review") != "PENDING":
+        raise AuditError("libcrux exact-commit independent re-review must remain pending")
+    _require_exact_json(
+        advisory_evidence.get("simd256_advisory_regressions"),
+        {
+            "advisories": ["RUSTSEC-2026-0125", "RUSTSEC-2026-0126"],
+            "status": "PASS",
+            "repository_commit": source["repository_commit"],
+            "source_manifest": SIMD256_EVIDENCE_SOURCE,
+            "test_only": True,
+            "simd256_admitted": False,
+        },
+        "backend SIMD256 advisory evidence",
+    )
+
+    gates = admission.get("open_gates")
+    if not isinstance(gates, list):
+        raise AuditError("backend admission gates are missing")
+    expected_gates = {
+        181: {
+            "id": "independent_human_review",
+            "status": "OPEN",
+            "tracking_issue": 181,
+        },
+        184: {
+            "id": "entropy_and_failure_binding",
+            "status": "ISOLATED_PROTOTYPE_EVIDENCE_PLATFORM_LIFECYCLE_OPEN",
+            "tracking_issue": 184,
+        },
+        185: {
+            "id": "supported_platform_side_channel",
+            "status": "BOUNDED_X86_64_VALGRIND_EVIDENCE_BROADER_PLATFORMS_OPEN",
+            "tracking_issue": 185,
+        },
+        186: {
+            "id": "fault_resistance",
+            "status": "OPEN",
+            "tracking_issue": 186,
+        },
+        187: {
+            "id": "secret_lifecycle_and_erasure",
+            "status": "ISOLATED_SOURCE_AND_SANITIZER_EVIDENCE_OPEN",
+            "tracking_issue": 187,
+        },
+        188: {
+            "id": "structure_aware_fuzzing_and_resources",
+            "status": (
+                "DIFFERENTIAL_STATEFUL_SANITIZER_MIRI_AND_CLI_EVIDENCE_"
+                "RESOURCES_OPEN"
+            ),
+            "tracking_issue": 188,
+        },
+        189: {
+            "id": "backend_advisory_and_sbom_refresh",
+            "status": (
+                "TECHNICAL_REMEDIATION_IMPLEMENTED_EXACT_COMMIT_RE_REVIEW_OPEN"
+            ),
+            "tracking_issue": 189,
+        },
+        190: {
+            "id": "wallet_and_key_format",
+            "status": "OPEN",
+            "tracking_issue": 190,
+        },
+    }
+    actual_gates: dict[int, dict[str, Any]] = {}
+    for gate in gates:
+        if not isinstance(gate, dict):
+            raise AuditError("backend admission gate must be an object")
+        tracking_issue = gate.get("tracking_issue")
+        if type(tracking_issue) is not int:
+            raise AuditError("backend admission gate issue must be an integer")
+        if tracking_issue in actual_gates:
+            raise AuditError(f"duplicate backend admission gate: {tracking_issue}")
+        actual_gates[tracking_issue] = gate
+    if set(actual_gates) != set(expected_gates):
+        raise AuditError("backend admission gate inventory drifted")
+    for tracking_issue, expected_gate in expected_gates.items():
+        _require_exact_json(
+            actual_gates[tracking_issue],
+            expected_gate,
+            f"backend admission gate #{tracking_issue}",
+        )
+
+
+def validate_trusted_main_simd256_evidence(
+    ledger: dict[str, Any],
+    *,
+    evidence_root: Path | None = None,
+    source_path: Path | None = None,
+    expected_source: dict[str, Any] | None = None,
+) -> None:
+    if expected_source is None:
+        expected_source = EXPECTED_SIMD256_SOURCE
+    if not SIMD256_EVIDENCE_SOURCE or not expected_source:
+        raise AuditError("trusted-main SIMD256 evidence identity is not frozen")
+    logical_source = PurePosixPath(SIMD256_EVIDENCE_SOURCE)
+    if (
+        logical_source.is_absolute()
+        or ".." in logical_source.parts
+        or logical_source.as_posix() != SIMD256_EVIDENCE_SOURCE
+    ):
+        raise AuditError("trusted-main SIMD256 evidence path is unsafe")
+    if evidence_root is None:
+        evidence_root = SIMD256_EVIDENCE_ROOT
+    if source_path is None:
+        source_path = REPO_ROOT / SIMD256_EVIDENCE_SOURCE
+    archive_path = source_path.parent / "artifact.zip"
+    _require_safe_evidence_capsule(
+        evidence_root,
+        source_path,
+        archive_path,
+    )
+    _require_regular_file(source_path, "SIMD256 SOURCE.json", 64 * 1024)
+    archive_metadata = _require_regular_file(
+        archive_path,
+        "SIMD256 artifact.zip",
+        MAX_SIMD256_ARCHIVE_BYTES,
+    )
+    source = load_json_object(source_path, "SIMD256 SOURCE.json")
+    _require_exact_json(
+        source,
+        expected_source,
+        "SIMD256 SOURCE.json",
+    )
+
+    workflow = source["workflow"]
+    retained = source["retained_archive"]
+    expected_directory = (
+        evidence_root
+        / source["repository_commit"]
+        / (
+            f"run-{workflow['run_id']}-attempt-"
+            f"{workflow['run_attempt']}"
+        )
+    )
+    if source_path.parent != expected_directory:
+        raise AuditError("SIMD256 evidence directory identity drifted")
+    expected_archive_relative = (
+        Path(SIMD256_EVIDENCE_SOURCE).parent / "artifact.zip"
+    ).as_posix()
+    if retained["path"] != expected_archive_relative:
+        raise AuditError("SIMD256 retained archive path drifted")
+    expected_artifact_name = (
+        f"ml-dsa-44-simd256-main-{source['repository_commit']}-"
+        f"{workflow['run_id']}-{workflow['run_attempt']}"
+    )
+    if source["artifact"]["name"] != expected_artifact_name:
+        raise AuditError("SIMD256 trusted-main artifact name drifted")
+    if (
+        archive_metadata.st_size != retained["size_in_bytes"]
+        or archive_metadata.st_size != source["artifact"]["size_in_bytes"]
+    ):
+        raise AuditError("SIMD256 retained archive size drifted")
+    archive_bytes = archive_path.read_bytes()
+    archive_sha256 = hashlib.sha256(archive_bytes).hexdigest()
+    if (
+        archive_sha256 != retained["sha256"]
+        or source["artifact"]["digest"] != f"sha256:{archive_sha256}"
+    ):
+        raise AuditError("SIMD256 retained archive digest drifted")
+
+    source_hashes = source["source_sha256"]
+    for relative, expected_digest in source_hashes.items():
+        logical_path = PurePosixPath(relative)
+        if (
+            logical_path.is_absolute()
+            or ".." in logical_path.parts
+            or logical_path.as_posix() != relative
+        ):
+            raise AuditError(f"SIMD256 source input path is unsafe: {relative}")
+        path = REPO_ROOT / relative
+        _require_regular_file(path, f"SIMD256 source input {relative}", 1024 * 1024)
+        if hashlib.sha256(path.read_bytes()).hexdigest() != expected_digest:
+            raise AuditError(f"SIMD256 source input drifted: {relative}")
+
+    try:
+        with zipfile.ZipFile(archive_path, "r") as archive:
+            infos = archive.infolist()
+            names = [info.filename for info in infos]
+            if len(names) != len(set(names)):
+                raise AuditError("SIMD256 archive contains duplicate members")
+            if set(names) != SIMD256_ARCHIVE_MEMBERS:
+                raise AuditError("SIMD256 archive member inventory drifted")
+            if len(infos) != retained["member_count"]:
+                raise AuditError("SIMD256 archive member count drifted")
+            expanded_size = 0
+            for info in infos:
+                unix_mode = info.external_attr >> 16
+                if (
+                    not _safe_zip_member_name(info)
+                    or info.is_dir()
+                    or info.flag_bits & 1
+                    or info.create_system != 3
+                    or not stat.S_ISREG(unix_mode)
+                    or info.compress_type
+                    not in {zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED}
+                ):
+                    raise AuditError(
+                        f"SIMD256 archive member is unsafe: {info.filename}"
+                    )
+                expanded_size += info.file_size
+                if expanded_size > MAX_SIMD256_EXPANDED_BYTES:
+                    raise AuditError("SIMD256 archive expanded size exceeds its bound")
+            if expanded_size != retained["uncompressed_size"]:
+                raise AuditError("SIMD256 archive expanded size drifted")
+            members = {
+                info.filename: _read_zip_member(archive, info)
+                for info in infos
+            }
+    except (
+        OSError,
+        RuntimeError,
+        zipfile.BadZipFile,
+        zipfile.LargeZipFile,
+    ) as exc:
+        raise AuditError(f"cannot validate SIMD256 artifact.zip: {exc}") from exc
+
+    _validate_simd256_sha256s(members, source)
+    report_value = parse_json_bytes(
+        members["simd256-regression-report.json"],
+        "SIMD256 regression report",
+    )
+    if not isinstance(report_value, dict):
+        raise AuditError("SIMD256 regression report must be an object")
+    _validate_simd256_report(report_value, source, members)
+
+    expected_evidence = {
+        "RUSTSEC-2026-0125": [
+            SIMD256_EVIDENCE_SOURCE,
+            (
+                f"{expected_archive_relative}!/"
+                "simd256-regression-report.json#results/RUSTSEC-2026-0125"
+            ),
+        ],
+        "RUSTSEC-2026-0126": [
+            SIMD256_EVIDENCE_SOURCE,
+            (
+                f"{expected_archive_relative}!/"
+                "simd256-regression-report.json#results/RUSTSEC-2026-0126"
+            ),
+        ],
+    }
+    entries = {entry["id"]: entry for entry in ledger["advisories"]}
+    for advisory_id, evidence in expected_evidence.items():
+        if entries[advisory_id]["evidence"] != evidence:
+            raise AuditError(f"{advisory_id} is detached from trusted-main evidence")
+    _require_regular_file(
+        BACKEND_ADMISSION_PATH,
+        "ML-DSA-44 backend admission",
+        1024 * 1024,
+    )
+    admission = load_json_object(
+        BACKEND_ADMISSION_PATH,
+        "ML-DSA-44 backend admission",
+    )
+    _validate_simd256_backend_admission(admission, source)
 
 
 def _source_by_name(ledger: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -584,6 +1450,22 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
                 "compare_oracles.py ML-DSA-44 Wycheproof tcIds 125 and 126",
                 "upstream ML-DSA-65 mask_exceeds_norm",
             ],
+            "RUSTSEC-2026-0125": [
+                SIMD256_EVIDENCE_SOURCE,
+                (
+                    EXPECTED_SIMD256_SOURCE["retained_archive"]["path"]
+                    + "!/simd256-regression-report.json"
+                    "#results/RUSTSEC-2026-0125"
+                ),
+            ],
+            "RUSTSEC-2026-0126": [
+                SIMD256_EVIDENCE_SOURCE,
+                (
+                    EXPECTED_SIMD256_SOURCE["retained_archive"]["path"]
+                    + "!/simd256-regression-report.json"
+                    "#results/RUSTSEC-2026-0126"
+                ),
+            ],
         }
         if (
             entry["id"] in exact_regression_evidence
@@ -651,19 +1533,26 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
         raise AuditError("Miri source must be pinned by SHA256")
 
     scope = ledger["scope"]
-    if (
-        scope.get("issue_189")
-        != "REMAINS_OPEN_PENDING_SIMD_ADMISSION_REGRESSIONS_AND_RE_REVIEW"
-    ):
-        raise AuditError(
-            "issue #189 must remain open pending exact SIMD256 admission "
-            "regressions and exact-commit re-review"
-        )
-    if (
-        scope.get("production_change") is not False
-        or scope.get("release_hold_changed") is not False
-    ):
-        raise AuditError("the advisory tranche cannot change production or release-hold state")
+    if not isinstance(scope, dict):
+        raise AuditError("ledger scope must be an object")
+    _require_exact_json(
+        scope,
+        {
+            "technical_remediation": (
+                "IMPLEMENTED_WITH_TRUSTED_MAIN_SIMD256_EVIDENCE"
+            ),
+            "external_re_review": (
+                "PENDING_EXACT_COMMIT_REVIEW_UNDER_ISSUE_181"
+            ),
+            "issue_189": (
+                "REMAINS_OPEN_PENDING_EXACT_COMMIT_RE_REVIEW_UNDER_ISSUE_181"
+            ),
+            "production_change": False,
+            "release_hold_changed": False,
+        },
+        "ledger scope",
+    )
+    validate_trusted_main_simd256_evidence(ledger)
 
 
 def _semver_tuple(value: Any, label: str) -> tuple[int, int, int]:

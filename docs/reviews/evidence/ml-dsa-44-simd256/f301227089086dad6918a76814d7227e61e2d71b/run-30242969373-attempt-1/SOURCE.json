@@ -1,0 +1,47 @@
+{
+  "artifact": {
+    "created_at": "2026-07-27T06:31:56Z",
+    "digest": "sha256:3c7e4bb5ce00e04186b295c9e1272b9440c5e77627cc3b320f256dd9038305a5",
+    "expires_at": "2026-10-25T06:30:29Z",
+    "id": 8643946330,
+    "name": "ml-dsa-44-simd256-main-f301227089086dad6918a76814d7227e61e2d71b-30242969373-1",
+    "size_in_bytes": 10700,
+    "updated_at": "2026-07-27T06:31:56Z"
+  },
+  "promoted_on": "2026-07-27",
+  "repository": "scottdhughes/quantum-proof-bitcoin",
+  "repository_commit": "f301227089086dad6918a76814d7227e61e2d71b",
+  "retained_archive": {
+    "member_count": 20,
+    "path": "docs/reviews/evidence/ml-dsa-44-simd256/f301227089086dad6918a76814d7227e61e2d71b/run-30242969373-attempt-1/artifact.zip",
+    "report_sha256": "f0a9c954a251009769e255d02e2b39cb070e39870b10b4482de2e03c26078c36",
+    "sha256": "3c7e4bb5ce00e04186b295c9e1272b9440c5e77627cc3b320f256dd9038305a5",
+    "sha256sums_sha256": "24856269e0972be492825f60e2abc61f5c2836785d320e7426b690fe9d841f23",
+    "size_in_bytes": 10700,
+    "uncompressed_size": 21028
+  },
+  "schema_version": 1,
+  "source_sha256": {
+    ".github/workflows/ml-dsa-44-simd256-regressions.yml": "e1cb16e62cf465600c1f927f669c6c90fc60fc298ea25842bbf7192ea53bbce3",
+    "contrib/ml-dsa-engineering/libcrux_simd256_regression.rs": "babe124c26ce5ea6d0056c6314bd0475e6f98004fa099fc679429db3fca53008",
+    "contrib/ml-dsa-engineering/run_libcrux_simd256_regressions.py": "c233679e33710e2e68582697c61f6fd1463e216a4beab62c6cfe7e9f0e9783fe"
+  },
+  "workflow": {
+    "created_at": "2026-07-27T06:30:29Z",
+    "event": "push",
+    "job_completed_at": "2026-07-27T06:31:57Z",
+    "job_conclusion": "success",
+    "job_id": 89903861431,
+    "job_name": "Exact x86_64 AVX2 advisory regressions",
+    "job_started_at": "2026-07-27T06:30:33Z",
+    "job_status": "completed",
+    "path": ".github/workflows/ml-dsa-44-simd256-regressions.yml",
+    "ref": "refs/heads/main",
+    "run_attempt": 1,
+    "run_conclusion": "success",
+    "run_id": 30242969373,
+    "run_started_at": "2026-07-27T06:30:29Z",
+    "run_status": "completed",
+    "updated_at": "2026-07-27T06:31:58Z"
+  }
+}

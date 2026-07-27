@@ -487,11 +487,14 @@
       "affected_backends_or_functions": ["AVX2 simd256 use_hint"],
       "affected_status": "NOT_AFFECTED",
       "current_path_applicability": "NOT_APPLICABLE",
-      "test_status": "UNTESTED",
-      "reason_code": "PIN_ABOVE_FIXED_AND_OPTIMIZED_BACKEND_DISABLED",
-      "reason": "The pin is above the fixed version and simd256 is neither compiled nor called in the current evidence contract.",
-      "evidence": ["RustSec advisory metadata", "portable execution contract"],
-      "future_admission": "BLOCKED_UNTIL_EXACT_SIMD256_REGRESSION_PASSES"
+      "test_status": "PASS",
+      "reason_code": "PIN_ABOVE_FIXED_EXACT_SIMD256_REGRESSION_CURRENT_BACKEND_DISABLED",
+      "reason": "The pin is above the fixed version. Trusted-main test-only evidence at exact commit f301227089086dad6918a76814d7227e61e2d71b passes pinned Wycheproof ML-DSA-44 tcIds 147 and 148 through explicit portable and AVX2 verification calls. The current evidence execution contract remains portable and does not compile, call, or admit simd256.",
+      "evidence": [
+        "docs/reviews/evidence/ml-dsa-44-simd256/f301227089086dad6918a76814d7227e61e2d71b/run-30242969373-attempt-1/SOURCE.json",
+        "docs/reviews/evidence/ml-dsa-44-simd256/f301227089086dad6918a76814d7227e61e2d71b/run-30242969373-attempt-1/artifact.zip!/simd256-regression-report.json#results/RUSTSEC-2026-0125"
+      ],
+      "future_admission": "RERUN_ON_REPIN_AND_REQUIRE_SEPARATE_SIMD256_ADMISSION_REVIEW"
     },
     {
       "id": "RUSTSEC-2026-0126",
@@ -505,11 +508,14 @@
       "affected_backends_or_functions": ["AVX2 simd256 inverse NTT reduction"],
       "affected_status": "NOT_AFFECTED",
       "current_path_applicability": "NOT_APPLICABLE",
-      "test_status": "UNTESTED",
-      "reason_code": "PIN_ABOVE_FIXED_AND_OPTIMIZED_BACKEND_DISABLED",
-      "reason": "The pin is above the fixed version and simd256 is neither compiled nor called in the current evidence contract.",
-      "evidence": ["RustSec advisory metadata", "portable execution contract"],
-      "future_admission": "BLOCKED_UNTIL_EXACT_SIMD256_REGRESSION_PASSES"
+      "test_status": "PASS",
+      "reason_code": "PIN_ABOVE_FIXED_EXACT_SIMD256_REGRESSION_CURRENT_BACKEND_DISABLED",
+      "reason": "The pin is above the fixed version. Trusted-main test-only evidence at exact commit f301227089086dad6918a76814d7227e61e2d71b passes all three shipped AVX2 inverse-NTT regressions exactly once in both debug and release profiles. The current evidence execution contract remains portable and does not compile, call, or admit simd256.",
+      "evidence": [
+        "docs/reviews/evidence/ml-dsa-44-simd256/f301227089086dad6918a76814d7227e61e2d71b/run-30242969373-attempt-1/SOURCE.json",
+        "docs/reviews/evidence/ml-dsa-44-simd256/f301227089086dad6918a76814d7227e61e2d71b/run-30242969373-attempt-1/artifact.zip!/simd256-regression-report.json#results/RUSTSEC-2026-0126"
+      ],
+      "future_admission": "RERUN_ON_REPIN_AND_REQUIRE_SEPARATE_SIMD256_ADMISSION_REVIEW"
     },
     {
       "id": "RUSTSEC-2026-0207",
@@ -707,9 +713,9 @@
     "limits": "Portable Rust UB evidence only; no SIMD, C FFI, compiler-output, timing, or leakage claim."
   },
   "scope": {
-    "technical_remediation": "IMPLEMENTED_WHEN_WORKFLOW_GREEN",
+    "technical_remediation": "IMPLEMENTED_WITH_TRUSTED_MAIN_SIMD256_EVIDENCE",
     "external_re_review": "PENDING_EXACT_COMMIT_REVIEW_UNDER_ISSUE_181",
-    "issue_189": "REMAINS_OPEN_PENDING_SIMD_ADMISSION_REGRESSIONS_AND_RE_REVIEW",
+    "issue_189": "REMAINS_OPEN_PENDING_EXACT_COMMIT_RE_REVIEW_UNDER_ISSUE_181",
     "production_change": false,
     "release_hold_changed": false
   }

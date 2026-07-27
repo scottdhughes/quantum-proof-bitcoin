@@ -91,10 +91,21 @@ requires every exact libtest invocation to prove that one named test ran and
 passed, and requires the repository checkout to remain exact and clean.
 
 Pull-request artifacts are labeled `UNTRUSTED_PR_EVIDENCE` and cannot promote
-the checked-in advisory ledger. A successful run at `refs/heads/main` may
-report `PASS`, but ledger promotion remains a separate reviewed change. This
-lane compiles SIMD256 solely for tests: `production_backend` remains `NONE`,
-`simd256_admitted` remains false, and the release hold remains true.
+the checked-in advisory ledger. Trusted-main push run `30242969373`, attempt
+`1`, passed at exact commit
+`f301227089086dad6918a76814d7227e61e2d71b`. Its immutable 20-member artifact
+is retained under `docs/reviews/evidence/ml-dsa-44-simd256/` with outer SHA-256
+`3c7e4bb5ce00e04186b295c9e1272b9440c5e77627cc3b320f256dd9038305a5`.
+The ledger validator binds the source metadata, archive structure, internal
+checksums, exact 0125/0126 results, backend disposition, and release boundary
+before accepting either `PASS`.
+
+The two advisory rows therefore record exact regression `PASS` while retaining
+`NOT_APPLICABLE` for the current portable execution path. This lane compiles
+SIMD256 solely for tests: `production_backend` remains `NONE`,
+`simd256_admitted` remains false, and the release hold remains true. A re-pin
+must rerun the regressions, and any future SIMD256 admission still requires a
+separate review.
 
 ## Versioned Static-Analysis Audit
 

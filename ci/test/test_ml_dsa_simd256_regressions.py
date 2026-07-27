@@ -357,22 +357,47 @@ class MlDsaSimd256RegressionsTest(unittest.TestCase):
             ):
                 simd256.claim_output_directory(empty)
 
-    def test_checked_in_ledger_and_backend_remain_unpromoted(self):
+    def test_checked_in_evidence_is_promoted_without_backend_admission(self):
         ledger = json.loads(LEDGER.read_text(encoding="utf8"))
         advisories = {entry["id"]: entry for entry in ledger["advisories"]}
         for advisory_id in ("RUSTSEC-2026-0125", "RUSTSEC-2026-0126"):
             entry = advisories[advisory_id]
             self.assertEqual(entry["current_path_applicability"], "NOT_APPLICABLE")
-            self.assertEqual(entry["test_status"], "UNTESTED")
+            self.assertEqual(entry["test_status"], "PASS")
+            self.assertEqual(
+                entry["reason_code"],
+                (
+                    "PIN_ABOVE_FIXED_EXACT_SIMD256_REGRESSION_"
+                    "CURRENT_BACKEND_DISABLED"
+                ),
+            )
             self.assertEqual(
                 entry["future_admission"],
-                "BLOCKED_UNTIL_EXACT_SIMD256_REGRESSION_PASSES",
+                (
+                    "RERUN_ON_REPIN_AND_REQUIRE_SEPARATE_"
+                    "SIMD256_ADMISSION_REVIEW"
+                ),
+            )
+            self.assertEqual(len(entry["evidence"]), 2)
+            self.assertIn(
+                "docs/reviews/evidence/ml-dsa-44-simd256/",
+                entry["evidence"][0],
+            )
+            self.assertIn(
+                f"#results/{advisory_id}",
+                entry["evidence"][1],
             )
         self.assertFalse(ledger["execution_contract"]["simd256_admitted"])
         self.assertEqual(ledger["execution_contract"]["production_backend"], "NONE")
         self.assertTrue(ledger["execution_contract"]["release_hold"])
 
         admission = json.loads(BACKEND_ADMISSION.read_text(encoding="utf8"))
+        simd_evidence = admission["candidate_assessments"][
+            "libcrux_ml_dsa_0_0_10_portable"
+        ]["advisory_evidence"]["simd256_advisory_regressions"]
+        self.assertEqual(simd_evidence["status"], "PASS")
+        self.assertTrue(simd_evidence["test_only"])
+        self.assertFalse(simd_evidence["simd256_admitted"])
         serialized = json.dumps(admission, sort_keys=True)
         self.assertIn('"release_hold": true', serialized)
         self.assertIn('"production_backend": "NONE"', serialized)
@@ -390,6 +415,10 @@ class MlDsaSimd256RegressionsTest(unittest.TestCase):
             advisory_workflow,
         )
         self.assertIn(
+            "python3 -m unittest ci.test.test_ml_dsa_simd256_regressions",
+            advisory_workflow,
+        )
+        self.assertIn(
             "if: github.event_name == 'pull_request'",
             advisory_workflow,
         )
@@ -399,8 +428,12 @@ class MlDsaSimd256RegressionsTest(unittest.TestCase):
             "contrib/ml-dsa-engineering/libcrux_simd256_regression.rs",
             "contrib/ml-dsa-engineering/run_libcrux_simd256_regressions.py",
             "ci/test/test_ml_dsa_simd256_regressions.py",
+            "docs/reviews/evidence/ml-dsa-44-simd256/**",
         ):
-            self.assertIn(f'      - "{path}"', advisory_workflow)
+            self.assertEqual(
+                advisory_workflow.count(f'      - "{path}"'),
+                2,
+            )
         self.assertIn("--event-name \"$GITHUB_EVENT_NAME\"", workflow)
         self.assertIn("--ref \"$GITHUB_REF\"", workflow)
         self.assertIn("--repository-commit \"$AUDIT_SHA\"", workflow)

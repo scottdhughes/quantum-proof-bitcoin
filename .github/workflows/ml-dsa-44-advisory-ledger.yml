@@ -25,6 +25,7 @@ on:
       - "docs/ML_DSA_44_EXTERNAL_REVIEW.md"
       - "docs/ML_DSA_44_REFERENCE.md"
       - "docs/ML_DSA_44_WRAPPER_PROTOTYPE.md"
+      - "docs/reviews/evidence/ml-dsa-44-simd256/**"
       - "docs/PQSIG_CANDIDATE_SELECTION.md"
       - "docs/TRACK_A_STATUS.md"
   push:
@@ -33,21 +34,27 @@ on:
     paths:
       - ".github/workflows/ml-dsa-44-advisory-ledger.yml"
       - ".github/workflows/ml-dsa-44-review-reproduction.yml"
+      - ".github/workflows/ml-dsa-44-simd256-regressions.yml"
       - "contrib/ml-dsa-ref/**"
       - "contrib/ml-dsa-engineering/advisory_ledger.json"
       - "contrib/ml-dsa-engineering/backend_admission.json"
+      - "contrib/ml-dsa-engineering/fuzz_sources/wycheproof/**"
       - "contrib/ml-dsa-engineering/README.md"
+      - "contrib/ml-dsa-engineering/libcrux_simd256_regression.rs"
       - "contrib/ml-dsa-engineering/run_advisory_ledger.py"
+      - "contrib/ml-dsa-engineering/run_libcrux_simd256_regressions.py"
       - "contrib/ml-dsa-engineering/libcrux-miri/**"
       - "ci/test/test_ml_dsa_advisory_ledger.py"
       - "ci/test/test_ml_dsa_backend_admission.py"
       - "ci/test/test_ml_dsa_reference.py"
+      - "ci/test/test_ml_dsa_simd256_regressions.py"
       - "ci/test/test_ml_dsa_sustained_fuzz.py"
       - "docs/ML_DSA_44_ADVISORY_LEDGER.md"
       - "docs/ML_DSA_44_BACKEND_ADMISSION.md"
       - "docs/ML_DSA_44_EXTERNAL_REVIEW.md"
       - "docs/ML_DSA_44_REFERENCE.md"
       - "docs/ML_DSA_44_WRAPPER_PROTOTYPE.md"
+      - "docs/reviews/evidence/ml-dsa-44-simd256/**"
       - "docs/PQSIG_CANDIDATE_SELECTION.md"
       - "docs/TRACK_A_STATUS.md"
   schedule:
@@ -107,6 +114,7 @@ jobs:
           python3 -m unittest ci.test.test_ml_dsa_advisory_ledger
           python3 -m unittest ci.test.test_ml_dsa_backend_admission
           python3 -m unittest ci.test.test_ml_dsa_reference
+          python3 -m unittest ci.test.test_ml_dsa_simd256_regressions
           python3 -m unittest ci.test.test_ml_dsa_sustained_fuzz
 
       - name: Acquire and verify exact tools and scan inputs
