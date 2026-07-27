@@ -32,8 +32,6 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
-      ARCHIVE: ${{ runner.temp }}/libcrux-ml-dsa-0.0.10.crate
-      EVIDENCE: ${{ runner.temp }}/ml-dsa-44-simd256-evidence
       ML_DSA_TARGET_TRIPLE: x86_64-unknown-linux-gnu
       PINNED_RUST_TOOLCHAIN: "1.89.0"
       LIBCRUX_DISABLE_SIMD128: "1"
@@ -43,6 +41,15 @@ jobs:
       AUDIT_RUN_ATTEMPT: ${{ github.run_attempt }}
 
     steps:
+      - name: Initialize isolated evidence paths
+        timeout-minutes: 5
+        run: |
+          set -euxo pipefail
+          echo "ARCHIVE=$RUNNER_TEMP/libcrux-ml-dsa-0.0.10.crate" \
+            >> "$GITHUB_ENV"
+          echo "EVIDENCE=$RUNNER_TEMP/ml-dsa-44-simd256-evidence" \
+            >> "$GITHUB_ENV"
+
       - name: Checkout exact audit head
         timeout-minutes: 5
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5

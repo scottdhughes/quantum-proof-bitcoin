@@ -377,6 +377,20 @@ class MlDsaSimd256RegressionsTest(unittest.TestCase):
         self.assertIn("--run-id \"$AUDIT_RUN_ID\"", workflow)
         self.assertIn("--run-attempt \"$AUDIT_RUN_ATTEMPT\"", workflow)
         self.assertIn("PINNED_RUST_TOOLCHAIN: \"1.89.0\"", workflow)
+        self.assertNotIn("ARCHIVE: ${{ runner.temp }}", workflow)
+        self.assertNotIn("EVIDENCE: ${{ runner.temp }}", workflow)
+        self.assertIn(
+            'echo "ARCHIVE=$RUNNER_TEMP/libcrux-ml-dsa-0.0.10.crate"',
+            workflow,
+        )
+        self.assertIn(
+            'echo "EVIDENCE=$RUNNER_TEMP/ml-dsa-44-simd256-evidence"',
+            workflow,
+        )
+        self.assertLess(
+            workflow.index("Initialize isolated evidence paths"),
+            workflow.index("Checkout exact audit head"),
+        )
         self.assertIn(
             'echo "RUSTUP_TOOLCHAIN=$PINNED_RUST_TOOLCHAIN" >> "$GITHUB_ENV"',
             workflow,
