@@ -3,7 +3,7 @@
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-BACKEND-ADMISSION-v1
 ## Decided: 2026-07-19
-## Evidence-Updated: 2026-07-21
+## Evidence-Updated: 2026-07-27
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -110,12 +110,15 @@ AVX2-specific 0125/0126 regressions block any future SIMD256 admission. This is
 useful evidence, not a reason to prefer a wider integration boundary for the
 first prototype.
 
-The separate SIMD256 test lane now implements those exact regressions without
-changing the production backend or admitting SIMD256. Pull-request evidence is
-untrusted; a successful `main` run may support a later reviewed ledger
-promotion, but it does not promote the ledger by itself. Until that separate
-promotion, the 0125/0126 rows remain `UNTESTED`, `production_backend` remains
-`NONE`, `simd256_admitted` remains false, and the release hold remains true.
+The separate SIMD256 test lane implements those exact regressions without
+changing the production backend or admitting SIMD256. Trusted-main push run
+`30242969373`, attempt `1`, passed at exact commit
+`f301227089086dad6918a76814d7227e61e2d71b`; its immutable 20-member artifact
+is retained with outer SHA-256
+`3c7e4bb5ce00e04186b295c9e1272b9440c5e77627cc3b320f256dd9038305a5`.
+The 0125/0126 rows now record exact test-only `PASS`, while current path
+applicability remains `NOT_APPLICABLE`, `production_backend` remains `NONE`,
+`simd256_admitted` remains false, and the release hold remains true.
 
 ## Frozen Prototype Build Contract
 
@@ -177,7 +180,7 @@ Prototype admission closes no production finding:
 | Fault model and injected faults | #186 | open |
 | End-to-end secret erasure | #187 | source cleanup and sanitizer evidence only; compiler/caller/platform boundary open |
 | Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential/stateful fuzzing, promoted regressions, portable Miri evidence, and bounded malformed research-CLI argv replay; direct verifier allocation/stack/CPU and adversarial-batch limits, broader platform/Rust sanitizer coverage, and exact-commit re-review remain open |
-| Backend advisories, SBOM, and reproducible build | #189 | dated fail-closed ledger, full-lock cargo-audit/OSV scans, exact selected graph, CycloneDX SBOM, weekly retained refresh, exact portable ML-DSA-44 RUSTSEC-2026-0077 regressions, and a test-only SIMD256 0125/0126 lane implemented; trusted-main evidence, separate ledger promotion before optimized-backend admission, and exact-commit independent re-review remain open |
+| Backend advisories, SBOM, and reproducible build | #189 | dated fail-closed ledger, full-lock cargo-audit/OSV scans, exact selected graph, CycloneDX SBOM, weekly retained refresh, exact portable ML-DSA-44 RUSTSEC-2026-0077 regressions, and promoted trusted-main test-only SIMD256 0125/0126 PASS evidence; exact-commit independent re-review remains open, and optimized-backend admission is a separate future decision |
 | Wallet and key format | #190 | open |
 | Independent human cryptographic review | #181 | open |
 

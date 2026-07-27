@@ -134,7 +134,15 @@
         "full_lock_packages": 139,
         "selected_graph_packages": 16,
         "scheduled_refresh": true,
-        "exact_commit_re_review": "PENDING"
+        "exact_commit_re_review": "PENDING",
+        "simd256_advisory_regressions": {
+          "advisories": ["RUSTSEC-2026-0125", "RUSTSEC-2026-0126"],
+          "status": "PASS",
+          "repository_commit": "f301227089086dad6918a76814d7227e61e2d71b",
+          "source_manifest": "docs/reviews/evidence/ml-dsa-44-simd256/f301227089086dad6918a76814d7227e61e2d71b/run-30242969373-attempt-1/SOURCE.json",
+          "test_only": true,
+          "simd256_admitted": false
+        }
       },
       "outcome": "ORACLE_ONLY"
     }
@@ -167,7 +175,7 @@
     },
     {
       "id": "backend_advisory_and_sbom_refresh",
-      "status": "PORTABLE_REGRESSIONS_AND_SCHEDULED_SCAN_IMPLEMENTED_SIMD_AND_RE_REVIEW_OPEN",
+      "status": "TECHNICAL_REMEDIATION_IMPLEMENTED_EXACT_COMMIT_RE_REVIEW_OPEN",
       "tracking_issue": 189
     },
     {

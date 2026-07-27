@@ -10,10 +10,15 @@ import importlib.util
 import json
 from pathlib import Path
 import re
+import shutil
+import stat
 import subprocess
 import sys
 import tempfile
+from typing import Any
 import unittest
+import warnings
+import zipfile
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -110,6 +115,123 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
     def setUpClass(cls):
         cls.ledger = json.loads(LEDGER.read_text(encoding="utf8"))
         cls.vectors = json.loads(VECTORS.read_text(encoding="utf8"))
+
+    def copy_simd256_capsule(
+        self,
+        temporary: str,
+    ) -> tuple[Path, Path, Path, dict[str, Any]]:
+        expected = copy.deepcopy(advisory.EXPECTED_SIMD256_SOURCE)
+        workflow = expected["workflow"]
+        commit = expected["repository_commit"]
+        root = Path(temporary) / "ml-dsa-44-simd256"
+        capsule = (
+            root
+            / str(commit)
+            / (
+                f"run-{workflow['run_id']}-attempt-"
+                f"{workflow['run_attempt']}"
+            )
+        )
+        capsule.mkdir(parents=True)
+        source = REPO_ROOT / advisory.SIMD256_EVIDENCE_SOURCE
+        archive = source.parent / "artifact.zip"
+        copied_source = capsule / "SOURCE.json"
+        copied_archive = capsule / "artifact.zip"
+        shutil.copy2(source, copied_source)
+        shutil.copy2(archive, copied_archive)
+        return root, copied_source, copied_archive, expected
+
+    def read_simd256_archive_entries(
+        self,
+        archive_path: Path,
+    ) -> list[dict[str, object]]:
+        with zipfile.ZipFile(archive_path) as archive:
+            return [
+                {
+                    "name": info.filename,
+                    "data": archive.read(info),
+                    "mode": info.external_attr >> 16,
+                }
+                for info in archive.infolist()
+            ]
+
+    def write_simd256_archive_entries(
+        self,
+        archive_path: Path,
+        entries: list[dict[str, object]],
+    ) -> None:
+        replacement = archive_path.with_suffix(".replacement.zip")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            with zipfile.ZipFile(
+                replacement,
+                "w",
+                compression=zipfile.ZIP_DEFLATED,
+            ) as archive:
+                for entry in entries:
+                    info = zipfile.ZipInfo(str(entry["name"]))
+                    info.create_system = 3
+                    info.external_attr = int(entry["mode"]) << 16
+                    info.compress_type = zipfile.ZIP_DEFLATED
+                    archive.writestr(info, bytes(entry["data"]))
+        replacement.replace(archive_path)
+
+    def refresh_simd256_source(
+        self,
+        source_path: Path,
+        archive_path: Path,
+        expected: dict[str, Any],
+    ) -> None:
+        archive_bytes = archive_path.read_bytes()
+        archive_sha256 = hashlib.sha256(archive_bytes).hexdigest()
+        with zipfile.ZipFile(archive_path) as archive:
+            entries = [
+                (info.filename, archive.read(info))
+                for info in archive.infolist()
+            ]
+            uncompressed_size = sum(info.file_size for info in archive.infolist())
+        member_map = dict(entries)
+        artifact = expected["artifact"]
+        retained = expected["retained_archive"]
+        artifact["digest"] = f"sha256:{archive_sha256}"
+        artifact["size_in_bytes"] = len(archive_bytes)
+        retained["sha256"] = archive_sha256
+        retained["size_in_bytes"] = len(archive_bytes)
+        retained["member_count"] = len(entries)
+        retained["uncompressed_size"] = uncompressed_size
+        if "SHA256SUMS" in member_map:
+            retained["sha256sums_sha256"] = hashlib.sha256(
+                member_map["SHA256SUMS"]
+            ).hexdigest()
+        if "simd256-regression-report.json" in member_map:
+            retained["report_sha256"] = hashlib.sha256(
+                member_map["simd256-regression-report.json"]
+            ).hexdigest()
+        source_path.write_text(
+            json.dumps(expected, indent=2, sort_keys=True) + "\n",
+            encoding="utf8",
+        )
+
+    def rewrite_simd256_checksums(
+        self,
+        entries: list[dict[str, object]],
+    ) -> None:
+        values = {
+            str(entry["name"]): bytes(entry["data"])
+            for entry in entries
+            if entry["name"] != "SHA256SUMS"
+        }
+        manifest = (
+            "\n".join(
+                f"{hashlib.sha256(values[name]).hexdigest()}  ./{name}"
+                for name in sorted(values)
+            )
+            + "\n"
+        ).encode("ascii")
+        manifest_entry = next(
+            entry for entry in entries if entry["name"] == "SHA256SUMS"
+        )
+        manifest_entry["data"] = manifest
 
     def expected_findings(self) -> list[dict[str, object]]:
         return copy.deepcopy(self.ledger["scanners"]["expected_findings"])
@@ -523,8 +645,49 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         self.assertEqual(contract["miri_role"], "SUPPLEMENTARY")
         self.assertEqual(
             self.ledger["scope"]["issue_189"],
-            "REMAINS_OPEN_PENDING_SIMD_ADMISSION_REGRESSIONS_AND_RE_REVIEW",
+            "REMAINS_OPEN_PENDING_EXACT_COMMIT_RE_REVIEW_UNDER_ISSUE_181",
         )
+        self.assertEqual(
+            self.ledger["scope"]["technical_remediation"],
+            "IMPLEMENTED_WITH_TRUSTED_MAIN_SIMD256_EVIDENCE",
+        )
+        self.assertEqual(
+            self.ledger["scope"]["external_re_review"],
+            "PENDING_EXACT_COMMIT_REVIEW_UNDER_ISSUE_181",
+        )
+        self.assertFalse(self.ledger["scope"]["production_change"])
+        self.assertFalse(self.ledger["scope"]["release_hold_changed"])
+        advisories = {entry["id"]: entry for entry in self.ledger["advisories"]}
+        archive = advisory.EXPECTED_SIMD256_SOURCE["retained_archive"]["path"]
+        for advisory_id in ("RUSTSEC-2026-0125", "RUSTSEC-2026-0126"):
+            entry = advisories[advisory_id]
+            self.assertEqual(entry["affected_status"], "NOT_AFFECTED")
+            self.assertEqual(entry["current_path_applicability"], "NOT_APPLICABLE")
+            self.assertEqual(entry["test_status"], "PASS")
+            self.assertEqual(
+                entry["reason_code"],
+                (
+                    "PIN_ABOVE_FIXED_EXACT_SIMD256_REGRESSION_"
+                    "CURRENT_BACKEND_DISABLED"
+                ),
+            )
+            self.assertEqual(
+                entry["future_admission"],
+                (
+                    "RERUN_ON_REPIN_AND_REQUIRE_SEPARATE_"
+                    "SIMD256_ADMISSION_REVIEW"
+                ),
+            )
+            self.assertEqual(
+                entry["evidence"],
+                [
+                    advisory.SIMD256_EVIDENCE_SOURCE,
+                    (
+                        f"{archive}!/simd256-regression-report.json"
+                        f"#results/{advisory_id}"
+                    ),
+                ],
+            )
         libcrux = next(
             source
             for source in self.ledger["source_contract"]["oracles"]
@@ -942,9 +1105,9 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
                 with self.assertRaises(advisory.AuditError):
                     advisory.validate_ledger(mutated, self.vectors)
 
-    def test_issue_189_cannot_omit_open_simd_or_re_review_gates(self):
+    def test_issue_189_cannot_omit_exact_commit_re_review_gate(self):
         for scope in (
-            "REMAINS_OPEN_PENDING_SIMD_ADMISSION_REGRESSIONS",
+            "TECHNICAL_REMEDIATION_COMPLETE",
             "REMAINS_OPEN_PENDING_RE_REVIEW",
         ):
             with self.subTest(scope=scope):
@@ -952,11 +1115,11 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
                 mutated["scope"]["issue_189"] = scope
                 with self.assertRaisesRegex(
                     advisory.AuditError,
-                    "SIMD256 admission regressions and exact-commit re-review",
+                    "ledger scope.issue_189 value drifted",
                 ):
                     advisory.validate_ledger(mutated, self.vectors)
 
-    def test_advisory_test_dispositions_cannot_be_promoted_or_detached(self):
+    def test_advisory_test_dispositions_cannot_be_reverted_or_detached(self):
         for finding_id in (
             "RUSTSEC-2026-0125",
             "RUSTSEC-2026-0126",
@@ -966,12 +1129,20 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
                 entry = next(
                     item for item in mutated["advisories"] if item["id"] == finding_id
                 )
-                entry["test_status"] = "PASS"
+                entry["test_status"] = "UNTESTED"
                 entry["evidence"] = ["unbound claim"]
-                with self.assertRaisesRegex(advisory.AuditError, "disposition drifted"):
+                with self.assertRaisesRegex(
+                    advisory.AuditError,
+                    "untested without a future admission block",
+                ):
                     advisory.validate_ledger(mutated, self.vectors)
 
-        for finding_id in ("RUSTSEC-2026-0076", "RUSTSEC-2026-0077"):
+        for finding_id in (
+            "RUSTSEC-2026-0076",
+            "RUSTSEC-2026-0077",
+            "RUSTSEC-2026-0125",
+            "RUSTSEC-2026-0126",
+        ):
             with self.subTest(detached_finding_id=finding_id):
                 detached = copy.deepcopy(self.ledger)
                 entry = next(
@@ -985,6 +1156,260 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
                     "not bound to exact evidence",
                 ):
                     advisory.validate_ledger(detached, self.vectors)
+
+    def test_trusted_main_simd256_capsule_validates(self):
+        self.assertIsNone(
+            advisory.validate_trusted_main_simd256_evidence(self.ledger)
+        )
+
+    def test_trusted_main_simd256_capsule_rejects_outer_tampering(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root, source, archive, expected = self.copy_simd256_capsule(temporary)
+            value = bytearray(archive.read_bytes())
+            value[-1] ^= 1
+            archive.write_bytes(value)
+            with self.assertRaisesRegex(advisory.AuditError, "archive digest drifted"):
+                advisory.validate_trusted_main_simd256_evidence(
+                    self.ledger,
+                    evidence_root=root,
+                    source_path=source,
+                    expected_source=expected,
+                )
+
+    def test_trusted_main_simd256_source_rejects_duplicate_json_keys(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root, source, _, expected = self.copy_simd256_capsule(temporary)
+            value = source.read_text(encoding="utf8")
+            value = value.replace(
+                '"schema_version": 1,',
+                '"schema_version": 1,\n  "schema_version": 1,',
+                1,
+            )
+            source.write_text(value, encoding="utf8")
+            with self.assertRaisesRegex(advisory.AuditError, "duplicate JSON key"):
+                advisory.validate_trusted_main_simd256_evidence(
+                    self.ledger,
+                    evidence_root=root,
+                    source_path=source,
+                    expected_source=expected,
+                )
+
+    def test_trusted_main_simd256_archive_structure_fails_closed(self):
+        cases = (
+            (
+                "duplicate",
+                lambda entries: entries.append(copy.deepcopy(entries[0])),
+                "duplicate members",
+            ),
+            (
+                "missing",
+                lambda entries: entries.__setitem__(
+                    slice(None),
+                    [
+                        entry
+                        for entry in entries
+                        if entry["name"] != "toolchain.txt"
+                    ],
+                ),
+                "member inventory drifted",
+            ),
+            (
+                "extra",
+                lambda entries: entries.append(
+                    {
+                        "name": "extra.log",
+                        "data": b"extra\n",
+                        "mode": stat.S_IFREG | 0o644,
+                    }
+                ),
+                "member inventory drifted",
+            ),
+            (
+                "traversal",
+                lambda entries: next(
+                    entry
+                    for entry in entries
+                    if entry["name"] == "toolchain.txt"
+                ).__setitem__("name", "../toolchain.txt"),
+                "member inventory drifted",
+            ),
+            (
+                "symlink",
+                lambda entries: next(
+                    entry
+                    for entry in entries
+                    if entry["name"] == "toolchain.txt"
+                ).__setitem__("mode", stat.S_IFLNK | 0o777),
+                "archive member is unsafe",
+            ),
+            (
+                "oversized",
+                lambda entries: next(
+                    entry
+                    for entry in entries
+                    if entry["name"] == "toolchain.txt"
+                ).__setitem__(
+                    "data",
+                    b"x" * (advisory.MAX_SIMD256_MEMBER_BYTES + 1),
+                ),
+                "archive member is oversized",
+            ),
+        )
+        for label, mutate, error in cases:
+            with self.subTest(label=label):
+                with tempfile.TemporaryDirectory() as temporary:
+                    root, source, archive, expected = self.copy_simd256_capsule(
+                        temporary
+                    )
+                    entries = self.read_simd256_archive_entries(archive)
+                    mutate(entries)
+                    self.write_simd256_archive_entries(archive, entries)
+                    self.refresh_simd256_source(source, archive, expected)
+                    with self.assertRaisesRegex(advisory.AuditError, error):
+                        advisory.validate_trusted_main_simd256_evidence(
+                            self.ledger,
+                            evidence_root=root,
+                            source_path=source,
+                            expected_source=expected,
+                        )
+
+    def test_trusted_main_simd256_checksums_and_semantics_fail_closed(self):
+        cases = (
+            ("checksum", "toolchain.txt", None, "SHA256SUMS inventory drifted"),
+            (
+                "trust",
+                "simd256-regression-report.json",
+                ("trust", "event_name", "pull_request"),
+                "report trust.event_name value drifted",
+            ),
+            (
+                "result",
+                "simd256-regression-report.json",
+                (
+                    "results",
+                    "RUSTSEC-2026-0125",
+                    "portable_results",
+                    "147",
+                    "invalid",
+                ),
+                "report results.RUSTSEC-2026-0125",
+            ),
+            (
+                "libtest",
+                "rustsec-2026-0126-debug-1.log",
+                None,
+                "did not prove one exact passing libtest",
+            ),
+        )
+        for label, member, mutation, error in cases:
+            with self.subTest(label=label):
+                with tempfile.TemporaryDirectory() as temporary:
+                    root, source, archive, expected = self.copy_simd256_capsule(
+                        temporary
+                    )
+                    entries = self.read_simd256_archive_entries(archive)
+                    target = next(
+                        entry for entry in entries if entry["name"] == member
+                    )
+                    if label == "checksum":
+                        target["data"] = bytes(target["data"]) + b"tampered\n"
+                    elif label == "libtest":
+                        target["data"] = bytes(target["data"]).replace(
+                            b"running 1 test",
+                            b"running 2 tests",
+                            1,
+                        )
+                        self.rewrite_simd256_checksums(entries)
+                    else:
+                        report = json.loads(bytes(target["data"]))
+                        path = list(mutation[:-1])
+                        value = mutation[-1]
+                        cursor = report
+                        for key in path[:-1]:
+                            cursor = cursor[key]
+                        cursor[path[-1]] = value
+                        target["data"] = (
+                            json.dumps(report, indent=2, sort_keys=True) + "\n"
+                        ).encode("utf8")
+                        self.rewrite_simd256_checksums(entries)
+                    self.write_simd256_archive_entries(archive, entries)
+                    self.refresh_simd256_source(source, archive, expected)
+                    with self.assertRaisesRegex(advisory.AuditError, error):
+                        advisory.validate_trusted_main_simd256_evidence(
+                            self.ledger,
+                            evidence_root=root,
+                            source_path=source,
+                            expected_source=expected,
+                        )
+
+    def test_trusted_main_simd256_cannot_change_backend_or_release_state(self):
+        admission = json.loads(
+            advisory.BACKEND_ADMISSION_PATH.read_text(encoding="utf8")
+        )
+        source = copy.deepcopy(advisory.EXPECTED_SIMD256_SOURCE)
+        for label, mutate in (
+            (
+                "production",
+                lambda value: value["decision"].__setitem__(
+                    "production_backend",
+                    "libcrux",
+                ),
+            ),
+            (
+                "release hold",
+                lambda value: value["decision"].__setitem__(
+                    "release_hold",
+                    False,
+                ),
+            ),
+            (
+                "SIMD admission",
+                lambda value: value["candidate_assessments"][
+                    "libcrux_ml_dsa_0_0_10_portable"
+                ]["advisory_evidence"]["simd256_advisory_regressions"].__setitem__(
+                    "simd256_admitted",
+                    True,
+                ),
+            ),
+            (
+                "authorized production scope",
+                lambda value: value["decision"]["authorized_scope"].append(
+                    "node_production_integration"
+                ),
+            ),
+            (
+                "removed prohibition",
+                lambda value: value["decision"]["prohibited_integrations"].remove(
+                    "node"
+                ),
+            ),
+            (
+                "oracle admission",
+                lambda value: value["candidate_assessments"]["openssl_3_6_3"].__setitem__(
+                    "outcome",
+                    "PRODUCTION_ADMITTED",
+                ),
+            ),
+            (
+                "independent gate closure",
+                lambda value: next(
+                    gate
+                    for gate in value["open_gates"]
+                    if gate["tracking_issue"] == 181
+                ).__setitem__(
+                    "status",
+                    "COMPLETE",
+                ),
+            ),
+        ):
+            with self.subTest(label=label):
+                mutated = copy.deepcopy(admission)
+                mutate(mutated)
+                with self.assertRaises(advisory.AuditError):
+                    advisory._validate_simd256_backend_admission(  # noqa: SLF001
+                        mutated,
+                        source,
+                    )
 
     def test_full_lock_and_sbom_graph_fail_closed(self):
         mutated = copy.deepcopy(self.ledger)
@@ -1081,7 +1506,12 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         self.assertNotIn("security-events: write", workflow)
         self.assertNotIn("gh pr", workflow)
         self.assertNotIn("Authorization:", workflow)
-        self.assertNotIn("docs/reviews/evidence", workflow)
+        self.assertEqual(
+            workflow.count(
+                '"docs/reviews/evidence/ml-dsa-44-simd256/**"'
+            ),
+            2,
+        )
 
     def test_comparator_no_longer_claims_package_wide_advisory_pass(self):
         comparator = COMPARATOR.read_text(encoding="utf8")

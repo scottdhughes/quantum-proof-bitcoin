@@ -118,16 +118,48 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
     def test_all_release_gates_remain_open(self):
         gates = self.admission["open_gates"]
         self.assertEqual(
-            {gate["tracking_issue"] for gate in gates},
-            {181, 184, 185, 186, 187, 188, 189, 190},
+            {
+                gate["tracking_issue"]: (gate["id"], gate["status"])
+                for gate in gates
+            },
+            {
+                181: ("independent_human_review", "OPEN"),
+                184: (
+                    "entropy_and_failure_binding",
+                    "ISOLATED_PROTOTYPE_EVIDENCE_PLATFORM_LIFECYCLE_OPEN",
+                ),
+                185: (
+                    "supported_platform_side_channel",
+                    "BOUNDED_X86_64_VALGRIND_EVIDENCE_BROADER_PLATFORMS_OPEN",
+                ),
+                186: ("fault_resistance", "OPEN"),
+                187: (
+                    "secret_lifecycle_and_erasure",
+                    "ISOLATED_SOURCE_AND_SANITIZER_EVIDENCE_OPEN",
+                ),
+                188: (
+                    "structure_aware_fuzzing_and_resources",
+                    (
+                        "DIFFERENTIAL_STATEFUL_SANITIZER_MIRI_AND_CLI_"
+                        "EVIDENCE_RESOURCES_OPEN"
+                    ),
+                ),
+                189: (
+                    "backend_advisory_and_sbom_refresh",
+                    (
+                        "TECHNICAL_REMEDIATION_IMPLEMENTED_EXACT_COMMIT_"
+                        "RE_REVIEW_OPEN"
+                    ),
+                ),
+                190: ("wallet_and_key_format", "OPEN"),
+            },
         )
-        self.assertNotIn("CLOSED", {gate["status"] for gate in gates})
         advisory_gate = next(
             gate for gate in gates if gate["tracking_issue"] == 189
         )
         self.assertEqual(
             advisory_gate["status"],
-            "PORTABLE_REGRESSIONS_AND_SCHEDULED_SCAN_IMPLEMENTED_SIMD_AND_RE_REVIEW_OPEN",
+            "TECHNICAL_REMEDIATION_IMPLEMENTED_EXACT_COMMIT_RE_REVIEW_OPEN",
         )
         libcrux = self.admission["candidate_assessments"][
             "libcrux_ml_dsa_0_0_10_portable"
@@ -135,6 +167,24 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
         self.assertEqual(libcrux["advisory_evidence"]["full_lock_packages"], 139)
         self.assertEqual(libcrux["advisory_evidence"]["selected_graph_packages"], 16)
         self.assertEqual(libcrux["advisory_evidence"]["exact_commit_re_review"], "PENDING")
+        self.assertEqual(libcrux["outcome"], "ORACLE_ONLY")
+        self.assertEqual(
+            libcrux["advisory_evidence"]["simd256_advisory_regressions"],
+            {
+                "advisories": ["RUSTSEC-2026-0125", "RUSTSEC-2026-0126"],
+                "status": "PASS",
+                "repository_commit": (
+                    "f301227089086dad6918a76814d7227e61e2d71b"
+                ),
+                "source_manifest": (
+                    "docs/reviews/evidence/ml-dsa-44-simd256/"
+                    "f301227089086dad6918a76814d7227e61e2d71b/"
+                    "run-30242969373-attempt-1/SOURCE.json"
+                ),
+                "test_only": True,
+                "simd256_admitted": False,
+            },
+        )
 
     def test_normative_document_records_same_disposition(self):
         decision = DECISION_PATH.read_text(encoding="utf8")

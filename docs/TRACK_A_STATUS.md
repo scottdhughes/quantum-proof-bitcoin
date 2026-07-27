@@ -187,6 +187,19 @@ regression seeds, not independent test vectors or proof of completeness.
 Issue `#188` remains open, production remains `NONE`, and the release hold is
 unchanged.
 
+PR `#213` landed the fail-closed test-only SIMD256 advisory regression lane at
+merge commit `f301227089086dad6918a76814d7227e61e2d71b`. Exact-main push run
+`30242969373`, attempt `1`, passed RUSTSEC-2026-0125 using pinned ML-DSA-44
+Wycheproof tcIds 147 and 148 through explicit portable and AVX2 verification,
+and passed RUSTSEC-2026-0126 using all three exact shipped AVX2 inverse-NTT
+regressions in debug and release. The immutable 20-member artifact is retained
+under `docs/reviews/evidence/ml-dsa-44-simd256/` with outer SHA-256
+`3c7e4bb5ce00e04186b295c9e1272b9440c5e77627cc3b320f256dd9038305a5`.
+This promotes test evidence only: the current path remains portable,
+`simd256_admitted` remains false, production remains `NONE`, issue `#189`
+remains open for exact-commit independent re-review under issue `#181`, and the
+release hold is unchanged.
+
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,
 `pq_backlog: 0`, `legacy_only: 14`, and `dual_profile: 142`. Promotion Matrix
