@@ -93,6 +93,29 @@ a fixed range is not represented as a regression-test PASS. `UNTESTED` is
 permitted only when the pin is not affected or the current path is not
 applicable and a future admission block is explicit.
 
+## SIMD256 Regression Promotion Boundary
+
+The test-only x86_64 AVX2 workflow now encodes the exact regression tranche
+needed before the 0125/0126 ledger rows can be reconsidered:
+
+- RUSTSEC-2026-0125 uses pinned Wycheproof ML-DSA-44 tcIds 147 and 148 and
+  requires identical expected valid/invalid results from explicit
+  `portable::verify` and `avx2::verify` calls;
+- RUSTSEC-2026-0126 runs the exact shipped
+  `inv_ntt_unreduced_max`, `inv_ntt_reduced`, and
+  `inv_ntt_reduced_large` AVX2 libtests in debug and release profiles from the
+  verified 0.0.10 crate;
+- the crate archive, Wycheproof source manifest, vector file, harness, case
+  semantics, and case payload hashes are fixed; and
+- the extracted crate remains read-only and byte-identical through execution.
+
+The lane fails closed when x86_64 or AVX2 is unavailable. Pull-request output
+is explicitly untrusted. Only evidence produced at `refs/heads/main` may
+report `PASS`, and even that evidence does not mutate the ledger or admit
+SIMD256. Accordingly, the checked-in rows above remain `UNTESTED`,
+`production_backend` remains `NONE`, `simd256_admitted` remains false, and the
+release hold remains true until a separate reviewed promotion.
+
 ## Current Full-Lock Findings
 
 The reviewed lock is not scanner-empty. The exact current set is retained and
@@ -166,6 +189,9 @@ Primary machine inputs are:
 - `contrib/ml-dsa-engineering/advisory_ledger.json`
 - `contrib/ml-dsa-engineering/run_advisory_ledger.py`
 - `.github/workflows/ml-dsa-44-advisory-ledger.yml`
+- `contrib/ml-dsa-engineering/run_libcrux_simd256_regressions.py`
+- `contrib/ml-dsa-engineering/libcrux_simd256_regression.rs`
+- `.github/workflows/ml-dsa-44-simd256-regressions.yml`
 
 The prior checksummed technical review and its JSON evidence are immutable
 historical artifacts. This dated follow-up supersedes only the old generator's

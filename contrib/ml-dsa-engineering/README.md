@@ -71,6 +71,31 @@ evidence. Exact-commit independent re-review remains pending under issue #181,
 the production backend remains `NONE`, and the release hold is unchanged. See
 `docs/ML_DSA_44_ADVISORY_LEDGER.md` for the full disposition.
 
+## Test-Only SIMD256 Advisory Regressions
+
+`run_libcrux_simd256_regressions.py` defines a separate x86_64-Linux AVX2
+test lane for RUSTSEC-2026-0125 and RUSTSEC-2026-0126. It verifies the exact
+published `libcrux-ml-dsa 0.0.10` crate archive, makes the extracted source
+read-only, and proves that its source tree is unchanged after execution. It
+fails rather than skips unless `uname -m` is `x86_64` and `/proc/cpuinfo`
+advertises AVX2.
+
+For 0125, the checked-in Rust harness calls the crate's portable and AVX2
+ML-DSA-44 verification entry points explicitly for pinned Wycheproof tcIds 147
+and 148. The source manifest, vector file, source commit, group metadata,
+valid/invalid semantics, and public-key/message/context/signature hashes are
+all frozen. For 0126, the lane invokes the three exact iNTT regressions already
+shipped in the verified crate in debug and release profiles; it does not patch
+or inject tests into the third-party source. The workflow pins Rust 1.89.0,
+requires every exact libtest invocation to prove that one named test ran and
+passed, and requires the repository checkout to remain exact and clean.
+
+Pull-request artifacts are labeled `UNTRUSTED_PR_EVIDENCE` and cannot promote
+the checked-in advisory ledger. A successful run at `refs/heads/main` may
+report `PASS`, but ledger promotion remains a separate reviewed change. This
+lane compiles SIMD256 solely for tests: `production_backend` remains `NONE`,
+`simd256_admitted` remains false, and the release hold remains true.
+
 ## Versioned Static-Analysis Audit
 
 `run_static_analysis.py` defines the isolated wrapper's versioned

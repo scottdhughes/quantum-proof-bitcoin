@@ -386,6 +386,31 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             '{"disputed": [], "statements": []}\n', encoding="utf8"
         )
         subprocess.run(["git", "init", "-q", str(repository)], check=True)
+        # Do not let detached maintenance race TemporaryDirectory cleanup.
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repository),
+                "config",
+                "--local",
+                "maintenance.auto",
+                "false",
+            ],
+            check=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repository),
+                "config",
+                "--local",
+                "gc.auto",
+                "0",
+            ],
+            check=True,
+        )
         subprocess.run(
             [
                 "git",

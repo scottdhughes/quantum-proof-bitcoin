@@ -110,6 +110,13 @@ AVX2-specific 0125/0126 regressions block any future SIMD256 admission. This is
 useful evidence, not a reason to prefer a wider integration boundary for the
 first prototype.
 
+The separate SIMD256 test lane now implements those exact regressions without
+changing the production backend or admitting SIMD256. Pull-request evidence is
+untrusted; a successful `main` run may support a later reviewed ledger
+promotion, but it does not promote the ledger by itself. Until that separate
+promotion, the 0125/0126 rows remain `UNTESTED`, `production_backend` remains
+`NONE`, `simd256_admitted` remains false, and the release hold remains true.
+
 ## Frozen Prototype Build Contract
 
 The implemented wrapper uses the exact source pin in `backend_admission.json`
@@ -170,7 +177,7 @@ Prototype admission closes no production finding:
 | Fault model and injected faults | #186 | open |
 | End-to-end secret erasure | #187 | source cleanup and sanitizer evidence only; compiler/caller/platform boundary open |
 | Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential/stateful fuzzing, promoted regressions, portable Miri evidence, and bounded malformed research-CLI argv replay; direct verifier allocation/stack/CPU and adversarial-batch limits, broader platform/Rust sanitizer coverage, and exact-commit re-review remain open |
-| Backend advisories, SBOM, and reproducible build | #189 | dated fail-closed ledger, full-lock cargo-audit/OSV scans, exact selected graph, CycloneDX SBOM, weekly retained refresh, and exact portable ML-DSA-44 RUSTSEC-2026-0077 regressions implemented; exact SIMD256 RUSTSEC-2026-0125/0126 regressions before optimized-backend admission and exact-commit independent re-review remain open |
+| Backend advisories, SBOM, and reproducible build | #189 | dated fail-closed ledger, full-lock cargo-audit/OSV scans, exact selected graph, CycloneDX SBOM, weekly retained refresh, exact portable ML-DSA-44 RUSTSEC-2026-0077 regressions, and a test-only SIMD256 0125/0126 lane implemented; trusted-main evidence, separate ledger promotion before optimized-backend admission, and exact-commit independent re-review remain open |
 | Wallet and key format | #190 | open |
 | Independent human cryptographic review | #181 | open |
 
