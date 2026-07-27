@@ -24,11 +24,13 @@ WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ml-dsa-44-review-reproduction.
 BASELINE_POINTER = REFERENCE_DIR / "review_baseline_commit.txt"
 TRUSTED_MAIN_BASELINE_PATHSPEC = (
     ".github/workflows/ml-dsa-44-review-reproduction.yml",
+    ".github/workflows/ml-dsa-44-resource-envelope.yml",
     "contrib/ml-dsa-engineering",
     "contrib/ml-dsa-ref",
     "ci/test/test_ml_dsa_cli_adapter_fuzz.py",
     "ci/test/test_ml_dsa_differential_fuzz.py",
     "ci/test/test_ml_dsa_reference.py",
+    "ci/test/test_ml_dsa_resource_envelope.py",
     "ci/test/test_ml_dsa_review_baseline.py",
     ":(exclude)contrib/ml-dsa-ref/review_baseline_commit.txt",
     ":(exclude)contrib/ml-dsa-ref/README.md",
@@ -627,6 +629,9 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
             ".github/workflows/ml-dsa-44-review-reproduction.yml": (
                 "name: baseline workflow\n"
             ),
+            ".github/workflows/ml-dsa-44-resource-envelope.yml": (
+                "name: resource workflow\n"
+            ),
             "contrib/ml-dsa-engineering/run_differential_verifier_fuzz.py": (
                 "print('baseline generator')\n"
             ),
@@ -640,6 +645,9 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
                 "# baseline differential test\n"
             ),
             "ci/test/test_ml_dsa_reference.py": "# baseline reference test\n",
+            "ci/test/test_ml_dsa_resource_envelope.py": (
+                "# baseline resource test\n"
+            ),
             "ci/test/test_ml_dsa_review_baseline.py": (
                 "# baseline validator test\n"
             ),
@@ -730,9 +738,11 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
             self.assertEqual(run_guard().returncode, 0)
             guarded_paths = (
                 ".github/workflows/ml-dsa-44-review-reproduction.yml",
+                ".github/workflows/ml-dsa-44-resource-envelope.yml",
                 "contrib/ml-dsa-engineering/run_differential_verifier_fuzz.py",
                 "contrib/ml-dsa-ref/oracle_cli.h",
                 "contrib/ml-dsa-ref/validate_review_baseline.py",
+                "ci/test/test_ml_dsa_resource_envelope.py",
                 "ci/test/test_ml_dsa_review_baseline.py",
             )
             for relative in guarded_paths:

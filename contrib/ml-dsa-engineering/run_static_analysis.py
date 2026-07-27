@@ -28,6 +28,9 @@ WRAPPER_SOURCE = f"{ENGINEERING_ROOT}/pqbtc_mldsa44.c"
 SMOKE_SOURCE = f"{ENGINEERING_ROOT}/pqbtc_mldsa44_smoke.c"
 FUZZ_SOURCE = f"{ENGINEERING_ROOT}/pqbtc_mldsa44_verify_fuzz.c"
 STATEFUL_FUZZ_SOURCE = f"{ENGINEERING_ROOT}/pqbtc_mldsa44_stateful_fuzz.c"
+RESOURCE_PROBE_SOURCE = f"{ENGINEERING_ROOT}/pqbtc_mldsa44_resource_probe.c"
+RESOURCE_POLICY = f"{ENGINEERING_ROOT}/verifier_resource_policy.json"
+RESOURCE_RUNNER = f"{ENGINEERING_ROOT}/run_verifier_resource_envelope.py"
 PUBLIC_HEADER = f"{ENGINEERING_ROOT}/pqbtc_mldsa44.h"
 TEST_HEADER = f"{ENGINEERING_ROOT}/pqbtc_mldsa44_test.h"
 CONFIG_HEADER = f"{ENGINEERING_ROOT}/pqbtc_mldsa44_config.h"
@@ -59,19 +62,24 @@ COMMON_C_FLAGS = [
 ]
 
 EVIDENCE_SOURCES = [
+    ".github/workflows/ml-dsa-44-resource-envelope.yml",
     ".github/workflows/ml-dsa-44-wrapper-prototype.yml",
     ".github/workflows/promotion-matrix.yml",
     "ci/test/00_setup_env_native_tidy.sh",
     "ci/test/01_base_install.sh",
     "ci/test/03_test_script.sh",
+    "ci/test/test_ml_dsa_resource_envelope.py",
     "ci/test/test_ml_dsa_wrapper_prototype.py",
     "contrib/ml-dsa-engineering/README.md",
     "contrib/ml-dsa-engineering/run_static_analysis.py",
+    RESOURCE_RUNNER,
     "contrib/ml-dsa-engineering/run_wrapper_tests.py",
     WRAPPER_SOURCE,
     SMOKE_SOURCE,
     FUZZ_SOURCE,
     STATEFUL_FUZZ_SOURCE,
+    RESOURCE_PROBE_SOURCE,
+    RESOURCE_POLICY,
     PUBLIC_HEADER,
     TEST_HEADER,
     CONFIG_HEADER,
@@ -112,6 +120,7 @@ def annex_k_suppression_count() -> int:
             SMOKE_SOURCE,
             FUZZ_SOURCE,
             STATEFUL_FUZZ_SOURCE,
+            RESOURCE_PROBE_SOURCE,
         )
     )
 
@@ -229,6 +238,18 @@ def build_plan(
             ),
         },
         {
+            "id": "clang-tidy-verifier-resource-probe",
+            "kind": "clang-tidy",
+            "input": RESOURCE_PROBE_SOURCE,
+            "variant": "production-api-test-only",
+            "command": tidy_command(
+                clang_tidy,
+                plugin,
+                RESOURCE_PROBE_SOURCE,
+                ["-pthread"],
+            ),
+        },
+        {
             "id": "iwyu-smoke-testing",
             "kind": "iwyu",
             "input": SMOKE_SOURCE,
@@ -263,6 +284,19 @@ def build_plan(
             ),
         },
         {
+            "id": "iwyu-verifier-resource-probe",
+            "kind": "iwyu",
+            "input": RESOURCE_PROBE_SOURCE,
+            "variant": "production-api-test-only",
+            "check_also": [PUBLIC_HEADER],
+            "command": iwyu_command(
+                iwyu,
+                RESOURCE_PROBE_SOURCE,
+                [PUBLIC_HEADER],
+                ["-pthread"],
+            ),
+        },
+        {
             "id": "header-self-contained-production",
             "kind": "header-self-containment",
             "input": PUBLIC_HEADER,
@@ -287,6 +321,7 @@ def build_plan(
             "clang_tidy_wrapper_implementation": True,
             "iwyu_wrapper_implementation": False,
             "iwyu_first_party_leaf_units_and_headers": True,
+            "verifier_resource_probe_test_only": True,
             "production_integration": False,
             "release_hold_unchanged": True,
         },
@@ -343,8 +378,8 @@ def validate_plan(plan: dict[str, object]) -> None:
         raise AuditError("static-analysis plan has no check list")
 
     expected_counts = {
-        "clang-tidy": 5,
-        "iwyu": 3,
+        "clang-tidy": 6,
+        "iwyu": 4,
         "header-self-containment": 2,
     }
     counts = {kind: 0 for kind in expected_counts}

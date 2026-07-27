@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-07-23
+## Updated: 2026-07-27
 ## Current Phase: Phase 1 - Cryptographic Production Hold
 
 ## Purpose
@@ -263,21 +263,30 @@ tracked suites now have an explicit policy class and none remains in
 
 Active owned tranche:
 
-1. Land bounded stateful signer and seeded-key-generation fuzzing under issue
+1. Land the bounded direct-verifier resource-envelope observation lane under
    `#188`
-   - exercise deterministic seeded key generation, fresh and repeated
-     randomizers, short/zero/failed entropy, invalid arguments, backend
-     failures, signature zeroing, alias rejection, and successful strict
-     self-verification
-   - reset state for every input and assert the exact entropy-consumption and
-     repeat-state transition contract before and after failures
-   - retain separate ASan/UBSan and MSan lanes so uninstrumented external
-     implementations do not contaminate the memory-sanitizer result
-   - keep the already-pinned comparator as a correctness preflight and record
-     exact corpus, duration, seed, crash, and sanitizer evidence; the first
-     long scheduled/manual receipt remains follow-up evidence after merge
+   - call only `pqbtc_mldsa44_verify_strict` from the production-shaped
+     portable-C build on Linux x86_64
+   - run four separately accounted 4,287-call batches covering rotating mixed
+     inputs, valid inputs, deep rejects, and a same-public-key set containing
+     four required accepts plus five deep rejects that retain the frozen key
+   - execute on a 128 KiB guarded pthread stack, require zero instrumented
+     project heap calls, retain compiler-specific `.su` observations, and
+     preserve raw timing samples
+   - label pull-request output `UNTRUSTED_PR_OBSERVATION`; require a separate
+     reviewed baseline-pointer update and exact clean protected-main push
+     `TRUSTED_MAIN_OBSERVATION` before any evidence is trusted
+   - keep manual dispatches diagnostic and untrusted
+   - keep each single-compiler artifact non-promotable; require both exact-head
+     GCC and Clang artifacts plus external GitHub Actions provenance before a
+     later policy review
+   - leave numeric CPU, wall-time, and RSS acceptance unset until a later
+     reviewed policy change evaluates that trusted-main observation
+   - treat 4,287 calls as a research workload only, not a consensus, block,
+     transaction, mempool, or production limit
    - keep production at `NONE` and `RELEASE_HOLD`; this tranche authorizes no
-     consensus, wallet, Script, `ALG_ID`, or inventory-policy change
+     SIMD256 admission or consensus, wallet, Script, `ALG_ID`, or
+     inventory-policy change, and issues `#188` and `#181` remain open
 
 Future selection boundary:
 
@@ -1834,6 +1843,20 @@ Aineko must ask before:
 
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
+
+- 2026-07-27: The next bounded issue-`#188` tranche defines a test-only Linux
+  x86_64 observation lane that calls `pqbtc_mldsa44_verify_strict` directly.
+  Four separately accounted batches make 4,287 calls each on a 128 KiB
+  guarded pthread stack, with zero instrumented project heap calls,
+  compiler-specific `.su` observations, and raw timing samples. Pull-request
+  results are `UNTRUSTED_PR_OBSERVATION`, and no numeric CPU, wall-time, or
+  RSS acceptance is set before a separate reviewed baseline update and clean
+  protected-main push `TRUSTED_MAIN_OBSERVATION`; manual dispatches remain
+  diagnostic and untrusted. Each compiler artifact remains
+  non-promotion-eligible until both exact-head jobs and their external
+  workflow provenance are reviewed. The workload is not a consensus, block, or
+  production limit. Production remains `NONE`, SIMD256 remains unadmitted,
+  issues `#188` and `#181` remain open, and `RELEASE_HOLD` remains in force.
 
 - 2026-07-23: Exact-main differential run `30043023928` passed at
   `acd2337201a10b76f6354d9b3c8501483645d122` for 1,801.155 measured fuzzer

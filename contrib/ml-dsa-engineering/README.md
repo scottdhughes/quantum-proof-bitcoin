@@ -288,3 +288,46 @@ not independent test vectors or a completeness claim. This single Linux run
 is not multi-platform differential evidence, and the prebuilt OpenSSL and Rust
 implementation bodies are not fully sanitizer-instrumented by the C fuzz
 build. It does not alter the release hold.
+
+## Direct-Verifier Resource-Envelope Observation
+
+`verifier_resource_policy.json`, `pqbtc_mldsa44_resource_probe.c`, and
+`run_verifier_resource_envelope.py` define a separate test-only Linux x86_64
+observation lane that calls `pqbtc_mldsa44_verify_strict` directly. It uses
+the 240 unique frozen verifier frames to construct four batches: rotating
+mixed inputs, rotating valid inputs, deep verification rejects, and a
+same-public-key mix of the four required accepts and five deep rejects that
+do not mutate the public key. The two public-key mutation cases remain in the
+deep-reject batch only. Each batch makes exactly
+4,287 verifier calls, matching the existing raw-payload research workload
+model. That count is not a consensus, block, transaction, mempool, or
+production verification limit.
+
+The probe executes the verifier on a 128 KiB pthread stack with a guard page
+and retains compiler-generated `.su` records. Those records are
+compiler-specific static-frame observations; they are not summed into a
+formal call-chain or worst-case stack bound. Linker interposition requires
+zero project allocation calls during the verifier observation. It does not
+claim to observe allocations made internally by the dynamic loader or system
+libraries.
+
+The four batches retain raw timing samples and untimed-loop control samples.
+The evidence validator recomputes descriptive summaries from the raw integer
+samples without subtracting the controls. Numeric CPU, wall-time, and RSS
+acceptance values remain unset until a separately reviewed trusted-main
+observation exists. Pull-request output is labeled
+`UNTRUSTED_PR_OBSERVATION`; the candidate workflow and baseline must first
+merge, then a separate reviewed baseline-pointer change must authorize an
+exact clean protected-main push `TRUSTED_MAIN_OBSERVATION`; manual dispatches
+remain diagnostic and untrusted. A later policy change may freeze numeric
+acceptance thresholds. Each GCC or Clang job remains
+`promotion_eligible=false`: promotion requires both exact-head compiler
+artifacts, externally verified GitHub Actions run/artifact provenance, and
+that separate policy review.
+
+This lane observes one production-shaped portable-C verifier configuration;
+it does not link a production backend or establish a supported-platform
+resource envelope. Issue `#188` remains open for trusted-main evidence,
+reviewed numeric limits, broader platforms, and exact-commit re-review. Issue
+`#181` remains open for qualified independent review. The production backend
+remains `NONE`, SIMD256 remains unadmitted, and the release hold remains true.
