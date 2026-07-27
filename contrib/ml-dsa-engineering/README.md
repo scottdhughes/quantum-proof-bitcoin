@@ -325,6 +325,13 @@ acceptance thresholds. Each GCC or Clang job remains
 artifacts, externally verified GitHub Actions run/artifact provenance, and
 that separate policy review.
 
+Retained build-command argv replaces only exact repository and ephemeral
+build-path components with reserved `$REPO_ROOT` and `$BUILD_DIR`
+placeholders. The verifier rejects preexisting placeholders, preserves the
+compiler path and unrelated argv verbatim, and checks the full normalized
+command list. This lets a downloaded artifact be verified from another
+exact-commit checkout without weakening its build-command binding.
+
 This lane observes one production-shaped portable-C verifier configuration;
 it does not link a production backend or establish a supported-platform
 resource envelope. Issue `#188` remains open for trusted-main evidence,

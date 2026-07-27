@@ -31,7 +31,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Any, Iterable
+from typing import Iterable
 
 import run_verifier_fuzz as verifier
 import run_wrapper_tests as wrapper
@@ -1304,7 +1304,9 @@ def _compiler_path(compiler_name: str) -> Path:
     return resolved
 
 
-def _common_compile_flags(compiler: Path) -> list[str]:
+def _common_compile_flags(
+    compiler: Path, include_directory: Path | str = HERE
+) -> list[str]:
     return [
         str(compiler),
         "-std=c11",
@@ -1316,22 +1318,65 @@ def _common_compile_flags(compiler: Path) -> list[str]:
         "-fvisibility=hidden",
         "-fno-lto",
         "-O2",
-        f"-I{HERE}",
+        f"-I{include_directory}",
     ]
 
 
+def _placeholder_repo_path(path: Path) -> str:
+    try:
+        relative = path.relative_to(REPO_ROOT)
+    except ValueError as exc:
+        raise ResourceEnvelopeError(
+            "recorded source path is outside the repository"
+        ) from exc
+    if not relative.parts:
+        return "$REPO_ROOT"
+    return f"$REPO_ROOT/{relative.as_posix()}"
+
+
+def _normalize_path_boundary(
+    value: str, prefix: str, placeholder: str
+) -> str:
+    if value == prefix:
+        return placeholder
+    boundary = prefix + os.sep
+    if value.startswith(boundary):
+        return placeholder + value[len(prefix) :]
+    return value
+
+
+def _reject_reserved_path_placeholders(value: str) -> None:
+    if "$BUILD_DIR" in value or "$REPO_ROOT" in value:
+        raise ResourceEnvelopeError(
+            "build command contains a reserved path placeholder"
+        )
+
+
 def _normalize_commands(commands: list[list[str]], build_dir: Path) -> dict:
-    prefix = str(build_dir)
+    build_prefix = str(build_dir)
+    repo_prefix = str(REPO_ROOT)
     normalized = []
     for command in commands:
-        normalized.append(
-            [
-                argument.replace(prefix, "$BUILD_DIR")
-                if argument.startswith(prefix)
-                else argument
-                for argument in command
-            ]
-        )
+        normalized_command = []
+        for index, argument in enumerate(command):
+            _reject_reserved_path_placeholders(argument)
+            if index == 0:
+                normalized_command.append(argument)
+                continue
+            option = ""
+            path_argument = argument
+            if argument.startswith("-I"):
+                option = "-I"
+                path_argument = argument[2:]
+            path_argument = _normalize_path_boundary(
+                path_argument, build_prefix, "$BUILD_DIR"
+            )
+            path_argument = _normalize_path_boundary(
+                path_argument, repo_prefix, "$REPO_ROOT"
+            )
+            argument = option + path_argument
+            normalized_command.append(argument)
+        normalized.append(normalized_command)
     return {
         "schema_version": 1,
         "shell_used": False,
@@ -1341,7 +1386,12 @@ def _normalize_commands(commands: list[list[str]], build_dir: Path) -> dict:
 
 
 def _expected_normalized_commands(compiler: str) -> list[list[str]]:
-    common = _common_compile_flags(Path(compiler))
+    _reject_reserved_path_placeholders(compiler)
+    common = _common_compile_flags(
+        Path(compiler), _placeholder_repo_path(HERE)
+    )
+    wrapper_source = _placeholder_repo_path(wrapper.WRAPPER_SOURCE)
+    probe_source = _placeholder_repo_path(PROBE_SOURCE)
     wrapper_object = "$BUILD_DIR/wrapper.o"
     probe_object = "$BUILD_DIR/probe.o"
     return [
@@ -1349,7 +1399,7 @@ def _expected_normalized_commands(compiler: str) -> list[list[str]]:
         + [
             "-fPIC",
             "-shared",
-            str(wrapper.WRAPPER_SOURCE),
+            wrapper_source,
             "-o",
             f"$BUILD_DIR/{LIBRARY_FILE}",
         ],
@@ -1358,7 +1408,7 @@ def _expected_normalized_commands(compiler: str) -> list[list[str]]:
             "-fPIC",
             "-shared",
             "-DPQBTC_MLDSA44_TESTING=1",
-            str(wrapper.WRAPPER_SOURCE),
+            wrapper_source,
             "-o",
             "$BUILD_DIR/libpqbtc_mldsa44_test.so",
         ],
@@ -1366,7 +1416,7 @@ def _expected_normalized_commands(compiler: str) -> list[list[str]]:
         + [
             "-fstack-usage",
             "-c",
-            str(wrapper.WRAPPER_SOURCE),
+            wrapper_source,
             "-o",
             wrapper_object,
         ],
@@ -1380,7 +1430,7 @@ def _expected_normalized_commands(compiler: str) -> list[list[str]]:
             "-fno-builtin-aligned_alloc",
             "-fno-builtin-posix_memalign",
             "-c",
-            str(PROBE_SOURCE),
+            probe_source,
             "-o",
             probe_object,
         ],

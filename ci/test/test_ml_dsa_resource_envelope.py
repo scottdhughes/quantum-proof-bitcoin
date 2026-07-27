@@ -563,6 +563,109 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
         with self.assertRaises(self.resource["ResourceEnvelopeError"]):
             self.resource["_validate_github_context"](invalid, head)
 
+    def test_build_command_evidence_is_relocatable(self):
+        compiler = "/opt/toolchain/bin/clang"
+        source_root = str(REPO_ROOT)
+        build_root = Path("/tmp/pqbtc-resource-build")
+        raw_commands = [
+            [
+                compiler,
+                f"-I{ENGINEERING_DIR}",
+                str(RESOURCE_PROBE),
+                "-o",
+                str(build_root / "probe.o"),
+            ]
+        ]
+        normalized = self.resource["_normalize_commands"](
+            raw_commands, build_root
+        )["commands"]
+        self.assertEqual(
+            normalized,
+            [
+                [
+                    compiler,
+                    "-I$REPO_ROOT/contrib/ml-dsa-engineering",
+                    (
+                        "$REPO_ROOT/contrib/ml-dsa-engineering/"
+                        "pqbtc_mldsa44_resource_probe.c"
+                    ),
+                    "-o",
+                    "$BUILD_DIR/probe.o",
+                ]
+            ],
+        )
+        expected = self.resource["_expected_normalized_commands"](compiler)
+        expected_text = json.dumps(expected, sort_keys=True)
+        self.assertNotIn(source_root, expected_text)
+        self.assertIn("$REPO_ROOT/contrib/ml-dsa-engineering", expected_text)
+        self.assertIn("$BUILD_DIR/pqbtc_mldsa44-resource-probe", expected_text)
+
+        expanded = [
+            [
+                argument.replace("$REPO_ROOT", source_root).replace(
+                    "$BUILD_DIR", str(build_root)
+                )
+                for argument in command
+            ]
+            for command in expected
+        ]
+        self.assertEqual(
+            self.resource["_normalize_commands"](expanded, build_root)[
+                "commands"
+            ],
+            expected,
+        )
+
+    def test_build_command_normalization_is_fail_closed(self):
+        compiler = str(REPO_ROOT / "toolchain" / "clang")
+        build_root = Path("/tmp/pqbtc-resource-build")
+        outside_substring = f"/unrelated{REPO_ROOT}/source.c"
+        normalized = self.resource["_normalize_commands"](
+            [
+                [
+                    compiler,
+                    outside_substring,
+                    f"-I{outside_substring}",
+                    str(RESOURCE_PROBE),
+                    "-o",
+                    str(build_root / "probe.o"),
+                ]
+            ],
+            build_root,
+        )["commands"][0]
+        self.assertEqual(normalized[0], compiler)
+        self.assertEqual(normalized[1], outside_substring)
+        self.assertEqual(normalized[2], f"-I{outside_substring}")
+        self.assertEqual(
+            normalized[3],
+            (
+                "$REPO_ROOT/contrib/ml-dsa-engineering/"
+                "pqbtc_mldsa44_resource_probe.c"
+            ),
+        )
+        self.assertEqual(normalized[5], "$BUILD_DIR/probe.o")
+
+        for placeholder in ("$REPO_ROOT", "$BUILD_DIR"):
+            with self.subTest(placeholder=placeholder):
+                with self.assertRaises(
+                    self.resource["ResourceEnvelopeError"]
+                ):
+                    self.resource["_normalize_commands"](
+                        [
+                            [
+                                "/usr/bin/clang",
+                                f"{placeholder}/source.c",
+                            ]
+                        ],
+                        build_root,
+                    )
+                with self.assertRaises(
+                    self.resource["ResourceEnvelopeError"]
+                ):
+                    self.resource["_expected_normalized_commands"](
+                        f"/opt/{placeholder}/clang"
+                    )
+
     def test_workflow_preserves_pr_main_trust_boundary(self):
         workflow = RESOURCE_WORKFLOW.read_text(encoding="utf8")
         observe_job_preamble = workflow.split("  observe:\n", 1)[1].split(
