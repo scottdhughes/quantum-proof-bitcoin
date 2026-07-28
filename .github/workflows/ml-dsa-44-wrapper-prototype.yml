@@ -3,10 +3,12 @@ name: ML-DSA-44 wrapper prototype
 on:
   pull_request:
     paths:
+      - ".github/workflows/ml-dsa-44-resource-envelope.yml"
       - ".github/workflows/ml-dsa-44-wrapper-prototype.yml"
       - "ci/test/00_setup_env_native_tidy.sh"
       - "ci/test/01_base_install.sh"
       - "ci/test/03_test_script.sh"
+      - "ci/test/test_ml_dsa_resource_envelope.py"
       - "ci/test/test_ml_dsa_wrapper_prototype.py"
       - "contrib/devtools/bitcoin-tidy/**"
       - "contrib/devtools/iwyu/bitcoin.core.imp"

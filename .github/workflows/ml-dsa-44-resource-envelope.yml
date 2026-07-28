@@ -1,0 +1,174 @@
+name: ML-DSA-44 verifier resource envelope
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ml-dsa-44-resource-envelope.yml"
+      - ".github/workflows/ml-dsa-44-review-reproduction.yml"
+      - "ci/test/test_ml_dsa_resource_envelope.py"
+      - "ci/test/test_ml_dsa_wrapper_prototype.py"
+      - "contrib/ml-dsa-engineering/pqbtc_mldsa44.c"
+      - "contrib/ml-dsa-engineering/pqbtc_mldsa44.h"
+      - "contrib/ml-dsa-engineering/pqbtc_mldsa44_config.h"
+      - "contrib/ml-dsa-engineering/pqbtc_mldsa44_resource_probe.c"
+      - "contrib/ml-dsa-engineering/pqbtc_mldsa44_test.h"
+      - "contrib/ml-dsa-engineering/run_verifier_fuzz.py"
+      - "contrib/ml-dsa-engineering/run_verifier_resource_envelope.py"
+      - "contrib/ml-dsa-engineering/run_wrapper_tests.py"
+      - "contrib/ml-dsa-engineering/verifier_fuzz_corpus.json"
+      - "contrib/ml-dsa-engineering/verifier_resource_policy.json"
+      - "contrib/ml-dsa-engineering/fuzz_sources/**"
+      - "contrib/ml-dsa-engineering/vendor/mldsa-native/**"
+      - "contrib/ml-dsa-ref/review_baseline_commit.txt"
+      - "contrib/ml-dsa-ref/validate_review_baseline.py"
+      - "contrib/ml-dsa-ref/vectors.json"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/ml-dsa-44-resource-envelope.yml"
+      - ".github/workflows/ml-dsa-44-review-reproduction.yml"
+      - "ci/test/test_ml_dsa_resource_envelope.py"
+      - "ci/test/test_ml_dsa_wrapper_prototype.py"
+      - "contrib/ml-dsa-engineering/pqbtc_mldsa44.c"
+      - "contrib/ml-dsa-engineering/pqbtc_mldsa44.h"
+      - "contrib/ml-dsa-engineering/pqbtc_mldsa44_config.h"
+      - "contrib/ml-dsa-engineering/pqbtc_mldsa44_resource_probe.c"
+      - "contrib/ml-dsa-engineering/pqbtc_mldsa44_test.h"
+      - "contrib/ml-dsa-engineering/run_verifier_fuzz.py"
+      - "contrib/ml-dsa-engineering/run_verifier_resource_envelope.py"
+      - "contrib/ml-dsa-engineering/run_wrapper_tests.py"
+      - "contrib/ml-dsa-engineering/verifier_fuzz_corpus.json"
+      - "contrib/ml-dsa-engineering/verifier_resource_policy.json"
+      - "contrib/ml-dsa-engineering/fuzz_sources/**"
+      - "contrib/ml-dsa-engineering/vendor/mldsa-native/**"
+      - "contrib/ml-dsa-ref/review_baseline_commit.txt"
+      - "contrib/ml-dsa-ref/validate_review_baseline.py"
+      - "contrib/ml-dsa-ref/vectors.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  observe:
+    name: Isolated direct verifier (${{ matrix.compiler }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - gcc
+          - clang
+    env:
+      PQBTC_RESOURCE_EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+
+    steps:
+      - name: Checkout exact observation head
+        timeout-minutes: 5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact clean x86_64 checkout
+        timeout-minutes: 5
+        run: |
+          set -euxo pipefail
+          test "$(uname -s)" = "Linux"
+          test "$(uname -m)" = "x86_64"
+          test "$(git rev-parse HEAD)" = "$PQBTC_RESOURCE_EXPECTED_HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          command -v "${{ matrix.compiler }}"
+
+      - name: Validate frozen observation contract
+        timeout-minutes: 5
+        run: |
+          set -euxo pipefail
+          python3 contrib/ml-dsa-engineering/run_verifier_resource_envelope.py \
+            --plan-only
+          python3 -m unittest ci.test.test_ml_dsa_resource_envelope
+
+      - name: Observe isolated verifier resources
+        timeout-minutes: 10
+        env:
+          CC: ${{ matrix.compiler }}
+          EVIDENCE_DIR: ${{ runner.temp }}/ml-dsa-44-resource-envelope-${{ matrix.compiler }}
+        run: |
+          set -euxo pipefail
+          python3 contrib/ml-dsa-engineering/run_verifier_resource_envelope.py \
+            --compiler "$CC" \
+            --output-dir "$EVIDENCE_DIR"
+
+      - name: Verify retained evidence
+        if: always()
+        timeout-minutes: 5
+        env:
+          EVIDENCE_DIR: ${{ runner.temp }}/ml-dsa-44-resource-envelope-${{ matrix.compiler }}
+        run: |
+          set -euxo pipefail
+          python3 contrib/ml-dsa-engineering/run_verifier_resource_envelope.py \
+            --verify-evidence "$EVIDENCE_DIR"
+
+      - name: Verify checkout remained exact and clean
+        if: always()
+        timeout-minutes: 5
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "$PQBTC_RESOURCE_EXPECTED_HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      # Pull-request observations are candidates only. The runner alone evaluates
+      # exact-main and frozen-baseline trust; this workflow defines no timing,
+      # CPU, wall-clock, or RSS acceptance threshold.
+      - name: Upload untrusted pull-request observation
+        if: ${{ always() && github.event_name == 'pull_request' }}
+        timeout-minutes: 5
+        env:
+          EVIDENCE_DIR: ${{ runner.temp }}/ml-dsa-44-resource-envelope-${{ matrix.compiler }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ml-dsa-44-resource-untrusted-pr-${{ github.event.pull_request.head.sha }}-${{ matrix.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE_DIR }}/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 9
+
+      - name: Upload main observation
+        if: ${{ always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+        timeout-minutes: 5
+        env:
+          EVIDENCE_DIR: ${{ runner.temp }}/ml-dsa-44-resource-envelope-${{ matrix.compiler }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ml-dsa-44-resource-main-observation-${{ github.sha }}-${{ matrix.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE_DIR }}/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 9
+
+      - name: Upload untrusted non-main observation
+        if: ${{ always() && github.event_name != 'pull_request' && github.ref != 'refs/heads/main' }}
+        timeout-minutes: 5
+        env:
+          EVIDENCE_DIR: ${{ runner.temp }}/ml-dsa-44-resource-envelope-${{ matrix.compiler }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ml-dsa-44-resource-untrusted-candidate-${{ github.sha }}-${{ matrix.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE_DIR }}/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 9

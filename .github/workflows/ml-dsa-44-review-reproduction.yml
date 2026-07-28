@@ -4,11 +4,13 @@ on:
   pull_request:
     paths:
       - ".github/workflows/ml-dsa-44-review-reproduction.yml"
+      - ".github/workflows/ml-dsa-44-resource-envelope.yml"
       - "contrib/ml-dsa-ref/**"
       - "contrib/ml-dsa-engineering/**"
       - "ci/test/test_ml_dsa_cli_adapter_fuzz.py"
       - "ci/test/test_ml_dsa_reference.py"
       - "ci/test/test_ml_dsa_differential_fuzz.py"
+      - "ci/test/test_ml_dsa_resource_envelope.py"
       - "ci/test/test_ml_dsa_review_baseline.py"
   schedule:
     - cron: "43 5 * * 3"
@@ -170,11 +172,13 @@ jobs:
             test "$GITHUB_REF" = "refs/heads/main"
             git diff --exit-code "$BASELINE" -- \
               .github/workflows/ml-dsa-44-review-reproduction.yml \
+              .github/workflows/ml-dsa-44-resource-envelope.yml \
               contrib/ml-dsa-engineering \
               contrib/ml-dsa-ref \
               ci/test/test_ml_dsa_cli_adapter_fuzz.py \
               ci/test/test_ml_dsa_differential_fuzz.py \
               ci/test/test_ml_dsa_reference.py \
+              ci/test/test_ml_dsa_resource_envelope.py \
               ci/test/test_ml_dsa_review_baseline.py \
               ':(exclude)contrib/ml-dsa-ref/review_baseline_commit.txt' \
               ':(exclude)contrib/ml-dsa-ref/README.md' \

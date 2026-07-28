@@ -162,6 +162,17 @@ controls only for evidence generation. The harness exercises real OS entropy,
 frozen key/signature hashes, strict verification, fail-closed output,
 zeroization-hook execution, concurrent repeat rejection, and ASan/UBSan.
 
+A separate Linux x86_64 test-only lane now defines direct strict-verifier
+resource observations. Each of four batches makes 4,287 calls on a 128 KiB
+guarded pthread stack while linker interposition requires zero project heap
+calls. It retains raw timing samples and compiler-specific `.su` static-frame
+observations. These are candidate observations only: they are not consensus,
+block, or production limits, and numeric CPU, wall-time, and RSS acceptance
+remain unset pending separately reviewed exact-head GCC and Clang
+protected-main-push `TRUSTED_MAIN_OBSERVATION` artifacts. Manual dispatches
+remain untrusted. Each single-compiler artifact remains non-promotion-eligible
+and requires external GitHub Actions provenance.
+
 This is implementation evidence for the admitted experiment, not a production
 backend disposition. The raw-key prototype ABI, process-global serialization,
 supported-platform behavior, lifecycle, compiler output, fault model, fuzzing,
@@ -179,7 +190,7 @@ Prototype admission closes no production finding:
 | Supported-platform side channels | #185 | bounded x86_64 Valgrind constant-time/variable-latency evidence; broader platforms and leakage models open |
 | Fault model and injected faults | #186 | open |
 | End-to-end secret erasure | #187 | source cleanup and sanitizer evidence only; compiler/caller/platform boundary open |
-| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential/stateful fuzzing, promoted regressions, portable Miri evidence, and bounded malformed research-CLI argv replay; direct verifier allocation/stack/CPU and adversarial-batch limits, broader platform/Rust sanitizer coverage, and exact-commit re-review remain open |
+| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential/stateful fuzzing, promoted regressions, portable Miri evidence, bounded malformed research-CLI argv replay, and a test-only Linux x86_64 direct-verifier observation lane; trusted-main resource evidence, reviewed numeric allocation/stack/CPU and adversarial-batch acceptance limits, broader platform/Rust sanitizer coverage, and exact-commit re-review remain open |
 | Backend advisories, SBOM, and reproducible build | #189 | dated fail-closed ledger, full-lock cargo-audit/OSV scans, exact selected graph, CycloneDX SBOM, weekly retained refresh, exact portable ML-DSA-44 RUSTSEC-2026-0077 regressions, and promoted trusted-main test-only SIMD256 0125/0126 PASS evidence; exact-commit independent re-review remains open, and optimized-backend admission is a separate future decision |
 | Wallet and key format | #190 | open |
 | Independent human cryptographic review | #181 | open |

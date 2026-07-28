@@ -162,6 +162,7 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         self.assertTrue(
             plan["scope"]["iwyu_first_party_leaf_units_and_headers"]
         )
+        self.assertTrue(plan["scope"]["verifier_resource_probe_test_only"])
         self.assertFalse(plan["scope"]["production_integration"])
         self.assertTrue(plan["scope"]["release_hold_unchanged"])
         self.assertTrue(
@@ -188,14 +189,19 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
             },
         )
         for evidence_source in (
+            ".github/workflows/ml-dsa-44-resource-envelope.yml",
             ".github/workflows/ml-dsa-44-wrapper-prototype.yml",
             ".github/workflows/promotion-matrix.yml",
             "ci/test/00_setup_env_native_tidy.sh",
             "ci/test/01_base_install.sh",
             "ci/test/03_test_script.sh",
+            "ci/test/test_ml_dsa_resource_envelope.py",
             "ci/test/test_ml_dsa_wrapper_prototype.py",
             "contrib/ml-dsa-engineering/README.md",
+            "contrib/ml-dsa-engineering/pqbtc_mldsa44_resource_probe.c",
             "contrib/ml-dsa-engineering/pqbtc_mldsa44_stateful_fuzz.c",
+            "contrib/ml-dsa-engineering/run_verifier_resource_envelope.py",
+            "contrib/ml-dsa-engineering/verifier_resource_policy.json",
         ):
             self.assertRegex(
                 plan["source_files"][evidence_source], r"^[0-9a-f]{64}$"
@@ -213,8 +219,8 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         self.assertEqual(
             counts,
             {
-                "clang-tidy": 5,
-                "iwyu": 3,
+                "clang-tidy": 6,
+                "iwyu": 4,
                 "header-self-containment": 2,
             },
         )
@@ -259,9 +265,11 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
             "clang-tidy-smoke-testing",
             "clang-tidy-verifier-fuzz",
             "clang-tidy-stateful-signer-fuzz",
+            "clang-tidy-verifier-resource-probe",
             "iwyu-smoke-testing",
             "iwyu-verifier-fuzz",
             "iwyu-stateful-signer-fuzz",
+            "iwyu-verifier-resource-probe",
             "header-self-contained-production",
             "header-self-contained-testing",
         }
@@ -292,6 +300,31 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
             testing_define,
             checks["iwyu-stateful-signer-fuzz"]["command"],
         )
+        self.assertNotIn(
+            testing_define,
+            checks["clang-tidy-verifier-resource-probe"]["command"],
+        )
+        self.assertNotIn(
+            testing_define,
+            checks["iwyu-verifier-resource-probe"]["command"],
+        )
+        self.assertIn(
+            "-pthread",
+            checks["clang-tidy-verifier-resource-probe"]["command"],
+        )
+        self.assertIn("-pthread", checks["iwyu-verifier-resource-probe"]["command"])
+        for check_id in (
+            "clang-tidy-verifier-resource-probe",
+            "iwyu-verifier-resource-probe",
+        ):
+            self.assertEqual(
+                checks[check_id]["input"],
+                "contrib/ml-dsa-engineering/pqbtc_mldsa44_resource_probe.c",
+            )
+            self.assertEqual(
+                checks[check_id]["variant"],
+                "production-api-test-only",
+            )
 
         for check_id in (
             "header-self-contained-production",

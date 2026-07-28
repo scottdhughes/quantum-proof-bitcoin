@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "phase": "TRUSTED_MAIN_OBSERVATION_REQUIRED",
+  "target": "pqbtc_mldsa44_verify_strict",
+  "profile": {
+    "system": "Linux",
+    "machine": "x86_64",
+    "measurement_target": "isolated-production-shaped-direct-verifier",
+    "backend": "mldsa-native-portable-c",
+    "optimization": "-O2",
+    "thread_model": "one guarded pthread",
+    "allocation_model": "default upstream stack allocation"
+  },
+  "batch": {
+    "source": "SHA256-sorted unique verifier_fuzz_corpus.json frames",
+    "unique_frames": 240,
+    "full_corpus_rounds": 17,
+    "prefix_frames": 207,
+    "verification_calls": 4287,
+    "sample_count": 31,
+    "first_call_separate": true,
+    "batches": [
+      "mixed_rotating",
+      "valid_rotating",
+      "deep_reject_rotating",
+      "same_key_mixed"
+    ],
+    "derivation": "17 * 240 + 207 = 4287 repeated independent verifications",
+    "capacity_basis": "raw 16000000-weight-unit witness payload model for one 2420-byte signature plus one 1312-byte public key",
+    "capacity_scope": "research workload only; not a transaction, block-validation, consensus, or activation limit",
+    "required_accept_cases": [
+      "valid_empty_message_context",
+      "valid_frozen_vector",
+      "valid_max_context",
+      "valid_max_fuzz_message"
+    ],
+    "required_deep_reject_cases": [
+      "reject_context_flip",
+      "reject_ctilde_bit_flip",
+      "reject_hint_counter_backwards",
+      "reject_hint_nonzero_padding",
+      "reject_message_flip",
+      "reject_public_key_rho_flip",
+      "reject_public_key_t1_flip"
+    ],
+    "same_key_cases": [
+      "reject_context_flip",
+      "reject_ctilde_bit_flip",
+      "reject_hint_counter_backwards",
+      "reject_hint_nonzero_padding",
+      "reject_message_flip",
+      "valid_empty_message_context",
+      "valid_frozen_vector",
+      "valid_max_context",
+      "valid_max_fuzz_message"
+    ]
+  },
+  "enforced_limits": {
+    "thread_stack_bytes": 131072,
+    "thread_guard_bytes": 4096,
+    "address_space_bytes": 268435456,
+    "open_files": 64,
+    "output_file_bytes": 65536,
+    "core_file_bytes": 0,
+    "project_heap_calls": 0,
+    "cpu_watchdog_seconds": 120,
+    "wall_watchdog_seconds": 180
+  },
+  "acceptance_limits": {
+    "cpu_seconds": null,
+    "wall_seconds": null,
+    "peak_rss_kib": null,
+    "status": "UNSET_PENDING_SEPARATE_REVIEW_OF_TRUSTED_MAIN_OBSERVATION"
+  },
+  "stack_evidence": {
+    "upstream_mld_total_alloc_44_verify_bytes": 24448,
+    "required_symbols": [
+      "pqbtc_mldsa44_upstream_verify",
+      "pqbtc_mldsa44_verify_strict"
+    ],
+    "require_static_stack_usage": true,
+    "call_chain_claim": "guarded-thread execution corroborates compiler-specific per-function .su records; .su values are not summed into a formal call-chain bound"
+  },
+  "promotion": {
+    "requires_trusted_main_push": true,
+    "requires_both_compilers": [
+      "clang",
+      "gcc"
+    ],
+    "requires_separate_policy_change": true,
+    "pull_request_evidence": "UNTRUSTED_PR_OBSERVATION",
+    "trusted_main_evidence": "TRUSTED_MAIN_OBSERVATION",
+    "timing_threshold_bootstrap_forbidden": true
+  },
+  "scope": {
+    "isolated_test_only": true,
+    "production_integration": false,
+    "production_backend": "NONE",
+    "simd256_admitted": false,
+    "release_hold": true,
+    "release_hold_changed": false,
+    "batch_limit_is_not_consensus_policy": true,
+    "closes_issue": false
+  }
+}

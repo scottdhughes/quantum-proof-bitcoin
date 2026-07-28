@@ -232,6 +232,49 @@ The versioned clang-tidy/IWYU plan does not cover the differential-only branch
 or external adapter sources; those C sources are compiled with fatal warnings
 and exercised dynamically in the pinned review workflow instead.
 
+## Direct-Verifier Resource-Envelope Observation
+
+The isolated resource lane calls only `pqbtc_mldsa44_verify_strict` in the
+production-shaped portable-C build on Linux x86_64. Its deterministic source
+set is the 240 unique frozen verifier frames. It expands that set into four
+separate 4,287-call batches: a rotating mixed batch, a rotating valid batch,
+deep verification rejects, and a same-public-key mixture of the four required
+accepts plus the five required deep rejects that retain the frozen key. The
+two public-key mutation cases remain in the deep-reject batch. The 4,287-call
+size comes from the existing raw-payload
+research model and is not a consensus, block, transaction, mempool, or
+production limit.
+
+The probe runs inside a 128 KiB guarded pthread and records the configured
+stack and guard sizes. GCC and Clang `.su` output is retained as
+compiler-specific static-frame observation. It is not treated as a formal
+whole-call-chain stack bound. Linker interposition around the project binary
+requires zero `malloc`, `calloc`, `realloc`, `free`, `aligned_alloc`, and
+`posix_memalign` calls during direct verification; that instrumentation does
+not claim visibility into dynamic-loader or system-library internals.
+
+Each batch retains raw integer timing samples plus matched loop-control
+samples, and the evidence validator independently recomputes the descriptive
+statistics. The initial policy deliberately defines no numeric CPU,
+wall-time, or RSS acceptance threshold. Pull-request observations are labeled
+`UNTRUSTED_PR_OBSERVATION`. A `TRUSTED_MAIN_OBSERVATION` requires the
+candidate workflow and inputs to merge, followed by a separate reviewed
+baseline-pointer update and an exact clean protected-main push. Manual
+dispatches remain diagnostic and untrusted. Numeric acceptance may be frozen
+only in a later reviewed policy change based on that trusted observation,
+never by the same pull request that defines the measurement.
+No individual compiler artifact is promotion-eligible: both exact-head GCC
+and Clang artifacts and external GitHub Actions run/artifact provenance must
+be checked before that later policy review.
+
+This is a test-only observation lane, not a supported-platform or worst-case
+resource proof. It changes no production linkage or behavior, does not admit
+SIMD256, and does not establish a consensus parser or adversarial block limit.
+Issue `#188` remains open pending trusted-main evidence, reviewed numeric
+limits, broader-platform coverage, and exact-commit re-review. Issue `#181`
+also remains open, production remains `NONE`, and `RELEASE_HOLD` remains in
+force.
+
 ## Pinned Upstream CBMC Reproduction
 
 The dedicated read-only workflow checks out exact `mldsa-native` commit
@@ -278,9 +321,9 @@ This prototype advances engineering evidence but closes no production gate:
   evidence. The three research oracle CLIs now enforce documented argv parser
   limits and replay fixed plus deterministic malformed-input mutations,
   including non-UTF-8 arguments, with separate ASan/UBSan coverage for the C
-  adapters. Broader-platform and Rust sanitizer coverage, direct verifier
-  allocation/stack/CPU measurement, adversarial-batch limits, and exact-commit
-  re-review remain open;
+  adapters. Broader-platform and Rust sanitizer coverage, trusted-main
+  resource observation, reviewed allocation/stack/CPU and adversarial-batch
+  acceptance limits, and exact-commit re-review remain open;
 - issue `#189`: a dated fail-closed selected-graph advisory ledger, full-lock
   cargo-audit/OSV scans, selected dependency graph, CycloneDX SBOM, and weekly
   retained refresh are implemented; exact-commit independent re-review remains
