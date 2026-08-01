@@ -154,18 +154,29 @@ jobs:
               "baseline": hashlib.sha256(baseline_bytes).hexdigest(),
               "current": hashlib.sha256(vectors_path.read_bytes()).hexdigest(),
           }
-          expected_sha256 = {
-              "baseline": (
-                  "c2a94fe4fc8e63a6bec4528b4589958772cb0ea01f669cfd8c78bed357a68633"
-              ),
-              "current": (
-                  "c2a94fe4fc8e63a6bec4528b4589958772cb0ea01f669cfd8c78bed357a68633"
-              ),
-          }
-          if actual_sha256 != expected_sha256:
+          # Accept exactly the reviewed transition and its pointer-caught-up
+          # steady state. PR-mode validation prevents rollback or skipping.
+          allowed_sha256 = (
+              {
+                  "baseline": (
+                      "c2a94fe4fc8e63a6bec4528b4589958772cb0ea01f669cfd8c78bed357a68633"
+                  ),
+                  "current": (
+                      "955da4f4bcec375bd05cb6d3f0a005fff244442f8d2b70880d4bf0f952a7927d"
+                  ),
+              },
+              {
+                  "baseline": (
+                      "955da4f4bcec375bd05cb6d3f0a005fff244442f8d2b70880d4bf0f952a7927d"
+                  ),
+                  "current": (
+                      "955da4f4bcec375bd05cb6d3f0a005fff244442f8d2b70880d4bf0f952a7927d"
+                  ),
+              },
+          )
+          if actual_sha256 not in allowed_sha256:
               raise SystemExit(
-                  "vectors.json differs from the exact frozen "
-                  "RUSTSEC-2026-0077 contract"
+                  "vectors.json differs from the exact frozen review contract"
               )
           PY
           else

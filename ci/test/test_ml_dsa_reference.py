@@ -71,6 +71,21 @@ class MLDSAReferenceTests(unittest.TestCase):
             "nist_fips204_section6_guidance",
         ):
             self.assertRegex(sources[name]["sha256"], r"^[0-9a-f]{64}$")
+        updates = sources["nist_fips204_potential_updates"]
+        self.assertEqual(
+            updates["url"],
+            "https://csrc.nist.gov/files/pubs/fips/204/final/docs/"
+            "fips-204-potential-updates.xlsx",
+        )
+        self.assertEqual(updates["last_updated"], "2026-07-31")
+        self.assertEqual(
+            updates["sha256"],
+            "5bc93ce63bc647e6d1d456cb2d3a171426c15aca4a7a0e0edd40d08b7a34c793",
+        )
+        self.assertEqual(
+            updates["status"],
+            "potential corrections; not official changes",
+        )
         self.assertIn(
             "not independent cryptographic review",
             sources["mldsa_native"]["lineage_limit"],

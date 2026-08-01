@@ -7,6 +7,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 ENGINEERING_DIR = REPO_ROOT / "contrib" / "ml-dsa-engineering"
 ADMISSION_PATH = ENGINEERING_DIR / "backend_admission.json"
 REFERENCE_PATH = REPO_ROOT / "contrib" / "ml-dsa-ref" / "vectors.json"
+CONFIG_PATH = ENGINEERING_DIR / "pqbtc_mldsa44_config.h"
 DECISION_PATH = REPO_ROOT / "docs" / "ML_DSA_44_BACKEND_ADMISSION.md"
 
 
@@ -89,7 +90,13 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
         self.assertFalse(build["native_fips202_backend"])
         self.assertEqual(build["external_api_qualifier"], "static")
         self.assertFalse(build["supercop_aliases"])
-        self.assertEqual(build["max_signing_attempts"], 814)
+        self.assertEqual(build["max_signing_attempts"], 821)
+        config = CONFIG_PATH.read_text(encoding="utf8")
+        self.assertIn(
+            f"#define MLD_CONFIG_MAX_SIGNING_ATTEMPTS "
+            f"{build['max_signing_attempts']}",
+            config,
+        )
         self.assertEqual(build["randomized_entry_point"], "mldsa_signature")
         self.assertFalse(build["deterministic_entry_points_exported"])
         self.assertTrue(build["custom_randombytes_inside_wrapper_module"])

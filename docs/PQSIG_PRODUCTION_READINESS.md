@@ -3,7 +3,7 @@
 ## Status: RELEASE_HOLD - AWAITING_EXTERNAL_REVIEW
 ## Spec-ID: PQSIG-PRODUCTION-READINESS-v1
 ## Decided: 2026-07-18
-## Evidence-Updated: 2026-07-20
+## Evidence-Updated: 2026-08-01
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -86,8 +86,10 @@ than a local patch.
 - NIST FIPS 204 standardizes ML-DSA:
   https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.204.pdf
 - NIST's 2026-02-23 FIPS 204 planning note points to a potential-updates
-  spreadsheet. The 2026-07-18 refresh matches the SHA256 already pinned by the
-  ML-DSA comparator, so it changes no selected-profile vector bytes:
+  spreadsheet. The 2026-08-01 refresh found NIST's July 31 correction to the
+  signing repetitions and minimum internal-signing loop limit. The comparator
+  vectors are unchanged, while the isolated wrapper raises its bound from
+  `814` to `821`:
   https://csrc.nist.gov/pubs/fips/204/final
 - NIST's PQC FIPS FAQ, last revised 2026-06-16 for the key-format question,
   permits the ML-DSA key-generation seed to represent the stored or transported

@@ -32,7 +32,7 @@
     "production_signing": "hedged_randomized_only"
   },
   "standards_refresh": {
-    "checked": "2026-07-19",
+    "checked": "2026-08-01",
     "fips_204_status": "FINAL_WITH_POTENTIAL_UPDATES",
     "potential_updates_are_official_changes": false,
     "selected_profile_conflict_found": false
@@ -61,7 +61,7 @@
       "native_fips202_backend": false,
       "external_api_qualifier": "static",
       "supercop_aliases": false,
-      "max_signing_attempts": 814,
+      "max_signing_attempts": 821,
       "randomized_entry_point": "mldsa_signature",
       "deterministic_entry_points_exported": false,
       "custom_randombytes_inside_wrapper_module": true,

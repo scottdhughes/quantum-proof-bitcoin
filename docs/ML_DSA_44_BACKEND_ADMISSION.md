@@ -3,7 +3,7 @@
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-BACKEND-ADMISSION-v1
 ## Decided: 2026-07-19
-## Evidence-Updated: 2026-07-27
+## Evidence-Updated: 2026-08-01
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -129,7 +129,7 @@ and is required to preserve all of these conditions:
 2. use one translation unit and mark upstream APIs `static`;
 3. disable SUPERCOP aliases and export only a project-owned hedged-signing
    wrapper plus the strict verification operation needed for self-checking;
-4. set the signing-attempt bound to `814` and return no partial result when it
+4. set the signing-attempt bound to `821` and return no partial result when it
    is exhausted;
 5. provide project-owned random-byte and zeroization hooks inside that same
    compiled module;
@@ -144,6 +144,13 @@ restricted wrapper. A separately named test build exposes deterministic or
 fixed-randomizer operations for vector testing. CI inspects the
 production-shaped symbol table and fails if a deterministic, test, or upstream
 signing entry point is exported.
+
+The `821` bound incorporates NIST's July 31, 2026 potential correction to
+Appendix C (previously `814`). The vendored upstream capsule remains at its
+exact reviewed commit and still contains the older lower-bound guard; the
+project-owned configuration exceeds that guard without changing vendor bytes.
+Any production admission still requires an upstream repin and exact-commit
+review.
 
 ## Implemented Prototype Evidence
 

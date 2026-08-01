@@ -3,7 +3,7 @@
 ## Status: AWAITING_EXTERNAL_REVIEW - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-EXTERNAL-REVIEW-v1
 ## Prepared: 2026-07-19
-## Evidence-Updated: 2026-07-20
+## Evidence-Updated: 2026-08-01
 ## Owner: @scottdhughes
 ## Tracking: https://github.com/scottdhughes/quantum-proof-bitcoin/issues/181
 ## Consensus-Relevant: NO
@@ -90,8 +90,13 @@ validation.
 | Artifact | Date or status | SHA256 |
 | --- | --- | --- |
 | NIST FIPS 204 PDF | Final, 2024-08-13 | `57239b9f84c03227eda3ca0991204dc7764c79af9ce2e6824eda774918d46b6b` |
-| FIPS 204 potential updates | Updated 2026-02-27; not official changes | `0e8ba77b46db71fda2c18e67111303335745a938686cad6faf35eac148f7ed3e` |
+| FIPS 204 potential updates | Updated 2026-07-31; not official changes | `5bc93ce63bc647e6d1d456cb2d3a171426c15aca4a7a0e0edd40d08b7a34c793` |
 | FIPS 204 Section 6 guidance | Dated 2025-03-19 | `4a1d4b8d5aefef56069eb91bd464d5b5e177372e03bdde2541655e8e24d7a056` |
+
+The July 31 potential correction raises the minimum internal-signing loop
+limit from `814` to `821`. The project-owned isolated wrapper uses `821`; the
+pinned upstream capsule remains byte-for-byte unchanged and must be repinned
+before any production proposal.
 
 ### Official ACVP Inputs
 

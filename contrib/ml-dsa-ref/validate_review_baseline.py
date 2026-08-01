@@ -36,8 +36,24 @@ def _run_git(repository, *arguments):
         ) from exc
 
 
+def _run_git_bytes(repository, *arguments):
+    try:
+        return subprocess.run(
+            ["git", "-C", str(repository), *arguments],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except FileNotFoundError as exc:
+        raise BaselineValidationError(
+            "Git is required to validate the review baseline"
+        ) from exc
+
+
 def _git_error(result):
     detail = result.stderr.strip()
+    if isinstance(detail, bytes):
+        detail = detail.decode("utf8", errors="replace")
     return f": {detail}" if detail else ""
 
 
@@ -87,6 +103,75 @@ def _read_pointer(repository, pointer_path):
             "characters followed by one LF"
         )
     return contents[:-1].decode("ascii")
+
+
+def _repository_relative_pointer(repository, pointer_path):
+    repository = Path(repository).resolve()
+    path = Path(pointer_path)
+    if not path.is_absolute():
+        path = repository / path
+    try:
+        relative = path.resolve().relative_to(repository)
+    except (OSError, ValueError) as exc:
+        raise BaselineValidationError(
+            "baseline pointer must be inside the Git repository"
+        ) from exc
+    relative_text = relative.as_posix()
+    if not relative_text or ":" in relative_text:
+        raise BaselineValidationError(
+            "baseline pointer has an unsupported repository-relative path"
+        )
+    return relative_text
+
+
+def _read_pointer_at_revision(repository, pointer_path, revision):
+    relative = _repository_relative_pointer(repository, pointer_path)
+    tree_result = _run_git_bytes(
+        repository,
+        "ls-tree",
+        "-z",
+        "--full-tree",
+        revision,
+        "--",
+        relative,
+    )
+    if tree_result.returncode != 0:
+        raise BaselineValidationError(
+            "cannot inspect the baseline pointer in the pull-request base tree"
+            f"{_git_error(tree_result)}"
+        )
+    records = tree_result.stdout.split(b"\0")
+    if len(records) != 2 or records[1] != b"" or b"\t" not in records[0]:
+        raise BaselineValidationError(
+            "pull-request base tree must contain exactly one baseline pointer"
+        )
+    metadata, tree_path = records[0].split(b"\t", 1)
+    metadata_fields = metadata.split(b" ")
+    if (
+        metadata_fields[:2] != [b"100644", b"blob"]
+        or len(metadata_fields) != 3
+        or tree_path != relative.encode("utf8")
+    ):
+        raise BaselineValidationError(
+            "pull-request base baseline pointer must be a plain 100644 blob"
+        )
+    blob_result = _run_git_bytes(
+        repository,
+        "cat-file",
+        "blob",
+        metadata_fields[2].decode("ascii"),
+    )
+    if blob_result.returncode != 0:
+        raise BaselineValidationError(
+            "cannot read the baseline pointer blob from the pull-request base"
+            f"{_git_error(blob_result)}"
+        )
+    if POINTER_PATTERN.fullmatch(blob_result.stdout) is None:
+        raise BaselineValidationError(
+            "the pull-request base baseline pointer must contain exactly 40 "
+            "lowercase hexadecimal characters followed by one LF"
+        )
+    return blob_result.stdout[:-1].decode("ascii")
 
 
 def _require_commit(repository, revision, label):
@@ -183,6 +268,28 @@ def validate_review_baseline(
         chain_start,
         mode,
     )
+    if mode == "pull_request":
+        base_pointer_text = _read_pointer_at_revision(
+            repository,
+            pointer_path,
+            base_commit,
+        )
+        base_pointer_commit = _require_commit(
+            repository,
+            base_pointer_text,
+            "pull-request base baseline pointer",
+        )
+        _require_first_parent(
+            repository,
+            base_pointer_commit,
+            base_commit,
+            mode,
+        )
+        if pointer_commit not in (base_pointer_commit, base_commit):
+            raise BaselineValidationError(
+                "pull-request baseline pointer must be unchanged from the "
+                "base tree or advance exactly to the base commit"
+            )
     return pointer_commit
 
 

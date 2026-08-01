@@ -431,11 +431,15 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
             '"c2a94fe4fc8e63a6bec4528b4589958772cb0ea01f669cfd8c78bed357a68633"',
             vector_guard,
         )
+        self.assertIn(
+            '"955da4f4bcec375bd05cb6d3f0a005fff244442f8d2b70880d4bf0f952a7927d"',
+            vector_guard,
+        )
         self.assertNotIn(
             "2fe1fffc7bfe8ec7597e408449a0d6b99f6ec0f035ab6669211d4d13f376a2b9",
             vector_guard,
         )
-        self.assertIn("if actual_sha256 != expected_sha256:", vector_guard)
+        self.assertIn("if actual_sha256 not in allowed_sha256:", vector_guard)
         self.assertNotIn(
             'git diff --exit-code "$BASELINE" -- '
             "contrib/ml-dsa-ref/vectors.json",
@@ -495,7 +499,7 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
                 expected,
             )
 
-    def test_pr_vector_guard_allows_only_exact_steady_state(self):
+    def test_pr_vector_guard_allows_only_exact_reviewed_states(self):
         git = shutil.which("git")
         if git is None:
             self.skipTest("Git unavailable")
@@ -505,10 +509,27 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
         candidate_bytes = (REFERENCE_DIR / "vectors.json").read_bytes()
         self.assertEqual(
             hashlib.sha256(candidate_bytes).hexdigest(),
+            "955da4f4bcec375bd05cb6d3f0a005fff244442f8d2b70880d4bf0f952a7927d",
+        )
+        current_updates_sha256 = (
+            b"5bc93ce63bc647e6d1d456cb2d3a171426c15aca4a7a0e0edd40d08b7a34c793"
+        )
+        baseline_updates_sha256 = (
+            b"0e8ba77b46db71fda2c18e67111303335745a938686cad6faf35eac148f7ed3e"
+        )
+        self.assertEqual(candidate_bytes.count(current_updates_sha256), 1)
+        self.assertEqual(candidate_bytes.count(b"2026-07-31"), 1)
+        baseline_bytes = candidate_bytes.replace(
+            current_updates_sha256,
+            baseline_updates_sha256,
+            1,
+        ).replace(b"2026-07-31", b"2026-02-27", 1)
+        self.assertEqual(
+            hashlib.sha256(baseline_bytes).hexdigest(),
             "c2a94fe4fc8e63a6bec4528b4589958772cb0ea01f669cfd8c78bed357a68633",
         )
 
-        def run_guard(current_bytes, *, committed_baseline=candidate_bytes):
+        def run_guard(current_bytes, *, committed_baseline=baseline_bytes):
             with tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary)
                 vector_path = root / relative_vector_path
@@ -558,14 +579,23 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
                     text=True,
                 )
 
-        steady_state = run_guard(
+        reviewed_transition = run_guard(
+            candidate_bytes,
+            committed_baseline=baseline_bytes,
+        )
+        self.assertEqual(
+            reviewed_transition.returncode,
+            0,
+            reviewed_transition.stdout + reviewed_transition.stderr,
+        )
+        caught_up = run_guard(
             candidate_bytes,
             committed_baseline=candidate_bytes,
         )
         self.assertEqual(
-            steady_state.returncode,
+            caught_up.returncode,
             0,
-            steady_state.stdout + steady_state.stderr,
+            caught_up.stdout + caught_up.stderr,
         )
 
         tampered_regression = candidate_bytes.replace(
@@ -579,17 +609,18 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
             1,
         )
         cases = (
-            ("tampered regression", tampered_regression, candidate_bytes),
-            ("unrelated drift", unrelated_drift, candidate_bytes),
+            ("tampered regression", tampered_regression, baseline_bytes),
+            ("unrelated drift", unrelated_drift, baseline_bytes),
+            ("stale current", baseline_bytes, baseline_bytes),
             (
                 "tampered baseline",
                 candidate_bytes,
-                candidate_bytes + b"\n",
+                baseline_bytes + b"\n",
             ),
         )
         for label, rejected, rejected_baseline in cases:
             if label == "tampered baseline":
-                self.assertNotEqual(rejected_baseline, candidate_bytes)
+                self.assertNotEqual(rejected_baseline, baseline_bytes)
             else:
                 self.assertNotEqual(rejected, candidate_bytes, label)
             with self.subTest(label=label):

@@ -3,7 +3,7 @@
 ## Status: ML_DSA_44_ENGINEERING_CANDIDATE - RELEASE_HOLD
 ## Spec-ID: PQSIG-CANDIDATE-SELECTION-v1
 ## Decided: 2026-07-18
-## Evidence-Updated: 2026-07-19
+## Evidence-Updated: 2026-08-01
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -41,13 +41,13 @@ value.
 
 ## Official Standards Refresh
 
-The official-source boundary was refreshed on 2026-07-18. Downloaded static
+The official-source boundary was refreshed on 2026-08-01. Downloaded static
 artifacts were identified as PDF or XLSX files before hashing.
 
 | Artifact | Status | SHA256 |
 | --- | --- | --- |
 | FIPS 204 PDF | Final, 2024-08-13 | `57239b9f84c03227eda3ca0991204dc7764c79af9ce2e6824eda774918d46b6b` |
-| FIPS 204 potential updates | Updated 2026-02-27 | `0e8ba77b46db71fda2c18e67111303335745a938686cad6faf35eac148f7ed3e` |
+| FIPS 204 potential updates | Updated 2026-07-31 | `5bc93ce63bc647e6d1d456cb2d3a171426c15aca4a7a0e0edd40d08b7a34c793` |
 | FIPS 204 Section 6 guidance | Dated 2025-03-19 | `4a1d4b8d5aefef56069eb91bd464d5b5e177372e03bdde2541655e8e24d7a056` |
 | FIPS 205 PDF | Final, 2024-08-13 | `8ef34228276f3386d23cb0da8c14592b8cfb0db3358016bba64df7a004f8d13d` |
 | SP 800-230 IPD | Draft, 2026-04-13 | `62d092f787a1f79260454bf332b642ff3b5b73dbcce2678a133a1406065e452e` |
@@ -61,12 +61,15 @@ Official sources:
 - [SP 800-230 initial public draft](https://csrc.nist.gov/pubs/sp/800/230/ipd)
 - [CSWP 39upd1](https://csrc.nist.gov/pubs/cswp/39/upd1/considerations-for-achieving-crypto-agility/final)
 
-The refresh changes no selected-profile vector bytes:
+The refresh changes no selected-profile vector bytes, but it does change the
+isolated wrapper's signing-loop safety bound:
 
 1. FIPS 204 remains final. Its 2026-02-23 planning note points to the
-   potential-updates spreadsheet. The current spreadsheet matches the hash
-   already pinned by the ML-DSA harness and describes future corrections, not
-   a replacement parameter set.
+   potential-updates spreadsheet. The July 31 sheet describes future
+   corrections, not a replacement parameter set, but corrects the expected
+   signing repetitions and raises the minimum internal-signing loop limit from
+   `814` to `821`. The isolated wrapper adopts `821` without changing the
+   provenance-bound upstream capsule.
 2. The live NIST PQC FIPS FAQ, last revised 2026-06-16 for this question,
    permits an ML-DSA key-generation seed to serve as the stored or transported
    private-key representation when standard derivation reproduces the required

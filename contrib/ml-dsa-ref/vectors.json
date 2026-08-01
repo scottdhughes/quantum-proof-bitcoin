@@ -62,8 +62,8 @@
     },
     "nist_fips204_potential_updates": {
       "url": "https://csrc.nist.gov/files/pubs/fips/204/final/docs/fips-204-potential-updates.xlsx",
-      "sha256": "0e8ba77b46db71fda2c18e67111303335745a938686cad6faf35eac148f7ed3e",
-      "last_updated": "2026-02-27",
+      "sha256": "5bc93ce63bc647e6d1d456cb2d3a171426c15aca4a7a0e0edd40d08b7a34c793",
+      "last_updated": "2026-07-31",
       "status": "potential corrections; not official changes"
     },
     "nist_fips204_section6_guidance": {
