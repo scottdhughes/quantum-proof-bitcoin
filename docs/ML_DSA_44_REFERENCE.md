@@ -2,7 +2,7 @@
 
 ## Status: REFERENCE ONLY - NOT CONSENSUS
 ## Spec-ID: ML-DSA-44-REFERENCE-v2
-## Updated: 2026-07-19
+## Updated: 2026-08-01
 ## Consensus-Relevant: NO
 
 ## Decision Boundary
@@ -45,14 +45,16 @@ The manifest pins these NIST artifacts by SHA256:
 | Artifact | SHA256 |
 | --- | --- |
 | FIPS 204 PDF | `57239b9f84c03227eda3ca0991204dc7764c79af9ce2e6824eda774918d46b6b` |
-| Potential updates, last updated 2026-02-27 | `0e8ba77b46db71fda2c18e67111303335745a938686cad6faf35eac148f7ed3e` |
+| Potential updates, last updated 2026-07-31 | `5bc93ce63bc647e6d1d456cb2d3a171426c15aca4a7a0e0edd40d08b7a34c793` |
 | Section 6 guidance, dated 2025-03-19 | `4a1d4b8d5aefef56069eb91bd464d5b5e177372e03bdde2541655e8e24d7a056` |
 
 The potential-updates sheet states that its corrections are not official
 changes and introduce no new technical requirements. Relevant entries correct
 the explanatory `c_tilde` ordering to `mu || w1`, use `M'` consistently in
-Sections 6.2 and 6.3, and clarify several pseudocode/text defects. The pinned
-ACVP outputs and both oracles agree on the resulting key and signature bytes.
+Sections 6.2 and 6.3, and clarify several pseudocode/text defects. The July 31
+update also corrects the expected signing repetitions to `4.36`, `5.14`, and
+`3.91` and raises the minimum internal-signing loop limit from `814` to `821`.
+The isolated wrapper adopts `821`; the pinned ACVP outputs remain unchanged.
 
 NIST's Section 6 guidance permits a separately validated external-`mu`
 interface in specific module boundaries. This comparator does not select or

@@ -88,6 +88,11 @@ class MlDsaReviewBaselineTest(unittest.TestCase):
 
     def linear_pull_request(self):
         baseline = self.commit_file("payload", "baseline\n", "baseline")
+        self.commit_file(
+            "review-baseline",
+            baseline + "\n",
+            "install baseline pointer",
+        )
         base = self.commit_file("payload", "base\n", "base")
         head = self.commit_file("payload", "head\n", "head")
         return baseline, base, head
@@ -120,6 +125,7 @@ class MlDsaReviewBaselineTest(unittest.TestCase):
 
     def test_missing_pointer_file_is_rejected(self):
         _baseline, base, head = self.linear_pull_request()
+        self.pointer.unlink()
         with self.assertRaisesRegex(
             baseline_validator.BaselineValidationError,
             "cannot inspect baseline pointer",
@@ -130,6 +136,7 @@ class MlDsaReviewBaselineTest(unittest.TestCase):
         baseline, base, head = self.linear_pull_request()
         target = self.repository / "pointer-target"
         target.write_text(baseline + "\n", encoding="ascii")
+        self.pointer.unlink()
         self.pointer.symlink_to(target)
         with self.assertRaisesRegex(
             baseline_validator.BaselineValidationError,
@@ -317,6 +324,106 @@ class MlDsaReviewBaselineTest(unittest.TestCase):
             self.validate(head=head, base=base, mode="pull_request"),
             baseline,
         )
+
+    def test_valid_pull_request_may_advance_pointer_exactly_to_base(self):
+        _baseline, base, head = self.linear_pull_request()
+        self.write_pointer(base)
+        self.assertEqual(
+            self.validate(head=head, base=base, mode="pull_request"),
+            base,
+        )
+
+    def test_pull_request_pointer_rollback_is_rejected(self):
+        root = self.commit_file("payload", "root\n", "root")
+        self.commit_file(
+            "review-baseline",
+            root + "\n",
+            "install baseline pointer",
+        )
+        reviewed = self.commit_file("payload", "reviewed\n", "reviewed")
+        self.commit_file(
+            "review-baseline",
+            reviewed + "\n",
+            "advance baseline pointer",
+        )
+        base = self.commit_file("payload", "base\n", "base")
+        head = self.commit_file("payload", "head\n", "head")
+        self.write_pointer(root)
+        with self.assertRaisesRegex(
+            baseline_validator.BaselineValidationError,
+            "unchanged from the base tree or advance exactly to the base commit",
+        ):
+            self.validate(head=head, base=base, mode="pull_request")
+
+    def test_pull_request_pointer_may_not_skip_to_arbitrary_ancestor(self):
+        root = self.commit_file("payload", "root\n", "root")
+        self.commit_file(
+            "review-baseline",
+            root + "\n",
+            "install baseline pointer",
+        )
+        reviewed = self.commit_file("payload", "reviewed\n", "reviewed")
+        pointer_commit = self.commit_file(
+            "review-baseline",
+            reviewed + "\n",
+            "advance baseline pointer",
+        )
+        base = self.commit_file("payload", "base\n", "base")
+        head = self.commit_file("payload", "head\n", "head")
+        self.write_pointer(pointer_commit)
+        with self.assertRaisesRegex(
+            baseline_validator.BaselineValidationError,
+            "unchanged from the base tree or advance exactly to the base commit",
+        ):
+            self.validate(head=head, base=base, mode="pull_request")
+
+    def test_pull_request_cannot_advance_from_invalid_base_pointer(self):
+        root = self.commit_file("payload", "root\n", "root")
+        main_branch = self.git(
+            "symbolic-ref",
+            "--short",
+            "HEAD",
+        ).stdout.strip()
+        self.git("switch", "-q", "-c", "side", root)
+        side = self.commit_file("side", "side\n", "side")
+        self.git("switch", "-q", main_branch)
+        self.commit_file(
+            "review-baseline",
+            side + "\n",
+            "install invalid side pointer",
+        )
+        base = self.commit_file("payload", "base\n", "base")
+        head = self.commit_file("payload", "head\n", "head")
+        self.write_pointer(base)
+        with self.assertRaisesRegex(
+            baseline_validator.BaselineValidationError,
+            "not on the base first-parent chain",
+        ):
+            self.validate(head=head, base=base, mode="pull_request")
+
+    def test_pull_request_rejects_symlink_blob_in_base_tree(self):
+        root = self.commit_file("payload", "root\n", "root")
+        pointer_blob = self.git(
+            "hash-object",
+            "-w",
+            "--stdin",
+            input_text=root + "\n",
+        ).stdout.strip()
+        self.git(
+            "update-index",
+            "--add",
+            "--cacheinfo",
+            f"120000,{pointer_blob},review-baseline",
+        )
+        self.git("commit", "-q", "-m", "install symlink pointer blob")
+        base = self.git("rev-parse", "HEAD").stdout.strip()
+        head = self.commit_file("payload", "head\n", "head")
+        self.write_pointer(base)
+        with self.assertRaisesRegex(
+            baseline_validator.BaselineValidationError,
+            "must be a plain 100644 blob",
+        ):
+            self.validate(head=head, base=base, mode="pull_request")
 
     def test_valid_main_pointer_only_promotion_and_cli_output(self):
         self.commit_file("payload", "baseline\n", "baseline")

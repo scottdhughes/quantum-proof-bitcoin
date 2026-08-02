@@ -2,7 +2,7 @@
 
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-WRAPPER-PROTOTYPE-v1
-## Updated: 2026-07-23
+## Updated: 2026-08-01
 ## Consensus-Relevant: NO
 
 ## Scope
@@ -48,7 +48,7 @@ portable source, repeat guard, failure mapping, self-verification, and public
 wrapper.
 
 The configuration freezes ML-DSA-44, disables native backends and SUPERCOP
-aliases, fixes the signing-attempt bound at `814`, and marks upstream internal
+aliases, fixes the signing-attempt bound at `821`, and marks upstream internal
 and external function APIs `static`. Hidden visibility plus a dynamic symbol
 audit restricts the production-shaped shared object to exactly:
 
@@ -56,6 +56,14 @@ audit restricts the production-shaped shared object to exactly:
 pqbtc_mldsa44_sign_hedged
 pqbtc_mldsa44_verify_strict
 ```
+
+The July 31, 2026 FIPS 204 potential-corrections sheet raised the minimum
+internal-signing loop limit from `814` to `821`. The frozen upstream capsule's
+compile-time guard still describes `814` as sufficient; those provenance-bound
+vendor bytes are intentionally unchanged, while the project-owned
+configuration supplies the corrected higher limit. A production proposal must
+repin and re-review upstream source rather than treating this override as an
+upstream correction.
 
 A separately compiled `PQBTC_MLDSA44_TESTING` build exposes fixed-randomizer,
 seeded-keygen, entropy-failure, backend-failure, wrong-length, and forced-

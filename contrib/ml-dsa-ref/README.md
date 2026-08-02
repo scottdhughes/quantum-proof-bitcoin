@@ -6,7 +6,7 @@ define consensus behavior, and does not allocate or activate an `ALG_ID`.
 
 ## Evidence Sources
 
-- NIST FIPS 204, its February 27, 2026 potential-updates sheet, and NIST's
+- NIST FIPS 204, its July 31, 2026 potential-updates sheet, and NIST's
   March 19, 2025 Section 6 guidance, all pinned by SHA256 in `vectors.json`
 - all 70 NIST ACVP external/pure ML-DSA-44 cases at the exact ACVP-Server
   commit and source-file hashes pinned in `vectors.json`

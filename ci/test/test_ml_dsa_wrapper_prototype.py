@@ -90,11 +90,16 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
             "#define MLD_CONFIG_INTERNAL_API_QUALIFIER static",
             "#define MLD_CONFIG_NO_SUPERCOP",
             "#define MLD_CONFIG_NO_ASM",
-            "#define MLD_CONFIG_MAX_SIGNING_ATTEMPTS 814",
+            "#define MLD_CONFIG_MAX_SIGNING_ATTEMPTS 821",
             "#define MLD_CONFIG_CUSTOM_RANDOMBYTES",
             "#define MLD_CONFIG_CUSTOM_ZEROIZE",
         ):
             self.assertIn(required, config)
+        vendor_guard = (
+            ENGINEERING_DIR / "vendor" / "mldsa-native" / "mldsa" / "src" / "sign.c"
+        ).read_text(encoding="utf8")
+        self.assertIn("MLD_CONFIG_MAX_SIGNING_ATTEMPTS < 814", vendor_guard)
+        self.assertIn("must be >= 814 for FIPS 204 compliance", vendor_guard)
 
     def test_production_header_has_no_test_or_randomizer_control(self):
         header = (ENGINEERING_DIR / "pqbtc_mldsa44.h").read_text(encoding="utf8")
