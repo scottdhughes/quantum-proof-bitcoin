@@ -60,6 +60,11 @@ The scheduled read-only workflow pins cargo-audit, OSV Scanner,
 cargo-cyclonedx, and Miri. It also validates the official live OpenSSL
 release-metadata corpus against exact 3.6.3 semver ranges and requires the
 public mldsa-native repository-advisory API to remain a complete empty result.
+OpenSSL 3.6.3 is version-affected by CVE-2026-54876, but its TLS-client
+X.509/OCSP path is absent from the isolated EVP-only ML-DSA oracle. The ledger
+binds that `NOT_APPLICABLE` path disposition to the official CVE record and
+the exact local oracle source/include closure rather than claiming that the
+package pin is unaffected.
 It retains raw feed bodies and headers, OpenSSL commit/tree/archive evidence,
 the RustSec commit, exact OSV database snapshot, raw scans, lock and graph
 evidence, SBOM, Miri logs, normalized report, and verified checksums for 90

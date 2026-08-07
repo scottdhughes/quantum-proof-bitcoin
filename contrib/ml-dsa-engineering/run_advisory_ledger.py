@@ -81,9 +81,65 @@ EXPECTED_OPENSSL_36_IDS = {
     "CVE-2026-45445",
     "CVE-2026-45446",
     "CVE-2026-45447",
+    "CVE-2026-54876",
     "CVE-2026-7383",
     "CVE-2026-9076",
 }
+EXPECTED_OPENSSL_AFFECTED_PIN_DISPOSITIONS = [
+    {
+        "id": "CVE-2026-54876",
+        "severity": "LOW",
+        "pinned_version_status": "AFFECTED",
+        "reviewed_feed_record": {
+            "data_version": "5.1",
+            "ranges": [
+                {
+                    "version": "3.6.0",
+                    "lessThan": "3.6.4",
+                    "status": "affected",
+                    "versionType": "semver",
+                }
+            ],
+        },
+        "affected_path": "TLS_CLIENT_X509_OCSP_RESPONSE_CHECKING",
+        "required_flags": [
+            "X509_V_FLAG_OCSP_RESP_CHECK",
+            "X509_V_FLAG_OCSP_RESP_CHECK_ALL",
+        ],
+        "current_path": "ISOLATED_DEFAULT_PROVIDER_EVP_ML_DSA_KEYGEN_SIGN_VERIFY",
+        "current_path_applicability": "NOT_APPLICABLE",
+        "test_status": "NOT_APPLICABLE",
+        "reason_code": "NO_TLS_X509_OCSP_OR_NETWORK_PATH",
+        "fips_module_affected": False,
+        "production_linkage": "NONE",
+        "oracle_sources": [
+            {
+                "path": "contrib/ml-dsa-ref/openssl_oracle.c",
+                "sha256": "fb213f8e669dad1d435bde9d3139bf217a1f3ebbdd843e5233e2bd7420a9f39d",
+            },
+            {
+                "path": "contrib/ml-dsa-ref/oracle_cli.h",
+                "sha256": "c7f8169dbbd87eccfe64b13c34e3b99f704c88bce4a459607c73fc64a8d67de9",
+            },
+            {
+                "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44_openssl_verify.c",
+                "sha256": "c0ae1f5d117f8be09382e755d20c73605e7a66cc1b05d7a586833d38b04b7816",
+            },
+            {
+                "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44.h",
+                "sha256": "2878ebc89fff975e514d31292a2d0804f317f31af28159880c97c08c286fdee0",
+            },
+            {
+                "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44_differential.h",
+                "sha256": "cf68dffbab7b15c6a796be7db1a3ede6dff0de8cb7d148dc87be121ab2cd770e",
+            },
+        ],
+        "official_advisory": "https://openssl-library.org/news/secadv/20260805.txt",
+        "fix_commit": "155b5fe0f93365e6df1c56ee3606b121080c6c12",
+        "fix_version": "3.6.4",
+        "future_admission": "REPIN_OR_REVIEW_BEFORE_TLS_X509_OCSP_OR_PRODUCTION_USE",
+    }
+]
 EXPECTED_ADVISORY_DISPOSITIONS = {
     "RUSTSEC-2019-0035": (
         "NOT_APPLICABLE",
@@ -1172,6 +1228,11 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
         ),
         "libcrux": ("0.0.10", vector_sources.get("libcrux", {}).get("commit")),
     }
+    expected_inventory_dates = {
+        "openssl": "2026-08-06",
+        "mldsa_native": ledger["inventory_date"],
+        "libcrux": ledger["inventory_date"],
+    }
     for name, (version, commit) in expected_source_values.items():
         source = sources[name]
         if source.get("version") != version or source.get("commit") != commit:
@@ -1181,12 +1242,17 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
         inventory = source.get("advisory_inventory")
         if not isinstance(inventory, dict):
             raise AuditError(f"{name} has no dated advisory inventory")
-        _require_keys(
-            inventory,
-            {"as_of", "source", "status", "current_affected_ids", "refresh"},
-            f"{name} advisory inventory",
-        )
-        if inventory["as_of"] != ledger["inventory_date"]:
+        inventory_keys = {
+            "as_of",
+            "source",
+            "status",
+            "current_affected_ids",
+            "refresh",
+        }
+        if name == "openssl":
+            inventory_keys.add("reviewed_affected_pin_dispositions")
+        _require_keys(inventory, inventory_keys, f"{name} advisory inventory")
+        if inventory["as_of"] != expected_inventory_dates[name]:
             raise AuditError(f"{name} advisory inventory date drifted")
         if not all(
             isinstance(inventory[field], str) and inventory[field]
@@ -1220,9 +1286,9 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
         or openssl_feed["repository"]
         != "https://github.com/openssl/release-metadata.git"
         or openssl_feed["path"] != "secjson"
-        or openssl_feed["reviewed_on"] != "2026-07-22"
+        or openssl_feed["reviewed_on"] != "2026-08-06"
         or openssl_feed["accepted_data_versions"] != ["5.0", "5.1"]
-        or openssl_feed["minimum_cve_records"] != 272
+        or openssl_feed["minimum_cve_records"] != 273
         or openssl_feed["reviewed_branch"] != "3.6"
         or openssl_feed["reviewed_empty_non_target_ranges"]
         != [
@@ -1240,6 +1306,77 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
         or set(reviewed_openssl_ids) != EXPECTED_OPENSSL_36_IDS
     ):
         raise AuditError("openssl live advisory-feed contract drifted")
+
+    openssl_inventory = sources["openssl"]["advisory_inventory"]
+    if (
+        sources["openssl"].get("role")
+        != "source-pinned oracle; not a node dependency"
+    ):
+        raise AuditError("openssl research-only oracle role drifted")
+    openssl_dispositions = openssl_inventory["reviewed_affected_pin_dispositions"]
+    if not isinstance(openssl_dispositions, list):
+        raise AuditError("openssl affected-pin dispositions must be a list")
+    semantic_dispositions: list[dict[str, Any]] = []
+    disposition_ids: list[str] = []
+    for disposition in openssl_dispositions:
+        if not isinstance(disposition, dict):
+            raise AuditError("openssl affected-pin disposition must be an object")
+        record_sha256 = disposition.get("record_sha256")
+        if HEX_64.fullmatch(str(record_sha256 or "")) is None:
+            raise AuditError("openssl affected-pin record SHA256 is invalid")
+        semantic_dispositions.append(
+            {
+                key: value
+                for key, value in disposition.items()
+                if key != "record_sha256"
+            }
+        )
+        disposition_id = disposition.get("id")
+        if not isinstance(disposition_id, str):
+            raise AuditError("openssl affected-pin disposition ID is invalid")
+        disposition_ids.append(disposition_id)
+    if semantic_dispositions != EXPECTED_OPENSSL_AFFECTED_PIN_DISPOSITIONS:
+        raise AuditError("openssl affected-pin disposition drifted")
+    if (
+        disposition_ids != openssl_inventory["current_affected_ids"]
+        or len(disposition_ids) != len(set(disposition_ids))
+    ):
+        raise AuditError("openssl affected IDs and path dispositions disagree")
+    reviewed_source_paths = {
+        reviewed_source["path"]
+        for disposition in openssl_dispositions
+        for reviewed_source in disposition["oracle_sources"]
+    }
+    for disposition in openssl_dispositions:
+        for reviewed_source in disposition["oracle_sources"]:
+            source_path = REPO_ROOT / reviewed_source["path"]
+            if source_path.is_symlink() or not source_path.is_file():
+                raise AuditError(
+                    "openssl affected-pin oracle source is missing or unsafe: "
+                    f"{reviewed_source['path']}"
+                )
+            if _sha256(source_path) != reviewed_source["sha256"]:
+                raise AuditError(
+                    "openssl affected-pin oracle source hash drifted: "
+                    f"{reviewed_source['path']}"
+                )
+            try:
+                source_text = source_path.read_text(encoding="utf8")
+            except (OSError, UnicodeError) as exc:
+                raise AuditError(
+                    "cannot read openssl affected-pin oracle source: "
+                    f"{reviewed_source['path']}: {exc}"
+                ) from exc
+            source_parent = PurePosixPath(reviewed_source["path"]).parent
+            for match in re.finditer(
+                r'^\s*#\s*include\s*"([^"]+)"', source_text, re.MULTILINE
+            ):
+                included_path = (source_parent / match.group(1)).as_posix()
+                if included_path not in reviewed_source_paths:
+                    raise AuditError(
+                        "openssl affected-pin oracle source has an unbound local "
+                        f"include: {included_path}"
+                    )
 
     mldsa_feed = sources["mldsa_native"].get("advisory_feed")
     expected_mldsa_feed = {
@@ -1266,7 +1403,10 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
     if libcrux.get("full_lock_package_count") != 139:
         raise AuditError("libcrux full lock must contain 139 packages")
     expected_oracle_inventory = {
-        "openssl": ("LIVE_FEED_NO_PUBLISHED_ADVISORY_AFFECTS_PIN", set()),
+        "openssl": (
+            "LIVE_FEED_AFFECTED_PIN_WITH_EXPLICIT_PATH_DISPOSITION",
+            {"CVE-2026-54876"},
+        ),
         "mldsa_native": ("LIVE_FEED_NO_PUBLISHED_REPOSITORY_ADVISORIES", set()),
         "libcrux": (
             "EXPLICIT_SELECTED_ADVISORIES_AND_EXACT_FULL_LOCK_SCAN",
@@ -1883,6 +2023,25 @@ def validate_openssl_advisory_feed(
             f"OpenSSL {source['version']} advisory status drifted; "
             f"affected={sorted(exact_pin_affected)}"
         )
+    relevant_by_id = {record["id"]: record for record in relevant_records}
+    reviewed_dispositions = source["advisory_inventory"][
+        "reviewed_affected_pin_dispositions"
+    ]
+    for disposition in reviewed_dispositions:
+        record = relevant_by_id.get(disposition["id"])
+        if (
+            record is None
+            or record["sha256"] != disposition["record_sha256"]
+            or {
+                "data_version": record["data_version"],
+                "ranges": record["ranges"],
+            }
+            != disposition["reviewed_feed_record"]
+        ):
+            raise AuditError(
+                "OpenSSL affected-pin record differs from its reviewed path "
+                f"disposition: {disposition['id']}"
+            )
 
     after = {
         "commit": _git_value(repository, "rev-parse", "HEAD"),
@@ -1905,6 +2064,7 @@ def validate_openssl_advisory_feed(
         "branch_relevant_ids": sorted(branch_ids),
         "exact_pin": source["version"],
         "exact_pin_affected_ids": sorted(exact_pin_affected),
+        "reviewed_affected_pin_dispositions": reviewed_dispositions,
         "secjson_manifest_sha256": _sha256_bytes(
             ("\n".join(manifest_lines) + "\n").encode("utf8")
         ),
@@ -2080,12 +2240,45 @@ def validate_oracle_feed_summaries(
         raise AuditError("OpenSSL and mldsa-native live advisory evidence are required")
     sources = _source_by_name(ledger)
     openssl_contract = sources["openssl"]["advisory_feed"]
+    openssl_inventory = sources["openssl"]["advisory_inventory"]
+    relevant_records = openssl_feed.get("relevant_records")
+    reviewed_record_bindings_valid = isinstance(relevant_records, list)
+    relevant_by_id: dict[str, dict[str, Any]] = {}
+    if reviewed_record_bindings_valid:
+        for record in relevant_records:
+            if (
+                not isinstance(record, dict)
+                or not isinstance(record.get("id"), str)
+                or record["id"] in relevant_by_id
+            ):
+                reviewed_record_bindings_valid = False
+                break
+            relevant_by_id[record["id"]] = record
+    if reviewed_record_bindings_valid:
+        for disposition in openssl_inventory[
+            "reviewed_affected_pin_dispositions"
+        ]:
+            record = relevant_by_id.get(disposition["id"])
+            if (
+                record is None
+                or record.get("sha256") != disposition["record_sha256"]
+                or {
+                    "data_version": record.get("data_version"),
+                    "ranges": record.get("ranges"),
+                }
+                != disposition["reviewed_feed_record"]
+            ):
+                reviewed_record_bindings_valid = False
+                break
     if (
         openssl_feed.get("status") != "PASS"
         or openssl_feed.get("repository") != openssl_contract["repository"]
         or openssl_feed.get("exact_pin") != sources["openssl"]["version"]
         or openssl_feed.get("exact_pin_affected_ids")
-        != sources["openssl"]["advisory_inventory"]["current_affected_ids"]
+        != openssl_inventory["current_affected_ids"]
+        or openssl_feed.get("reviewed_affected_pin_dispositions")
+        != openssl_inventory["reviewed_affected_pin_dispositions"]
+        or not reviewed_record_bindings_valid
         or not isinstance(openssl_feed.get("record_count"), int)
         or openssl_feed["record_count"] < openssl_contract["minimum_cve_records"]
         or not set(openssl_contract["reviewed_branch_ids"]).issubset(

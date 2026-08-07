@@ -101,6 +101,7 @@ OPENSSL_REVIEWED_36_IDS = {
     "CVE-2026-45445",
     "CVE-2026-45446",
     "CVE-2026-45447",
+    "CVE-2026-54876",
     "CVE-2026-7383",
     "CVE-2026-9076",
 }
@@ -392,15 +393,22 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         }
 
     def oracle_source(self, name: str) -> dict[str, object]:
+        return self.oracle_source_from(self.ledger, name)
+
+    def oracle_source_from(
+        self, ledger: dict[str, Any], name: str
+    ) -> dict[str, object]:
         return next(
             source
-            for source in self.ledger["source_contract"]["oracles"]
+            for source in ledger["source_contract"]["oracles"]
             if source["name"] == name
         )
 
     def openssl_feed_summary(self) -> dict[str, object]:
         source = self.oracle_source("openssl")
         feed = source["advisory_feed"]
+        inventory = source["advisory_inventory"]
+        disposition = inventory["reviewed_affected_pin_dispositions"][0]
         return {
             "status": "PASS",
             "repository": feed["repository"],
@@ -408,15 +416,32 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             "tree": "9d2bf1bf2b5becc1dd49ab3602ad4c1fe605981d",
             "secjson_tree": "68602ed5f20c17189a8a76b534ff497eba0eac94",
             "committed_at": "2026-07-20T16:08:14+00:00",
-            "record_count": 272,
-            "minimum_record_count": 272,
-            "data_versions": {"5.0": 224, "5.1": 48},
+            "record_count": 273,
+            "minimum_record_count": 273,
+            "data_versions": {"5.0": 224, "5.1": 49},
             "branch": "3.6",
             "branch_relevant_ids": sorted(OPENSSL_REVIEWED_36_IDS),
             "exact_pin": source["version"],
-            "exact_pin_affected_ids": [],
+            "exact_pin_affected_ids": ["CVE-2026-54876"],
+            "reviewed_affected_pin_dispositions": copy.deepcopy(
+                inventory["reviewed_affected_pin_dispositions"]
+            ),
             "secjson_manifest_sha256": "0" * 64,
-            "relevant_records": [],
+            "relevant_records": [
+                {
+                    "id": "CVE-2026-54876",
+                    "data_version": "5.1",
+                    "sha256": disposition["record_sha256"],
+                    "ranges": [
+                        {
+                            "version": "3.6.0",
+                            "lessThan": "3.6.4",
+                            "status": "affected",
+                            "versionType": "semver",
+                        }
+                    ],
+                }
+            ],
         }
 
     def mldsa_feed_summary(self) -> dict[str, object]:
@@ -479,10 +504,15 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         secjson = repository / "secjson"
         secjson.mkdir(parents=True)
         for index, cve_id in enumerate(sorted(OPENSSL_REVIEWED_36_IDS)):
+            affected_pin = cve_id == "CVE-2026-54876"
+            record_upper = (
+                "3.6.4" if affected_pin else upper if index == 0 else "3.6.3"
+            )
+            record_inclusive = inclusive if index == 0 and not affected_pin else False
             record = self.openssl_cve(
                 cve_id,
-                upper=upper if index == 0 else "3.6.3",
-                inclusive=inclusive if index == 0 else False,
+                upper=record_upper,
+                inclusive=record_inclusive,
                 data_version="5.0" if index == 0 else "5.1",
             )
             (secjson / f"{cve_id}.json").write_text(
@@ -495,7 +525,7 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         (secjson / f"{irregular_id}.json").write_text(
             json.dumps(irregular, sort_keys=True) + "\n", encoding="utf8"
         )
-        filler_count = 272 - len(OPENSSL_REVIEWED_36_IDS) - 1
+        filler_count = 273 - len(OPENSSL_REVIEWED_36_IDS) - 1
         for index in range(filler_count):
             cve_id = f"CVE-2099-{10000 + index}"
             record = self.openssl_cve(
@@ -547,6 +577,21 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         )
         self.commit_fixture(repository, "baseline")
         return repository
+
+    def openssl_fixture_ledger(self, repository: Path) -> dict[str, Any]:
+        ledger = copy.deepcopy(self.ledger)
+        source = next(
+            item
+            for item in ledger["source_contract"]["oracles"]
+            if item["name"] == "openssl"
+        )
+        disposition = source["advisory_inventory"][
+            "reviewed_affected_pin_dispositions"
+        ][0]
+        disposition["record_sha256"] = sha256_file(
+            repository / "secjson" / f"{disposition['id']}.json"
+        )
+        return ledger
 
     def commit_fixture(self, repository: Path, message: str) -> None:
         subprocess.run(["git", "-C", str(repository), "add", "--all"], check=True)
@@ -625,6 +670,43 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         self.assertIsNone(advisory.validate_ledger(self.ledger, self.vectors))
         self.assertEqual(self.ledger["schema_version"], 1)
         self.assertEqual(self.ledger["inventory_date"], "2026-07-21")
+        openssl = self.oracle_source("openssl")
+        openssl_inventory = openssl["advisory_inventory"]
+        self.assertEqual(openssl["version"], "3.6.3")
+        self.assertEqual(openssl_inventory["as_of"], "2026-08-06")
+        self.assertEqual(
+            openssl_inventory["status"],
+            "LIVE_FEED_AFFECTED_PIN_WITH_EXPLICIT_PATH_DISPOSITION",
+        )
+        self.assertEqual(
+            openssl_inventory["current_affected_ids"], ["CVE-2026-54876"]
+        )
+        openssl_disposition = openssl_inventory[
+            "reviewed_affected_pin_dispositions"
+        ][0]
+        self.assertEqual(
+            openssl_disposition["record_sha256"],
+            "2048f9b545d203c9da8d06627c07e24e267e64988b3669b46b8a0c738445f605",
+        )
+        self.assertEqual(openssl_disposition["pinned_version_status"], "AFFECTED")
+        self.assertEqual(
+            openssl_disposition["current_path_applicability"], "NOT_APPLICABLE"
+        )
+        self.assertEqual(
+            {
+                source["path"]
+                for source in openssl_disposition["oracle_sources"]
+            },
+            {
+                "contrib/ml-dsa-ref/openssl_oracle.c",
+                "contrib/ml-dsa-ref/oracle_cli.h",
+                "contrib/ml-dsa-engineering/pqbtc_mldsa44_openssl_verify.c",
+                "contrib/ml-dsa-engineering/pqbtc_mldsa44.h",
+                "contrib/ml-dsa-engineering/pqbtc_mldsa44_differential.h",
+            },
+        )
+        self.assertEqual(openssl["advisory_feed"]["reviewed_on"], "2026-08-06")
+        self.assertEqual(openssl["advisory_feed"]["minimum_cve_records"], 273)
         self.assertEqual(
             {finding["id"] for finding in self.expected_findings()},
             EXPECTED_CURRENT_SCAN_IDS,
@@ -698,6 +780,52 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             "5796c72c70ced10baba72fdb0fa2345163a2ab628b2c04d89ef883ede90f44c1",
         )
 
+    def test_openssl_affected_pin_disposition_is_fail_closed(self):
+        invalid_ledgers = []
+
+        missing = copy.deepcopy(self.ledger)
+        self.oracle_source_from(missing, "openssl")["advisory_inventory"][
+            "reviewed_affected_pin_dispositions"
+        ] = []
+        invalid_ledgers.append(missing)
+
+        wrong_reason = copy.deepcopy(self.ledger)
+        self.oracle_source_from(wrong_reason, "openssl")["advisory_inventory"][
+            "reviewed_affected_pin_dispositions"
+        ][0]["reason_code"] = "UNREVIEWED_REASON"
+        invalid_ledgers.append(wrong_reason)
+
+        wrong_source = copy.deepcopy(self.ledger)
+        self.oracle_source_from(wrong_source, "openssl")["advisory_inventory"][
+            "reviewed_affected_pin_dispositions"
+        ][0]["oracle_sources"][0]["sha256"] = "0" * 64
+        invalid_ledgers.append(wrong_source)
+
+        production_role = copy.deepcopy(self.ledger)
+        self.oracle_source_from(production_role, "openssl")[
+            "role"
+        ] = "node dependency"
+        invalid_ledgers.append(production_role)
+
+        missing_affected_id = copy.deepcopy(self.ledger)
+        self.oracle_source_from(
+            missing_affected_id, "openssl"
+        )["advisory_inventory"]["current_affected_ids"] = []
+        invalid_ledgers.append(missing_affected_id)
+
+        invalid_record_hash = copy.deepcopy(self.ledger)
+        self.oracle_source_from(
+            invalid_record_hash, "openssl"
+        )["advisory_inventory"]["reviewed_affected_pin_dispositions"][0][
+            "record_sha256"
+        ] = "invalid"
+        invalid_ledgers.append(invalid_record_hash)
+
+        for ledger in invalid_ledgers:
+            with self.subTest(ledger=ledger):
+                with self.assertRaises(advisory.AuditError):
+                    advisory.validate_ledger(ledger, self.vectors)
+
     def test_plan_only_cli_is_machine_readable_and_freezes_scope(self):
         completed = subprocess.run(
             [sys.executable, str(DRIVER), "--plan-only"],
@@ -739,7 +867,7 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         self.assertEqual(
             report["oracle_advisory_feed_validation"]["openssl"]
             ["exact_pin_affected_ids"],
-            [],
+            ["CVE-2026-54876"],
         )
         self.assertEqual(
             report["oracle_advisory_feed_validation"]["mldsa_native"]
@@ -751,10 +879,12 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             repository = self.write_openssl_feed(Path(temporary))
             summary = advisory.validate_openssl_advisory_feed(
-                self.ledger, repository
+                self.openssl_fixture_ledger(repository), repository
             )
-            self.assertEqual(summary["record_count"], 272)
-            self.assertEqual(summary["exact_pin_affected_ids"], [])
+            self.assertEqual(summary["record_count"], 273)
+            self.assertEqual(
+                summary["exact_pin_affected_ids"], ["CVE-2026-54876"]
+            )
             self.assertEqual(
                 set(summary["branch_relevant_ids"]), OPENSSL_REVIEWED_36_IDS
             )
@@ -767,20 +897,73 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
                     )
                     with self.assertRaisesRegex(advisory.AuditError, "3.6.3"):
                         advisory.validate_openssl_advisory_feed(
-                            self.ledger, repository
+                            self.openssl_fixture_ledger(repository), repository
                         )
+
+    def test_openssl_live_feed_binds_reviewed_affected_record(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repository = self.write_openssl_feed(Path(temporary))
+            ledger = self.openssl_fixture_ledger(repository)
+            path = repository / "secjson" / "CVE-2026-54876.json"
+            path.write_text(
+                path.read_text(encoding="utf8") + "\n", encoding="utf8"
+            )
+            self.commit_fixture(repository, "editorial CVE change")
+            with self.assertRaisesRegex(advisory.AuditError, "reviewed path"):
+                advisory.validate_openssl_advisory_feed(ledger, repository)
+
+        for field, value in (("lessThan", "3.6.5"), ("dataVersion", "5.0")):
+            with self.subTest(field=field):
+                with tempfile.TemporaryDirectory() as temporary:
+                    repository = self.write_openssl_feed(Path(temporary))
+                    path = repository / "secjson" / "CVE-2026-54876.json"
+                    record = json.loads(path.read_text(encoding="utf8"))
+                    if field == "dataVersion":
+                        record[field] = value
+                    else:
+                        record["containers"]["cna"]["affected"][0]["versions"][0][
+                            field
+                        ] = value
+                    path.write_text(
+                        json.dumps(record, sort_keys=True) + "\n", encoding="utf8"
+                    )
+                    self.commit_fixture(repository, f"change affected {field}")
+                    ledger = self.openssl_fixture_ledger(repository)
+                    with self.assertRaisesRegex(
+                        advisory.AuditError, "reviewed path"
+                    ):
+                        advisory.validate_openssl_advisory_feed(ledger, repository)
+
+    def test_normalized_openssl_evidence_binds_path_disposition(self):
+        summary = self.openssl_feed_summary()
+        summary["reviewed_affected_pin_dispositions"][0][
+            "reason_code"
+        ] = "UNREVIEWED_REASON"
+        with self.assertRaisesRegex(advisory.AuditError, "normalized OpenSSL"):
+            advisory.validate_oracle_feed_summaries(
+                self.ledger, summary, self.mldsa_feed_summary()
+            )
+
+        summary = self.openssl_feed_summary()
+        summary["relevant_records"][0]["ranges"][0]["lessThan"] = "3.6.5"
+        with self.assertRaisesRegex(advisory.AuditError, "normalized OpenSSL"):
+            advisory.validate_oracle_feed_summaries(
+                self.ledger, summary, self.mldsa_feed_summary()
+            )
 
     def test_openssl_live_feed_rejects_truncation_and_malformed_identity(self):
         with tempfile.TemporaryDirectory() as temporary:
             repository = self.write_openssl_feed(Path(temporary))
+            ledger = self.openssl_fixture_ledger(repository)
             removed = sorted(OPENSSL_REVIEWED_36_IDS)[0]
             (repository / "secjson" / f"{removed}.json").unlink()
             self.commit_fixture(repository, "remove reviewed CVE")
             with self.assertRaisesRegex(advisory.AuditError, "missing"):
-                advisory.validate_openssl_advisory_feed(self.ledger, repository)
+                advisory.validate_openssl_advisory_feed(ledger, repository)
 
         with tempfile.TemporaryDirectory() as temporary:
             repository = self.write_openssl_feed(Path(temporary))
+            ledger = self.openssl_fixture_ledger(repository)
             cve_id = sorted(OPENSSL_REVIEWED_36_IDS)[0]
             path = repository / "secjson" / f"{cve_id}.json"
             path.write_text(
@@ -789,10 +972,11 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             )
             self.commit_fixture(repository, "duplicate JSON key")
             with self.assertRaisesRegex(advisory.AuditError, "duplicate JSON key"):
-                advisory.validate_openssl_advisory_feed(self.ledger, repository)
+                advisory.validate_openssl_advisory_feed(ledger, repository)
 
         with tempfile.TemporaryDirectory() as temporary:
             repository = self.write_openssl_feed(Path(temporary))
+            ledger = self.openssl_fixture_ledger(repository)
             cve_id = sorted(OPENSSL_REVIEWED_36_IDS)[0]
             path = repository / "secjson" / f"{cve_id}.json"
             record = json.loads(path.read_text(encoding="utf8"))
@@ -800,10 +984,11 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             path.write_text(json.dumps(record) + "\n", encoding="utf8")
             self.commit_fixture(repository, "mismatched identity")
             with self.assertRaisesRegex(advisory.AuditError, "filename"):
-                advisory.validate_openssl_advisory_feed(self.ledger, repository)
+                advisory.validate_openssl_advisory_feed(ledger, repository)
 
         with tempfile.TemporaryDirectory() as temporary:
             repository = self.write_openssl_feed(Path(temporary))
+            ledger = self.openssl_fixture_ledger(repository)
             path = repository / "secjson" / "CVE-2099-10000.json"
             record = json.loads(path.read_text(encoding="utf8"))
             version = record["containers"]["cna"]["affected"][0]["versions"][0]
@@ -817,13 +1002,13 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             path.write_text(json.dumps(record) + "\n", encoding="utf8")
             self.commit_fixture(repository, "ambiguous custom range")
             with self.assertRaisesRegex(advisory.AuditError, "custom range"):
-                advisory.validate_openssl_advisory_feed(self.ledger, repository)
+                advisory.validate_openssl_advisory_feed(ledger, repository)
 
     def test_openssl_live_feed_records_only_provably_non_target_empty_ranges(self):
         with tempfile.TemporaryDirectory() as temporary:
             repository = self.write_openssl_feed(Path(temporary))
             summary = advisory.validate_openssl_advisory_feed(
-                self.ledger, repository
+                self.openssl_fixture_ledger(repository), repository
             )
             self.assertEqual(
                 summary["non_target_irregular_ranges"][0]["id"],
@@ -832,6 +1017,7 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temporary:
             repository = self.write_openssl_feed(Path(temporary))
+            ledger = self.openssl_fixture_ledger(repository)
             path = repository / "secjson" / "CVE-2099-10000.json"
             record = json.loads(path.read_text(encoding="utf8"))
             version = record["containers"]["cna"]["affected"][0]["versions"][0]
@@ -840,12 +1026,14 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             path.write_text(json.dumps(record) + "\n", encoding="utf8")
             self.commit_fixture(repository, "unreviewed non-target empty range")
             with self.assertRaisesRegex(advisory.AuditError, "unreviewed empty"):
-                advisory.validate_openssl_advisory_feed(self.ledger, repository)
+                advisory.validate_openssl_advisory_feed(ledger, repository)
 
         with tempfile.TemporaryDirectory() as temporary:
             repository = self.write_openssl_feed(Path(temporary), upper="3.6.0")
             with self.assertRaisesRegex(advisory.AuditError, "inside OpenSSL 3.6"):
-                advisory.validate_openssl_advisory_feed(self.ledger, repository)
+                advisory.validate_openssl_advisory_feed(
+                    self.openssl_fixture_ledger(repository), repository
+                )
 
     def test_mldsa_native_live_feed_rejects_advisories_http_and_pagination(self):
         _body, body_bytes, headers, fetch, request = self.mldsa_feed_inputs()
@@ -932,15 +1120,22 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             headers_path = root / "mldsa-native-response-headers.txt"
             fetch_path = root / "mldsa-native-fetch.json"
             request_path = root / "mldsa-native-request.json"
+            ledger_path = root / "advisory-ledger.json"
             body_path.write_bytes(body_bytes)
             headers_path.write_text(headers, encoding="utf8")
             fetch_path.write_text(json.dumps(fetch) + "\n", encoding="utf8")
             request_path.write_text(json.dumps(request) + "\n", encoding="utf8")
+            ledger_path.write_text(
+                json.dumps(self.openssl_fixture_ledger(repository)) + "\n",
+                encoding="utf8",
+            )
             completed = subprocess.run(
                 [
                     sys.executable,
                     str(DRIVER),
                     "--validate-oracle-feeds",
+                    "--ledger",
+                    str(ledger_path),
                     "--openssl-advisory-feed",
                     str(repository),
                     "--mldsa-native-advisories",
@@ -964,7 +1159,10 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
                 completed.returncode, 0, completed.stdout + completed.stderr
             )
             report = json.loads(completed.stdout)
-            self.assertEqual(report["openssl"]["exact_pin_affected_ids"], [])
+            self.assertEqual(
+                report["openssl"]["exact_pin_affected_ids"],
+                ["CVE-2026-54876"],
+            )
             self.assertEqual(
                 report["mldsa_native"]["published_advisory_ids"], []
             )
@@ -1512,6 +1710,17 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             ),
             2,
         )
+        self.assertEqual(
+            workflow.count(
+                '"contrib/ml-dsa-engineering/pqbtc_mldsa44_openssl_verify.c"'
+            ),
+            2,
+        )
+        for bound_header in (
+            "contrib/ml-dsa-engineering/pqbtc_mldsa44.h",
+            "contrib/ml-dsa-engineering/pqbtc_mldsa44_differential.h",
+        ):
+            self.assertEqual(workflow.count(f'"{bound_header}"'), 2)
 
     def test_comparator_no_longer_claims_package_wide_advisory_pass(self):
         comparator = COMPARATOR.read_text(encoding="utf8")

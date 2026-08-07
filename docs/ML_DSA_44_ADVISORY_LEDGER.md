@@ -18,13 +18,16 @@ mldsa-native repository-advisory feed, respectively. Cargo advisory scanners
 apply only to the libcrux crate and its published `Cargo.lock`; an empty Cargo
 result is not claimed for either C source oracle.
 
-The dated C-oracle rows retain the 2026-07-21 disposition, while every relevant
-workflow run now acquires and validates both public machine feeds. OpenSSL is
-checked from the current Git head of the official `openssl/release-metadata`
-`secjson` corpus. The validator requires the reviewed 272-record completeness
-floor, all 37 reviewed OpenSSL 3.6 records, supported CVE 5.0/5.1 structures,
-and exact semver evaluation for the 3.6.3 pin. A missing record, ambiguous
-range, malformed schema, or newly affecting advisory fails closed.
+The global dependency snapshot and the mldsa-native/libcrux rows retain their
+2026-07-21 date. The OpenSSL row was separately refreshed on 2026-08-06 after
+CVE-2026-54876 was published, while every relevant workflow run continues to
+acquire and validate both public machine feeds. OpenSSL is checked from the
+current Git head of the official `openssl/release-metadata` `secjson` corpus.
+The validator requires the reviewed 273-record completeness floor, all 38
+reviewed OpenSSL 3.6 records, supported CVE 5.0/5.1 structures, and exact
+semver evaluation for the 3.6.3 pin. A missing record, ambiguous range,
+malformed schema, unreviewed affecting advisory, or change to the reviewed
+CVE record or path disposition fails closed.
 The sole reviewed upstream irregularity is CVE-2023-2650's empty exclusive
 `3.1.1` to `3.1.1` row; it is outside 3.6, exactly allowlisted, and retained in
 the normalized report. Any other empty range fails pending review.
@@ -92,6 +95,34 @@ The 2026-07-21 ledger covers every RustSec entry currently present across all
 a fixed range is not represented as a regression-test PASS. `UNTESTED` is
 permitted only when the pin is not affected or the current path is not
 applicable and a future admission block is explicit.
+
+### OpenSSL CVE-2026-54876
+
+OpenSSL 3.6.3 is version-affected by
+[CVE-2026-54876](https://openssl-library.org/news/secadv/20260805.txt); the
+ledger does not relabel the pin as unaffected. OpenSSL rates the issue Low and
+describes a TLS-client memory leak in X.509 OCSP response checking. Exploitation
+requires an application to enable `X509_V_FLAG_OCSP_RESP_CHECK` or
+`X509_V_FLAG_OCSP_RESP_CHECK_ALL`, accept an attacker-controlled OCSP response
+with no single-response entries, and repeat handshakes to accumulate a denial
+of service. OCSP response checking is not enabled by default.
+
+The current research path is explicitly `NOT_APPLICABLE`. The two reviewed
+OpenSSL adapters use the default provider and EVP ML-DSA key generation,
+signing, and verification only; they contain no TLS, X.509-verification, OCSP,
+certificate, or network path. Their exact local source/include closure and the
+exact official CVE-record hash are part of the machine contract. The validator
+rejects any unbound quoted include. The OpenSSL FIPS modules are
+also outside the affected boundary, but that is supporting context rather than
+the applicability basis because this oracle uses the default provider.
+
+The official fix for the 3.6 branch is commit
+`155b5fe0f93365e6df1c56ee3606b121080c6c12`, targeted at 3.6.4. No 3.6.4
+release tag was available at the 2026-08-06 review. A signed, reproducible
+3.6.4-or-later release is the repin trigger; the full oracle and campaign
+evidence must then be rerun. Any future TLS/X.509/OCSP use or production
+linkage requires explicit re-review before admission. The production backend
+remains `NONE`, and this disposition does not change the release hold.
 
 ## SIMD256 Regression Promotion Boundary
 

@@ -12,19 +12,75 @@
         "version": "3.6.3",
         "commit": "aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f",
         "advisory_inventory": {
-          "as_of": "2026-07-21",
+          "as_of": "2026-08-06",
           "source": "https://github.com/openssl/release-metadata.git",
-          "status": "LIVE_FEED_NO_PUBLISHED_ADVISORY_AFFECTS_PIN",
-          "current_affected_ids": [],
+          "status": "LIVE_FEED_AFFECTED_PIN_WITH_EXPLICIT_PATH_DISPOSITION",
+          "current_affected_ids": ["CVE-2026-54876"],
+          "reviewed_affected_pin_dispositions": [
+            {
+              "id": "CVE-2026-54876",
+              "record_sha256": "2048f9b545d203c9da8d06627c07e24e267e64988b3669b46b8a0c738445f605",
+              "severity": "LOW",
+              "pinned_version_status": "AFFECTED",
+              "reviewed_feed_record": {
+                "data_version": "5.1",
+                "ranges": [
+                  {
+                    "version": "3.6.0",
+                    "lessThan": "3.6.4",
+                    "status": "affected",
+                    "versionType": "semver"
+                  }
+                ]
+              },
+              "affected_path": "TLS_CLIENT_X509_OCSP_RESPONSE_CHECKING",
+              "required_flags": [
+                "X509_V_FLAG_OCSP_RESP_CHECK",
+                "X509_V_FLAG_OCSP_RESP_CHECK_ALL"
+              ],
+              "current_path": "ISOLATED_DEFAULT_PROVIDER_EVP_ML_DSA_KEYGEN_SIGN_VERIFY",
+              "current_path_applicability": "NOT_APPLICABLE",
+              "test_status": "NOT_APPLICABLE",
+              "reason_code": "NO_TLS_X509_OCSP_OR_NETWORK_PATH",
+              "fips_module_affected": false,
+              "production_linkage": "NONE",
+              "oracle_sources": [
+                {
+                  "path": "contrib/ml-dsa-ref/openssl_oracle.c",
+                  "sha256": "fb213f8e669dad1d435bde9d3139bf217a1f3ebbdd843e5233e2bd7420a9f39d"
+                },
+                {
+                  "path": "contrib/ml-dsa-ref/oracle_cli.h",
+                  "sha256": "c7f8169dbbd87eccfe64b13c34e3b99f704c88bce4a459607c73fc64a8d67de9"
+                },
+                {
+                  "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44_openssl_verify.c",
+                  "sha256": "c0ae1f5d117f8be09382e755d20c73605e7a66cc1b05d7a586833d38b04b7816"
+                },
+                {
+                  "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44.h",
+                  "sha256": "2878ebc89fff975e514d31292a2d0804f317f31af28159880c97c08c286fdee0"
+                },
+                {
+                  "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44_differential.h",
+                  "sha256": "cf68dffbab7b15c6a796be7db1a3ede6dff0de8cb7d148dc87be121ab2cd770e"
+                }
+              ],
+              "official_advisory": "https://openssl-library.org/news/secadv/20260805.txt",
+              "fix_commit": "155b5fe0f93365e6df1c56ee3606b121080c6c12",
+              "fix_version": "3.6.4",
+              "future_admission": "REPIN_OR_REVIEW_BEFORE_TLS_X509_OCSP_OR_PRODUCTION_USE"
+            }
+          ],
           "refresh": "automated structured-feed validation on pull requests, pushes to main, the weekly schedule, and manual dispatch"
         },
         "advisory_feed": {
           "type": "openssl-release-metadata",
           "repository": "https://github.com/openssl/release-metadata.git",
           "path": "secjson",
-          "reviewed_on": "2026-07-22",
+          "reviewed_on": "2026-08-06",
           "accepted_data_versions": ["5.0", "5.1"],
-          "minimum_cve_records": 272,
+          "minimum_cve_records": 273,
           "reviewed_branch": "3.6",
           "reviewed_empty_non_target_ranges": [
             {
@@ -71,6 +127,7 @@
             "CVE-2026-45445",
             "CVE-2026-45446",
             "CVE-2026-45447",
+            "CVE-2026-54876",
             "CVE-2026-7383",
             "CVE-2026-9076"
           ]
