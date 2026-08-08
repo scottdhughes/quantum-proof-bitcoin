@@ -58,6 +58,7 @@ COMMON_C_FLAGS = [
     "-Wno-unused-function",
     "-Wno-unknown-pragmas",
     "-fvisibility=hidden",
+    "-pthread",
     f"-I{ENGINEERING_ROOT}",
 ]
 
@@ -215,7 +216,7 @@ def build_plan(
                 clang_tidy,
                 plugin,
                 SMOKE_SOURCE,
-                ["-DPQBTC_MLDSA44_TESTING=1", "-pthread"],
+                ["-DPQBTC_MLDSA44_TESTING=1"],
             ),
         },
         {
@@ -246,7 +247,6 @@ def build_plan(
                 clang_tidy,
                 plugin,
                 RESOURCE_PROBE_SOURCE,
-                ["-pthread"],
             ),
         },
         {
@@ -259,7 +259,7 @@ def build_plan(
                 iwyu,
                 SMOKE_SOURCE,
                 [PUBLIC_HEADER, TEST_HEADER],
-                ["-DPQBTC_MLDSA44_TESTING=1", "-pthread"],
+                ["-DPQBTC_MLDSA44_TESTING=1"],
             ),
         },
         {
@@ -293,7 +293,6 @@ def build_plan(
                 iwyu,
                 RESOURCE_PROBE_SOURCE,
                 [PUBLIC_HEADER],
-                ["-pthread"],
             ),
         },
         {

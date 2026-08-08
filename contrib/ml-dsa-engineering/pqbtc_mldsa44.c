@@ -14,6 +14,9 @@
 
 #include <stdatomic.h>
 #include <string.h>
+#if !defined(_WIN32)
+#include <pthread.h>
+#endif
 
 #ifdef PQBTC_MLDSA44_CT_TESTING
 #include <valgrind/memcheck.h>
@@ -55,6 +58,9 @@ static uint8_t g_last_randomizer_digest[32];
 static int g_has_last_randomizer_digest;
 static int g_entropy_active;
 static int g_entropy_result = PQBTC_MLDSA44_ERR_ENTROPY_SOURCE;
+#if !defined(_WIN32)
+static int g_fork_lifecycle_ready;
+#endif
 
 #ifdef PQBTC_MLDSA44_TESTING
 static int g_test_entropy_mode = PQBTC_MLDSA44_TEST_ENTROPY_UNAVAILABLE;
@@ -66,6 +72,12 @@ static int g_test_force_verify_failure;
 static atomic_size_t g_test_zeroized_bytes;
 static atomic_size_t g_test_entropy_requests;
 static atomic_size_t g_test_entropy_requested_bytes;
+#if !defined(_WIN32)
+static atomic_int g_test_fork_prepare_entered;
+static atomic_int g_test_signing_lock_held;
+static atomic_int g_test_release_signing_lock;
+static atomic_int g_test_force_fork_lifecycle_failure;
+#endif
 #endif
 
 static void LockSigningModule(void)
@@ -78,6 +90,58 @@ static void UnlockSigningModule(void)
 {
     atomic_flag_clear_explicit(&g_sign_lock, memory_order_release);
 }
+
+#if !defined(_WIN32)
+static void PrepareSigningModuleForFork(void)
+{
+#ifdef PQBTC_MLDSA44_TESTING
+    atomic_store_explicit(&g_test_fork_prepare_entered, 1, memory_order_release);
+#endif
+    LockSigningModule();
+}
+
+static void ResumeSigningModuleAfterFork(void)
+{
+#ifdef PQBTC_MLDSA44_TESTING
+    atomic_store_explicit(&g_test_fork_prepare_entered, 0, memory_order_release);
+#endif
+    UnlockSigningModule();
+}
+
+static void ResumeSigningModuleInForkChild(void)
+{
+    UnlockSigningModule();
+}
+
+#if !defined(__GNUC__) && !defined(__clang__)
+#error POSIX fork lifecycle registration requires a supported constructor attribute
+#endif
+
+__attribute__((constructor)) static void InitializeSigningForkLifecycle(void)
+{
+    g_fork_lifecycle_ready =
+        pthread_atfork(
+            PrepareSigningModuleForFork,
+            ResumeSigningModuleAfterFork,
+            ResumeSigningModuleInForkChild) == 0;
+}
+
+static int SigningForkLifecycleReady(void)
+{
+#ifdef PQBTC_MLDSA44_TESTING
+    if (atomic_load_explicit(
+            &g_test_force_fork_lifecycle_failure, memory_order_acquire)) {
+        return 0;
+    }
+#endif
+    return g_fork_lifecycle_ready;
+}
+#else
+static int SigningForkLifecycleReady(void)
+{
+    return 1;
+}
+#endif
 
 static void pqbtc_mldsa44_zeroize(void* ptr, size_t len)
 {
@@ -275,6 +339,9 @@ int pqbtc_mldsa44_sign_hedged(
         return PQBTC_MLDSA44_ERR_INVALID_ARGUMENT;
     }
     pqbtc_mldsa44_zeroize(signature, signature_size);
+    if (!SigningForkLifecycleReady()) {
+        return PQBTC_MLDSA44_ERR_FORK_LIFECYCLE;
+    }
 
     LockSigningModule();
     g_entropy_active = 1;
@@ -374,8 +441,48 @@ void pqbtc_mldsa44_test_reset(void)
     atomic_store_explicit(&g_test_zeroized_bytes, 0, memory_order_relaxed);
     atomic_store_explicit(&g_test_entropy_requests, 0, memory_order_relaxed);
     atomic_store_explicit(&g_test_entropy_requested_bytes, 0, memory_order_relaxed);
+#if !defined(_WIN32)
+    atomic_store_explicit(&g_test_fork_prepare_entered, 0, memory_order_relaxed);
+    atomic_store_explicit(&g_test_signing_lock_held, 0, memory_order_relaxed);
+    atomic_store_explicit(&g_test_release_signing_lock, 0, memory_order_relaxed);
+    atomic_store_explicit(
+        &g_test_force_fork_lifecycle_failure, 0, memory_order_relaxed);
+#endif
     UnlockSigningModule();
 }
+
+#if !defined(_WIN32)
+int pqbtc_mldsa44_test_hold_signing_lock_for_fork(void)
+{
+    int prepare_entered;
+    LockSigningModule();
+    atomic_store_explicit(&g_test_signing_lock_held, 1, memory_order_release);
+    while (!atomic_load_explicit(&g_test_fork_prepare_entered, memory_order_acquire) &&
+           !atomic_load_explicit(&g_test_release_signing_lock, memory_order_acquire)) {
+    }
+    prepare_entered =
+        atomic_load_explicit(&g_test_fork_prepare_entered, memory_order_acquire);
+    atomic_store_explicit(&g_test_signing_lock_held, 0, memory_order_release);
+    UnlockSigningModule();
+    return prepare_entered;
+}
+
+int pqbtc_mldsa44_test_signing_lock_held(void)
+{
+    return atomic_load_explicit(&g_test_signing_lock_held, memory_order_acquire);
+}
+
+void pqbtc_mldsa44_test_release_signing_lock(void)
+{
+    atomic_store_explicit(&g_test_release_signing_lock, 1, memory_order_release);
+}
+
+void pqbtc_mldsa44_test_force_fork_lifecycle_failure(int enabled)
+{
+    atomic_store_explicit(
+        &g_test_force_fork_lifecycle_failure, enabled != 0, memory_order_release);
+}
+#endif
 
 int pqbtc_mldsa44_test_set_entropy(int mode, const uint8_t* bytes, size_t reported_size)
 {

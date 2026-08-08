@@ -36,7 +36,8 @@ enum pqbtc_mldsa44_result {
     PQBTC_MLDSA44_ERR_BACKEND = -6,
     PQBTC_MLDSA44_ERR_SIGN_ATTEMPTS_EXHAUSTED = -7,
     PQBTC_MLDSA44_ERR_SIGNATURE_LENGTH = -8,
-    PQBTC_MLDSA44_ERR_VERIFY = -9
+    PQBTC_MLDSA44_ERR_VERIFY = -9,
+    PQBTC_MLDSA44_ERR_FORK_LIFECYCLE = -10
 };
 
 /*
@@ -44,6 +45,11 @@ enum pqbtc_mldsa44_result {
  * The output buffer is released only after strict self-verification. Once an
  * exact, non-overlapping output buffer is accepted, every later failure zeros
  * that complete buffer. Overlapping output is rejected without writing it.
+ * POSIX builds protect the module lock across standard fork() with module-load
+ * pthread_atfork handlers. The module must remain loaded while the process can
+ * fork; registration failure returns PQBTC_MLDSA44_ERR_FORK_LIFECYCLE. This
+ * function is not async-signal-safe: a portable multithreaded child must exec
+ * before signing.
  */
 PQBTC_MLDSA44_API int pqbtc_mldsa44_sign_hedged(
     uint8_t* signature,

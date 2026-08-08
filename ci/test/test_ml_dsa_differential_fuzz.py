@@ -61,11 +61,48 @@ class MlDsaDifferentialFuzzTest(unittest.TestCase):
             )
 
         command = run.call_args.args[0]
+        self.assertIn("-pthread", command)
         self.assertIn("-DPQBTC_MLDSA44_DIFFERENTIAL=1", command)
         self.assertIn(str(OPENSSL_BRIDGE), command)
         self.assertIn("libcrux.so", command)
         self.assertIn("-lcrypto", command)
         self.assertIn("-fsanitize=fuzzer,address,undefined", command)
+
+    def test_differential_replay_compile_contract(self):
+        with (
+            tempfile.TemporaryDirectory() as temporary,
+            mock.patch.dict("os.environ", {"FUZZ_CC": "clang"}),
+            mock.patch.object(
+                differential.shutil, "which", return_value="/usr/bin/clang"
+            ),
+            mock.patch.object(
+                differential,
+                "differential_link_args",
+                return_value=("libcrux.so", "-lcrypto"),
+            ),
+            mock.patch.object(
+                differential.verifier_fuzz,
+                "compile_fuzzer",
+                return_value=Path(temporary) / "fuzzer",
+            ),
+            mock.patch.object(differential.verifier_fuzz.wrapper, "run") as run,
+        ):
+            differential.compile_differential_targets(
+                Path(temporary),
+                Path(temporary) / "libcrux.so",
+                "3.6.3",
+            )
+
+        command = run.call_args.args[0]
+        self.assertIn("-pthread", command)
+        self.assertIn("-DPQBTC_MLDSA44_DIFFERENTIAL=1", command)
+        self.assertIn(
+            str(differential.verifier_fuzz.wrapper.WRAPPER_SOURCE), command
+        )
+        self.assertIn(str(differential.DIFFERENTIAL_REPLAY), command)
+        self.assertIn("libcrux.so", command)
+        self.assertIn("-lcrypto", command)
+        self.assertIn("-fsanitize=address,undefined", command)
 
     def test_external_bridges_are_binary_and_in_process(self):
         openssl_source = OPENSSL_BRIDGE.read_text(encoding="utf8")

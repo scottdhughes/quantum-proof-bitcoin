@@ -546,6 +546,7 @@ def _plan_inputs() -> dict[str, str]:
         "wrapper_test_header": WRAPPER_TEST_HEADER,
         "wrapper_config": WRAPPER_CONFIG,
         "source_manifest": wrapper.SOURCE_MANIFEST,
+        "wrapper_test_driver": Path(wrapper.__file__).resolve(),
         "fuzz_driver": Path(verifier.__file__).resolve(),
         "fuzz_manifest": verifier.CORPUS_MANIFEST,
         "vectors": wrapper.VECTORS,
@@ -1318,6 +1319,7 @@ def _common_compile_flags(
         "-fvisibility=hidden",
         "-fno-lto",
         "-O2",
+        "-pthread",
         f"-I{include_directory}",
     ]
 
