@@ -11,7 +11,7 @@
 #include <string.h>
 #if !defined(_WIN32)
 #include <errno.h>
-#include <signal.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #endif
