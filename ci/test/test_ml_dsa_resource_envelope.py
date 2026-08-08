@@ -220,6 +220,7 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
                 "wrapper_test_header",
                 "wrapper_config",
                 "source_manifest",
+                "wrapper_test_driver",
                 "fuzz_driver",
                 "fuzz_manifest",
                 "vectors",
@@ -231,6 +232,10 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
         )
         for digest in plan["inputs"].values():
             self.assertRegex(digest, r"^[0-9a-f]{64}$")
+        self.assertEqual(
+            plan["inputs"]["wrapper_test_driver"],
+            sha256(ENGINEERING_DIR / "run_wrapper_tests.py"),
+        )
         self.assertEqual(
             plan["measurement"],
             {
@@ -604,6 +609,7 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
             ],
         )
         expected = self.resource["_expected_normalized_commands"](compiler)
+        self.assertTrue(all("-pthread" in command for command in expected))
         expected_text = json.dumps(expected, sort_keys=True)
         self.assertNotIn(source_root, expected_text)
         self.assertIn("$REPO_ROOT/contrib/ml-dsa-engineering", expected_text)

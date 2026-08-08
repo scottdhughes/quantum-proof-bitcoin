@@ -169,12 +169,28 @@ concurrent use of mutable backend or key state and makes the immediate-repeat
 guard atomic. A future implementation may relax serialization only with a
 reviewed backend/thread-safety contract and equivalent randomizer guarantees.
 
+On POSIX, the isolated C prototype registers `pthread_atfork` handlers during
+module load. Registration failure makes signing return
+`PQBTC_MLDSA44_ERR_FORK_LIFECYCLE` after clearing an accepted output buffer and
+before acquiring the signing lock or requesting entropy. The prepare handler
+acquires the same process-global lock, so standard `fork()` cannot copy an
+in-progress signing operation; the parent and child handlers release their
+respective copies. The module must remain loaded from registration through the
+last possible fork. A deterministic harness observes that both copies of the
+module lock remain usable on the tested platform, including a child signing
+call, but that observation is not portable POSIX child-signing support. The
+signer and its entropy path are not specified async-signal-safe, so a portable
+child of a multithreaded process must `exec` before signing. This bounded
+mechanism also does not support fork invoked reentrantly from signing or a
+signal handler, `_Fork`, `vfork`, raw `clone`, or unreviewed cross-library
+at-fork handler ordering.
+
 The lifecycle boundary is explicit:
 
 | Event | Required behavior and residual boundary |
 | --- | --- |
 | thread concurrency | serialize one signer instance; never release two operations using one repeated `rnd` |
-| POSIX fork | do not carry a project userspace DRBG; child and parent request fresh bytes from the OS before signing |
+| coordinated POSIX `fork()` module state | serialize against signing and release parent and child locks; portable multithreaded child use requires `exec` before signing |
 | process restart | request fresh OS randomness; in-memory repeat history is not persistent |
 | clone after an accepted `rnd` | copied guard state rejects that same immediately repeated value |
 | clone before first use | no in-memory guard can detect identical future RBG output across both clones |
@@ -227,7 +243,9 @@ The isolated prototype may bind this contract only under
    and implement the production API without linking test/ACVP entry points;
 3. use reviewed OS and hardware RBG adapters with injected failure coverage;
 4. demonstrate compiler-resistant cleanup across language and FFI boundaries;
-5. add fork/process and supported VM-clone tests at the platform layer;
+5. extend the observed POSIX module-lock regression to supported process,
+   async-signal-safety, at-fork-handler-order, and VM-clone behavior at the
+   platform layer before claiming child signing support;
 6. pass side-channel, fault, fuzzing, advisory, and lifecycle gates; and
 7. receive re-review under issue `#181` against the exact implementation
    commit.

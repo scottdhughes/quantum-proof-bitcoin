@@ -13,7 +13,10 @@ future production signer can be proposed:
 - zero, repeated, short, unavailable, or failed entropy produces no signature;
 - signing and self-verification failures produce no signature;
 - calls through one signer are serialized and randomizer reuse detection is
-  atomic across concurrent callers; and
+  atomic across concurrent callers;
+- POSIX builds register a fail-closed `pthread_atfork` lifecycle before use,
+  serialize standard `fork()` against the module lock, and release the
+  inherited lock in both parent and child; and
 - the local randomizer buffer is overwritten on every return path.
 
 The Python module deliberately uses opaque key handles and a backend protocol.
@@ -35,7 +38,13 @@ normal build exports only `pqbtc_mldsa44_sign_hedged` and
 `pqbtc_mldsa44_verify_strict`; deterministic, fixed-randomizer, seeded-keygen,
 and failure controls exist only in a separately compiled test build. The
 network-free harness checks source hashes, symbols, frozen vectors, OS entropy,
-failure behavior, concurrency, and ASan/UBSan execution.
+failure behavior, concurrency, deterministic held-lock fork recovery in both
+parent and child, and ASan/UBSan execution. This is a platform observation of
+the module-lock boundary, not generic POSIX child-signing support: the signer
+is not async-signal-safe, so a portable multithreaded child must `exec` before
+signing. The module must remain loaded while the process can fork. Reentrant or
+signal-handler fork, `_Fork`, `vfork`, raw `clone`, arbitrary at-fork handler
+ordering, and production admission remain unsupported.
 
 The normative requirements and lifecycle limits are in
 `docs/ML_DSA_44_HEDGED_SIGNING_CONTRACT.md`. The admission disposition and
@@ -244,8 +253,8 @@ and name-bound aggregate immediately before copying, then records and verifies
 a content-addressed receipt for the novel frames actually added. This is
 bounded test-only
 issue-`#188` evidence; it does not connect the wrapper to production, prove
-fork/lifecycle behavior or resource limits, close the issue, or change the
-release hold.
+broader fork/clone lifecycle behavior or resource limits, close the issue, or
+change the release hold.
 
 ## Differential Verifier Fuzzing
 

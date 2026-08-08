@@ -87,6 +87,8 @@ def common_flags(compiler: str) -> list[str]:
         "-fvisibility=hidden",
         f"-I{HERE}",
     ]
+    if sys.platform != "win32":
+        flags.append("-pthread")
     return flags
 
 
@@ -146,7 +148,7 @@ def compile_smoke(compiler: str, build_dir: Path, sanitizers: bool) -> Path:
     suffix = "_sanitized" if sanitizers else ""
     output = build_dir / f"pqbtc_mldsa44_smoke{suffix}"
     command = common_flags(compiler)
-    command.extend(["-DPQBTC_MLDSA44_TESTING=1", "-pthread"])
+    command.append("-DPQBTC_MLDSA44_TESTING=1")
     if sanitizers:
         command.extend(
             [

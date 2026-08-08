@@ -9,6 +9,12 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#if !defined(_WIN32)
+#include <errno.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#endif
 
 static int ReportFailure(int line, const char* condition)
 {
@@ -101,6 +107,107 @@ static int SetFixedEntropy(const uint8_t bytes[32], size_t reported_size)
     return pqbtc_mldsa44_test_set_entropy(
         PQBTC_MLDSA44_TEST_ENTROPY_FIXED, bytes, reported_size);
 }
+
+#if !defined(_WIN32)
+struct fork_lock_case {
+    int prepare_entered;
+};
+
+static void* HoldSigningLockForFork(void* opaque)
+{
+    struct fork_lock_case* test = (struct fork_lock_case*)opaque;
+    test->prepare_entered = pqbtc_mldsa44_test_hold_signing_lock_for_fork();
+    return NULL;
+}
+
+static int CheckForkLifecycle(
+    const uint8_t* secret_key,
+    const uint8_t* public_key,
+    const uint8_t* message,
+    size_t message_size,
+    const uint8_t* context,
+    size_t context_size,
+    const uint8_t randomizer[32])
+{
+    pthread_t holder;
+    struct fork_lock_case test = {0};
+    uint8_t parent_signature[PQBTC_MLDSA44_SIGNATURE_BYTES];
+    pid_t child;
+    int status;
+    pid_t waited;
+
+    alarm(20);
+    pqbtc_mldsa44_test_reset();
+    CHECK(SetFixedEntropy(randomizer, 32) == PQBTC_MLDSA44_OK);
+    CHECK(pthread_create(&holder, NULL, HoldSigningLockForFork, &test) == 0);
+    while (!pqbtc_mldsa44_test_signing_lock_held()) {
+    }
+
+    child = fork();
+    if (child == 0) {
+        uint8_t child_signature[PQBTC_MLDSA44_SIGNATURE_BYTES];
+        int result;
+        alarm(5);
+        result = pqbtc_mldsa44_sign_hedged(
+            child_signature,
+            sizeof(child_signature),
+            secret_key,
+            PQBTC_MLDSA44_SECRET_KEY_BYTES,
+            public_key,
+            PQBTC_MLDSA44_PUBLIC_KEY_BYTES,
+            message,
+            message_size,
+            context,
+            context_size);
+        if (result != PQBTC_MLDSA44_OK ||
+            pqbtc_mldsa44_verify_strict(
+                child_signature,
+                sizeof(child_signature),
+                public_key,
+                PQBTC_MLDSA44_PUBLIC_KEY_BYTES,
+                message,
+                message_size,
+                context,
+                context_size) != PQBTC_MLDSA44_OK) {
+            _exit(1);
+        }
+        _exit(0);
+    }
+
+    pqbtc_mldsa44_test_release_signing_lock();
+    CHECK(pthread_join(holder, NULL) == 0);
+    CHECK(child > 0);
+    do {
+        waited = waitpid(child, &status, 0);
+    } while (waited < 0 && errno == EINTR);
+    CHECK(waited == child);
+    CHECK(test.prepare_entered == 1);
+    CHECK(WIFEXITED(status));
+    CHECK(WEXITSTATUS(status) == 0);
+    CHECK(pqbtc_mldsa44_sign_hedged(
+              parent_signature,
+              sizeof(parent_signature),
+              secret_key,
+              PQBTC_MLDSA44_SECRET_KEY_BYTES,
+              public_key,
+              PQBTC_MLDSA44_PUBLIC_KEY_BYTES,
+              message,
+              message_size,
+              context,
+              context_size) == PQBTC_MLDSA44_OK);
+    CHECK(pqbtc_mldsa44_verify_strict(
+              parent_signature,
+              sizeof(parent_signature),
+              public_key,
+              PQBTC_MLDSA44_PUBLIC_KEY_BYTES,
+              message,
+              message_size,
+              context,
+              context_size) == PQBTC_MLDSA44_OK);
+    alarm(0);
+    return 0;
+}
+#endif
 
 int main(void)
 {
@@ -325,6 +432,35 @@ int main(void)
         CHECK(successes == 1);
         CHECK(repeats == 1);
     }
+
+#if !defined(_WIN32)
+    pqbtc_mldsa44_test_reset();
+    CHECK(SetFixedEntropy(randomizer, sizeof(randomizer)) == PQBTC_MLDSA44_OK);
+    pqbtc_mldsa44_test_force_fork_lifecycle_failure(1);
+    for (i = 0; i < sizeof(signature); ++i)
+        signature[i] = 0xa5;
+    CHECK(pqbtc_mldsa44_sign_hedged(
+              signature,
+              sizeof(signature),
+              secret_key,
+              sizeof(secret_key),
+              public_key,
+              sizeof(public_key),
+              message,
+              sizeof(message),
+              context,
+              sizeof(context) - 1) == PQBTC_MLDSA44_ERR_FORK_LIFECYCLE);
+    CHECK(IsZero(signature, sizeof(signature)));
+
+    CHECK(CheckForkLifecycle(
+              secret_key,
+              public_key,
+              message,
+              sizeof(message),
+              context,
+              sizeof(context) - 1,
+              randomizer) == 0);
+#endif
 
     return 0;
 }

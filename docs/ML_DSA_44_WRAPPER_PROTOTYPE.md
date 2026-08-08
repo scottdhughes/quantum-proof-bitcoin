@@ -201,9 +201,15 @@ content-addressed import. The stateful evidence has its own artifact and corpus
 namespace. Immediately before copying, the importer rechecks the validated
 count, byte total, and name-bound aggregate, then records a content-addressed
 receipt for the novel imported set. These bounded
-test-only scenarios do not establish lifecycle safety across process fork,
-multi-process key isolation, worst-case signing resources, or production
-fitness.
+test-only scenarios include the deterministic coordinated POSIX `fork()` case:
+a worker holds the signing lock, the at-fork prepare handler waits for that
+critical section, and both parent and child subsequently sign and verify under
+a watchdog on the tested platform. This is a module-lock observation, not
+portable POSIX child-signing support; a multithreaded child must `exec` before
+using the non-async-signal-safe signer. The scenarios do not establish safety
+for reentrant or signal-handler fork, `_Fork`, `vfork`, raw `clone`, arbitrary
+handler ordering, module unloading, multi-process key isolation, worst-case
+signing resources, or production fitness.
 
 The pinned review-reproduction workflow adds a 60-second Linux Clang
 ASan/UBSan differential campaign. Its fuzz target calls the isolated wrapper,
@@ -310,9 +316,12 @@ the release hold.
 
 This prototype advances engineering evidence but closes no production gate:
 
-- issue `#184`: Linux/macOS OS-RBG calls and fail-closed behavior now execute,
-  but supported-platform RBG strength, fork/clone behavior, hardware signers,
-  Windows execution, and lifecycle review remain open;
+- issue `#184`: Linux/macOS OS-RBG calls, fail-closed behavior, and one
+  coordinated standard-POSIX-fork parent/child module-lock regression now
+  execute, but async-signal-safe child signing, supported-platform RBG
+  strength, reentrant/alternate fork and clone behavior, at-fork handler
+  ordering, module lifetime, hardware signers, Windows execution, and lifecycle
+  review remain open;
 - issue `#185`: a bounded x86_64 Valgrind constant-time/variable-latency audit
   with calibrated controls has passed, but ARM, Windows, cache, speculative,
   physical-leakage, rejection-count, and production-binary coverage remain
