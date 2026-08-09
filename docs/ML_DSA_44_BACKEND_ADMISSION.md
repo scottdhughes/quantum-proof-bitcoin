@@ -167,7 +167,13 @@ The production-shaped shared object exports exactly
 separate and exposes deterministic/fixed-randomizer and injected-failure
 controls only for evidence generation. The harness exercises real OS entropy,
 frozen key/signature hashes, strict verification, fail-closed output,
-zeroization-hook execution, concurrent repeat rejection, and ASan/UBSan.
+zeroization-hook execution, concurrent repeat rejection, coordinated standard
+POSIX fork parent/child module-lock recovery, fail-closed at-fork registration,
+and ASan/UBSan. Child signing is a tested-platform observation, not a portable
+POSIX guarantee: the signer is not async-signal-safe, so a portable
+multithreaded child must `exec` first. The fork evidence also requires the
+module to remain loaded and does not cover reentrant or signal-handler fork,
+`_Fork`, `vfork`, raw `clone`, or arbitrary cross-library handler ordering.
 
 A separate Linux x86_64 test-only lane now defines direct strict-verifier
 resource observations. Each of four batches makes 4,287 calls on a 128 KiB
@@ -193,7 +199,7 @@ Prototype admission closes no production finding:
 
 | Gate | Tracking | State after this decision |
 | --- | --- | --- |
-| Entropy and fail-closed binding | #184 | isolated wrapper and Linux/macOS RBG evidence; supported-platform lifecycle remains open |
+| Entropy and fail-closed binding | #184 | isolated wrapper, Linux/macOS RBG evidence, and one coordinated standard-POSIX-fork module-lock observation; async-signal-safe child signing, alternate/reentrant fork and clone behavior, handler ordering, module lifetime, and broader supported-platform lifecycle remain open |
 | Supported-platform side channels | #185 | bounded x86_64 Valgrind constant-time/variable-latency evidence; broader platforms and leakage models open |
 | Fault model and injected faults | #186 | open |
 | End-to-end secret erasure | #187 | source cleanup and sanitizer evidence only; compiler/caller/platform boundary open |

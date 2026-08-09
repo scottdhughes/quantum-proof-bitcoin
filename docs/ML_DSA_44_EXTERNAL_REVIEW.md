@@ -391,8 +391,11 @@ consensus design, or removal of `RELEASE_HOLD`.
 - The comparator oracle wrappers use POSIX `/dev/urandom`; they are not a node,
   wallet, hardware-signer, or entropy-failure design.
 - The separate isolated wrapper uses `getentropy` on Linux/macOS and contains
-  an unvalidated Windows adapter, but it is still not a supported-platform,
-  wallet, hardware-signer, fork/clone, or production lifecycle design.
+  an unvalidated Windows adapter. Its coordinated standard-POSIX-fork
+  regression covers one process-global lock boundary on the tested platform,
+  but does not make child signing async-signal-safe or establish a
+  supported-platform, wallet, hardware-signer, alternate-fork/clone, or
+  production lifecycle design.
 - Existing timings are directional arm64 measurements, not supported-platform
   envelopes or worst-case block-validation results.
 - Public-key commitment, witness encoding, fee policy, stack limits, wallet and

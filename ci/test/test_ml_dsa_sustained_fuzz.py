@@ -411,6 +411,7 @@ class MlDsaSustainedFuzzTest(unittest.TestCase):
                             coverage=coverage,
                         )
                     command = set(run.call_args.args[0])
+                    self.assertIn("-pthread", command)
                     self.assertTrue(required <= command)
                     self.assertTrue(prohibited.isdisjoint(command))
 
@@ -627,6 +628,24 @@ class MlDsaSustainedFuzzTest(unittest.TestCase):
             self.assertEqual(report["processing_error"], "corpus minimization failed")
             self.assertEqual(report["resource_limits"]["seed"], 188)
             self.assertIn("source_capsule_sha256", report["source_files"])
+            sources = {
+                "driver_sha256": Path(verifier_fuzz.__file__).resolve(),
+                "wrapper_test_driver_sha256": Path(
+                    verifier_fuzz.wrapper.__file__
+                ).resolve(),
+                "wrapper_sha256": verifier_fuzz.wrapper.WRAPPER_SOURCE,
+                "public_header_sha256": ENGINEERING_DIR / "pqbtc_mldsa44.h",
+                "config_header_sha256": (
+                    ENGINEERING_DIR / "pqbtc_mldsa44_config.h"
+                ),
+                "fuzz_target_sha256": verifier_fuzz.FUZZ_SOURCE,
+                "source_manifest_sha256": verifier_fuzz.wrapper.SOURCE_MANIFEST,
+            }
+            for field, path in sources.items():
+                self.assertEqual(
+                    report["source_files"][field],
+                    hashlib.sha256(path.read_bytes()).hexdigest(),
+                )
             self.assertEqual(report["last_progress_line"], "#1 DONE")
             self.assertEqual(report["final_stats"], ["stat::number_of_executed_units: 1"])
 

@@ -3,12 +3,15 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit.
 
+import importlib.util
 import json
 from pathlib import Path
 import runpy
 import subprocess
 import sys
+import tempfile
 import unittest
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -61,6 +64,17 @@ def load_valgrind_ct_analysis() -> dict[str, object]:
         del sys.path[0]
 
 
+def load_wrapper_runner():
+    spec = importlib.util.spec_from_file_location(
+        "run_wrapper_tests_contract",
+        ENGINEERING_DIR / "run_wrapper_tests.py",
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 class MlDsaWrapperPrototypeTest(unittest.TestCase):
     def test_source_capsule_is_exact_portable_pin(self):
         manifest = json.loads(SOURCE_MANIFEST.read_text(encoding="utf8"))
@@ -109,6 +123,53 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         self.assertNotIn("fixed_randomizer", header)
         self.assertNotIn("entropy_callback", header)
 
+    def test_posix_fork_lifecycle_is_explicit_and_regressed(self):
+        source = (ENGINEERING_DIR / "pqbtc_mldsa44.c").read_text(encoding="utf8")
+        header = (ENGINEERING_DIR / "pqbtc_mldsa44.h").read_text(encoding="utf8")
+        test_header = (ENGINEERING_DIR / "pqbtc_mldsa44_test.h").read_text(
+            encoding="utf8"
+        )
+        smoke = (ENGINEERING_DIR / "pqbtc_mldsa44_smoke.c").read_text(
+            encoding="utf8"
+        )
+        runner = (ENGINEERING_DIR / "run_wrapper_tests.py").read_text(
+            encoding="utf8"
+        )
+
+        self.assertIn("pthread_atfork(", source)
+        prepare = source.index("static void PrepareSigningModuleForFork")
+        acquire = source.index("LockSigningModule();", prepare)
+        parent = source.index("static void ResumeSigningModuleAfterFork")
+        child = source.index("static void ResumeSigningModuleInForkChild")
+        self.assertLess(prepare, acquire)
+        self.assertLess(acquire, parent)
+        self.assertLess(parent, child)
+        self.assertIn("PQBTC_MLDSA44_ERR_FORK_LIFECYCLE", source)
+        self.assertIn("PQBTC_MLDSA44_ERR_FORK_LIFECYCLE = -10", header)
+        self.assertIn("pqbtc_mldsa44_test_hold_signing_lock_for_fork", test_header)
+        self.assertIn("test.prepare_entered == 1", smoke)
+        self.assertIn("alarm(20);", smoke)
+        self.assertIn("alarm(5);", smoke)
+        self.assertIn("WIFEXITED(status)", smoke)
+        self.assertIn("parent_signature", smoke)
+        self.assertIn('flags.append("-pthread")', runner)
+
+    @unittest.skipIf(sys.platform == "win32", "POSIX-only pthread contract")
+    def test_posix_wrapper_build_commands_link_pthread(self):
+        wrapper = load_wrapper_runner()
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.object(
+            wrapper, "run"
+        ) as run:
+            build = Path(temporary)
+            wrapper.compile_shared("cc", build, testing=False)
+            wrapper.compile_shared("cc", build, testing=True)
+            wrapper.compile_smoke("cc", build, sanitizers=False)
+            wrapper.compile_smoke("cc", build, sanitizers=True)
+
+        commands = [call.args[0] for call in run.call_args_list]
+        self.assertEqual(len(commands), 4)
+        self.assertTrue(all("-pthread" in command for command in commands))
+
     def test_production_hold_and_isolation_remain_explicit(self):
         admission = json.loads(ADMISSION.read_text(encoding="utf8"))
         self.assertEqual(admission["decision"]["production_backend"], "NONE")
@@ -117,6 +178,17 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         self.assertFalse(evidence["node_linkage"])
         self.assertFalse(evidence["wallet_linkage"])
         self.assertFalse(evidence["consensus_linkage"])
+        self.assertEqual(
+            evidence["posix_fork_coordination"], "PTHREAD_ATFORK_MODULE_LOCK"
+        )
+        self.assertTrue(
+            evidence["posix_fork_parent_child_lock_regression_observed"]
+        )
+        self.assertTrue(evidence["posix_fork_registration_failure_fail_closed"])
+        self.assertFalse(
+            evidence["posix_multithreaded_child_signing_portably_supported"]
+        )
+        self.assertFalse(evidence["posix_module_unload_while_forkable_supported"])
         document = PROTOTYPE_DOCUMENT.read_text(encoding="utf8")
         self.assertIn("ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD", document)
         self.assertIn("backend remains `NONE`", document)
@@ -281,6 +353,7 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         self.assertEqual(set(checks), expected_ids)
         for check in checks.values():
             self.assertIn("-std=c11", check["command"])
+            self.assertIn("-pthread", check["command"])
 
         testing_define = "-DPQBTC_MLDSA44_TESTING=1"
         self.assertNotIn(
@@ -466,6 +539,7 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         self.assertIn("-O0", probe_build)
         self.assertIn("-DPQBTC_MLDSA44_TESTING=1", wrapper_build)
         self.assertIn("-DPQBTC_MLDSA44_CT_TESTING=1", wrapper_build)
+        self.assertIn("-pthread", wrapper_build)
         self.assertIn(
             "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_memcheck.c",
             wrapper_build,

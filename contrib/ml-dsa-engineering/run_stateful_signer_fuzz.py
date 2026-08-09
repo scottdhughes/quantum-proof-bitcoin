@@ -947,6 +947,9 @@ def write_campaign_report(
             "wrapper_sha256": sha256_file(wrapper.WRAPPER_SOURCE),
             "public_header_sha256": sha256_file(HERE / "pqbtc_mldsa44.h"),
             "test_header_sha256": sha256_file(HERE / "pqbtc_mldsa44_test.h"),
+            "config_header_sha256": sha256_file(
+                HERE / "pqbtc_mldsa44_config.h"
+            ),
             "fuzz_target_sha256": sha256_file(FUZZ_SOURCE),
             "driver_sha256": sha256_file(DRIVER_SOURCE),
             "verifier_fuzz_driver_sha256": sha256_file(

@@ -143,6 +143,7 @@ jobs:
           OUTPUT_DIR: ${{ runner.temp }}/ml-dsa-44-fuzz-output
         run: |
           python3 - "$OUTPUT_DIR" "$EXPECTED_SANITIZER" "$COVERAGE" <<'PY'
+          import hashlib
           import json
           from pathlib import Path
           import sys
@@ -153,6 +154,22 @@ jobs:
           assert report["status"] == "pass"
           assert report["sanitizer"] == sys.argv[2]
           assert report["coverage_enabled"] is (sys.argv[3] == "true")
+          engineering = Path("contrib/ml-dsa-engineering")
+          sources = {
+              "driver_sha256": engineering / "run_verifier_fuzz.py",
+              "wrapper_test_driver_sha256": engineering / "run_wrapper_tests.py",
+              "wrapper_sha256": engineering / "pqbtc_mldsa44.c",
+              "public_header_sha256": engineering / "pqbtc_mldsa44.h",
+              "config_header_sha256": engineering / "pqbtc_mldsa44_config.h",
+              "fuzz_target_sha256": engineering / "pqbtc_mldsa44_verify_fuzz.c",
+              "source_manifest_sha256": (
+                  engineering / "vendor/mldsa-native/SOURCE.json"
+              ),
+          }
+          for field, path in sources.items():
+              assert report["source_files"][field] == hashlib.sha256(
+                  path.read_bytes()
+              ).hexdigest()
           assert report["minimized_corpus"]["file_count"] > 0
           assert report["crash_artifacts"]["file_count"] == 0
           assert (output / "SHA256SUMS").is_file()
@@ -416,12 +433,24 @@ jobs:
               report["source_corpus"]["aggregate_sha256"]
               == "9ee9c275e59e8a4d383bd474b080406b764aafd9b219dffb522d9ef4e73f05d1"
           )
-          for field in (
-              "driver_sha256",
-              "verifier_fuzz_driver_sha256",
-              "wrapper_test_driver_sha256",
-          ):
-              assert re.fullmatch(r"[0-9a-f]{64}", report["source_files"][field])
+          engineering = Path("contrib/ml-dsa-engineering")
+          sources = {
+              "driver_sha256": engineering / "run_stateful_signer_fuzz.py",
+              "verifier_fuzz_driver_sha256": engineering / "run_verifier_fuzz.py",
+              "wrapper_test_driver_sha256": engineering / "run_wrapper_tests.py",
+              "wrapper_sha256": engineering / "pqbtc_mldsa44.c",
+              "public_header_sha256": engineering / "pqbtc_mldsa44.h",
+              "test_header_sha256": engineering / "pqbtc_mldsa44_test.h",
+              "config_header_sha256": engineering / "pqbtc_mldsa44_config.h",
+              "fuzz_target_sha256": engineering / "pqbtc_mldsa44_stateful_fuzz.c",
+              "source_manifest_sha256": (
+                  engineering / "vendor/mldsa-native/SOURCE.json"
+              ),
+          }
+          for field, path in sources.items():
+              assert report["source_files"][field] == hashlib.sha256(
+                  path.read_bytes()
+              ).hexdigest()
           assert report["deterministic_replay"]["status"] == "pass"
           assert report["deterministic_replay"]["case_count"] == 31
           assert all(

@@ -127,7 +127,7 @@ EXPECTED_OPENSSL_AFFECTED_PIN_DISPOSITIONS = [
             },
             {
                 "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44.h",
-                "sha256": "2878ebc89fff975e514d31292a2d0804f317f31af28159880c97c08c286fdee0",
+                "sha256": "9bb114b51bdc225605b99c92ed8b21ed5e08f9c8efb7ca7924214e1f679a8255",
             },
             {
                 "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44_differential.h",

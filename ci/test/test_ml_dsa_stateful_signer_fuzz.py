@@ -158,6 +158,7 @@ class MlDsaStatefulSignerFuzzTest(unittest.TestCase):
                             coverage=coverage,
                         )
                     command = set(run.call_args.args[0])
+                    self.assertIn("-pthread", command)
                     self.assertIn("-DPQBTC_MLDSA44_TESTING=1", command)
                     self.assertTrue(required <= command)
                     self.assertTrue(prohibited.isdisjoint(command))
@@ -242,12 +243,28 @@ class MlDsaStatefulSignerFuzzTest(unittest.TestCase):
             self.assertEqual(report["minimized_corpus"]["file_count"], 1)
             self.assertIsNone(report["retained_corpus_import"])
             self.assertEqual(report["repository_head"], signer_fuzz.repository_head())
-            for field in (
-                "driver_sha256",
-                "verifier_fuzz_driver_sha256",
-                "wrapper_test_driver_sha256",
-            ):
-                self.assertRegex(report["source_files"][field], r"^[0-9a-f]{64}$")
+            sources = {
+                "driver_sha256": signer_fuzz.DRIVER_SOURCE,
+                "verifier_fuzz_driver_sha256": Path(
+                    signer_fuzz.verifier_fuzz.__file__
+                ).resolve(),
+                "wrapper_test_driver_sha256": Path(
+                    signer_fuzz.wrapper.__file__
+                ).resolve(),
+                "wrapper_sha256": signer_fuzz.wrapper.WRAPPER_SOURCE,
+                "public_header_sha256": ENGINEERING_DIR / "pqbtc_mldsa44.h",
+                "test_header_sha256": ENGINEERING_DIR / "pqbtc_mldsa44_test.h",
+                "config_header_sha256": (
+                    ENGINEERING_DIR / "pqbtc_mldsa44_config.h"
+                ),
+                "fuzz_target_sha256": signer_fuzz.FUZZ_SOURCE,
+                "source_manifest_sha256": signer_fuzz.wrapper.SOURCE_MANIFEST,
+            }
+            for field, path in sources.items():
+                self.assertEqual(
+                    report["source_files"][field],
+                    hashlib.sha256(path.read_bytes()).hexdigest(),
+                )
 
     def test_invalid_retained_corpus_produces_hashed_failure_evidence(self):
         cases = signer_fuzz.generated_corpus()

@@ -1443,7 +1443,15 @@ def write_campaign_report(
         "imported_retained_seeds": imported_seeds,
         "source_corpus": source_summary,
         "source_files": {
+            "driver_sha256": sha256_file(Path(__file__).resolve()),
+            "wrapper_test_driver_sha256": sha256_file(
+                Path(wrapper.__file__).resolve()
+            ),
             "wrapper_sha256": sha256_file(wrapper.WRAPPER_SOURCE),
+            "public_header_sha256": sha256_file(HERE / "pqbtc_mldsa44.h"),
+            "config_header_sha256": sha256_file(
+                HERE / "pqbtc_mldsa44_config.h"
+            ),
             "fuzz_target_sha256": sha256_file(FUZZ_SOURCE),
             "corpus_manifest_sha256": sha256_file(CORPUS_MANIFEST),
             "wycheproof_vectors_sha256": sha256_file(WYCHEPROOF_VECTORS),
