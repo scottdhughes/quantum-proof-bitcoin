@@ -3,7 +3,7 @@
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-BACKEND-ADMISSION-v1
 ## Decided: 2026-07-19
-## Evidence-Updated: 2026-08-01
+## Evidence-Updated: 2026-08-11
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -175,16 +175,36 @@ multithreaded child must `exec` first. The fork evidence also requires the
 module to remain loaded and does not cover reentrant or signal-handler fork,
 `_Fork`, `vfork`, raw `clone`, or arbitrary cross-library handler ordering.
 
+The direct lifecycle evidence is main-dispatched wrapper run `31521182969` at
+exact commit `79de77faf112453868779861ae0c982dba533f84`. Its GCC and Clang
+portable jobs each passed the normal and ASan/UBSan harness, including the
+held-lock parent/child fork regression and the injected fail-closed lifecycle
+readiness case. All supporting static-analysis and pinned Valgrind jobs also
+passed with independently verified artifact and internal checksums. This is a
+tested Ubuntu/Linux observation and does not widen the supported lifecycle
+boundary described above.
+
 A separate Linux x86_64 test-only lane now defines direct strict-verifier
 resource observations. Each of four batches makes 4,287 calls on a 128 KiB
 guarded pthread stack while linker interposition requires zero project heap
 calls. It retains raw timing samples and compiler-specific `.su` static-frame
 observations. These are candidate observations only: they are not consensus,
 block, or production limits, and numeric CPU, wall-time, and RSS acceptance
-remain unset pending separately reviewed exact-head GCC and Clang
+remain unset pending a separate policy review of the exact-head GCC and Clang
 protected-main-push `TRUSTED_MAIN_OBSERVATION` artifacts. Manual dispatches
-remain untrusted. Each single-compiler artifact remains non-promotion-eligible
-and requires external GitHub Actions provenance.
+remain untrusted. Each single-compiler artifact remains non-promotion-eligible;
+the external GitHub Actions provenance is necessary evidence, not a numeric
+policy decision by itself.
+
+Protected-main push run `31520865906`, attempt `1`, supplied that exact-head
+observation at `79de77faf112453868779861ae0c982dba533f84` against baseline
+pointer `60e259458d1029fa4193de878f14d41a0793042d`. Its guarded diff was empty.
+The GCC and Clang reports both passed independent validation and every internal
+checksum; their artifact IDs and outer SHA-256 values are respectively
+`9112965965` / `74063a8817bce33541d89bc655e10593507261b22ed60e99f75b7d48ae9af5a2`
+and `9112975963` / `04c5c3f1283851cb93e4b0488091f74719002500d916f0e404cd14ea72d1cf0d`.
+Both retain `promotion_eligible=false`. Numeric resource limits remain unset
+and require a separate reviewed policy decision.
 
 This is implementation evidence for the admitted experiment, not a production
 backend disposition. The raw-key prototype ABI, process-global serialization,
@@ -203,7 +223,7 @@ Prototype admission closes no production finding:
 | Supported-platform side channels | #185 | bounded x86_64 Valgrind constant-time/variable-latency evidence; broader platforms and leakage models open |
 | Fault model and injected faults | #186 | open |
 | End-to-end secret erasure | #187 | source cleanup and sanitizer evidence only; compiler/caller/platform boundary open |
-| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential/stateful fuzzing, promoted regressions, portable Miri evidence, bounded malformed research-CLI argv replay, and a test-only Linux x86_64 direct-verifier observation lane; trusted-main resource evidence, reviewed numeric allocation/stack/CPU and adversarial-batch acceptance limits, broader platform/Rust sanitizer coverage, and exact-commit re-review remain open |
+| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential/stateful fuzzing, promoted regressions, portable Miri evidence, bounded malformed research-CLI argv replay, and exact-main GCC/Clang direct-verifier observations; reviewed numeric allocation/stack/CPU and adversarial-batch acceptance limits, broader platform/Rust sanitizer coverage, and exact-commit re-review remain open |
 | Backend advisories, SBOM, and reproducible build | #189 | dated fail-closed ledger, full-lock cargo-audit/OSV scans, exact selected graph, CycloneDX SBOM, weekly retained refresh, exact portable ML-DSA-44 RUSTSEC-2026-0077 regressions, and promoted trusted-main test-only SIMD256 0125/0126 PASS evidence; exact-commit independent re-review remains open, and optimized-backend admission is a separate future decision |
 | Wallet and key format | #190 | open |
 | Independent human cryptographic review | #181 | open |
