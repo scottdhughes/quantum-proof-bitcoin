@@ -2,7 +2,7 @@
 
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-WRAPPER-PROTOTYPE-v1
-## Updated: 2026-08-01
+## Updated: 2026-08-11
 ## Consensus-Relevant: NO
 
 ## Scope
@@ -200,19 +200,56 @@ minimized-corpus digest, flat regular-file, and resource-bound checks before
 content-addressed import. The stateful evidence has its own artifact and corpus
 namespace. Immediately before copying, the importer rechecks the validated
 count, byte total, and name-bound aggregate, then records a content-addressed
-receipt for the novel imported set. These bounded
-test-only scenarios include the deterministic coordinated POSIX `fork()` case:
-a worker holds the signing lock, the at-fork prepare handler waits for that
-critical section, and both parent and child subsequently sign and verify under
-a watchdog on the tested platform. This is a module-lock observation, not
-portable POSIX child-signing support; a multithreaded child must `exec` before
-using the non-async-signal-safe signer. The scenarios do not establish safety
-for reentrant or signal-handler fork, `_Fork`, `vfork`, raw `clone`, arbitrary
+receipt for the novel imported set. These stateful libFuzzer campaigns do not
+call `fork()`; they bind and exercise the exact signing-state sources under
+ASan/UBSan and MSan.
+
+The deterministic coordinated POSIX `fork()` case is executed directly by
+`run_wrapper_tests.py` and the dedicated wrapper workflow. A worker holds the
+signing lock, the at-fork prepare handler waits for that critical section, and
+both parent and child subsequently sign and verify under a watchdog on the
+tested platform. This is a module-lock observation, not portable POSIX
+child-signing support; a multithreaded child must `exec` before using the
+non-async-signal-safe signer. The scenario does not establish safety for
+reentrant or signal-handler fork, `_Fork`, `vfork`, raw `clone`, arbitrary
 handler ordering, module unloading, multi-process key isolation, worst-case
 signing resources, or production fitness.
 
-The pinned review-reproduction workflow adds a 60-second Linux Clang
-ASan/UBSan differential campaign. Its fuzz target calls the isolated wrapper,
+Main-dispatched wrapper run `31521182969`, attempt `1`, completed all five jobs
+at exact head `79de77faf112453868779861ae0c982dba533f84`. Portable Clang job
+`93878301462` and portable GCC job `93878301523` each ran the normal and
+ASan/UBSan harness and reported both passes, so the direct held-lock fork and
+fail-closed lifecycle-readiness assertions executed under both compilers. The
+injected readiness failure is a deterministic test control, not an observed OS
+`pthread_atfork()` failure. Static-analysis artifact `9114717228` has outer
+SHA-256 `1a1ea00f21d96a9480ae8161507d2ec8edcbff09d49506daa650f132d3349e65`;
+the pinned Valgrind Clang and GCC artifacts `9113442292` and `9113457751` have
+outer SHA-256 values
+`aeed83dc5e377aa2b79bc4fdc6ec9e70deaee705ecd9424d9dd5eb399e5278d1`
+and `1db38123fa59ee0a0c0284163f8ce415abe7492143faf7604e3ef6c411c4deb7`.
+Each downloaded archive matched its API digest and all `18/18` internal
+checksums passed. Static analysis passed all 12 scoped checks; both calibrated
+Valgrind controls fired while the wrapper path recorded zero errors,
+variable-latency findings, or leaks.
+
+Exact-main sustained run `31521182965`, attempt `1`, completed all four
+1,800-second jobs at
+`79de77faf112453868779861ae0c982dba533f84`. The strict-verifier ASan/UBSan
+and MSan lanes executed `7,665,005` and `3,012,895` units after importing `121`
+and `76` retained seeds; their minimized corpora contain `123` and `83` files.
+The stateful-signer ASan/UBSan and MSan lanes executed `105,000` and `51,813`
+units over `1,801.122` and `1,801.192` measured fuzzer seconds, imported `173`
+and `130` retained seeds, replayed all `31/31` deterministic cases, and
+minimized to `261` and `202` files. All four external artifact digests and
+internal checksum inventories were independently verified, every source
+binding matched the exact repository head, and every crash and minimized-crash
+count was zero. No sanitizer or disagreement marker was present. These
+campaigns exercise exact sources and state transitions; they do not execute
+the fork lifecycle test.
+
+The pinned review-reproduction workflow adds a 60-second pull-request smoke or
+a 1,800-second scheduled/manual main Linux Clang ASan/UBSan differential
+campaign. Its fuzz target calls the isolated wrapper,
 OpenSSL 3.6.3's explicitly selected default provider in a separate library
 context, and libcrux 0.0.10 in-process for every parsed frame and aborts
 on any setup error or accept/reject disagreement. The wrapper's exact
@@ -245,6 +282,26 @@ sanitizers and is not long-duration or multi-platform differential evidence.
 The versioned clang-tidy/IWYU plan does not cover the differential-only branch
 or external adapter sources; those C sources are compiled with fatal warnings
 and exercised dynamically in the pinned review workflow instead.
+
+Exact-main review-reproduction run `31521183046`, attempt `1`, passed at
+`79de77faf112453868779861ae0c982dba533f84` against frozen baseline
+`60e259458d1029fa4193de878f14d41a0793042d`. Its 1,800-second differential
+campaign imported `83` retained seeds, completed `1,675,782` executions over
+`1,801.174` measured fuzzer seconds, and passed all `5/5` exact replays,
+`38/38` promoted regressions, 13 comparator checks, 70 ACVP cases, and every
+coverage floor. Crash and minimized-crash counts were zero, and no sanitizer,
+oracle-error, or disagreement marker was present. Artifact `9114784945` has
+outer SHA-256
+`203e6252633f4477af8702e8363b391e59d8b1ae04140174b4b849443b6d91e7`;
+all four outer/nested checksum inventories passed. The artifact records
+`frozen_baseline_reproduction` and `promotion_eligible=true`. This verifier
+campaign binds the changed wrapper sources but does not call `fork()` and does
+not extend the direct lifecycle observation.
+
+The versioned
+[exact-main evidence receipt](reviews/evidence/ml-dsa-44-trusted-main/79de77faf112453868779861ae0c982dba533f84/SOURCE.json)
+records the complete workflow, job, artifact, checksum, retained-source, and
+scope metadata for the resource, wrapper, sustained, and review lanes.
 
 ## Direct-Verifier Resource-Envelope Observation
 
@@ -281,13 +338,24 @@ No individual compiler artifact is promotion-eligible: both exact-head GCC
 and Clang artifacts and external GitHub Actions run/artifact provenance must
 be checked before that later policy review.
 
+Protected-main push run `31520865906`, attempt `1`, observed exact head
+`79de77faf112453868779861ae0c982dba533f84` against baseline pointer
+`60e259458d1029fa4193de878f14d41a0793042d`. The guarded diff was empty and
+both reports were independently revalidated with all internal checksums
+passing. GCC artifact `9112965965` has outer SHA-256
+`74063a8817bce33541d89bc655e10593507261b22ed60e99f75b7d48ae9af5a2`;
+Clang artifact `9112975963` has outer SHA-256
+`04c5c3f1283851cb93e4b0488091f74719002500d916f0e404cd14ea72d1cf0d`.
+Both are exact-main `TRUSTED_MAIN_OBSERVATION` receipts and remain
+`promotion_eligible=false`: the separate reviewed numeric policy is still
+unset.
+
 This is a test-only observation lane, not a supported-platform or worst-case
 resource proof. It changes no production linkage or behavior, does not admit
 SIMD256, and does not establish a consensus parser or adversarial block limit.
-Issue `#188` remains open pending trusted-main evidence, reviewed numeric
-limits, broader-platform coverage, and exact-commit re-review. Issue `#181`
-also remains open, production remains `NONE`, and `RELEASE_HOLD` remains in
-force.
+Issue `#188` remains open pending reviewed numeric limits, broader-platform
+coverage, and exact-commit re-review. Issue `#181` also remains open,
+production remains `NONE`, and `RELEASE_HOLD` remains in force.
 
 ## Pinned Upstream CBMC Reproduction
 
@@ -338,9 +406,9 @@ This prototype advances engineering evidence but closes no production gate:
   evidence. The three research oracle CLIs now enforce documented argv parser
   limits and replay fixed plus deterministic malformed-input mutations,
   including non-UTF-8 arguments, with separate ASan/UBSan coverage for the C
-  adapters. Broader-platform and Rust sanitizer coverage, trusted-main
-  resource observation, reviewed allocation/stack/CPU and adversarial-batch
-  acceptance limits, and exact-commit re-review remain open;
+  adapters. Broader-platform and Rust sanitizer coverage, reviewed
+  allocation/stack/CPU and adversarial-batch acceptance limits, and
+  exact-commit re-review remain open;
 - issue `#189`: a dated fail-closed selected-graph advisory ledger, full-lock
   cargo-audit/OSV scans, selected dependency graph, CycloneDX SBOM, and weekly
   retained refresh are implemented; exact-commit independent re-review remains

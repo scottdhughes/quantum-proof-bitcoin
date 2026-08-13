@@ -1,0 +1,407 @@
+{
+  "baseline_pointer": "60e259458d1029fa4193de878f14d41a0793042d",
+  "baseline_pointer_file_sha256": "ce7994d77f2983661af14e0b41c31ba7f9e549ec277a55f4b5878f981de74357",
+  "evidence_head": "79de77faf112453868779861ae0c982dba533f84",
+  "implementation_commit": "60e259458d1029fa4193de878f14d41a0793042d",
+  "observed_on": "2026-08-11",
+  "production_boundary": {
+    "external_cryptographic_review_satisfied": false,
+    "production_backend": "NONE",
+    "production_support_claim": false,
+    "release_hold": true,
+    "simd256_admitted": false
+  },
+  "repository": "scottdhughes/quantum-proof-bitcoin",
+  "schema_version": 1,
+  "scope": {
+    "direct_fork_claim": "TESTED_UBUNTU_LINUX_STANDARD_FORK_MODULE_LOCK_RECOVERY_ONLY",
+    "excluded_claims": [
+      "async-signal-safe child signing",
+      "portable multithreaded-child signing without exec",
+      "reentrant or signal-handler fork",
+      "_Fork, vfork, raw clone, or arbitrary at-fork handler ordering",
+      "module unloading or general multi-process key isolation",
+      "broader-platform lifecycle support",
+      "production fitness or release approval"
+    ],
+    "issue_184_state": "OPEN",
+    "note": "Only the wrapper portable jobs execute fork. Resource, sustained, and differential lanes bind or exercise the exact changed sources but do not call fork."
+  },
+  "verification": {
+    "artifact_api_metadata_checked": true,
+    "archive_sha256_and_size_matched": true,
+    "guarded_baseline_diffs_empty": true,
+    "internal_checksum_inventories_checked": true,
+    "retained_source_heads_are_ancestors": true,
+    "unsafe_zip_members_found": false
+  },
+  "workflows": {
+    "resource_envelope": {
+      "event": "push",
+      "fork_called": false,
+      "head_sha": "79de77faf112453868779861ae0c982dba533f84",
+      "path": ".github/workflows/ml-dsa-44-resource-envelope.yml",
+      "ref": "refs/heads/main",
+      "run_attempt": 1,
+      "run_conclusion": "success",
+      "run_id": 31520865906,
+      "trust": {
+        "baseline_guard_matches": true,
+        "label": "TRUSTED_MAIN_OBSERVATION",
+        "promotion_eligible": false,
+        "trusted_observation": true
+      },
+      "artifacts": [
+        {
+          "archive_sha256": "74063a8817bce33541d89bc655e10593507261b22ed60e99f75b7d48ae9af5a2",
+          "artifact_id": 9112965965,
+          "compiler": "gcc",
+          "created_at": "2026-08-11T18:05:30Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-09T18:04:58Z",
+          "internal_inventory": {
+            "entries_verified": 24,
+            "sha256sums_sha256": "fe5cbdc67b38b4c4eb715bf3d20ec4c0ee0370ee0c3d14b32769c814deee9d9e"
+          },
+          "job_id": 93877273618,
+          "name": "ml-dsa-44-resource-main-observation-79de77faf112453868779861ae0c982dba533f84-gcc-31520865906-1",
+          "report_status": "PASS",
+          "size_in_bytes": 529484
+        },
+        {
+          "archive_sha256": "04c5c3f1283851cb93e4b0488091f74719002500d916f0e404cd14ea72d1cf0d",
+          "artifact_id": 9112975963,
+          "compiler": "clang",
+          "created_at": "2026-08-11T18:05:49Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-09T18:04:58Z",
+          "internal_inventory": {
+            "entries_verified": 24,
+            "sha256sums_sha256": "7f191f29c64078fcb053838ae9a565a5e56493c438ada84122541525639103b1"
+          },
+          "job_id": 93877273789,
+          "name": "ml-dsa-44-resource-main-observation-79de77faf112453868779861ae0c982dba533f84-clang-31520865906-1",
+          "report_status": "PASS",
+          "size_in_bytes": 536442
+        }
+      ]
+    },
+    "review_reproduction": {
+      "artifact": {
+        "archive_sha256": "203e6252633f4477af8702e8363b391e59d8b1ae04140174b4b849443b6d91e7",
+        "artifact_id": 9114784945,
+        "created_at": "2026-08-11T19:00:22Z",
+        "expired_when_checked": false,
+        "expires_at": "2026-11-09T18:08:38Z",
+        "internal_inventory": {
+          "differential_report_entries_verified": 1,
+          "nested_entries_verified": 645,
+          "nested_sha256sums_sha256": "d0e5b49f299d98df998816ee446dfccb8888bc053b2814f4121d948cf32e5cd1",
+          "review_report_entries_verified": 1,
+          "supplemental_entries_verified": 4
+        },
+        "name": "ml-dsa-44-review-evidence-79de77faf112453868779861ae0c982dba533f84",
+        "size_in_bytes": 2278749
+      },
+      "campaign": {
+        "campaign_seconds": 1800,
+        "comparator_checks_passed": 13,
+        "coverage_floors_passed": true,
+        "crash_artifacts": 0,
+        "executed_units": 1675782,
+        "exact_replays_passed": 5,
+        "fuzzer_duration_seconds": 1801.174,
+        "imported_retained_seeds": 83,
+        "minimized_corpus": {
+          "aggregate_sha256": "6fa7de42acc6c1039726db37281cae558e9130fec285d4bc36596f53afcc6c13",
+          "file_count": 151,
+          "total_bytes": 539308
+        },
+        "minimized_crash_artifacts": 0,
+        "oracle_errors_or_disagreements": 0,
+        "promoted_replays_passed": 38,
+        "sanitizer_markers": 0,
+        "seed": 1456411982,
+        "status": "pass"
+      },
+      "event": "workflow_dispatch",
+      "fork_called": false,
+      "head_sha": "79de77faf112453868779861ae0c982dba533f84",
+      "job_id": 93878312509,
+      "path": ".github/workflows/ml-dsa-44-review-reproduction.yml",
+      "ref": "refs/heads/main",
+      "retained_source": {
+        "archive_sha256": "084d8b50ecbe83bc96e08241006f61da581cbc383f76b8b59c26ded93c3b5f9a",
+        "artifact_id": 9017830894,
+        "artifact_name": "ml-dsa-44-review-evidence-09798bc6b93a377460ce3db6b000af508a44df4a",
+        "created_at": "2026-08-08T06:22:34Z",
+        "evidence_sha256": "1eb7f8c3a11ae00294243cf18ea14015da5cc0daa22ff6cfe2c57093b907f689",
+        "expired_when_checked": false,
+        "expires_at": "2026-11-06T05:40:51Z",
+        "file_count": 155,
+        "head_sha": "09798bc6b93a377460ce3db6b000af508a44df4a",
+        "job_id": 93065001049,
+        "run_attempt": 1,
+        "run_id": 31242227782,
+        "size_in_bytes": 2262954,
+        "source_aggregate_sha256": "8b7f8b15a68f12834f7b1f4b12930cd81137cbba8d854939b23acd47fb8210b7",
+        "source_total_bytes": 552367
+      },
+      "run_attempt": 1,
+      "run_conclusion": "success",
+      "run_id": 31521183046,
+      "trust": {
+        "label": "frozen_baseline_reproduction",
+        "promotion_eligible": true
+      }
+    },
+    "sustained_fuzz": {
+      "artifacts": [
+        {
+          "archive_sha256": "f5b2c9c5ecc15dad3b358811b1c940f360700f7f52008b3459ee48cb2c6550b1",
+          "artifact_id": 9114206395,
+          "campaign": {
+            "campaign_seconds": 1800,
+            "crash_artifacts": 0,
+            "executed_units": 7665005,
+            "imported_retained_seeds": 121,
+            "minimized_files": 123,
+            "sanitizer": "asan-ubsan",
+            "status": "pass"
+          },
+          "created_at": "2026-08-11T18:42:46Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-09T18:08:37Z",
+          "internal_entries_verified": 730,
+          "job_id": 93878301950,
+          "name": "ml-dsa-44-sustained-asan-ubsan-31521182965-1",
+          "size_in_bytes": 1954943,
+          "target": "strict_verifier"
+        },
+        {
+          "archive_sha256": "337984327fff413245af69f7ba3c24b2efe228914bdf16bdb132df4b5738fc43",
+          "artifact_id": 9114166333,
+          "campaign": {
+            "campaign_seconds": 1800,
+            "crash_artifacts": 0,
+            "executed_units": 3012895,
+            "imported_retained_seeds": 76,
+            "minimized_files": 83,
+            "sanitizer": "msan",
+            "status": "pass"
+          },
+          "created_at": "2026-08-11T18:41:33Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-09T18:08:37Z",
+          "internal_entries_verified": 413,
+          "job_id": 93878301763,
+          "name": "ml-dsa-44-sustained-msan-31521182965-1",
+          "size_in_bytes": 1361596,
+          "target": "strict_verifier"
+        },
+        {
+          "archive_sha256": "8a1baaf6829639a789111a3f922905bfdd7f2a83a86323de9c60f6f35d34dbfa",
+          "artifact_id": 9114193229,
+          "campaign": {
+            "campaign_seconds": 1800,
+            "crash_artifacts": 0,
+            "deterministic_replays_passed": 31,
+            "executed_units": 105000,
+            "fuzzer_duration_seconds": 1801.122,
+            "imported_retained_seeds": 173,
+            "minimized_files": 261,
+            "sanitizer": "asan-ubsan",
+            "status": "pass"
+          },
+          "created_at": "2026-08-11T18:42:21Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-09T18:08:37Z",
+          "internal_entries_verified": 615,
+          "job_id": 93878301816,
+          "name": "ml-dsa-44-stateful-signer-asan-ubsan-31521182965-1",
+          "size_in_bytes": 535305,
+          "target": "stateful_signer"
+        },
+        {
+          "archive_sha256": "da444450bd0ffd5bcc05cd616d09709486c3336f5b4e32be9b4f9058eee00158",
+          "artifact_id": 9114163325,
+          "campaign": {
+            "campaign_seconds": 1800,
+            "crash_artifacts": 0,
+            "deterministic_replays_passed": 31,
+            "executed_units": 51813,
+            "fuzzer_duration_seconds": 1801.192,
+            "imported_retained_seeds": 130,
+            "minimized_files": 202,
+            "sanitizer": "msan",
+            "status": "pass"
+          },
+          "created_at": "2026-08-11T18:41:27Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-09T18:08:37Z",
+          "internal_entries_verified": 573,
+          "job_id": 93878301774,
+          "name": "ml-dsa-44-stateful-signer-msan-31521182965-1",
+          "size_in_bytes": 255403,
+          "target": "stateful_signer"
+        }
+      ],
+      "event": "workflow_dispatch",
+      "fork_called": false,
+      "head_sha": "79de77faf112453868779861ae0c982dba533f84",
+      "path": ".github/workflows/ml-dsa-44-sustained-fuzz.yml",
+      "ref": "refs/heads/main",
+      "run_attempt": 1,
+      "run_conclusion": "success",
+      "run_id": 31521182965,
+      "retained_sources": [
+        {
+          "archive_sha256": "2b452e202246dc535345c08e81d04a2f574f9f7b4566489f216872475325ece3",
+          "artifact_id": 9041821282,
+          "artifact_name": "ml-dsa-44-sustained-asan-ubsan-31326992450-1",
+          "created_at": "2026-08-09T17:41:10Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-07T17:39:49Z",
+          "head_sha": "60e259458d1029fa4193de878f14d41a0793042d",
+          "job_id": 93278831828,
+          "run_attempt": 1,
+          "run_id": 31326992450,
+          "size_in_bytes": 1665361,
+          "target": "strict_verifier_asan_ubsan"
+        },
+        {
+          "archive_sha256": "b176f1fa045c7cf863cdc7575cf36347c513603a3ace6e9e0ac427f6a64819e3",
+          "artifact_id": 9041821476,
+          "artifact_name": "ml-dsa-44-sustained-msan-31326992450-1",
+          "created_at": "2026-08-09T17:41:11Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-07T17:39:49Z",
+          "head_sha": "60e259458d1029fa4193de878f14d41a0793042d",
+          "job_id": 93278831817,
+          "run_attempt": 1,
+          "run_id": 31326992450,
+          "size_in_bytes": 1162337,
+          "target": "strict_verifier_msan"
+        },
+        {
+          "archive_sha256": "ba49c5e1a5d5a43596b9a5e03ee7c34326ece11c0be8a7f11fce15402c8c4311",
+          "artifact_id": 9041825317,
+          "artifact_name": "ml-dsa-44-stateful-signer-asan-ubsan-31326992450-1",
+          "created_at": "2026-08-09T17:41:32Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-07T17:39:49Z",
+          "head_sha": "60e259458d1029fa4193de878f14d41a0793042d",
+          "job_id": 93278831827,
+          "run_attempt": 1,
+          "run_id": 31326992450,
+          "size_in_bytes": 443236,
+          "target": "stateful_signer_asan_ubsan"
+        },
+        {
+          "archive_sha256": "0817924cdd3b48a9fb115a5ad7655c75a5d86c5729b335d15814b616bbb330fa",
+          "artifact_id": 9001097581,
+          "artifact_name": "ml-dsa-44-stateful-signer-msan-31196613458-1",
+          "created_at": "2026-08-07T16:16:17Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-05T16:14:32Z",
+          "head_sha": "626de11bca130e964933172928760056573704b5",
+          "job_id": 92926248136,
+          "run_attempt": 1,
+          "run_id": 31196613458,
+          "size_in_bytes": 160426,
+          "target": "stateful_signer_msan"
+        }
+      ],
+      "summary": {
+        "all_source_bindings_matched": true,
+        "all_relevant_coverage_floors_passed": true,
+        "crash_or_minimized_crash_artifacts": 0,
+        "disagreement_or_sanitizer_markers": 0,
+        "retained_provenance_verified": true
+      }
+    },
+    "wrapper_prototype": {
+      "artifacts": [
+        {
+          "archive_sha256": "1a1ea00f21d96a9480ae8161507d2ec8edcbff09d49506daa650f132d3349e65",
+          "artifact_id": 9114717228,
+          "created_at": "2026-08-11T18:58:15Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-09T18:08:37Z",
+          "internal_inventory": {
+            "entries_verified": 18,
+            "sha256sums_sha256": "47853db23e8940fb27541f6b594e9a1b986df1505af022b46d82e992f1505348"
+          },
+          "job_id": 93878301403,
+          "name": "ml-dsa-44-wrapper-static-analysis-79de77faf112453868779861ae0c982dba533f84-31521182969-1",
+          "size_in_bytes": 12286,
+          "type": "static_analysis"
+        },
+        {
+          "archive_sha256": "aeed83dc5e377aa2b79bc4fdc6ec9e70deaee705ecd9424d9dd5eb399e5278d1",
+          "artifact_id": 9113442292,
+          "created_at": "2026-08-11T18:19:56Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-09T18:08:37Z",
+          "internal_inventory": {
+            "entries_verified": 18,
+            "sha256sums_sha256": "b3eb0af0667b6e4d85bb113f024dd85292d739af752041e023a0490778fa099b"
+          },
+          "job_id": 93878301494,
+          "name": "ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-79de77faf112453868779861ae0c982dba533f84-31521182969-1",
+          "size_in_bytes": 124298,
+          "type": "valgrind_clang20"
+        },
+        {
+          "archive_sha256": "1db38123fa59ee0a0c0284163f8ce415abe7492143faf7604e3ef6c411c4deb7",
+          "artifact_id": 9113457751,
+          "created_at": "2026-08-11T18:20:24Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-09T18:08:37Z",
+          "internal_inventory": {
+            "entries_verified": 18,
+            "sha256sums_sha256": "173131fee2cc10fb07aa27116bf19ae1fa395e0a03c1fe9749f96ad087ce8e3e"
+          },
+          "job_id": 93878301604,
+          "name": "ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_gcc13-79de77faf112453868779861ae0c982dba533f84-31521182969-1",
+          "size_in_bytes": 114917,
+          "type": "valgrind_gcc13"
+        }
+      ],
+      "direct_lifecycle_observation": {
+        "assertions": [
+          "at-fork prepare waits for an in-flight signing critical section",
+          "child sign and verify succeeds under a watchdog",
+          "parent sign and verify succeeds under a watchdog",
+          "unavailable lifecycle readiness returns PQBTC_MLDSA44_ERR_FORK_LIFECYCLE",
+          "lifecycle-readiness failure clears the signature output"
+        ],
+        "portable_jobs": [
+          {
+            "compiler": "clang",
+            "job_id": 93878301462,
+            "normal": "pass",
+            "sanitizer": "asan-ubsan",
+            "sanitized": "pass"
+          },
+          {
+            "compiler": "gcc",
+            "job_id": 93878301523,
+            "normal": "pass",
+            "sanitizer": "asan-ubsan",
+            "sanitized": "pass"
+          }
+        ],
+        "registration_failure_kind": "deterministic readiness-failure injection, not an observed OS pthread_atfork failure"
+      },
+      "event": "workflow_dispatch",
+      "fork_called": true,
+      "head_sha": "79de77faf112453868779861ae0c982dba533f84",
+      "path": ".github/workflows/ml-dsa-44-wrapper-prototype.yml",
+      "ref": "refs/heads/main",
+      "run_attempt": 1,
+      "run_conclusion": "success",
+      "run_id": 31521182969
+    }
+  }
+}

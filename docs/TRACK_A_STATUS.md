@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-07-27
+## Updated: 2026-08-11
 ## Current Phase: Phase 1 - Cryptographic Production Hold
 
 ## Purpose
@@ -200,6 +200,45 @@ This promotes test evidence only: the current path remains portable,
 remains open for exact-commit independent re-review under issue `#181`, and the
 release hold is unchanged.
 
+PR `#221` landed explicit fork-lifecycle handling for the isolated ML-DSA-44
+wrapper at merge commit `60e259458d1029fa4193de878f14d41a0793042d`.
+PR `#222` then advanced the frozen review pointer and merged at exact protected
+main head `79de77faf112453868779861ae0c982dba533f84`. The pointer-only merge
+left both guarded input diffs empty. Automatic protected-main push run
+`31520865906`, attempt `1`, produced independently verified GCC and Clang
+`TRUSTED_MAIN_OBSERVATION` resource artifacts at that exact head. Both passed,
+while `promotion_eligible` remained false because numeric resource limits are
+still unset and require a separate reviewed policy change.
+
+Main-dispatched wrapper run `31521182969`, attempt `1`, directly executed the
+deterministic held-lock standard `fork()` regression and fail-closed lifecycle
+readiness control in normal and ASan/UBSan builds under both GCC and Clang.
+All five wrapper jobs passed, including the pinned static-analysis and
+Valgrind lanes, and every retained artifact digest and internal checksum was
+independently verified. This is a tested Ubuntu/Linux module-lock observation,
+not portable multithreaded-child signing support.
+
+Exact-head sustained run `31521182965`, attempt `1`, completed four retained-
+corpus 1,800-second campaigns: strict verification and stateful signing under
+ASan/UBSan and MSan. All imported retained seeds, exact-head source bindings,
+deterministic replays, and checksum inventories verified; crash and minimized-
+crash counts were zero. Frozen-baseline review run `31521183046`, attempt `1`,
+completed 1,675,782 differential executions over 1,801.174 fuzzer seconds,
+imported 83 retained seeds, passed all exact and promoted replays and coverage
+floors, and recorded zero crash, sanitizer, oracle-error, or disagreement
+markers. Those sustained and differential campaigns bind and exercise the
+fork-modified sources but do not themselves call `fork()`.
+
+The versioned
+[exact-main evidence receipt](reviews/evidence/ml-dsa-44-trusted-main/79de77faf112453868779861ae0c982dba533f84/SOURCE.json)
+records the workflow, job, artifact, digest, expiry, retained-source, campaign,
+and claim-boundary fields needed to audit this tranche after hosted artifacts
+expire.
+
+This evidence is an internal engineering tranche, not external cryptographic
+review or production approval. Issue `#184` remains open, production remains
+`NONE`, and `RELEASE_HOLD` remains in force.
+
 Keep the live `pq_required` gate aligned with the repo as it exists today. PR
 `#163` closed the initial inventory tranche at `pq_required: 120`,
 `pq_backlog: 0`, `legacy_only: 14`, and `dual_profile: 142`. Promotion Matrix
@@ -263,27 +302,19 @@ tracked suites now have an explicit policy class and none remains in
 
 Active owned tranche:
 
-1. Land the bounded direct-verifier resource-envelope observation lane under
-   `#188`
-   - call only `pqbtc_mldsa44_verify_strict` from the production-shaped
-     portable-C build on Linux x86_64
-   - run four separately accounted 4,287-call batches covering rotating mixed
-     inputs, valid inputs, deep rejects, and a same-public-key set containing
-     four required accepts plus five deep rejects that retain the frozen key
-   - execute on a 128 KiB guarded pthread stack, require zero instrumented
-     project heap calls, retain compiler-specific `.su` observations, and
-     preserve raw timing samples
-   - label pull-request output `UNTRUSTED_PR_OBSERVATION`; require a separate
-     reviewed baseline-pointer update and exact clean protected-main push
-     `TRUSTED_MAIN_OBSERVATION` before any evidence is trusted
-   - keep manual dispatches diagnostic and untrusted
-   - keep each single-compiler artifact non-promotable; require both exact-head
-     GCC and Clang artifacts plus external GitHub Actions provenance before a
-     later policy review
-   - leave numeric CPU, wall-time, and RSS acceptance unset until a later
-     reviewed policy change evaluates that trusted-main observation
-   - treat 4,287 calls as a research workload only, not a consensus, block,
-     transaction, mempool, or production limit
+1. Evaluate the completed exact-main resource observations under `#188` before
+   defining any numeric policy
+   - retain protected-main push run `31520865906` at
+     `79de77faf112453868779861ae0c982dba533f84` as the exact-head GCC and Clang
+     `TRUSTED_MAIN_OBSERVATION` pair
+   - keep each compiler artifact non-promotion-eligible; the observations are
+     measurements, not acceptance thresholds
+   - define CPU, wall-time, RSS, stack, allocation, and adversarial-batch
+     limits only in a separate reviewed policy change that states the target
+     platform and workload model
+   - treat the four 4,287-call batches as research workloads only, not a
+     consensus, block, transaction, mempool, or production limit
+   - preserve broader-platform and exact-commit re-review requirements
    - keep production at `NONE` and `RELEASE_HOLD`; this tranche authorizes no
      SIMD256 admission or consensus, wallet, Script, `ALG_ID`, or
      inventory-policy change, and issues `#188` and `#181` remain open
@@ -350,7 +381,12 @@ Cryptography implementation lane:
    implements that target; production remains `NONE`. Status remains
    `AWAITING_EXTERNAL_REVIEW`; a qualifying independent-human re-review and
    supported-platform worst-case measurements remain required. Script and
-   wallet integration remain out of scope.
+   wallet integration remain out of scope. PR `#221` adds bounded explicit
+   standard-fork module-lock recovery, PR `#222` anchors it to the frozen
+   baseline, and exact-head runs `31520865906`, `31521182969`, `31521182965`,
+   and `31521183046` supply the associated resource, direct lifecycle,
+   retained-corpus, and differential observations. Those results do not close
+   issue `#184`, establish portable child signing, or change the hold.
 
 
 ## Historical Queue Ledger
@@ -1843,6 +1879,23 @@ Aineko must ask before:
 
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
+
+- 2026-08-11: PR `#221` landed the isolated wrapper's explicit fork-lifecycle
+  handling at `60e259458d1029fa4193de878f14d41a0793042d`; PR `#222` advanced
+  the frozen pointer and produced exact protected-main evidence head
+  `79de77faf112453868779861ae0c982dba533f84`. Automatic resource run
+  `31520865906` produced the independently verified GCC and Clang
+  `TRUSTED_MAIN_OBSERVATION` pair. Wrapper run `31521182969` directly passed
+  the held-lock standard-fork and fail-closed lifecycle controls under GCC and
+  Clang in normal and ASan/UBSan modes. Sustained run `31521182965` and frozen
+  review run `31521183046` completed their retained-corpus 1,800-second lanes
+  with nonzero imports, exact-source bindings, passing replays and coverage,
+  and zero crashes or disagreements; those campaigns do not call `fork()`.
+  The direct result is limited to tested-platform module-lock recovery and is
+  not portable multithreaded-child signing support. Numeric resource policy,
+  broader lifecycle/platform evidence, and exact-commit independent review
+  remain open. Production remains `NONE`, issue `#184` remains open, and
+  `RELEASE_HOLD` remains in force.
 
 - 2026-07-27: The next bounded issue-`#188` tranche defines a test-only Linux
   x86_64 observation lane that calls `pqbtc_mldsa44_verify_strict` directly.
