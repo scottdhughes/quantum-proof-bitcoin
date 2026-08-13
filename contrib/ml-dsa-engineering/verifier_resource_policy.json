@@ -1,6 +1,6 @@
 {
-  "schema_version": 1,
-  "phase": "TRUSTED_MAIN_OBSERVATION_REQUIRED",
+  "schema_version": 2,
+  "phase": "PLATFORM_SCOPED_NUMERIC_ACCEPTANCE",
   "target": "pqbtc_mldsa44_verify_strict",
   "profile": {
     "system": "Linux",
@@ -67,10 +67,73 @@
     "wall_watchdog_seconds": 180
   },
   "acceptance_limits": {
-    "cpu_seconds": null,
-    "wall_seconds": null,
-    "peak_rss_kib": null,
-    "status": "UNSET_PENDING_SEPARATE_REVIEW_OF_TRUSTED_MAIN_OBSERVATION"
+    "aggregation": "first_call_plus_four_batches_control_excluded",
+    "aggregate_cpu_ns": 8000000000,
+    "aggregate_wall_ns": 20000000000,
+    "first_call_cpu_ns": 10000000,
+    "first_call_wall_ns": 25000000,
+    "batch_sample_cpu_ns": 75000000,
+    "batch_sample_wall_ns": 200000000,
+    "per_batch_cpu_ns": 2000000000,
+    "per_batch_wall_ns": 5000000000,
+    "peak_rss_kib": 65536,
+    "status": "ENFORCED_TEST_ONLY_LINUX_X86_64_GROSS_REGRESSION_CEILING"
+  },
+  "acceptance_basis": {
+    "repository_head": "79de77faf112453868779861ae0c982dba533f84",
+    "workflow_run_id": 31520865906,
+    "run_attempt": 1,
+    "event_name": "push",
+    "ref": "refs/heads/main",
+    "trust_label": "TRUSTED_MAIN_OBSERVATION",
+    "measurement_policy_sha256": "24813510a2fdd13e3496e2f24f557a89ff0bde408296839243346f978228bb9f",
+    "runner_image": "ubuntu-24.04",
+    "runner_image_version": "20260720.247.2",
+    "internal_checksum_entries_per_artifact": 24,
+    "internal_checksums_verified": true,
+    "compiler_observations": [
+      {
+        "compiler": "gcc",
+        "workflow_job_id": 93877273618,
+        "artifact_id": 9112965965,
+        "archive_sha256": "74063a8817bce33541d89bc655e10593507261b22ed60e99f75b7d48ae9af5a2",
+        "report_sha256": "9f3ef1593f25a1b06d831d3bf5e810c4638a96b22429acd1af88a7679129b951",
+        "observation_sha256": "276a4d372fb9cd7f4916554f0640e915e52f18e2fe65c06b8c50186299a15151",
+        "compiler_target": "x86_64-linux-gnu",
+        "compiler_version_sha256": "ae487f55927d605284a32711e4ecf6bc3be2bcd5a9de414ace0936264b741f85",
+        "aggregate_cpu_ns": 1745285419,
+        "aggregate_wall_ns": 1745703669,
+        "maximum_batch_sample_cpu_ns": 18118075,
+        "maximum_batch_sample_wall_ns": 18120405,
+        "maximum_batch_total_cpu_ns": 477925971,
+        "maximum_batch_total_wall_ns": 478016869,
+        "first_call_cpu_ns": 128491,
+        "first_call_wall_ns": 129946,
+        "peak_rss_kib": 31324
+      },
+      {
+        "compiler": "clang",
+        "workflow_job_id": 93877273789,
+        "artifact_id": 9112975963,
+        "archive_sha256": "04c5c3f1283851cb93e4b0488091f74719002500d916f0e404cd14ea72d1cf0d",
+        "report_sha256": "e56bfb73061ef23f21a0162971c136e954e843a52b6e0c04c18a1d88de9a73c3",
+        "observation_sha256": "f2e4ca2758462eb59098f4bdb901261c3d61bfab0626f2506a7644b31f049661",
+        "compiler_target": "x86_64-pc-linux-gnu",
+        "compiler_version_sha256": "d5488a2e583e2cbd3f61386073b6c38a24a2bf4d45f3b6b6ac048b541121d804",
+        "aggregate_cpu_ns": 1322763220,
+        "aggregate_wall_ns": 1323098533,
+        "maximum_batch_sample_cpu_ns": 12908183,
+        "maximum_batch_sample_wall_ns": 12909303,
+        "maximum_batch_total_cpu_ns": 367278831,
+        "maximum_batch_total_wall_ns": 367373156,
+        "first_call_cpu_ns": 107420,
+        "first_call_wall_ns": 108755,
+        "peak_rss_kib": 31216
+      }
+    ],
+    "aggregation": "first call plus four verifier batches; separately reported control loop excluded",
+    "derivation": "coarse upper regression ceilings selected by separate review of both exact-head compiler observations; not percentile, consensus, supported-platform, or production limits",
+    "additional_samples_required_before_tightening": 2
   },
   "stack_evidence": {
     "upstream_mld_total_alloc_44_verify_bytes": 24448,
@@ -87,7 +150,7 @@
       "clang",
       "gcc"
     ],
-    "requires_separate_policy_change": true,
+    "requires_separate_policy_change": false,
     "pull_request_evidence": "UNTRUSTED_PR_OBSERVATION",
     "trusted_main_evidence": "TRUSTED_MAIN_OBSERVATION",
     "timing_threshold_bootstrap_forbidden": true

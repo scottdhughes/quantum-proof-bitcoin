@@ -327,17 +327,35 @@ libraries.
 
 The four batches retain raw timing samples and untimed-loop control samples.
 The evidence validator recomputes descriptive summaries from the raw integer
-samples without subtracting the controls. Numeric CPU, wall-time, and RSS
-acceptance values remain unset until a separately reviewed trusted-main
-observation exists. Pull-request output is labeled
-`UNTRUSTED_PR_OBSERVATION`; the candidate workflow and baseline must first
-merge, then a separate reviewed baseline-pointer change must authorize an
-exact clean protected-main push `TRUSTED_MAIN_OBSERVATION`; manual dispatches
-remain diagnostic and untrusted. A later policy change may freeze numeric
-acceptance thresholds. Each GCC or Clang job remains
-`promotion_eligible=false`: promotion requires both exact-head compiler
-artifacts, externally verified GitHub Actions run/artifact provenance, and
-that separate policy review.
+samples without subtracting the controls. The control loop remains reported
+but is excluded from numeric verifier aggregation. Policy schema `2` freezes
+coarse test-only Linux x86_64 gross-regression ceilings: `2,000,000,000` CPU
+nanoseconds and `5,000,000,000` wall nanoseconds per 4,287-call batch;
+`8,000,000,000` CPU nanoseconds and `20,000,000,000` wall nanoseconds across
+the first call plus all four batches; `10,000,000` / `25,000,000` CPU/wall
+nanoseconds for the first call; `75,000,000` / `200,000,000` CPU/wall
+nanoseconds for any retained verifier-batch sample; and `65,536` KiB process peak RSS. The
+existing exact 128 KiB pthread stack, guard-page, and zero instrumented project-
+heap-call requirements remain independently enforced.
+
+Those ceilings were selected in a separate review of protected-main push run
+`31520865906`, attempt `1`, at
+`79de77faf112453868779861ae0c982dba533f84`. Its independently checksum-
+verified GCC and Clang artifacts are bound into the policy, including exact
+compiler targets and version-output hashes. The 31 raw samples partition one
+batch execution; they are not 31 independent batch repetitions and do not
+support percentile or confidence-interval claims. At least two more
+independent protected-main samples per compiler are required before tightening
+the ceilings. Numeric rejection preserves a checksummed raw observation and a
+recomputable `FAIL` receipt while the workflow job remains failed.
+
+Pull-request output remains `UNTRUSTED_PR_OBSERVATION`; the policy change must
+first merge, then a separate reviewed baseline-pointer change must authorize
+an exact clean protected-main push `TRUSTED_MAIN_OBSERVATION`. Manual
+dispatches remain diagnostic and untrusted. Each GCC or Clang artifact remains
+`promotion_eligible=false`; completing this bounded evidence tranche requires
+both exact-head compiler artifacts and independent verification of their
+GitHub Actions provenance, archive digests, and internal checksums.
 
 Retained build-command argv replaces only exact repository and ephemeral
 build-path components with reserved `$REPO_ROOT` and `$BUILD_DIR`
@@ -348,7 +366,8 @@ exact-commit checkout without weakening its build-command binding.
 
 This lane observes one production-shaped portable-C verifier configuration;
 it does not link a production backend or establish a supported-platform
-resource envelope. Issue `#188` remains open for trusted-main evidence,
-reviewed numeric limits, broader platforms, and exact-commit re-review. Issue
-`#181` remains open for qualified independent review. The production backend
-remains `NONE`, SIMD256 remains unadmitted, and the release hold remains true.
+resource envelope. Issue `#188` remains open for fresh policy-enforced
+trusted-main evidence, broader platforms and toolchains, concurrency and
+production-parser limits, and exact-commit re-review. Issue `#181` remains
+open for qualified independent review. The production backend remains `NONE`,
+SIMD256 remains unadmitted, and the release hold remains true.

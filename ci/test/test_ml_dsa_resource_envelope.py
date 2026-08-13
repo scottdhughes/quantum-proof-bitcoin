@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -68,10 +69,10 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
         ):
             self.assertTrue(path.is_file(), path)
 
-    def test_policy_freezes_observation_without_bootstrapping_acceptance(self):
+    def test_policy_freezes_separately_reviewed_numeric_acceptance(self):
         policy = json.loads(RESOURCE_POLICY.read_text(encoding="utf8"))
-        self.assertEqual(policy["schema_version"], 1)
-        self.assertEqual(policy["phase"], "TRUSTED_MAIN_OBSERVATION_REQUIRED")
+        self.assertEqual(policy["schema_version"], 2)
+        self.assertEqual(policy["phase"], "PLATFORM_SCOPED_NUMERIC_ACCEPTANCE")
         self.assertEqual(policy["target"], "pqbtc_mldsa44_verify_strict")
         self.assertEqual(
             policy["profile"],
@@ -145,13 +146,96 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
         self.assertEqual(limits["wall_watchdog_seconds"], 180)
 
         acceptance = policy["acceptance_limits"]
-        self.assertIsNone(acceptance["cpu_seconds"])
-        self.assertIsNone(acceptance["wall_seconds"])
-        self.assertIsNone(acceptance["peak_rss_kib"])
         self.assertEqual(
-            acceptance["status"],
-            "UNSET_PENDING_SEPARATE_REVIEW_OF_TRUSTED_MAIN_OBSERVATION",
+            acceptance,
+            {
+                "aggregation": "first_call_plus_four_batches_control_excluded",
+                "aggregate_cpu_ns": 8_000_000_000,
+                "aggregate_wall_ns": 20_000_000_000,
+                "first_call_cpu_ns": 10_000_000,
+                "first_call_wall_ns": 25_000_000,
+                "batch_sample_cpu_ns": 75_000_000,
+                "batch_sample_wall_ns": 200_000_000,
+                "per_batch_cpu_ns": 2_000_000_000,
+                "per_batch_wall_ns": 5_000_000_000,
+                "peak_rss_kib": 65_536,
+                "status": (
+                    "ENFORCED_TEST_ONLY_LINUX_X86_64_"
+                    "GROSS_REGRESSION_CEILING"
+                ),
+            },
         )
+        basis = policy["acceptance_basis"]
+        self.assertEqual(
+            basis["repository_head"],
+            "79de77faf112453868779861ae0c982dba533f84",
+        )
+        self.assertEqual(basis["workflow_run_id"], 31520865906)
+        self.assertEqual(basis["run_attempt"], 1)
+        self.assertEqual(basis["event_name"], "push")
+        self.assertEqual(basis["ref"], "refs/heads/main")
+        self.assertEqual(basis["trust_label"], "TRUSTED_MAIN_OBSERVATION")
+        self.assertEqual(basis["internal_checksum_entries_per_artifact"], 24)
+        self.assertTrue(basis["internal_checksums_verified"])
+        self.assertEqual(basis["additional_samples_required_before_tightening"], 2)
+        observations = basis["compiler_observations"]
+        self.assertEqual([item["compiler"] for item in observations], ["gcc", "clang"])
+        self.assertEqual(
+            [item["workflow_job_id"] for item in observations],
+            [93877273618, 93877273789],
+        )
+        self.assertEqual(
+            [item["artifact_id"] for item in observations],
+            [9112965965, 9112975963],
+        )
+        self.assertEqual(
+            [item["archive_sha256"] for item in observations],
+            [
+                "74063a8817bce33541d89bc655e10593507261b22ed60e99f75b7d48ae9af5a2",
+                "04c5c3f1283851cb93e4b0488091f74719002500d916f0e404cd14ea72d1cf0d",
+            ],
+        )
+        self.assertEqual(
+            [item["aggregate_cpu_ns"] for item in observations],
+            [1_745_285_419, 1_322_763_220],
+        )
+        self.assertEqual(
+            [item["aggregate_wall_ns"] for item in observations],
+            [1_745_703_669, 1_323_098_533],
+        )
+        for item in observations:
+            for field in (
+                "archive_sha256",
+                "report_sha256",
+                "observation_sha256",
+                "compiler_version_sha256",
+            ):
+                self.assertRegex(item[field], r"^[0-9a-f]{64}$")
+            self.assertLess(item["aggregate_cpu_ns"], acceptance["aggregate_cpu_ns"])
+            self.assertLess(item["aggregate_wall_ns"], acceptance["aggregate_wall_ns"])
+            self.assertLess(
+                item["first_call_cpu_ns"], acceptance["first_call_cpu_ns"]
+            )
+            self.assertLess(
+                item["first_call_wall_ns"], acceptance["first_call_wall_ns"]
+            )
+            self.assertLess(
+                item["maximum_batch_sample_cpu_ns"],
+                acceptance["batch_sample_cpu_ns"],
+            )
+            self.assertLess(
+                item["maximum_batch_sample_wall_ns"],
+                acceptance["batch_sample_wall_ns"],
+            )
+            self.assertLess(
+                item["maximum_batch_total_cpu_ns"],
+                acceptance["per_batch_cpu_ns"],
+            )
+            self.assertLess(
+                item["maximum_batch_total_wall_ns"],
+                acceptance["per_batch_wall_ns"],
+            )
+            self.assertLess(item["peak_rss_kib"], acceptance["peak_rss_kib"])
         stack = policy["stack_evidence"]
         self.assertEqual(
             stack["upstream_mld_total_alloc_44_verify_bytes"],
@@ -169,7 +253,7 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
             ".su values are not summed into a formal call-chain bound",
             stack["call_chain_claim"],
         )
-        self.assertTrue(policy["promotion"]["requires_separate_policy_change"])
+        self.assertFalse(policy["promotion"]["requires_separate_policy_change"])
         self.assertTrue(policy["promotion"]["requires_trusted_main_push"])
         self.assertEqual(
             policy["promotion"]["requires_both_compilers"],
@@ -203,7 +287,7 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
                 "inputs",
             },
         )
-        self.assertEqual(plan["schema_version"], 1)
+        self.assertEqual(plan["schema_version"], 2)
         self.assertEqual(plan["target"], "pqbtc_mldsa44_verify_strict")
         self.assertEqual(plan["host"], {"machine": "x86_64", "system": "Linux"})
         self.assertEqual(plan["policy"], policy)
@@ -250,7 +334,8 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
                 "cpu_clock": "CLOCK_THREAD_CPUTIME_ID",
                 "control_loop": "reported separately and never subtracted",
                 "numeric_acceptance": (
-                    "unset pending a separate review of trusted main observations"
+                    "separately reviewed test-only Linux x86_64 gross-regression "
+                    "ceilings; current-run calibration forbidden"
                 ),
             },
         )
@@ -264,15 +349,45 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
         self.assertEqual(limits["wall_watchdog_seconds"], 180)
         self.assertEqual(limits["project_heap_calls"], 0)
         acceptance = plan["policy"]["acceptance_limits"]
-        self.assertIsNone(acceptance["cpu_seconds"])
-        self.assertIsNone(acceptance["wall_seconds"])
-        self.assertIsNone(acceptance["peak_rss_kib"])
+        self.assertEqual(acceptance, self.resource["EXPECTED_ACCEPTANCE_LIMITS"])
         scope = plan["policy"]["scope"]
         self.assertTrue(scope["isolated_test_only"])
         self.assertFalse(scope["production_integration"])
         self.assertEqual(scope["production_backend"], "NONE")
         self.assertFalse(scope["simd256_admitted"])
         self.assertTrue(scope["release_hold"])
+
+    def test_compiler_identity_is_bound_to_reviewed_observations(self):
+        policy = self.resource["load_policy"]()
+        validate = self.resource["validate_compiler_identity"]
+        error = self.resource["ResourceEnvelopeError"]
+        for expected in policy["acceptance_basis"]["compiler_observations"]:
+            with self.subTest(compiler=expected["compiler"]):
+                self.assertEqual(
+                    validate(
+                        policy,
+                        expected["compiler"],
+                        expected["compiler_target"],
+                        expected["compiler_version_sha256"],
+                    ),
+                    expected,
+                )
+                with self.assertRaises(error):
+                    validate(
+                        policy,
+                        expected["compiler"],
+                        expected["compiler_target"] + "-drift",
+                        expected["compiler_version_sha256"],
+                    )
+                with self.assertRaises(error):
+                    validate(
+                        policy,
+                        expected["compiler"],
+                        expected["compiler_target"],
+                        "0" * 64,
+                    )
+        with self.assertRaises(error):
+            validate(policy, "cc", "x86_64-linux-gnu", "0" * 64)
 
     def test_probe_targets_only_the_direct_production_verifier(self):
         source = RESOURCE_PROBE.read_text(encoding="utf8")
@@ -418,6 +533,12 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
             validated["completed_calls"],
             1 + len(BATCH_IDS) * 4287,
         )
+        receipt = validated["numeric_acceptance"]
+        self.assertEqual(receipt["status"], "PASS")
+        self.assertFalse(receipt["current_run_threshold_calibration"])
+        self.assertEqual(len(receipt["checks"]), 21)
+        self.assertEqual(receipt["observed"]["aggregate"]["cpu_ns"], 1985)
+        self.assertEqual(receipt["observed"]["aggregate"]["wall_ns"], 1985)
 
         mutations = [
             ("heap", lambda item: item["heap_calls"].update(malloc=1)),
@@ -436,20 +557,8 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
             ),
             ("extra", lambda item: item.update(unexpected=True)),
             (
-                "rss_cap",
-                lambda item: item.update(peak_rss_kib=262145),
-            ),
-            (
-                "wall_cap",
-                lambda item: item["batches"][0].update(
-                    wall_samples_ns=[6_000_000_000] * 31
-                ),
-            ),
-            (
-                "cpu_cap",
-                lambda item: item["batches"][0].update(
-                    cpu_samples_ns=[4_000_000_000] * 31
-                ),
+                "rss_policy",
+                lambda item: item.update(peak_rss_kib=65_537),
             ),
         ]
         for label, mutate in mutations:
@@ -458,6 +567,135 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
                 mutate(invalid)
                 with self.assertRaises(error):
                     validate(invalid, plan)
+
+    def test_numeric_acceptance_boundaries_and_control_exclusion(self):
+        plan = load_resource_plan()
+        validate = self.resource["validate_probe_observation"]
+        numeric_error = self.resource["NumericAcceptanceError"]
+
+        def set_total(observation, batch_index, field, total):
+            observation["batches"][batch_index][field] = self._samples_for_total(
+                total
+            )
+
+        def check(receipt, check_id):
+            return next(item for item in receipt["checks"] if item["id"] == check_id)
+
+        exact = self._synthetic_observation()
+        exact["first_call"]["cpu_ns"] = 10_000_000
+        receipt = validate(exact, plan)["numeric_acceptance"]
+        self.assertEqual(check(receipt, "first_call.cpu_ns")["observed"], 10_000_000)
+        over = deepcopy(exact)
+        over["first_call"]["cpu_ns"] += 1
+        with self.assertRaises(numeric_error):
+            validate(over, plan)
+
+        exact = self._synthetic_observation()
+        exact["first_call"]["wall_ns"] = 25_000_000
+        receipt = validate(exact, plan)["numeric_acceptance"]
+        self.assertEqual(
+            check(receipt, "first_call.wall_ns")["observed"], 25_000_000
+        )
+        over = deepcopy(exact)
+        over["first_call"]["wall_ns"] += 1
+        with self.assertRaises(numeric_error):
+            validate(over, plan)
+
+        exact = self._synthetic_observation()
+        exact["batches"][0]["cpu_samples_ns"][0] = 75_000_000
+        receipt = validate(exact, plan)["numeric_acceptance"]
+        self.assertEqual(
+            check(receipt, "mixed_rotating.max_sample_cpu_ns")["observed"],
+            75_000_000,
+        )
+        over = deepcopy(exact)
+        over["batches"][0]["cpu_samples_ns"][0] += 1
+        with self.assertRaises(numeric_error):
+            validate(over, plan)
+
+        exact = self._synthetic_observation()
+        exact["batches"][0]["wall_samples_ns"][0] = 200_000_000
+        receipt = validate(exact, plan)["numeric_acceptance"]
+        self.assertEqual(
+            check(receipt, "mixed_rotating.max_sample_wall_ns")["observed"],
+            200_000_000,
+        )
+        over = deepcopy(exact)
+        over["batches"][0]["wall_samples_ns"][0] += 1
+        with self.assertRaises(numeric_error):
+            validate(over, plan)
+
+        exact = self._synthetic_observation()
+        set_total(exact, 0, "cpu_samples_ns", 2_000_000_000)
+        receipt = validate(exact, plan)["numeric_acceptance"]
+        self.assertEqual(receipt["status"], "PASS")
+        self.assertEqual(
+            check(receipt, "mixed_rotating.cpu_ns")["observed"], 2_000_000_000
+        )
+        over = deepcopy(exact)
+        set_total(over, 0, "cpu_samples_ns", 2_000_000_001)
+        with self.assertRaises(numeric_error):
+            validate(over, plan)
+
+        exact = self._synthetic_observation()
+        set_total(exact, 0, "wall_samples_ns", 5_000_000_000)
+        receipt = validate(exact, plan)["numeric_acceptance"]
+        self.assertEqual(
+            check(receipt, "mixed_rotating.wall_ns")["observed"], 5_000_000_000
+        )
+        over = deepcopy(exact)
+        set_total(over, 0, "wall_samples_ns", 5_000_000_001)
+        with self.assertRaises(numeric_error):
+            validate(over, plan)
+
+        exact = self._synthetic_observation()
+        for index, total in enumerate(
+            (2_000_000_000, 2_000_000_000, 2_000_000_000, 1_999_999_999)
+        ):
+            set_total(exact, index, "cpu_samples_ns", total)
+        receipt = validate(exact, plan)["numeric_acceptance"]
+        self.assertEqual(
+            receipt["observed"]["aggregate"]["cpu_ns"], 8_000_000_000
+        )
+        over = deepcopy(exact)
+        over["first_call"]["cpu_ns"] = 2
+        with self.assertRaises(numeric_error):
+            validate(over, plan)
+
+        exact = self._synthetic_observation()
+        for index, total in enumerate(
+            (5_000_000_000, 5_000_000_000, 5_000_000_000, 4_999_999_999)
+        ):
+            set_total(exact, index, "wall_samples_ns", total)
+        receipt = validate(exact, plan)["numeric_acceptance"]
+        self.assertEqual(
+            receipt["observed"]["aggregate"]["wall_ns"], 20_000_000_000
+        )
+        over = deepcopy(exact)
+        over["first_call"]["wall_ns"] = 2
+        with self.assertRaises(numeric_error):
+            validate(over, plan)
+
+        exact = self._synthetic_observation()
+        exact["peak_rss_kib"] = 65_536
+        receipt = validate(exact, plan)["numeric_acceptance"]
+        self.assertEqual(receipt["observed"]["peak_rss_kib"], 65_536)
+        over = deepcopy(exact)
+        over["peak_rss_kib"] = 65_537
+        with self.assertRaises(numeric_error):
+            validate(over, plan)
+
+        control_only = self._synthetic_observation()
+        control_only["control"]["cpu_samples_ns"] = self._samples_for_total(
+            30_000_000_000
+        )
+        control_only["control"]["wall_samples_ns"] = self._samples_for_total(
+            30_000_000_000
+        )
+        receipt = validate(control_only, plan)["numeric_acceptance"]
+        self.assertEqual(receipt["status"], "PASS")
+        self.assertEqual(receipt["observed"]["aggregate"]["cpu_ns"], 1985)
+        self.assertEqual(receipt["observed"]["excluded_control"]["cpu_ns"], 30_000_000_000)
 
     def test_evidence_verifier_rejects_checksum_tamper_and_symlinks(self):
         make_fixture = self.resource["write_test_evidence_fixture"]
@@ -468,6 +706,56 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
             evidence = root / "evidence"
             make_fixture(evidence, self._synthetic_observation())
             verify(evidence)
+
+            spoofed = root / "spoofed-incomplete"
+            make_fixture(spoofed, self._synthetic_observation())
+            spoofed_report_path = spoofed / self.resource["REPORT_FILE"]
+            spoofed_report = json.loads(
+                spoofed_report_path.read_text(encoding="utf8")
+            )
+            spoofed_report["trust"] = {
+                "label": "TRUSTED_MAIN_OBSERVATION",
+                "trusted_observation": True,
+                "promotion_eligible": True,
+            }
+            spoofed_report_path.write_text(
+                self.resource["canonical_json"](spoofed_report), encoding="utf8"
+            )
+            (spoofed / self.resource["CHECKSUM_FILE"]).unlink()
+            self.resource["write_evidence_hashes"](spoofed)
+            with self.assertRaises(error):
+                verify(spoofed)
+
+            extra = root / "extra-incomplete"
+            make_fixture(extra, self._synthetic_observation())
+            (extra / self.resource["HOST_FILE"]).write_text("{}\n", encoding="utf8")
+            (extra / self.resource["CHECKSUM_FILE"]).unlink()
+            self.resource["write_evidence_hashes"](extra)
+            with self.assertRaises(error):
+                verify(extra)
+
+            missing = root / "missing-incomplete"
+            make_fixture(missing, self._synthetic_observation())
+            missing_report_path = missing / self.resource["REPORT_FILE"]
+            missing_report = json.loads(
+                missing_report_path.read_text(encoding="utf8")
+            )
+            missing_report["observation_sha256"] = None
+            missing_report["timing_summaries"] = None
+            missing_report["numeric_acceptance"] = None
+            missing_report["trust"] = {
+                "label": "TRUSTED_MAIN_OBSERVATION",
+                "trusted_observation": True,
+                "promotion_eligible": True,
+            }
+            missing_report_path.write_text(
+                self.resource["canonical_json"](missing_report), encoding="utf8"
+            )
+            (missing / self.resource["OBSERVATION_FILE"]).unlink()
+            (missing / self.resource["CHECKSUM_FILE"]).unlink()
+            self.resource["write_evidence_hashes"](missing)
+            with self.assertRaises(error):
+                verify(missing)
 
             report = evidence / self.resource["REPORT_FILE"]
             report.write_bytes(report.read_bytes() + b" ")
@@ -510,9 +798,127 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
             report = json.loads(
                 (evidence / self.resource["REPORT_FILE"]).read_text(encoding="utf8")
             )
+            report["repository"] = {"attacker_chosen": True}
+            report["trust"] = {
+                "label": "TRUSTED_MAIN_OBSERVATION",
+                "trusted_observation": True,
+                "promotion_eligible": True,
+            }
+            report["compiler"] = {"attacker_chosen": True}
             finalize(evidence, report, RuntimeError("synthetic probe failure"))
             self.assertFalse((evidence / self.resource["OBSERVATION_FILE"]).exists())
-            self.assertEqual(verify(evidence)["status"], "FAIL")
+            verified = verify(evidence)
+            self.assertEqual(verified["status"], "FAIL")
+            self.assertEqual(
+                {path.name for path in evidence.iterdir()},
+                self.resource["FAILURE_REQUIRED_FILES"],
+            )
+            for field in (
+                "repository",
+                "trust",
+                "source_contract",
+                "compiler",
+                "host",
+                "corpus",
+                "build",
+                "stack_usage",
+                "detector_controls",
+                "observation_sha256",
+                "timing_summaries",
+                "numeric_acceptance",
+            ):
+                self.assertIsNone(verified[field], field)
+
+    def test_numeric_rejection_drops_incomplete_unbound_observation(self):
+        plan = load_resource_plan()
+        observation = self._synthetic_observation()
+        observation["peak_rss_kib"] = 65_537
+        with self.assertRaises(self.resource["NumericAcceptanceError"]) as raised:
+            self.resource["validate_probe_observation"](observation, plan)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            evidence = Path(temporary) / "evidence"
+            self.resource["_claim_output_directory"](evidence)
+            plan_path = evidence / self.resource["PLAN_FILE"]
+            plan_path.write_text(
+                self.resource["canonical_json"](plan), encoding="utf8"
+            )
+            (evidence / self.resource["POLICY_FILE"]).write_bytes(
+                RESOURCE_POLICY.read_bytes()
+            )
+            observation_path = evidence / self.resource["OBSERVATION_FILE"]
+            observation_path.write_text(
+                self.resource["canonical_json"](observation), encoding="utf8"
+            )
+            report = self.resource["_base_report"](plan)
+            report["plan_sha256"] = sha256(plan_path)
+            self.resource["_finalize_failure"](
+                evidence, report, raised.exception
+            )
+
+            verified = self.resource["verify_evidence"](evidence)
+            self.assertEqual(verified["status"], "FAIL")
+            self.assertFalse(observation_path.exists())
+            self.assertIsNone(verified["observation_sha256"])
+            self.assertIsNone(verified["timing_summaries"])
+            self.assertIsNone(verified["numeric_acceptance"])
+
+    def test_complete_numeric_rejection_reuses_full_trust_gate(self):
+        plan = load_resource_plan()
+        with tempfile.TemporaryDirectory() as temporary:
+            evidence = Path(temporary) / "evidence"
+            evidence.mkdir()
+            for filename in self.resource["SUCCESS_FILES"] - {
+                self.resource["CHECKSUM_FILE"]
+            }:
+                (evidence / filename).write_bytes(b"")
+            (evidence / self.resource["OWNER_FILE"]).write_text(
+                self.resource["OWNER_CONTENT"], encoding="utf8"
+            )
+            plan_path = evidence / self.resource["PLAN_FILE"]
+            plan_path.write_text(
+                self.resource["canonical_json"](plan), encoding="utf8"
+            )
+            (evidence / self.resource["POLICY_FILE"]).write_bytes(
+                RESOURCE_POLICY.read_bytes()
+            )
+            report = self.resource["_base_report"](plan)
+            report.update(
+                {
+                    "status": "FAIL",
+                    "error": "numeric acceptance rejected: synthetic",
+                    "plan_sha256": sha256(plan_path),
+                    "repository": {"attacker_chosen": True},
+                    "trust": {
+                        "label": "TRUSTED_MAIN_OBSERVATION",
+                        "trusted_observation": True,
+                        "promotion_eligible": True,
+                    },
+                }
+            )
+            (evidence / self.resource["REPORT_FILE"]).write_text(
+                self.resource["canonical_json"](report), encoding="utf8"
+            )
+            (evidence / self.resource["JOB_STATUS_FILE"]).write_text(
+                "failure\n", encoding="ascii"
+            )
+            self.resource["write_evidence_hashes"](evidence)
+
+            trust_gate = mock.Mock(
+                side_effect=self.resource["ResourceEnvelopeError"](
+                    "synthetic trust rejection"
+                )
+            )
+            with mock.patch.dict(
+                self.resource["_verify_complete_observation_bindings"].__globals__,
+                {"_verify_success_repository_and_trust": trust_gate},
+            ):
+                with self.assertRaisesRegex(
+                    self.resource["ResourceEnvelopeError"],
+                    "synthetic trust rejection",
+                ):
+                    self.resource["verify_evidence"](evidence)
+            trust_gate.assert_called_once_with(report, evidence.resolve())
 
     def test_frozen_fnv1a64_and_single_job_promotion_boundary(self):
         fnv1a64 = self.resource["fnv1a64_bytes"]
@@ -563,6 +969,7 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
         self.assertEqual(main_trust["label"], "TRUSTED_MAIN_OBSERVATION")
         self.assertTrue(main_trust["trusted_observation"])
         self.assertFalse(main_trust["promotion_eligible"])
+        self.assertFalse(main_trust["requires_separate_numeric_policy_change"])
         manual = {**main, "event_name": "workflow_dispatch"}
         manual_trust = self.resource["_build_trust"](
             self.resource["_validate_github_context"](manual, head), True
@@ -755,6 +1162,14 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
             self.assertNotIn(marker, config)
 
     @staticmethod
+    def _samples_for_total(total: int) -> list[int]:
+        quotient, remainder = divmod(total, 31)
+        samples = [quotient + 1] * remainder + [quotient] * (31 - remainder)
+        if min(samples) < 1 or sum(samples) != total:
+            raise AssertionError("invalid synthetic sample total")
+        return samples
+
+    @staticmethod
     def _synthetic_observation() -> dict:
         samples = list(range(1, 32))
         batch_outcomes = [
@@ -787,15 +1202,15 @@ class MlDsaResourceEnvelopeTest(unittest.TestCase):
                     "id": batch_id,
                     "calls": 4287,
                     "outcomes": batch_outcomes[index],
-                    "wall_samples_ns": samples,
-                    "cpu_samples_ns": samples,
+                    "wall_samples_ns": samples.copy(),
+                    "cpu_samples_ns": samples.copy(),
                 }
                 for index, batch_id in enumerate(BATCH_IDS)
             ],
             "control": {
                 "iterations": 4287,
-                "wall_samples_ns": samples,
-                "cpu_samples_ns": samples,
+                "wall_samples_ns": samples.copy(),
+                "cpu_samples_ns": samples.copy(),
             },
             "heap_calls": {
                 "malloc": 0,

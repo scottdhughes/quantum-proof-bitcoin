@@ -9,8 +9,9 @@ The measured target is the isolated production-shaped
 ``pqbtc_mldsa44_verify_strict`` wrapper.  This lane is test-only: it does not
 define a consensus, block-validation, activation, or production admission
 limit.  Pull-request observations are never promotion evidence, and numeric
-timing/RSS acceptance thresholds intentionally remain unset until a separate
-review of trusted main observations.
+timing/RSS acceptance is limited to separately reviewed, coarse Linux x86_64
+CI gross-regression ceilings.  Those ceilings are not production or consensus
+resource limits and are never calibrated from the run being evaluated.
 """
 
 import argparse
@@ -58,7 +59,7 @@ BASELINE_POINTER = (
     REPO_ROOT / "contrib" / "ml-dsa-ref" / "review_baseline_commit.txt"
 )
 
-POLICY_SHA256 = "24813510a2fdd13e3496e2f24f557a89ff0bde408296839243346f978228bb9f"
+POLICY_SHA256 = "0d0ebc2a99a8b7611ee9e2133c273bb6b6aa88d926b9b8bbb75b2e9363b73b10"
 GITHUB_REPOSITORY = "scottdhughes/quantum-proof-bitcoin"
 GITHUB_REPOSITORY_ID = "1136579990"
 GITHUB_WORKFLOW_NAME = "ML-DSA-44 verifier resource envelope"
@@ -142,6 +143,12 @@ FAILURE_REQUIRED_FILES = {
     JOB_STATUS_FILE,
     CHECKSUM_FILE,
 }
+INCOMPLETE_FIXTURE_FILES = FAILURE_REQUIRED_FILES | {OBSERVATION_FILE}
+COMPLETE_OBSERVATION_FILES = SUCCESS_FILES - {
+    REPORT_FILE,
+    JOB_STATUS_FILE,
+    CHECKSUM_FILE,
+}
 MAX_EVIDENCE_FILES = 32
 MAX_EVIDENCE_BYTES = 12 * 1024 * 1024
 MAX_JSON_BYTES = 4 * 1024 * 1024
@@ -186,9 +193,120 @@ GUARDED_PATHS = (
     "ci/test/test_ml_dsa_wrapper_prototype.py",
 )
 
+EXPECTED_ACCEPTANCE_LIMITS = {
+    "aggregation": "first_call_plus_four_batches_control_excluded",
+    "aggregate_cpu_ns": 8_000_000_000,
+    "aggregate_wall_ns": 20_000_000_000,
+    "first_call_cpu_ns": 10_000_000,
+    "first_call_wall_ns": 25_000_000,
+    "batch_sample_cpu_ns": 75_000_000,
+    "batch_sample_wall_ns": 200_000_000,
+    "per_batch_cpu_ns": 2_000_000_000,
+    "per_batch_wall_ns": 5_000_000_000,
+    "peak_rss_kib": 65_536,
+    "status": "ENFORCED_TEST_ONLY_LINUX_X86_64_GROSS_REGRESSION_CEILING",
+}
+EXPECTED_ACCEPTANCE_BASIS = {
+    "repository_head": "79de77faf112453868779861ae0c982dba533f84",
+    "workflow_run_id": 31520865906,
+    "run_attempt": 1,
+    "event_name": "push",
+    "ref": "refs/heads/main",
+    "trust_label": "TRUSTED_MAIN_OBSERVATION",
+    "measurement_policy_sha256": (
+        "24813510a2fdd13e3496e2f24f557a89ff0bde408296839243346f978228bb9f"
+    ),
+    "runner_image": "ubuntu-24.04",
+    "runner_image_version": "20260720.247.2",
+    "internal_checksum_entries_per_artifact": 24,
+    "internal_checksums_verified": True,
+    "compiler_observations": [
+        {
+            "compiler": "gcc",
+            "workflow_job_id": 93877273618,
+            "artifact_id": 9112965965,
+            "archive_sha256": (
+                "74063a8817bce33541d89bc655e10593507261b22ed60e99f75b7d48ae9af5a2"
+            ),
+            "report_sha256": (
+                "9f3ef1593f25a1b06d831d3bf5e810c4638a96b22429acd1af88a7679129b951"
+            ),
+            "observation_sha256": (
+                "276a4d372fb9cd7f4916554f0640e915e52f18e2fe65c06b8c50186299a15151"
+            ),
+            "compiler_target": "x86_64-linux-gnu",
+            "compiler_version_sha256": (
+                "ae487f55927d605284a32711e4ecf6bc3be2bcd5a9de414ace0936264b741f85"
+            ),
+            "aggregate_cpu_ns": 1745285419,
+            "aggregate_wall_ns": 1745703669,
+            "maximum_batch_sample_cpu_ns": 18118075,
+            "maximum_batch_sample_wall_ns": 18120405,
+            "maximum_batch_total_cpu_ns": 477925971,
+            "maximum_batch_total_wall_ns": 478016869,
+            "first_call_cpu_ns": 128491,
+            "first_call_wall_ns": 129946,
+            "peak_rss_kib": 31324,
+        },
+        {
+            "compiler": "clang",
+            "workflow_job_id": 93877273789,
+            "artifact_id": 9112975963,
+            "archive_sha256": (
+                "04c5c3f1283851cb93e4b0488091f74719002500d916f0e404cd14ea72d1cf0d"
+            ),
+            "report_sha256": (
+                "e56bfb73061ef23f21a0162971c136e954e843a52b6e0c04c18a1d88de9a73c3"
+            ),
+            "observation_sha256": (
+                "f2e4ca2758462eb59098f4bdb901261c3d61bfab0626f2506a7644b31f049661"
+            ),
+            "compiler_target": "x86_64-pc-linux-gnu",
+            "compiler_version_sha256": (
+                "d5488a2e583e2cbd3f61386073b6c38a24a2bf4d45f3b6b6ac048b541121d804"
+            ),
+            "aggregate_cpu_ns": 1322763220,
+            "aggregate_wall_ns": 1323098533,
+            "maximum_batch_sample_cpu_ns": 12908183,
+            "maximum_batch_sample_wall_ns": 12909303,
+            "maximum_batch_total_cpu_ns": 367278831,
+            "maximum_batch_total_wall_ns": 367373156,
+            "first_call_cpu_ns": 107420,
+            "first_call_wall_ns": 108755,
+            "peak_rss_kib": 31216,
+        },
+    ],
+    "aggregation": (
+        "first call plus four verifier batches; separately reported control "
+        "loop excluded"
+    ),
+    "derivation": (
+        "coarse upper regression ceilings selected by separate review of both "
+        "exact-head compiler observations; not percentile, consensus, "
+        "supported-platform, or production limits"
+    ),
+    "additional_samples_required_before_tightening": 2,
+}
+
 
 class ResourceEnvelopeError(RuntimeError):
     """Raised when resource evidence cannot be trusted."""
+
+
+class NumericAcceptanceError(ResourceEnvelopeError):
+    """Raised after a complete observation violates the numeric policy."""
+
+    def __init__(self, receipt: dict, timing_summaries: dict):
+        failed = [
+            check["id"]
+            for check in receipt["checks"]
+            if check["status"] == "FAIL"
+        ]
+        super().__init__(
+            "numeric acceptance rejected: " + ", ".join(failed)
+        )
+        self.receipt = copy.deepcopy(receipt)
+        self.timing_summaries = copy.deepcopy(timing_summaries)
 
 
 def sha256_bytes(value: bytes) -> str:
@@ -306,6 +424,7 @@ def load_policy() -> dict:
             "batch",
             "enforced_limits",
             "acceptance_limits",
+            "acceptance_basis",
             "stack_evidence",
             "promotion",
             "scope",
@@ -313,9 +432,9 @@ def load_policy() -> dict:
         "resource policy",
     )
     _require_int(policy["schema_version"], "resource policy schema")
-    if policy["schema_version"] != 1:
+    if policy["schema_version"] != 2:
         raise ResourceEnvelopeError("unsupported resource policy schema")
-    if policy["phase"] != "TRUSTED_MAIN_OBSERVATION_REQUIRED":
+    if policy["phase"] != "PLATFORM_SCOPED_NUMERIC_ACCEPTANCE":
         raise ResourceEnvelopeError("resource policy phase drifted")
     if policy["target"] != "pqbtc_mldsa44_verify_strict":
         raise ResourceEnvelopeError("resource policy target drifted")
@@ -451,18 +570,33 @@ def load_policy() -> dict:
 
     acceptance = _require_exact_keys(
         policy["acceptance_limits"],
-        {"cpu_seconds", "wall_seconds", "peak_rss_kib", "status"},
+        set(EXPECTED_ACCEPTANCE_LIMITS),
         "resource acceptance limits",
     )
-    if acceptance != {
-        "cpu_seconds": None,
-        "wall_seconds": None,
-        "peak_rss_kib": None,
-        "status": "UNSET_PENDING_SEPARATE_REVIEW_OF_TRUSTED_MAIN_OBSERVATION",
-    }:
-        raise ResourceEnvelopeError(
-            "numeric acceptance limits must remain unset in this tranche"
-        )
+    if canonical_json(acceptance) != canonical_json(EXPECTED_ACCEPTANCE_LIMITS):
+        raise ResourceEnvelopeError("numeric acceptance limits drifted")
+    for field in (
+        "aggregate_cpu_ns",
+        "aggregate_wall_ns",
+        "first_call_cpu_ns",
+        "first_call_wall_ns",
+        "batch_sample_cpu_ns",
+        "batch_sample_wall_ns",
+        "per_batch_cpu_ns",
+        "per_batch_wall_ns",
+        "peak_rss_kib",
+    ):
+        _require_int(acceptance[field], f"resource acceptance limit {field}", 1)
+
+    acceptance_basis = _require_exact_keys(
+        policy["acceptance_basis"],
+        set(EXPECTED_ACCEPTANCE_BASIS),
+        "resource acceptance basis",
+    )
+    if canonical_json(acceptance_basis) != canonical_json(
+        EXPECTED_ACCEPTANCE_BASIS
+    ):
+        raise ResourceEnvelopeError("resource acceptance basis drifted")
 
     stack = _require_exact_keys(
         policy["stack_evidence"],
@@ -499,7 +633,7 @@ def load_policy() -> dict:
     if promotion != {
         "requires_trusted_main_push": True,
         "requires_both_compilers": ["clang", "gcc"],
-        "requires_separate_policy_change": True,
+        "requires_separate_policy_change": False,
         "pull_request_evidence": "UNTRUSTED_PR_OBSERVATION",
         "trusted_main_evidence": "TRUSTED_MAIN_OBSERVATION",
         "timing_threshold_bootstrap_forbidden": True,
@@ -563,7 +697,7 @@ def _plan_inputs() -> dict[str, str]:
 def build_plan(policy: dict) -> dict:
     batch = policy["batch"]
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "target": policy["target"],
         "host": {
             "system": policy["profile"]["system"],
@@ -581,7 +715,8 @@ def build_plan(policy: dict) -> dict:
             "cpu_clock": "CLOCK_THREAD_CPUTIME_ID",
             "control_loop": "reported separately and never subtracted",
             "numeric_acceptance": (
-                "unset pending a separate review of trusted main observations"
+                "separately reviewed test-only Linux x86_64 gross-regression "
+                "ceilings; current-run calibration forbidden"
             ),
         },
         "policy": copy.deepcopy(policy),
@@ -607,6 +742,123 @@ def summarize_samples(samples: list[int]) -> dict[str, int]:
     }
 
 
+def _numeric_acceptance_receipt(
+    policy: dict,
+    *,
+    first_cpu_ns: int,
+    first_wall_ns: int,
+    batch_measurements: list[dict[str, int | str]],
+    control_cpu_ns: int,
+    control_wall_ns: int,
+    aggregate_cpu_ns: int,
+    aggregate_wall_ns: int,
+    peak_rss_kib: int,
+) -> dict:
+    limits = policy["acceptance_limits"]
+    checks = []
+
+    def add_check(
+        check_id: str, observed: int, limit: int, unit: str
+    ) -> None:
+        checks.append(
+            {
+                "id": check_id,
+                "observed": observed,
+                "limit": limit,
+                "unit": unit,
+                "status": "PASS" if observed <= limit else "FAIL",
+            }
+        )
+
+    add_check(
+        "first_call.cpu_ns",
+        first_cpu_ns,
+        limits["first_call_cpu_ns"],
+        "ns",
+    )
+    add_check(
+        "first_call.wall_ns",
+        first_wall_ns,
+        limits["first_call_wall_ns"],
+        "ns",
+    )
+    for batch in batch_measurements:
+        add_check(
+            f"{batch['id']}.max_sample_cpu_ns",
+            batch["max_sample_cpu_ns"],
+            limits["batch_sample_cpu_ns"],
+            "ns",
+        )
+        add_check(
+            f"{batch['id']}.max_sample_wall_ns",
+            batch["max_sample_wall_ns"],
+            limits["batch_sample_wall_ns"],
+            "ns",
+        )
+        add_check(
+            f"{batch['id']}.cpu_ns",
+            batch["cpu_ns"],
+            limits["per_batch_cpu_ns"],
+            "ns",
+        )
+        add_check(
+            f"{batch['id']}.wall_ns",
+            batch["wall_ns"],
+            limits["per_batch_wall_ns"],
+            "ns",
+        )
+    add_check(
+        "aggregate.cpu_ns",
+        aggregate_cpu_ns,
+        limits["aggregate_cpu_ns"],
+        "ns",
+    )
+    add_check(
+        "aggregate.wall_ns",
+        aggregate_wall_ns,
+        limits["aggregate_wall_ns"],
+        "ns",
+    )
+    add_check(
+        "process.peak_rss_kib",
+        peak_rss_kib,
+        limits["peak_rss_kib"],
+        "KiB",
+    )
+    return {
+        "schema_version": 1,
+        "status": (
+            "PASS"
+            if all(check["status"] == "PASS" for check in checks)
+            else "FAIL"
+        ),
+        "scope": "test-only Linux x86_64 direct-verifier gross-regression gate",
+        "aggregation": limits["aggregation"],
+        "acceptance_basis_sha256": sha256_bytes(
+            canonical_json(policy["acceptance_basis"]).encode("utf8")
+        ),
+        "current_run_threshold_calibration": False,
+        "limits": copy.deepcopy(limits),
+        "observed": {
+            "first_call": {
+                "cpu_ns": first_cpu_ns,
+                "wall_ns": first_wall_ns,
+            },
+            "batches": copy.deepcopy(batch_measurements),
+            "aggregate": {
+                "cpu_ns": aggregate_cpu_ns,
+                "wall_ns": aggregate_wall_ns,
+            },
+            "excluded_control": {
+                "cpu_ns": control_cpu_ns,
+                "wall_ns": control_wall_ns,
+            },
+            "peak_rss_kib": peak_rss_kib,
+        },
+        "checks": checks,
+    }
+
+
 def _validate_sample_array(
     value: object, label: str, count: int, *, allow_zero: bool
 ) -> list[int]:
@@ -625,6 +877,7 @@ def validate_probe_observation(
     plan: dict,
     *,
     expected_input_fnv1a64: str | None = None,
+    enforce_numeric: bool = True,
 ) -> dict:
     policy = plan["policy"]
     batch_policy = policy["batch"]
@@ -702,8 +955,9 @@ def validate_probe_observation(
     if type(batches) is not list or len(batches) != len(batch_policy["batches"]):
         raise ResourceEnvelopeError("probe batch list cardinality drifted")
     summaries = {"first_call": {"wall_ns": first["wall_ns"], "cpu_ns": first["cpu_ns"]}}
-    total_wall_ns = first["wall_ns"]
-    total_cpu_ns = first["cpu_ns"]
+    aggregate_wall_ns = first["wall_ns"]
+    aggregate_cpu_ns = first["cpu_ns"]
+    batch_measurements = []
     for index, (batch_id, batch) in enumerate(zip(batch_policy["batches"], batches)):
         _require_exact_keys(
             batch,
@@ -750,8 +1004,19 @@ def validate_probe_observation(
             batch_policy["sample_count"],
             allow_zero=False,
         )
-        total_wall_ns += sum(wall)
-        total_cpu_ns += sum(cpu)
+        batch_wall_ns = sum(wall)
+        batch_cpu_ns = sum(cpu)
+        aggregate_wall_ns += batch_wall_ns
+        aggregate_cpu_ns += batch_cpu_ns
+        batch_measurements.append(
+            {
+                "id": batch_id,
+                "max_sample_cpu_ns": max(cpu),
+                "max_sample_wall_ns": max(wall),
+                "cpu_ns": batch_cpu_ns,
+                "wall_ns": batch_wall_ns,
+            }
+        )
         summaries[batch_id] = {
             "wall_ns": summarize_samples(wall),
             "cpu_ns": summarize_samples(cpu),
@@ -778,8 +1043,8 @@ def validate_probe_observation(
         batch_policy["sample_count"],
         allow_zero=True,
     )
-    total_wall_ns += sum(control_wall)
-    total_cpu_ns += sum(control_cpu)
+    control_wall_ns = sum(control_wall)
+    control_cpu_ns = sum(control_cpu)
     summaries["control"] = {
         "wall_ns": summarize_samples(control_wall),
         "cpu_ns": summarize_samples(control_cpu),
@@ -805,9 +1070,11 @@ def validate_probe_observation(
     peak_rss_kib = _require_int(observation["peak_rss_kib"], "peak RSS", 1)
     if peak_rss_kib > limits["address_space_bytes"] // 1024:
         raise ResourceEnvelopeError("peak RSS is incompatible with the address-space cap")
-    if total_wall_ns > limits["wall_watchdog_seconds"] * 1_000_000_000:
+    overall_wall_ns = aggregate_wall_ns + control_wall_ns
+    overall_cpu_ns = aggregate_cpu_ns + control_cpu_ns
+    if overall_wall_ns > limits["wall_watchdog_seconds"] * 1_000_000_000:
         raise ResourceEnvelopeError("reported wall time exceeds the enforced watchdog")
-    if total_cpu_ns > limits["cpu_watchdog_seconds"] * 1_000_000_000:
+    if overall_cpu_ns > limits["cpu_watchdog_seconds"] * 1_000_000_000:
         raise ResourceEnvelopeError("reported CPU time exceeds the enforced limit")
 
     resolution = _require_exact_keys(
@@ -833,8 +1100,22 @@ def validate_probe_observation(
     if type(observation["result_accumulator"]) is not int:
         raise ResourceEnvelopeError("result accumulator must be an integer")
 
+    numeric_acceptance = _numeric_acceptance_receipt(
+        policy,
+        first_cpu_ns=first["cpu_ns"],
+        first_wall_ns=first["wall_ns"],
+        batch_measurements=batch_measurements,
+        control_cpu_ns=control_cpu_ns,
+        control_wall_ns=control_wall_ns,
+        aggregate_cpu_ns=aggregate_cpu_ns,
+        aggregate_wall_ns=aggregate_wall_ns,
+        peak_rss_kib=peak_rss_kib,
+    )
     validated = copy.deepcopy(observation)
     validated["derived_summaries"] = summaries
+    validated["numeric_acceptance"] = numeric_acceptance
+    if enforce_numeric and numeric_acceptance["status"] != "PASS":
+        raise NumericAcceptanceError(numeric_acceptance, summaries)
     return validated
 
 
@@ -1172,7 +1453,7 @@ def _build_trust(context: dict, baseline_guard_matches: bool) -> dict:
         "ci": copy.deepcopy(context),
         "requires_external_workflow_provenance": True,
         "requires_companion_compilers": ["clang", "gcc"],
-        "requires_separate_numeric_policy_change": True,
+        "requires_separate_numeric_policy_change": False,
     }
 
 
@@ -1303,6 +1584,28 @@ def _compiler_path(compiler_name: str) -> Path:
     resolved = Path(compiler).resolve()
     _require_regular_file(resolved, f"{compiler_name} executable", 100 * 1024 * 1024)
     return resolved
+
+
+def validate_compiler_identity(
+    policy: dict, compiler_name: str, compiler_target: str, version_sha256: str
+) -> dict:
+    observations = policy["acceptance_basis"]["compiler_observations"]
+    matches = [
+        observation
+        for observation in observations
+        if observation["compiler"] == compiler_name
+    ]
+    if len(matches) != 1:
+        raise ResourceEnvelopeError("compiler acceptance basis is ambiguous")
+    expected = matches[0]
+    if (
+        compiler_target != expected["compiler_target"]
+        or version_sha256 != expected["compiler_version_sha256"]
+    ):
+        raise ResourceEnvelopeError(
+            f"{compiler_name} identity is outside the reviewed numeric policy"
+        )
+    return copy.deepcopy(expected)
 
 
 def _common_compile_flags(
@@ -1457,7 +1760,11 @@ def _expected_normalized_commands(compiler: str) -> list[list[str]]:
 
 
 def _compile(
-    compiler_name: str, compiler: Path, build_dir: Path, output_dir: Path
+    compiler_name: str,
+    compiler: Path,
+    build_dir: Path,
+    output_dir: Path,
+    policy: dict,
 ) -> tuple[dict, Path, Path, Path]:
     environment = _minimal_environment(compiler.parent)
     version, version_stderr = _require_command_success(
@@ -1473,6 +1780,12 @@ def _compile(
         raise ResourceEnvelopeError(f"compiler target is not x86_64: {target}")
     (output_dir / COMPILER_VERSION_FILE).write_text(version, encoding="utf8")
     (output_dir / COMPILER_TARGET_FILE).write_text(target + "\n", encoding="utf8")
+    validate_compiler_identity(
+        policy,
+        compiler_name,
+        target,
+        sha256_file(output_dir / COMPILER_VERSION_FILE),
+    )
 
     production_library = build_dir / LIBRARY_FILE
     test_library = build_dir / "libpqbtc_mldsa44_test.so"
@@ -2332,7 +2645,7 @@ def write_evidence_hashes(output_dir: Path) -> None:
 
 def _base_report(plan: dict) -> dict:
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "status": "INCOMPLETE",
         "error": "execution did not start",
         "repository": None,
@@ -2353,10 +2666,12 @@ def _base_report(plan: dict) -> dict:
         "detector_controls": None,
         "observation_sha256": None,
         "timing_summaries": None,
+        "numeric_acceptance": None,
         "limitations": [
             "Linux x86_64 only",
             "sequential direct-verifier calls only",
-            "hosted-runner timing and RSS are observations, not acceptance limits",
+            "coarse timing and RSS gates are Linux x86_64 CI regression limits only",
+            "numeric gates are not supported-platform, consensus, or production limits",
             "no node, wallet, script, consensus, block-scheduler, or concurrency claim",
             "project-object allocator interposition does not measure dynamic-libc internals",
             "compiler .su rows are per-function observations, not a formal call-chain sum",
@@ -2366,10 +2681,43 @@ def _base_report(plan: dict) -> dict:
 
 
 def _finalize_failure(output_dir: Path, report: dict, error: Exception) -> None:
-    for filename in (CHECKSUM_FILE, OBSERVATION_FILE):
+    numeric_rejection = (
+        isinstance(error, NumericAcceptanceError)
+        and all(
+            (output_dir / filename).is_file()
+            and not (output_dir / filename).is_symlink()
+            for filename in COMPLETE_OBSERVATION_FILES
+        )
+    )
+    if numeric_rejection:
+        removable = {CHECKSUM_FILE}
+    else:
+        removable = SUCCESS_FILES - FAILURE_REQUIRED_FILES
+        removable.add(CHECKSUM_FILE)
+    for filename in removable:
         path = output_dir / filename
         if path.exists() or path.is_symlink():
             path.unlink()
+    if numeric_rejection:
+        report["observation_sha256"] = sha256_file(output_dir / OBSERVATION_FILE)
+        report["timing_summaries"] = copy.deepcopy(error.timing_summaries)
+        report["numeric_acceptance"] = copy.deepcopy(error.receipt)
+    else:
+        for field in (
+            "repository",
+            "trust",
+            "source_contract",
+            "compiler",
+            "host",
+            "corpus",
+            "build",
+            "stack_usage",
+            "detector_controls",
+            "observation_sha256",
+            "timing_summaries",
+            "numeric_acceptance",
+        ):
+            report[field] = None
     report["status"] = "FAIL"
     report["error"] = str(error)[:2000] or type(error).__name__
     (output_dir / REPORT_FILE).write_text(canonical_json(report), encoding="utf8")
@@ -2675,6 +3023,12 @@ def _verify_success_report_bindings(
         or build["assembly"] is not False
     ):
         raise ResourceEnvelopeError("resource build binding differs")
+    validate_compiler_identity(
+        load_policy(),
+        compiler["name"],
+        compiler["target"],
+        build["compiler_version_sha256"],
+    )
     expected_symbols = (
         "pqbtc_mldsa44_sign_hedged\npqbtc_mldsa44_verify_strict\n"
     )
@@ -2772,6 +3126,104 @@ def _verify_success_report_bindings(
         raise ResourceEnvelopeError("resource corpus report binding differs")
 
 
+def _verify_complete_observation_bindings(
+    report: dict,
+    output_dir: Path,
+    plan: dict,
+    expected_numeric_status: str,
+) -> dict:
+    _verify_success_repository_and_trust(report, output_dir)
+    inventory = load_json_object(
+        output_dir / INVENTORY_FILE, "verifier corpus inventory"
+    )
+    _validate_inventory_bundle(inventory, output_dir / BUNDLE_FILE, plan["policy"])
+    _verify_success_report_bindings(report, output_dir, inventory)
+    observation = load_json_object(
+        output_dir / OBSERVATION_FILE, "probe observation", MAX_LOG_BYTES
+    )
+    validated = validate_probe_observation(
+        observation,
+        plan,
+        expected_input_fnv1a64=fnv1a64_bytes(
+            (output_dir / BUNDLE_FILE).read_bytes()
+        ),
+        enforce_numeric=False,
+    )
+    for batch in observation["batches"]:
+        if canonical_json(batch["outcomes"]) != canonical_json(
+            inventory["expected_outcomes"][batch["id"]]
+        ):
+            raise ResourceEnvelopeError(
+                f"probe outcomes differ from corpus: {batch['id']}"
+            )
+    if canonical_json(observation["selection_counts"]) != canonical_json(
+        inventory["selection_counts"]
+    ):
+        raise ResourceEnvelopeError("probe selection counts differ from corpus")
+    if observation["first_call"]["record"] != inventory["first_call_record"]:
+        raise ResourceEnvelopeError("probe first-call record differs from corpus")
+    if report["observation_sha256"] != sha256_file(output_dir / OBSERVATION_FILE):
+        raise ResourceEnvelopeError("resource report observation hash differs")
+    if canonical_json(report["timing_summaries"]) != canonical_json(
+        validated["derived_summaries"]
+    ):
+        raise ResourceEnvelopeError("resource report timing summaries differ")
+    if canonical_json(report["numeric_acceptance"]) != canonical_json(
+        validated["numeric_acceptance"]
+    ):
+        raise ResourceEnvelopeError("resource report numeric acceptance differs")
+    if validated["numeric_acceptance"]["status"] != expected_numeric_status:
+        raise ResourceEnvelopeError("resource numeric acceptance status differs")
+
+    stack_report = load_json_object(
+        output_dir / STACK_REPORT_FILE, "stack-usage report"
+    )
+    _require_exact_keys(
+        stack_report,
+        {
+            "schema_version",
+            "records",
+            "upstream_mld_total_alloc_44_verify_bytes",
+            "claim",
+        },
+        "stack-usage report",
+    )
+    _require_int(stack_report["schema_version"], "stack-usage schema")
+    _require_int(
+        stack_report["upstream_mld_total_alloc_44_verify_bytes"],
+        "upstream verifier scratch allocation",
+        1,
+    )
+    parsed_stack = parse_stack_usage(
+        [output_dir / WRAPPER_STACK_FILE, output_dir / PROBE_STACK_FILE]
+    )
+    if (
+        stack_report["schema_version"] != 1
+        or stack_report["upstream_mld_total_alloc_44_verify_bytes"] != 24448
+        or stack_report["claim"]
+        != (
+            "compiler-specific per-function observations corroborated by guarded "
+            "execution; values are not summed into a formal call-chain bound"
+        )
+        or canonical_json(stack_report["records"]) != canonical_json(parsed_stack)
+        or canonical_json(report["stack_usage"]) != canonical_json(stack_report)
+    ):
+        raise ResourceEnvelopeError("stack-usage evidence differs")
+    controls = load_json_object(output_dir / CONTROLS_FILE, "detector controls")
+    _validate_detector_controls(controls)
+    if canonical_json(report["detector_controls"]) != canonical_json(controls):
+        raise ResourceEnvelopeError("detector-control evidence differs")
+    if report["trust"]["promotion_eligible"] is not False:
+        raise ResourceEnvelopeError("single-compiler evidence became promotion eligible")
+    if plan["policy"]["acceptance_limits"] != EXPECTED_ACCEPTANCE_LIMITS:
+        raise ResourceEnvelopeError("numeric acceptance policy differs")
+    if canonical_json(plan["policy"]["acceptance_basis"]) != canonical_json(
+        EXPECTED_ACCEPTANCE_BASIS
+    ):
+        raise ResourceEnvelopeError("numeric policy acceptance basis differs")
+    return validated
+
+
 def verify_evidence(output_dir: Path) -> dict:
     output_dir = _resolve_evidence_directory(output_dir, must_exist=True)
     entries = sorted(output_dir.iterdir(), key=lambda value: value.name)
@@ -2817,7 +3269,7 @@ def verify_evidence(output_dir: Path) -> dict:
     report = load_json_object(output_dir / REPORT_FILE, "resource report")
     _require_exact_keys(report, _report_keys(), "resource report")
     _require_int(report["schema_version"], "resource report schema")
-    if report["schema_version"] != 1 or report["policy_sha256"] != POLICY_SHA256:
+    if report["schema_version"] != 2 or report["policy_sha256"] != POLICY_SHA256:
         raise ResourceEnvelopeError("resource report identity drifted")
     if report["plan_sha256"] != sha256_file(output_dir / PLAN_FILE):
         raise ResourceEnvelopeError("resource report plan hash differs")
@@ -2837,90 +3289,7 @@ def verify_evidence(output_dir: Path) -> dict:
     if status == "PASS":
         if names != SUCCESS_FILES or job_status != "success\n" or report["error"] is not None:
             raise ResourceEnvelopeError("successful evidence inventory/status differs")
-        _verify_success_repository_and_trust(report, output_dir)
-        inventory = load_json_object(
-            output_dir / INVENTORY_FILE, "verifier corpus inventory"
-        )
-        _validate_inventory_bundle(
-            inventory, output_dir / BUNDLE_FILE, plan["policy"]
-        )
-        _verify_success_report_bindings(report, output_dir, inventory)
-        observation = load_json_object(
-            output_dir / OBSERVATION_FILE, "probe observation", MAX_LOG_BYTES
-        )
-        validated = validate_probe_observation(
-            observation,
-            plan,
-            expected_input_fnv1a64=fnv1a64_bytes(
-                (output_dir / BUNDLE_FILE).read_bytes()
-            ),
-        )
-        for batch in observation["batches"]:
-            if canonical_json(batch["outcomes"]) != canonical_json(
-                inventory["expected_outcomes"][batch["id"]]
-            ):
-                raise ResourceEnvelopeError(
-                    f"probe outcomes differ from corpus: {batch['id']}"
-                )
-        if canonical_json(observation["selection_counts"]) != canonical_json(
-            inventory["selection_counts"]
-        ):
-            raise ResourceEnvelopeError("probe selection counts differ from corpus")
-        if observation["first_call"]["record"] != inventory["first_call_record"]:
-            raise ResourceEnvelopeError("probe first-call record differs from corpus")
-        if report["observation_sha256"] != sha256_file(output_dir / OBSERVATION_FILE):
-            raise ResourceEnvelopeError("resource report observation hash differs")
-        if canonical_json(report["timing_summaries"]) != canonical_json(
-            validated["derived_summaries"]
-        ):
-            raise ResourceEnvelopeError("resource report timing summaries differ")
-        stack_report = load_json_object(
-            output_dir / STACK_REPORT_FILE, "stack-usage report"
-        )
-        _require_exact_keys(
-            stack_report,
-            {
-                "schema_version",
-                "records",
-                "upstream_mld_total_alloc_44_verify_bytes",
-                "claim",
-            },
-            "stack-usage report",
-        )
-        _require_int(stack_report["schema_version"], "stack-usage schema")
-        _require_int(
-            stack_report["upstream_mld_total_alloc_44_verify_bytes"],
-            "upstream verifier scratch allocation",
-            1,
-        )
-        parsed_stack = parse_stack_usage(
-            [output_dir / WRAPPER_STACK_FILE, output_dir / PROBE_STACK_FILE]
-        )
-        if (
-            stack_report["schema_version"] != 1
-            or stack_report["upstream_mld_total_alloc_44_verify_bytes"] != 24448
-            or stack_report["claim"]
-            != (
-                "compiler-specific per-function observations corroborated by guarded "
-                "execution; values are not summed into a formal call-chain bound"
-            )
-            or canonical_json(stack_report["records"]) != canonical_json(parsed_stack)
-            or canonical_json(report["stack_usage"]) != canonical_json(stack_report)
-        ):
-            raise ResourceEnvelopeError("stack-usage evidence differs")
-        controls = load_json_object(
-            output_dir / CONTROLS_FILE, "detector controls"
-        )
-        _validate_detector_controls(controls)
-        if canonical_json(report["detector_controls"]) != canonical_json(controls):
-            raise ResourceEnvelopeError("detector-control evidence differs")
-        if report["trust"]["promotion_eligible"] is not False:
-            raise ResourceEnvelopeError("single-compiler evidence became promotion eligible")
-        if any(
-            plan["policy"]["acceptance_limits"][field] is not None
-            for field in ("cpu_seconds", "wall_seconds", "peak_rss_kib")
-        ):
-            raise ResourceEnvelopeError("numeric thresholds bootstrapped from evidence")
+        _verify_complete_observation_bindings(report, output_dir, plan, "PASS")
     else:
         if not FAILURE_REQUIRED_FILES <= names:
             raise ResourceEnvelopeError("failure evidence is incomplete")
@@ -2933,14 +3302,92 @@ def verify_evidence(output_dir: Path) -> dict:
         if type(report["error"]) is not str or not report["error"]:
             raise ResourceEnvelopeError("failure evidence lacks an exact error")
         if status == "FAIL" and OBSERVATION_FILE in names:
-            raise ResourceEnvelopeError(
-                "failure evidence retained a canonical observation file"
+            if names != SUCCESS_FILES:
+                raise ResourceEnvelopeError(
+                    "numeric-rejection evidence inventory is incomplete"
+                )
+            validated = _verify_complete_observation_bindings(
+                report, output_dir, plan, "FAIL"
             )
-        if status == "INCOMPLETE" and OBSERVATION_FILE in names:
+            expected_error = str(
+                NumericAcceptanceError(
+                    validated["numeric_acceptance"],
+                    validated["derived_summaries"],
+                )
+            )
+            if report["error"] != expected_error:
+                raise ResourceEnvelopeError(
+                    "numeric-rejection error does not match failed checks"
+                )
+        elif status == "FAIL" and any(
+            report[field] is not None
+            for field in (
+                "observation_sha256",
+                "timing_summaries",
+                "numeric_acceptance",
+            )
+        ):
+            raise ResourceEnvelopeError(
+                "non-numeric failure retained observation-derived claims"
+            )
+        elif status == "FAIL":
+            if names != FAILURE_REQUIRED_FILES:
+                raise ResourceEnvelopeError(
+                    "non-numeric failure evidence inventory differs"
+                )
+            for field in (
+                "repository",
+                "trust",
+                "source_contract",
+                "compiler",
+                "host",
+                "corpus",
+                "build",
+                "stack_usage",
+                "detector_controls",
+                "observation_sha256",
+                "timing_summaries",
+                "numeric_acceptance",
+            ):
+                if report[field] is not None:
+                    raise ResourceEnvelopeError(
+                        f"non-numeric failure retained unverified field: {field}"
+                    )
+        if status == "INCOMPLETE":
+            if names != INCOMPLETE_FIXTURE_FILES:
+                raise ResourceEnvelopeError(
+                    "incomplete fixture evidence inventory differs"
+                )
+            for field in (
+                "repository",
+                "trust",
+                "source_contract",
+                "compiler",
+                "host",
+                "corpus",
+                "build",
+                "stack_usage",
+                "detector_controls",
+            ):
+                if report[field] is not None:
+                    raise ResourceEnvelopeError(
+                        f"incomplete fixture retained unverified field: {field}"
+                    )
             observation = load_json_object(
                 output_dir / OBSERVATION_FILE, "incomplete fixture observation"
             )
-            validate_probe_observation(observation, plan)
+            validated = validate_probe_observation(observation, plan)
+            if (
+                report["observation_sha256"]
+                != sha256_file(output_dir / OBSERVATION_FILE)
+                or canonical_json(report["timing_summaries"])
+                != canonical_json(validated["derived_summaries"])
+                or canonical_json(report["numeric_acceptance"])
+                != canonical_json(validated["numeric_acceptance"])
+            ):
+                raise ResourceEnvelopeError(
+                    "incomplete fixture observation binding differs"
+                )
     return report
 
 
@@ -2971,9 +3418,9 @@ def write_test_evidence_fixture(
     report["error"] = "unit-test fixture; execution intentionally omitted"
     report["plan_sha256"] = sha256_file(output_dir / PLAN_FILE)
     report["observation_sha256"] = sha256_file(output_dir / OBSERVATION_FILE)
-    report["timing_summaries"] = validate_probe_observation(
-        observation, plan
-    )["derived_summaries"]
+    validated = validate_probe_observation(observation, plan)
+    report["timing_summaries"] = validated["derived_summaries"]
+    report["numeric_acceptance"] = validated["numeric_acceptance"]
     (output_dir / REPORT_FILE).write_text(canonical_json(report), encoding="utf8")
     (output_dir / JOB_STATUS_FILE).write_text("incomplete\n", encoding="ascii")
     write_evidence_hashes(output_dir)
@@ -3007,7 +3454,7 @@ def execute(compiler_name: str, output_dir: Path) -> int:
         ) as temporary:
             build_dir = Path(temporary)
             build, production_library, test_library, probe = _compile(
-                compiler_name, compiler, build_dir, output_dir
+                compiler_name, compiler, build_dir, output_dir, policy
             )
             report["compiler"] = {
                 "name": compiler_name,
@@ -3043,6 +3490,7 @@ def execute(compiler_name: str, output_dir: Path) -> int:
                 expected_input_fnv1a64=fnv1a64_bytes(
                     (output_dir / BUNDLE_FILE).read_bytes()
                 ),
+                enforce_numeric=False,
             )
             if observation["selection_counts"] != inventory["selection_counts"]:
                 raise ResourceEnvelopeError(
@@ -3062,10 +3510,16 @@ def execute(compiler_name: str, output_dir: Path) -> int:
                 output_dir / OBSERVATION_FILE
             )
             report["timing_summaries"] = validated["derived_summaries"]
+            report["numeric_acceptance"] = validated["numeric_acceptance"]
             stack_report = load_json_object(
                 output_dir / STACK_REPORT_FILE, "stack-usage report"
             )
             report["stack_usage"] = stack_report
+            if validated["numeric_acceptance"]["status"] != "PASS":
+                raise NumericAcceptanceError(
+                    validated["numeric_acceptance"],
+                    validated["derived_summaries"],
+                )
 
         status_after = _run_git(
             "status", "--porcelain=v1", "--untracked-files=all"

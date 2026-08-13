@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-08-11
+## Updated: 2026-08-12
 ## Current Phase: Phase 1 - Cryptographic Production Hold
 
 ## Purpose
@@ -207,8 +207,9 @@ main head `79de77faf112453868779861ae0c982dba533f84`. The pointer-only merge
 left both guarded input diffs empty. Automatic protected-main push run
 `31520865906`, attempt `1`, produced independently verified GCC and Clang
 `TRUSTED_MAIN_OBSERVATION` resource artifacts at that exact head. Both passed,
-while `promotion_eligible` remained false because numeric resource limits are
-still unset and require a separate reviewed policy change.
+while `promotion_eligible` remained false. That exact pair now supplies the
+frozen provenance and observed maxima for a separate coarse, test-only Linux
+x86_64 numeric regression policy; it is not itself policy-enforced evidence.
 
 Main-dispatched wrapper run `31521182969`, attempt `1`, directly executed the
 deterministic held-lock standard `fork()` regression and fail-closed lifecycle
@@ -302,19 +303,31 @@ tracked suites now have an explicit policy class and none remains in
 
 Active owned tranche:
 
-1. Evaluate the completed exact-main resource observations under `#188` before
-   defining any numeric policy
+1. Land and re-baseline the coarse Linux x86_64 resource-regression policy
+   under `#188`
    - retain protected-main push run `31520865906` at
-     `79de77faf112453868779861ae0c982dba533f84` as the exact-head GCC and Clang
-     `TRUSTED_MAIN_OBSERVATION` pair
-   - keep each compiler artifact non-promotion-eligible; the observations are
-     measurements, not acceptance thresholds
-   - define CPU, wall-time, RSS, stack, allocation, and adversarial-batch
-     limits only in a separate reviewed policy change that states the target
-     platform and workload model
+     `79de77faf112453868779861ae0c982dba533f84` as the immutable GCC and Clang
+     acceptance basis, including exact workflow, artifact, checksum, report,
+     observation, compiler-target, and compiler-version provenance
+   - enforce per-batch CPU/wall ceilings of `2,000,000,000` /
+     `5,000,000,000` nanoseconds, aggregate first-call-plus-four-batch ceilings
+     of `8,000,000,000` / `20,000,000,000` nanoseconds, process peak RSS of
+     `65,536` KiB, first-call CPU/wall ceilings of `10,000,000` /
+     `25,000,000` nanoseconds, verifier-batch-sample CPU/wall ceilings of
+     `75,000,000` / `200,000,000` nanoseconds, the exact 128 KiB guarded
+     thread, and zero instrumented project heap calls
+   - merge the policy as `P`; expect its protected-main run to remain
+     `PENDING_BASELINE_OBSERVATION`; then land a pointer-only PR targeting
+     exact `P` and verify the automatic exact-head GCC/Clang
+     `TRUSTED_MAIN_OBSERVATION` artifacts and all archive/internal checksums
+   - require at least two additional independent protected-main samples per
+     compiler before tightening; the current raw samples partition one batch
+     and do not justify percentile or confidence-interval claims
    - treat the four 4,287-call batches as research workloads only, not a
      consensus, block, transaction, mempool, or production limit
-   - preserve broader-platform and exact-commit re-review requirements
+   - preserve broader-platform/toolchain, concurrency, production-parser, and
+     exact-commit re-review requirements; keep each single-compiler artifact
+     non-promotion-eligible
    - keep production at `NONE` and `RELEASE_HOLD`; this tranche authorizes no
      SIMD256 admission or consensus, wallet, Script, `ALG_ID`, or
      inventory-policy change, and issues `#188` and `#181` remain open
@@ -1879,6 +1892,23 @@ Aineko must ask before:
 
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
+
+- 2026-08-12: Separate review of exact protected-main resource run
+  `31520865906` selected deliberately coarse test-only Linux x86_64
+  gross-regression ceilings: `2` / `5` seconds CPU/wall per 4,287-call batch,
+  `8` / `20` seconds aggregate CPU/wall across the first call plus four
+  batches, `10` / `25` milliseconds CPU/wall for the first call, `75` / `200`
+  milliseconds CPU/wall for any retained verifier-batch sample, and `65,536` KiB process peak
+  RSS. The policy binds both compiler artifacts, compiler targets, and version-
+  output hashes, excludes the reported control loop from verifier aggregation,
+  forbids calibration from the evaluated run, and preserves a recomputable
+  failed receipt on numeric rejection. The 31 raw
+  samples partition one execution and support no percentile claim; two more
+  independent protected-main samples per compiler are required before
+  tightening. A separate pointer-only merge and fresh protected-main pair are
+  still required for trusted policy-enforced evidence. Issues `#188` and
+  `#181` remain open, production remains `NONE`, and `RELEASE_HOLD` remains in
+  force.
 
 - 2026-08-11: PR `#221` landed the isolated wrapper's explicit fork-lifecycle
   handling at `60e259458d1029fa4193de878f14d41a0793042d`; PR `#222` advanced

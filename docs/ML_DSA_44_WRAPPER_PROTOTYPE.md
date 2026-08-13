@@ -2,7 +2,7 @@
 
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-WRAPPER-PROTOTYPE-v1
-## Updated: 2026-08-11
+## Updated: 2026-08-12
 ## Consensus-Relevant: NO
 
 ## Scope
@@ -326,17 +326,19 @@ not claim visibility into dynamic-loader or system-library internals.
 
 Each batch retains raw integer timing samples plus matched loop-control
 samples, and the evidence validator independently recomputes the descriptive
-statistics. The initial policy deliberately defines no numeric CPU,
-wall-time, or RSS acceptance threshold. Pull-request observations are labeled
-`UNTRUSTED_PR_OBSERVATION`. A `TRUSTED_MAIN_OBSERVATION` requires the
-candidate workflow and inputs to merge, followed by a separate reviewed
-baseline-pointer update and an exact clean protected-main push. Manual
-dispatches remain diagnostic and untrusted. Numeric acceptance may be frozen
-only in a later reviewed policy change based on that trusted observation,
-never by the same pull request that defines the measurement.
-No individual compiler artifact is promotion-eligible: both exact-head GCC
-and Clang artifacts and external GitHub Actions run/artifact provenance must
-be checked before that later policy review.
+statistics. The control loop is retained but excluded from numeric verifier
+aggregation. The separately reviewed schema-`2` policy defines only coarse,
+test-only Linux x86_64 gross-regression ceilings: `2,000,000,000` CPU
+nanoseconds and `5,000,000,000` wall nanoseconds per batch;
+`8,000,000,000` CPU nanoseconds and `20,000,000,000` wall nanoseconds across
+the first call plus four batches; `10,000,000` / `25,000,000` CPU/wall
+nanoseconds for the first call; `75,000,000` / `200,000,000` CPU/wall
+nanoseconds for any retained verifier-batch sample; and `65,536` KiB process peak RSS. It
+also retains the exact 128 KiB guarded-thread and zero instrumented project-
+heap-call requirements. A rejected numeric observation remains a checksummed
+raw diagnostic with a recomputable `FAIL` receipt only when the complete
+repository, trust, compiler, build, corpus, stack, and detector-control
+evidence remains verifiable; it cannot become a passing job.
 
 Protected-main push run `31520865906`, attempt `1`, observed exact head
 `79de77faf112453868779861ae0c982dba533f84` against baseline pointer
@@ -347,15 +349,27 @@ passing. GCC artifact `9112965965` has outer SHA-256
 Clang artifact `9112975963` has outer SHA-256
 `04c5c3f1283851cb93e4b0488091f74719002500d916f0e404cd14ea72d1cf0d`.
 Both are exact-main `TRUSTED_MAIN_OBSERVATION` receipts and remain
-`promotion_eligible=false`: the separate reviewed numeric policy is still
-unset.
+`promotion_eligible=false`. Their exact head, workflow/run/job provenance,
+archive and internal checksums, observation/report hashes, compiler targets,
+and version-output hashes are the frozen basis for the coarse policy. The 31
+raw samples partition one batch rather than supplying 31 independent batch
+repetitions, so the policy makes no percentile claim and requires at least two
+additional protected-main samples per compiler before tightening.
+
+Pull-request observations remain `UNTRUSTED_PR_OBSERVATION`. The numeric-
+policy change must merge and then receive a separate reviewed baseline-pointer
+advance before a clean protected-main push can produce policy-enforced
+`TRUSTED_MAIN_OBSERVATION` evidence. Manual dispatches remain untrusted. No
+individual compiler artifact is promotion-eligible: the exact-head GCC and
+Clang pair and external GitHub Actions provenance must be verified together.
 
 This is a test-only observation lane, not a supported-platform or worst-case
 resource proof. It changes no production linkage or behavior, does not admit
 SIMD256, and does not establish a consensus parser or adversarial block limit.
-Issue `#188` remains open pending reviewed numeric limits, broader-platform
-coverage, and exact-commit re-review. Issue `#181` also remains open,
-production remains `NONE`, and `RELEASE_HOLD` remains in force.
+Issue `#188` remains open pending fresh policy-enforced trusted-main evidence,
+broader-platform and toolchain coverage, concurrency and production-parser
+limits, and exact-commit re-review. Issue `#181` also remains open, production
+remains `NONE`, and `RELEASE_HOLD` remains in force.
 
 ## Pinned Upstream CBMC Reproduction
 
