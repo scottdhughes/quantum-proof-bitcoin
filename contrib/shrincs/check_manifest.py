@@ -31,6 +31,13 @@ EXPECTED_UPSTREAM = {
     ),
 }
 
+EXPECTED_COMPATIBILITY = {
+    "parameter_model": "PARAMETER_ONLY",
+    "draft_specification": "AUTHORITATIVE_DRAFT",
+    "research_cpp": "INCOMPATIBLE",
+    "simplicity_verifier": "INCOMPATIBLE",
+}
+
 REQUIRED_STATE_CONTROLS = (
     "reserve_before_sign",
     "burn_on_attempt",
@@ -76,6 +83,16 @@ def validate_manifest(data: dict[str, Any]) -> None:
         _require(item.get("repository") == repository, f"upstream.{name}.repository drifted")
         _require(item.get("commit") == commit, f"upstream.{name}.commit drifted")
         _require(bool(SHA1_RE.fullmatch(str(item.get("commit", "")))), f"upstream.{name}.commit is not a 40-byte hex SHA")
+        _require(
+            item.get("compatibility_with_pinned_draft") == EXPECTED_COMPATIBILITY[name],
+            f"upstream.{name}.compatibility_with_pinned_draft drifted",
+        )
+        if EXPECTED_COMPATIBILITY[name] == "INCOMPATIBLE":
+            reasons = item.get("compatibility_reasons")
+            _require(
+                isinstance(reasons, list) and len(reasons) >= 2 and all(isinstance(reason, str) and reason for reason in reasons),
+                f"upstream.{name}.compatibility_reasons must retain concrete evidence",
+            )
 
     observed = data.get("observed_profiles")
     _require(isinstance(observed, dict), "observed_profiles must be an object")
@@ -160,6 +177,10 @@ def main() -> int:
         "production_backend": data["production_backend"],
         "release_hold": data["release_hold"],
         "upstream_pins": len(data["upstream"]),
+        "incompatible_oracles": sum(
+            item["compatibility_with_pinned_draft"] == "INCOMPATIBLE"
+            for item in data["upstream"].values()
+        ),
         "state_controls": len(data["wallet_state_contract"]),
         "result": "PASS",
     }
@@ -169,6 +190,7 @@ def main() -> int:
         print(
             "SHRINCS candidate manifest: PASS "
             f"(pins={result['upstream_pins']}, "
+            f"incompatible_oracles={result['incompatible_oracles']}, "
             f"state_controls={result['state_controls']}, "
             "consensus=disabled, backend=NONE, release_hold=true)"
         )
