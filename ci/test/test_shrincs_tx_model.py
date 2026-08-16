@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -26,9 +27,12 @@ class ShrincsTxModelTests(unittest.TestCase):
 
     def test_pre_activation_node_does_not_enforce_candidate_version(self) -> None:
         source = INTERPRETER_PATH.read_text(encoding="utf-8")
-        self.assertIn(
-            "Other version/size/p2sh combinations return true for future softfork compatibility",
+        self.assertRegex(
             source,
+            re.compile(
+                r"Other version/size/p2sh combinations return true for future softfork "
+                r"compatibility\s*return true;"
+            ),
         )
         self.assertEqual(MODEL.PROPOSED_WITNESS_VERSION, 2)
 
