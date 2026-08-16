@@ -2,6 +2,46 @@
   "as_of": "2026-08-16",
   "candidate_id": "pqbtc-shrincs-v0",
   "component_evidence": {
+    "full_profile": {
+      "artifact_bytes": 39752,
+      "artifact_id": 9270280450,
+      "artifact_sha256": "1e72d00da47decf374424a6460856b25d97ce9a435d3b68e35e6d35a55277722",
+      "canonical_early_rejections": 62,
+      "canonical_hashed_rejections": 194,
+      "canonical_random_rejections": 256,
+      "canonical_stateful_lengths": 255,
+      "canonical_stateless_lengths": 1,
+      "committed_kat_vectors": 9,
+      "committed_kats_independently_generated": false,
+      "committed_kats_regenerate_byte_for_byte": true,
+      "consensus_ready": false,
+      "independent_c_verifier": true,
+      "invalid_public_key_lengths_tested": 64,
+      "invalid_signature_lengths_tested": 5745,
+      "invalid_signature_lengths_zero_hash_work": true,
+      "mode_and_binding_cases_rejected": 10,
+      "no_cross_algorithm_fallback": true,
+      "production_backend_ready": false,
+      "public_key_bytes": 48,
+      "sanitizer_replay_passed": true,
+      "scope": "strict combined current-draft verifier envelope",
+      "sha256_work": {
+        "stateful_calls_maximum": 248,
+        "stateful_calls_minimum": 245,
+        "stateful_compressions_maximum": 505,
+        "stateful_compressions_minimum": 498,
+        "stateless_calls_maximum": 1558,
+        "stateless_calls_minimum": 1528,
+        "stateless_compressions_maximum": 3164,
+        "stateless_compressions_minimum": 3103
+      },
+      "signature_lengths_tested": 6001,
+      "stateful_kat_json_sha256": "059549af4c74f6bd1898fc93add185ec0bffe08063b00cbff5b1eb4080ebc041",
+      "stateless_kat_json_sha256": "67356b917284198f5a89bfbe727391dcde5e0f06c9f6799b0edd31197968eaae",
+      "status": "STRICT_FULL_PROFILE_PROTOTYPE",
+      "valid_signatures_verified": 9,
+      "vectors_committed": true
+    },
     "stateful_fxmss": {
       "balanced_and_unbalanced_vectors": true,
       "consensus_ready": false,
@@ -15,7 +55,7 @@
       "structural_negatives_rejected": 42,
       "uses_qualified_libshrincs_wotsc": true,
       "valid_signatures_verified": 7,
-      "vectors_committed": false,
+      "vectors_committed": true,
       "vectors_retained_as_ci_artifact": true
     },
     "stateless_hypertree": {
@@ -31,7 +71,7 @@
       "structural_negatives_rejected": 12,
       "uses_pinned_libshrincs_sha256": true,
       "valid_signatures_verified": 2,
-      "vectors_committed": false,
+      "vectors_committed": true,
       "vectors_retained_as_ci_artifact": true
     },
     "wotsc": {
