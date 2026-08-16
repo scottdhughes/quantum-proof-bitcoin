@@ -1,0 +1,49 @@
+{
+  "corpora": {
+    "stateful": {
+      "profile": "pqbtc-shrincs-current-draft-stateful-kat-v0",
+      "sha256": "059549af4c74f6bd1898fc93add185ec0bffe08063b00cbff5b1eb4080ebc041",
+      "signature_lengths": [
+        554,
+        570,
+        586,
+        602
+      ],
+      "vector_count": 7
+    },
+    "stateless": {
+      "profile": "pqbtc-shrincs-current-draft-stateless-kat-v0",
+      "sha256": "67356b917284198f5a89bfbe727391dcde5e0f06c9f6799b0edd31197968eaae",
+      "signature_lengths": [
+        5776
+      ],
+      "vector_count": 2
+    }
+  },
+  "draft_commit": "acc6bda51dc3b94848d118967247ad0f3cd7a80e",
+  "evidence_source": {
+    "artifact_id": 9270125263,
+    "artifact_zip_sha256": "abe674935f6c5903bf9e556824068487a31d60087b47e2a682334386dd30be77",
+    "head_commit": "80df35097fdc1b9ecfd18bb4cf5f14083ac3dfac",
+    "pull_request": 232,
+    "workflow_run": 31972304850
+  },
+  "libshrincs_commit": "53bedb2c4be6b0dcc0a16fee665339d4f7e4e5b5",
+  "profile": "pqbtc-shrincs-current-draft-kat-lock-v0",
+  "resource_vectors": {
+    "context_bytes": 255,
+    "message_bytes": 4096,
+    "profile": "pqbtc-shrincs-current-draft-resource-v0",
+    "sha256": "c79cd786bf3cefcce7586cfb018beb3da751ee949b42d3e8afad9e05ea40540a",
+    "signature_lengths": [
+      4618,
+      5776
+    ],
+    "vector_count": 2,
+    "vector_names": [
+      "stateful_max_depth_message_context",
+      "stateless_max_message_context"
+    ]
+  },
+  "schema_version": 1
+}
