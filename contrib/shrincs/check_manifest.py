@@ -125,7 +125,11 @@ def validate_manifest(data: dict[str, Any]) -> None:
             )
 
     components = data.get("component_evidence")
-    _require(isinstance(components, dict) and set(components) == {"wotsc"}, "component_evidence set drifted")
+    _require(
+        isinstance(components, dict) and set(components) == {"wotsc", "stateful_fxmss"},
+        "component_evidence set drifted",
+    )
+
     wotsc = components.get("wotsc")
     _require(isinstance(wotsc, dict), "component_evidence.wotsc must be an object")
     expected_wotsc = {
@@ -140,6 +144,29 @@ def validate_manifest(data: dict[str, Any]) -> None:
         "wots_signature_bytes": 514,
     }
     _require(wotsc == expected_wotsc, "component_evidence.wotsc drifted")
+
+    stateful_fxmss = components.get("stateful_fxmss")
+    _require(isinstance(stateful_fxmss, dict), "component_evidence.stateful_fxmss must be an object")
+    expected_stateful_fxmss = {
+        "balanced_and_unbalanced_vectors": True,
+        "consensus_ready": False,
+        "independent_c_verifier": True,
+        "kat_case_count": 7,
+        "public_key_bit_mutations_rejected": 2688,
+        "qualifies_as_full_shrincs_verifier": False,
+        "scope": "complete current-draft stateful verification path only",
+        "signature_bit_mutations_rejected": 32688,
+        "status": "INDEPENDENT_DIFFERENTIAL_PROTOTYPE",
+        "structural_negatives_rejected": 42,
+        "uses_qualified_libshrincs_wotsc": True,
+        "valid_signatures_verified": 7,
+        "vectors_committed": False,
+        "vectors_retained_as_ci_artifact": True,
+    }
+    _require(
+        stateful_fxmss == expected_stateful_fxmss,
+        "component_evidence.stateful_fxmss drifted",
+    )
 
     observed = data.get("observed_profiles")
     _require(isinstance(observed, dict), "observed_profiles must be an object")
@@ -196,7 +223,7 @@ def validate_manifest(data: dict[str, Any]) -> None:
     gates = data.get("required_gates")
     _require(isinstance(gates, dict) and gates, "required_gates must be a non-empty object")
     for name, value in gates.items():
-        _require(value is False, f"gate {name} cannot be marked complete in the component tranche")
+        _require(value is False, f"gate {name} cannot be marked complete in the stateful verifier tranche")
 
 
 def main() -> int:
@@ -228,6 +255,10 @@ def main() -> int:
             item["compatibility_with_pinned_draft"] == "COMPATIBLE_COMPONENT"
             for item in data["upstream"].values()
         ),
+        "independent_stateful_prototypes": sum(
+            item.get("status") == "INDEPENDENT_DIFFERENTIAL_PROTOTYPE"
+            for item in data["component_evidence"].values()
+        ),
         "incompatible_oracles": sum(
             item["compatibility_with_pinned_draft"] == "INCOMPATIBLE"
             for item in data["upstream"].values()
@@ -242,6 +273,7 @@ def main() -> int:
             "SHRINCS candidate manifest: PASS "
             f"(pins={result['upstream_pins']}, "
             f"compatible_components={result['compatible_components']}, "
+            f"independent_stateful_prototypes={result['independent_stateful_prototypes']}, "
             f"incompatible_oracles={result['incompatible_oracles']}, "
             f"state_controls={result['state_controls']}, "
             "consensus=disabled, backend=NONE, release_hold=true)"
