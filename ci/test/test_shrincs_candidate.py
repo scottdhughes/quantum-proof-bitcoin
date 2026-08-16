@@ -51,10 +51,25 @@ class ShrincsCandidateManifestTests(unittest.TestCase):
         data["upstream"]["draft_specification"]["commit"] = "0" * 40
         self.assert_invalid(data, "draft_specification.commit drifted")
 
+    def test_libshrincs_pin_drift_is_rejected(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["upstream"]["libshrincs_wotsc"]["commit"] = "0" * 40
+        self.assert_invalid(data, "libshrincs_wotsc.commit drifted")
+
     def test_incompatible_oracle_cannot_be_silently_promoted(self) -> None:
         data = copy.deepcopy(self.manifest)
         data["upstream"]["research_cpp"]["compatibility_with_pinned_draft"] = "COMPATIBLE"
         self.assert_invalid(data, "research_cpp.compatibility_with_pinned_draft drifted")
+
+    def test_component_cannot_be_silently_promoted_to_full_verifier(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["component_evidence"]["wotsc"]["qualifies_as_full_shrincs_verifier"] = True
+        self.assert_invalid(data, "component_evidence.wotsc drifted")
+
+    def test_component_proof_reproduction_cannot_be_claimed(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["component_evidence"]["wotsc"]["formal_proofs_reproduced_by_pqbtc"] = True
+        self.assert_invalid(data, "component_evidence.wotsc drifted")
 
     def test_signature_profile_drift_is_rejected(self) -> None:
         data = copy.deepcopy(self.manifest)
@@ -71,10 +86,10 @@ class ShrincsCandidateManifestTests(unittest.TestCase):
         data["wallet_state_contract"]["reserve_before_sign"] = False
         self.assert_invalid(data, "reserve_before_sign must remain enabled")
 
-    def test_gate_cannot_be_closed_in_foundation_tranche(self) -> None:
+    def test_gate_cannot_be_closed_in_component_tranche(self) -> None:
         data = copy.deepcopy(self.manifest)
-        data["required_gates"]["exact_profile_frozen"] = True
-        self.assert_invalid(data, "exact_profile_frozen cannot be marked complete")
+        data["required_gates"]["differential_verifiers"] = True
+        self.assert_invalid(data, "differential_verifiers cannot be marked complete")
 
 
 if __name__ == "__main__":

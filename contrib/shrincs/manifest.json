@@ -1,6 +1,19 @@
 {
   "as_of": "2026-08-16",
   "candidate_id": "pqbtc-shrincs-v0",
+  "component_evidence": {
+    "wotsc": {
+      "compiled_c_matches_committed_kats": true,
+      "current_draft_matches_committed_kats": true,
+      "formal_proofs_reproduced_by_pqbtc": false,
+      "kat_case_count": 8,
+      "qualifies_as_full_shrincs_verifier": false,
+      "scope": "stateful WOTS+C leaf only",
+      "status": "COMPATIBLE_COMPONENT_ORACLE",
+      "wots_public_key_bytes": 16,
+      "wots_signature_bytes": 514
+    }
+  },
   "consensus_contract": {
     "accepted_public_key_sizes": [],
     "accepted_signature_sizes": [],
@@ -86,6 +99,25 @@
       "compatibility_with_pinned_draft": "AUTHORITATIVE_DRAFT",
       "repository": "SHRINCS/shrincs-bip",
       "role": "draft-specification-and-executable-model"
+    },
+    "libshrincs_wotsc": {
+      "commit": "53bedb2c4be6b0dcc0a16fee665339d4f7e4e5b5",
+      "compatible_scope": [
+        "WOTS+C n=16, w=16, 32 chains, constant sum 240",
+        "16-bit grinding counter and 514-byte signature encoding",
+        "16-byte WOTS public key and 22-byte address layout",
+        "byte-for-byte key generation, signing, and public-key recovery vectors"
+      ],
+      "compatibility_with_pinned_draft": "COMPATIBLE_COMPONENT",
+      "kat_source_commit": "4795244c4208f5de69dc386f6e6a451b7aa0c4e2",
+      "limitations": [
+        "implements only the stateful WOTS+C leaf, not full FXMSS or SHRINCS",
+        "the upstream C API and VST address contract are provisional",
+        "PQBTC does not reproduce the Rocq/VST/SSProve proof suite in this tranche",
+        "the libshrincs fxmss branch is not used because its theorem is not connected end-to-end to the C"
+      ],
+      "repository": "remix7531/libshrincs",
+      "role": "formally-verified-wotsc-component-oracle"
     },
     "parameter_model": {
       "commit": "d64a217595597d5fe165ba6d236af83e6737da31",
