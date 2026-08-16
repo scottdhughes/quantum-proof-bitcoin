@@ -1,0 +1,38 @@
+{
+  "corpora": {
+    "stateful": {
+      "base64_bytes": 7884,
+      "base64_sha256": "7b8e87f9df2b0a97edcd4a6ac8ff2c763a2cf16c6ad77fbab3e896a2cf4d9a61",
+      "gzip_bytes": 5913,
+      "gzip_sha256": "3eb582429e65b6744a8ec898bddeb9c831efdd353fa6078e0b5837f6d5785094",
+      "json_bytes": 12581,
+      "json_sha256": "059549af4c74f6bd1898fc93add185ec0bffe08063b00cbff5b1eb4080ebc041",
+      "parts": [
+        "stateful-vectors.json.gz.b64.part00",
+        "stateful-vectors.json.gz.b64.part01"
+      ],
+      "profile": "pqbtc-shrincs-current-draft-stateful-kat-v0",
+      "vector_count": 7
+    },
+    "stateless": {
+      "base64_bytes": 18908,
+      "base64_sha256": "fa5de8f69e80556e1a4682c5e686519fb3985520c577b120b6815fc15d7e1fc4",
+      "gzip_bytes": 14181,
+      "gzip_sha256": "850fd465f3cd2bb7bf4dfdf539498d9f2c4e71fe9044e3bdc4e02cf818d7f50b",
+      "json_bytes": 24566,
+      "json_sha256": "67356b917284198f5a89bfbe727391dcde5e0f06c9f6799b0edd31197968eaae",
+      "parts": [
+        "stateless-vectors.json.gz.b64.part00",
+        "stateless-vectors.json.gz.b64.part01",
+        "stateless-vectors.json.gz.b64.part02",
+        "stateless-vectors.json.gz.b64.part03"
+      ],
+      "profile": "pqbtc-shrincs-current-draft-stateless-kat-v0",
+      "vector_count": 2
+    }
+  },
+  "draft_commit": "acc6bda51dc3b94848d118967247ad0f3cd7a80e",
+  "libshrincs_commit": "53bedb2c4be6b0dcc0a16fee665339d4f7e4e5b5",
+  "profile": "pqbtc-shrincs-current-draft-full-kat-v0",
+  "schema_version": 1
+}
