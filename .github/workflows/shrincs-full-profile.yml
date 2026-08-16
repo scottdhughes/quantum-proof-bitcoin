@@ -1,0 +1,144 @@
+name: SHRINCS full-profile verifier
+
+on:
+  pull_request:
+    paths:
+      - "contrib/shrincs/**"
+      - "contrib/shrincs-ref/**"
+      - "ci/test/test_shrincs_*.py"
+      - ".github/workflows/shrincs-full-profile.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "contrib/shrincs/**"
+      - "contrib/shrincs-ref/**"
+      - "ci/test/test_shrincs_*.py"
+      - ".github/workflows/shrincs-full-profile.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    name: immutable KATs and strict combined verifier
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out PQBTC
+        uses: actions/checkout@v5
+
+      - name: Check out pinned libshrincs
+        uses: actions/checkout@v5
+        with:
+          repository: remix7531/libshrincs
+          ref: 53bedb2c4be6b0dcc0a16fee665339d4f7e4e5b5
+          path: upstream/libshrincs
+          persist-credentials: false
+
+      - name: Check out pinned SHRINCS draft
+        uses: actions/checkout@v5
+        with:
+          repository: SHRINCS/shrincs-bip
+          ref: acc6bda51dc3b94848d118967247ad0f3cd7a80e
+          path: upstream/shrincs-bip
+          persist-credentials: false
+
+      - name: Validate inherited contracts and KAT loader tests
+        run: |
+          python3 contrib/shrincs/check_manifest.py --json
+          python3 -m unittest discover -s ci/test -p 'test_shrincs_*.py'
+          python3 contrib/shrincs-ref/kat_loader.py \
+            --extract-dir build/shrincs-full/committed \
+            --json
+
+      - name: Regenerate every committed KAT byte from the pinned draft
+        run: |
+          python3 contrib/shrincs-ref/regenerate_kats.py \
+            --libshrincs upstream/libshrincs \
+            --shrincs-bip upstream/shrincs-bip \
+            --output-dir build/shrincs-full/regenerated \
+            --json
+          cmp build/shrincs-full/committed/stateful-vectors.json \
+              build/shrincs-full/regenerated/stateful-vectors.json
+          cmp build/shrincs-full/committed/stateless-vectors.json \
+              build/shrincs-full/regenerated/stateless-vectors.json
+
+      - name: Build counted pinned SHA-256 implementation
+        run: |
+          mkdir -p build/shrincs-full
+          cc -std=c99 -Wall -Wextra -Wpedantic -Werror -O2 -fPIC \
+            -Dshrincs_sha256=shrincs_sha256_impl \
+            -Iupstream/libshrincs/include \
+            -c upstream/libshrincs/src/sha256.c \
+            -o build/shrincs-full/sha256_impl.o
+
+      - name: Build strict combined verifier
+        run: |
+          cc -std=c99 -Wall -Wextra -Wpedantic -Werror -O2 -fPIC -shared \
+            -Iupstream/libshrincs/include \
+            contrib/shrincs-ref/full_verify.c \
+            contrib/shrincs-ref/stateful_verify.c \
+            contrib/shrincs-ref/stateless_verify.c \
+            contrib/shrincs-ref/sha256_counting.c \
+            upstream/libshrincs/src/wots.c \
+            upstream/libshrincs/src/thash.c \
+            upstream/libshrincs/src/util.c \
+            build/shrincs-full/sha256_impl.o \
+            -o build/shrincs-full/libpqbtc_shrincs_full_oracle.so
+
+      - name: Validate full profile, exhaustive lengths, and work accounting
+        run: |
+          python3 contrib/shrincs-ref/check_full_profile.py \
+            --library build/shrincs-full/libpqbtc_shrincs_full_oracle.so \
+            --report-out build/shrincs-full/full-profile-report.json \
+            --json
+
+      - name: Build sanitizer-counted SHA-256 implementation
+        run: |
+          cc -std=c99 -Wall -Wextra -Wpedantic -Werror -O1 -g -fPIC \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -fno-sanitize-recover=all \
+            -Dshrincs_sha256=shrincs_sha256_impl \
+            -Iupstream/libshrincs/include \
+            -c upstream/libshrincs/src/sha256.c \
+            -o build/shrincs-full/sha256_impl_asan.o
+
+      - name: Build sanitizer strict combined verifier
+        run: |
+          cc -std=c99 -Wall -Wextra -Wpedantic -Werror -O1 -g -fPIC -shared \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -fno-sanitize-recover=all \
+            -Iupstream/libshrincs/include \
+            contrib/shrincs-ref/full_verify.c \
+            contrib/shrincs-ref/stateful_verify.c \
+            contrib/shrincs-ref/stateless_verify.c \
+            contrib/shrincs-ref/sha256_counting.c \
+            upstream/libshrincs/src/wots.c \
+            upstream/libshrincs/src/thash.c \
+            upstream/libshrincs/src/util.c \
+            build/shrincs-full/sha256_impl_asan.o \
+            -o build/shrincs-full/libpqbtc_shrincs_full_oracle_asan.so
+
+      - name: Repeat full-profile contract under ASan and UBSan
+        env:
+          ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          export LD_PRELOAD="$(cc -print-file-name=libasan.so)"
+          python3 contrib/shrincs-ref/check_full_profile.py \
+            --library build/shrincs-full/libpqbtc_shrincs_full_oracle_asan.so \
+            --report-out build/shrincs-full/full-profile-report-asan.json \
+            --json
+
+      - name: Upload immutable KAT and work reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: pqbtc-shrincs-full-profile-evidence
+          path: |
+            build/shrincs-full/committed/*.json
+            build/shrincs-full/regenerated/*.json
+            build/shrincs-full/full-profile-report*.json
+          if-no-files-found: error
+          retention-days: 30
