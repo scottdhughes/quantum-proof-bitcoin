@@ -7,6 +7,7 @@ on:
       - "contrib/shrincs-ref/**"
       - "ci/test/test_shrincs_candidate.py"
       - "ci/test/test_shrincs_wotsc_oracle.py"
+      - "ci/test/test_shrincs_stateless_oracle.py"
       - ".github/workflows/shrincs-stateless-oracle.yml"
   push:
     branches:
@@ -16,6 +17,7 @@ on:
       - "contrib/shrincs-ref/**"
       - "ci/test/test_shrincs_candidate.py"
       - "ci/test/test_shrincs_wotsc_oracle.py"
+      - "ci/test/test_shrincs_stateless_oracle.py"
       - ".github/workflows/shrincs-stateless-oracle.yml"
   workflow_dispatch:
 
@@ -52,6 +54,7 @@ jobs:
           python3 contrib/shrincs/check_manifest.py --json
           python3 -m unittest discover -s ci/test -p 'test_shrincs_candidate.py'
           python3 -m unittest discover -s ci/test -p 'test_shrincs_wotsc_oracle.py'
+          python3 -m unittest discover -s ci/test -p 'test_shrincs_stateless_oracle.py'
 
       - name: Build independent stateless verifier
         run: |
@@ -60,6 +63,7 @@ jobs:
             -Iupstream/libshrincs/include \
             contrib/shrincs-ref/stateless_verify.c \
             upstream/libshrincs/src/sha256.c \
+            upstream/libshrincs/src/util.c \
             -o build/shrincs-stateless/libpqbtc_shrincs_stateless_oracle.so
 
       - name: Generate vectors and run differential mutations
@@ -78,6 +82,7 @@ jobs:
             -Iupstream/libshrincs/include \
             contrib/shrincs-ref/stateless_verify.c \
             upstream/libshrincs/src/sha256.c \
+            upstream/libshrincs/src/util.c \
             -o build/shrincs-stateless/libpqbtc_shrincs_stateless_oracle_asan.so
 
       - name: Run retained vectors under ASan and UBSan
