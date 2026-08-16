@@ -72,6 +72,16 @@ class ShrincsTxModelTests(unittest.TestCase):
         with self.assertRaisesRegex(MODEL.TxModelError, "commitment mismatch"):
             MODEL.parse_witness([signature, bytes(bad_key)], program)
 
+    def test_nonempty_scriptsig_is_rejected(self) -> None:
+        with self.assertRaisesRegex(MODEL.TxModelError, "empty scriptSig"):
+            MODEL.SpentInput(
+                prevout=MODEL.OutPoint(bytes(32), 0),
+                amount=1,
+                script_pubkey=b"",
+                sequence=0,
+                script_sig=b"\x51",
+            )
+
     def test_sighash_commits_to_every_transaction_surface(self) -> None:
         public_key = bytes(range(48))
         tx = MODEL.build_design_transaction(public_key)
