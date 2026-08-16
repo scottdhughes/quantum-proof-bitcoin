@@ -86,6 +86,11 @@ class ShrincsCandidateManifestTests(unittest.TestCase):
         data["component_evidence"]["stateful_fxmss"]["signature_bit_mutations_rejected"] -= 1
         self.assert_invalid(data, "component_evidence.stateful_fxmss drifted")
 
+    def test_stateful_vectors_cannot_be_uncommitted(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["component_evidence"]["stateful_fxmss"]["vectors_committed"] = False
+        self.assert_invalid(data, "component_evidence.stateful_fxmss drifted")
+
     def test_stateless_prototype_cannot_be_promoted_to_full_verifier(self) -> None:
         data = copy.deepcopy(self.manifest)
         data["component_evidence"]["stateless_hypertree"]["qualifies_as_full_shrincs_verifier"] = True
@@ -101,10 +106,35 @@ class ShrincsCandidateManifestTests(unittest.TestCase):
         data["component_evidence"]["stateless_hypertree"]["signature_bit_mutations_rejected"] -= 1
         self.assert_invalid(data, "component_evidence.stateless_hypertree drifted")
 
-    def test_stateless_vectors_cannot_be_claimed_committed(self) -> None:
+    def test_stateless_vectors_cannot_be_uncommitted(self) -> None:
         data = copy.deepcopy(self.manifest)
-        data["component_evidence"]["stateless_hypertree"]["vectors_committed"] = True
+        data["component_evidence"]["stateless_hypertree"]["vectors_committed"] = False
         self.assert_invalid(data, "component_evidence.stateless_hypertree drifted")
+
+    def test_full_profile_cannot_be_marked_consensus_ready(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["component_evidence"]["full_profile"]["consensus_ready"] = True
+        self.assert_invalid(data, "component_evidence.full_profile drifted")
+
+    def test_full_profile_cannot_be_marked_production_ready(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["component_evidence"]["full_profile"]["production_backend_ready"] = True
+        self.assert_invalid(data, "component_evidence.full_profile drifted")
+
+    def test_full_profile_cannot_claim_independently_generated_kats(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["component_evidence"]["full_profile"]["committed_kats_independently_generated"] = True
+        self.assert_invalid(data, "component_evidence.full_profile drifted")
+
+    def test_full_profile_invalid_lengths_must_remain_zero_work(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["component_evidence"]["full_profile"]["invalid_signature_lengths_zero_hash_work"] = False
+        self.assert_invalid(data, "component_evidence.full_profile drifted")
+
+    def test_full_profile_artifact_digest_drift_is_rejected(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["component_evidence"]["full_profile"]["artifact_sha256"] = "0" * 64
+        self.assert_invalid(data, "component_evidence.full_profile drifted")
 
     def test_signature_profile_drift_is_rejected(self) -> None:
         data = copy.deepcopy(self.manifest)
