@@ -25,7 +25,7 @@ SIG_HASH_EPOCH = 0
 SPEND_TYPE = 0
 SHRINCS_CONTEXT = b"PQBTC/SHRINCS/TXSIG/v0"
 OUTPUT_TAG = b"PQBTC/SHRINCS/OUTPUT/v0"
-SIGHASH_TAG = b"PQBTC/SHRINCS/TXSIG/v0"
+SIGHASH_TAG = b"PQBTC/SHRINCS/SIGHASH/v0"
 TEST_CHAIN_ID = hashlib.sha256(b"PQBTC-SHRINCS-TX-V0-TEST-CHAIN").digest()
 
 
@@ -97,15 +97,16 @@ class SpentInput:
     amount: int
     script_pubkey: bytes
     sequence: int
+    script_sig: bytes = b""
 
     def __post_init__(self) -> None:
         require(0 <= self.amount <= 21_000_000 * 100_000_000, "input amount out of range")
         require(len(self.script_pubkey) <= 10_000, "input scriptPubKey too large")
         require(0 <= self.sequence <= 0xFFFFFFFF, "input sequence out of range")
+        require(not self.script_sig, "P2SHRINCS-v0 requires empty scriptSig on every input")
 
     def serialize_stripped(self) -> bytes:
-        # Version zero admits native witness inputs only, so scriptSig is empty.
-        return self.prevout.serialize() + b"\x00" + ser_u32(self.sequence)
+        return self.prevout.serialize() + ser_bytes(self.script_sig) + ser_u32(self.sequence)
 
 
 @dataclass(frozen=True)
