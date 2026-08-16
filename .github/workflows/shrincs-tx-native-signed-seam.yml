@@ -1,4 +1,4 @@
-name: SHRINCS transaction C++ component
+name: SHRINCS transaction native signed seam
 
 on:
   pull_request:
@@ -9,10 +9,10 @@ on:
       - "src/test/shrincs_tx_v0_signed_seam_tests.cpp"
       - "src/test/shrincs_tx_v0_signed_seam_vectors.h"
       - "src/test/CMakeLists.txt"
+      - "contrib/shrincs-ref/full_verify.c"
+      - "contrib/shrincs-ref/stateful_verify.c"
+      - "contrib/shrincs-ref/stateless_verify.c"
       - "ci/test/test_shrincs_tx_cpp_component.py"
-      - "docs/PQBTC_SHRINCS_TX_V0_CPP.md"
-      - "docs/PQBTC_SHRINCS_TX_V0_NATIVE_SIGNED_SEAM.md"
-      - ".github/workflows/shrincs-tx-cpp-component.yml"
       - ".github/workflows/shrincs-tx-native-signed-seam.yml"
   push:
     branches:
@@ -24,10 +24,10 @@ on:
       - "src/test/shrincs_tx_v0_signed_seam_tests.cpp"
       - "src/test/shrincs_tx_v0_signed_seam_vectors.h"
       - "src/test/CMakeLists.txt"
+      - "contrib/shrincs-ref/full_verify.c"
+      - "contrib/shrincs-ref/stateful_verify.c"
+      - "contrib/shrincs-ref/stateless_verify.c"
       - "ci/test/test_shrincs_tx_cpp_component.py"
-      - "docs/PQBTC_SHRINCS_TX_V0_CPP.md"
-      - "docs/PQBTC_SHRINCS_TX_V0_NATIVE_SIGNED_SEAM.md"
-      - ".github/workflows/shrincs-tx-cpp-component.yml"
       - ".github/workflows/shrincs-tx-native-signed-seam.yml"
   workflow_dispatch:
 
@@ -35,8 +35,8 @@ permissions:
   contents: read
 
 jobs:
-  native-parity:
-    name: unwired native transaction parity
+  native-signed-seam:
+    name: native digest through independent verifier
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -45,7 +45,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Enforce C++ component-only scope
+      - name: Enforce signed-seam-only scope
         if: ${{ github.event_name == 'pull_request' }}
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -54,18 +54,27 @@ jobs:
           set -euo pipefail
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" | while read -r path; do
             case "$path" in
-              src/script/shrincs_tx_v0.h|src/script/shrincs_tx_v0.cpp|src/test/shrincs_tx_v0_tests.cpp|src/test/shrincs_tx_v0_signed_seam_tests.cpp|src/test/shrincs_tx_v0_signed_seam_vectors.h|src/test/CMakeLists.txt|ci/test/test_shrincs_tx_cpp_component.py|docs/PQBTC_SHRINCS_TX_V0_CPP.md|docs/PQBTC_SHRINCS_TX_V0_NATIVE_SIGNED_SEAM.md|.github/workflows/shrincs-tx-cpp-component.yml|.github/workflows/shrincs-tx-native-signed-seam.yml) ;;
+              src/test/shrincs_tx_v0_signed_seam_tests.cpp|src/test/shrincs_tx_v0_signed_seam_vectors.h|src/test/CMakeLists.txt|ci/test/test_shrincs_tx_cpp_component.py|.github/workflows/shrincs-tx-cpp-component.yml|.github/workflows/shrincs-tx-native-signed-seam.yml|docs/PQBTC_SHRINCS_TX_V0_NATIVE_SIGNED_SEAM.md) ;;
               *)
-                echo "Unexpected SHRINCS C++ component path: $path" >&2
+                echo "Unexpected native SHRINCS signed-seam path: $path" >&2
                 exit 1
                 ;;
             esac
           done
 
-      - name: Validate architecture and inherited Python vector
+      - name: Check out pinned libshrincs
+        uses: actions/checkout@v5
+        with:
+          repository: remix7531/libshrincs
+          ref: 53bedb2c4be6b0dcc0a16fee665339d4f7e4e5b5
+          path: upstream/libshrincs
+          persist-credentials: false
+
+      - name: Validate architecture and inherited evidence contracts
         run: |
           python3 -m unittest ci.test.test_shrincs_tx_cpp_component
           python3 -m unittest ci.test.test_shrincs_tx_model
+          python3 -m unittest ci.test.test_shrincs_full_verifier
           python3 ci/test/check_ci_inventory.py
 
       - name: Install focused native build dependencies
@@ -79,7 +88,7 @@ jobs:
             libevent-dev \
             pkg-config
 
-      - name: Configure test-only native build
+      - name: Configure opt-in native signed-seam build
         run: |
           cmake -S . -B build -G Ninja \
             -DBUILD_GUI=OFF \
@@ -92,14 +101,16 @@ jobs:
             -DENABLE_EXTERNAL_SIGNER=OFF \
             -DWITH_ZMQ=OFF \
             -DWITH_USDT=OFF \
-            -DBUILD_TESTS=ON
+            -DBUILD_TESTS=ON \
+            -DPQBTC_ENABLE_SHRINCS_SIGNED_SEAM_TESTS=ON \
+            -DPQBTC_LIBSHRINCS_SOURCE_DIR="$GITHUB_WORKSPACE/upstream/libshrincs"
 
-      - name: Build native PQ-first unit binary
+      - name: Build native PQ-first unit binary with research verifier
         run: cmake --build build --target test_pqbtc --parallel 2
 
-      - name: Run focused C++ parity suite
+      - name: Verify both modes and all 56 native negative cases
         run: |
           build/bin/test_pqbtc \
-            --run_test=shrincs_tx_v0_tests \
+            --run_test=shrincs_tx_v0_signed_seam_tests \
             --catch_system_error=no \
             --log_level=test_suite
