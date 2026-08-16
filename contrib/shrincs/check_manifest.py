@@ -21,6 +21,10 @@ EXPECTED_UPSTREAM = {
         "SHRINCS/shrincs-bip",
         "acc6bda51dc3b94848d118967247ad0f3cd7a80e",
     ),
+    "libshrincs_wotsc": (
+        "remix7531/libshrincs",
+        "53bedb2c4be6b0dcc0a16fee665339d4f7e4e5b5",
+    ),
     "research_cpp": (
         "BlockstreamResearch/shrincs-cpp",
         "7643d9530c568f8671b21b9502e51bd9722b2e8d",
@@ -34,6 +38,7 @@ EXPECTED_UPSTREAM = {
 EXPECTED_COMPATIBILITY = {
     "parameter_model": "PARAMETER_ONLY",
     "draft_specification": "AUTHORITATIVE_DRAFT",
+    "libshrincs_wotsc": "COMPATIBLE_COMPONENT",
     "research_cpp": "INCOMPATIBLE",
     "simplicity_verifier": "INCOMPATIBLE",
 }
@@ -57,6 +62,15 @@ class ManifestError(ValueError):
 def _require(condition: bool, message: str) -> None:
     if not condition:
         raise ManifestError(message)
+
+
+def _require_string_list(value: object, message: str, minimum: int = 2) -> None:
+    _require(
+        isinstance(value, list)
+        and len(value) >= minimum
+        and all(isinstance(item, str) and item for item in value),
+        message,
+    )
 
 
 def load_manifest(path: Path = DEFAULT_MANIFEST) -> dict[str, Any]:
@@ -88,11 +102,44 @@ def validate_manifest(data: dict[str, Any]) -> None:
             f"upstream.{name}.compatibility_with_pinned_draft drifted",
         )
         if EXPECTED_COMPATIBILITY[name] == "INCOMPATIBLE":
-            reasons = item.get("compatibility_reasons")
-            _require(
-                isinstance(reasons, list) and len(reasons) >= 2 and all(isinstance(reason, str) and reason for reason in reasons),
+            _require_string_list(
+                item.get("compatibility_reasons"),
                 f"upstream.{name}.compatibility_reasons must retain concrete evidence",
             )
+        elif EXPECTED_COMPATIBILITY[name] == "COMPATIBLE_COMPONENT":
+            _require_string_list(
+                item.get("compatible_scope"),
+                f"upstream.{name}.compatible_scope must remain explicit",
+                minimum=3,
+            )
+            _require_string_list(
+                item.get("limitations"),
+                f"upstream.{name}.limitations must remain explicit",
+                minimum=3,
+            )
+            kat_source = str(item.get("kat_source_commit", ""))
+            _require(bool(SHA1_RE.fullmatch(kat_source)), f"upstream.{name}.kat_source_commit is invalid")
+            _require(
+                kat_source == "4795244c4208f5de69dc386f6e6a451b7aa0c4e2",
+                f"upstream.{name}.kat_source_commit drifted",
+            )
+
+    components = data.get("component_evidence")
+    _require(isinstance(components, dict) and set(components) == {"wotsc"}, "component_evidence set drifted")
+    wotsc = components.get("wotsc")
+    _require(isinstance(wotsc, dict), "component_evidence.wotsc must be an object")
+    expected_wotsc = {
+        "compiled_c_matches_committed_kats": True,
+        "current_draft_matches_committed_kats": True,
+        "formal_proofs_reproduced_by_pqbtc": False,
+        "kat_case_count": 8,
+        "qualifies_as_full_shrincs_verifier": False,
+        "scope": "stateful WOTS+C leaf only",
+        "status": "COMPATIBLE_COMPONENT_ORACLE",
+        "wots_public_key_bytes": 16,
+        "wots_signature_bytes": 514,
+    }
+    _require(wotsc == expected_wotsc, "component_evidence.wotsc drifted")
 
     observed = data.get("observed_profiles")
     _require(isinstance(observed, dict), "observed_profiles must be an object")
@@ -149,7 +196,7 @@ def validate_manifest(data: dict[str, Any]) -> None:
     gates = data.get("required_gates")
     _require(isinstance(gates, dict) and gates, "required_gates must be a non-empty object")
     for name, value in gates.items():
-        _require(value is False, f"gate {name} cannot be marked complete in the foundation tranche")
+        _require(value is False, f"gate {name} cannot be marked complete in the component tranche")
 
 
 def main() -> int:
@@ -177,6 +224,10 @@ def main() -> int:
         "production_backend": data["production_backend"],
         "release_hold": data["release_hold"],
         "upstream_pins": len(data["upstream"]),
+        "compatible_components": sum(
+            item["compatibility_with_pinned_draft"] == "COMPATIBLE_COMPONENT"
+            for item in data["upstream"].values()
+        ),
         "incompatible_oracles": sum(
             item["compatibility_with_pinned_draft"] == "INCOMPATIBLE"
             for item in data["upstream"].values()
@@ -190,6 +241,7 @@ def main() -> int:
         print(
             "SHRINCS candidate manifest: PASS "
             f"(pins={result['upstream_pins']}, "
+            f"compatible_components={result['compatible_components']}, "
             f"incompatible_oracles={result['incompatible_oracles']}, "
             f"state_controls={result['state_controls']}, "
             "consensus=disabled, backend=NONE, release_hold=true)"
