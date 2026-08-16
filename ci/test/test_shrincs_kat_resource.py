@@ -34,15 +34,25 @@ class ShrincsKatResourceTests(unittest.TestCase):
         lock = CHECK_KATS.load_lock()
         self.assertEqual(lock["corpora"]["stateful"]["vector_count"], 7)
         self.assertEqual(lock["corpora"]["stateless"]["vector_count"], 2)
+        self.assertEqual(lock["resource_vectors"]["vector_count"], 2)
+        self.assertEqual(lock["resource_vectors"]["signature_lengths"], [4618, 5776])
 
     def test_kat_lock_digest_tamper_is_rejected(self) -> None:
-        lock = CHECK_KATS.load_lock()
-        lock = copy.deepcopy(lock)
+        lock = copy.deepcopy(CHECK_KATS.load_lock())
         lock["corpora"]["stateful"]["sha256"] = "z" * 64
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "lock.json"
             path.write_text(json.dumps(lock), encoding="utf-8")
             with self.assertRaisesRegex(CHECK_KATS.KatError, "locked SHA-256 is invalid"):
+                CHECK_KATS.load_lock(path)
+
+    def test_resource_lock_tamper_is_rejected(self) -> None:
+        lock = copy.deepcopy(CHECK_KATS.load_lock())
+        lock["resource_vectors"]["vector_names"].reverse()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "lock.json"
+            path.write_text(json.dumps(lock), encoding="utf-8")
+            with self.assertRaisesRegex(CHECK_KATS.KatError, "vector-name lock drifted"):
                 CHECK_KATS.load_lock(path)
 
     def test_one_shot_sha256_padding_boundaries(self) -> None:
