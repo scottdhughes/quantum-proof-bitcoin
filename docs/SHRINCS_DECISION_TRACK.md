@@ -52,13 +52,42 @@ The machine-readable source of truth is
 
 | Artifact | Pin | Role |
 | --- | --- | --- |
-| `BlockstreamResearch/SPHINCS-Parameters` | `d64a217595597d5fe165ba6d236af83e6737da31` | Parameter models and pinned explorer |
-| `SHRINCS/shrincs-bip` | `acc6bda51dc3b94848d118967247ad0f3cd7a80e` | Current draft specification and reference model |
-| `BlockstreamResearch/shrincs-cpp` | `7643d9530c568f8671b21b9502e51bd9722b2e8d` | Research C++ implementation lineage |
-| `BlockstreamResearch/shrincs-simplicity-verifier` | `d13165d3d21bac73e8794eede21f0f1527f3b837` | Independent constrained-verifier evidence |
+| `BlockstreamResearch/SPHINCS-Parameters` | `d64a217595597d5fe165ba6d236af83e6737da31` | Parameter models and pinned explorer; parameter evidence only |
+| `SHRINCS/shrincs-bip` | `acc6bda51dc3b94848d118967247ad0f3cd7a80e` | Current draft specification and executable model |
+| `BlockstreamResearch/shrincs-cpp` | `7643d9530c568f8671b21b9502e51bd9722b2e8d` | Historical research implementation; incompatible with the pinned draft |
+| `BlockstreamResearch/shrincs-simplicity-verifier` | `d13165d3d21bac73e8794eede21f0f1527f3b837` | Historical constrained-verifier lineage; incompatible with the pinned draft |
 
 No use of `main`, `latest`, an unpinned web page, or an unversioned package is
 permitted in a future reproducibility or consensus claim.
+
+## Initial Compatibility Audit
+
+The pinned artifacts do not presently supply two independent implementations
+of one common byte-level construction:
+
+1. The pinned draft's `impl/shrincs.py` is the only pinned executable model of
+   the current 48-byte-public-key profile. It expressly describes itself as a
+   naive, non-constant-time demonstration that performs no state management.
+2. The pinned C++ implementation has a 32-byte public-key model and materially
+   different WOTS, tree, and stateless parameters. It implements a paper-era
+   PORS+FP construction rather than the pinned draft's FORS-based construction.
+3. The pinned Simplicity verifier uses an older seed-root public-key model and
+   an explicit UXMSS/SPHINCS signature union tied to the older implementation
+   lineage. Its serialization is not the pinned draft serialization.
+4. The pinned parameter explorer supports the current parameter discussion,
+   but is not a signature implementation or an independent verification
+   oracle.
+
+Accordingly, `differential_verifiers` remains false. Phase 1 is blocked until a
+second genuinely independent implementation of the exact pinned profile exists
+or is written. Adapting the draft reference code twice does not satisfy that
+gate.
+
+The current draft verifier also selects its stateful or stateless path from
+signature length. A later encoding proposal must decide whether to freeze that
+rule inside the single SHRINCS profile or place an explicit mode tag in the
+PQBTC outer encoding. This is distinct from, and does not justify, dispatching
+between unrelated signature algorithms by length.
 
 ## Version Drift Is A Blocking Fact
 
@@ -118,7 +147,7 @@ underlying primitive is SHA-256.
 No consensus encoding is selected by this record. The design direction is:
 
 1. a dedicated, explicitly versioned SHRINCS spend path
-2. no signature-length dispatch
+2. no signature-length dispatch between unrelated algorithms
 3. no ECDSA, Schnorr, rc2, or ML-DSA fallback inside the same key encoding
 4. exact public-key and signature parsing before expensive verification
 5. a frozen transaction digest and domain-separation context
@@ -165,10 +194,12 @@ These are admission requirements, not optional wallet UX preferences.
 
 - pin exact upstream commits
 - record observed profile values without selecting consensus constants
+- classify current implementation compatibility
 - enforce `consensus_enabled = false`
 - enforce `production_backend = "NONE"`
 - enforce the state-safety requirements in a deterministic validator
-- add CI that fails if the hold or pins drift silently
+- add CI that fails if the hold, pins, or compatibility classifications drift
+  silently
 
 ### Phase 1 - Independent Verifier Reproduction
 
@@ -176,13 +207,14 @@ Create `contrib/shrincs-ref/` with:
 
 - an exact frozen reference implementation
 - project-owned KATs generated from fixed seeds and messages
-- cross-verification against at least one independent implementation
+- cross-verification against at least one genuinely independent implementation
 - strict public-key and signature decoders
 - mutation and malformed-input corpus
 - exact SHA-256 compression counters
 - a statement of which upstream branches are compatible or incompatible
 
 No node, Script, wallet, or `ALG_ID` integration is permitted in this phase.
+Phase 1 is tracked in issue #228.
 
 ### Phase 2 - Production-Shaped Verifier Candidate
 
@@ -246,6 +278,10 @@ complete only when:
 7. no Script, wallet, registry, or consensus file changes
 8. the release hold remains machine-enforced
 
+The initial audit establishes that the currently pinned C++ and Simplicity
+lines cannot serve as the second verifier for the pinned draft. That is an
+explicit blocking result, not a reason to relax item 4.
+
 ## Gates Before Any Consensus Proposal
 
 A SHRINCS profile may enter consensus-design review only after:
@@ -270,6 +306,6 @@ python3 contrib/shrincs/check_manifest.py
 python3 -m unittest discover -s ci/test -p 'test_shrincs_candidate.py'
 ```
 
-Passing these commands proves only that the research pins, release hold, and
-state-safety admission contract have not drifted. It does not prove SHRINCS
-secure or production ready.
+Passing these commands proves only that the research pins, compatibility
+classifications, release hold, and state-safety admission contract have not
+drifted. It does not prove SHRINCS secure or production ready.
