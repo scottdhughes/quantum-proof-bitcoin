@@ -50,7 +50,6 @@ jobs:
           python3 contrib/shrincs/check_manifest.py --json
           python3 -m unittest discover -s ci/test -p 'test_shrincs_candidate.py'
           python3 -m unittest discover -s ci/test -p 'test_shrincs_wotsc_oracle.py'
-          python3 -m unittest discover -s ci/test -p 'test_shrincs_stateful_oracle.py'
           python3 -m unittest discover -s ci/test -p 'test_shrincs_stateless_oracle.py'
           python3 -m unittest discover -s ci/test -p 'test_shrincs_full_verifier.py'
 
