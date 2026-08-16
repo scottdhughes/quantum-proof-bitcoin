@@ -163,10 +163,19 @@ def validate_valid_vectors(
         expected = MODE_STATEFUL if corpus_name == "stateful" else MODE_STATELESS
         for vector in corpora[corpus_name]["vectors"]:
             public_key, signature, message, context = vector_bytes(vector)
-            require(verifier.mode(len(signature)) == expected, f"{vector['name']}: mode classification drifted")
+            require(
+                verifier.mode(len(signature)) == expected,
+                f"{vector['name']}: mode classification drifted",
+            )
             metrics = verifier.run(public_key, signature, message, context)
-            require(metrics["accepted"] is True, f"{vector['name']}: full verifier rejected a committed KAT")
-            require(metrics["sha256_calls"] > 0, f"{vector['name']}: valid verification did no hash work")
+            require(
+                metrics["accepted"] is True,
+                f"{vector['name']}: full verifier rejected a committed KAT",
+            )
+            require(
+                metrics["sha256_calls"] > 0,
+                f"{vector['name']}: valid verification did no hash work",
+            )
             require(
                 metrics["sha256_compressions"] >= metrics["sha256_calls"],
                 f"{vector['name']}: compression accounting is inconsistent",
@@ -190,11 +199,16 @@ def validate_length_contract(verifier: Verifier) -> dict[str, int]:
     stateful = 0
     stateless = 0
     shaped_rejections = 0
+    early_rejections = 0
+    hashed_rejections = 0
 
     for signature_len in range(MAX_TESTED_SIGNATURE_BYTES + 1):
         expected = expected_mode(signature_len)
         actual = int(verifier.mode(signature_len))
-        require(actual == expected, f"signature length {signature_len}: mode classification drifted")
+        require(
+            actual == expected,
+            f"signature length {signature_len}: mode classification drifted",
+        )
 
         signature = deterministic_bytes(
             b"pqbtc/full-profile/length/signature/" + signature_len.to_bytes(2, "big"),
@@ -203,16 +217,36 @@ def validate_length_contract(verifier: Verifier) -> dict[str, int]:
         metrics = verifier.run(public_key, signature, message, context)
         if expected == MODE_INVALID:
             invalid += 1
-            require(metrics["accepted"] is False, f"invalid signature length {signature_len} was accepted")
-            require(metrics["sha256_calls"] == 0, f"invalid signature length {signature_len} performed hash work")
+            require(
+                metrics["accepted"] is False,
+                f"invalid signature length {signature_len} was accepted",
+            )
+            require(
+                metrics["sha256_calls"] == 0,
+                f"invalid signature length {signature_len} performed hash work",
+            )
             require(
                 metrics["sha256_compressions"] == 0,
                 f"invalid signature length {signature_len} performed compression work",
             )
         else:
             shaped_rejections += 1
-            require(metrics["accepted"] is False, f"random canonical-shaped signature {signature_len} was accepted")
-            require(metrics["sha256_calls"] > 0, f"canonical-shaped signature {signature_len} did no hash work")
+            require(
+                metrics["accepted"] is False,
+                f"random canonical-shaped signature {signature_len} was accepted",
+            )
+            if metrics["sha256_calls"] == 0:
+                require(
+                    metrics["sha256_compressions"] == 0,
+                    f"canonical-shaped signature {signature_len} has inconsistent early rejection metrics",
+                )
+                early_rejections += 1
+            else:
+                require(
+                    metrics["sha256_compressions"] >= metrics["sha256_calls"],
+                    f"canonical-shaped signature {signature_len} has inconsistent hash metrics",
+                )
+                hashed_rejections += 1
             if expected == MODE_STATEFUL:
                 stateful += 1
             else:
@@ -220,13 +254,26 @@ def validate_length_contract(verifier: Verifier) -> dict[str, int]:
 
     require(stateful == 255, "canonical stateful length count drifted")
     require(stateless == 1, "canonical stateless length count drifted")
-    require(invalid + shaped_rejections == MAX_TESTED_SIGNATURE_BYTES + 1, "length accounting drifted")
+    require(
+        invalid + shaped_rejections == MAX_TESTED_SIGNATURE_BYTES + 1,
+        "length accounting drifted",
+    )
+    require(
+        early_rejections + hashed_rejections == shaped_rejections,
+        "canonical rejection accounting drifted",
+    )
+    require(
+        hashed_rejections >= 1,
+        "canonical random corpus never exercised a cryptographic backend",
+    )
     return {
         "tested_lengths": MAX_TESTED_SIGNATURE_BYTES + 1,
         "invalid_lengths": invalid,
         "canonical_stateful_lengths": stateful,
         "canonical_stateless_lengths": stateless,
         "canonical_random_rejections": shaped_rejections,
+        "canonical_early_rejections": early_rejections,
+        "canonical_hashed_rejections": hashed_rejections,
     }
 
 
@@ -244,9 +291,18 @@ def validate_public_key_lengths(
             public_key_len,
         )
         metrics = verifier.run(candidate, signature, message, context)
-        require(metrics["accepted"] is False, f"public-key length {public_key_len} was accepted")
-        require(metrics["sha256_calls"] == 0, f"public-key length {public_key_len} performed hash work")
-        require(metrics["sha256_compressions"] == 0, f"public-key length {public_key_len} performed compression work")
+        require(
+            metrics["accepted"] is False,
+            f"public-key length {public_key_len} was accepted",
+        )
+        require(
+            metrics["sha256_calls"] == 0,
+            f"public-key length {public_key_len} performed hash work",
+        )
+        require(
+            metrics["sha256_compressions"] == 0,
+            f"public-key length {public_key_len} performed compression work",
+        )
         tested += 1
     require(len(public_key) == PUBLIC_KEY_BYTES, "committed public-key size drifted")
     return {"tested_invalid_public_key_lengths": tested}
@@ -258,8 +314,12 @@ def validate_binding_and_mode_confusion(
 ) -> dict[str, int]:
     stateful_vector = corpora["stateful"]["vectors"][0]
     stateless_vector = corpora["stateless"]["vectors"][0]
-    stateful_pk, stateful_sig, stateful_message, stateful_context = vector_bytes(stateful_vector)
-    stateless_pk, stateless_sig, stateless_message, stateless_context = vector_bytes(stateless_vector)
+    stateful_pk, stateful_sig, stateful_message, stateful_context = vector_bytes(
+        stateful_vector
+    )
+    stateless_pk, stateless_sig, stateless_message, stateless_context = vector_bytes(
+        stateless_vector
+    )
     rejected = 0
 
     cases = [
@@ -308,7 +368,10 @@ def validate_binding_and_mode_confusion(
     ]
     for label, public_key, signature, message, context in cases:
         metrics = verifier.run(public_key, signature, message, context)
-        require(metrics["accepted"] is False, f"mode/binding case {label} was accepted")
+        require(
+            metrics["accepted"] is False,
+            f"mode/binding case {label} was accepted",
+        )
         rejected += 1
 
     legacy_lengths = {
@@ -318,11 +381,22 @@ def validate_binding_and_mode_confusion(
         "held-rc2": 4480,
     }
     for label, signature_len in legacy_lengths.items():
-        require(expected_mode(signature_len) == MODE_INVALID, f"{label} unexpectedly has a canonical SHRINCS length")
+        require(
+            expected_mode(signature_len) == MODE_INVALID,
+            f"{label} unexpectedly has a canonical SHRINCS length",
+        )
         signature = deterministic_bytes(label.encode(), signature_len)
-        metrics = verifier.run(stateful_pk, signature, stateful_message, stateful_context)
+        metrics = verifier.run(
+            stateful_pk,
+            signature,
+            stateful_message,
+            stateful_context,
+        )
         require(metrics["accepted"] is False, f"{label} payload was accepted")
-        require(metrics["sha256_calls"] == 0, f"{label} payload reached a cryptographic backend")
+        require(
+            metrics["sha256_calls"] == 0,
+            f"{label} payload reached a cryptographic backend",
+        )
         rejected += 1
     return {"mode_and_binding_cases_rejected": rejected}
 
@@ -336,8 +410,12 @@ def summarize_metrics(records: list[dict[str, Any]]) -> dict[str, dict[str, int]
             "vectors": len(selected),
             "sha256_calls_min": min(int(record["sha256_calls"]) for record in selected),
             "sha256_calls_max": max(int(record["sha256_calls"]) for record in selected),
-            "sha256_compressions_min": min(int(record["sha256_compressions"]) for record in selected),
-            "sha256_compressions_max": max(int(record["sha256_compressions"]) for record in selected),
+            "sha256_compressions_min": min(
+                int(record["sha256_compressions"]) for record in selected
+            ),
+            "sha256_compressions_max": max(
+                int(record["sha256_compressions"]) for record in selected
+            ),
             "duration_ns_min": min(int(record["duration_ns"]) for record in selected),
             "duration_ns_max": max(int(record["duration_ns"]) for record in selected),
         }
@@ -388,13 +466,17 @@ def main() -> int:
 
     if args.report_out is not None:
         args.report_out.parent.mkdir(parents=True, exist_ok=True)
-        args.report_out.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        args.report_out.write_text(
+            json.dumps(report, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
     if args.json:
         print(json.dumps(report, sort_keys=True))
     else:
         print(
             "SHRINCS full-profile verifier: PASS "
-            f"(vectors={len(valid_records)}, lengths={report['length_contract']['tested_lengths']})"
+            f"(vectors={len(valid_records)}, "
+            f"lengths={report['length_contract']['tested_lengths']})"
         )
     return 0
 
