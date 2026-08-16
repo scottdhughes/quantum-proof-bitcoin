@@ -164,8 +164,6 @@ jobs:
             build/evidence/resource-model.json
             build/evidence/stack-usage.json
             build/evidence/evidence-sha256.txt
-            contrib/shrincs-ref/kat-lock.json
-            contrib/shrincs-ref/evidence-2026-08-16.json
           if-no-files-found: error
           retention-days: 30
 
@@ -242,6 +240,5 @@ jobs:
             build/fuzz/corpus
             build/fuzz/findings
             build/fuzz/fuzz.log
-            contrib/shrincs-ref/shrincs_fuzz.dict
           if-no-files-found: error
           retention-days: 30
