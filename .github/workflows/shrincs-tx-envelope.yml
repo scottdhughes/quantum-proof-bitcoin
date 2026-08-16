@@ -1,0 +1,139 @@
+name: SHRINCS transaction envelope research gate
+
+on:
+  pull_request:
+    paths:
+      - "contrib/shrincs-tx/**"
+      - "ci/test/test_shrincs_tx_model.py"
+      - "docs/PQBTC_SHRINCS_TX_V0.md"
+      - ".github/workflows/shrincs-tx-envelope.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "contrib/shrincs-tx/**"
+      - "ci/test/test_shrincs_tx_model.py"
+      - "docs/PQBTC_SHRINCS_TX_V0.md"
+      - ".github/workflows/shrincs-tx-envelope.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  envelope:
+    name: fixed digest and independently verified signed seam
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out PQBTC
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Enforce transaction-envelope-only scope
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | while read -r path; do
+            case "$path" in
+              contrib/shrincs-tx/*|ci/test/test_shrincs_tx_model.py|docs/PQBTC_SHRINCS_TX_V0.md|.github/workflows/shrincs-tx-envelope.yml) ;;
+              *)
+                echo "Unexpected transaction-envelope path: $path" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+      - name: Check out pinned libshrincs
+        uses: actions/checkout@v5
+        with:
+          repository: remix7531/libshrincs
+          ref: 53bedb2c4be6b0dcc0a16fee665339d4f7e4e5b5
+          path: upstream/libshrincs
+          persist-credentials: false
+
+      - name: Check out pinned SHRINCS draft
+        uses: actions/checkout@v5
+        with:
+          repository: SHRINCS/shrincs-bip
+          ref: acc6bda51dc3b94848d118967247ad0f3cd7a80e
+          path: upstream/shrincs-bip
+          persist-credentials: false
+
+      - name: Validate inherited hold and transaction model
+        run: |
+          python3 contrib/shrincs/check_manifest.py --json
+          python3 -m unittest discover -s ci/test -p 'test_shrincs_tx_model.py'
+          mkdir -p build/shrincs-tx
+          python3 contrib/shrincs-tx/tx_model.py \
+            --output build/shrincs-tx/vector.json \
+            --json
+          cmp contrib/shrincs-tx/vector.json build/shrincs-tx/vector.json
+
+      - name: Build independent full SHRINCS verifier
+        run: |
+          cc -std=c99 -Wall -Wextra -Wpedantic -Werror -O2 -fPIC -shared \
+            -Iupstream/libshrincs/include \
+            contrib/shrincs-ref/full_verify.c \
+            contrib/shrincs-ref/stateful_verify.c \
+            contrib/shrincs-ref/stateless_verify.c \
+            upstream/libshrincs/src/wots.c \
+            upstream/libshrincs/src/thash.c \
+            upstream/libshrincs/src/sha256.c \
+            upstream/libshrincs/src/util.c \
+            -o build/shrincs-tx/libpqbtc_shrincs_full_oracle.so
+
+      - name: Sign transaction digest and test all commitment surfaces
+        run: |
+          python3 contrib/shrincs-tx/check_tx_signature.py \
+            --shrincs-bip upstream/shrincs-bip \
+            --library build/shrincs-tx/libpqbtc_shrincs_full_oracle.so \
+            --output build/shrincs-tx/signed-seam.json \
+            --json
+          sha256sum \
+            build/shrincs-tx/vector.json \
+            build/shrincs-tx/signed-seam.json \
+            | tee build/shrincs-tx/evidence-sha256.txt
+
+      - name: Build ASan and UBSan verifier
+        run: |
+          cc -std=c99 -Wall -Wextra -Wpedantic -Werror -O1 -g -fPIC -shared \
+            -fsanitize=address,undefined -fno-omit-frame-pointer \
+            -fno-sanitize-recover=all \
+            -Iupstream/libshrincs/include \
+            contrib/shrincs-ref/full_verify.c \
+            contrib/shrincs-ref/stateful_verify.c \
+            contrib/shrincs-ref/stateless_verify.c \
+            upstream/libshrincs/src/wots.c \
+            upstream/libshrincs/src/thash.c \
+            upstream/libshrincs/src/sha256.c \
+            upstream/libshrincs/src/util.c \
+            -o build/shrincs-tx/libpqbtc_shrincs_full_oracle_asan.so
+
+      - name: Replay signed seam under ASan and UBSan
+        env:
+          ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          export LD_PRELOAD="$(cc -print-file-name=libasan.so)"
+          python3 contrib/shrincs-tx/check_tx_signature.py \
+            --shrincs-bip upstream/shrincs-bip \
+            --library build/shrincs-tx/libpqbtc_shrincs_full_oracle_asan.so \
+            --output build/shrincs-tx/signed-seam-asan.json \
+            --json
+
+      - name: Upload transaction-envelope evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: pqbtc-shrincs-transaction-envelope-evidence
+          path: |
+            build/shrincs-tx/vector.json
+            build/shrincs-tx/signed-seam.json
+            build/shrincs-tx/signed-seam-asan.json
+            build/shrincs-tx/evidence-sha256.txt
+          if-no-files-found: error
+          retention-days: 30
