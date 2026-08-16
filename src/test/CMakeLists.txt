@@ -74,6 +74,7 @@ set(TEST_PQBTC_SOURCES
   pcp_tests.cpp
   pqsig_script_tests.cpp
   pqsig_tests.cpp
+  shrincs_tx_v0_tests.cpp
   peerman_tests.cpp
   pmt_tests.cpp
   policy_fee_tests.cpp
@@ -144,11 +145,20 @@ if(NOT PQBTC_ENABLE_LEGACY_UNIT_TESTS)
     pq_descriptor_tests.cpp
     pqsig_script_tests.cpp
     pqsig_tests.cpp
+    shrincs_tx_v0_tests.cpp
     script_tests.cpp
   )
 endif()
 
 add_executable(test_pqbtc ${TEST_PQBTC_SOURCES})
+
+# The candidate SHRINCS transaction component is deliberately compiled only
+# into the test binary. It is not linked into bitcoin_consensus, bitcoin_node,
+# the wallet, RPC, policy, mining, or release executables.
+target_sources(test_pqbtc
+  PRIVATE
+    ../script/shrincs_tx_v0.cpp
+)
 
 include(TargetDataSources)
 if(PQBTC_ENABLE_LEGACY_UNIT_TESTS)
