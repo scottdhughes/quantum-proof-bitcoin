@@ -37,7 +37,10 @@ class ShrincsTxModelTests(unittest.TestCase):
         self.assertEqual(MODEL.PROPOSED_WITNESS_VERSION, 2)
 
     def test_context_and_candidate_program_are_frozen(self) -> None:
+        self.assertEqual(MODEL.OUTPUT_TAG, b"PQBTC/SHRINCS/OUTPUT/v0")
+        self.assertEqual(MODEL.SIGHASH_TAG, b"PQBTC/SHRINCS/SIGHASH/v0")
         self.assertEqual(MODEL.SHRINCS_CONTEXT, b"PQBTC/SHRINCS/TXSIG/v0")
+        self.assertNotEqual(MODEL.SIGHASH_TAG, MODEL.SHRINCS_CONTEXT)
         public_key = bytes(range(48))
         script = MODEL.script_pubkey(public_key)
         self.assertEqual(len(script), 34)
