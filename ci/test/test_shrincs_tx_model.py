@@ -11,6 +11,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MODEL_PATH = REPO_ROOT / "contrib" / "shrincs-tx" / "tx_model.py"
 VECTOR_PATH = REPO_ROOT / "contrib" / "shrincs-tx" / "vector.json"
+INTERPRETER_PATH = REPO_ROOT / "src" / "script" / "interpreter.cpp"
 SPEC = importlib.util.spec_from_file_location("shrincs_tx_model", MODEL_PATH)
 assert SPEC is not None and SPEC.loader is not None
 MODEL = importlib.util.module_from_spec(SPEC)
@@ -22,6 +23,14 @@ class ShrincsTxModelTests(unittest.TestCase):
     def test_committed_vector_matches_model(self) -> None:
         committed = json.loads(VECTOR_PATH.read_text(encoding="utf-8"))
         self.assertEqual(committed, MODEL.vector_payload())
+
+    def test_pre_activation_node_does_not_enforce_candidate_version(self) -> None:
+        source = INTERPRETER_PATH.read_text(encoding="utf-8")
+        self.assertIn(
+            "Other version/size/p2sh combinations return true for future softfork compatibility",
+            source,
+        )
+        self.assertEqual(MODEL.PROPOSED_WITNESS_VERSION, 2)
 
     def test_context_and_candidate_program_are_frozen(self) -> None:
         self.assertEqual(MODEL.SHRINCS_CONTEXT, b"PQBTC/SHRINCS/TXSIG/v0")
