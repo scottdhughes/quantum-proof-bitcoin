@@ -93,7 +93,40 @@ The pinned SHA-256 implementation is wrapped by `sha256_counting.c`. For each on
 - one SHA-256 call;
 - the exact compression count under standard SHA-256 padding: one additional block when the input remainder is at most 55 bytes and two otherwise.
 
-The workflow records calls and compressions for every committed valid vector. These measurements are reproducible algorithmic work counts, not cycle-accurate performance claims. Wall-clock durations are directional CI observations only.
+These are reproducible algorithmic work counts, not cycle-accurate performance claims. Wall-clock durations are directional CI observations only.
+
+## Measured Full-Profile Result
+
+The successful full-profile run verified all nine committed vectors and reproduced the same result under ASan/UBSan.
+
+| Mode | SHA-256 calls | SHA-256 compressions |
+| --- | ---: | ---: |
+| Stateful committed corpus | 245–248 | 498–505 |
+| Stateless recovery corpus | 1,528–1,558 | 3,103–3,164 |
+
+The parser and negative envelope produced:
+
+| Contract | Result |
+| --- | ---: |
+| Signature lengths tested | 6,001 (`0` through `6,000`) |
+| Invalid signature lengths | 5,745, all rejected before hashing |
+| Canonical stateful lengths | 255 |
+| Canonical stateless lengths | 1 |
+| Random canonical-shape rejections | 256/256 |
+| Canonical early rejections | 62 |
+| Canonical hashed rejections | 194 |
+| Invalid public-key lengths tested | 64 |
+| Mode/binding and legacy-family negatives | 10/10 rejected |
+
+Early rejection of a malformed signature with a canonical length is permitted and desirable: strict WOTS or structural parsing may reject before invoking SHA-256. The nonnegotiable invariant is that every noncanonical length and every invalid public-key length fails before cryptographic work.
+
+The retained full-profile artifact is:
+
+```text
+artifact ID: 9270280450
+artifact bytes: 39,752
+artifact SHA-256: 1e72d00da47decf374424a6460856b25d97ce9a435d3b68e35e6d35a55277722
+```
 
 ## Reproduction Workflow
 
@@ -143,7 +176,7 @@ No real-value use is authorized.
 
 ## Strongest Next Attack
 
-After this envelope reproduces successfully, the next tranche should:
+The next tranche should:
 
 1. freeze a fixed 32-byte transaction-digest and domain-separation contract;
 2. replace arbitrary-message allocation with a production-shaped verifier ABI;
