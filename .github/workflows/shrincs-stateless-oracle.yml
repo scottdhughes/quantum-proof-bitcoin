@@ -1,0 +1,107 @@
+name: SHRINCS stateless verifier oracle
+
+on:
+  pull_request:
+    paths:
+      - "contrib/shrincs/**"
+      - "contrib/shrincs-ref/**"
+      - "ci/test/test_shrincs_candidate.py"
+      - "ci/test/test_shrincs_wotsc_oracle.py"
+      - "ci/test/test_shrincs_stateless_oracle.py"
+      - ".github/workflows/shrincs-stateless-oracle.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "contrib/shrincs/**"
+      - "contrib/shrincs-ref/**"
+      - "ci/test/test_shrincs_candidate.py"
+      - "ci/test/test_shrincs_wotsc_oracle.py"
+      - "ci/test/test_shrincs_stateless_oracle.py"
+      - ".github/workflows/shrincs-stateless-oracle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  differential:
+    name: independent stateless recovery verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out PQBTC
+        uses: actions/checkout@v5
+
+      - name: Check out pinned libshrincs
+        uses: actions/checkout@v5
+        with:
+          repository: remix7531/libshrincs
+          ref: 53bedb2c4be6b0dcc0a16fee665339d4f7e4e5b5
+          path: upstream/libshrincs
+          persist-credentials: false
+
+      - name: Check out pinned SHRINCS draft
+        uses: actions/checkout@v5
+        with:
+          repository: SHRINCS/shrincs-bip
+          ref: acc6bda51dc3b94848d118967247ad0f3cd7a80e
+          path: upstream/shrincs-bip
+          persist-credentials: false
+
+      - name: Validate inherited evidence contracts
+        run: |
+          python3 contrib/shrincs/check_manifest.py --json
+          python3 -m unittest discover -s ci/test -p 'test_shrincs_candidate.py'
+          python3 -m unittest discover -s ci/test -p 'test_shrincs_wotsc_oracle.py'
+          python3 -m unittest discover -s ci/test -p 'test_shrincs_stateless_oracle.py'
+
+      - name: Build independent stateless verifier
+        run: |
+          mkdir -p build/shrincs-stateless
+          cc -std=c99 -Wall -Wextra -Wpedantic -Werror -O2 -fPIC -shared \
+            -Iupstream/libshrincs/include \
+            contrib/shrincs-ref/stateless_verify.c \
+            upstream/libshrincs/src/sha256.c \
+            upstream/libshrincs/src/util.c \
+            -o build/shrincs-stateless/libpqbtc_shrincs_stateless_oracle.so
+
+      - name: Generate vectors and run differential mutations
+        run: |
+          python3 contrib/shrincs-ref/check_stateless.py \
+            --libshrincs upstream/libshrincs \
+            --shrincs-bip upstream/shrincs-bip \
+            --library build/shrincs-stateless/libpqbtc_shrincs_stateless_oracle.so \
+            --vectors-out build/shrincs-stateless/stateless-vectors.json \
+            --json
+
+      - name: Build ASan and UBSan verifier
+        run: |
+          cc -std=c99 -Wall -Wextra -Wpedantic -Werror -O1 -g -fPIC -shared \
+            -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all \
+            -Iupstream/libshrincs/include \
+            contrib/shrincs-ref/stateless_verify.c \
+            upstream/libshrincs/src/sha256.c \
+            upstream/libshrincs/src/util.c \
+            -o build/shrincs-stateless/libpqbtc_shrincs_stateless_oracle_asan.so
+
+      - name: Run retained vectors under ASan and UBSan
+        env:
+          ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          export LD_PRELOAD="$(cc -print-file-name=libasan.so)"
+          python3 contrib/shrincs-ref/check_stateless.py \
+            --libshrincs upstream/libshrincs \
+            --shrincs-bip upstream/shrincs-bip \
+            --library build/shrincs-stateless/libpqbtc_shrincs_stateless_oracle_asan.so \
+            --vectors-in build/shrincs-stateless/stateless-vectors.json \
+            --json
+
+      - name: Upload deterministic stateless vectors
+        uses: actions/upload-artifact@v4
+        with:
+          name: pqbtc-shrincs-stateless-vectors
+          path: build/shrincs-stateless/stateless-vectors.json
+          if-no-files-found: error
+          retention-days: 30
