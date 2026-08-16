@@ -51,6 +51,11 @@ class ShrincsCandidateManifestTests(unittest.TestCase):
         data["upstream"]["draft_specification"]["commit"] = "0" * 40
         self.assert_invalid(data, "draft_specification.commit drifted")
 
+    def test_incompatible_oracle_cannot_be_silently_promoted(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["upstream"]["research_cpp"]["compatibility_with_pinned_draft"] = "COMPATIBLE"
+        self.assert_invalid(data, "research_cpp.compatibility_with_pinned_draft drifted")
+
     def test_signature_profile_drift_is_rejected(self) -> None:
         data = copy.deepcopy(self.manifest)
         data["observed_profiles"]["draft_specification"]["stateless_signature_bytes"] = 5775
