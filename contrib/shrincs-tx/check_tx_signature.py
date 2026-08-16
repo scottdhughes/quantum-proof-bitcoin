@@ -105,6 +105,61 @@ def verify_with_c(
     )
 
 
+def require_valid(
+    reference: ModuleType,
+    verify,
+    public_key: bytes,
+    signature: bytes,
+    message: bytes,
+    context: bytes,
+    label: str,
+) -> None:
+    require(
+        reference.shrincs_verify(message, signature, context, public_key),
+        f"reference rejected {label}",
+    )
+    require(
+        verify_with_c(verify, public_key, signature, message, context),
+        f"independent C verifier rejected {label}",
+    )
+
+
+def require_rejected(
+    reference: ModuleType,
+    verify,
+    public_key: bytes,
+    signatures: dict[str, bytes],
+    message: bytes,
+    context: bytes,
+    label: str,
+    rejected: list[str],
+) -> None:
+    for mode, signature in signatures.items():
+        require(
+            not reference.shrincs_verify(message, signature, context, public_key),
+            f"reference accepted {mode} signature after {label} mutation",
+        )
+        require(
+            not verify_with_c(verify, public_key, signature, message, context),
+            f"independent verifier accepted {mode} signature after {label} mutation",
+        )
+        rejected.append(f"{label}:{mode}")
+
+
+def signature_record(model: ModuleType, signature: bytes) -> dict[str, Any]:
+    return {
+        "signature": signature.hex(),
+        "signature_sha256": hashlib.sha256(signature).hexdigest(),
+        "signature_bytes": len(signature),
+        "transaction_weight_one_input_two_outputs": (
+            model.transaction_weight_one_input_two_outputs(len(signature))
+        ),
+        "verifier_compressions_upper_bound": model.transaction_verifier_compressions(
+            len(signature)
+        ),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--shrincs-bip", type=Path, required=True)
@@ -128,181 +183,169 @@ def main() -> int:
 
     tx = model.build_design_transaction(public_key)
     digest = model.transaction_sighash(tx, 0, model.TEST_CHAIN_ID)
-    signature = reference.shrincs_sign(
+    stateful_signature = reference.shrincs_sign(
         digest,
         model.SHRINCS_CONTEXT,
         secret_key,
         0,
         None,
     )
-    require(signature is not None, "reference failed to produce stateful transaction signature")
-    require(
-        model.classify_signature(signature) == "stateful",
-        "transaction seam did not use stateful mode",
+    stateless_signature = reference.shrincs_sign(
+        digest,
+        model.SHRINCS_CONTEXT,
+        secret_key,
+        None,
+        kdf(b"pqbtc-shrincs-tx-v0/seam/stateless-randomizer", 16),
     )
-    require(
-        reference.shrincs_verify(digest, signature, model.SHRINCS_CONTEXT, public_key),
-        "reference rejected transaction signature",
-    )
-    require(
-        verify_with_c(verify, public_key, signature, digest, model.SHRINCS_CONTEXT),
-        "independent C verifier rejected transaction signature",
-    )
+    require(stateful_signature is not None, "reference failed to produce stateful signature")
+    require(stateless_signature is not None, "reference failed to produce stateless signature")
+    signatures = {
+        "stateful": stateful_signature,
+        "stateless": stateless_signature,
+    }
 
     program = model.output_commitment(public_key)
-    parsed_signature, parsed_key, mode = model.parse_witness([signature, public_key], program)
-    require(
-        parsed_signature == signature
-        and parsed_key == public_key
-        and mode == "stateful",
-        "witness parse drifted",
-    )
+    for mode, signature in signatures.items():
+        require(model.classify_signature(signature) == mode, f"{mode} classification drifted")
+        require_valid(
+            reference,
+            verify,
+            public_key,
+            signature,
+            digest,
+            model.SHRINCS_CONTEXT,
+            f"valid {mode} transaction signature",
+        )
+        parsed_signature, parsed_key, parsed_mode = model.parse_witness(
+            [signature, public_key],
+            program,
+        )
+        require(parsed_signature == signature, f"{mode} witness signature drifted")
+        require(parsed_key == public_key, f"{mode} witness public key drifted")
+        require(parsed_mode == mode, f"{mode} witness mode drifted")
 
     rejected: list[str] = []
     for name, mutated_tx in model.transaction_surface_mutations(tx).items():
         mutated_digest = model.transaction_sighash(mutated_tx, 0, model.TEST_CHAIN_ID)
         require(mutated_digest != digest, f"{name} mutation did not change transaction digest")
-        require(
-            not reference.shrincs_verify(
-                mutated_digest,
-                signature,
-                model.SHRINCS_CONTEXT,
-                public_key,
-            ),
-            f"reference accepted signature after {name} mutation",
+        require_rejected(
+            reference,
+            verify,
+            public_key,
+            signatures,
+            mutated_digest,
+            model.SHRINCS_CONTEXT,
+            name,
+            rejected,
         )
-        require(
-            not verify_with_c(
-                verify,
-                public_key,
-                signature,
-                mutated_digest,
-                model.SHRINCS_CONTEXT,
-            ),
-            f"independent verifier accepted signature after {name} mutation",
-        )
-        rejected.append(name)
 
     alternate_input_digest = model.transaction_sighash(tx, 1, model.TEST_CHAIN_ID)
     require(alternate_input_digest != digest, "input index did not change digest")
-    require(
-        not reference.shrincs_verify(
-            alternate_input_digest,
-            signature,
-            model.SHRINCS_CONTEXT,
-            public_key,
-        ),
-        "reference verified for a different input index",
+    require_rejected(
+        reference,
+        verify,
+        public_key,
+        signatures,
+        alternate_input_digest,
+        model.SHRINCS_CONTEXT,
+        "input_index",
+        rejected,
     )
-    require(
-        not verify_with_c(
-            verify,
-            public_key,
-            signature,
-            alternate_input_digest,
-            model.SHRINCS_CONTEXT,
-        ),
-        "signature verified for a different input index",
-    )
-    rejected.append("input_index")
 
     changed_chain = bytearray(model.TEST_CHAIN_ID)
     changed_chain[0] ^= 1
     changed_chain_digest = model.transaction_sighash(tx, 0, bytes(changed_chain))
     require(changed_chain_digest != digest, "chain-id mutation did not change digest")
-    require(
-        not reference.shrincs_verify(
-            changed_chain_digest,
-            signature,
-            model.SHRINCS_CONTEXT,
-            public_key,
-        ),
-        "reference verified under a different chain ID",
+    require_rejected(
+        reference,
+        verify,
+        public_key,
+        signatures,
+        changed_chain_digest,
+        model.SHRINCS_CONTEXT,
+        "chain_id",
+        rejected,
     )
-    require(
-        not verify_with_c(
-            verify,
-            public_key,
-            signature,
-            changed_chain_digest,
-            model.SHRINCS_CONTEXT,
-        ),
-        "signature verified under a different chain ID",
-    )
-    rejected.append("chain_id")
 
-    wrong_context = model.SHRINCS_CONTEXT + b"x"
-    require(
-        not reference.shrincs_verify(digest, signature, wrong_context, public_key),
-        "reference verified under a different SHRINCS context",
+    require_rejected(
+        reference,
+        verify,
+        public_key,
+        signatures,
+        digest,
+        model.SHRINCS_CONTEXT + b"x",
+        "shrincs_context",
+        rejected,
     )
-    require(
-        not verify_with_c(verify, public_key, signature, digest, wrong_context),
-        "signature verified under a different SHRINCS context",
-    )
-    rejected.append("shrincs_context")
 
-    mutated_signature = bytearray(signature)
-    mutated_signature[len(mutated_signature) // 2] ^= 1
-    require(
-        not reference.shrincs_verify(
-            digest,
-            bytes(mutated_signature),
-            model.SHRINCS_CONTEXT,
-            public_key,
-        ),
-        "reference accepted a signature-bit mutation",
-    )
-    require(
-        not verify_with_c(
-            verify,
-            public_key,
-            bytes(mutated_signature),
-            digest,
-            model.SHRINCS_CONTEXT,
-        ),
-        "independent verifier accepted a signature-bit mutation",
-    )
-    rejected.append("signature_bit")
+    for mode, signature in signatures.items():
+        mutated_signature = bytearray(signature)
+        mutated_signature[len(mutated_signature) // 2] ^= 1
+        require(
+            not reference.shrincs_verify(
+                digest,
+                bytes(mutated_signature),
+                model.SHRINCS_CONTEXT,
+                public_key,
+            ),
+            f"reference accepted {mode} signature-bit mutation",
+        )
+        require(
+            not verify_with_c(
+                verify,
+                public_key,
+                bytes(mutated_signature),
+                digest,
+                model.SHRINCS_CONTEXT,
+            ),
+            f"independent verifier accepted {mode} signature-bit mutation",
+        )
+        rejected.append(f"signature_bit:{mode}")
 
     mutated_key = bytearray(public_key)
     mutated_key[0] ^= 1
-    try:
-        model.parse_witness([signature, bytes(mutated_key)], program)
-    except model.TxModelError:
-        pass
-    else:
-        raise TxSeamError("witness parser accepted a public-key commitment mutation")
-    rejected.append("public_key_commitment")
+    for mode, signature in signatures.items():
+        try:
+            model.parse_witness([signature, bytes(mutated_key)], program)
+        except model.TxModelError:
+            pass
+        else:
+            raise TxSeamError(
+                f"witness parser accepted {mode} public-key commitment mutation"
+            )
+        rejected.append(f"public_key_commitment:{mode}")
 
     mutated_program = model.output_commitment(bytes(mutated_key))
-    parsed_mutated_signature, parsed_mutated_key, _ = model.parse_witness(
-        [signature, bytes(mutated_key)],
-        mutated_program,
-    )
-    require(parsed_mutated_signature == signature, "mutated-key witness signature drifted")
-    require(parsed_mutated_key == bytes(mutated_key), "mutated-key witness public key drifted")
-    require(
-        not reference.shrincs_verify(
-            digest,
-            signature,
-            model.SHRINCS_CONTEXT,
-            bytes(mutated_key),
-        ),
-        "reference accepted the signature under a different committed public key",
-    )
-    require(
-        not verify_with_c(
-            verify,
-            bytes(mutated_key),
-            signature,
-            digest,
-            model.SHRINCS_CONTEXT,
-        ),
-        "independent verifier accepted the signature under a different committed public key",
-    )
-    rejected.append("public_key_crypto")
+    for mode, signature in signatures.items():
+        parsed_signature, parsed_key, parsed_mode = model.parse_witness(
+            [signature, bytes(mutated_key)],
+            mutated_program,
+        )
+        require(parsed_signature == signature, f"{mode} mutated-key signature drifted")
+        require(parsed_key == bytes(mutated_key), f"{mode} mutated-key public key drifted")
+        require(parsed_mode == mode, f"{mode} mutated-key mode drifted")
+        require(
+            not reference.shrincs_verify(
+                digest,
+                signature,
+                model.SHRINCS_CONTEXT,
+                bytes(mutated_key),
+            ),
+            f"reference accepted {mode} signature under a different committed key",
+        )
+        require(
+            not verify_with_c(
+                verify,
+                bytes(mutated_key),
+                signature,
+                digest,
+                model.SHRINCS_CONTEXT,
+            ),
+            f"independent verifier accepted {mode} signature under a different committed key",
+        )
+        rejected.append(f"public_key_crypto:{mode}")
 
+    require(len(rejected) == 56, "signed-seam rejection coverage drifted")
     result: dict[str, Any] = {
         "profile": PROFILE,
         "result": "PASS",
@@ -312,20 +355,14 @@ def main() -> int:
         "public_key": public_key.hex(),
         "public_key_sha256": hashlib.sha256(public_key).hexdigest(),
         "output_commitment": program.hex(),
-        "signature": signature.hex(),
-        "signature_sha256": hashlib.sha256(signature).hexdigest(),
-        "signature_bytes": len(signature),
-        "signature_mode": mode,
         "transaction_digest": digest.hex(),
         "stripped_transaction": tx.serialize_stripped().hex(),
-        "rejected_mutations": rejected,
-        "rejected_mutation_count": len(rejected),
-        "weight_one_input_two_outputs": model.transaction_weight_one_input_two_outputs(
-            len(signature)
-        ),
-        "verifier_compressions_upper_bound": model.transaction_verifier_compressions(
-            len(signature)
-        ),
+        "signatures": {
+            mode: signature_record(model, signature)
+            for mode, signature in signatures.items()
+        },
+        "rejected_cases": rejected,
+        "rejected_case_count": len(rejected),
         "signature_bytes_exceed_verifier_compressions": (
             model.signature_bytes_exceed_verifier_compressions()
         ),
@@ -339,8 +376,9 @@ def main() -> int:
                 {
                     "profile": PROFILE,
                     "result": "PASS",
-                    "signature_bytes": len(signature),
-                    "rejected_mutation_count": len(rejected),
+                    "stateful_signature_bytes": len(stateful_signature),
+                    "stateless_signature_bytes": len(stateless_signature),
+                    "rejected_case_count": len(rejected),
                     "signature_bytes_exceed_verifier_compressions": (
                         model.signature_bytes_exceed_verifier_compressions()
                     ),
