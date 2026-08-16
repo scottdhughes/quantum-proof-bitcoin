@@ -1,0 +1,97 @@
+name: SHRINCS transaction C++ component
+
+on:
+  pull_request:
+    paths:
+      - "src/script/shrincs_tx_v0.h"
+      - "src/script/shrincs_tx_v0.cpp"
+      - "src/test/shrincs_tx_v0_tests.cpp"
+      - "src/test/CMakeLists.txt"
+      - "ci/test/test_shrincs_tx_cpp_component.py"
+      - "docs/PQBTC_SHRINCS_TX_V0_CPP.md"
+      - ".github/workflows/shrincs-tx-cpp-component.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "src/script/shrincs_tx_v0.h"
+      - "src/script/shrincs_tx_v0.cpp"
+      - "src/test/shrincs_tx_v0_tests.cpp"
+      - "src/test/CMakeLists.txt"
+      - "ci/test/test_shrincs_tx_cpp_component.py"
+      - "docs/PQBTC_SHRINCS_TX_V0_CPP.md"
+      - ".github/workflows/shrincs-tx-cpp-component.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-parity:
+    name: unwired native transaction parity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out PQBTC
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Enforce C++ component-only scope
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" | while read -r path; do
+            case "$path" in
+              src/script/shrincs_tx_v0.h|src/script/shrincs_tx_v0.cpp|src/test/shrincs_tx_v0_tests.cpp|src/test/CMakeLists.txt|ci/test/test_shrincs_tx_cpp_component.py|docs/PQBTC_SHRINCS_TX_V0_CPP.md|.github/workflows/shrincs-tx-cpp-component.yml) ;;
+              *)
+                echo "Unexpected SHRINCS C++ component path: $path" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+      - name: Validate architecture and inherited Python vector
+        run: |
+          python3 -m unittest ci.test.test_shrincs_tx_cpp_component
+          python3 -m unittest ci.test.test_shrincs_tx_model
+          python3 ci/test/check_ci_inventory.py
+
+      - name: Install focused native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            libboost-dev \
+            libevent-dev \
+            pkg-config
+
+      - name: Configure test-only native build
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DBUILD_GUI=OFF \
+            -DBUILD_GUI_TESTS=OFF \
+            -DBUILD_BENCH=OFF \
+            -DBUILD_FUZZ_BINARY=OFF \
+            -DBUILD_KERNEL_LIB=OFF \
+            -DENABLE_WALLET=OFF \
+            -DENABLE_IPC=OFF \
+            -DENABLE_EXTERNAL_SIGNER=OFF \
+            -DWITH_ZMQ=OFF \
+            -DWITH_USDT=OFF \
+            -DBUILD_TESTS=ON
+
+      - name: Build native PQ-first unit binary
+        run: cmake --build build --target test_pqbtc --parallel 2
+
+      - name: Run focused C++ parity suite
+        run: |
+          build/bin/test_pqbtc \
+            --run_test=shrincs_tx_v0_tests \
+            --catch_system_error=no \
+            --log_level=test_suite
