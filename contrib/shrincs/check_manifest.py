@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Validate the consensus-disabled PQBTC SHRINCS candidate manifest."""
 
 from __future__ import annotations
