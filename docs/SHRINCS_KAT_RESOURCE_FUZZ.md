@@ -24,11 +24,12 @@ the successful full-verifier run:
 | --- | ---: | --- |
 | stateful | 7 | `059549af4c74f6bd1898fc93add185ec0bffe08063b00cbff5b1eb4080ebc041` |
 | stateless | 2 | `67356b917284198f5a89bfbe727391dcde5e0f06c9f6799b0edd31197968eaae` |
+| maximum-envelope | 2 | `c79cd786bf3cefcce7586cfb018beb3da751ee949b42d3e8afad9e05ea40540a` |
 
-CI regenerates both corpora from the pinned draft and independently verifies
-all vectors before checking these locks. The full vector bytes remain generated
-artifacts rather than consensus fixtures; a later profile-freeze proposal must
-decide whether to commit a compact normative subset.
+CI regenerates all three corpora from the pinned draft and independently
+verifies all vectors before checking these locks. The full vector bytes remain
+generated artifacts rather than consensus fixtures; a later profile-freeze
+proposal must decide whether to commit a compact normative subset.
 
 ## Exact portable SHA-256 model
 
@@ -103,7 +104,8 @@ not a final consensus limit.
 `fuzz_full_verify.c` exposes the combined verifier to libFuzzer using a bounded,
 length-delimited input format. The seed corpus contains all regenerated valid
 vectors plus key/signature mutations, cross-mode lengths, parser boundaries,
-and deterministic noise.
+and deterministic noise. `shrincs_fuzz.dict` retains useful comparison
+constants discovered by completed campaigns.
 
 Pull requests run a sanitizer-backed smoke campaign. Scheduled runs use a
 longer budget after the workflow reaches the protected default branch. Passing
@@ -123,3 +125,31 @@ The next permissible design step is a consensus-disabled transaction-envelope
 specification. Activation still requires profile stability, cryptographic and
 consensus review, production-shaped resource limits, signer-state safety, and a
 zero-value public labnet.
+
+## First retained run
+
+The first pull-request run on August 16, 2026 passed every resource and fuzz
+check. Its machine-readable record is committed as
+`contrib/shrincs-ref/evidence-2026-08-16.json`.
+
+The resource job established:
+
+- byte-for-byte regeneration of all nine previously locked KATs;
+- a locked maximum-envelope corpus hash of
+  `c79cd786bf3cefcce7586cfb018beb3da751ee949b42d3e8afad9e05ea40540a`;
+- exact attainment of the 1,074-compression stateful global maximum;
+- 11 malformed parser cases rejected with zero SHA-256 work and zero allocation;
+- maximum static frame size of 1,024 bytes in
+  `pqbtc_shrincs_stateless_verify`;
+- bounded temporary allocations of 4,426 bytes statefully and 4,417 bytes
+  statelessly.
+
+The sanitizer-backed 121-second fuzz run executed 79,712 units at an average
+658 executions per second, reached 129 coverage edges and 244 features, added
+76 corpus units, peaked at 387 MiB RSS under ASan/UBSan, and produced no crash,
+timeout, out-of-memory condition, or sanitizer finding. The useful comparison
+constants discovered during that run are retained in `shrincs_fuzz.dict`.
+
+These are bounded observations from one GitHub-hosted x86-64 runner. They do not
+constitute sustained fuzzing, cross-platform resource evidence, or a consensus
+performance guarantee.
