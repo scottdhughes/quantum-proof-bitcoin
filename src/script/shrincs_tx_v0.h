@@ -99,7 +99,7 @@ std::optional<std::uint64_t> BlockVerifierCompressions(
     std::uint64_t block_weight = DEFAULT_BLOCK_WEIGHT);
 
 /** Maximum over all 255 stateful depths and the stateless recovery path. */
-std::uint64_t WorstCaseBlockVerifierCompressions(
+std::optional<std::uint64_t> WorstCaseBlockVerifierCompressions(
     std::uint64_t block_weight = DEFAULT_BLOCK_WEIGHT);
 
 } // namespace shrincs_tx_v0
