@@ -180,7 +180,7 @@ uint32_le(input_index)
 The 32-byte message signed by SHRINCS is:
 
 ```text
-TaggedHash("PQBTC/SHRINCS/TXSIG/v0", preimage)
+TaggedHash("PQBTC/SHRINCS/SIGHASH/v0", preimage)
 ```
 
 The SHRINCS context is fixed to the 22 ASCII bytes:
@@ -201,7 +201,10 @@ The digest commits to:
 - the current input index.
 
 Version zero has no `SIGHASH_NONE`, `SIGHASH_SINGLE`, `ANYONECANPAY`, annex,
-script path, code-separator, or key-path variant.
+script path, code-separator, or key-path variant. The transaction model also
+requires every input `scriptSig` to be empty. This keeps the initial envelope
+native-witness-only and prevents an omitted, mutable scriptSig field from
+changing the transaction identifier without changing the SHRINCS digest.
 
 ## Network chain ID
 
@@ -246,7 +249,7 @@ benchmarks.
 - CompactSize and transaction serialization used by the design;
 - output commitment and candidate scriptPubKey;
 - strict witness parsing;
-- fixed transaction digest;
+- fixed transaction digest with a domain label distinct from the SHRINCS context;
 - signature-length classification;
 - candidate transaction weight; and
 - the signature-byte-versus-compression-count inequality.
