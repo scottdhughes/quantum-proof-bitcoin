@@ -1,0 +1,242 @@
+name: SHRINCS KAT, resource, and fuzz evidence
+
+on:
+  pull_request:
+    paths:
+      - "contrib/shrincs/**"
+      - "contrib/shrincs-ref/**"
+      - "ci/test/test_shrincs_*.py"
+      - "docs/SHRINCS_KAT_RESOURCE_FUZZ.md"
+      - ".github/workflows/shrincs-kat-resource-fuzz.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "contrib/shrincs/**"
+      - "contrib/shrincs-ref/**"
+      - "ci/test/test_shrincs_*.py"
+      - "docs/SHRINCS_KAT_RESOURCE_FUZZ.md"
+      - ".github/workflows/shrincs-kat-resource-fuzz.yml"
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kat-resource:
+    name: immutable KAT locks and exact resource envelope
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Check out PQBTC
+        uses: actions/checkout@v5
+
+      - name: Check out pinned libshrincs
+        uses: actions/checkout@v5
+        with:
+          repository: remix7531/libshrincs
+          ref: 53bedb2c4be6b0dcc0a16fee665339d4f7e4e5b5
+          path: upstream/libshrincs
+          persist-credentials: false
+
+      - name: Check out pinned SHRINCS draft
+        uses: actions/checkout@v5
+        with:
+          repository: SHRINCS/shrincs-bip
+          ref: acc6bda51dc3b94848d118967247ad0f3cd7a80e
+          path: upstream/shrincs-bip
+          persist-credentials: false
+
+      - name: Validate lock and pure resource model
+        run: |
+          python3 contrib/shrincs/check_manifest.py --json
+          python3 contrib/shrincs-ref/check_kats.py --lock-only --json
+          python3 contrib/shrincs-ref/resource_model.py --json
+          python3 -m unittest discover -s ci/test -p 'test_shrincs_candidate.py'
+          python3 -m unittest discover -s ci/test -p 'test_shrincs_kat_resource.py'
+
+      - name: Build strict verifier for KAT regeneration
+        run: |
+          mkdir -p build/evidence
+          cc -std=c99 -Wall -Wextra -Wpedantic -Werror -O2 -fPIC -shared \
+            -Iupstream/libshrincs/include \
+            contrib/shrincs-ref/full_verify.c \
+            contrib/shrincs-ref/stateful_verify.c \
+            contrib/shrincs-ref/stateless_verify.c \
+            upstream/libshrincs/src/wots.c \
+            upstream/libshrincs/src/thash.c \
+            upstream/libshrincs/src/sha256.c \
+            upstream/libshrincs/src/util.c \
+            -o build/evidence/libpqbtc_shrincs_full_oracle.so
+
+      - name: Regenerate and enforce immutable KAT hashes
+        run: |
+          python3 contrib/shrincs-ref/check_stateful_fxmss.py \
+            --libshrincs upstream/libshrincs \
+            --shrincs-bip upstream/shrincs-bip \
+            --library build/evidence/libpqbtc_shrincs_full_oracle.so \
+            --vectors-out build/evidence/stateful-vectors.json \
+            --json
+          python3 contrib/shrincs-ref/check_stateless.py \
+            --libshrincs upstream/libshrincs \
+            --shrincs-bip upstream/shrincs-bip \
+            --library build/evidence/libpqbtc_shrincs_full_oracle.so \
+            --vectors-out build/evidence/stateless-vectors.json \
+            --json
+          python3 contrib/shrincs-ref/check_kats.py \
+            --stateful build/evidence/stateful-vectors.json \
+            --stateless build/evidence/stateless-vectors.json \
+            --json
+
+      - name: Generate maximum-envelope valid vectors
+        run: |
+          python3 contrib/shrincs-ref/generate_resource_vectors.py \
+            --shrincs-bip upstream/shrincs-bip \
+            --output build/evidence/resource-vectors.json \
+            --json
+
+      - name: Build instrumented verifier and collect static stack usage
+        run: |
+          set -euo pipefail
+          mkdir -p build/resource/obj
+          common_flags=(
+            -std=c99 -Wall -Wextra -Wpedantic -Werror -O2 -fPIC
+            -fstack-usage -Wframe-larger-than=4096
+            -Iupstream/libshrincs/include
+          )
+          cc "${common_flags[@]}" -Dshrincs_sha256=shrincs_sha256_real \
+            -c upstream/libshrincs/src/sha256.c \
+            -o build/resource/obj/sha256_real.o
+          for source in \
+            contrib/shrincs-ref/full_verify.c \
+            contrib/shrincs-ref/stateful_verify.c \
+            contrib/shrincs-ref/stateless_verify.c \
+            contrib/shrincs-ref/sha256_counting.c \
+            contrib/shrincs-ref/alloc_counting.c \
+            upstream/libshrincs/src/wots.c \
+            upstream/libshrincs/src/thash.c \
+            upstream/libshrincs/src/util.c
+          do
+            object="build/resource/obj/$(basename "${source%.c}").o"
+            cc "${common_flags[@]}" -c "$source" -o "$object"
+          done
+          cc -shared build/resource/obj/*.o \
+            -Wl,-z,defs -Wl,--wrap=malloc -Wl,--wrap=free \
+            -o build/resource/libpqbtc_shrincs_resource.so
+          python3 contrib/shrincs-ref/collect_stack_usage.py \
+            --directory build/resource/obj \
+            --limit 4096 \
+            --output build/evidence/stack-usage.json \
+            --json
+
+      - name: Measure exact hash and allocation envelope
+        run: |
+          python3 contrib/shrincs-ref/measure_resources.py \
+            --library build/resource/libpqbtc_shrincs_resource.so \
+            --stateful-kats build/evidence/stateful-vectors.json \
+            --stateless-kats build/evidence/stateless-vectors.json \
+            --resource-vectors build/evidence/resource-vectors.json \
+            --iterations 5 \
+            --output build/evidence/resource-report.json \
+            --json
+          python3 contrib/shrincs-ref/resource_model.py --json \
+            | tee build/evidence/resource-model.json
+          sha256sum \
+            build/evidence/stateful-vectors.json \
+            build/evidence/stateless-vectors.json \
+            build/evidence/resource-vectors.json \
+            build/evidence/resource-report.json \
+            build/evidence/stack-usage.json \
+            | tee build/evidence/evidence-sha256.txt
+
+      - name: Upload KAT and resource evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: pqbtc-shrincs-kat-resource-evidence
+          path: |
+            build/evidence/stateful-vectors.json
+            build/evidence/stateless-vectors.json
+            build/evidence/resource-vectors.json
+            build/evidence/resource-report.json
+            build/evidence/resource-model.json
+            build/evidence/stack-usage.json
+            build/evidence/evidence-sha256.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  fuzz:
+    name: sanitizer-backed full-verifier fuzzing
+    needs: kat-resource
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      FUZZ_SECONDS: ${{ github.event_name == 'schedule' && '1800' || '120' }}
+    steps:
+      - name: Check out PQBTC
+        uses: actions/checkout@v5
+
+      - name: Check out pinned libshrincs
+        uses: actions/checkout@v5
+        with:
+          repository: remix7531/libshrincs
+          ref: 53bedb2c4be6b0dcc0a16fee665339d4f7e4e5b5
+          path: upstream/libshrincs
+          persist-credentials: false
+
+      - name: Download regenerated KAT evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: pqbtc-shrincs-kat-resource-evidence
+          path: build/evidence
+
+      - name: Build deterministic fuzz seed corpus
+        run: |
+          python3 contrib/shrincs-ref/build_fuzz_corpus.py \
+            --stateful build/evidence/stateful-vectors.json \
+            --stateless build/evidence/stateless-vectors.json \
+            --output-dir build/fuzz/corpus \
+            --json
+
+      - name: Build libFuzzer target with ASan and UBSan
+        run: |
+          mkdir -p build/fuzz/findings
+          clang -std=c99 -Wall -Wextra -Wpedantic -Werror -O1 -g \
+            -fsanitize=fuzzer,address,undefined \
+            -fno-omit-frame-pointer -fno-sanitize-recover=all \
+            -Iupstream/libshrincs/include \
+            contrib/shrincs-ref/fuzz_full_verify.c \
+            contrib/shrincs-ref/full_verify.c \
+            contrib/shrincs-ref/stateful_verify.c \
+            contrib/shrincs-ref/stateless_verify.c \
+            upstream/libshrincs/src/wots.c \
+            upstream/libshrincs/src/thash.c \
+            upstream/libshrincs/src/sha256.c \
+            upstream/libshrincs/src/util.c \
+            -o build/fuzz/shrincs_full_fuzz
+
+      - name: Run bounded fuzz campaign
+        run: |
+          set -o pipefail
+          build/fuzz/shrincs_full_fuzz \
+            -max_total_time="$FUZZ_SECONDS" \
+            -max_len=12288 \
+            -timeout=10 \
+            -rss_limit_mb=2048 \
+            -print_final_stats=1 \
+            -artifact_prefix=build/fuzz/findings/ \
+            build/fuzz/corpus \
+            2>&1 | tee build/fuzz/fuzz.log
+
+      - name: Upload fuzz corpus and findings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pqbtc-shrincs-full-verifier-fuzz-${{ github.run_id }}
+          path: |
+            build/fuzz/corpus
+            build/fuzz/findings
+            build/fuzz/fuzz.log
+          if-no-files-found: error
+          retention-days: 30
