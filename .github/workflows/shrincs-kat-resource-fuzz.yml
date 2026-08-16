@@ -71,7 +71,7 @@ jobs:
             upstream/libshrincs/src/util.c \
             -o build/evidence/libpqbtc_shrincs_full_oracle.so
 
-      - name: Regenerate and enforce immutable KAT hashes
+      - name: Regenerate immutable stateful and stateless KATs
         run: |
           python3 contrib/shrincs-ref/check_stateful_fxmss.py \
             --libshrincs upstream/libshrincs \
@@ -85,16 +85,17 @@ jobs:
             --library build/evidence/libpqbtc_shrincs_full_oracle.so \
             --vectors-out build/evidence/stateless-vectors.json \
             --json
-          python3 contrib/shrincs-ref/check_kats.py \
-            --stateful build/evidence/stateful-vectors.json \
-            --stateless build/evidence/stateless-vectors.json \
-            --json
 
-      - name: Generate maximum-envelope valid vectors
+      - name: Generate and lock maximum-envelope valid vectors
         run: |
           python3 contrib/shrincs-ref/generate_resource_vectors.py \
             --shrincs-bip upstream/shrincs-bip \
             --output build/evidence/resource-vectors.json \
+            --json
+          python3 contrib/shrincs-ref/check_kats.py \
+            --stateful build/evidence/stateful-vectors.json \
+            --stateless build/evidence/stateless-vectors.json \
+            --resource build/evidence/resource-vectors.json \
             --json
 
       - name: Build instrumented verifier and collect static stack usage
@@ -163,6 +164,8 @@ jobs:
             build/evidence/resource-model.json
             build/evidence/stack-usage.json
             build/evidence/evidence-sha256.txt
+            contrib/shrincs-ref/kat-lock.json
+            contrib/shrincs-ref/evidence-2026-08-16.json
           if-no-files-found: error
           retention-days: 30
 
@@ -220,6 +223,7 @@ jobs:
         run: |
           set -o pipefail
           build/fuzz/shrincs_full_fuzz \
+            -dict=contrib/shrincs-ref/shrincs_fuzz.dict \
             -max_total_time="$FUZZ_SECONDS" \
             -max_len=12288 \
             -timeout=10 \
@@ -238,5 +242,6 @@ jobs:
             build/fuzz/corpus
             build/fuzz/findings
             build/fuzz/fuzz.log
+            contrib/shrincs-ref/shrincs_fuzz.dict
           if-no-files-found: error
           retention-days: 30
