@@ -1,0 +1,115 @@
+{
+  "as_of": "2026-08-16",
+  "candidate_id": "pqbtc-shrincs-v0",
+  "consensus_contract": {
+    "accepted_public_key_sizes": [],
+    "accepted_signature_sizes": [],
+    "algorithm_id": null,
+    "domain_separation": null,
+    "enabled": false,
+    "opcode": null,
+    "sighash_modes": [],
+    "tapscript_leaf_version": null,
+    "witness_version": null
+  },
+  "consensus_enabled": false,
+  "observed_profiles": {
+    "draft_specification": {
+      "normative_status": "DRAFT",
+      "public_key_bytes": 48,
+      "security_proof_complete": false,
+      "stateful_signature_bytes": {
+        "maximum": 4618,
+        "minimum": 554
+      },
+      "stateful_verify_sha256_compressions": {
+        "maximum": 509,
+        "minimum": 255
+      },
+      "stateless_signature_bytes": 5776,
+      "stateless_verify_sha256_compressions": {
+        "maximum": 2637,
+        "minimum": 462
+      }
+    },
+    "historical_paper_profile": {
+      "compact_signature_bytes_headline": 324,
+      "selected_for_pqbtc": false,
+      "status": "HISTORICAL_ONLY"
+    },
+    "op_checkshrincs_blog": {
+      "compact_signature_bytes_approx": 580,
+      "proposal_status": "TOY_PROPOSAL",
+      "published": "2026-05-12"
+    },
+    "parameter_explorer": {
+      "normative_status": "RESEARCH_TOOL",
+      "stateful_families": [
+        "BXMSS",
+        "UXMSS"
+      ],
+      "stateful_ots": "WOTS+C",
+      "stateful_winternitz_w": 64,
+      "stateless_signature_bytes": 5776,
+      "stateless_tuple_h_d_k_a_w": [
+        45,
+        5,
+        10,
+        13,
+        16
+      ]
+    }
+  },
+  "production_backend": "NONE",
+  "release_hold": true,
+  "required_gates": {
+    "consensus_audit": false,
+    "differential_verifiers": false,
+    "exact_profile_frozen": false,
+    "external_cryptographic_review": false,
+    "fault_review": false,
+    "hardware_signer_evidence": false,
+    "independent_kats": false,
+    "resource_envelope": false,
+    "security_proof_reviewed": false,
+    "side_channel_review": false,
+    "state_machine_crash_tests": false,
+    "strict_parser": false,
+    "sustained_fuzzing": false,
+    "zero_value_labnet_soak": false
+  },
+  "schema_version": 1,
+  "status": "RESEARCH_CANDIDATE",
+  "upstream": {
+    "draft_specification": {
+      "commit": "acc6bda51dc3b94848d118967247ad0f3cd7a80e",
+      "repository": "SHRINCS/shrincs-bip",
+      "role": "draft-specification-and-reference-model"
+    },
+    "parameter_model": {
+      "commit": "d64a217595597d5fe165ba6d236af83e6737da31",
+      "repository": "BlockstreamResearch/SPHINCS-Parameters",
+      "role": "parameter-model-and-pinned-explorer"
+    },
+    "research_cpp": {
+      "commit": "7643d9530c568f8671b21b9502e51bd9722b2e8d",
+      "repository": "BlockstreamResearch/shrincs-cpp",
+      "role": "research-implementation-lineage"
+    },
+    "simplicity_verifier": {
+      "commit": "d13165d3d21bac73e8794eede21f0f1527f3b837",
+      "repository": "BlockstreamResearch/shrincs-simplicity-verifier",
+      "role": "independent-constrained-verifier-evidence"
+    }
+  },
+  "wallet_state_contract": {
+    "burn_on_attempt": true,
+    "no_state_rollback_after_reorg_or_rejection": true,
+    "rbf_requires_fresh_state": true,
+    "reject_uncoordinated_cloned_signers": true,
+    "reserve_before_sign": true,
+    "self_verify_before_release": true,
+    "state_corruption_fails_closed": true,
+    "static_backup_restore_uses_recovery_path": true
+  }
+}
