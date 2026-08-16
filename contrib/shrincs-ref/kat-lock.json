@@ -30,5 +30,20 @@
   },
   "libshrincs_commit": "53bedb2c4be6b0dcc0a16fee665339d4f7e4e5b5",
   "profile": "pqbtc-shrincs-current-draft-kat-lock-v0",
+  "resource_vectors": {
+    "context_bytes": 255,
+    "message_bytes": 4096,
+    "profile": "pqbtc-shrincs-current-draft-resource-v0",
+    "sha256": "c79cd786bf3cefcce7586cfb018beb3da751ee949b42d3e8afad9e05ea40540a",
+    "signature_lengths": [
+      4618,
+      5776
+    ],
+    "vector_count": 2,
+    "vector_names": [
+      "stateful_max_depth_message_context",
+      "stateless_max_message_context"
+    ]
+  },
   "schema_version": 1
 }
