@@ -258,13 +258,15 @@ The signed-seam harness additionally:
 
 1. derives a deterministic current-draft SHRINCS key;
 2. constructs a synthetic two-input transaction;
-3. signs input zero's digest statefully through the pinned executable draft;
-4. verifies the signature through both the draft and the independent C
-   verifier;
-5. validates the output commitment and exact two-item witness; and
+3. signs input zero's digest once through the stateful path and once through
+   the stateless recovery path of the pinned executable draft;
+4. verifies both signatures through the draft and the independent C verifier;
+5. validates the output commitment and exact two-item witness for both modes;
+   and
 6. proves that mutations to both existing inputs and outputs, their count and
    order, every transaction commitment surface, the input index, chain ID, or
-   SHRINCS context invalidate the signature.
+   SHRINCS context invalidate both signatures. The retained seam requires 56
+   rejected verification or commitment cases across the two modes.
 
 ## Gates before node integration
 
