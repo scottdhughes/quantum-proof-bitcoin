@@ -226,7 +226,7 @@ BOOST_AUTO_TEST_CASE(cpp_matches_python_design_and_signed_seam_vectors)
     const std::vector<unsigned char> public_key{SequentialPublicKey()};
     const EnvelopeCase test_case{BuildEnvelopeCase(public_key)};
 
-    BOOST_CHECK_EQUAL(RawHex(test_case.chain_id), "5ac90260b854c448631456ad49ca4988c20a13eeec3e283f59afac1f8cb29486");
+    BOOST_CHECK(test_case.chain_id == RawUint256("5ac90260b854c448631456ad49ca4988c20a13eeec3e283f59afac1f8cb29486"));
     BOOST_CHECK_EQUAL(
         SerializeStripped(test_case.tx),
         "0200000002537b9332eb572ede46a4cf44321cf733a0c76ab6a9cf2d19cd7f3e1ea451c54b0300000000fdffffff21f5e2d90566de1e49bb495dc18bd495be7ee3ba896855982799c940dafcd0070100000000feffffff02f049020000000000225220e4aec884405768485ef6d3407f9d5da17781053f66f7945e8fd1dda7e9e1eb9768bf000000000000066a045051563040d10c00");
@@ -257,9 +257,8 @@ BOOST_AUTO_TEST_CASE(candidate_script_and_witness_parser_are_strict)
     const std::vector<unsigned char> public_key{SequentialPublicKey()};
     const std::optional<CScript> script{shrincs_tx_v0::BuildScriptPubKey(public_key)};
     BOOST_REQUIRE(script.has_value());
-    BOOST_CHECK_EQUAL(
-        HexStr(std::span<const unsigned char>{script->data(), script->size()}),
-        "5220e4aec884405768485ef6d3407f9d5da17781053f66f7945e8fd1dda7e9e1eb97");
+    BOOST_CHECK(*script == ScriptFromHex(
+        "5220e4aec884405768485ef6d3407f9d5da17781053f66f7945e8fd1dda7e9e1eb97"));
 
     std::array<unsigned char, shrincs_tx_v0::PROGRAM_BYTES> program{};
     BOOST_CHECK(shrincs_tx_v0::IsScriptPubKey(*script, &program));
@@ -373,6 +372,18 @@ BOOST_AUTO_TEST_CASE(invalid_transaction_inputs_fail_closed)
 
 BOOST_AUTO_TEST_CASE(wolfram_checked_resource_invariants_hold_exactly)
 {
+    BOOST_CHECK_EQUAL(shrincs_tx_v0::STATEFUL_SIGNATURE_MIN % 16U, 10U);
+    BOOST_CHECK_EQUAL(shrincs_tx_v0::STATEFUL_SIGNATURE_MAX % 16U, 10U);
+    BOOST_CHECK_EQUAL(shrincs_tx_v0::STATELESS_SIGNATURE_BYTES % 16U, 0U);
+    BOOST_CHECK_EQUAL(
+        shrincs_tx_v0::STATELESS_SIGNATURE_BYTES - shrincs_tx_v0::STATEFUL_SIGNATURE_MAX,
+        1'158U);
+
+    const auto stateless_mode{shrincs_tx_v0::ClassifySignature(shrincs_tx_v0::STATELESS_SIGNATURE_BYTES)};
+    BOOST_REQUIRE(stateless_mode.has_value());
+    BOOST_CHECK(*stateless_mode == shrincs_tx_v0::SignatureMode::STATELESS);
+    BOOST_CHECK(!shrincs_tx_v0::StatefulDepth(shrincs_tx_v0::STATELESS_SIGNATURE_BYTES));
+
     std::uint64_t maximum_stateful_block_work{0};
     std::uint16_t maximizing_depth{0};
 
@@ -380,12 +391,19 @@ BOOST_AUTO_TEST_CASE(wolfram_checked_resource_invariants_hold_exactly)
         const std::size_t signature_size{
             shrincs_tx_v0::STATEFUL_SIGNATURE_BASE +
             shrincs_tx_v0::STATEFUL_SIGNATURE_STEP * static_cast<std::size_t>(depth)};
+        const auto mode{shrincs_tx_v0::ClassifySignature(signature_size)};
+        const auto recovered_depth{shrincs_tx_v0::StatefulDepth(signature_size)};
         const auto compressions{shrincs_tx_v0::VerifierCompressions(signature_size)};
         const auto weight{shrincs_tx_v0::OneInputTwoOutputWeight(signature_size)};
         const auto block_work{shrincs_tx_v0::BlockVerifierCompressions(signature_size)};
+        BOOST_REQUIRE(mode.has_value());
+        BOOST_REQUIRE(recovered_depth.has_value());
         BOOST_REQUIRE(compressions.has_value());
         BOOST_REQUIRE(weight.has_value());
         BOOST_REQUIRE(block_work.has_value());
+        BOOST_CHECK(*mode == shrincs_tx_v0::SignatureMode::STATEFUL);
+        BOOST_CHECK_EQUAL(*recovered_depth, depth);
+        BOOST_CHECK_EQUAL(signature_size % 16U, 10U);
         BOOST_CHECK_EQUAL(*compressions, 497U + 2U * depth);
         BOOST_CHECK_EQUAL(*weight, 1141U + 16U * depth);
         BOOST_CHECK_EQUAL(signature_size - *compressions, 41U + 14U * depth);
