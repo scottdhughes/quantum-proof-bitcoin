@@ -19,15 +19,16 @@ apply only to the libcrux crate and its published `Cargo.lock`; an empty Cargo
 result is not claimed for either C source oracle.
 
 The global dependency snapshot and the mldsa-native/libcrux rows retain their
-2026-07-21 date. The OpenSSL row was separately refreshed on 2026-08-06 after
-CVE-2026-54876 was published, while every relevant workflow run continues to
-acquire and validate both public machine feeds. OpenSSL is checked from the
-current Git head of the official `openssl/release-metadata` `secjson` corpus.
-The validator requires the reviewed 273-record completeness floor, all 38
-reviewed OpenSSL 3.6 records, supported CVE 5.0/5.1 structures, and exact
-semver evaluation for the 3.6.3 pin. A missing record, ambiguous range,
-malformed schema, unreviewed affecting advisory, or change to the reviewed
-CVE record or path disposition fails closed.
+2026-07-21 date. The OpenSSL row was separately refreshed on 2026-08-15 after
+CVE-2026-14456 and CVE-2026-54876 were published, while every relevant
+workflow run continues to acquire and validate both public machine feeds.
+OpenSSL is checked from the current Git head of the official
+`openssl/release-metadata` `secjson` corpus. The validator requires the
+reviewed 274-record completeness floor, all 39 reviewed OpenSSL 3.6 records,
+supported CVE 5.0/5.1 structures, and exact semver evaluation for the 3.6.3
+pin. A missing record, ambiguous range, malformed schema, unreviewed affecting
+advisory, or change to either reviewed CVE record or path disposition fails
+closed.
 The sole reviewed upstream irregularity is CVE-2023-2650's empty exclusive
 `3.1.1` to `3.1.1` row; it is outside 3.6, exactly allowlisted, and retained in
 the normalized report. Any other empty range fails pending review.
@@ -96,6 +97,30 @@ a fixed range is not represented as a regression-test PASS. `UNTESTED` is
 permitted only when the pin is not affected or the current path is not
 applicable and a future admission block is explicit.
 
+### OpenSSL CVE-2026-14456
+
+OpenSSL 3.6.3 is version-affected by
+[CVE-2026-14456](https://openssl-library.org/news/secadv/20260813.txt); the
+ledger does not relabel the pin as unaffected. OpenSSL rates the issue Low and
+describes unbounded memory growth in a libssl QUIC-server Listener object. A
+remote peer must send valid QUIC Initial packets for unknown destination
+connection IDs faster than the application accepts pending connections.
+
+The current research path is explicitly `NOT_APPLICABLE`. The reviewed
+OpenSSL adapters construct no QUIC listener, accept no network traffic, and
+call the default provider's EVP ML-DSA key-generation, signing, and
+verification interfaces only. Their exact local source/include closure and
+the official CVE-record hash are part of the machine contract. OpenSSL also
+states that the FIPS module is unaffected because QUIC is outside its module
+boundary; that is supporting context rather than the applicability basis.
+
+The official 3.6 fix is commit
+`4084152e040329ca0194c4c1750b9b46d00a5b6b`, targeted at 3.6.4. No 3.6.4
+release tag was available at the 2026-08-15 review. A signed, reproducible
+3.6.4-or-later release is the repin trigger; the full oracle and campaign
+evidence must then be rerun. Any future QUIC-server, network, or production
+use requires explicit re-review before admission.
+
 ### OpenSSL CVE-2026-54876
 
 OpenSSL 3.6.3 is version-affected by
@@ -118,7 +143,7 @@ the applicability basis because this oracle uses the default provider.
 
 The official fix for the 3.6 branch is commit
 `155b5fe0f93365e6df1c56ee3606b121080c6c12`, targeted at 3.6.4. No 3.6.4
-release tag was available at the 2026-08-06 review. A signed, reproducible
+release tag was available at the 2026-08-15 refresh. A signed, reproducible
 3.6.4-or-later release is the repin trigger; the full oracle and campaign
 evidence must then be rerun. Any future TLS/X.509/OCSP use or production
 linkage requires explicit re-review before admission. The production backend

@@ -56,6 +56,7 @@ EXPECTED_OPENSSL_36_IDS = {
     "CVE-2025-69419",
     "CVE-2025-69420",
     "CVE-2025-69421",
+    "CVE-2026-14456",
     "CVE-2026-22795",
     "CVE-2026-22796",
     "CVE-2026-2673",
@@ -86,6 +87,60 @@ EXPECTED_OPENSSL_36_IDS = {
     "CVE-2026-9076",
 }
 EXPECTED_OPENSSL_AFFECTED_PIN_DISPOSITIONS = [
+    {
+        "id": "CVE-2026-14456",
+        "severity": "LOW",
+        "pinned_version_status": "AFFECTED",
+        "reviewed_feed_record": {
+            "data_version": "5.1",
+            "ranges": [
+                {
+                    "version": "3.6.0",
+                    "lessThan": "3.6.4",
+                    "status": "affected",
+                    "versionType": "semver",
+                }
+            ],
+        },
+        "affected_path": "SSL_QUIC_SERVER_LISTENER_INCOMING_CHANNEL_QUEUE",
+        "trigger_conditions": [
+            "OPENSSL_QUIC_SERVER_LISTENER",
+            "REMOTE_VALID_QUIC_INITIAL_FOR_UNKNOWN_DESTINATION_CONNECTION_ID",
+            "PENDING_CONNECTIONS_OUTPACE_SSL_ACCEPT_CONNECTION",
+        ],
+        "current_path": "ISOLATED_DEFAULT_PROVIDER_EVP_ML_DSA_KEYGEN_SIGN_VERIFY",
+        "current_path_applicability": "NOT_APPLICABLE",
+        "test_status": "NOT_APPLICABLE",
+        "reason_code": "NO_QUIC_SERVER_LISTENER_OR_NETWORK_PATH",
+        "fips_module_affected": False,
+        "production_linkage": "NONE",
+        "oracle_sources": [
+            {
+                "path": "contrib/ml-dsa-ref/openssl_oracle.c",
+                "sha256": "fb213f8e669dad1d435bde9d3139bf217a1f3ebbdd843e5233e2bd7420a9f39d",
+            },
+            {
+                "path": "contrib/ml-dsa-ref/oracle_cli.h",
+                "sha256": "c7f8169dbbd87eccfe64b13c34e3b99f704c88bce4a459607c73fc64a8d67de9",
+            },
+            {
+                "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44_openssl_verify.c",
+                "sha256": "c0ae1f5d117f8be09382e755d20c73605e7a66cc1b05d7a586833d38b04b7816",
+            },
+            {
+                "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44.h",
+                "sha256": "9bb114b51bdc225605b99c92ed8b21ed5e08f9c8efb7ca7924214e1f679a8255",
+            },
+            {
+                "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44_differential.h",
+                "sha256": "cf68dffbab7b15c6a796be7db1a3ede6dff0de8cb7d148dc87be121ab2cd770e",
+            },
+        ],
+        "official_advisory": "https://openssl-library.org/news/secadv/20260813.txt",
+        "fix_commit": "4084152e040329ca0194c4c1750b9b46d00a5b6b",
+        "fix_version": "3.6.4",
+        "future_admission": "REPIN_OR_REVIEW_BEFORE_QUIC_SERVER_OR_PRODUCTION_USE",
+    },
     {
         "id": "CVE-2026-54876",
         "severity": "LOW",
@@ -1229,7 +1284,7 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
         "libcrux": ("0.0.10", vector_sources.get("libcrux", {}).get("commit")),
     }
     expected_inventory_dates = {
-        "openssl": "2026-08-06",
+        "openssl": "2026-08-15",
         "mldsa_native": ledger["inventory_date"],
         "libcrux": ledger["inventory_date"],
     }
@@ -1286,9 +1341,9 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
         or openssl_feed["repository"]
         != "https://github.com/openssl/release-metadata.git"
         or openssl_feed["path"] != "secjson"
-        or openssl_feed["reviewed_on"] != "2026-08-06"
+        or openssl_feed["reviewed_on"] != "2026-08-15"
         or openssl_feed["accepted_data_versions"] != ["5.0", "5.1"]
-        or openssl_feed["minimum_cve_records"] != 273
+        or openssl_feed["minimum_cve_records"] != 274
         or openssl_feed["reviewed_branch"] != "3.6"
         or openssl_feed["reviewed_empty_non_target_ranges"]
         != [
@@ -1405,7 +1460,7 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
     expected_oracle_inventory = {
         "openssl": (
             "LIVE_FEED_AFFECTED_PIN_WITH_EXPLICIT_PATH_DISPOSITION",
-            {"CVE-2026-54876"},
+            {"CVE-2026-14456", "CVE-2026-54876"},
         ),
         "mldsa_native": ("LIVE_FEED_NO_PUBLISHED_REPOSITORY_ADVISORIES", set()),
         "libcrux": (
