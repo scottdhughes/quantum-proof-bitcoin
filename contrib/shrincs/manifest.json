@@ -83,23 +83,37 @@
   "upstream": {
     "draft_specification": {
       "commit": "acc6bda51dc3b94848d118967247ad0f3cd7a80e",
+      "compatibility_with_pinned_draft": "AUTHORITATIVE_DRAFT",
       "repository": "SHRINCS/shrincs-bip",
-      "role": "draft-specification-and-reference-model"
+      "role": "draft-specification-and-executable-model"
     },
     "parameter_model": {
       "commit": "d64a217595597d5fe165ba6d236af83e6737da31",
+      "compatibility_with_pinned_draft": "PARAMETER_ONLY",
       "repository": "BlockstreamResearch/SPHINCS-Parameters",
       "role": "parameter-model-and-pinned-explorer"
     },
     "research_cpp": {
       "commit": "7643d9530c568f8671b21b9502e51bd9722b2e8d",
+      "compatibility_reasons": [
+        "32-byte public key rather than pinned draft 48-byte public key",
+        "different WOTS, tree, and stateless parameters",
+        "paper-era PORS+FP construction rather than pinned draft FORS-based construction"
+      ],
+      "compatibility_with_pinned_draft": "INCOMPATIBLE",
       "repository": "BlockstreamResearch/shrincs-cpp",
-      "role": "research-implementation-lineage"
+      "role": "historical-research-implementation-lineage"
     },
     "simplicity_verifier": {
       "commit": "d13165d3d21bac73e8794eede21f0f1527f3b837",
+      "compatibility_reasons": [
+        "older seed-root public-key model rather than pinned draft 48-byte public key",
+        "explicit UXMSS/SPHINCS signature union rather than pinned draft serialization",
+        "older construction lineage linked to the paper-era C++ implementation"
+      ],
+      "compatibility_with_pinned_draft": "INCOMPATIBLE",
       "repository": "BlockstreamResearch/shrincs-simplicity-verifier",
-      "role": "independent-constrained-verifier-evidence"
+      "role": "historical-constrained-verifier-lineage"
     }
   },
   "wallet_state_contract": {
