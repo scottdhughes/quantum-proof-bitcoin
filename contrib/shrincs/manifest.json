@@ -18,6 +18,22 @@
       "vectors_committed": false,
       "vectors_retained_as_ci_artifact": true
     },
+    "stateless_hypertree": {
+      "consensus_ready": false,
+      "deterministic_and_fixed_randomizer_vectors": true,
+      "independent_c_verifier": true,
+      "kat_case_count": 2,
+      "public_key_bit_mutations_rejected": 384,
+      "qualifies_as_full_shrincs_verifier": false,
+      "scope": "complete current-draft stateless recovery verification path only",
+      "signature_bit_mutations_rejected": 46304,
+      "status": "INDEPENDENT_DIFFERENTIAL_PROTOTYPE",
+      "structural_negatives_rejected": 12,
+      "uses_pinned_libshrincs_sha256": true,
+      "valid_signatures_verified": 2,
+      "vectors_committed": false,
+      "vectors_retained_as_ci_artifact": true
+    },
     "wotsc": {
       "compiled_c_matches_committed_kats": true,
       "current_draft_matches_committed_kats": true,
