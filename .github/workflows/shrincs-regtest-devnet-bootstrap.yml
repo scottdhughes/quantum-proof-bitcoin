@@ -40,7 +40,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Correct pinned upstream blob locks
+      - name: Correct pinned provenance and native checker bridge
         run: |
           set -euo pipefail
           sed -i \
@@ -50,6 +50,27 @@ jobs:
             -e 's/10fd0c6f418fc09227bbd58185aac594e3b8be83/10fd0c5d4cd7047af81c0c6a21e0065744736419/g' \
             -e 's/66b873f6b77c1782f9e58f94e2364f22e8974105/0795ae674bef2493ca21a2bfb30477ab940b70cb/g' \
             contrib/devtools/apply_shrincs_regtest_devnet.py
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("contrib/devtools/apply_shrincs_regtest_devnet.py")
+          text = path.read_text()
+          old = '''    const std::optional<uint256> sighash{shrincs_tx_v0::SignatureHash(
+                  *txTo,
+                  std::span<const CTxOut>{txdata->m_spent_outputs.data(), txdata->m_spent_outputs.size()},
+                  nIn,
+                  shrincs_tx_v0::RegtestChainId())};'''
+          new = '''    const CTransaction immutable_tx{*txTo};
+              const std::optional<uint256> sighash{shrincs_tx_v0::SignatureHash(
+                  immutable_tx,
+                  std::span<const CTxOut>{txdata->m_spent_outputs.data(), txdata->m_spent_outputs.size()},
+                  nIn,
+                  shrincs_tx_v0::RegtestChainId())};'''
+          if old in text:
+              text = text.replace(old, new, 1)
+              path.write_text(text)
+          elif new not in text:
+              raise SystemExit("native checker bridge anchor not found")
+          PY
 
       - name: Materialize deterministic integration
         run: |
