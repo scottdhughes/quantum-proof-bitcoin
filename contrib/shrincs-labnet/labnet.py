@@ -231,10 +231,6 @@ class NodeLayout:
                 "regtest=1",
                 "server=1",
                 "listen=1",
-                f"port={self.p2p_port}",
-                f"rpcport={self.rpc_port}",
-                "rpcbind=127.0.0.1",
-                "rpcallowip=127.0.0.1",
                 "discover=0",
                 "dnsseed=0",
                 "fixedseeds=0",
@@ -246,6 +242,12 @@ class NodeLayout:
                 "fallbackfee=0.00010000",
                 "persistmempool=1",
                 "printtoconsole=0",
+                "",
+                "[regtest]",
+                f"port={self.p2p_port}",
+                f"rpcport={self.rpc_port}",
+                "rpcbind=127.0.0.1",
+                "rpcallowip=127.0.0.1",
                 "",
             ]
         )

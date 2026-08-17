@@ -55,6 +55,26 @@ class FakeReference:
         return signature[2:] == hashlib.sha256(message + context).digest()
 
 
+class NodeConfigTests(unittest.TestCase):
+    def test_network_bindings_live_under_regtest_section(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            layout = labnet.Layout(root / "state", root / "build")
+            text = layout.node0.config_text()
+
+        global_settings, regtest_settings = text.split("[regtest]\n", 1)
+        self.assertIn("regtest=1\n", global_settings)
+        for setting in (
+            "port=19444",
+            "rpcport=19443",
+            "rpcbind=127.0.0.1",
+            "rpcallowip=127.0.0.1",
+        ):
+            with self.subTest(setting=setting):
+                self.assertNotIn(setting, global_settings)
+                self.assertIn(setting, regtest_settings)
+
+
 class SignerStoreTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
