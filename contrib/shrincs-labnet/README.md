@@ -15,6 +15,12 @@ sudo apt-get install --no-install-recommends -y \
   libsqlite3-dev pkg-config
 ```
 
+On macOS with Homebrew:
+
+```bash
+brew install cmake ninja boost libevent sqlite pkg-config
+```
+
 Then run:
 
 ```bash
