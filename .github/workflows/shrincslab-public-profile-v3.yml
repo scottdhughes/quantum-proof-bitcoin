@@ -1,0 +1,245 @@
+name: SHRINCS public zero-value labnet v3
+
+on:
+  push:
+    branches:
+      - integration/shrincslab-public-profile
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+  attestations: write
+  id-token: write
+
+concurrency:
+  group: shrincslab-public-profile-v3
+  cancel-in-progress: true
+
+jobs:
+  prove:
+    name: build, spend, mine, isolate, freeze, and publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+
+    steps:
+      - name: Check out PQBTC
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Materialize identity and genesis-bound authorization
+        run: |
+          set -euo pipefail
+          python3 contrib/devtools/normalize_shrincslab_materializer.py
+          python3 contrib/devtools/apply_shrincslab_public_profile.py
+          python3 contrib/devtools/apply_shrincslab_chain_domain.py
+          python3 contrib/devtools/apply_shrincslab_public_profile.py >/tmp/profile-idempotence.json
+          python3 contrib/devtools/apply_shrincslab_chain_domain.py >/tmp/domain-idempotence.json
+          git diff --check
+
+      - name: Check static contracts and deployment files
+        run: |
+          set -euo pipefail
+          python3 ci/test/test_shrincs_tx_cpp_component.py
+          python3 contrib/shrincs-labnet/test_labnet.py -v
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          m = json.loads(Path("contrib/shrincs-labnet/manifest.json").read_text())
+          assert m["network"]["genesis_hash"] == "122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69"
+          assert m["network"]["message_magic"] == "91e1cac8"
+          assert m["network"]["bech32_hrp"] == "pqsl"
+          assert m["consensus_activation"]["ordinary_regtest"] is False
+          assert m["consensus_activation"]["shrincslab"] is True
+          assert m["shrincs"]["chain_domain"]["sha256"] == "db0e425cda8dcebc9e64203d2a5dfde2e954954f3dc95b8b9807590103d07652"
+          assert m["shrincs"]["chain_domain"]["bound_genesis"] == m["network"]["genesis_hash"]
+          assert m["shrincs"]["chain_domain"]["replay_compatible_with_private_regtest_fixture"] is False
+          PY
+          docker compose -f contrib/shrincs-labnet/docker-compose.shrincslab.yml config >/tmp/compose.yml
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            build-essential cmake ninja-build libboost-dev libevent-dev \
+            libsqlite3-dev pkg-config
+
+      - name: Pin signer model and regenerate vectors
+        run: |
+          set -euo pipefail
+          git clone https://github.com/SHRINCS/shrincs-bip.git "$RUNNER_TEMP/shrincs-bip"
+          git -C "$RUNNER_TEMP/shrincs-bip" checkout acc6bda51dc3b94848d118967247ad0f3cd7a80e
+          test "$(git -C "$RUNNER_TEMP/shrincs-bip" rev-parse HEAD)" = acc6bda51dc3b94848d118967247ad0f3cd7a80e
+          python3 contrib/shrincs-tx/generate_shrincslab_vectors.py \
+            --shrincs-bip "$RUNNER_TEMP/shrincs-bip" --json | tee /tmp/vectors.json
+          python3 contrib/shrincs-tx/generate_shrincslab_vectors.py \
+            --shrincs-bip "$RUNNER_TEMP/shrincs-bip" --json >/tmp/vectors-idempotence.json
+          grep -q db0e425cda8dcebc9e64203d2a5dfde2e954954f3dc95b8b9807590103d07652 \
+            src/test/shrincs_tx_v0_signed_seam_vectors.h
+          git diff --check
+
+      - name: Configure and build
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DBUILD_GUI=OFF -DBUILD_GUI_TESTS=OFF -DBUILD_BENCH=OFF \
+            -DBUILD_FUZZ_BINARY=OFF -DBUILD_KERNEL_LIB=OFF \
+            -DENABLE_WALLET=ON -DENABLE_IPC=OFF \
+            -DENABLE_EXTERNAL_SIGNER=OFF -DWITH_ZMQ=OFF \
+            -DWITH_USDT=OFF -DBUILD_TESTS=ON
+          cmake --build build --parallel 2
+
+      - name: Run native identity and signature suites
+        run: |
+          build/bin/test_pqbtc \
+            --run_test=shrincslab_chainparams_tests,shrincs_tx_v0_tests,shrincs_tx_v0_signed_seam_tests \
+            --catch_system_error=no --log_level=test_suite
+
+      - name: Mine stateful and recovery spends
+        env:
+          SHRINCS_BIP_DIR: ${{ runner.temp }}/shrincs-bip
+        run: |
+          build/test/functional/feature_shrincs_regtest.py \
+            --tmpdir="$RUNNER_TEMP/functional-shrincslab" --nocleanup
+
+      - name: Run persistent two-node crash-safe lifecycle
+        run: |
+          python3 contrib/shrincs-labnet/labnet.py \
+            --build-dir "$GITHUB_WORKSPACE/build" \
+            --state-dir "$RUNNER_TEMP/shrincslab" \
+            quickstart --fresh --mode both --no-build
+
+      - name: Prove network identity and incompatible handshake
+        run: |
+          set -euo pipefail
+          CLI=build/bin/pqbtc-cli
+          LAB0="$RUNNER_TEMP/shrincslab/node0"
+          test "$($CLI -regtest -shrincslab -datadir="$LAB0" getblockhash 0)" = \
+            122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69
+          ADDRESS=$($CLI -regtest -shrincslab -datadir="$LAB0" -rpcwallet=shrincs-labnet getnewaddress)
+          case "$ADDRESS" in pqsl1*) ;; *) echo "unexpected labnet address: $ADDRESS"; exit 1 ;; esac
+
+          REGDIR="$RUNNER_TEMP/ordinary-regtest"
+          REGPORT=30443
+          mkdir -p "$REGDIR"
+          build/bin/pqbtcd -regtest -datadir="$REGDIR" -port=30444 -rpcport="$REGPORT" \
+            -server=1 -listen=1 -discover=0 -dnsseed=0 -fixedseeds=0 -daemonwait
+          trap '$CLI -regtest -datadir="$REGDIR" -rpcport="$REGPORT" stop >/dev/null 2>&1 || true; python3 contrib/shrincs-labnet/labnet.py --build-dir "$GITHUB_WORKSPACE/build" --state-dir "$RUNNER_TEMP/shrincslab" stop >/dev/null 2>&1 || true' EXIT
+          $CLI -regtest -datadir="$REGDIR" -rpcport="$REGPORT" addnode 127.0.0.1:29333 onetry || true
+          sleep 3
+          $CLI -regtest -datadir="$REGDIR" -rpcport="$REGPORT" getpeerinfo > /tmp/ordinary-peers.json
+          python3 - <<'PY'
+          import json
+          peers = json.load(open('/tmp/ordinary-peers.json', encoding='utf-8'))
+          completed = [p for p in peers if int(p.get('version', 0)) > 0]
+          assert not completed, f'ordinary regtest completed an incompatible labnet handshake: {completed}'
+          PY
+          for _ in $(seq 1 30); do
+            test "$($CLI -regtest -datadir="$REGDIR" -rpcport="$REGPORT" getconnectioncount)" -eq 0 && break
+            sleep 1
+          done
+          $CLI -regtest -datadir="$REGDIR" -rpcport="$REGPORT" getpeerinfo > /tmp/final-ordinary-peers.json
+          python3 - <<'PY'
+          import json
+          peers = json.load(open('/tmp/final-ordinary-peers.json', encoding='utf-8'))
+          assert not any(int(p.get('version', 0)) > 0 for p in peers)
+          PY
+          $CLI -regtest -datadir="$REGDIR" -rpcport="$REGPORT" stop >/dev/null
+          python3 contrib/shrincs-labnet/labnet.py \
+            --build-dir "$GITHUB_WORKSPACE/build" \
+            --state-dir "$RUNNER_TEMP/shrincslab" stop >/dev/null
+          trap - EXIT
+
+      - name: Freeze validated profile and vectors
+        id: freeze
+        run: |
+          set -euo pipefail
+          git add \
+            contrib/devtools/apply_shrincslab_public_profile.py \
+            contrib/devtools/apply_shrincslab_chain_domain.py \
+            contrib/shrincs-tx/generate_shrincslab_vectors.py \
+            contrib/shrincs-tx/tx_model.py contrib/shrincs-tx/vector.json \
+            src/chainparams.cpp src/chainparamsbase.cpp \
+            src/kernel/chainparams.cpp src/kernel/chainparams.h \
+            src/script/interpreter.cpp src/script/shrincs_tx_v0.cpp \
+            src/script/shrincs_tx_v0.h src/test/CMakeLists.txt \
+            src/test/shrincslab_chainparams_tests.cpp \
+            src/test/shrincs_tx_v0_tests.cpp \
+            src/test/shrincs_tx_v0_signed_seam_tests.cpp \
+            src/test/shrincs_tx_v0_signed_seam_vectors.h \
+            ci/test/test_shrincs_tx_cpp_component.py \
+            test/functional/feature_shrincs_regtest.py \
+            test/functional/test_framework/address.py \
+            contrib/shrincs-labnet docs/PQBTC_SHRINCS_PUBLIC_LABNET.md
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Materialized profile already frozen."
+            exit 0
+          fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          git config user.name pqbtc-shrincslab-ci
+          git config user.email pqbtc-shrincslab-ci@users.noreply.github.com
+          git commit -m "research: materialize genesis-bound SHRINCS public labnet"
+          git push origin HEAD:integration/shrincslab-public-profile
+
+      - name: Set up Docker Buildx
+        if: steps.freeze.outputs.changed == 'false'
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+
+      - name: Authenticate to GitHub Container Registry
+        if: steps.freeze.outputs.changed == 'false'
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute OCI metadata
+        if: steps.freeze.outputs.changed == 'false'
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
+        with:
+          images: ghcr.io/scottdhughes/quantum-proof-bitcoin-shrincslab
+          tags: |
+            type=raw,value=edge
+            type=sha,format=long
+          labels: |
+            org.opencontainers.image.title=PQBTC SHRINCS zero-value labnet node
+            org.opencontainers.image.description=Experimental SHA-256d labnet with genesis-bound SHRINCS-v0 authorization; no economic security
+            org.opencontainers.image.source=https://github.com/scottdhughes/quantum-proof-bitcoin
+            org.pqbtc.network.genesis=122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69
+            org.pqbtc.network.zero-value=true
+
+      - name: Build and push attested labnet image
+        if: steps.freeze.outputs.changed == 'false'
+        id: push
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: .
+          file: contrib/shrincs-labnet/Dockerfile.shrincslab
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Attest published image
+        if: steps.freeze.outputs.changed == 'false'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-name: ghcr.io/scottdhughes/quantum-proof-bitcoin-shrincslab
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+      - name: Emit deployment coordinates
+        if: steps.freeze.outputs.changed == 'false'
+        run: |
+          cat <<EOF
+          image=ghcr.io/scottdhughes/quantum-proof-bitcoin-shrincslab@${{ steps.push.outputs.digest }}
+          genesis=122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69
+          p2p_port=29333
+          zero_value_only=true
+          EOF
