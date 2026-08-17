@@ -1,0 +1,63 @@
+name: Normalize SHRINCS labnet branch metadata
+
+on:
+  push:
+    branches:
+      - research/shrincs-mineable-labnet
+    paths:
+      - "contrib/devtools/register_shrincs_labnet_ci.py"
+      - "contrib/shrincs-labnet/**"
+      - "test/functional/feature_shrincs_regtest.py"
+      - "ci/test/functional_suite_inventory.json"
+      - "ci/test/pq_functional_tests.txt"
+      - "test/lint/lint_ignore_dirs.py"
+      - ".gitignore"
+      - ".github/workflows/shrincs-labnet-normalize.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: shrincs-labnet-normalize-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  normalize:
+    name: register CI gate and executable modes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Materialize deterministic registration
+        run: |
+          set -euo pipefail
+          python3 contrib/devtools/register_shrincs_labnet_ci.py
+          python3 ci/test/check_ci_inventory.py
+          git diff --check
+
+      - name: Commit normalized metadata
+        run: |
+          set -euo pipefail
+          if git diff --quiet && test -z "$(git ls-files --others --exclude-standard)"; then
+            echo "Branch metadata is already normalized."
+            exit 0
+          fi
+          git config user.name "pqbtc-shrincs-ci"
+          git config user.email "pqbtc-shrincs-ci@users.noreply.github.com"
+          git add \
+            .gitignore \
+            ci/test/functional_suite_inventory.json \
+            ci/test/pq_functional_tests.txt \
+            test/lint/lint_ignore_dirs.py \
+            contrib/shrincs-labnet/labnet.py \
+            contrib/shrincs-labnet/test_labnet.py \
+            test/functional/feature_shrincs_regtest.py
+          git commit -m "ci: register SHRINCS labnet functional gate"
+          git push origin HEAD:research/shrincs-mineable-labnet
