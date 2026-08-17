@@ -177,7 +177,7 @@ class SHRINCSRegtestTest(BitcoinTestFramework):
 
         node = self.nodes[0]
         wallet = MiniWallet(node)
-        wallet.generate(101)
+        self.generate(wallet, 101)
 
         funding_amount = 1_000_000
         stateful_funding = wallet.send_to(
@@ -192,7 +192,7 @@ class SHRINCSRegtestTest(BitcoinTestFramework):
             amount=funding_amount,
             fee=2_000,
         )
-        wallet.generate(1)
+        self.generate(wallet, 1)
 
         destination_script = bytes(wallet.get_output_script())
         stateful_transaction = self._build_spend(
@@ -246,7 +246,7 @@ class SHRINCSRegtestTest(BitcoinTestFramework):
                 len(transaction.wit.vtxinwit[0].scriptWitness.stack[0]),
             )
 
-        block_hash = wallet.generate(1)[0]
+        block_hash = self.generate(wallet, 1)[0]
         block_txids = node.getblock(block_hash)["tx"]
         assert stateful_transaction.txid_hex in block_txids
         assert stateless_transaction.txid_hex in block_txids
