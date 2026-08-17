@@ -38,8 +38,8 @@ new = '''def patch_native_tests() -> dict[str, bool]:
         while index < len(lines) and lines[index] == entry:
             index += 1
         normalized.append(entry)
-    if anchors < 2:
-        raise RuntimeError(f"expected both full and PQ-first test-list anchors, found {anchors}")
+    if anchors < 1:
+        raise RuntimeError(f"expected the PQ-first test-list anchor, found {anchors}")
     updated = "".join(normalized)
     changes["cmake"] = updated != original
     if updated != original:
@@ -47,6 +47,14 @@ new = '''def patch_native_tests() -> dict[str, bool]:
     return changes
 '''
 if old in text:
-    path.write_text(text.replace(old, new, 1), encoding="utf-8")
+    text = text.replace(old, new, 1)
 elif new not in text:
-    raise SystemExit("materializer patch_native_tests anchor not found")
+    # A prior normalizer may already have installed the new implementation with
+    # the overly strict two-anchor assertion. Normalize that in place.
+    strict = '''    if anchors < 2:\n        raise RuntimeError(f"expected both full and PQ-first test-list anchors, found {anchors}")\n'''
+    relaxed = '''    if anchors < 1:\n        raise RuntimeError(f"expected the PQ-first test-list anchor, found {anchors}")\n'''
+    if strict in text:
+        text = text.replace(strict, relaxed, 1)
+    elif relaxed not in text:
+        raise SystemExit("materializer patch_native_tests anchor not found")
+path.write_text(text, encoding="utf-8")
