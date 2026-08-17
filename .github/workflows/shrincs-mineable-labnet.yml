@@ -1,0 +1,126 @@
+name: SHRINCS mineable private labnet
+
+on:
+  push:
+    branches:
+      - research/shrincs-mineable-labnet
+  pull_request:
+    paths:
+      - "contrib/shrincs-labnet/**"
+      - "contrib/shrincs-tx/**"
+      - "src/crypto/shrincs/**"
+      - "src/script/shrincs_tx_v0.*"
+      - "src/script/interpreter.*"
+      - "src/consensus/params.h"
+      - "src/kernel/chainparams.cpp"
+      - "src/validation.cpp"
+      - "test/functional/feature_shrincs_regtest.py"
+      - ".github/workflows/shrincs-mineable-labnet.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shrincs-mineable-labnet-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  end-to-end:
+    name: build, sign, broadcast, and mine
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      PYTHONUNBUFFERED: "1"
+      LABNET_BUILD: build-shrincs-labnet
+      LABNET_STATE: /tmp/pqbtc-shrincs-labnet
+
+    steps:
+      - name: Check out PQBTC
+        uses: actions/checkout@v5
+
+      - name: Test crash-safe signer state machine
+        run: python3 contrib/shrincs-labnet/test_labnet.py -v
+
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            libboost-dev \
+            libevent-dev \
+            libsqlite3-dev \
+            pkg-config
+
+      - name: Build node, CLI, wallet, verifier, and tests
+        run: |
+          python3 contrib/shrincs-labnet/labnet.py \
+            --build-dir "$LABNET_BUILD" \
+            --state-dir "$LABNET_STATE" \
+            build --jobs 2
+
+      - name: Execute native SHRINCS interpreter and envelope tests
+        run: |
+          "$LABNET_BUILD/bin/test_pqbtc" \
+            --run_test=shrincs_tx_v0_signed_seam_tests,shrincs_tx_v0_tests \
+            --catch_system_error=no \
+            --log_level=test_suite
+
+      - name: Start two private nodes
+        run: |
+          python3 contrib/shrincs-labnet/labnet.py \
+            --build-dir "$LABNET_BUILD" \
+            --state-dir "$LABNET_STATE" \
+            start --fresh
+
+      - name: Mine spendable labnet funds
+        run: |
+          python3 contrib/shrincs-labnet/labnet.py \
+            --build-dir "$LABNET_BUILD" \
+            --state-dir "$LABNET_STATE" \
+            mine 101
+
+      - name: Pin executable signer and initialize durable state
+        run: |
+          python3 contrib/shrincs-labnet/labnet.py \
+            --build-dir "$LABNET_BUILD" \
+            --state-dir "$LABNET_STATE" \
+            fetch-upstream
+          python3 contrib/shrincs-labnet/labnet.py \
+            --build-dir "$LABNET_BUILD" \
+            --state-dir "$LABNET_STATE" \
+            signer-init
+
+      - name: Fund, sign, reject mutation, broadcast, and mine stateful spend
+        run: |
+          python3 contrib/shrincs-labnet/labnet.py \
+            --build-dir "$LABNET_BUILD" \
+            --state-dir "$LABNET_STATE" \
+            shrincs-demo --mode stateful
+
+      - name: Fund, sign, reject mutation, broadcast, and mine stateless recovery spend
+        run: |
+          python3 contrib/shrincs-labnet/labnet.py \
+            --build-dir "$LABNET_BUILD" \
+            --state-dir "$LABNET_STATE" \
+            shrincs-demo --mode stateless
+
+      - name: Report final labnet state
+        run: |
+          python3 contrib/shrincs-labnet/labnet.py \
+            --build-dir "$LABNET_BUILD" \
+            --state-dir "$LABNET_STATE" \
+            status
+
+      - name: Confirm tracked source remained unchanged
+        run: git diff --exit-code
+
+      - name: Stop private nodes
+        if: always()
+        run: |
+          python3 contrib/shrincs-labnet/labnet.py \
+            --build-dir "$LABNET_BUILD" \
+            --state-dir "$LABNET_STATE" \
+            stop || true
