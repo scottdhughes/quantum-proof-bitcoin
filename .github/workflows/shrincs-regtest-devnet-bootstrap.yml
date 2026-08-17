@@ -78,22 +78,48 @@ jobs:
           python3 contrib/devtools/apply_shrincs_regtest_devnet.py
           git diff --check
 
-      - name: Normalize signed-seam Boost expression
+      - name: Normalize signed-seam test invariants
         run: |
           python3 - <<'PY'
           from pathlib import Path
           path = Path("src/test/shrincs_tx_v0_signed_seam_tests.cpp")
           text = path.read_text()
-          old = '''    BOOST_CHECK_EQUAL(
+
+          replacements = [
+              (
+                  '''    BOOST_CHECK_EQUAL(
                   std::string{signed_vectors.context.begin(), signed_vectors.context.end()},
-                  std::string{shrincs_tx_v0::SIGNING_CONTEXT});'''
-          new = '''    BOOST_CHECK_EQUAL(
+                  std::string{shrincs_tx_v0::SIGNING_CONTEXT});''',
+                  '''    BOOST_CHECK_EQUAL(
                   (std::string{signed_vectors.context.begin(), signed_vectors.context.end()}),
-                  std::string{shrincs_tx_v0::SIGNING_CONTEXT});'''
-          if old in text:
-              path.write_text(text.replace(old, new, 1))
-          elif new not in text:
-              raise SystemExit("signed-seam Boost expression anchor not found")
+                  std::string{shrincs_tx_v0::SIGNING_CONTEXT});''',
+                  "signed-seam Boost expression",
+              ),
+              (
+                  '''    constexpr unsigned int active_flags{
+        SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_SHRINCS_V0};''',
+                  '''    constexpr unsigned int active_flags{
+        SCRIPT_VERIFY_P2SH |
+        SCRIPT_VERIFY_WITNESS |
+        SCRIPT_VERIFY_SHRINCS_V0};''',
+                  "active interpreter flags",
+              ),
+              (
+                  '''        SCRIPT_VERIFY_WITNESS,
+        &error));''',
+                  '''        SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS,
+        &error));''',
+                  "inactive future-witness flags",
+              ),
+          ]
+
+          for old, new, label in replacements:
+              if old in text:
+                  text = text.replace(old, new, 1)
+              elif new not in text:
+                  raise SystemExit(f"{label} anchor not found")
+
+          path.write_text(text)
           PY
           git diff --check
 
