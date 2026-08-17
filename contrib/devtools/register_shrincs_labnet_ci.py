@@ -1,4 +1,4 @@
-"""Register the mined SHRINCS functional gate and normalize labnet file modes."""
+"""Register the mined SHRINCS functional gate and normalize labnet metadata."""
 
 from __future__ import annotations
 
@@ -12,6 +12,8 @@ INVENTORY = ROOT / "ci" / "test" / "functional_suite_inventory.json"
 PQ_TESTS = ROOT / "ci" / "test" / "pq_functional_tests.txt"
 LINT_IGNORES = ROOT / "test" / "lint" / "lint_ignore_dirs.py"
 GITIGNORE = ROOT / ".gitignore"
+LABNET_CONTROLLER = ROOT / "contrib" / "shrincs-labnet" / "labnet.py"
+LABNET_TESTS = ROOT / "contrib" / "shrincs-labnet" / "test_labnet.py"
 FUNCTIONAL_TEST = "feature_shrincs_regtest.py"
 ENTRY = {
     "name": FUNCTIONAL_TEST,
@@ -26,12 +28,88 @@ ENTRY = {
     ),
 }
 EXECUTABLES = (
-    ROOT / "contrib" / "shrincs-labnet" / "labnet.py",
-    ROOT / "contrib" / "shrincs-labnet" / "test_labnet.py",
+    LABNET_CONTROLLER,
+    LABNET_TESTS,
     ROOT / "test" / "functional" / FUNCTIONAL_TEST,
 )
 VENDORED_LINT_SUBTREE = "src/crypto/shrincs/third_party/libshrincs/"
 LABNET_STATE_IGNORE = "/.shrincs-labnet/"
+
+OLD_CONFIG_TEXT = '''    def config_text(self) -> str:
+        return "\\n".join(
+            [
+                "regtest=1",
+                "server=1",
+                "listen=1",
+                f"port={self.p2p_port}",
+                f"rpcport={self.rpc_port}",
+                "rpcbind=127.0.0.1",
+                "rpcallowip=127.0.0.1",
+                "discover=0",
+                "dnsseed=0",
+                "fixedseeds=0",
+                "listenonion=0",
+                "upnp=0",
+                "natpmp=0",
+                "txindex=1",
+                "acceptnonstdtxn=1",
+                "fallbackfee=0.00010000",
+                "persistmempool=1",
+                "printtoconsole=0",
+                "",
+            ]
+        )
+'''
+
+NEW_CONFIG_TEXT = '''    def config_text(self) -> str:
+        return "\\n".join(
+            [
+                "regtest=1",
+                "server=1",
+                "listen=1",
+                "discover=0",
+                "dnsseed=0",
+                "fixedseeds=0",
+                "listenonion=0",
+                "upnp=0",
+                "natpmp=0",
+                "txindex=1",
+                "acceptnonstdtxn=1",
+                "fallbackfee=0.00010000",
+                "persistmempool=1",
+                "printtoconsole=0",
+                "",
+                "[regtest]",
+                f"port={self.p2p_port}",
+                f"rpcport={self.rpc_port}",
+                "rpcbind=127.0.0.1",
+                "rpcallowip=127.0.0.1",
+                "",
+            ]
+        )
+'''
+
+NODE_CONFIG_TEST = '''
+
+class NodeConfigTests(unittest.TestCase):
+    def test_network_bindings_live_under_regtest_section(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            layout = labnet.Layout(root / "state", root / "build")
+            text = layout.node0.config_text()
+
+        global_settings, regtest_settings = text.split("[regtest]\\n", 1)
+        self.assertIn("regtest=1\\n", global_settings)
+        for setting in (
+            "port=19444",
+            "rpcport=19443",
+            "rpcbind=127.0.0.1",
+            "rpcallowip=127.0.0.1",
+        ):
+            with self.subTest(setting=setting):
+                self.assertNotIn(setting, global_settings)
+                self.assertIn(setting, regtest_settings)
+'''
 
 
 def write_if_changed(path: Path, content: str) -> bool:
@@ -104,6 +182,29 @@ def register_local_state_ignore() -> bool:
     )
 
 
+def normalize_regtest_config_section() -> bool:
+    changed = False
+    controller = LABNET_CONTROLLER.read_text(encoding="utf-8")
+    if OLD_CONFIG_TEXT in controller:
+        controller = controller.replace(OLD_CONFIG_TEXT, NEW_CONFIG_TEXT, 1)
+        changed = write_if_changed(LABNET_CONTROLLER, controller) or changed
+    elif NEW_CONFIG_TEXT not in controller:
+        raise RuntimeError("labnet node-config anchor not found")
+
+    tests = LABNET_TESTS.read_text(encoding="utf-8")
+    if "class NodeConfigTests" not in tests:
+        anchor = "\n\nclass SignerStoreTests(unittest.TestCase):"
+        if anchor not in tests:
+            raise RuntimeError("labnet test insertion anchor not found")
+        tests = tests.replace(
+            anchor,
+            NODE_CONFIG_TEST + anchor,
+            1,
+        )
+        changed = write_if_changed(LABNET_TESTS, tests) or changed
+    return changed
+
+
 def normalize_executable_modes() -> bool:
     changed = False
     for path in EXECUTABLES:
@@ -124,6 +225,7 @@ def main() -> int:
         "pq_gate_list": regenerate_pq_gate_list(inventory),
         "vendored_lint_exclusion": register_vendored_lint_subtree(),
         "gitignore": register_local_state_ignore(),
+        "regtest_config_section": normalize_regtest_config_section(),
         "executable_modes": normalize_executable_modes(),
     }
     print(json.dumps({"result": "PASS", "changes": changes}, sort_keys=True))
