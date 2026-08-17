@@ -78,6 +78,25 @@ jobs:
           python3 contrib/devtools/apply_shrincs_regtest_devnet.py
           git diff --check
 
+      - name: Normalize signed-seam Boost expression
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("src/test/shrincs_tx_v0_signed_seam_tests.cpp")
+          text = path.read_text()
+          old = '''    BOOST_CHECK_EQUAL(
+                  std::string{signed_vectors.context.begin(), signed_vectors.context.end()},
+                  std::string{shrincs_tx_v0::SIGNING_CONTEXT});'''
+          new = '''    BOOST_CHECK_EQUAL(
+                  (std::string{signed_vectors.context.begin(), signed_vectors.context.end()}),
+                  std::string{shrincs_tx_v0::SIGNING_CONTEXT});'''
+          if old in text:
+              path.write_text(text.replace(old, new, 1))
+          elif new not in text:
+              raise SystemExit("signed-seam Boost expression anchor not found")
+          PY
+          git diff --check
+
       - name: Prove activation scope is regtest-only
         run: |
           set -euo pipefail
