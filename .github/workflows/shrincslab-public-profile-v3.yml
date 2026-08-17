@@ -189,7 +189,7 @@ jobs:
 
       - name: Authenticate to GitHub Container Registry
         if: steps.freeze.outputs.changed == 'false'
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -198,7 +198,7 @@ jobs:
       - name: Compute OCI metadata
         if: steps.freeze.outputs.changed == 'false'
         id: meta
-        uses: docker/metadata-action@c299e40c654434947b98f1e1f8ab2294092f8ad3
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
         with:
           images: ghcr.io/scottdhughes/quantum-proof-bitcoin-shrincslab
           tags: |
@@ -214,7 +214,7 @@ jobs:
       - name: Build and push attested labnet image
         if: steps.freeze.outputs.changed == 'false'
         id: push
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
         with:
           context: .
           file: contrib/shrincs-labnet/Dockerfile.shrincslab
