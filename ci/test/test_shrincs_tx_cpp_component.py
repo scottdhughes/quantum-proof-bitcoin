@@ -1,4 +1,4 @@
-"""Architecture guards for the unwired SHRINCS transaction C++ component."""
+"""Architecture guards for the regtest-only SHRINCS transaction component."""
 
 from __future__ import annotations
 
@@ -8,53 +8,63 @@ import unittest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HEADER = REPO_ROOT / "src" / "script" / "shrincs_tx_v0.h"
 SOURCE = REPO_ROOT / "src" / "script" / "shrincs_tx_v0.cpp"
+INTERPRETER = REPO_ROOT / "src" / "script" / "interpreter.cpp"
+FULL_VERIFIER = REPO_ROOT / "src" / "crypto" / "shrincs" / "full_verify.c"
 TEST = REPO_ROOT / "src" / "test" / "shrincs_tx_v0_tests.cpp"
 SIGNED_SEAM_TEST = REPO_ROOT / "src" / "test" / "shrincs_tx_v0_signed_seam_tests.cpp"
 SIGNED_SEAM_VECTORS = REPO_ROOT / "src" / "test" / "shrincs_tx_v0_signed_seam_vectors.h"
 TEST_CMAKE = REPO_ROOT / "src" / "test" / "CMakeLists.txt"
 TOP_CMAKE = REPO_ROOT / "src" / "CMakeLists.txt"
+CRYPTO_CMAKE = REPO_ROOT / "src" / "crypto" / "CMakeLists.txt"
+CONSENSUS_PARAMS = REPO_ROOT / "src" / "consensus" / "params.h"
+CHAINPARAMS = REPO_ROOT / "src" / "kernel" / "chainparams.cpp"
+VALIDATION = REPO_ROOT / "src" / "validation.cpp"
 
-ALLOWED_REFERENCES = {
+COMPONENT_FILES = {
     HEADER.resolve(),
     SOURCE.resolve(),
     TEST.resolve(),
     SIGNED_SEAM_TEST.resolve(),
     SIGNED_SEAM_VECTORS.resolve(),
-    TEST_CMAKE.resolve(),
 }
 
 
 class ShrincsTxCppComponentTests(unittest.TestCase):
     def test_expected_files_exist(self) -> None:
-        for path in (HEADER, SOURCE, TEST, SIGNED_SEAM_TEST, SIGNED_SEAM_VECTORS):
+        for path in (
+            HEADER,
+            SOURCE,
+            INTERPRETER,
+            FULL_VERIFIER,
+            TEST,
+            SIGNED_SEAM_TEST,
+            SIGNED_SEAM_VECTORS,
+        ):
             with self.subTest(path=path):
                 self.assertTrue(path.is_file())
 
-    def test_component_is_compiled_only_into_test_binary(self) -> None:
-        test_cmake = TEST_CMAKE.read_text(encoding="utf-8")
+    def test_component_and_verifier_are_linked_into_node_consensus(self) -> None:
         top_cmake = TOP_CMAKE.read_text(encoding="utf-8")
-        self.assertEqual(test_cmake.count("../script/shrincs_tx_v0.cpp"), 1)
-        self.assertIn("shrincs_tx_v0_tests.cpp", test_cmake)
-        self.assertNotIn("shrincs_tx_v0", top_cmake)
-        self.assertIn("deliberately compiled only", test_cmake)
-
-    def test_signed_seam_is_explicit_opt_in_and_test_only(self) -> None:
+        crypto_cmake = CRYPTO_CMAKE.read_text(encoding="utf-8")
         test_cmake = TEST_CMAKE.read_text(encoding="utf-8")
-        self.assertIn(
-            'option(PQBTC_ENABLE_SHRINCS_SIGNED_SEAM_TESTS "Build the research-only native SHRINCS transaction signed-seam suite" OFF)',
-            test_cmake,
-        )
-        self.assertIn("shrincs_tx_v0_signed_seam_tests.cpp", test_cmake)
-        self.assertIn("contrib/shrincs-ref/full_verify.c", test_cmake)
-        self.assertIn("contrib/shrincs-ref/stateful_verify.c", test_cmake)
-        self.assertIn("contrib/shrincs-ref/stateless_verify.c", test_cmake)
-        self.assertIn("PQBTC_LIBSHRINCS_SOURCE_DIR", test_cmake)
-        self.assertIn("test_pqbtc only", test_cmake)
 
-    def test_no_other_node_source_references_component(self) -> None:
+        self.assertEqual(top_cmake.count("script/shrincs_tx_v0.cpp"), 1)
+        self.assertIn("script/interpreter.cpp", top_cmake)
+        for source in (
+            "shrincs/full_verify.c",
+            "shrincs/stateful_verify.c",
+            "shrincs/stateless_verify.c",
+            "shrincs/third_party/libshrincs/src/wots.c",
+        ):
+            self.assertIn(source, crypto_cmake)
+        self.assertIn("shrincs_tx_v0_tests.cpp", test_cmake)
+        self.assertIn("shrincs_tx_v0_signed_seam_tests.cpp", test_cmake)
+        self.assertNotIn("PQBTC_ENABLE_SHRINCS_SIGNED_SEAM_TESTS", test_cmake)
+
+    def test_interpreter_is_the_only_external_cpp_consumer(self) -> None:
         references: list[str] = []
         for path in (REPO_ROOT / "src").rglob("*"):
-            if not path.is_file() or path.resolve() in ALLOWED_REFERENCES:
+            if not path.is_file() or path.resolve() in COMPONENT_FILES:
                 continue
             if path.suffix not in {".c", ".cc", ".cpp", ".h", ".hpp"}:
                 continue
@@ -64,9 +74,68 @@ class ShrincsTxCppComponentTests(unittest.TestCase):
                 continue
             if "shrincs_tx_v0" in text:
                 references.append(str(path.relative_to(REPO_ROOT)))
-        self.assertEqual(references, [])
+        self.assertEqual(references, ["src/script/interpreter.cpp"])
 
-    def test_header_freezes_the_candidate_not_activation(self) -> None:
+    def test_activation_defaults_off_and_is_assigned_only_in_regtest(self) -> None:
+        consensus_params = CONSENSUS_PARAMS.read_text(encoding="utf-8")
+        chainparams = CHAINPARAMS.read_text(encoding="utf-8")
+
+        self.assertIn("bool shrincs_v0{false};", consensus_params)
+        activation = "consensus.shrincs_v0 = true;"
+        self.assertEqual(chainparams.count(activation), 1)
+        regtest_start = chainparams.index("class CRegTestParams")
+        activation_position = chainparams.index(activation)
+        self.assertGreater(activation_position, regtest_start)
+        self.assertIn(
+            "m_chain_type = ChainType::REGTEST;",
+            chainparams[regtest_start:activation_position],
+        )
+
+    def test_validation_flags_follow_consensus_scope(self) -> None:
+        validation = VALIDATION.read_text(encoding="utf-8")
+        self.assertIn(
+            "if (m_active_chainstate.m_chainman.GetConsensus().shrincs_v0)",
+            validation,
+        )
+        self.assertIn("if (consensusparams.shrincs_v0)", validation)
+        self.assertGreaterEqual(validation.count("SCRIPT_VERIFY_SHRINCS_V0"), 2)
+
+    def test_witness_v2_requires_explicit_flag_and_native_program(self) -> None:
+        interpreter = INTERPRETER.read_text(encoding="utf-8")
+        branch_start = interpreter.index(
+            "witversion == shrincs_tx_v0::PROPOSED_WITNESS_VERSION"
+        )
+        branch = interpreter[branch_start : branch_start + 1_200]
+        for required in (
+            "program.size() == shrincs_tx_v0::PROGRAM_BYTES",
+            "!is_p2sh",
+            "flags & SCRIPT_VERIFY_SHRINCS_V0",
+            "shrincs_tx_v0::ParseWitness",
+            "checker.CheckSHRINCSSignature",
+        ):
+            self.assertIn(required, branch)
+
+    def test_full_verifier_dispatches_only_canonical_current_modes(self) -> None:
+        verifier = FULL_VERIFIER.read_text(encoding="utf-8")
+        for required in (
+            "PQBTC_SHRINCS_PUBLIC_KEY_BYTES 48U",
+            "PQBTC_SHRINCS_STATELESS_SIGNATURE_BYTES 5776U",
+            "is_canonical_stateful_length",
+            "pqbtc_shrincs_stateful_verify",
+            "pqbtc_shrincs_stateless_verify",
+        ):
+            self.assertIn(required, verifier)
+        for forbidden in (
+            "CheckECDSASignature",
+            "CheckSchnorrSignature",
+            "PQSigVerify",
+            "fallback",
+        ):
+            self.assertNotIn(forbidden, verifier)
+        self.assertTrue(verifier.rstrip().endswith("}"))
+        self.assertIn("return 0;", verifier)
+
+    def test_header_freezes_candidate_envelope_not_network_activation(self) -> None:
         header = HEADER.read_text(encoding="utf-8")
         self.assertIn('OUTPUT_TAG{"PQBTC/SHRINCS/OUTPUT/v0"}', header)
         self.assertIn('SIGHASH_TAG{"PQBTC/SHRINCS/SIGHASH/v0"}', header)
