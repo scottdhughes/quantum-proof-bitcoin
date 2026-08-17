@@ -111,7 +111,6 @@ jobs:
       - name: Run persistent two-node wallet and signer lifecycle
         run: |
           python3 contrib/shrincs-labnet/labnet.py \
-            --repo-root "$GITHUB_WORKSPACE" \
             --build-dir "$GITHUB_WORKSPACE/build" \
             --state-dir "$RUNNER_TEMP/shrincslab" \
             quickstart --fresh --mode both --no-build
@@ -130,13 +129,13 @@ jobs:
           mkdir -p "$REGDIR"
           build/bin/pqbtcd -regtest -datadir="$REGDIR" -port=30444 -rpcport=30443 \
             -server=1 -listen=1 -discover=0 -dnsseed=0 -fixedseeds=0 -daemonwait
-          trap '$CLI -regtest -datadir="$REGDIR" stop >/dev/null 2>&1 || true; python3 contrib/shrincs-labnet/labnet.py --repo-root "$GITHUB_WORKSPACE" --build-dir "$GITHUB_WORKSPACE/build" --state-dir "$RUNNER_TEMP/shrincslab" stop >/dev/null 2>&1 || true' EXIT
+          trap '$CLI -regtest -datadir="$REGDIR" stop >/dev/null 2>&1 || true; python3 contrib/shrincs-labnet/labnet.py --build-dir "$GITHUB_WORKSPACE/build" --state-dir "$RUNNER_TEMP/shrincslab" stop >/dev/null 2>&1 || true' EXIT
           $CLI -regtest -datadir="$REGDIR" addnode 127.0.0.1:29333 onetry || true
           sleep 3
           test "$($CLI -regtest -datadir="$REGDIR" getconnectioncount)" -eq 0
           $CLI -regtest -datadir="$REGDIR" stop >/dev/null
           python3 contrib/shrincs-labnet/labnet.py \
-            --repo-root "$GITHUB_WORKSPACE" --build-dir "$GITHUB_WORKSPACE/build" \
+            --build-dir "$GITHUB_WORKSPACE/build" \
             --state-dir "$RUNNER_TEMP/shrincslab" stop >/dev/null
           trap - EXIT
 
