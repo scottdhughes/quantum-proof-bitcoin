@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-"""Bind PQBTC-SHRINCS-v0 signatures to the dedicated labnet genesis.
+"""Bind PQBTC-SHRINCS-v0 to the dedicated labnet identity.
 
-The earlier private-regtest fixture used a generic test-chain label. A public
-network must not preserve that compatibility domain: otherwise a signature
-created for the private fixture could be replayed on the network-distinct
-labnet whenever the transaction surfaces otherwise coincide.
-
-This materializer is idempotent and runs after
+The public zero-value labnet must be incompatible with the earlier private
+regtest fixture at every relevant boundary: genesis, P2P handshake,
+transaction-signature domain, RPC port, and filesystem namespace.  This
+materializer is idempotent and runs after
 ``apply_shrincslab_public_profile.py``.
 """
 
@@ -90,6 +88,48 @@ def patch_cpp_domain() -> dict[str, bool]:
     return changes
 
 
+def patch_base_identity() -> dict[str, bool]:
+    changes: dict[str, bool] = {}
+    changes["base_params"] = replace_once(
+        "src/chainparamsbase.cpp",
+        "    case ChainType::REGTEST:\n        return std::make_unique<CBaseChainParams>(\"regtest\", 18443);\n",
+        "    case ChainType::REGTEST:\n"
+        "        if (gArgs.GetBoolArg(\"-shrincslab\", false)) {\n"
+        "            return std::make_unique<CBaseChainParams>(\"shrincslab\", 29332);\n"
+        "        }\n"
+        "        return std::make_unique<CBaseChainParams>(\"regtest\", 18443);\n",
+    )
+    changes["config_namespace"] = replace_once(
+        "src/chainparamsbase.cpp",
+        "void SelectBaseParams(const ChainType chain)\n{\n"
+        "    globalChainBaseParams = CreateBaseChainParams(chain);\n"
+        "    gArgs.SelectConfigNetwork(ChainTypeToString(chain));\n"
+        "}\n",
+        "void SelectBaseParams(const ChainType chain)\n{\n"
+        "    globalChainBaseParams = CreateBaseChainParams(chain);\n"
+        "    const bool shrincs_labnet{chain == ChainType::REGTEST && gArgs.GetBoolArg(\"-shrincslab\", false)};\n"
+        "    gArgs.SelectConfigNetwork(shrincs_labnet ? \"shrincslab\" : ChainTypeToString(chain));\n"
+        "}\n",
+    )
+    ci_path = ROOT / "ci/test/test_shrincs_tx_cpp_component.py"
+    ci_text = ci_path.read_text(encoding="utf-8")
+    marker = '        self.assertIn(\'bech32_hrp = "pqsl";\', chainparams)\n'
+    addition = (
+        marker
+        + '        base_params = (REPO_ROOT / "src" / "chainparamsbase.cpp").read_text(encoding="utf-8")\n'
+        + '        self.assertIn(\'CBaseChainParams>("shrincslab", 29332)\', base_params)\n'
+        + '        self.assertIn(\'SelectConfigNetwork(shrincs_labnet ? "shrincslab"\', base_params)\n'
+    )
+    if addition in ci_text:
+        changes["architecture_guard"] = False
+    elif marker in ci_text:
+        ci_path.write_text(ci_text.replace(marker, addition, 1), encoding="utf-8")
+        changes["architecture_guard"] = True
+    else:
+        raise RuntimeError("architecture-guard base-identity anchor not found")
+    return changes
+
+
 def patch_python_model() -> dict[str, bool]:
     changes: dict[str, bool] = {}
     changes["constant"] = replace_once(
@@ -126,23 +166,35 @@ def patch_native_test_domains() -> dict[str, bool]:
 def patch_manifest_and_docs() -> dict[str, bool]:
     manifest_path = ROOT / "contrib/shrincs-labnet/manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    previous = manifest.get("shrincs", {}).get("chain_domain")
+    previous_domain = manifest.get("shrincs", {}).get("chain_domain")
     manifest.setdefault("shrincs", {})["chain_domain"] = {
         "label": CHAIN_DOMAIN_LABEL,
         "sha256": CHAIN_DOMAIN_HASH,
         "bound_genesis": GENESIS_HASH,
         "replay_compatible_with_private_regtest_fixture": False,
     }
-    manifest_changed = previous != manifest["shrincs"]["chain_domain"]
+    network = manifest.setdefault("network", {})
+    previous_base = (network.get("default_data_dir"), network.get("recommended_rpc_port"))
+    network["default_data_dir"] = "shrincslab"
+    network["recommended_rpc_port"] = 29332
+    manifest_changed = (
+        previous_domain != manifest["shrincs"]["chain_domain"]
+        or previous_base != ("shrincslab", 29332)
+    )
     if manifest_changed:
         manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     docs_path = ROOT / "docs/PQBTC_SHRINCS_PUBLIC_LABNET.md"
     docs = docs_path.read_text(encoding="utf-8")
-    section = f'''\n## Genesis-bound signature domain\n\nEvery SHRINCS transaction signature commits to:\n\n```text\n{CHAIN_DOMAIN_LABEL}\nSHA256 = {CHAIN_DOMAIN_HASH}\n```\n\nThis is intentionally incompatible with the earlier private-regtest fixture.\nA signature from that fixture cannot authorize an otherwise identical labnet\ntransaction, and changing the labnet genesis requires a new signature domain.\n'''
-    docs_changed = section not in docs
+    domain_section = f'''\n## Genesis-bound signature domain\n\nEvery SHRINCS transaction signature commits to:\n\n```text\n{CHAIN_DOMAIN_LABEL}\nSHA256 = {CHAIN_DOMAIN_HASH}\n```\n\nThis is intentionally incompatible with the earlier private-regtest fixture.\nA signature from that fixture cannot authorize an otherwise identical labnet\ntransaction, and changing the labnet genesis requires a new signature domain.\n'''
+    base_section = '''\n## Filesystem and RPC isolation\n\n`-regtest -shrincslab` selects base data directory `shrincslab/`, config\nnamespace `[shrincslab]`, and default RPC port `29332`. Ordinary regtest keeps\n`regtest/`, `[regtest]`, and `18443`. The two chains therefore cannot share\nblock databases, wallets, cookies, settings, or RPC endpoints by default.\n'''
+    docs_changed = False
+    for section in (domain_section, base_section):
+        if section not in docs:
+            docs = docs.rstrip() + "\n" + section
+            docs_changed = True
     if docs_changed:
-        docs_path.write_text(docs.rstrip() + "\n" + section, encoding="utf-8")
+        docs_path.write_text(docs, encoding="utf-8")
 
     return {"manifest": manifest_changed, "docs": docs_changed}
 
@@ -157,6 +209,7 @@ def main() -> int:
         "chain_domain_sha256": CHAIN_DOMAIN_HASH,
         "changes": {
             "cpp": patch_cpp_domain(),
+            "base_identity": patch_base_identity(),
             "python_model": patch_python_model(),
             "native_tests": patch_native_test_domains(),
             "manifest_and_docs": patch_manifest_and_docs(),
