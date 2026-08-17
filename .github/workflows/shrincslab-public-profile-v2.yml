@@ -122,7 +122,7 @@ jobs:
           LAB0="$RUNNER_TEMP/shrincslab/node0"
           test "$($CLI -regtest -shrincslab -datadir="$LAB0" getblockhash 0)" = \
             "122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69"
-          ADDRESS=$($CLI -regtest -shrincslab -datadir="$LAB0" -rpcwallet=miner getnewaddress)
+          ADDRESS=$($CLI -regtest -shrincslab -datadir="$LAB0" -rpcwallet=shrincs-labnet getnewaddress)
           case "$ADDRESS" in pqsl1*) ;; *) echo "unexpected labnet address: $ADDRESS"; exit 1 ;; esac
 
           REGDIR="$RUNNER_TEMP/ordinary-regtest"
