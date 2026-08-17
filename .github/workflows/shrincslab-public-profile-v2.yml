@@ -11,13 +11,16 @@ on:
       - "src/consensus/params.h"
       - "src/script/interpreter.*"
       - "src/script/shrincs_tx_v0.*"
+      - "src/test/shrincs_tx_v0*"
       - "src/test/shrincslab_chainparams_tests.cpp"
       - "src/test/CMakeLists.txt"
       - "ci/test/test_shrincs_tx_cpp_component.py"
       - "test/functional/feature_shrincs_regtest.py"
       - "test/functional/test_framework/address.py"
       - "contrib/devtools/apply_shrincslab_public_profile.py"
+      - "contrib/devtools/apply_shrincslab_chain_domain.py"
       - "contrib/devtools/normalize_shrincslab_materializer.py"
+      - "contrib/shrincs-tx/**"
       - "contrib/shrincs-labnet/**"
       - "docs/PQBTC_SHRINCS_PUBLIC_LABNET.md"
       - ".github/workflows/shrincslab-public-profile-v2.yml"
@@ -32,7 +35,7 @@ concurrency:
 
 jobs:
   build-test-mine:
-    name: materialize, build, spend, mine, and isolate
+    name: materialize, bind, build, spend, mine, and isolate
     runs-on: ubuntu-24.04
     timeout-minutes: 120
 
@@ -43,12 +46,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Normalize and materialize dedicated network profile
+      - name: Materialize dedicated network and genesis-bound signature domain
         run: |
           set -euo pipefail
           python3 contrib/devtools/normalize_shrincslab_materializer.py
           python3 contrib/devtools/apply_shrincslab_public_profile.py
-          python3 contrib/devtools/apply_shrincslab_public_profile.py >/tmp/shrincslab-idempotence.json
+          python3 contrib/devtools/apply_shrincslab_chain_domain.py
+          python3 contrib/devtools/apply_shrincslab_public_profile.py >/tmp/shrincslab-profile-idempotence.json
+          python3 contrib/devtools/apply_shrincslab_chain_domain.py >/tmp/shrincslab-domain-idempotence.json
           git diff --check
 
       - name: Prove static architecture and controller contracts
@@ -65,6 +70,10 @@ jobs:
           assert manifest["network"]["bech32_hrp"] == "pqsl"
           assert manifest["consensus_activation"]["ordinary_regtest"] is False
           assert manifest["consensus_activation"]["shrincslab"] is True
+          domain = manifest["shrincs"]["chain_domain"]
+          assert domain["sha256"] == "db0e425cda8dcebc9e64203d2a5dfde2e954954f3dc95b8b9807590103d07652"
+          assert domain["bound_genesis"] == manifest["network"]["genesis_hash"]
+          assert domain["replay_compatible_with_private_regtest_fixture"] is False
           PY
           docker compose -f contrib/shrincs-labnet/docker-compose.shrincslab.yml config >/tmp/shrincslab-compose.yml
 
@@ -74,6 +83,25 @@ jobs:
           sudo apt-get install --no-install-recommends -y \
             build-essential cmake ninja-build libboost-dev libevent-dev \
             libsqlite3-dev pkg-config
+
+      - name: Check out exact upstream signer model
+        run: |
+          git clone https://github.com/SHRINCS/shrincs-bip.git "$RUNNER_TEMP/shrincs-bip"
+          git -C "$RUNNER_TEMP/shrincs-bip" checkout acc6bda51dc3b94848d118967247ad0f3cd7a80e
+          test "$(git -C "$RUNNER_TEMP/shrincs-bip" rev-parse HEAD)" = acc6bda51dc3b94848d118967247ad0f3cd7a80e
+
+      - name: Regenerate authenticated transaction and mutation vectors
+        run: |
+          set -euo pipefail
+          python3 contrib/shrincs-tx/generate_shrincslab_vectors.py \
+            --shrincs-bip "$RUNNER_TEMP/shrincs-bip" \
+            --json | tee /tmp/shrincslab-vectors.json
+          python3 contrib/shrincs-tx/generate_shrincslab_vectors.py \
+            --shrincs-bip "$RUNNER_TEMP/shrincs-bip" \
+            --json >/tmp/shrincslab-vectors-idempotence.json
+          grep -q 'db0e425cda8dcebc9e64203d2a5dfde2e954954f3dc95b8b9807590103d07652' \
+            src/test/shrincs_tx_v0_signed_seam_vectors.h
+          git diff --check
 
       - name: Configure wallet-enabled build
         run: |
@@ -93,12 +121,6 @@ jobs:
             --run_test=shrincslab_chainparams_tests,shrincs_tx_v0_tests,shrincs_tx_v0_signed_seam_tests \
             --catch_system_error=no \
             --log_level=test_suite
-
-      - name: Check out exact upstream signer model
-        run: |
-          git clone https://github.com/SHRINCS/shrincs-bip.git "$RUNNER_TEMP/shrincs-bip"
-          git -C "$RUNNER_TEMP/shrincs-bip" checkout acc6bda51dc3b94848d118967247ad0f3cd7a80e
-          test "$(git -C "$RUNNER_TEMP/shrincs-bip" rev-parse HEAD)" = acc6bda51dc3b94848d118967247ad0f3cd7a80e
 
       - name: Mine and spend both SHRINCS modes through functional validation
         env:
@@ -140,17 +162,24 @@ jobs:
             --state-dir "$RUNNER_TEMP/shrincslab" stop >/dev/null
           trap - EXIT
 
-      - name: Commit validated materialized profile
+      - name: Commit validated materialized profile and vectors
         if: ${{ github.event_name == 'push' && github.ref_name == 'integration/shrincslab-public-profile' }}
         run: |
           set -euo pipefail
           git add \
             contrib/devtools/apply_shrincslab_public_profile.py \
+            contrib/devtools/apply_shrincslab_chain_domain.py \
+            contrib/shrincs-tx/generate_shrincslab_vectors.py \
+            contrib/shrincs-tx/tx_model.py \
+            contrib/shrincs-tx/vector.json \
             src/chainparams.cpp src/chainparamsbase.cpp \
             src/kernel/chainparams.cpp src/kernel/chainparams.h \
             src/script/interpreter.cpp src/script/shrincs_tx_v0.cpp \
             src/script/shrincs_tx_v0.h src/test/CMakeLists.txt \
             src/test/shrincslab_chainparams_tests.cpp \
+            src/test/shrincs_tx_v0_tests.cpp \
+            src/test/shrincs_tx_v0_signed_seam_tests.cpp \
+            src/test/shrincs_tx_v0_signed_seam_vectors.h \
             ci/test/test_shrincs_tx_cpp_component.py \
             test/functional/feature_shrincs_regtest.py \
             test/functional/test_framework/address.py \
@@ -161,5 +190,5 @@ jobs:
           fi
           git config user.name "pqbtc-shrincslab-ci"
           git config user.email "pqbtc-shrincslab-ci@users.noreply.github.com"
-          git commit -m "research: materialize dedicated SHRINCS public labnet"
+          git commit -m "research: materialize genesis-bound SHRINCS public labnet"
           git push origin HEAD:integration/shrincslab-public-profile
