@@ -1,0 +1,103 @@
+name: Publish SHRINCS labnet container
+
+on:
+  workflow_run:
+    workflows:
+      - SHRINCS public zero-value labnet v2
+    branches:
+      - integration/shrincslab-public-profile
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  id-token: write
+
+concurrency:
+  group: publish-shrincslab-container
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: build, push, and attest zero-value labnet image
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out the validated labnet branch
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: integration/shrincslab-public-profile
+          fetch-depth: 1
+
+      - name: Require the materialized genesis-bound profile
+        run: |
+          set -euo pipefail
+          test -f contrib/shrincs-labnet/Dockerfile.shrincslab
+          test -f contrib/shrincs-labnet/manifest.json
+          grep -q '122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69' \
+            contrib/shrincs-labnet/manifest.json
+          grep -q 'db0e425cda8dcebc9e64203d2a5dfde2e954954f3dc95b8b9807590103d07652' \
+            contrib/shrincs-labnet/manifest.json
+          grep -q 'zero_value_only.*true' contrib/shrincs-labnet/manifest.json
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+
+      - name: Authenticate to GitHub Container Registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute OCI metadata
+        id: meta
+        uses: docker/metadata-action@c299e40c654434947b98f1e1f8ab2294092f8ad3
+        with:
+          images: ghcr.io/scottdhughes/quantum-proof-bitcoin-shrincslab
+          tags: |
+            type=raw,value=edge
+            type=sha,format=long
+          labels: |
+            org.opencontainers.image.title=PQBTC SHRINCS zero-value labnet node
+            org.opencontainers.image.description=Experimental SHA-256d labnet with genesis-bound SHRINCS-v0 authorization; no economic security
+            org.opencontainers.image.source=https://github.com/scottdhughes/quantum-proof-bitcoin
+            org.opencontainers.image.documentation=https://github.com/scottdhughes/quantum-proof-bitcoin/blob/integration/shrincslab-public-profile/docs/PQBTC_SHRINCS_PUBLIC_LABNET.md
+            org.pqbtc.network.genesis=122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69
+            org.pqbtc.network.zero-value=true
+
+      - name: Build and push
+        id: push
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+        with:
+          context: .
+          file: contrib/shrincs-labnet/Dockerfile.shrincslab
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Attest published image
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-name: ghcr.io/scottdhughes/quantum-proof-bitcoin-shrincslab
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+      - name: Emit deployment coordinates
+        run: |
+          cat <<EOF
+          image=ghcr.io/scottdhughes/quantum-proof-bitcoin-shrincslab@${{ steps.push.outputs.digest }}
+          genesis=122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69
+          p2p_port=29333
+          zero_value_only=true
+          EOF
