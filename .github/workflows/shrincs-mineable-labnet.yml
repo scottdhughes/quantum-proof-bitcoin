@@ -23,7 +23,7 @@ permissions:
 
 concurrency:
   group: shrincs-mineable-labnet-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   end-to-end:
