@@ -392,6 +392,13 @@
     "notes": "Retained under the current non-gating dual-profile contract."
   },
   {
+    "name": "feature_shrincs_regtest.py",
+    "policy_class": "pq_required",
+    "owner": "@scottdhughes",
+    "tracking_issue": "#239",
+    "notes": "Owned PQBTC-SHRINCS-v0 regtest gate: funds genuine witness-v2 outputs, produces both stateful and stateless current-profile signatures with the exact pinned executable model, proves one-bit mutations are rejected, broadcasts both valid spends through node validation, and mines them."
+  },
+  {
     "name": "feature_shutdown.py",
     "policy_class": "dual_profile",
     "owner": "@scottdhughes",
