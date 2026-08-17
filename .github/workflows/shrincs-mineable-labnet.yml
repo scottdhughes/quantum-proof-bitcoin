@@ -32,8 +32,8 @@ jobs:
     timeout-minutes: 90
     env:
       PYTHONUNBUFFERED: "1"
-      LABNET_BUILD: ${{ github.workspace }}/build-shrincs-labnet
-      LABNET_STATE: ${{ runner.temp }}/pqbtc-shrincs-labnet
+      LABNET_BUILD: build-shrincs-labnet
+      LABNET_STATE: /tmp/pqbtc-shrincs-labnet
 
     steps:
       - name: Check out PQBTC
