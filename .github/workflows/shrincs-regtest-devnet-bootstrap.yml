@@ -87,28 +87,18 @@ jobs:
 
           replacements = [
               (
-                  '''    BOOST_CHECK_EQUAL(
-                  std::string{signed_vectors.context.begin(), signed_vectors.context.end()},
-                  std::string{shrincs_tx_v0::SIGNING_CONTEXT});''',
-                  '''    BOOST_CHECK_EQUAL(
-                  (std::string{signed_vectors.context.begin(), signed_vectors.context.end()}),
-                  std::string{shrincs_tx_v0::SIGNING_CONTEXT});''',
+                  "    BOOST_CHECK_EQUAL(\n        std::string{signed_vectors.context.begin(), signed_vectors.context.end()},\n        std::string{shrincs_tx_v0::SIGNING_CONTEXT});",
+                  "    BOOST_CHECK_EQUAL(\n        (std::string{signed_vectors.context.begin(), signed_vectors.context.end()}),\n        std::string{shrincs_tx_v0::SIGNING_CONTEXT});",
                   "signed-seam Boost expression",
               ),
               (
-                  '''    constexpr unsigned int active_flags{
-        SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_SHRINCS_V0};''',
-                  '''    constexpr unsigned int active_flags{
-        SCRIPT_VERIFY_P2SH |
-        SCRIPT_VERIFY_WITNESS |
-        SCRIPT_VERIFY_SHRINCS_V0};''',
+                  "    constexpr unsigned int active_flags{\n        SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_SHRINCS_V0};",
+                  "    constexpr unsigned int active_flags{\n        SCRIPT_VERIFY_P2SH |\n        SCRIPT_VERIFY_WITNESS |\n        SCRIPT_VERIFY_SHRINCS_V0};",
                   "active interpreter flags",
               ),
               (
-                  '''        SCRIPT_VERIFY_WITNESS,
-        &error));''',
-                  '''        SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS,
-        &error));''',
+                  "        SCRIPT_VERIFY_WITNESS,\n        &error));",
+                  "        SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS,\n        &error));",
                   "inactive future-witness flags",
               ),
           ]
