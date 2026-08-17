@@ -1,4 +1,4 @@
-name: SHRINCS regtest devnet integration
+name: SHRINCS regtest devnet
 
 on:
   push:
@@ -15,103 +15,29 @@ on:
       - "src/crypto/CMakeLists.txt"
       - "src/CMakeLists.txt"
       - "src/test/CMakeLists.txt"
-      - "src/test/shrincs_tx_v0_signed_seam_tests.cpp"
-      - "contrib/devtools/apply_shrincs_regtest_devnet.py"
+      - "src/test/shrincs_tx_v0*.cpp"
+      - "test/functional/feature_shrincs_regtest.py"
+      - "contrib/shrincs-tx/**"
+      - "docs/PQBTC_SHRINCS_REGTEST*.md"
       - ".github/workflows/shrincs-regtest-devnet-bootstrap.yml"
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: shrincs-regtest-devnet-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
-  build-test-mine:
-    name: build, verify, and mine private devnet
+  build-test-spend:
+    name: build, verify, spend, and mine private devnet
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 120
 
     steps:
       - name: Check out PQBTC
         uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-          persist-credentials: true
-
-      - name: Correct pinned provenance and native checker bridge
-        run: |
-          set -euo pipefail
-          sed -i \
-            -e 's/4df4d8a9cb394fcd2c6aa96bba2f0af8afb0bdb4/4df4d8f13564847b59573ee9de866ecc70ba4003/g' \
-            -e 's/0bb56260f496882473f04b9322a5d2ec72e5e3ee/0bb5629a7e102b994aaf38aa677911236c8c178e/g' \
-            -e 's/a67255bc7955783d1927ad710ce7a2a7aa5c8b84/a67255e9a89b750ddb223caed3ec29d9ef962b59/g' \
-            -e 's/10fd0c6f418fc09227bbd58185aac594e3b8be83/10fd0c5d4cd7047af81c0c6a21e0065744736419/g' \
-            -e 's/66b873f6b77c1782f9e58f94e2364f22e8974105/0795ae674bef2493ca21a2bfb30477ab940b70cb/g' \
-            contrib/devtools/apply_shrincs_regtest_devnet.py
-          python3 - <<'PY'
-          from pathlib import Path
-          path = Path("contrib/devtools/apply_shrincs_regtest_devnet.py")
-          text = path.read_text()
-          old = '''    const std::optional<uint256> sighash{shrincs_tx_v0::SignatureHash(
-                  *txTo,
-                  std::span<const CTxOut>{txdata->m_spent_outputs.data(), txdata->m_spent_outputs.size()},
-                  nIn,
-                  shrincs_tx_v0::RegtestChainId())};'''
-          new = '''    const CTransaction immutable_tx{*txTo};
-              const std::optional<uint256> sighash{shrincs_tx_v0::SignatureHash(
-                  immutable_tx,
-                  std::span<const CTxOut>{txdata->m_spent_outputs.data(), txdata->m_spent_outputs.size()},
-                  nIn,
-                  shrincs_tx_v0::RegtestChainId())};'''
-          if old in text:
-              text = text.replace(old, new, 1)
-              path.write_text(text)
-          elif new not in text:
-              raise SystemExit("native checker bridge anchor not found")
-          PY
-
-      - name: Materialize deterministic integration
-        run: |
-          set -euo pipefail
-          python3 contrib/devtools/apply_shrincs_regtest_devnet.py
-          git diff --check
-
-      - name: Normalize signed-seam test invariants
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          path = Path("src/test/shrincs_tx_v0_signed_seam_tests.cpp")
-          text = path.read_text()
-
-          replacements = [
-              (
-                  "    BOOST_CHECK_EQUAL(\n        std::string{signed_vectors.context.begin(), signed_vectors.context.end()},\n        std::string{shrincs_tx_v0::SIGNING_CONTEXT});",
-                  "    BOOST_CHECK_EQUAL(\n        (std::string{signed_vectors.context.begin(), signed_vectors.context.end()}),\n        std::string{shrincs_tx_v0::SIGNING_CONTEXT});",
-                  "signed-seam Boost expression",
-              ),
-              (
-                  "    constexpr unsigned int active_flags{\n        SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_SHRINCS_V0};",
-                  "    constexpr unsigned int active_flags{\n        SCRIPT_VERIFY_P2SH |\n        SCRIPT_VERIFY_WITNESS |\n        SCRIPT_VERIFY_SHRINCS_V0};",
-                  "active interpreter flags",
-              ),
-              (
-                  "        SCRIPT_VERIFY_WITNESS,\n        &error));",
-                  "        SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS,\n        &error));",
-                  "inactive future-witness flags",
-              ),
-          ]
-
-          for old, new, label in replacements:
-              if old in text:
-                  text = text.replace(old, new, 1)
-              elif new not in text:
-                  raise SystemExit(f"{label} anchor not found")
-
-          path.write_text(text)
-          PY
-          git diff --check
 
       - name: Prove activation scope is regtest-only
         run: |
@@ -122,6 +48,7 @@ jobs:
           grep -q 'SCRIPT_VERIFY_SHRINCS_V0' src/script/interpreter.cpp
           grep -q 'pqbtc_shrincs_verify' src/script/interpreter.cpp
           ! grep -q 'CheckECDSASignature.*SHRINCS' src/script/interpreter.cpp
+          test -f src/crypto/shrincs/REGTEST_DEVNET_INTEGRATION
 
       - name: Install native build dependencies
         run: |
@@ -150,7 +77,7 @@ jobs:
             -DWITH_USDT=OFF \
             -DBUILD_TESTS=ON
 
-      - name: Build node, CLI, wallet, and PQ-first tests
+      - name: Build node, CLI, wallet, verifier, and tests
         run: cmake --build build --parallel 2
 
       - name: Execute both SHRINCS modes through interpreter
@@ -160,57 +87,29 @@ jobs:
             --catch_system_error=no \
             --log_level=test_suite
 
-      - name: Execute transaction-envelope parity and resource tests
+      - name: Execute transaction-envelope and resource tests
         run: |
           build/bin/test_pqbtc \
             --run_test=shrincs_tx_v0_tests \
             --catch_system_error=no \
             --log_level=test_suite
 
-      - name: Start node and mine private regtest blocks
+      - name: Check out the exact upstream signer model
         run: |
           set -euo pipefail
-          DATADIR="$RUNNER_TEMP/pqbtc-shrincs-regtest"
-          mkdir -p "$DATADIR"
-          build/bin/pqbtcd -regtest -datadir="$DATADIR" -daemonwait
-          trap 'build/bin/pqbtc-cli -regtest -datadir="$DATADIR" stop >/dev/null 2>&1 || true' EXIT
-          build/bin/pqbtc-cli -regtest -datadir="$DATADIR" createwallet devnet >/dev/null
-          ADDRESS=$(build/bin/pqbtc-cli -regtest -datadir="$DATADIR" getnewaddress)
-          build/bin/pqbtc-cli -regtest -datadir="$DATADIR" generatetoaddress 101 "$ADDRESS" >/dev/null
-          test "$(build/bin/pqbtc-cli -regtest -datadir="$DATADIR" getblockcount)" -eq 101
-          BALANCE=$(build/bin/pqbtc-cli -regtest -datadir="$DATADIR" getbalance)
-          python3 - "$BALANCE" <<'PY'
-          from decimal import Decimal
-          import sys
-          assert Decimal(sys.argv[1]) > 0
-          PY
-          build/bin/pqbtc-cli -regtest -datadir="$DATADIR" stop >/dev/null
-          trap - EXIT
+          SHRINCS_BIP_DIR="$RUNNER_TEMP/shrincs-bip"
+          git init "$SHRINCS_BIP_DIR"
+          git -C "$SHRINCS_BIP_DIR" remote add origin https://github.com/SHRINCS/shrincs-bip.git
+          git -C "$SHRINCS_BIP_DIR" fetch --depth 1 origin acc6bda51dc3b94848d118967247ad0f3cd7a80e
+          git -C "$SHRINCS_BIP_DIR" checkout --detach FETCH_HEAD
+          test "$(git -C "$SHRINCS_BIP_DIR" rev-parse HEAD)" = acc6bda51dc3b94848d118967247ad0f3cd7a80e
+          echo "SHRINCS_BIP_DIR=$SHRINCS_BIP_DIR" >> "$GITHUB_ENV"
 
-      - name: Commit validated generated integration
-        if: ${{ github.event_name == 'push' && github.ref_name == 'integration/shrincs-regtest-devnet' }}
+      - name: Fund, sign, broadcast, and mine actual SHRINCS spends
         run: |
-          set -euo pipefail
-          if git diff --quiet && test -z "$(git ls-files --others --exclude-standard)"; then
-            echo "No generated changes to commit."
-            exit 0
-          fi
-          git config user.name "pqbtc-shrincs-ci"
-          git config user.email "pqbtc-shrincs-ci@users.noreply.github.com"
-          git add \
-            contrib/devtools/apply_shrincs_regtest_devnet.py \
-            src/crypto/shrincs \
-            src/crypto/CMakeLists.txt \
-            src/CMakeLists.txt \
-            src/consensus/params.h \
-            src/kernel/chainparams.cpp \
-            src/script/interpreter.h \
-            src/script/interpreter.cpp \
-            src/script/shrincs_tx_v0.h \
-            src/script/shrincs_tx_v0.cpp \
-            src/validation.cpp \
-            src/test/CMakeLists.txt \
-            src/test/shrincs_tx_v0_signed_seam_tests.cpp \
-            docs/PQBTC_SHRINCS_REGTEST_DEVNET.md
-          git commit -m "research: activate SHRINCS v0 on private regtest devnet"
-          git push origin HEAD:integration/shrincs-regtest-devnet
+          python3 test/functional/feature_shrincs_regtest.py \
+            --configfile="$PWD/build/test/config.ini" \
+            --tmpdir="$RUNNER_TEMP/shrincs-functional"
+
+      - name: Confirm validation did not rewrite tracked source
+        run: git diff --exit-code
