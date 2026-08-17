@@ -126,14 +126,15 @@ jobs:
           case "$ADDRESS" in pqsl1*) ;; *) echo "unexpected labnet address: $ADDRESS"; exit 1 ;; esac
 
           REGDIR="$RUNNER_TEMP/ordinary-regtest"
+          REGPORT=30443
           mkdir -p "$REGDIR"
-          build/bin/pqbtcd -regtest -datadir="$REGDIR" -port=30444 -rpcport=30443 \
+          build/bin/pqbtcd -regtest -datadir="$REGDIR" -port=30444 -rpcport="$REGPORT" \
             -server=1 -listen=1 -discover=0 -dnsseed=0 -fixedseeds=0 -daemonwait
-          trap '$CLI -regtest -datadir="$REGDIR" stop >/dev/null 2>&1 || true; python3 contrib/shrincs-labnet/labnet.py --build-dir "$GITHUB_WORKSPACE/build" --state-dir "$RUNNER_TEMP/shrincslab" stop >/dev/null 2>&1 || true' EXIT
-          $CLI -regtest -datadir="$REGDIR" addnode 127.0.0.1:29333 onetry || true
+          trap '$CLI -regtest -datadir="$REGDIR" -rpcport="$REGPORT" stop >/dev/null 2>&1 || true; python3 contrib/shrincs-labnet/labnet.py --build-dir "$GITHUB_WORKSPACE/build" --state-dir "$RUNNER_TEMP/shrincslab" stop >/dev/null 2>&1 || true' EXIT
+          $CLI -regtest -datadir="$REGDIR" -rpcport="$REGPORT" addnode 127.0.0.1:29333 onetry || true
           sleep 3
-          test "$($CLI -regtest -datadir="$REGDIR" getconnectioncount)" -eq 0
-          $CLI -regtest -datadir="$REGDIR" stop >/dev/null
+          test "$($CLI -regtest -datadir="$REGDIR" -rpcport="$REGPORT" getconnectioncount)" -eq 0
+          $CLI -regtest -datadir="$REGDIR" -rpcport="$REGPORT" stop >/dev/null
           python3 contrib/shrincs-labnet/labnet.py \
             --build-dir "$GITHUB_WORKSPACE/build" \
             --state-dir "$RUNNER_TEMP/shrincslab" stop >/dev/null
