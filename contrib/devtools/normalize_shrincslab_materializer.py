@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""One-time, idempotent correction for the public-labnet materializer."""
+"""Idempotent corrections for the layered public-labnet materializers."""
 
 from pathlib import Path
 
 path = Path(__file__).with_name("apply_shrincslab_public_profile.py")
 text = path.read_text(encoding="utf-8")
-old = '''def patch_native_tests() -> dict[str, bool]:
+
+old_native = '''def patch_native_tests() -> dict[str, bool]:
     changes: dict[str, bool] = {}
     changes["new_test"] = write("src/test/shrincslab_chainparams_tests.cpp", chainparams_test_source())
     changes["cmake"] = replace_all(
@@ -16,7 +17,7 @@ old = '''def patch_native_tests() -> dict[str, bool]:
     )
     return changes
 '''
-new = '''def patch_native_tests() -> dict[str, bool]:
+new_native = '''def patch_native_tests() -> dict[str, bool]:
     changes: dict[str, bool] = {}
     changes["new_test"] = write("src/test/shrincslab_chainparams_tests.cpp", chainparams_test_source())
 
@@ -46,15 +47,74 @@ new = '''def patch_native_tests() -> dict[str, bool]:
         cmake_path.write_text(updated, encoding="utf-8")
     return changes
 '''
-if old in text:
-    text = text.replace(old, new, 1)
-elif new not in text:
-    # A prior normalizer may already have installed the new implementation with
-    # the overly strict two-anchor assertion. Normalize that in place.
+if old_native in text:
+    text = text.replace(old_native, new_native, 1)
+elif new_native not in text:
     strict = '''    if anchors < 2:\n        raise RuntimeError(f"expected both full and PQ-first test-list anchors, found {anchors}")\n'''
     relaxed = '''    if anchors < 1:\n        raise RuntimeError(f"expected the PQ-first test-list anchor, found {anchors}")\n'''
     if strict in text:
         text = text.replace(strict, relaxed, 1)
     elif relaxed not in text:
         raise SystemExit("materializer patch_native_tests anchor not found")
+
+old_naming = '''def patch_shrincs_naming() -> dict[str, bool]:
+    changes: dict[str, bool] = {}
+    changes["header"] = replace_once(
+        "src/script/shrincs_tx_v0.h",
+        "/** Fixed chain identifier for the private regtest/devnet activation. */\\nuint256 RegtestChainId();\\n",
+        "/** Frozen chain identifier retained for signed-vector compatibility. */\\nuint256 RegtestChainId();\\n\\n"
+        "/** Chain identifier used by the explicitly selected SHRINCS labnet. */\\nuint256 ShrincsLabChainId();\\n",
+    )
+    changes["source"] = replace_once(
+        "src/script/shrincs_tx_v0.cpp",
+        "uint256 RegtestChainId()\\n{\\n    HashWriter writer;\\n    writer.write(std::as_bytes(std::span<const char>{\\n        REGTEST_CHAIN_ID_LABEL.data(), REGTEST_CHAIN_ID_LABEL.size()}));\\n    return writer.GetSHA256();\\n}\\n",
+        "uint256 RegtestChainId()\\n{\\n    HashWriter writer;\\n    writer.write(std::as_bytes(std::span<const char>{\\n        REGTEST_CHAIN_ID_LABEL.data(), REGTEST_CHAIN_ID_LABEL.size()}));\\n    return writer.GetSHA256();\\n}\\n\\n"
+        "uint256 ShrincsLabChainId()\\n{\\n    return RegtestChainId();\\n}\\n",
+    )
+    changes["interpreter"] = replace_once(
+        "src/script/interpreter.cpp",
+        "        shrincs_tx_v0::RegtestChainId())};\\n",
+        "        shrincs_tx_v0::ShrincsLabChainId())};\\n",
+    )
+    return changes
+'''
+new_naming = '''def patch_shrincs_naming() -> dict[str, bool]:
+    changes: dict[str, bool] = {}
+
+    header_path = ROOT / "src/script/shrincs_tx_v0.h"
+    header = header_path.read_text(encoding="utf-8")
+    if "uint256 ShrincsLabChainId();" in header:
+        changes["header"] = False
+    else:
+        old = "/** Fixed chain identifier for the private regtest/devnet activation. */\\nuint256 RegtestChainId();\\n"
+        new = "/** Frozen chain identifier retained for signed-vector compatibility. */\\nuint256 RegtestChainId();\\n\\n/** Chain identifier used by the explicitly selected SHRINCS labnet. */\\nuint256 ShrincsLabChainId();\\n"
+        if old not in header:
+            raise RuntimeError("SHRINCS header naming anchor not found")
+        header_path.write_text(header.replace(old, new, 1), encoding="utf-8")
+        changes["header"] = True
+
+    source_path = ROOT / "src/script/shrincs_tx_v0.cpp"
+    source = source_path.read_text(encoding="utf-8")
+    if "uint256 ShrincsLabChainId()" in source:
+        changes["source"] = False
+    else:
+        old = "uint256 RegtestChainId()\\n{\\n    HashWriter writer;\\n    writer.write(std::as_bytes(std::span<const char>{\\n        REGTEST_CHAIN_ID_LABEL.data(), REGTEST_CHAIN_ID_LABEL.size()}));\\n    return writer.GetSHA256();\\n}\\n"
+        new = old + "\\nuint256 ShrincsLabChainId()\\n{\\n    return RegtestChainId();\\n}\\n"
+        if old not in source:
+            raise RuntimeError("SHRINCS source naming anchor not found")
+        source_path.write_text(source.replace(old, new, 1), encoding="utf-8")
+        changes["source"] = True
+
+    changes["interpreter"] = replace_once(
+        "src/script/interpreter.cpp",
+        "        shrincs_tx_v0::RegtestChainId())};\\n",
+        "        shrincs_tx_v0::ShrincsLabChainId())};\\n",
+    )
+    return changes
+'''
+if old_naming in text:
+    text = text.replace(old_naming, new_naming, 1)
+elif new_naming not in text:
+    raise SystemExit("materializer patch_shrincs_naming anchor not found")
+
 path.write_text(text, encoding="utf-8")
