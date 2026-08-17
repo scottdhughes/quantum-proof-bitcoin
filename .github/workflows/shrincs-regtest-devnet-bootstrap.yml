@@ -40,6 +40,17 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
+      - name: Correct pinned upstream blob locks
+        run: |
+          set -euo pipefail
+          sed -i \
+            -e 's/4df4d8a9cb394fcd2c6aa96bba2f0af8afb0bdb4/4df4d8f13564847b59573ee9de866ecc70ba4003/g' \
+            -e 's/0bb56260f496882473f04b9322a5d2ec72e5e3ee/0bb5629a7e102b994aaf38aa677911236c8c178e/g' \
+            -e 's/a67255bc7955783d1927ad710ce7a2a7aa5c8b84/a67255e9a89b750ddb223caed3ec29d9ef962b59/g' \
+            -e 's/10fd0c6f418fc09227bbd58185aac594e3b8be83/10fd0c5d4cd7047af81c0c6a21e0065744736419/g' \
+            -e 's/66b873f6b77c1782f9e58f94e2364f22e8974105/0795ae674bef2493ca21a2bfb30477ab940b70cb/g' \
+            contrib/devtools/apply_shrincs_regtest_devnet.py
+
       - name: Materialize deterministic integration
         run: |
           set -euo pipefail
@@ -131,6 +142,7 @@ jobs:
           git config user.name "pqbtc-shrincs-ci"
           git config user.email "pqbtc-shrincs-ci@users.noreply.github.com"
           git add \
+            contrib/devtools/apply_shrincs_regtest_devnet.py \
             src/crypto/shrincs \
             src/crypto/CMakeLists.txt \
             src/CMakeLists.txt \
