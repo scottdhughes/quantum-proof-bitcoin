@@ -3,7 +3,7 @@
 
 The public zero-value labnet must be incompatible with the earlier private
 regtest fixture at every relevant boundary: genesis, P2P handshake,
-transaction-signature domain, RPC port, and filesystem namespace.  This
+transaction-signature domain, RPC port, and filesystem namespace. This
 materializer is idempotent and runs after
 ``apply_shrincslab_public_profile.py``.
 """
@@ -99,18 +99,6 @@ def patch_base_identity() -> dict[str, bool]:
         "        }\n"
         "        return std::make_unique<CBaseChainParams>(\"regtest\", 18443);\n",
     )
-    changes["config_namespace"] = replace_once(
-        "src/chainparamsbase.cpp",
-        "void SelectBaseParams(const ChainType chain)\n{\n"
-        "    globalChainBaseParams = CreateBaseChainParams(chain);\n"
-        "    gArgs.SelectConfigNetwork(ChainTypeToString(chain));\n"
-        "}\n",
-        "void SelectBaseParams(const ChainType chain)\n{\n"
-        "    globalChainBaseParams = CreateBaseChainParams(chain);\n"
-        "    const bool shrincs_labnet{chain == ChainType::REGTEST && gArgs.GetBoolArg(\"-shrincslab\", false)};\n"
-        "    gArgs.SelectConfigNetwork(shrincs_labnet ? \"shrincslab\" : ChainTypeToString(chain));\n"
-        "}\n",
-    )
     ci_path = ROOT / "ci/test/test_shrincs_tx_cpp_component.py"
     ci_text = ci_path.read_text(encoding="utf-8")
     marker = '        self.assertIn(\'bech32_hrp = "pqsl";\', chainparams)\n'
@@ -118,7 +106,6 @@ def patch_base_identity() -> dict[str, bool]:
         marker
         + '        base_params = (REPO_ROOT / "src" / "chainparamsbase.cpp").read_text(encoding="utf-8")\n'
         + '        self.assertIn(\'CBaseChainParams>("shrincslab", 29332)\', base_params)\n'
-        + '        self.assertIn(\'SelectConfigNetwork(shrincs_labnet ? "shrincslab"\', base_params)\n'
     )
     if addition in ci_text:
         changes["architecture_guard"] = False
@@ -187,7 +174,7 @@ def patch_manifest_and_docs() -> dict[str, bool]:
     docs_path = ROOT / "docs/PQBTC_SHRINCS_PUBLIC_LABNET.md"
     docs = docs_path.read_text(encoding="utf-8")
     domain_section = f'''\n## Genesis-bound signature domain\n\nEvery SHRINCS transaction signature commits to:\n\n```text\n{CHAIN_DOMAIN_LABEL}\nSHA256 = {CHAIN_DOMAIN_HASH}\n```\n\nThis is intentionally incompatible with the earlier private-regtest fixture.\nA signature from that fixture cannot authorize an otherwise identical labnet\ntransaction, and changing the labnet genesis requires a new signature domain.\n'''
-    base_section = '''\n## Filesystem and RPC isolation\n\n`-regtest -shrincslab` selects base data directory `shrincslab/`, config\nnamespace `[shrincslab]`, and default RPC port `29332`. Ordinary regtest keeps\n`regtest/`, `[regtest]`, and `18443`. The two chains therefore cannot share\nblock databases, wallets, cookies, settings, or RPC endpoints by default.\n'''
+    base_section = '''\n## Filesystem and RPC isolation\n\n`-regtest -shrincslab` selects base data directory `shrincslab/` and default\nRPC port `29332`. Ordinary regtest keeps `regtest/` and `18443`. The two chains\ntherefore cannot share block databases, wallets, cookies, settings, or RPC\nendpoints by default. The inherited `[regtest]` configuration section remains\nintact so mature Bitcoin Core test and port-assignment tooling keeps working.\n'''
     docs_changed = False
     for section in (domain_section, base_section):
         if section not in docs:
