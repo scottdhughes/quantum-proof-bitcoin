@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Bind PQBTC-SHRINCS-v0 signatures to the dedicated labnet genesis.
 
-The earlier private-regtest fixture used a generic test-chain label.  A public
+The earlier private-regtest fixture used a generic test-chain label. A public
 network must not preserve that compatibility domain: otherwise a signature
 created for the private fixture could be replayed on the network-distinct
 labnet whenever the transaction surfaces otherwise coincide.
@@ -35,24 +35,38 @@ def replace_once(path: str, old: str, new: str) -> bool:
 
 
 def patch_cpp_domain() -> dict[str, bool]:
-    source = ROOT / "src/script/shrincs_tx_v0.cpp"
-    text = source.read_text(encoding="utf-8")
     changes: dict[str, bool] = {}
 
+    header = ROOT / "src/script/shrincs_tx_v0.h"
+    header_text = header.read_text(encoding="utf-8")
     old_label = 'inline constexpr std::string_view REGTEST_CHAIN_ID_LABEL{"PQBTC-SHRINCS-TX-V0-TEST-CHAIN"};\n'
     new_label = (
         old_label
         + 'inline constexpr std::string_view SHRINCS_LAB_CHAIN_ID_LABEL{\n'
         + f'    "{CHAIN_DOMAIN_LABEL}"}};\n'
     )
-    if "SHRINCS_LAB_CHAIN_ID_LABEL" not in text:
-        if old_label not in text:
-            raise RuntimeError("SHRINCS chain-domain label anchor not found")
-        text = text.replace(old_label, new_label, 1)
+    if "SHRINCS_LAB_CHAIN_ID_LABEL" not in header_text:
+        if old_label not in header_text:
+            raise RuntimeError("SHRINCS chain-domain label anchor not found in header")
+        header_text = header_text.replace(old_label, new_label, 1)
         changes["label"] = True
     else:
         changes["label"] = False
 
+    old_declaration = "/** Chain identifier used by the explicitly selected SHRINCS labnet. */\nuint256 ShrincsLabChainId();\n"
+    new_declaration = "/** Genesis-bound chain identifier used by the SHRINCS labnet. */\nuint256 ShrincsLabChainId();\n"
+    if new_declaration not in header_text:
+        if old_declaration not in header_text:
+            raise RuntimeError("SHRINCS labnet chain-id declaration anchor not found")
+        header_text = header_text.replace(old_declaration, new_declaration, 1)
+        changes["header"] = True
+    else:
+        changes["header"] = False
+    if changes["label"] or changes["header"]:
+        header.write_text(header_text, encoding="utf-8")
+
+    source = ROOT / "src/script/shrincs_tx_v0.cpp"
+    source_text = source.read_text(encoding="utf-8")
     old_function = '''uint256 ShrincsLabChainId()
 {
     return RegtestChainId();
@@ -66,22 +80,13 @@ def patch_cpp_domain() -> dict[str, bool]:
     return writer.GetSHA256();
 }
 '''
-    if new_function not in text:
-        if old_function not in text:
+    if new_function not in source_text:
+        if old_function not in source_text:
             raise RuntimeError("SHRINCS labnet chain-id function anchor not found")
-        text = text.replace(old_function, new_function, 1)
+        source.write_text(source_text.replace(old_function, new_function, 1), encoding="utf-8")
         changes["function"] = True
     else:
         changes["function"] = False
-
-    if changes["label"] or changes["function"]:
-        source.write_text(text, encoding="utf-8")
-
-    changes["header"] = replace_once(
-        "src/script/shrincs_tx_v0.h",
-        "/** Chain identifier used by the explicitly selected SHRINCS labnet. */\nuint256 ShrincsLabChainId();\n",
-        "/** Genesis-bound chain identifier used by the SHRINCS labnet. */\nuint256 ShrincsLabChainId();\n",
-    )
     return changes
 
 
