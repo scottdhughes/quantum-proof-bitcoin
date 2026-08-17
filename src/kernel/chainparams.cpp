@@ -509,6 +509,7 @@ public:
         m_chain_type = ChainType::REGTEST;
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
+        consensus.shrincs_v0 = true;
         consensus.nSubsidyHalvingInterval = 150;
         consensus.BIP34Height = 1; // Always active unless overridden
         consensus.BIP34Hash = uint256();

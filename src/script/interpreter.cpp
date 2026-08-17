@@ -7,10 +7,12 @@
 
 #include <crypto/pqsig/pqsig.h>
 #include <crypto/ripemd160.h>
+#include <crypto/shrincs/verify.h>
 #include <crypto/sha1.h>
 #include <crypto/sha256.h>
 #include <pubkey.h>
 #include <script/script.h>
+#include <script/shrincs_tx_v0.h>
 #include <uint256.h>
 
 typedef std::vector<unsigned char> valtype;
@@ -1778,6 +1780,45 @@ bool GenericTransactionSignatureChecker<T>::CheckSchnorrSignature(std::span<cons
 }
 
 template <class T>
+bool GenericTransactionSignatureChecker<T>::CheckSHRINCSSignature(
+    std::span<const unsigned char> sig,
+    std::span<const unsigned char> pubkey,
+    ScriptError* serror) const
+{
+    if (pubkey.size() != shrincs_tx_v0::PUBLIC_KEY_BYTES) {
+        return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+    }
+    if (!shrincs_tx_v0::ClassifySignature(sig.size())) {
+        return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+    }
+    if (txdata == nullptr || !txdata->m_spent_outputs_ready) {
+        return HandleMissingData(m_mdb);
+    }
+
+    const CTransaction immutable_tx{*txTo};
+    const std::optional<uint256> sighash{shrincs_tx_v0::SignatureHash(
+        immutable_tx,
+        std::span<const CTxOut>{txdata->m_spent_outputs.data(), txdata->m_spent_outputs.size()},
+        nIn,
+        shrincs_tx_v0::RegtestChainId())};
+    if (!sighash) return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+
+    const std::string_view context{shrincs_tx_v0::SIGNING_CONTEXT};
+    if (pqbtc_shrincs_verify(
+            pubkey.data(),
+            pubkey.size(),
+            sig.data(),
+            sig.size(),
+            sighash->begin(),
+            sighash->size(),
+            reinterpret_cast<const uint8_t*>(context.data()),
+            context.size()) != 1) {
+        return set_error(serror, SCRIPT_ERR_EVAL_FALSE);
+    }
+    return true;
+}
+
+template <class T>
 bool GenericTransactionSignatureChecker<T>::CheckLockTime(const CScriptNum& nLockTime) const
 {
     // There are two kinds of nLockTime: lock-by-blockheight
@@ -2058,6 +2099,17 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
             }
             return set_success(serror);
         }
+    } else if (witversion == shrincs_tx_v0::PROPOSED_WITNESS_VERSION &&
+               program.size() == shrincs_tx_v0::PROGRAM_BYTES &&
+               !is_p2sh &&
+               (flags & SCRIPT_VERIFY_SHRINCS_V0)) {
+        const std::optional<shrincs_tx_v0::ParsedWitness> parsed{
+            shrincs_tx_v0::ParseWitness(witness, program)};
+        if (!parsed) return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+        if (!checker.CheckSHRINCSSignature(parsed->signature, parsed->public_key, serror)) {
+            return false;
+        }
+        return set_success(serror);
     } else if (!is_p2sh && CScript::IsPayToAnchor(witversion, program)) {
         return true;
     } else {

@@ -7,6 +7,7 @@
 #include <crypto/sha256.h>
 #include <hash.h>
 #include <primitives/transaction.h>
+#include <script/interpreter.h>
 #include <script/script.h>
 #include <streams.h>
 #include <util/strencodings.h>
@@ -237,7 +238,7 @@ BOOST_AUTO_TEST_CASE(authenticated_vectors_verify_against_native_transaction_dig
     BOOST_CHECK_EQUAL(RawHex(digest), vectors::TRANSACTION_DIGEST_HEX);
     BOOST_CHECK_EQUAL(SerializeStripped(test_case.tx), vectors::STRIPPED_TRANSACTION_HEX);
     BOOST_CHECK_EQUAL(
-        std::string{signed_vectors.context.begin(), signed_vectors.context.end()},
+        (std::string{signed_vectors.context.begin(), signed_vectors.context.end()}),
         std::string{shrincs_tx_v0::SIGNING_CONTEXT});
     BOOST_CHECK_EQUAL(Sha256Hex(signed_vectors.public_key), vectors::PUBLIC_KEY_SHA256_HEX);
     BOOST_CHECK_EQUAL(Sha256Hex(signed_vectors.stateful_signature), vectors::STATEFUL_SIGNATURE_SHA256_HEX);
@@ -349,6 +350,90 @@ BOOST_AUTO_TEST_CASE(all_python_signed_seam_negatives_reject_natively)
     }
 
     BOOST_CHECK_EQUAL(rejected, 56U);
+}
+
+BOOST_AUTO_TEST_CASE(regtest_witness_v2_executes_full_verifier)
+{
+    const SignedVectors signed_vectors{LoadSignedVectors()};
+    const EnvelopeCase envelope{BuildEnvelopeCase(signed_vectors.public_key)};
+
+    auto run = [&](const std::vector<unsigned char>& signature,
+                   const std::vector<unsigned char>& public_key,
+                   unsigned int flags,
+                   ScriptError* error) {
+        CMutableTransaction mutable_tx{envelope.tx};
+        mutable_tx.vin[0].scriptWitness.stack = {signature, public_key};
+        const CTransaction tx{mutable_tx};
+
+        PrecomputedTransactionData txdata;
+        txdata.Init(tx, std::vector<CTxOut>{envelope.spent_outputs}, /*force=*/true);
+        TransactionSignatureChecker checker{
+            &tx,
+            /*nInIn=*/0,
+            envelope.spent_outputs[0].nValue,
+            txdata,
+            MissingDataBehavior::ASSERT_FAIL};
+
+        return VerifyScript(
+            tx.vin[0].scriptSig,
+            envelope.spent_outputs[0].scriptPubKey,
+            &tx.vin[0].scriptWitness,
+            flags,
+            checker,
+            error);
+    };
+
+    constexpr unsigned int active_flags{
+        SCRIPT_VERIFY_P2SH |
+        SCRIPT_VERIFY_WITNESS |
+        SCRIPT_VERIFY_SHRINCS_V0};
+
+    ScriptError error{SCRIPT_ERR_UNKNOWN_ERROR};
+    BOOST_CHECK(run(
+        signed_vectors.stateful_signature,
+        signed_vectors.public_key,
+        active_flags,
+        &error));
+    BOOST_CHECK_EQUAL(error, SCRIPT_ERR_OK);
+
+    error = SCRIPT_ERR_UNKNOWN_ERROR;
+    BOOST_CHECK(run(
+        signed_vectors.stateless_signature,
+        signed_vectors.public_key,
+        active_flags,
+        &error));
+    BOOST_CHECK_EQUAL(error, SCRIPT_ERR_OK);
+
+    std::vector<unsigned char> mutated_signature{signed_vectors.stateful_signature};
+    mutated_signature[mutated_signature.size() / 2] ^= 1;
+    error = SCRIPT_ERR_UNKNOWN_ERROR;
+    BOOST_CHECK(!run(
+        mutated_signature,
+        signed_vectors.public_key,
+        active_flags,
+        &error));
+    BOOST_CHECK_EQUAL(error, SCRIPT_ERR_EVAL_FALSE);
+
+    std::vector<unsigned char> wrong_key{signed_vectors.public_key};
+    wrong_key[0] ^= 1;
+    error = SCRIPT_ERR_UNKNOWN_ERROR;
+    BOOST_CHECK(!run(
+        signed_vectors.stateful_signature,
+        wrong_key,
+        active_flags,
+        &error));
+    BOOST_CHECK_EQUAL(error, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+
+    // Without the regtest activation flag, witness v2 retains ordinary
+    // future-version behavior. This prevents accidental inherited-network
+    // activation by the verifier merely being present in the binary.
+    error = SCRIPT_ERR_UNKNOWN_ERROR;
+    BOOST_CHECK(run(
+        signed_vectors.stateful_signature,
+        signed_vectors.public_key,
+        SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS,
+        &error));
+    BOOST_CHECK_EQUAL(error, SCRIPT_ERR_OK);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

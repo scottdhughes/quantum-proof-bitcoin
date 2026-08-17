@@ -5,8 +5,6 @@
 # Do not use generator expressions in test sources because the
 # SOURCES property is processed to gather test suite macros.
 option(PQBTC_ENABLE_LEGACY_UNIT_TESTS "Build legacy pre-PQ unit suites in addition to PQ-first suites" OFF)
-option(PQBTC_ENABLE_SHRINCS_SIGNED_SEAM_TESTS "Build the research-only native SHRINCS transaction signed-seam suite" OFF)
-set(PQBTC_LIBSHRINCS_SOURCE_DIR "" CACHE PATH "Path to the pinned libshrincs checkout for signed-seam tests")
 
 set(TEST_PQBTC_SOURCES
   main.cpp
@@ -77,6 +75,7 @@ set(TEST_PQBTC_SOURCES
   pqsig_script_tests.cpp
   pqsig_tests.cpp
   shrincs_tx_v0_tests.cpp
+  shrincs_tx_v0_signed_seam_tests.cpp
   peerman_tests.cpp
   pmt_tests.cpp
   policy_fee_tests.cpp
@@ -148,51 +147,12 @@ if(NOT PQBTC_ENABLE_LEGACY_UNIT_TESTS)
     pqsig_script_tests.cpp
     pqsig_tests.cpp
     shrincs_tx_v0_tests.cpp
+    shrincs_tx_v0_signed_seam_tests.cpp
     script_tests.cpp
   )
 endif()
 
-if(PQBTC_ENABLE_SHRINCS_SIGNED_SEAM_TESTS)
-  list(APPEND TEST_PQBTC_SOURCES shrincs_tx_v0_signed_seam_tests.cpp)
-endif()
-
 add_executable(test_pqbtc ${TEST_PQBTC_SOURCES})
-
-# The candidate SHRINCS transaction component is deliberately compiled only
-# into the test binary. It is not linked into bitcoin_consensus, bitcoin_node,
-# the wallet, RPC, policy, mining, or release executables.
-target_sources(test_pqbtc
-  PRIVATE
-    ../script/shrincs_tx_v0.cpp
-)
-
-if(PQBTC_ENABLE_SHRINCS_SIGNED_SEAM_TESTS)
-  set(SHRINCS_SIGNED_SEAM_EXTERNAL_SOURCES
-    ${PQBTC_LIBSHRINCS_SOURCE_DIR}/src/wots.c
-    ${PQBTC_LIBSHRINCS_SOURCE_DIR}/src/thash.c
-    ${PQBTC_LIBSHRINCS_SOURCE_DIR}/src/sha256.c
-    ${PQBTC_LIBSHRINCS_SOURCE_DIR}/src/util.c
-  )
-  foreach(required_source IN LISTS SHRINCS_SIGNED_SEAM_EXTERNAL_SOURCES)
-    if(NOT EXISTS ${required_source})
-      message(FATAL_ERROR "Missing pinned libshrincs source for signed-seam tests: ${required_source}")
-    endif()
-  endforeach()
-  if(NOT EXISTS ${PQBTC_LIBSHRINCS_SOURCE_DIR}/include/sha256.h)
-    message(FATAL_ERROR "PQBTC_LIBSHRINCS_SOURCE_DIR must name the pinned libshrincs checkout")
-  endif()
-
-  # This explicit opt-in composes the otherwise unwired native transaction
-  # digest with the project-owned research verifier in test_pqbtc only.
-  target_sources(test_pqbtc
-    PRIVATE
-      ${PROJECT_SOURCE_DIR}/contrib/shrincs-ref/full_verify.c
-      ${PROJECT_SOURCE_DIR}/contrib/shrincs-ref/stateful_verify.c
-      ${PROJECT_SOURCE_DIR}/contrib/shrincs-ref/stateless_verify.c
-      ${SHRINCS_SIGNED_SEAM_EXTERNAL_SOURCES}
-  )
-  target_include_directories(test_pqbtc PRIVATE ${PQBTC_LIBSHRINCS_SOURCE_DIR}/include)
-endif()
 
 include(TargetDataSources)
 if(PQBTC_ENABLE_LEGACY_UNIT_TESTS)
@@ -229,6 +189,7 @@ target_link_libraries(test_pqbtc
   bitcoin_cli
   bitcoin_node
   bitcoin_consensus
+  bitcoin_crypto
   minisketch
   secp256k1
   Boost::headers

@@ -135,6 +135,14 @@ struct Params {
     bool signet_blocks{false};
     std::vector<uint8_t> signet_challenge;
 
+    /**
+     * Enable the frozen PQBTC-SHRINCS-v0 witness-v2 spend semantics.
+     *
+     * This is true only for the private regtest/devnet profile. Mainnet,
+     * testnet, testnet4, and signet remain false.
+     */
+    bool shrincs_v0{false};
+
     int DeploymentHeight(BuriedDeployment dep) const
     {
         switch (dep) {

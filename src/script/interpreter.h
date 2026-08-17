@@ -150,6 +150,9 @@ enum : uint32_t {
     // witness-v1 replacement-script-hash seam.
     SCRIPT_VERIFY_PQ_REPLACEMENT_V1_SCRIPTHASH = (1U << 22),
 
+    // Enable the dedicated PQBTC-SHRINCS-v0 native witness-v2 spend path.
+    SCRIPT_VERIFY_SHRINCS_V0 = (1U << 23),
+
     // Constants to point to the highest flag in use. Add new flags above this line.
     //
     SCRIPT_VERIFY_END_MARKER
@@ -281,6 +284,13 @@ public:
         return false;
     }
 
+    virtual bool CheckSHRINCSSignature(std::span<const unsigned char> sig,
+                                      std::span<const unsigned char> pubkey,
+                                      ScriptError* serror = nullptr) const
+    {
+        return false;
+    }
+
     virtual bool CheckLockTime(const CScriptNum& nLockTime) const
     {
          return false;
@@ -326,6 +336,9 @@ public:
     GenericTransactionSignatureChecker(const T* txToIn, unsigned int nInIn, const CAmount& amountIn, const PrecomputedTransactionData& txdataIn, MissingDataBehavior mdb) : txTo(txToIn), m_mdb(mdb), nIn(nInIn), amount(amountIn), txdata(&txdataIn) {}
     bool CheckECDSASignature(const std::vector<unsigned char>& scriptSig, const std::vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion) const override;
     bool CheckSchnorrSignature(std::span<const unsigned char> sig, std::span<const unsigned char> pubkey, SigVersion sigversion, ScriptExecutionData& execdata, ScriptError* serror = nullptr) const override;
+    bool CheckSHRINCSSignature(std::span<const unsigned char> sig,
+                              std::span<const unsigned char> pubkey,
+                              ScriptError* serror = nullptr) const override;
     bool CheckLockTime(const CScriptNum& nLockTime) const override;
     bool CheckSequence(const CScriptNum& nSequence) const override;
 };
@@ -349,6 +362,13 @@ public:
     bool CheckSchnorrSignature(std::span<const unsigned char> sig, std::span<const unsigned char> pubkey, SigVersion sigversion, ScriptExecutionData& execdata, ScriptError* serror = nullptr) const override
     {
         return m_checker.CheckSchnorrSignature(sig, pubkey, sigversion, execdata, serror);
+    }
+
+    bool CheckSHRINCSSignature(std::span<const unsigned char> sig,
+                              std::span<const unsigned char> pubkey,
+                              ScriptError* serror = nullptr) const override
+    {
+        return m_checker.CheckSHRINCSSignature(sig, pubkey, serror);
     }
 
     bool CheckLockTime(const CScriptNum& nLockTime) const override

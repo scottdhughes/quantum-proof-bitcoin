@@ -116,13 +116,13 @@ int pqbtc_shrincs_verify(const uint8_t* public_key,
 
 # 2. Vendor exactly the libshrincs component seam proved against our vectors.
 vendor("src/sha256.c", "src/crypto/shrincs/third_party/libshrincs/src/sha256.c",
-       "4df4d8a9cb394fcd2c6aa96bba2f0af8afb0bdb4")
+       "4df4d8f13564847b59573ee9de866ecc70ba4003")
 vendor("src/thash.c", "src/crypto/shrincs/third_party/libshrincs/src/thash.c",
-       "0bb56260f496882473f04b9322a5d2ec72e5e3ee")
+       "0bb5629a7e102b994aaf38aa677911236c8c178e")
 vendor("src/util.c", "src/crypto/shrincs/third_party/libshrincs/src/util.c",
-       "a67255bc7955783d1927ad710ce7a2a7aa5c8b84")
+       "a67255e9a89b750ddb223caed3ec29d9ef962b59")
 vendor("src/wots.c", "src/crypto/shrincs/third_party/libshrincs/src/wots.c",
-       "10fd0c6f418fc09227bbd58185aac594e3b8be83")
+       "10fd0c5d4cd7047af81c0c6a21e0065744736419")
 vendor("include/sha256.h", "src/crypto/shrincs/third_party/libshrincs/include/sha256.h",
        "4b060ef4cf46c4bc1e9cbc8588c26c4c8cbe880c")
 vendor("include/thash.h", "src/crypto/shrincs/third_party/libshrincs/include/thash.h",
@@ -132,7 +132,7 @@ vendor("include/util.h", "src/crypto/shrincs/third_party/libshrincs/include/util
 vendor("include/wots.h", "src/crypto/shrincs/third_party/libshrincs/include/wots.h",
        "5da295aa2246a0dd4424207cce1f287a0631b9b1")
 vendor("LICENSE", "src/crypto/shrincs/third_party/libshrincs/LICENSE",
-       "66b873f6b77c1782f9e58f94e2364f22e8974105")
+       "0795ae674bef2493ca21a2bfb30477ab940b70cb")
 
 write(
     "src/crypto/shrincs/third_party/libshrincs/README.pqbtc.md",
@@ -389,8 +389,9 @@ bool GenericTransactionSignatureChecker<T>::CheckSHRINCSSignature(
         return HandleMissingData(m_mdb);
     }
 
+    const CTransaction immutable_tx{*txTo};
     const std::optional<uint256> sighash{shrincs_tx_v0::SignatureHash(
-        *txTo,
+        immutable_tx,
         std::span<const CTxOut>{txdata->m_spent_outputs.data(), txdata->m_spent_outputs.size()},
         nIn,
         shrincs_tx_v0::RegtestChainId())};

@@ -20,12 +20,24 @@ add_library(bitcoin_crypto STATIC EXCLUDE_FROM_ALL
   sha512.cpp
   siphash.cpp
   pqsig/pqsig.cpp
+  shrincs/full_verify.c
+  shrincs/stateful_verify.c
+  shrincs/stateless_verify.c
+  shrincs/third_party/libshrincs/src/sha256.c
+  shrincs/third_party/libshrincs/src/thash.c
+  shrincs/third_party/libshrincs/src/util.c
+  shrincs/third_party/libshrincs/src/wots.c
   ../support/cleanse.cpp
 )
 
 target_link_libraries(bitcoin_crypto
   PRIVATE
     core_interface
+)
+
+target_include_directories(bitcoin_crypto
+  BEFORE PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/shrincs/third_party/libshrincs/include
 )
 
 if(HAVE_SSE41)

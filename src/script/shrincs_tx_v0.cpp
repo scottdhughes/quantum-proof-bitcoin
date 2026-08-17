@@ -112,6 +112,14 @@ std::optional<std::uint16_t> StatefulDepth(const std::size_t signature_size)
     return static_cast<std::uint16_t>((signature_size - STATEFUL_SIGNATURE_BASE) / STATEFUL_SIGNATURE_STEP);
 }
 
+uint256 RegtestChainId()
+{
+    HashWriter writer;
+    writer.write(std::as_bytes(std::span<const char>{
+        REGTEST_CHAIN_ID_LABEL.data(), REGTEST_CHAIN_ID_LABEL.size()}));
+    return writer.GetSHA256();
+}
+
 std::optional<uint256> OutputCommitment(std::span<const unsigned char> public_key)
 {
     if (public_key.size() != PUBLIC_KEY_BYTES) return std::nullopt;

@@ -1251,7 +1251,10 @@ bool MemPoolAccept::PolicyScriptChecks(const ATMPArgs& args, Workspace& ws)
     const CTransaction& tx = *ws.m_ptx;
     TxValidationState& state = ws.m_state;
 
-    constexpr unsigned int scriptVerifyFlags = STANDARD_SCRIPT_VERIFY_FLAGS;
+    unsigned int scriptVerifyFlags{STANDARD_SCRIPT_VERIFY_FLAGS};
+    if (m_active_chainstate.m_chainman.GetConsensus().shrincs_v0) {
+        scriptVerifyFlags |= SCRIPT_VERIFY_SHRINCS_V0;
+    }
 
     // Check input scripts and signatures.
     // This is done last to help prevent CPU exhaustion denial-of-service attacks.
@@ -2370,6 +2373,10 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Ch
 
     if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_TAPROOT)) {
         flags |= SCRIPT_VERIFY_PQ_REPLACEMENT_V1_SCRIPTHASH;
+    }
+
+    if (consensusparams.shrincs_v0) {
+        flags |= SCRIPT_VERIFY_SHRINCS_V0;
     }
 
     return flags;
