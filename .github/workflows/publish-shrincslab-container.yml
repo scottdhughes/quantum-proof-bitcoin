@@ -3,7 +3,7 @@ name: Publish SHRINCS labnet container
 on:
   workflow_run:
     workflows:
-      - SHRINCS public zero-value labnet v2
+      - SHRINCS public zero-value labnet v3
     branches:
       - integration/shrincslab-public-profile
     types:
