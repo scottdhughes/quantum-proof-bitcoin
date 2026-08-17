@@ -117,4 +117,24 @@ if old_naming in text:
 elif new_naming not in text:
     raise SystemExit("materializer patch_shrincs_naming anchor not found")
 
+old_functional = '''    changes["functional_args"] = replace_once(
+        "test/functional/feature_shrincs_regtest.py",
+        '        self.extra_args = [["-acceptnonstdtxn=1"]]\\n',
+        '        self.extra_args = [["-shrincslab", "-acceptnonstdtxn=1"]]\\n',
+    )
+'''
+new_functional = '''    changes["functional_args"] = replace_once(
+        "test/functional/feature_shrincs_regtest.py",
+        '        self.extra_args = [["-acceptnonstdtxn=1"]]\\n',
+        '        self.extra_args = [["-shrincslab", "-acceptnonstdtxn=1"]]\\n'
+        '        # Keep regtest-shaped config, but read cookies and logs from\\n'
+        '        # the node-selected, isolated shrincslab/ network directory.\\n'
+        '        self.extra_init = [{"chain": "shrincslab"}]\\n',
+    )
+'''
+if old_functional in text:
+    text = text.replace(old_functional, new_functional, 1)
+elif new_functional not in text:
+    raise SystemExit("materializer functional-harness anchor not found")
+
 path.write_text(text, encoding="utf-8")
