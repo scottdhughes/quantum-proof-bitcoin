@@ -4,43 +4,27 @@ on:
   push:
     branches:
       - integration/shrincslab-public-profile
-  pull_request:
-    paths:
-      - "src/chainparams*"
-      - "src/kernel/chainparams*"
-      - "src/script/interpreter.*"
-      - "src/script/shrincs_tx_v0.*"
-      - "src/test/shrincs_tx_v0*"
-      - "src/test/shrincslab_chainparams_tests.cpp"
-      - "src/test/CMakeLists.txt"
-      - "ci/test/test_shrincs_tx_cpp_component.py"
-      - "test/functional/feature_shrincs_regtest.py"
-      - "test/functional/test_framework/address.py"
-      - "contrib/devtools/apply_shrincslab_public_profile.py"
-      - "contrib/devtools/apply_shrincslab_chain_domain.py"
-      - "contrib/devtools/normalize_shrincslab_materializer.py"
-      - "contrib/shrincs-tx/**"
-      - "contrib/shrincs-labnet/**"
-      - "docs/PQBTC_SHRINCS_PUBLIC_LABNET.md"
-      - ".github/workflows/shrincslab-public-profile-v3.yml"
   workflow_dispatch:
 
 permissions:
   contents: write
+  packages: write
+  attestations: write
+  id-token: write
 
 concurrency:
-  group: shrincslab-public-profile-v3-${{ github.ref }}
+  group: shrincslab-public-profile-v3
   cancel-in-progress: true
 
 jobs:
   prove:
-    name: build, spend, mine, isolate, and freeze
+    name: build, spend, mine, isolate, freeze, and publish
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 150
 
     steps:
       - name: Check out PQBTC
-        uses: actions/checkout@v5
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           fetch-depth: 0
           persist-credentials: true
@@ -155,7 +139,6 @@ jobs:
             test "$($CLI -regtest -datadir="$REGDIR" -rpcport="$REGPORT" getconnectioncount)" -eq 0 && break
             sleep 1
           done
-          # A lingering unversioned socket is not a peer; no negotiated peer is permitted.
           $CLI -regtest -datadir="$REGDIR" -rpcport="$REGPORT" getpeerinfo > /tmp/final-ordinary-peers.json
           python3 - <<'PY'
           import json
@@ -168,8 +151,8 @@ jobs:
             --state-dir "$RUNNER_TEMP/shrincslab" stop >/dev/null
           trap - EXIT
 
-      - name: Commit validated profile and vectors
-        if: ${{ github.event_name == 'push' && github.ref_name == 'integration/shrincslab-public-profile' }}
+      - name: Freeze validated profile and vectors
+        id: freeze
         run: |
           set -euo pipefail
           git add \
@@ -190,10 +173,73 @@ jobs:
             test/functional/test_framework/address.py \
             contrib/shrincs-labnet docs/PQBTC_SHRINCS_PUBLIC_LABNET.md
           if git diff --cached --quiet; then
-            echo "Materialized profile already committed."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Materialized profile already frozen."
             exit 0
           fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
           git config user.name pqbtc-shrincslab-ci
           git config user.email pqbtc-shrincslab-ci@users.noreply.github.com
           git commit -m "research: materialize genesis-bound SHRINCS public labnet"
           git push origin HEAD:integration/shrincslab-public-profile
+
+      - name: Set up Docker Buildx
+        if: steps.freeze.outputs.changed == 'false'
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+
+      - name: Authenticate to GitHub Container Registry
+        if: steps.freeze.outputs.changed == 'false'
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute OCI metadata
+        if: steps.freeze.outputs.changed == 'false'
+        id: meta
+        uses: docker/metadata-action@c299e40c654434947b98f1e1f8ab2294092f8ad3
+        with:
+          images: ghcr.io/scottdhughes/quantum-proof-bitcoin-shrincslab
+          tags: |
+            type=raw,value=edge
+            type=sha,format=long
+          labels: |
+            org.opencontainers.image.title=PQBTC SHRINCS zero-value labnet node
+            org.opencontainers.image.description=Experimental SHA-256d labnet with genesis-bound SHRINCS-v0 authorization; no economic security
+            org.opencontainers.image.source=https://github.com/scottdhughes/quantum-proof-bitcoin
+            org.pqbtc.network.genesis=122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69
+            org.pqbtc.network.zero-value=true
+
+      - name: Build and push attested labnet image
+        if: steps.freeze.outputs.changed == 'false'
+        id: push
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+        with:
+          context: .
+          file: contrib/shrincs-labnet/Dockerfile.shrincslab
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Attest published image
+        if: steps.freeze.outputs.changed == 'false'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-name: ghcr.io/scottdhughes/quantum-proof-bitcoin-shrincslab
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+      - name: Emit deployment coordinates
+        if: steps.freeze.outputs.changed == 'false'
+        run: |
+          cat <<EOF
+          image=ghcr.io/scottdhughes/quantum-proof-bitcoin-shrincslab@${{ steps.push.outputs.digest }}
+          genesis=122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69
+          p2p_port=29333
+          zero_value_only=true
+          EOF
