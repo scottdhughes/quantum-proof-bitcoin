@@ -2,7 +2,7 @@
 
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-WRAPPER-PROTOTYPE-v1
-## Updated: 2026-08-12
+## Updated: 2026-08-20
 ## Consensus-Relevant: NO
 
 ## Scope
@@ -356,17 +356,41 @@ raw samples partition one batch rather than supplying 31 independent batch
 repetitions, so the policy makes no percentile claim and requires at least two
 additional protected-main samples per compiler before tightening.
 
-Pull-request observations remain `UNTRUSTED_PR_OBSERVATION`. The numeric-
-policy change must merge and then receive a separate reviewed baseline-pointer
-advance before a clean protected-main push can produce policy-enforced
-`TRUSTED_MAIN_OBSERVATION` evidence. Manual dispatches remain untrusted. No
-individual compiler artifact is promotion-eligible: the exact-head GCC and
-Clang pair and external GitHub Actions provenance must be verified together.
+Pull-request observations remain `UNTRUSTED_PR_OBSERVATION`, and manual
+dispatches remain untrusted. The numeric-policy implementation landed at
+`18db91c542b51f37c2dabf198979c33d793ecddf`; the separately reviewed baseline
+pointer names `1833f20ee66fe7cac9f8e41a98b07f9eab150ec7`. Automatic protected-main
+push run `32419767106`, attempt `1`, then evaluated the policy at exact clean
+head `6315f49bbde6347bf09e9518e0b4ccc31347b963` with an empty guarded diff.
+Both compiler reports and all 24 internal checksums per artifact passed
+independent revalidation. GCC job `96589014091`, artifact `9425610867`, has
+outer SHA-256
+`dd949cf2eff6337191973e303e7544fb5758a96fffccf8638b70b835ecc18019`;
+Clang job `96589013980`, artifact `9425628829`, has outer SHA-256
+`8d4c293fe8e334da4ad84ed745ed8f8bfcc2dc41b460d417c52cf7a842e09362`.
+
+The policy-enforced GCC observation recorded aggregate CPU/wall times of
+`1,692,534,302` / `1,692,761,746` ns, a maximum retained batch-sample CPU/wall
+pair of `18,739,307` / `18,740,451` ns, a maximum batch-total CPU/wall pair of
+`439,410,363` / `439,435,547` ns, first-call CPU/wall times of `117,510` /
+`118,631` ns, and `31,780` KiB peak RSS. Clang recorded
+`1,173,297,728` / `1,173,472,276` ns aggregate, `16,096,929` / `16,097,287`
+ns maximum retained batch sample, `321,770,054` / `321,788,052` ns maximum
+batch total, `95,792` / `96,845` ns first call, and `31,820` KiB peak RSS.
+Every value passed the frozen coarse ceiling without calibrating that ceiling
+from the evaluated run. Both artifacts remain `promotion_eligible=false`; the
+exact-head GCC/Clang pair and external GitHub Actions provenance must be
+verified together. The versioned
+[policy-enforced exact-main receipt](reviews/evidence/ml-dsa-44-trusted-main/6315f49bbde6347bf09e9518e0b4ccc31347b963/SOURCE.json)
+records the selected run, job, artifact, checksum, compiler, stack, and numeric
+receipt fields.
 
 This is a test-only observation lane, not a supported-platform or worst-case
 resource proof. It changes no production linkage or behavior, does not admit
 SIMD256, and does not establish a consensus parser or adversarial block limit.
-Issue `#188` remains open pending fresh policy-enforced trusted-main evidence,
+This pair supplies the first of the two additional independent protected-main
+samples per compiler required by the frozen policy before any ceiling-
+tightening review. Issue `#188` remains open pending the remaining sample pair,
 broader-platform and toolchain coverage, concurrency and production-parser
 limits, and exact-commit re-review. Issue `#181` also remains open, production
 remains `NONE`, and `RELEASE_HOLD` remains in force.
