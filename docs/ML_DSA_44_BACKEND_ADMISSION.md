@@ -3,7 +3,7 @@
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-BACKEND-ADMISSION-v1
 ## Decided: 2026-07-19
-## Evidence-Updated: 2026-08-12
+## Evidence-Updated: 2026-08-20
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -211,9 +211,29 @@ as the numeric-policy basis. Because the 31 samples partition one batch rather
 than 31 independent repetitions, the policy makes no percentile or statistical
 performance claim and requires at least two additional protected-main samples
 per compiler before tightening. Pull-request and manual observations remain
-untrusted. The policy change still requires a separate post-merge baseline-
-pointer advance and a fresh exact-head GCC/Clang protected-main pair before
-this bounded enforcement tranche can be recorded as trusted evidence.
+untrusted.
+
+The numeric policy landed at
+`18db91c542b51f37c2dabf198979c33d793ecddf`, and the reviewed baseline pointer
+now names `1833f20ee66fe7cac9f8e41a98b07f9eab150ec7`. Automatic protected-main push
+run `32419767106`, attempt `1`, applied that policy at exact clean head
+`6315f49bbde6347bf09e9518e0b4ccc31347b963`; its guarded diff was empty. GCC
+job `96589014091` / artifact `9425610867` and Clang job `96589013980` /
+artifact `9425628829` both reported `PASS`, and all 24 internal checksums in
+each artifact revalidated. Their outer SHA-256 values are respectively
+`dd949cf2eff6337191973e303e7544fb5758a96fffccf8638b70b835ecc18019` and
+`8d4c293fe8e334da4ad84ed745ed8f8bfcc2dc41b460d417c52cf7a842e09362`.
+The GCC/Clang aggregate CPU observations were `1,692,534,302` /
+`1,173,297,728` ns, aggregate wall observations were `1,692,761,746` /
+`1,173,472,276` ns, and peak RSS observations were `31,780` / `31,820` KiB.
+Every enforced numeric and structural check passed without current-run
+threshold calibration. The versioned
+[policy-enforced exact-main receipt](reviews/evidence/ml-dsa-44-trusted-main/6315f49bbde6347bf09e9518e0b4ccc31347b963/SOURCE.json)
+retains the per-batch, first-call, maximum-sample, compiler, stack, and checksum
+details. Each artifact remains non-promotion-eligible; only the pair with
+external workflow provenance forms this bounded trusted observation. It is the
+first of the two additional protected-main samples per compiler required by
+the frozen policy before a ceiling-tightening review; one further pair remains.
 
 This is implementation evidence for the admitted experiment, not a production
 backend disposition. The raw-key prototype ABI, process-global serialization,
@@ -232,7 +252,7 @@ Prototype admission closes no production finding:
 | Supported-platform side channels | #185 | bounded x86_64 Valgrind constant-time/variable-latency evidence; broader platforms and leakage models open |
 | Fault model and injected faults | #186 | open |
 | End-to-end secret erasure | #187 | source cleanup and sanitizer evidence only; compiler/caller/platform boundary open |
-| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential/stateful fuzzing, promoted regressions, portable Miri evidence, bounded malformed research-CLI argv replay, exact-main GCC/Clang direct-verifier observations, and a reviewed coarse Linux x86_64 numeric regression policy; fresh policy-enforced trusted-main evidence, broader platform/Rust sanitizer and toolchain coverage, concurrency and production-parser limits, and exact-commit re-review remain open |
+| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential/stateful fuzzing, promoted regressions, portable Miri evidence, bounded malformed research-CLI argv replay, exact-main GCC/Clang direct-verifier observations, a reviewed coarse Linux x86_64 numeric regression policy, and the first of two additional policy-enforced trusted-main GCC/Clang sample pairs; one further sample pair, broader platform/Rust sanitizer and toolchain coverage, concurrency and production-parser limits, and exact-commit re-review remain open |
 | Backend advisories, SBOM, and reproducible build | #189 | dated fail-closed ledger, full-lock cargo-audit/OSV scans, exact selected graph, CycloneDX SBOM, weekly retained refresh, exact portable ML-DSA-44 RUSTSEC-2026-0077 regressions, and promoted trusted-main test-only SIMD256 0125/0126 PASS evidence; exact-commit independent re-review remains open, and optimized-backend admission is a separate future decision |
 | Wallet and key format | #190 | open |
 | Independent human cryptographic review | #181 | open |

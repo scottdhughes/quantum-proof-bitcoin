@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-08-12
+## Updated: 2026-08-20
 ## Current Phase: Phase 1 - Cryptographic Production Hold
 
 ## Purpose
@@ -301,10 +301,10 @@ tracked suites now have an explicit policy class and none remains in
 
 ## Current Follow-On Candidates
 
-Active owned tranche:
+Completed owned tranche:
 
-1. Land and re-baseline the coarse Linux x86_64 resource-regression policy
-   under `#188`
+1. Land, re-baseline, and record the coarse Linux x86_64 resource-regression
+   policy under `#188`
    - retain protected-main push run `31520865906` at
      `79de77faf112453868779861ae0c982dba533f84` as the immutable GCC and Clang
      acceptance basis, including exact workflow, artifact, checksum, report,
@@ -316,13 +316,23 @@ Active owned tranche:
      `25,000,000` nanoseconds, verifier-batch-sample CPU/wall ceilings of
      `75,000,000` / `200,000,000` nanoseconds, the exact 128 KiB guarded
      thread, and zero instrumented project heap calls
-   - merge the policy as `P`; expect its protected-main run to remain
-     `PENDING_BASELINE_OBSERVATION`; then land a pointer-only PR targeting
-     exact `P` and verify the automatic exact-head GCC/Clang
-     `TRUSTED_MAIN_OBSERVATION` artifacts and all archive/internal checksums
-   - require at least two additional independent protected-main samples per
-     compiler before tightening; the current raw samples partition one batch
-     and do not justify percentile or confidence-interval claims
+   - policy merge `18db91c542b51f37c2dabf198979c33d793ecddf` landed; the
+     pointer-only merge at `6315f49bbde6347bf09e9518e0b4ccc31347b963`
+     targets exact baseline `1833f20ee66fe7cac9f8e41a98b07f9eab150ec7`
+   - automatic protected-main push run `32419767106`, attempt `1`, produced
+     the policy-enforced exact-head GCC/Clang `TRUSTED_MAIN_OBSERVATION` pair;
+     both reports, both 24-entry internal inventories, and the outer artifact
+     hashes revalidated, while each artifact remained
+     `promotion_eligible=false`
+   - retain the versioned
+     [policy-enforced receipt](reviews/evidence/ml-dsa-44-trusted-main/6315f49bbde6347bf09e9518e0b4ccc31347b963/SOURCE.json)
+     with exact run, job, artifact, checksum, compiler, stack, and observed
+     numeric fields
+   - require two additional independent protected-main samples per compiler
+     after the frozen acceptance basis before tightening; run `32419767106`
+     supplies the first and one further sample pair remains. The current raw
+     samples partition one batch and do not justify percentile or confidence-
+     interval claims
    - treat the four 4,287-call batches as research workloads only, not a
      consensus, block, transaction, mempool, or production limit
    - preserve broader-platform/toolchain, concurrency, production-parser, and
@@ -1892,6 +1902,23 @@ Aineko must ask before:
 
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
+
+- 2026-08-20: The coarse test-only Linux x86_64 resource-regression policy
+  landed at `18db91c542b51f37c2dabf198979c33d793ecddf`; the separately reviewed
+  pointer now names `1833f20ee66fe7cac9f8e41a98b07f9eab150ec7`. Automatic protected-main
+  push run `32419767106`, attempt `1`, evaluated exact clean head
+  `6315f49bbde6347bf09e9518e0b4ccc31347b963` with an empty guarded diff. GCC
+  job `96589014091` / artifact `9425610867` and Clang job `96589013980` /
+  artifact `9425628829` both passed; their outer SHA-256 values are
+  `dd949cf2eff6337191973e303e7544fb5758a96fffccf8638b70b835ecc18019` and
+  `8d4c293fe8e334da4ad84ed745ed8f8bfcc2dc41b460d417c52cf7a842e09362`.
+  All 24 internal checksums per artifact revalidated. The pair is
+  policy-enforced `TRUSTED_MAIN_OBSERVATION` evidence, but each artifact
+  remains `promotion_eligible=false`; it is not a supported-platform,
+  consensus, production, or worst-case resource bound. This pair supplies the
+  first of two additional protected-main samples per compiler required before
+  tightening; one further pair remains. Issues `#188` and `#181` remain open,
+  production remains `NONE`, and `RELEASE_HOLD` remains in force.
 
 - 2026-08-12: Separate review of exact protected-main resource run
   `31520865906` selected deliberately coarse test-only Linux x86_64
