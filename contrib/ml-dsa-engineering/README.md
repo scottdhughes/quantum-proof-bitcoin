@@ -50,7 +50,9 @@ The normative requirements and lifecycle limits are in
 `docs/ML_DSA_44_HEDGED_SIGNING_CONTRACT.md`. The admission disposition and
 candidate comparison are in `docs/ML_DSA_44_BACKEND_ADMISSION.md`.
 The implemented evidence and remaining boundaries are in
-`docs/ML_DSA_44_WRAPPER_PROTOTYPE.md`.
+`docs/ML_DSA_44_WRAPPER_PROTOTYPE.md`. The bounded test-only candidate-
+corruption checkpoint and its physical-fault nonclaims are in
+`docs/ML_DSA_44_FAULT_MODEL.md`.
 
 ## Advisory Ledger, SBOM, and Portable Miri
 

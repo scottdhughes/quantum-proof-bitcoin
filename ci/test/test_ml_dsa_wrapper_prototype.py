@@ -19,6 +19,7 @@ ENGINEERING_DIR = REPO_ROOT / "contrib" / "ml-dsa-engineering"
 SOURCE_MANIFEST = ENGINEERING_DIR / "vendor" / "mldsa-native" / "SOURCE.json"
 ADMISSION = ENGINEERING_DIR / "backend_admission.json"
 PROTOTYPE_DOCUMENT = REPO_ROOT / "docs" / "ML_DSA_44_WRAPPER_PROTOTYPE.md"
+FAULT_MODEL = REPO_ROOT / "docs" / "ML_DSA_44_FAULT_MODEL.md"
 FUZZ_MANIFEST = ENGINEERING_DIR / "verifier_fuzz_corpus.json"
 STATIC_ANALYSIS = ENGINEERING_DIR / "run_static_analysis.py"
 VALGRIND_CT_ANALYSIS = ENGINEERING_DIR / "run_valgrind_ct_analysis.py"
@@ -153,6 +154,65 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         self.assertIn("WIFEXITED(status)", smoke)
         self.assertIn("parent_signature", smoke)
         self.assertIn('flags.append("-pthread")', runner)
+
+    def test_candidate_corruption_fault_hook_is_test_only_and_fail_closed(self):
+        source = (ENGINEERING_DIR / "pqbtc_mldsa44.c").read_text(encoding="utf8")
+        public_header = (ENGINEERING_DIR / "pqbtc_mldsa44.h").read_text(
+            encoding="utf8"
+        )
+        test_header = (ENGINEERING_DIR / "pqbtc_mldsa44_test.h").read_text(
+            encoding="utf8"
+        )
+        smoke = (ENGINEERING_DIR / "pqbtc_mldsa44_smoke.c").read_text(
+            encoding="utf8"
+        )
+        stateful_fuzz = (
+            ENGINEERING_DIR / "pqbtc_mldsa44_stateful_fuzz.c"
+        ).read_text(encoding="utf8")
+        fault_model = FAULT_MODEL.read_text(encoding="utf8")
+        workflow = (
+            REPO_ROOT / ".github/workflows/ml-dsa-44-wrapper-prototype.yml"
+        ).read_text(encoding="utf8")
+
+        hook = "pqbtc_mldsa44_test_corrupt_candidate_before_verify"
+        self.assertNotIn(hook, public_header)
+        self.assertIn(hook, test_header)
+        self.assertIn(hook, smoke)
+        clear_faults = stateful_fuzz.split(
+            "static void ClearFaults(void)", maxsplit=1
+        )[1].split("}", maxsplit=1)[0]
+        self.assertIn(f"{hook}(0);", clear_faults)
+
+        length_gate = source.index(
+            "if (candidate_size != PQBTC_MLDSA44_SIGNATURE_BYTES)"
+        )
+        injection = source.index("if (g_test_corrupt_candidate_before_verify)")
+        verification = source.index(
+            "backend_result = pqbtc_mldsa44_upstream_verify(", injection
+        )
+        cleanup = source.index(
+            "pqbtc_mldsa44_zeroize(candidate, sizeof(candidate));", verification
+        )
+        testing_guard = source.rfind(
+            "#ifdef PQBTC_MLDSA44_TESTING", length_gate, injection
+        )
+        testing_end = source.index("#endif", injection)
+        self.assertLess(length_gate, testing_guard)
+        self.assertLess(testing_guard, injection)
+        self.assertLess(injection, testing_end)
+        self.assertLess(testing_end, verification)
+        self.assertLess(verification, cleanup)
+
+        self.assertIn("PQBTC_MLDSA44_ERR_VERIFY", smoke)
+        self.assertIn("pqbtc_mldsa44_test_last_candidate_zeroized() == 1", smoke)
+        self.assertIn("PQBTC_MLDSA44_ERR_ENTROPY_REPEAT", smoke)
+        self.assertIn("IsZero(signature, sizeof(signature))", smoke)
+        self.assertIn("issue `#186` remains open", fault_model)
+        self.assertIn("`production_backend` remains `NONE`", fault_model)
+        self.assertIn("skipped control flow", fault_model)
+        self.assertIn("common-mode fault", fault_model)
+        self.assertIn("physical fault", fault_model)
+        self.assertIn('      - "docs/ML_DSA_44_FAULT_MODEL.md"', workflow)
 
     @unittest.skipIf(sys.platform == "win32", "POSIX-only pthread contract")
     def test_posix_wrapper_build_commands_link_pthread(self):

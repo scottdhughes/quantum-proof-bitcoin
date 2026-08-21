@@ -432,8 +432,12 @@ This prototype advances engineering evidence but closes no production gate:
   with calibrated controls has passed, but ARM, Windows, cache, speculative,
   physical-leakage, rejection-count, and production-binary coverage remain
   open;
-- issue `#186`: self-verification and injected errors are partial controls,
-  not a complete fault model;
+- issue `#186`: a test-only post-signature candidate bit flip now reaches the
+  real self-verifier and requires rejection, zero output, observed candidate
+  cleanup, and consumed-randomizer semantics. This is one deterministic
+  wrapper checkpoint, not evidence for skipped control flow, common-mode
+  verifier faults, wider internal checkpoints, supported platforms, or
+  physical attacks;
 - issue `#187`: explicit source cleanup and sanitizer evidence do not prove
   erasure of compiler copies, registers, caller-owned keys, or crash artifacts;
 - issue `#188`: deterministic Wycheproof replay, bounded structure-aware

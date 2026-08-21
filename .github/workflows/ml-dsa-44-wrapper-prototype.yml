@@ -15,6 +15,7 @@ on:
       - "contrib/ml-dsa-engineering/**"
       - "contrib/ml-dsa-ref/vectors.json"
       - "docs/ML_DSA_44_BACKEND_ADMISSION.md"
+      - "docs/ML_DSA_44_FAULT_MODEL.md"
       - "docs/ML_DSA_44_HEDGED_SIGNING_CONTRACT.md"
       - "docs/ML_DSA_44_WRAPPER_PROTOTYPE.md"
       - "src/.clang-tidy"

@@ -118,6 +118,26 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
         )
         self.assertTrue(evidence["test_build_separate"])
         self.assertFalse(evidence["test_controls_in_production_shaped_build"])
+        self.assertEqual(
+            evidence["fault_injection_evidence"],
+            {
+                "scope": "TEST_BUILD_ONLY_GENERAL_PURPOSE_HOST_WRAPPER_BOUNDARY",
+                "checkpoints": [
+                    "POST_SIGNATURE_PRE_SELF_VERIFY_CANDIDATE_BIT_FLIP"
+                ],
+                "uses_real_self_verifier": True,
+                "failure_result": "PQBTC_MLDSA44_ERR_VERIFY",
+                "failure_output": "ALL_ZERO",
+                "candidate_source_buffer_all_zero_observed": True,
+                "source_level_observer_only": True,
+                "consumed_randomizer_remains_consumed": True,
+                "production_exports_test_controls": False,
+                "retained_results": False,
+                "platform_fault_model_complete": False,
+                "physical_fault_model_complete": False,
+                "exact_commit_re_review": "PENDING",
+            },
+        )
         self.assertFalse(evidence["node_linkage"])
         self.assertFalse(evidence["wallet_linkage"])
         self.assertFalse(evidence["consensus_linkage"])
@@ -139,7 +159,13 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
                     "supported_platform_side_channel",
                     "BOUNDED_X86_64_VALGRIND_EVIDENCE_BROADER_PLATFORMS_OPEN",
                 ),
-                186: ("fault_resistance", "OPEN"),
+                186: (
+                    "fault_resistance",
+                    (
+                        "ISOLATED_CANDIDATE_CORRUPTION_REGRESSION_"
+                        "BROADER_FAULT_MODEL_OPEN"
+                    ),
+                ),
                 187: (
                     "secret_lifecycle_and_erasure",
                     "ISOLATED_SOURCE_AND_SANITIZER_EVIDENCE_OPEN",

@@ -1694,6 +1694,26 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
                     "COMPLETE",
                 ),
             ),
+            (
+                "fault evidence broadening",
+                lambda value: value["admitted_prototype"][
+                    "implementation_evidence"
+                ]["fault_injection_evidence"].__setitem__(
+                    "physical_fault_model_complete",
+                    True,
+                ),
+            ),
+            (
+                "fault gate closure",
+                lambda value: next(
+                    gate
+                    for gate in value["open_gates"]
+                    if gate["tracking_issue"] == 186
+                ).__setitem__(
+                    "status",
+                    "COMPLETE",
+                ),
+            ),
         ):
             with self.subTest(label=label):
                 mutated = copy.deepcopy(admission)

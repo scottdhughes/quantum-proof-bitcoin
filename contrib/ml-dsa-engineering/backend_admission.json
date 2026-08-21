@@ -96,6 +96,23 @@
       "posix_multithreaded_child_signing_portably_supported": false,
       "posix_module_unload_while_forkable_supported": false,
       "partial_output_released_on_failure": false,
+      "fault_injection_evidence": {
+        "scope": "TEST_BUILD_ONLY_GENERAL_PURPOSE_HOST_WRAPPER_BOUNDARY",
+        "checkpoints": [
+          "POST_SIGNATURE_PRE_SELF_VERIFY_CANDIDATE_BIT_FLIP"
+        ],
+        "uses_real_self_verifier": true,
+        "failure_result": "PQBTC_MLDSA44_ERR_VERIFY",
+        "failure_output": "ALL_ZERO",
+        "candidate_source_buffer_all_zero_observed": true,
+        "source_level_observer_only": true,
+        "consumed_randomizer_remains_consumed": true,
+        "production_exports_test_controls": false,
+        "retained_results": false,
+        "platform_fault_model_complete": false,
+        "physical_fault_model_complete": false,
+        "exact_commit_re_review": "PENDING"
+      },
       "node_linkage": false,
       "wallet_linkage": false,
       "consensus_linkage": false
@@ -165,7 +182,7 @@
     },
     {
       "id": "fault_resistance",
-      "status": "OPEN",
+      "status": "ISOLATED_CANDIDATE_CORRUPTION_REGRESSION_BROADER_FAULT_MODEL_OPEN",
       "tracking_issue": 186
     },
     {
