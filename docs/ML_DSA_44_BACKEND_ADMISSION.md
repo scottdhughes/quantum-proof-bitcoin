@@ -169,7 +169,13 @@ controls only for evidence generation. The harness exercises real OS entropy,
 frozen key/signature hashes, strict verification, fail-closed output,
 zeroization-hook execution, concurrent repeat rejection, coordinated standard
 POSIX fork parent/child module-lock recovery, fail-closed at-fork registration,
-and ASan/UBSan. Child signing is a tested-platform observation, not a portable
+and ASan/UBSan. A deterministic test-build-only checkpoint also flips a bit in
+a genuinely generated exact-length candidate immediately before the real
+self-verifier and requires verification rejection, all-zero caller output,
+observed candidate cleanup, and continued rejection of the consumed
+randomizer. `ML_DSA_44_FAULT_MODEL.md` bounds this as issue-`#186` tranche 1;
+it is not physical-fault, diversified-verifier, or control-flow-skip evidence.
+Child signing is a tested-platform observation, not a portable
 POSIX guarantee: the signer is not async-signal-safe, so a portable
 multithreaded child must `exec` first. The fork evidence also requires the
 module to remain loaded and does not cover reentrant or signal-handler fork,
@@ -250,7 +256,7 @@ Prototype admission closes no production finding:
 | --- | --- | --- |
 | Entropy and fail-closed binding | #184 | isolated wrapper, Linux/macOS RBG evidence, and one coordinated standard-POSIX-fork module-lock observation; async-signal-safe child signing, alternate/reentrant fork and clone behavior, handler ordering, module lifetime, and broader supported-platform lifecycle remain open |
 | Supported-platform side channels | #185 | bounded x86_64 Valgrind constant-time/variable-latency evidence; broader platforms and leakage models open |
-| Fault model and injected faults | #186 | open |
+| Fault model and injected faults | #186 | test-only pre-self-verification candidate-corruption regression with atomic output and cleanup evidence; broader checkpoints, control-flow and common-mode analysis, platform/hardware model, physical campaign, and exact-commit re-review remain open |
 | End-to-end secret erasure | #187 | source cleanup and sanitizer evidence only; compiler/caller/platform boundary open |
 | Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential/stateful fuzzing, promoted regressions, portable Miri evidence, bounded malformed research-CLI argv replay, exact-main GCC/Clang direct-verifier observations, a reviewed coarse Linux x86_64 numeric regression policy, and the first of two additional policy-enforced trusted-main GCC/Clang sample pairs; one further sample pair, broader platform/Rust sanitizer and toolchain coverage, concurrency and production-parser limits, and exact-commit re-review remain open |
 | Backend advisories, SBOM, and reproducible build | #189 | dated fail-closed ledger, full-lock cargo-audit/OSV scans, exact selected graph, CycloneDX SBOM, weekly retained refresh, exact portable ML-DSA-44 RUSTSEC-2026-0077 regressions, and promoted trusted-main test-only SIMD256 0125/0126 PASS evidence; exact-commit independent re-review remains open, and optimized-backend admission is a separate future decision |

@@ -982,6 +982,34 @@ def _validate_simd256_backend_admission(
         "backend SIMD256 advisory evidence",
     )
 
+    prototype = admission.get("admitted_prototype")
+    if not isinstance(prototype, dict):
+        raise AuditError("admitted prototype is missing")
+    implementation_evidence = prototype.get("implementation_evidence")
+    if not isinstance(implementation_evidence, dict):
+        raise AuditError("admitted prototype implementation evidence is missing")
+    _require_exact_json(
+        implementation_evidence.get("fault_injection_evidence"),
+        {
+            "scope": "TEST_BUILD_ONLY_GENERAL_PURPOSE_HOST_WRAPPER_BOUNDARY",
+            "checkpoints": [
+                "POST_SIGNATURE_PRE_SELF_VERIFY_CANDIDATE_BIT_FLIP"
+            ],
+            "uses_real_self_verifier": True,
+            "failure_result": "PQBTC_MLDSA44_ERR_VERIFY",
+            "failure_output": "ALL_ZERO",
+            "candidate_source_buffer_all_zero_observed": True,
+            "source_level_observer_only": True,
+            "consumed_randomizer_remains_consumed": True,
+            "production_exports_test_controls": False,
+            "retained_results": False,
+            "platform_fault_model_complete": False,
+            "physical_fault_model_complete": False,
+            "exact_commit_re_review": "PENDING",
+        },
+        "backend fault-injection evidence",
+    )
+
     gates = admission.get("open_gates")
     if not isinstance(gates, list):
         raise AuditError("backend admission gates are missing")
@@ -1003,7 +1031,10 @@ def _validate_simd256_backend_admission(
         },
         186: {
             "id": "fault_resistance",
-            "status": "OPEN",
+            "status": (
+                "ISOLATED_CANDIDATE_CORRUPTION_REGRESSION_"
+                "BROADER_FAULT_MODEL_OPEN"
+            ),
             "tracking_issue": 186,
         },
         187: {
