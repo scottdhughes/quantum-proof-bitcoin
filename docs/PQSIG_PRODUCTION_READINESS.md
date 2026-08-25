@@ -3,7 +3,7 @@
 ## Status: RELEASE_HOLD - AWAITING_EXTERNAL_REVIEW
 ## Spec-ID: PQSIG-PRODUCTION-READINESS-v1
 ## Decided: 2026-07-18
-## Evidence-Updated: 2026-08-01
+## Evidence-Updated: 2026-08-25
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -161,7 +161,7 @@ selected for activation by this record.
    evidence is green across OpenSSL, `mldsa-native`, and libcrux. Preserve the
    qualified `separate_implementation_lineage_with_reference_influence`
    assessment.
-3. Use the OpenSSL 3.6.3 runtime and pinned source checkout only as a prototype
+3. Use the OpenSSL 3.6.4 runtime and pinned source checkout only as a prototype
    and differential-test oracle. Do not introduce a host OpenSSL dependency
    into consensus verification.
 4. Preserve a second independent implementation or vector source for every

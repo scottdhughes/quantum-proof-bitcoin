@@ -119,9 +119,9 @@
     }
   },
   "candidate_assessments": {
-    "openssl_3_6_3": {
-      "source_commit": "aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f",
-      "source_tree": "a8a306c000bc2426afd3264b2c41bc7223728475",
+    "openssl_3_6_4": {
+      "source_commit": "d3c1b1169b3569ff3069e5b399f47b2b28e03d79",
+      "source_tree": "0f2db317fdf20b06193b96e79ac699b2d4e36d7d",
       "license_expression": "Apache-2.0",
       "conformance": "PASS",
       "entropy_boundary": "INTERNAL_DRBG_WITH_PUBLIC_TEST_AND_DETERMINISTIC_CONTROLS",

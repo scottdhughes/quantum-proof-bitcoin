@@ -85,8 +85,13 @@
     },
     "openssl": {
       "repository": "https://github.com/openssl/openssl",
-      "commit": "aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f",
-      "version": "3.6.3",
+      "commit": "d3c1b1169b3569ff3069e5b399f47b2b28e03d79",
+      "git_tree": "0f2db317fdf20b06193b96e79ac699b2d4e36d7d",
+      "version": "3.6.4",
+      "tag": "openssl-3.6.4",
+      "tag_object": "360ffdb6d82f298d8d22c838dc2b7bf61ece056d",
+      "release_tarball_url": "https://github.com/openssl/openssl/releases/download/openssl-3.6.4/openssl-3.6.4.tar.gz",
+      "release_tarball_sha256": "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef",
       "documentation": "https://docs.openssl.org/3.6/man7/EVP_SIGNATURE-ML-DSA/",
       "role": "separate prototype oracle; not a node dependency"
     },

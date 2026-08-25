@@ -2,7 +2,7 @@
 
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-WRAPPER-PROTOTYPE-v1
-## Updated: 2026-08-20
+## Updated: 2026-08-25
 ## Consensus-Relevant: NO
 
 ## Scope
@@ -250,7 +250,7 @@ the fork lifecycle test.
 The pinned review-reproduction workflow adds a 60-second pull-request smoke or
 a 1,800-second scheduled/manual main Linux Clang ASan/UBSan differential
 campaign. Its fuzz target calls the isolated wrapper,
-OpenSSL 3.6.3's explicitly selected default provider in a separate library
+OpenSSL 3.6.4's explicitly selected default provider in a separate library
 context, and libcrux 0.0.10 in-process for every parsed frame and aborts
 on any setup error or accept/reject disagreement. The wrapper's exact
 invalid-argument taxonomy is still checked separately. The retained evidence

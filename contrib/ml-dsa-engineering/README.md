@@ -69,14 +69,16 @@ dispositions.
 
 The scheduled read-only workflow pins cargo-audit, OSV Scanner,
 cargo-cyclonedx, and Miri. It also validates the official live OpenSSL
-release-metadata corpus against exact 3.6.3 semver ranges and requires the
+release-metadata corpus against exact 3.6.4 semver ranges and requires the
 public mldsa-native repository-advisory API to remain a complete empty result.
-OpenSSL 3.6.3 is version-affected by CVE-2026-14456 and CVE-2026-54876, but
-their libssl QUIC-server-listener and TLS-client X.509/OCSP paths are absent
-from the isolated EVP-only ML-DSA oracle. The ledger binds each
-`NOT_APPLICABLE` path disposition to its official CVE record and the exact
-local oracle source/include closure rather than claiming that the package pin
-is unaffected.
+The 2026-08-25 feed refresh identified eleven CVEs affecting the superseded
+3.6.3 pin. None reaches the isolated default-provider EVP ML-DSA oracle, but
+the fixed 3.6.4 release now replaces that knowingly affected comparator rather
+than treating path non-applicability as package-level remediation. The active
+3.6.4 pin has zero affected IDs under the reviewed feed. The retained
+transition records the old path analysis and the upstream CVE-2026-63076
+metadata error: its cited 3.6.4 fix commit is absent, while released commit
+`49de27169f4cc42619a096c38412e47a3f890803` contains the equivalent fix.
 It retains raw feed bodies and headers, OpenSSL commit/tree/archive evidence,
 the RustSec commit, exact OSV database snapshot, raw scans, lock and graph
 evidence, SBOM, Miri logs, normalized report, and verified checksums for 90
@@ -278,7 +280,7 @@ full candidate, baseline, and retained SHA-256 inventories preserve the exact
 set-difference receipt after the source artifact expires. Its 13 argument
 errors and 25 verification rejections replay before fuzzing.
 Every parsed frame is evaluated by the admitted
-wrapper, OpenSSL 3.6.3's explicitly selected default provider in an isolated
+wrapper, OpenSSL 3.6.4's explicitly selected default provider in an isolated
 library context, and libcrux 0.0.10. An oracle setup error or accept/reject
 disagreement aborts through the normal
 libFuzzer crash path.
@@ -347,10 +349,12 @@ Those ceilings were selected in a separate review of protected-main push run
 verified GCC and Clang artifacts are bound into the policy, including exact
 compiler targets and version-output hashes. The 31 raw samples partition one
 batch execution; they are not 31 independent batch repetitions and do not
-support percentile or confidence-interval claims. At least two more
-independent protected-main samples per compiler are required before tightening
-the ceilings. Numeric rejection preserves a checksummed raw observation and a
-recomputable `FAIL` receipt while the workflow job remains failed.
+support percentile or confidence-interval claims. Protected-main runs
+`32419767106` and `32541060189` supply the two additional policy-enforced
+sample pairs required before considering tighter ceilings. That completes only
+the sampling prerequisite: any ceiling change remains a separate review.
+Numeric rejection preserves a checksummed raw observation and a recomputable
+`FAIL` receipt while the workflow job remains failed.
 
 Pull-request output remains `UNTRUSTED_PR_OBSERVATION`; the policy change must
 first merge, then a separate reviewed baseline-pointer change must authorize
@@ -369,8 +373,8 @@ exact-commit checkout without weakening its build-command binding.
 
 This lane observes one production-shaped portable-C verifier configuration;
 it does not link a production backend or establish a supported-platform
-resource envelope. Issue `#188` remains open for fresh policy-enforced
-trusted-main evidence, broader platforms and toolchains, concurrency and
-production-parser limits, and exact-commit re-review. Issue `#181` remains
-open for qualified independent review. The production backend remains `NONE`,
-SIMD256 remains unadmitted, and the release hold remains true.
+resource envelope. Issue `#188` remains open for a separate ceiling-tightening
+decision, broader platforms and toolchains, concurrency and production-parser
+limits, and exact-commit re-review. Issue `#181` remains open for qualified
+independent review. The production backend remains `NONE`, SIMD256 remains
+unadmitted, and the release hold remains true.

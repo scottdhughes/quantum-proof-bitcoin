@@ -2,7 +2,7 @@
 
 ## Status: REFERENCE ONLY - NOT CONSENSUS
 ## Spec-ID: ML-DSA-44-REFERENCE-v2
-## Updated: 2026-08-01
+## Updated: 2026-08-25
 ## Consensus-Relevant: NO
 
 ## Decision Boundary
@@ -74,8 +74,11 @@ streaming design must specify and validate the `mu` trust boundary separately.
   the official 32-byte `rnd` for each case
 - all 15 external/pure signature-verification group 1 cases; cases 6, 7, and
   11 are accepted and the other 12 are rejected
-- OpenSSL 3.6.3 source commit
-  `aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f`
+- OpenSSL 3.6.4 source commit
+  `d3c1b1169b3569ff3069e5b399f47b2b28e03d79`, tree
+  `0f2db317fdf20b06193b96e79ac699b2d4e36d7d`, annotated tag object
+  `360ffdb6d82f298d8d22c838dc2b7bf61ece056d`, and release-tarball SHA-256
+  `9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef`
 - `mldsa-native` `v1.0.0-beta2` commit
   `9b0ee84f4cf399043eca59eca4e5f8531ca1d61b`
 - `libcrux-ml-dsa` `v0.0.10` commit
@@ -154,17 +157,17 @@ python3 contrib/ml-dsa-ref/compare_oracles.py \
 The full run requires clean source checkouts at the exact pinned commits, a
 full-history libcrux checkout for its ancestry check, the exact pinned libcrux
 crate archive, and Rust/Cargo access to the crate's locked dependencies. The
-installed OpenSSL CLI and `pkg-config` library must both report 3.6.3. The
+installed OpenSSL CLI and `pkg-config` library must both report 3.6.4. The
 OpenSSL adapter links that installed library; its source checkout establishes
 review provenance and is not compiled by the harness.
 
 ## Prototype Measurements
 
-Local arm64 macOS measurement on 2026-07-19, using OpenSSL 3.6.3, the pinned
-portable-C oracle compiled with `-O2`, and the pinned portable-Rust libcrux
-oracle compiled in release mode. Values are medians of ten repetitions of the
-fixed PQBTC vector and are directional, not release envelopes. They time the
-adapter's cryptographic calls and exclude compilation, process startup,
+Historical local arm64 macOS measurement on 2026-07-19, using OpenSSL 3.6.3,
+the pinned portable-C oracle compiled with `-O2`, and the pinned portable-Rust
+libcrux oracle compiled in release mode. Values are medians of ten repetitions
+of the fixed PQBTC vector and are directional, not release envelopes. They time
+the adapter's cryptographic calls and exclude compilation, process startup,
 cross-verification, and OpenSSL context initialization.
 
 | Oracle | Keygen | Deterministic sign | Deterministic verify | Randomized sign | Randomized verify |

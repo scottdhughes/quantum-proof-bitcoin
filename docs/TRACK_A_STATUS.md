@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-08-20
+## Updated: 2026-08-25
 ## Current Phase: Phase 1 - Cryptographic Production Hold
 
 ## Purpose
@@ -59,10 +59,11 @@ baseline remains `pq_required: 121`, `pq_backlog: 0`, `legacy_only: 14`, and
 The isolated `ML-DSA-44` comparator is recorded in
 `ML_DSA_44_REFERENCE.md`. It pins FIPS 204, NIST's potential-updates and
 Section 6 guidance artifacts, all 70 applicable external/pure ACVP cases,
-OpenSSL 3.6.3, `mldsa-native` `v1.0.0-beta2`, and libcrux 0.0.10. The three
-codebases agree on all official and repo-defined exact outputs, cross-verify
-randomized signatures, and reject the bounded malformed/mutated corpus. The
-two portable-C adapters pass the ASan/UBSan tranche. Both retained upstream
+OpenSSL 3.6.4, `mldsa-native` `v1.0.0-beta2`, and libcrux 0.0.10. The three
+codebases are required to agree on all official and repo-defined exact outputs,
+cross-verify randomized signatures, and reject the bounded malformed/mutated
+corpus. The two portable-C adapters must pass the ASan/UBSan tranche. Both
+retained upstream
 libcrux security tests pass on their ML-DSA-65 scope; two exact ML-DSA-44
 RUSTSEC-2026-0076 malformed-hint cases reject without panic, and pinned
 Wycheproof tcIds 125 and 126 provide exact ML-DSA-44 RUSTSEC-2026-0077
@@ -71,6 +72,15 @@ infinity-norm boundary across all three oracles.
 Ten-run arm64 timings and a raw-payload cost model are recorded. The qualified
 libcrux result closes the independent implementation evidence gate but is not
 independent design, external cryptographic review, or production approval.
+
+The 2026-08-25 OpenSSL advisory refresh correctly failed closed when the
+superseded 3.6.3 comparator became affected by eleven CVEs. Source review found
+no reachable path from the isolated default-provider EVP ML-DSA oracle, but
+the fixed 3.6.4 release now replaces that pin rather than relying on
+non-applicability. The repin changes only the research comparator and guarded
+evidence contracts. Fresh exact-main oracle, differential, and retained-corpus
+evidence plus a separate review-pointer advance remain required; production
+stays `NONE`, issue `#181` remains open, and `RELEASE_HOLD` is unchanged.
 
 The measured decision in `PQSIG_CANDIDATE_SELECTION.md` selects FIPS 204
 `ML-DSA-44` as the primary engineering candidate and retains FIPS 205

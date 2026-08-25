@@ -32,6 +32,20 @@ MLDSA_NATIVE_SOURCE = HERE / "mldsa_native_oracle.c"
 LIBCRUX_SOURCE = HERE / "libcrux_oracle.rs"
 REPO_ROOT = HERE.parents[1]
 HEX_64 = re.compile(r"^[0-9a-f]{64}$")
+OPENSSL_3_6_4_RELEASE = {
+    "version": "3.6.4",
+    "commit": "d3c1b1169b3569ff3069e5b399f47b2b28e03d79",
+    "git_tree": "0f2db317fdf20b06193b96e79ac699b2d4e36d7d",
+    "tag": "openssl-3.6.4",
+    "tag_object": "360ffdb6d82f298d8d22c838dc2b7bf61ece056d",
+    "release_tarball_url": (
+        "https://github.com/openssl/openssl/releases/download/"
+        "openssl-3.6.4/openssl-3.6.4.tar.gz"
+    ),
+    "release_tarball_sha256": (
+        "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef"
+    ),
+}
 
 
 class ReferenceError(RuntimeError):
@@ -131,8 +145,17 @@ def validate_manifest(manifest: dict) -> None:
     for source_name in ("nist_acvp", "openssl", "mldsa_native", "libcrux"):
         if re.fullmatch(r"[0-9a-f]{40}", sources[source_name]["commit"]) is None:
             raise ReferenceError(f"{source_name} commit must be a full Git SHA")
-    if sources["openssl"].get("version") != "3.6.3":
-        raise ReferenceError("OpenSSL source and runtime version must be 3.6.3")
+    openssl = sources["openssl"]
+    for field in ("commit", "git_tree", "tag_object"):
+        if re.fullmatch(r"[0-9a-f]{40}", openssl.get(field, "")) is None:
+            raise ReferenceError(f"OpenSSL {field} must be a full Git object ID")
+    if HEX_64.fullmatch(openssl.get("release_tarball_sha256", "")) is None:
+        raise ReferenceError("OpenSSL release_tarball_sha256 must be SHA256")
+    for field, expected in OPENSSL_3_6_4_RELEASE.items():
+        if openssl.get(field) != expected:
+            raise ReferenceError(
+                f"OpenSSL {field} does not match the frozen 3.6.4 release"
+            )
     if sources["mldsa_native"].get("tag") != "v1.0.0-beta2":
         raise ReferenceError("mldsa-native tag must be v1.0.0-beta2")
     libcrux = sources["libcrux"]
@@ -449,7 +472,9 @@ def require_git_commit(source_dir: Path, expected_commit: str, source_name: str)
         raise ReferenceError(f"{source_name} checkout must be clean")
 
 
-def require_openssl_source(source_dir: Path, expected_commit: str) -> None:
+def require_openssl_source(
+    source_dir: Path, expected_commit: str, expected_tree: str
+) -> None:
     required_files = (
         "crypto/ml_dsa/ml_dsa_sign.c",
         "doc/man7/EVP_SIGNATURE-ML-DSA.pod",
@@ -458,6 +483,11 @@ def require_openssl_source(source_dir: Path, expected_commit: str) -> None:
     if any(not (source_dir / relative_path).is_file() for relative_path in required_files):
         raise ReferenceError(f"missing OpenSSL ML-DSA source at {source_dir}")
     require_git_commit(source_dir, expected_commit, "OpenSSL")
+    actual_tree = run(["git", "rev-parse", "HEAD^{tree}"], cwd=source_dir).strip()
+    if actual_tree != expected_tree:
+        raise ReferenceError(
+            f"OpenSSL tree mismatch: expected {expected_tree}, got {actual_tree}"
+        )
 
 
 def require_mldsa_native_source(source_dir: Path, expected_commit: str) -> None:
@@ -1986,6 +2016,7 @@ def evaluate(
         "profile": profile["name"],
         "openssl_version": version_text,
         "openssl_commit": manifest["sources"]["openssl"]["commit"],
+        "openssl_tree": manifest["sources"]["openssl"]["git_tree"],
         "mldsa_native_commit": manifest["sources"]["mldsa_native"]["commit"],
         "libcrux_commit": manifest["sources"]["libcrux"]["commit"],
         "libcrux_version": manifest["sources"]["libcrux"]["version"],
@@ -2147,7 +2178,11 @@ def main() -> int:
             "FIPS 204 Section 6 guidance",
         )
         source_cases = verify_nist_sources(manifest, acvp_server)
-        require_openssl_source(openssl_source, sources["openssl"]["commit"])
+        require_openssl_source(
+            openssl_source,
+            sources["openssl"]["commit"],
+            sources["openssl"]["git_tree"],
+        )
         require_mldsa_native_source(
             mldsa_native, sources["mldsa_native"]["commit"]
         )
