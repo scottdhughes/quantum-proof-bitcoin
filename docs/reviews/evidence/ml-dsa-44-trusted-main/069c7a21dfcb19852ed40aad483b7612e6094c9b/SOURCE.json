@@ -1,0 +1,507 @@
+{
+  "baseline_pointer": "c2021c128b2c04f34477324c48ec7fdd6fc4d50e",
+  "baseline_pointer_file_sha256": "e388ec8aceab23f8a0f107a31eb37327dcadd890b6e3e12000ce1877241742f8",
+  "evidence_head": "069c7a21dfcb19852ed40aad483b7612e6094c9b",
+  "implementation_commit": "c2021c128b2c04f34477324c48ec7fdd6fc4d50e",
+  "observed_on": "2026-08-25",
+  "production_boundary": {
+    "exact_commit_independent_re_review": "PENDING",
+    "external_cryptographic_review_satisfied": false,
+    "production_backend": "NONE",
+    "production_integration": false,
+    "production_support_claim": false,
+    "release_hold": true,
+    "release_hold_changed": false
+  },
+  "repository": "scottdhughes/quantum-proof-bitcoin",
+  "schema_version": 1,
+  "scope": {
+    "direct_fault_claim": "TEST_BUILD_ONLY_POST_SIGNATURE_PRE_SELF_VERIFY_CANDIDATE_BIT_FLIP",
+    "post_openssl_3_6_4_repin_evidence": false,
+    "excluded_claims": [
+      "skipped-control-flow or common-mode signer/verifier fault resistance",
+      "corruption after self-verification or during output copying",
+      "key, randomizer, arithmetic, persistent-state, or platform integrity",
+      "compiler, CPU, kernel, VM, enclave, HSM, or hardware-signer fault resistance",
+      "physical fault resistance",
+      "production fitness or release approval"
+    ],
+    "fault_specific_artifact_retained": false,
+    "issue_181_state": "OPEN",
+    "issue_186_state": "OPEN",
+    "note": "Only the portable-wrapper GCC and Clang job logs directly record execution of the deterministic candidate-corruption checkpoint. Resource, static-analysis, Valgrind, sustained, and review artifacts are adjacent exact-head evidence and are not direct fault-checkpoint results. This historical receipt predates the OpenSSL 3.6.4 comparator repin in PR #247 and does not satisfy its fresh exact-main comparator, differential, or retained-corpus evidence requirement.",
+    "retained_results": false
+  },
+  "verification": {
+    "artifact_api_metadata_checked": true,
+    "archive_sha256_and_size_matched": true,
+    "guarded_baseline_diffs_empty": true,
+    "internal_checksum_inventories_checked": true,
+    "retained_source_heads_are_ancestors": true,
+    "unsafe_zip_members_found": false
+  },
+  "workflows": {
+    "resource_envelope": {
+      "artifacts": [
+        {
+          "archive_sha256": "8f5b4c72fd30e4e28952534989787c5f30c0ec9a8a5d3a74e32bd8f1ecd6858f",
+          "artifact_id": 9467033637,
+          "compiler": "clang",
+          "created_at": "2026-08-22T00:40:40Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-20T00:39:56Z",
+          "internal_inventory": {
+            "entries_verified": 24,
+            "sha256sums_sha256": "c78436c4315561e03c745564eda6b288a1ae25a7e3b3d573416bede500f9a6dc"
+          },
+          "job_id": 96951035770,
+          "metrics": {
+            "aggregate_cpu_ns": 1315659651,
+            "aggregate_wall_ns": 1315848853,
+            "numeric_checks_passed": 21,
+            "numeric_checks_total": 21,
+            "peak_rss_kib": 31884,
+            "upstream_mld_total_alloc_44_verify_bytes": 24448,
+            "upstream_verify_stack_bytes": 25016,
+            "wrapper_verify_stack_bytes": 8
+          },
+          "name": "ml-dsa-44-resource-main-observation-069c7a21dfcb19852ed40aad483b7612e6094c9b-clang-32541060189-1",
+          "observation_sha256": "e7d5b3533cb8985547375c3a0a3de33953bbf8aec3b6352785ba525e4853ce24",
+          "report_sha256": "9bf7219a9356c8ed8128733c7141b021d98a1180b2a9cff4dfafcdcffe041521",
+          "size_in_bytes": 539591,
+          "status": "PASS"
+        },
+        {
+          "archive_sha256": "e32a79388b829d30217935fed83c70884cb890822eb21bb69ca64827574b6ff2",
+          "artifact_id": 9467031167,
+          "compiler": "gcc",
+          "created_at": "2026-08-22T00:40:31Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-20T00:39:56Z",
+          "internal_inventory": {
+            "entries_verified": 24,
+            "sha256sums_sha256": "f092d907436c8f295c7e8f257d0b4399b395f373e5df0ffd97d379f1dd5652c7"
+          },
+          "job_id": 96951035779,
+          "metrics": {
+            "aggregate_cpu_ns": 995422645,
+            "aggregate_wall_ns": 995498501,
+            "numeric_checks_passed": 21,
+            "numeric_checks_total": 21,
+            "peak_rss_kib": 31912,
+            "upstream_mld_total_alloc_44_verify_bytes": 24448,
+            "upstream_verify_stack_bytes": 448,
+            "wrapper_verify_stack_bytes": 16
+          },
+          "name": "ml-dsa-44-resource-main-observation-069c7a21dfcb19852ed40aad483b7612e6094c9b-gcc-32541060189-1",
+          "observation_sha256": "c34be0ad4b23413668c4c95bf43111bf562b4121ed11b9e9994de26865322314",
+          "report_sha256": "008c9d8f83238fcb3333c07699852299a3d513d453a0ef6d44fe18d33c0457ec",
+          "size_in_bytes": 532562,
+          "status": "PASS"
+        }
+      ],
+      "event": "push",
+      "fault_checkpoint_called": false,
+      "head_sha": "069c7a21dfcb19852ed40aad483b7612e6094c9b",
+      "measurement_contract": {
+        "acceptance_basis_sha256": "2a5acb1914b4623a9f7bc34c4ac2a2eebce25be700622ae3e5eb94f223354761",
+        "additional_protected_main_samples_recorded_by_this_receipt_per_compiler": 1,
+        "additional_protected_main_samples_recorded_cumulative_per_compiler": 2,
+        "additional_protected_main_samples_remaining_before_tightening_per_compiler": 0,
+        "additional_protected_main_samples_required_after_acceptance_basis_per_compiler": 2,
+        "batch_calls": 4287,
+        "completed_calls": 17149,
+        "corpus_bundle_sha256": "bdddfa050f356d76e41e32e635b5c6c15e03da8f6f175ecf01a214a6c9f32ebc",
+        "current_run_threshold_calibration": false,
+        "heap_calls": {
+          "aligned_alloc": 0,
+          "calloc": 0,
+          "free": 0,
+          "malloc": 0,
+          "posix_memalign": 0,
+          "realloc": 0
+        },
+        "numeric_limits": {
+          "aggregate_cpu_ns": 8000000000,
+          "aggregate_wall_ns": 20000000000,
+          "aggregation": "first_call_plus_four_batches_control_excluded",
+          "batch_sample_cpu_ns": 75000000,
+          "batch_sample_wall_ns": 200000000,
+          "first_call_cpu_ns": 10000000,
+          "first_call_wall_ns": 25000000,
+          "peak_rss_kib": 65536,
+          "per_batch_cpu_ns": 2000000000,
+          "per_batch_wall_ns": 5000000000,
+          "status": "ENFORCED_TEST_ONLY_LINUX_X86_64_GROSS_REGRESSION_CEILING"
+        },
+        "policy_sha256": "0d0ebc2a99a8b7611ee9e2133c273bb6b6aa88d926b9b8bbb75b2e9363b73b10",
+        "record_count": 240,
+        "resource_plan_sha256": "57ae37b318cf442d9cc1c9546297cccf797e5827fbf4b63a7bb64acb0b7484bd",
+        "sample_count": 31,
+        "thread_guard_bytes": 4096,
+        "thread_stack_bytes": 131072,
+        "total_frame_bytes": 884767
+      },
+      "path": ".github/workflows/ml-dsa-44-resource-envelope.yml",
+      "ref": "refs/heads/main",
+      "run_attempt": 1,
+      "run_conclusion": "success",
+      "run_id": 32541060189,
+      "trust": {
+        "baseline_guard_matches": true,
+        "label": "TRUSTED_MAIN_OBSERVATION",
+        "promotion_eligible": false,
+        "ref_protected": true,
+        "requires_companion_compilers": [
+          "clang",
+          "gcc"
+        ],
+        "requires_separate_numeric_policy_change": false,
+        "trusted_observation": true
+      }
+    },
+    "review_reproduction": {
+      "artifact": {
+        "archive_sha256": "eda577fe8cb9b2dc3798e78af4068cb894719f40615a172fb9c93d14a86cceb2",
+        "artifact_id": 9571284080,
+        "created_at": "2026-08-25T15:58:11Z",
+        "expired_when_checked": false,
+        "expires_at": "2026-11-23T15:19:37Z",
+        "internal_inventory": {
+          "differential_report_entries_verified": 1,
+          "differential_report_inventory_sha256": "e5c0107a6d4c78cce9199e0d832df7dc360f3f1192b2253e57a2b4622e51d4f8",
+          "nested_entries_verified": 656,
+          "nested_sha256sums_sha256": "7c817e035aa17ca87a085e38eaec7f560612762e918f1cfeba33111d986a2c68",
+          "review_report_entries_verified": 1,
+          "review_report_inventory_sha256": "416a6d45662502221317dd15c960a089820ccd0f1d51c9d18d51e76a4637409b",
+          "supplemental_entries_verified": 4,
+          "supplemental_inventory_sha256": "85080380290f93484daa2d6dbd4c381b4c49c0332c3db5a7cfa7a43d8dee8cfa"
+        },
+        "name": "ml-dsa-44-review-evidence-069c7a21dfcb19852ed40aad483b7612e6094c9b",
+        "size_in_bytes": 2290436
+      },
+      "campaign": {
+        "campaign_seconds": 1800,
+        "comparator_checks_passed": 13,
+        "coverage_floors_passed": true,
+        "crash_artifacts": 0,
+        "executed_units": 2329132,
+        "exact_replays_passed": 5,
+        "fuzzer_duration_seconds": 1801.151,
+        "imported_retained_seeds": 77,
+        "minimized_corpus": {
+          "aggregate_sha256": "2cb939ff45fd7e0407a9fbca5f399fc46fb0f5d97fc7e78f0c56cfe86641d3e1",
+          "file_count": 157,
+          "total_bytes": 559740
+        },
+        "oracle_errors_or_disagreements": 0,
+        "promoted_replays_passed": 38,
+        "seed": 2800314869,
+        "status": "pass"
+      },
+      "differential_report_sha256": "baf6f6e0a07dec2b8789033b8f3be152d4a90edc721e9f8661a3191499b49828",
+      "event": "workflow_dispatch",
+      "fault_checkpoint_called": false,
+      "head_sha": "069c7a21dfcb19852ed40aad483b7612e6094c9b",
+      "job_id": 97858278168,
+      "path": ".github/workflows/ml-dsa-44-review-reproduction.yml",
+      "ref": "refs/heads/main",
+      "retained_source": {
+        "archive_sha256": "2bc87c44b03962c6b225b0ef779ca684b73f67b13abf487f5beab2c99a5476af",
+        "artifact_id": 9132683634,
+        "artifact_name": "ml-dsa-44-review-evidence-79de77faf112453868779861ae0c982dba533f84",
+        "created_at": "2026-08-12T07:36:48Z",
+        "evidence_sha256": "beac60010d41f9e96dea1757fdc939020caf94f0219b1668cfc84f30518b4525",
+        "expired_when_checked": false,
+        "expires_at": "2026-11-10T06:58:24Z",
+        "head_sha": "79de77faf112453868779861ae0c982dba533f84",
+        "run_attempt": 1,
+        "run_id": 31572059826,
+        "source_aggregate_sha256": "8108869400e4c4799b956ed6cdbba31162d288947198d07e0aa79cc8c6034ef2",
+        "source_file_count": 155,
+        "source_total_bytes": 536871,
+        "size_in_bytes": 2247420
+      },
+      "review_report_sha256": "8d52bf55b7c6bdb05fa485ddd764fd6e08db09c33270fc430e51bd79837ae490",
+      "run_attempt": 1,
+      "run_conclusion": "success",
+      "run_id": 32865085933,
+      "trust": {
+        "label": "frozen_baseline_reproduction",
+        "promotion_eligible": true
+      }
+    },
+    "sustained_fuzz": {
+      "artifacts": [
+        {
+          "archive_sha256": "91cd8539ef00d95afb5838713a0d93f1bc8b97093c95b79846bba96bd57b3517",
+          "artifact_id": 9570957580,
+          "campaign": {
+            "campaign_seconds": 1800,
+            "crash_artifacts": 0,
+            "executed_units": 8573429,
+            "imported_retained_seeds": 124,
+            "minimized_corpus_aggregate_sha256": "ba12b4a3291ae64c3ebe3f7e2208788c14ceede13d082fbc16c82778f674e62c",
+            "minimized_files": 121,
+            "sanitizer": "address-undefined",
+            "status": "pass"
+          },
+          "campaign_sha256": "acabcabe4e91eda8f428e5559cba7abf1bfd9fe9fd3e770dca843c0dac0bd466",
+          "created_at": "2026-08-25T15:50:03Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-23T15:19:36Z",
+          "internal_inventory": {
+            "entries_verified": 626,
+            "sha256sums_sha256": "61d4104fc8ae0d95b09eca4f0f7318f4f58b72441b88a21342a8bbfdd4e8eaac"
+          },
+          "job_id": 97858269089,
+          "name": "ml-dsa-44-sustained-asan-ubsan-32865082841-1",
+          "size_in_bytes": 1958936,
+          "target": "strict_verifier"
+        },
+        {
+          "archive_sha256": "ee18ddd5bc64b91e9b9e86dd6cb37bdbd454012e4628edc9392f05cd9b4c6721",
+          "artifact_id": 9570952322,
+          "campaign": {
+            "campaign_seconds": 1800,
+            "crash_artifacts": 0,
+            "executed_units": 2557320,
+            "imported_retained_seeds": 78,
+            "minimized_corpus_aggregate_sha256": "3c4be49522f80659770e090ae0a66324b1b5602e1815776bad250d076a41446d",
+            "minimized_files": 79,
+            "sanitizer": "memory",
+            "status": "pass"
+          },
+          "campaign_sha256": "1c5c4fdda8d12d53e29dee3a7a56127edf6fc435433338d153e319ebac23a623",
+          "created_at": "2026-08-25T15:49:55Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-23T15:19:36Z",
+          "internal_inventory": {
+            "entries_verified": 409,
+            "sha256sums_sha256": "f38c77603a6467cc5490cf0b8892b87175975fce64273d19ae9a129dc31a1979"
+          },
+          "job_id": 97858268972,
+          "name": "ml-dsa-44-sustained-msan-32865082841-1",
+          "size_in_bytes": 1366972,
+          "target": "strict_verifier"
+        },
+        {
+          "archive_sha256": "bb1d00b4ef32cbb94606fc005cd990d2c5012844942e88aa5905999a30cfe403",
+          "artifact_id": 9570974149,
+          "campaign": {
+            "campaign_seconds": 1800,
+            "crash_artifacts": 0,
+            "deterministic_replays_passed": 31,
+            "executed_units": 130204,
+            "fuzzer_duration_seconds": 1801.083,
+            "imported_retained_seeds": 185,
+            "minimized_corpus_aggregate_sha256": "28f1870971b02fe1dc09f474d161fe1dc54ea8bcee5272448b85fab01d36d390",
+            "minimized_files": 273,
+            "sanitizer": "address-undefined",
+            "status": "pass"
+          },
+          "campaign_sha256": "8983d2c103e394fd30aebcbf14d1a4237c259a6eec6d952d85dcbfec4d58e861",
+          "created_at": "2026-08-25T15:50:26Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-23T15:19:36Z",
+          "internal_inventory": {
+            "entries_verified": 764,
+            "sha256sums_sha256": "87bb3ff93ec47effc8091ae355173a62e078c5d41fcd24fba17d1e4a18436290"
+          },
+          "job_id": 97858269031,
+          "name": "ml-dsa-44-stateful-signer-asan-ubsan-32865082841-1",
+          "size_in_bytes": 557173,
+          "target": "stateful_signer"
+        },
+        {
+          "archive_sha256": "1bb9db0b509a61813ad21022b0525b5598b80c6bce42bfd32953c518ff3d18e7",
+          "artifact_id": 9570977183,
+          "campaign": {
+            "campaign_seconds": 1800,
+            "crash_artifacts": 0,
+            "deterministic_replays_passed": 31,
+            "executed_units": 52229,
+            "fuzzer_duration_seconds": 1801.101,
+            "imported_retained_seeds": 123,
+            "minimized_corpus_aggregate_sha256": "b7a95fd724c6ce0b4dcc3921a24f90f817d43f1ad792f7ea14f59cf38479d028",
+            "minimized_files": 205,
+            "sanitizer": "memory",
+            "status": "pass"
+          },
+          "campaign_sha256": "0439053350a854a1329ac9dc1847008818efc91d9e5b2c93f52fde67a72f2130",
+          "created_at": "2026-08-25T15:50:30Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-23T15:19:36Z",
+          "internal_inventory": {
+            "entries_verified": 543,
+            "sha256sums_sha256": "5e1b3daecbd66a74af6accb1b4ddd5eb08a785b4c33bf7643e390eaf5405903e"
+          },
+          "job_id": 97858268806,
+          "name": "ml-dsa-44-stateful-signer-msan-32865082841-1",
+          "size_in_bytes": 246960,
+          "target": "stateful_signer"
+        }
+      ],
+      "event": "workflow_dispatch",
+      "fault_checkpoint_called": false,
+      "head_sha": "069c7a21dfcb19852ed40aad483b7612e6094c9b",
+      "path": ".github/workflows/ml-dsa-44-sustained-fuzz.yml",
+      "ref": "refs/heads/main",
+      "retained_sources": {
+        "head_sha": "c2021c128b2c04f34477324c48ec7fdd6fc4d50e",
+        "run_attempt": 1,
+        "run_id": 32491061387,
+        "artifacts": [
+          {
+            "archive_sha256": "f849dd7a5faa77664a990cb92d32adafe52cfc4f57d3b1d91d4992d1da741da7",
+            "artifact_id": 9449780458,
+            "created_at": "2026-08-21T14:15:45Z",
+            "expired_when_checked": false,
+            "expires_at": "2026-11-19T14:14:25Z",
+            "name": "ml-dsa-44-sustained-asan-ubsan-32491061387-1",
+            "size_in_bytes": 1601981
+          },
+          {
+            "archive_sha256": "b128fa279979d8718bc0adbdba07805c3e70018e90d2b7f466c266b017a12eab",
+            "artifact_id": 9449779953,
+            "created_at": "2026-08-21T14:15:45Z",
+            "expired_when_checked": false,
+            "expires_at": "2026-11-19T14:14:25Z",
+            "name": "ml-dsa-44-sustained-msan-32491061387-1",
+            "size_in_bytes": 1189667
+          },
+          {
+            "archive_sha256": "816ea1ca81ffb1a98edeec1bcbd236f2c452a9ef2b2d121f2e0f4439a5c05e36",
+            "artifact_id": 9449788220,
+            "created_at": "2026-08-21T14:15:59Z",
+            "expired_when_checked": false,
+            "expires_at": "2026-11-19T14:14:25Z",
+            "name": "ml-dsa-44-stateful-signer-asan-ubsan-32491061387-1",
+            "size_in_bytes": 456604
+          },
+          {
+            "archive_sha256": "27cbf4efa60672370a9bc4b4f08d5e659b3441d0f25914306c1f8647ec12fd62",
+            "artifact_id": 9449793436,
+            "created_at": "2026-08-21T14:16:08Z",
+            "expired_when_checked": false,
+            "expires_at": "2026-11-19T14:14:25Z",
+            "name": "ml-dsa-44-stateful-signer-msan-32491061387-1",
+            "size_in_bytes": 158644
+          }
+        ]
+      },
+      "run_attempt": 1,
+      "run_conclusion": "success",
+      "run_id": 32865082841,
+      "summary": {
+        "all_campaigns_completed_full_duration": true,
+        "all_internal_checksum_inventories_passed": true,
+        "crash_or_minimized_crash_artifacts": 0,
+        "retained_seed_imports_positive": true
+      }
+    },
+    "wrapper_prototype": {
+      "adjacent_artifacts": [
+        {
+          "archive_sha256": "2f2f8c216c03f2c4224aa60edf48609d402e3b425e68c6a06d31170276aeb368",
+          "artifact_id": 9571973599,
+          "created_at": "2026-08-25T16:15:54Z",
+          "direct_fault_evidence": false,
+          "expired_when_checked": false,
+          "expires_at": "2026-11-23T15:19:34Z",
+          "internal_inventory": {
+            "entries_verified": 18,
+            "sha256sums_sha256": "9803a098c0155941332672ef5c77845ec74451416340cc20f243a4fa909e640f"
+          },
+          "job_id": 97858255524,
+          "name": "ml-dsa-44-wrapper-static-analysis-069c7a21dfcb19852ed40aad483b7612e6094c9b-32865079872-1",
+          "report_sha256": "7f6f38fa18bd3c00241d891df52add0d0b95f5acc7e105abbe6dc7d098fe9e20",
+          "repository_state": {
+            "audit_input_dirty": false,
+            "dirty_audit_inputs": [],
+            "tracked_changes": [
+              "src/leveldb/db/db_impl.cc"
+            ],
+            "tracked_worktree_dirty": true
+          },
+          "scoped_checks_passed": 12,
+          "size_in_bytes": 12285,
+          "type": "static_analysis"
+        },
+        {
+          "archive_sha256": "225035526bb7c8678cb02d7c9224216e58585ac33e80a832a22d2e85e154cfdd",
+          "artifact_id": 9569828255,
+          "created_at": "2026-08-25T15:21:54Z",
+          "direct_fault_evidence": false,
+          "expired_when_checked": false,
+          "expires_at": "2026-11-23T15:19:34Z",
+          "internal_inventory": {
+            "entries_verified": 18,
+            "sha256sums_sha256": "eb9173bb187f37d84188cd6e7d6c1f5d0dba00dd6697edd898657fffe5a96367"
+          },
+          "job_id": 97858255798,
+          "name": "ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-069c7a21dfcb19852ed40aad483b7612e6094c9b-32865079872-1",
+          "report_sha256": "3288dac365c19b2c9b1fbb389e1f5ad9129703c3c996bc943dbdf7a9b8295a88",
+          "size_in_bytes": 124542,
+          "type": "valgrind_clang20",
+          "wrapper_errors_leaks_or_variable_latency_findings": 0
+        },
+        {
+          "archive_sha256": "11c00bbe336ba79f931ecb3020b934a9a9318c2f758550a82d0e950f0d2a8de1",
+          "artifact_id": 9569884167,
+          "created_at": "2026-08-25T15:23:16Z",
+          "direct_fault_evidence": false,
+          "expired_when_checked": false,
+          "expires_at": "2026-11-23T15:19:34Z",
+          "internal_inventory": {
+            "entries_verified": 18,
+            "sha256sums_sha256": "3d8b7c3f4b818bfe1b59168a86d5f99ef67aafaa4b021e80edf773890d2fb113"
+          },
+          "job_id": 97858255704,
+          "name": "ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_gcc13-069c7a21dfcb19852ed40aad483b7612e6094c9b-32865079872-1",
+          "report_sha256": "a3c7e271c068273b6f02720246891f45a3d1456ef9f466b5dbb729c36258a903",
+          "size_in_bytes": 115438,
+          "type": "valgrind_gcc13",
+          "wrapper_errors_leaks_or_variable_latency_findings": 0
+        }
+      ],
+      "direct_fault_observation": {
+        "assertions": [
+          "real self-verifier rejects the corrupted exact-length candidate",
+          "signing returns PQBTC_MLDSA44_ERR_VERIFY",
+          "caller signature output remains all zero",
+          "source-level candidate buffer is observed all zero after cleanup",
+          "the consumed randomizer is rejected on immediate reuse",
+          "a fresh randomizer permits a later successful signature"
+        ],
+        "evidence_source": "Exact source defines the assertions; portable GCC and Clang job logs record execution and pass status.",
+        "fault_specific_artifact_retained": false,
+        "portable_jobs": [
+          {
+            "compiler": "gcc",
+            "job_id": 97858255830,
+            "normal": "pass",
+            "sanitizer": "asan-ubsan",
+            "sanitized": "pass"
+          },
+          {
+            "compiler": "clang",
+            "job_id": 97858255871,
+            "normal": "pass",
+            "sanitizer": "asan-ubsan",
+            "sanitized": "pass"
+          }
+        ],
+        "production_exports_test_controls": false,
+        "retained_results": false
+      },
+      "event": "workflow_dispatch",
+      "head_sha": "069c7a21dfcb19852ed40aad483b7612e6094c9b",
+      "path": ".github/workflows/ml-dsa-44-wrapper-prototype.yml",
+      "ref": "refs/heads/main",
+      "run_attempt": 1,
+      "run_conclusion": "success",
+      "run_id": 32865079872
+    }
+  }
+}

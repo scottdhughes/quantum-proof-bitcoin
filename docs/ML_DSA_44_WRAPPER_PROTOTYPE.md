@@ -108,7 +108,10 @@ backend for its signing temporaries.
   and self-verification failure;
 - output/key alias rejection, including on another malformed argument;
 - zero output on every injected failure;
-- zeroization-hook execution; and
+- zeroization-hook execution;
+- real self-verifier rejection after test-only corruption of a genuinely
+  generated exact-length candidate, with zero output, observed candidate
+  cleanup, consumed-randomizer rejection, and fresh-randomizer recovery; and
 - concurrent calls in which one repeated randomizer is accepted and the other
   is rejected atomically.
 
@@ -303,6 +306,30 @@ The versioned
 records the complete workflow, job, artifact, checksum, retained-source, and
 scope metadata for the resource, wrapper, sustained, and review lanes.
 
+PR `#244` later added the bounded candidate-corruption checkpoint at merge
+commit `c2021c128b2c04f34477324c48ec7fdd6fc4d50e`; PR `#245` advanced the review
+pointer and produced exact protected-main evidence head
+`069c7a21dfcb19852ed40aad483b7612e6094c9b`. Main-dispatched wrapper run
+`32865079872`, attempt `1`, directly executed that checkpoint only in the
+portable-wrapper GCC and Clang normal and ASan/UBSan job logs. There is no
+fault-specific retained artifact. The checksummed static-analysis and Valgrind
+artifacts are adjacent exact-head evidence, not direct fault results. The
+static-analysis report records
+`audit_input_dirty=false` and `tracked_worktree_dirty=true`: the audited inputs
+were clean, but the overall CI worktree was not globally clean.
+
+Automatic resource run `32541060189`, attempt `1`, supplied the second
+additional policy-enforced GCC/Clang direct-verifier pair. Sustained run
+`32865082841`, attempt `1`, and review-reproduction run `32865085933`, attempt
+`1`, supplied adjacent exact-head, checksum-bound artifacts. Those three lanes
+bind or exercise the changed sources but do not execute the candidate fault.
+The fault evidence contract remains `retained_results=false`. The versioned
+[candidate-fault evidence receipt](reviews/evidence/ml-dsa-44-trusted-main/069c7a21dfcb19852ed40aad483b7612e6094c9b/SOURCE.json)
+preserves the exact run, artifact, checksum, and scope distinctions.
+This evidence head predates PR `#247`'s OpenSSL 3.6.4 comparator repin and does
+not satisfy that repin's fresh exact-main oracle, differential, or retained-
+corpus evidence requirement.
+
 ## Direct-Verifier Resource-Envelope Observation
 
 The isolated resource lane calls only `pqbtc_mldsa44_verify_strict` in the
@@ -388,11 +415,13 @@ receipt fields.
 This is a test-only observation lane, not a supported-platform or worst-case
 resource proof. It changes no production linkage or behavior, does not admit
 SIMD256, and does not establish a consensus parser or adversarial block limit.
-This pair supplies the first of the two additional independent protected-main
-samples per compiler required by the frozen policy before any ceiling-
-tightening review. Issue `#188` remains open pending the remaining sample pair,
-broader-platform and toolchain coverage, concurrency and production-parser
-limits, and exact-commit re-review. Issue `#181` also remains open, production
+Automatic protected-main run `32541060189`, attempt `1`, at
+`069c7a21dfcb19852ed40aad483b7612e6094c9b` supplied the second additional
+independent policy-enforced GCC/Clang sample pair required before considering
+ceiling tightening. Collecting that pair does not tighten the frozen ceilings
+or close issue `#188`; any change requires a separate review. Broader-platform
+and toolchain coverage, concurrency and production-parser limits, and exact-
+commit re-review remain open. Issue `#181` also remains open, production
 remains `NONE`, and `RELEASE_HOLD` remains in force.
 
 ## Pinned Upstream CBMC Reproduction

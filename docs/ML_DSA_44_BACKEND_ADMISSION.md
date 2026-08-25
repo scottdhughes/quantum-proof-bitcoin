@@ -198,6 +198,29 @@ passed with independently verified artifact and internal checksums. This is a
 tested Ubuntu/Linux observation and does not widen the supported lifecycle
 boundary described above.
 
+PR `#244` implemented the deterministic candidate-corruption checkpoint at
+merge commit `c2021c128b2c04f34477324c48ec7fdd6fc4d50e`. PR `#245` advanced the
+review pointer and merged at exact protected-main evidence head
+`069c7a21dfcb19852ed40aad483b7612e6094c9b`. Main-dispatched wrapper run
+`32865079872`, attempt `1`, directly executed the fault checkpoint only in its
+portable-wrapper GCC and Clang normal and ASan/UBSan logs. No fault-specific
+artifact was retained. The checksummed static-analysis and Valgrind artifacts
+are adjacent exact-head evidence, not direct fault results. The static-analysis
+report records
+`audit_input_dirty=false` and `tracked_worktree_dirty=true`: the audited inputs
+were clean, but the overall CI worktree was not globally clean. The fault
+contract remains `retained_results=false`.
+
+Automatic resource run `32541060189`, attempt `1`, and main-dispatched
+sustained and review runs `32865082841` and `32865085933`, attempt `1`, supply
+adjacent exact-head, checksum-bound resource, sanitizer, corpus, and
+differential artifacts. They do not execute the candidate fault. The versioned
+[candidate-fault evidence receipt](reviews/evidence/ml-dsa-44-trusted-main/069c7a21dfcb19852ed40aad483b7612e6094c9b/SOURCE.json)
+preserves this execution and retention boundary.
+This evidence head predates PR `#247`'s OpenSSL 3.6.4 comparator repin and does
+not satisfy that repin's fresh exact-main oracle, differential, or retained-
+corpus evidence requirement.
+
 A separate Linux x86_64 test-only lane now defines direct strict-verifier
 resource observations. Each of four batches makes 4,287 calls on a 128 KiB
 guarded pthread stack while linker interposition requires zero project heap
@@ -247,7 +270,14 @@ retains the per-batch, first-call, maximum-sample, compiler, stack, and checksum
 details. Each artifact remains non-promotion-eligible; only the pair with
 external workflow provenance forms this bounded trusted observation. It is the
 first of the two additional protected-main samples per compiler required by
-the frozen policy before a ceiling-tightening review; one further pair remains.
+the frozen policy before a ceiling-tightening review; the second pair has since
+been collected as described below.
+
+Automatic protected-main run `32541060189`, attempt `1`, at
+`069c7a21dfcb19852ed40aad483b7612e6094c9b` supplied that second additional
+policy-enforced GCC/Clang pair. This collection satisfies only the sampling
+prerequisite for a future ceiling-tightening review; it does not change the
+frozen ceilings, close issue `#188`, or authorize a production resource claim.
 
 This is implementation evidence for the admitted experiment, not a production
 backend disposition. The raw-key prototype ABI, process-global serialization,
@@ -264,9 +294,9 @@ Prototype admission closes no production finding:
 | --- | --- | --- |
 | Entropy and fail-closed binding | #184 | isolated wrapper, Linux/macOS RBG evidence, and one coordinated standard-POSIX-fork module-lock observation; async-signal-safe child signing, alternate/reentrant fork and clone behavior, handler ordering, module lifetime, and broader supported-platform lifecycle remain open |
 | Supported-platform side channels | #185 | bounded x86_64 Valgrind constant-time/variable-latency evidence; broader platforms and leakage models open |
-| Fault model and injected faults | #186 | test-only pre-self-verification candidate-corruption regression with atomic output and cleanup evidence; broader checkpoints, control-flow and common-mode analysis, platform/hardware model, physical campaign, and exact-commit re-review remain open |
+| Fault model and injected faults | #186 | test-only pre-self-verification candidate-corruption regression with atomic output and cleanup evidence, directly replayed in portable GCC/Clang normal and ASan/UBSan logs at the reviewed exact head; no fault-specific retained artifact, and broader checkpoints, control-flow and common-mode analysis, platform/hardware model, physical campaign, and exact-commit independent review remain open |
 | End-to-end secret erasure | #187 | source cleanup and sanitizer evidence only; compiler/caller/platform boundary open |
-| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential/stateful fuzzing, promoted regressions, portable Miri evidence, bounded malformed research-CLI argv replay, exact-main GCC/Clang direct-verifier observations, a reviewed coarse Linux x86_64 numeric regression policy, and the first of two additional policy-enforced trusted-main GCC/Clang sample pairs; one further sample pair, broader platform/Rust sanitizer and toolchain coverage, concurrency and production-parser limits, and exact-commit re-review remain open |
+| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential/stateful fuzzing, promoted regressions, portable Miri evidence, bounded malformed research-CLI argv replay, exact-main GCC/Clang direct-verifier observations, a reviewed coarse Linux x86_64 numeric regression policy, and both additional policy-enforced trusted-main GCC/Clang sample pairs; ceiling tightening remains a separate review, while broader platform/Rust sanitizer and toolchain coverage, concurrency and production-parser limits, and exact-commit re-review remain open |
 | Backend advisories, SBOM, and reproducible build | #189 | dated fail-closed ledger, full-lock cargo-audit/OSV scans, exact selected graph, CycloneDX SBOM, weekly retained refresh, exact portable ML-DSA-44 RUSTSEC-2026-0077 regressions, and promoted trusted-main test-only SIMD256 0125/0126 PASS evidence; exact-commit independent re-review remains open, and optimized-backend admission is a separate future decision |
 | Wallet and key format | #190 | open |
 | Independent human cryptographic review | #181 | open |

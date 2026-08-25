@@ -2,7 +2,7 @@
 
 **Status:** PARTIAL RESEARCH-WRAPPER EVIDENCE - `RELEASE_HOLD`
 
-**Updated:** 2026-08-21
+**Updated:** 2026-08-25
 **Tracking:** issue `#186`, tranche 1
 
 ## Scope
@@ -60,6 +60,43 @@ The production-shaped shared library still exports exactly
 `pqbtc_mldsa44_sign_hedged` and `pqbtc_mldsa44_verify_strict`. It does not
 export this checkpoint, fixed-randomizer signing, seeded key generation,
 entropy controls, or cleanup observers.
+
+## Exact-Main Execution Evidence
+
+PR `#244` implemented this checkpoint at merge commit
+`c2021c128b2c04f34477324c48ec7fdd6fc4d50e`. PR `#245` advanced the review
+pointer to that implementation and merged at exact protected-main evidence
+head `069c7a21dfcb19852ed40aad483b7612e6094c9b`; the guarded review inputs were
+unchanged relative to the selected implementation.
+
+Main-dispatched wrapper run `32865079872`, attempt `1`, is the only workflow in
+this evidence set that directly executed the candidate-corruption checkpoint.
+Its portable-wrapper GCC and Clang jobs ran the normal and ASan/UBSan harnesses
+and recorded the successful regression in their job logs. The workflow did not
+upload a fault-specific result artifact, so this remains direct log evidence,
+not a retained fault campaign. The static-analysis and Valgrind archives are
+separately checksummed adjacent evidence, not direct fault results. The static-
+analysis report records
+`audit_input_dirty=false` and `tracked_worktree_dirty=true`: the audited inputs
+were clean, but the overall CI worktree was not globally clean.
+
+Automatic protected-main resource run `32541060189`, attempt `1`, supplied the
+second additional policy-enforced GCC/Clang direct-verifier sample pair. It did
+not execute the signing fault checkpoint and does not authorize resource-
+ceiling tightening. Sustained run `32865082841`, attempt `1`, and review-
+reproduction run `32865085933`, attempt `1`, retained adjacent, checksum-bound
+exact-head sanitizer, corpus, and differential evidence, but neither campaign
+executes this fault hook. The machine contract therefore remains
+`retained_results=false` for fault-injection evidence.
+
+The versioned
+[exact-main evidence receipt](reviews/evidence/ml-dsa-44-trusted-main/069c7a21dfcb19852ed40aad483b7612e6094c9b/SOURCE.json)
+records the run, job, artifact, checksum, exact-head, and claim-boundary
+metadata. These results do not satisfy issue `#181`, close issue `#186`, change
+`production_backend=NONE`, or remove `RELEASE_HOLD`.
+This evidence head predates PR `#247`'s OpenSSL 3.6.4 comparator repin and does
+not satisfy that repin's fresh exact-main oracle, differential, or retained-
+corpus evidence requirement.
 
 ## Existing Adjacent Failure Controls
 
