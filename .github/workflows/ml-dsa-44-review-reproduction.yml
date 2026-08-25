@@ -33,7 +33,13 @@ jobs:
     env:
       # The pointer is advanced separately after the guarded tree is reviewed.
       BASELINE_FILE: contrib/ml-dsa-ref/review_baseline_commit.txt
-      OPENSSL_COMMIT: aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f
+      OPENSSL_COMMIT: d3c1b1169b3569ff3069e5b399f47b2b28e03d79
+      OPENSSL_TREE: 0f2db317fdf20b06193b96e79ac699b2d4e36d7d
+      OPENSSL_TAG: openssl-3.6.4
+      OPENSSL_TAG_OBJECT: 360ffdb6d82f298d8d22c838dc2b7bf61ece056d
+      OPENSSL_RELEASE_TARBALL_URL: https://github.com/openssl/openssl/releases/download/openssl-3.6.4/openssl-3.6.4.tar.gz
+      OPENSSL_RELEASE_TARBALL_SHA256: 9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef
+      OPENSSL_CVE_2026_63076_EQUIVALENT_FIX: 49de27169f4cc42619a096c38412e47a3f890803
       MLDSA_NATIVE_COMMIT: 9b0ee84f4cf399043eca59eca4e5f8531ca1d61b
       LIBCRUX_COMMIT: c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd
       ACVP_COMMIT: 15c0f3deeefbfa8cb6cd32a99e1ca3b738c66bf0
@@ -159,18 +165,18 @@ jobs:
           allowed_sha256 = (
               {
                   "baseline": (
-                      "c2a94fe4fc8e63a6bec4528b4589958772cb0ea01f669cfd8c78bed357a68633"
+                      "955da4f4bcec375bd05cb6d3f0a005fff244442f8d2b70880d4bf0f952a7927d"
                   ),
                   "current": (
-                      "955da4f4bcec375bd05cb6d3f0a005fff244442f8d2b70880d4bf0f952a7927d"
+                      "feec9dabee7bbca2916768f31fbc4130a18cecf607fb827709262b877edd445b"
                   ),
               },
               {
                   "baseline": (
-                      "955da4f4bcec375bd05cb6d3f0a005fff244442f8d2b70880d4bf0f952a7927d"
+                      "feec9dabee7bbca2916768f31fbc4130a18cecf607fb827709262b877edd445b"
                   ),
                   "current": (
-                      "955da4f4bcec375bd05cb6d3f0a005fff244442f8d2b70880d4bf0f952a7927d"
+                      "feec9dabee7bbca2916768f31fbc4130a18cecf607fb827709262b877edd445b"
                   ),
               },
           )
@@ -195,6 +201,51 @@ jobs:
               ':(exclude)contrib/ml-dsa-ref/README.md' \
               ':(exclude)contrib/ml-dsa-ref/wolfram/**'
           fi
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          ledger = json.loads(
+              Path("contrib/ml-dsa-engineering/advisory_ledger.json").read_text()
+          )
+          openssl_oracles = [
+              oracle
+              for oracle in ledger["source_contract"]["oracles"]
+              if oracle.get("name") == "openssl"
+          ]
+          if len(openssl_oracles) != 1:
+              raise SystemExit("advisory ledger must contain one OpenSSL oracle")
+          transitions = [
+              transition
+              for transition in openssl_oracles[0]["advisory_inventory"][
+                  "historical_pin_transitions"
+              ]
+              if transition.get("to_commit") == os.environ["OPENSSL_COMMIT"]
+          ]
+          if len(transitions) != 1:
+              raise SystemExit("advisory ledger must contain the 3.6.4 transition")
+          transition = transitions[0]
+          exceptions = [
+              item
+              for item in transition["release_metadata_exceptions"]
+              if item.get("id") == "CVE-2026-63076"
+          ]
+          dispositions = [
+              item
+              for item in transition["reviewed_path_dispositions"]
+              if item.get("id") == "CVE-2026-63076"
+          ]
+          if len(exceptions) != 1 or len(dispositions) != 1:
+              raise SystemExit("CVE-2026-63076 release records must be unique")
+          expected_fix = os.environ[
+              "OPENSSL_CVE_2026_63076_EQUIVALENT_FIX"
+          ]
+          if exceptions[0].get("equivalent_released_fix_commit") != expected_fix:
+              raise SystemExit("release exception equivalent fix differs from workflow")
+          if dispositions[0].get("fix_commit") != expected_fix:
+              raise SystemExit("historical disposition fix differs from workflow")
+          PY
           python3 contrib/ml-dsa-ref/run_cli_adapter_fuzz.py --manifest-only
           python3 contrib/ml-dsa-ref/compare_oracles.py --manifest-only
           python3 -m unittest \
@@ -472,10 +523,39 @@ jobs:
 
       - name: Fetch pinned standards artifacts and upstream sources
         timeout-minutes: 15
+        env:
+          CONTEXT: ${{ runner.temp }}/ml-dsa-44-review-run-context.txt
         run: |
           set -euxo pipefail
           mkdir -p "$RUNNER_TEMP/ml-dsa-review/artifacts"
           cd "$RUNNER_TEMP/ml-dsa-review"
+
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          source = json.loads(
+              (
+                  Path(os.environ["GITHUB_WORKSPACE"])
+                  / "contrib/ml-dsa-ref/vectors.json"
+              ).read_text()
+          )["sources"]["openssl"]
+          expected = {
+              "commit": os.environ["OPENSSL_COMMIT"],
+              "git_tree": os.environ["OPENSSL_TREE"],
+              "version": "3.6.4",
+              "tag": os.environ["OPENSSL_TAG"],
+              "tag_object": os.environ["OPENSSL_TAG_OBJECT"],
+              "release_tarball_url": os.environ["OPENSSL_RELEASE_TARBALL_URL"],
+              "release_tarball_sha256": os.environ[
+                  "OPENSSL_RELEASE_TARBALL_SHA256"
+              ],
+          }
+          actual = {name: source.get(name) for name in expected}
+          if actual != expected:
+              raise SystemExit("OpenSSL workflow pins differ from vectors.json")
+          PY
 
           curl --fail --location --retry 5 --retry-all-errors \
             https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.204.pdf \
@@ -489,6 +569,14 @@ jobs:
           curl --fail --location --retry 5 --retry-all-errors \
             https://static.crates.io/crates/libcrux-ml-dsa/libcrux-ml-dsa-0.0.10.crate \
             -o artifacts/libcrux-ml-dsa-0.0.10.crate
+          curl --fail --location --retry 5 --retry-all-errors \
+            "$OPENSSL_RELEASE_TARBALL_URL" \
+            -o artifacts/openssl-3.6.4.tar.gz
+          openssl_release_tarball_sha256="$(
+            sha256sum artifacts/openssl-3.6.4.tar.gz | cut -d ' ' -f 1
+          )"
+          test "$openssl_release_tarball_sha256" = \
+            "$OPENSSL_RELEASE_TARBALL_SHA256"
 
           git clone https://github.com/usnistgov/ACVP-Server.git acvp-server
           git -C acvp-server checkout --detach "$ACVP_COMMIT"
@@ -501,6 +589,15 @@ jobs:
 
           test "$(git -C acvp-server rev-parse HEAD)" = "$ACVP_COMMIT"
           test "$(git -C openssl rev-parse HEAD)" = "$OPENSSL_COMMIT"
+          test "$(git -C openssl rev-parse 'HEAD^{tree}')" = "$OPENSSL_TREE"
+          test "$(git -C openssl rev-parse "refs/tags/$OPENSSL_TAG")" = \
+            "$OPENSSL_TAG_OBJECT"
+          test "$(git -C openssl rev-parse "refs/tags/${OPENSSL_TAG}^{commit}")" = \
+            "$OPENSSL_COMMIT"
+          test "$(git -C openssl rev-parse "refs/tags/${OPENSSL_TAG}^{tree}")" = \
+            "$OPENSSL_TREE"
+          git -C openssl merge-base --is-ancestor \
+            "$OPENSSL_CVE_2026_63076_EQUIVALENT_FIX" "$OPENSSL_COMMIT"
           test "$(git -C mldsa-native rev-parse HEAD)" = "$MLDSA_NATIVE_COMMIT"
           test "$(git -C libcrux rev-parse HEAD)" = "$LIBCRUX_COMMIT"
           for source in acvp-server openssl mldsa-native libcrux; do
@@ -509,8 +606,22 @@ jobs:
             )"
             test -z "$source_status"
           done
+          for context in \
+            "$CONTEXT" \
+            "$GITHUB_WORKSPACE/ml-dsa-44-review-run-context.txt"; do
+            {
+              echo "openssl_release_tag=$OPENSSL_TAG"
+              echo "openssl_release_tag_object=$OPENSSL_TAG_OBJECT"
+              echo "openssl_release_commit=$OPENSSL_COMMIT"
+              echo "openssl_release_tree=$OPENSSL_TREE"
+              echo "openssl_release_tarball_url=$OPENSSL_RELEASE_TARBALL_URL"
+              echo "openssl_release_tarball_sha256=$openssl_release_tarball_sha256"
+              echo "openssl_cve_2026_63076_equivalent_fix_commit=$OPENSSL_CVE_2026_63076_EQUIVALENT_FIX"
+              echo "openssl_cve_2026_63076_equivalent_fix_ancestor=true"
+            } >> "$context"
+          done
 
-      - name: Build pinned OpenSSL 3.6.3 out of tree
+      - name: Build pinned OpenSSL 3.6.4 out of tree
         timeout-minutes: 25
         run: |
           set -euxo pipefail
@@ -669,6 +780,8 @@ jobs:
 
           report = json.loads(Path("ml-dsa-44-review-run.json").read_text())
           assert report["status"] == "PASS"
+          assert report["openssl_commit"] == os.environ["OPENSSL_COMMIT"]
+          assert report["openssl_tree"] == os.environ["OPENSSL_TREE"]
           assert report["acvp"] == {
               "keygen_cases": 25,
               "siggen_cases": 30,
@@ -855,6 +968,7 @@ jobs:
           assert differential["wrapper"]["commit"] == os.environ["MLDSA_NATIVE_COMMIT"]
           assert differential["wrapper"]["source_capsule_sha256"]
           assert differential["openssl"]["commit"] == os.environ["OPENSSL_COMMIT"]
+          assert differential["openssl"]["git_tree"] == os.environ["OPENSSL_TREE"]
           assert differential["openssl"]["bridge_source_sha256"]
           openssl_runtime = differential["openssl"]["runtime"]
           openssl_prefix = (
@@ -863,14 +977,14 @@ jobs:
               / "openssl-install"
           ).resolve()
           libcrypto = Path(openssl_runtime["libcrypto_path"]).resolve()
-          assert openssl_runtime["pkg_config_version"] == "3.6.3"
+          assert openssl_runtime["pkg_config_version"] == "3.6.4"
           assert Path(openssl_runtime["pkg_config_prefix"]).resolve() == openssl_prefix
           assert openssl_runtime["libcrypto_resolution"] == "linked-dependency"
           assert libcrypto.is_relative_to(openssl_prefix)
           assert openssl_runtime["libcrypto_sha256"]
           assert openssl_runtime["openssl_conf"] == "/dev/null"
           assert "OpenSSL Default Provider" in openssl_runtime["provider_inventory"]
-          assert "version: 3.6.3" in openssl_runtime["provider_inventory"]
+          assert "version: 3.6.4" in openssl_runtime["provider_inventory"]
           assert differential["libcrux"]["commit"] == os.environ["LIBCRUX_COMMIT"]
           assert differential["libcrux"]["bridge_source_sha256"]
           assert differential["libcrux"]["rlib_sha256"]

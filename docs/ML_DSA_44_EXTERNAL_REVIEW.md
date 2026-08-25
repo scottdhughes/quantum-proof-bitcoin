@@ -3,7 +3,7 @@
 ## Status: AWAITING_EXTERNAL_REVIEW - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-EXTERNAL-REVIEW-v1
 ## Prepared: 2026-07-19
-## Evidence-Updated: 2026-08-01
+## Evidence-Updated: 2026-08-25
 ## Owner: @scottdhughes
 ## Tracking: https://github.com/scottdhughes/quantum-proof-bitcoin/issues/181
 ## Consensus-Relevant: NO
@@ -120,7 +120,7 @@ signature-verification cases, for 70 cases total.
 
 | Oracle | Frozen source | Role and limitation |
 | --- | --- | --- |
-| OpenSSL | Version 3.6.3, commit `aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f` | Separate provider oracle; not a proposed node dependency |
+| OpenSSL | Version 3.6.4, commit `d3c1b1169b3569ff3069e5b399f47b2b28e03d79` | Separate provider oracle; not a proposed node dependency; fresh exact-commit evidence pending after repin |
 | `mldsa-native` | Tag `v1.0.0-beta2`, commit `9b0ee84f4cf399043eca59eca4e5f8531ca1d61b` | Portable C; forked from PQ-Crystals, so not independent design |
 | libcrux | `libcrux-ml-dsa-v0.0.10`, commit `c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd` | Portable Rust with separate implementation history and disclosed reference influence |
 

@@ -45,7 +45,7 @@ class MlDsaDifferentialFuzzTest(unittest.TestCase):
             text=True,
         )
         self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
-        self.assertIn("wrapper + OpenSSL 3.6.3 + libcrux 0.0.10", completed.stdout)
+        self.assertIn("wrapper + OpenSSL 3.6.4 + libcrux 0.0.10", completed.stdout)
 
     def test_differential_compile_contract(self):
         with tempfile.TemporaryDirectory() as temporary, mock.patch.object(
@@ -90,7 +90,7 @@ class MlDsaDifferentialFuzzTest(unittest.TestCase):
             differential.compile_differential_targets(
                 Path(temporary),
                 Path(temporary) / "libcrux.so",
-                "3.6.3",
+                "3.6.4",
             )
 
         command = run.call_args.args[0]
@@ -282,7 +282,11 @@ class MlDsaDifferentialFuzzTest(unittest.TestCase):
         ]
         manifest = {
             "sources": {
-                "openssl": {"version": "3.6.3", "commit": "openssl-commit"},
+                "openssl": {
+                    "version": "3.6.4",
+                    "commit": "openssl-commit",
+                    "git_tree": "openssl-tree",
+                },
                 "libcrux": {
                     "version": "0.0.10",
                     "commit": "libcrux-commit",

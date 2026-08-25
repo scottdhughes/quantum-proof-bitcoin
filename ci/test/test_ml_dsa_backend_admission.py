@@ -55,7 +55,7 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
         assessments = self.admission["candidate_assessments"]
         sources = self.reference["sources"]
         expected = {
-            "openssl_3_6_3": sources["openssl"]["commit"],
+            "openssl_3_6_4": sources["openssl"]["commit"],
             "mldsa_native_portable_c": sources["mldsa_native"]["commit"],
             "libcrux_ml_dsa_0_0_10_portable": sources["libcrux"]["commit"],
         }
@@ -66,6 +66,10 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
         for candidate in assessments.values():
             self.assertRegex(candidate["source_tree"], r"^[0-9a-f]{40}$")
             self.assertEqual(candidate["conformance"], "PASS")
+        self.assertEqual(
+            assessments["openssl_3_6_4"]["source_tree"],
+            sources["openssl"]["git_tree"],
+        )
 
     def test_exactly_one_isolated_prototype_is_admitted(self):
         assessments = self.admission["candidate_assessments"]
@@ -75,7 +79,7 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
             if candidate["outcome"] == "ISOLATED_PROTOTYPE_ADMITTED"
         ]
         self.assertEqual(admitted, ["mldsa_native_portable_c"])
-        self.assertEqual(assessments["openssl_3_6_3"]["outcome"], "ORACLE_ONLY")
+        self.assertEqual(assessments["openssl_3_6_4"]["outcome"], "ORACLE_ONLY")
         self.assertEqual(
             assessments["libcrux_ml_dsa_0_0_10_portable"]["outcome"],
             "ORACLE_ONLY",
@@ -223,7 +227,7 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
         decision = DECISION_PATH.read_text(encoding="utf8")
         self.assertIn("MLDSA_NATIVE_PORTABLE_C_ISOLATED_PROTOTYPE", decision)
         self.assertIn("production backend remains `NONE`", decision)
-        self.assertIn("OpenSSL 3.6.3", decision)
+        self.assertIn("OpenSSL 3.6.4", decision)
         self.assertIn("mldsa-native", decision)
         self.assertIn("libcrux", decision)
         self.assertIn("RELEASE_HOLD", decision)

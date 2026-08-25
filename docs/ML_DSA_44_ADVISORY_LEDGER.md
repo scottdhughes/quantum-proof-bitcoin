@@ -12,24 +12,23 @@ scheduled workflow fails closed if a selected-package RustSec entry, scanner
 finding, package version, dependency graph, architecture, backend, SBOM
 component, or required evidence file differs from that reviewed contract.
 
-The ledger also inventories the exact OpenSSL 3.6.3 and mldsa-native beta2
+The ledger also inventories the exact OpenSSL 3.6.4 and mldsa-native beta2
 source pins. Their dated rows name the official OpenSSL 3.6 feed and the
 mldsa-native repository-advisory feed, respectively. Cargo advisory scanners
 apply only to the libcrux crate and its published `Cargo.lock`; an empty Cargo
 result is not claimed for either C source oracle.
 
 The global dependency snapshot and the mldsa-native/libcrux rows retain their
-2026-07-21 date. The OpenSSL row was separately refreshed on 2026-08-15 after
-CVE-2026-14456 and CVE-2026-54876 were published, while every relevant
-workflow run continues to acquire and validate both public machine feeds.
-OpenSSL is checked from the current Git head of the official
-`openssl/release-metadata` `secjson` corpus. The validator requires the
-reviewed 274-record completeness floor, all 39 reviewed OpenSSL 3.6 records,
-supported CVE 5.0/5.1 structures, and exact semver evaluation for the 3.6.3
-pin. A missing record, ambiguous range, malformed schema, unreviewed affecting
-advisory, or change to either reviewed CVE record or path disposition fails
-closed.
-The sole reviewed upstream irregularity is CVE-2023-2650's empty exclusive
+2026-07-21 date. The OpenSSL row was refreshed on 2026-08-25 after the live
+feed expanded the superseded 3.6.3 pin from two to eleven affected CVEs and
+OpenSSL published the fixed 3.6.4 release. Every relevant workflow run
+continues to acquire and validate both public machine feeds. OpenSSL is checked
+from the current Git head of the official `openssl/release-metadata` `secjson`
+corpus. The validator requires the reviewed 283-record completeness floor, all
+48 reviewed OpenSSL 3.6 records, supported CVE 5.0/5.1 structures, and exact
+semver evaluation for the 3.6.4 pin. A missing record, ambiguous range,
+malformed schema, or advisory affecting the exact pin fails closed.
+The sole reviewed semver-range irregularity is CVE-2023-2650's empty exclusive
 `3.1.1` to `3.1.1` row; it is outside 3.6, exactly allowlisted, and retained in
 the normalized report. Any other empty range fails pending review.
 
@@ -97,16 +96,68 @@ a fixed range is not represented as a regression-test PASS. `UNTESTED` is
 permitted only when the pin is not affected or the current path is not
 applicable and a future admission block is explicit.
 
-### OpenSSL CVE-2026-14456
+### OpenSSL 3.6.4 Repin
 
-OpenSSL 3.6.3 is version-affected by
+The 2026-08-25 fail-closed refresh evaluated official release-metadata commit
+`18c7d2226fd32d230d7b976b899a0a346592688c`, including `secjson` tree
+`94a063536afcb7ce126505df7948860d53597ef0`. Exact OpenSSL 3.6.3 was affected
+by eleven records: CVE-2026-14456, CVE-2026-14457, CVE-2026-18798,
+CVE-2026-54874, CVE-2026-54876, CVE-2026-63072 through CVE-2026-63076, and
+CVE-2026-75803. Three are rated Moderate and eight Low. Their affected 3.6
+ranges are all `[3.6.0, 3.6.4)`.
+
+None of the affected TLS, QUIC, DTLS, CMS, CMP, X.509/OCSP, or empty-input
+AEAD `EVP_Cipher` paths is reachable from the reviewed default-provider EVP
+ML-DSA key-generation, signing, and verification adapters. That establishes
+path non-applicability only; it does not make 3.6.3 unaffected. The active
+research comparator is therefore repinned to OpenSSL 3.6.4 commit
+`d3c1b1169b3569ff3069e5b399f47b2b28e03d79`, tree
+`0f2db317fdf20b06193b96e79ac699b2d4e36d7d`. The annotated release tag object
+is `360ffdb6d82f298d8d22c838dc2b7bf61ece056d`; the release archive SHA-256 is
+`9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef`.
+The tag contains a PGP signature, but this tranche does not promote local key
+trust as an independent release-authenticity claim.
+
+The official CVE-2026-63076 record contains a broken 3.6.4 patch reference:
+commit `a7af46a92d0ce19a90e669ef56d2576a07924226` does not exist in the upstream
+repository. Released 3.6.4 instead contains the equivalent fix at commit
+`49de27169f4cc42619a096c38412e47a3f890803`. Both identities remain explicit;
+the repository does not silently rewrite the upstream record. The workflow
+proves that the equivalent fix is an ancestor of the pinned release. The
+negative lookup for the published object remains manually reviewed provenance
+bound by the exact feed-record hash, rather than a fresh negative-API claim on
+every run. Under the reviewed feed, exact 3.6.4 has zero affected IDs. Fresh
+exact-commit comparator, differential, and retained-corpus evidence remains
+required after this guarded repin.
+
+The historical transition retains this per-record applicability summary; the
+machine ledger binds every row to the complete reviewed oracle source closure
+and the exact official feed-record hash.
+
+| CVE | Severity | Affected subsystem | Reviewed research-oracle disposition | 3.6 fix commit |
+| --- | --- | --- | --- | --- |
+| CVE-2026-14456 | Low | QUIC server-listener incoming-channel queue | No QUIC listener or network path | `4084152e040329ca0194c4c1750b9b46d00a5b6b` |
+| CVE-2026-14457 | Low | TLS raw-public-key certificate selection | No TLS raw-public-key or network path | `581aaa0f0a35d214740f0fe1f5283ec41f1212e1` |
+| CVE-2026-18798 | Moderate | QUIC server Initial-packet channel creation | No QUIC server or network path | `70cebd74d3592f5272945501b58a60374c4e13af` |
+| CVE-2026-54874 | Low | DTLS future-epoch record buffering | No DTLS or network path | `f52ffc11b90737ac89083909618dc2e1f42c561c` |
+| CVE-2026-54876 | Low | TLS client X.509/OCSP response checking | No TLS, X.509/OCSP, or network path | `155b5fe0f93365e6df1c56ee3606b121080c6c12` |
+| CVE-2026-63072 | Moderate | CMS AES-wrap-pad key unwrapping | No CMS decryption or key-unwrapping path | `2a3dac874c8057c1f0186849bf1ede1ae7b6b756` |
+| CVE-2026-63073 | Low | CMP response sender-DN error formatting | No CMP client or network path | `6a0acc072b4d37a7cac1252a29c1ce1f00c5ec29` |
+| CVE-2026-63074 | Low | CMP server extra-certificate cache | No CMP server or network path | `01e567978a55fba18142a230380c31296049fae7` |
+| CVE-2026-63075 | Low | QUIC ACK-only packet history | No QUIC connection or network path | `bf84721c2548351176e367e6de505792f0118dc6` |
+| CVE-2026-63076 | Moderate | CMP PBM parameter validation | No CMP or network path | `49de27169f4cc42619a096c38412e47a3f890803` |
+| CVE-2026-75803 | Low | AEAD empty-ciphertext tag verification | No AEAD cipher or empty-ciphertext path | `3621257986e27e540bf96a11570929a6e5a9e05b` |
+
+### Historical OpenSSL 3.6.3 Disposition: CVE-2026-14456
+
+At the 2026-08-15 review, OpenSSL 3.6.3 was version-affected by
 [CVE-2026-14456](https://openssl-library.org/news/secadv/20260813.txt); the
 ledger does not relabel the pin as unaffected. OpenSSL rates the issue Low and
 describes unbounded memory growth in a libssl QUIC-server Listener object. A
 remote peer must send valid QUIC Initial packets for unknown destination
 connection IDs faster than the application accepts pending connections.
 
-The current research path is explicitly `NOT_APPLICABLE`. The reviewed
+The then-reviewed research path was explicitly `NOT_APPLICABLE`. The reviewed
 OpenSSL adapters construct no QUIC listener, accept no network traffic, and
 call the default provider's EVP ML-DSA key-generation, signing, and
 verification interfaces only. Their exact local source/include closure and
@@ -116,14 +167,13 @@ boundary; that is supporting context rather than the applicability basis.
 
 The official 3.6 fix is commit
 `4084152e040329ca0194c4c1750b9b46d00a5b6b`, targeted at 3.6.4. No 3.6.4
-release tag was available at the 2026-08-15 review. A signed, reproducible
-3.6.4-or-later release is the repin trigger; the full oracle and campaign
-evidence must then be rerun. Any future QUIC-server, network, or production
-use requires explicit re-review before admission.
+release tag was available at the 2026-08-15 review. The trigger has now been
+met and the active comparator is repinned above. Any future QUIC-server,
+network, or production use requires explicit re-review before admission.
 
-### OpenSSL CVE-2026-54876
+### Historical OpenSSL 3.6.3 Disposition: CVE-2026-54876
 
-OpenSSL 3.6.3 is version-affected by
+At the 2026-08-15 review, OpenSSL 3.6.3 was version-affected by
 [CVE-2026-54876](https://openssl-library.org/news/secadv/20260805.txt); the
 ledger does not relabel the pin as unaffected. OpenSSL rates the issue Low and
 describes a TLS-client memory leak in X.509 OCSP response checking. Exploitation
@@ -132,10 +182,11 @@ requires an application to enable `X509_V_FLAG_OCSP_RESP_CHECK` or
 with no single-response entries, and repeat handshakes to accumulate a denial
 of service. OCSP response checking is not enabled by default.
 
-The current research path is explicitly `NOT_APPLICABLE`. The two reviewed
-OpenSSL adapters use the default provider and EVP ML-DSA key generation,
-signing, and verification only; they contain no TLS, X.509-verification, OCSP,
-certificate, or network path. Their exact local source/include closure and the
+The then-reviewed research path was explicitly `NOT_APPLICABLE`. The two
+reviewed OpenSSL adapters use the default provider and EVP ML-DSA key
+generation, signing, and verification only; they contain no TLS,
+X.509-verification, OCSP, certificate, or network path. Their exact local
+source/include closure and the
 exact official CVE-record hash are part of the machine contract. The validator
 rejects any unbound quoted include. The OpenSSL FIPS modules are
 also outside the affected boundary, but that is supporting context rather than
@@ -143,11 +194,11 @@ the applicability basis because this oracle uses the default provider.
 
 The official fix for the 3.6 branch is commit
 `155b5fe0f93365e6df1c56ee3606b121080c6c12`, targeted at 3.6.4. No 3.6.4
-release tag was available at the 2026-08-15 refresh. A signed, reproducible
-3.6.4-or-later release is the repin trigger; the full oracle and campaign
-evidence must then be rerun. Any future TLS/X.509/OCSP use or production
-linkage requires explicit re-review before admission. The production backend
-remains `NONE`, and this disposition does not change the release hold.
+release tag was available at the 2026-08-15 refresh. The trigger has now been
+met and the active comparator is repinned above. Any future TLS/X.509/OCSP use
+or production linkage requires explicit re-review before admission. The
+production backend remains `NONE`, and this disposition does not change the
+release hold.
 
 ## SIMD256 Regression Promotion Boundary
 
@@ -207,7 +258,7 @@ The read-only workflow pins and hashes cargo-audit 0.22.2, OSV Scanner 2.4.0,
 and cargo-cyclonedx 0.5.9. Each run also retains:
 
 - the raw OpenSSL `secjson` archive, current repository commit/root/subtree
-  identities, normalized 3.6 ranges, and exact 3.6.3 affected-ID result;
+  identities, normalized 3.6 ranges, and exact 3.6.4 affected-ID result;
 - the raw mldsa-native advisory body, response headers, curl metadata, request
   contract, exit code, and normalized published-ID result;
 - the current RustSec database commit and every database entry found across all

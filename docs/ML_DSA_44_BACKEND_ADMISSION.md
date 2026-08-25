@@ -3,7 +3,7 @@
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-BACKEND-ADMISSION-v1
 ## Decided: 2026-07-19
-## Evidence-Updated: 2026-08-20
+## Evidence-Updated: 2026-08-25
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -20,7 +20,7 @@ hedged-signing wrapper. The production backend remains `NONE`, and
 The authorized slice now vendors the exact portable dependency closure and
 compiles it only inside the isolated `contrib/` wrapper. It does not link that
 wrapper into the node, wallet, Script, consensus, packaging, or an `ALG_ID`.
-OpenSSL 3.6.3 and libcrux 0.0.10 remain comparator oracles, not production
+OpenSSL 3.6.4 and libcrux 0.0.10 remain comparator oracles, not production
 dependencies.
 
 The machine-readable disposition is
@@ -35,7 +35,7 @@ pinned implementations pass the frozen ML-DSA-44 comparator. Backend admission
 also requires a reviewable entropy boundary, secret lifetime, production/test
 API separation, toolchain fit, advisory posture, and reproducible source pin.
 
-| Gate | OpenSSL 3.6.3 | mldsa-native beta2 portable C | libcrux 0.0.10 portable |
+| Gate | OpenSSL 3.6.4 | mldsa-native beta2 portable C | libcrux 0.0.10 portable |
 | --- | --- | --- | --- |
 | Exact FIPS 204 evidence | Pass | Pass | Pass |
 | Hedged entropy boundary | Internal OpenSSL DRBG, but deterministic and test-entropy controls are public parameters | High-level randomized API calls an integrator-owned `mld_randombytes` hook and propagates RNG failure | Signing API requires the caller to supply the 32-byte randomizer |
@@ -53,7 +53,7 @@ project gates below.
 
 ## Candidate Findings
 
-### OpenSSL 3.6.3
+### OpenSSL 3.6.4
 
 OpenSSL's ML-DSA provider generates per-message randomness through its private
 DRBG, returns failure when generation fails, and cleanses its local randomizer.
@@ -65,6 +65,14 @@ lifetime, and the exact module boundary would all need separate review.
 
 OpenSSL remains the strongest general-purpose differential oracle in this
 repository. It is not the narrowest production integration.
+
+The live advisory feed expanded the superseded 3.6.3 pin to eleven affected
+CVEs on 2026-08-25. None of those TLS, QUIC, DTLS, CMS, CMP, OCSP, or non-ML-DSA
+`EVP_Cipher` paths is reachable from this isolated ML-DSA oracle. The fixed
+3.6.4 release is nevertheless the active comparator pin; path
+non-applicability is not represented as package-level remediation. Fresh
+exact-commit oracle and retained-corpus evidence remains required after this
+repin.
 
 ### mldsa-native v1.0.0-beta2 portable C
 

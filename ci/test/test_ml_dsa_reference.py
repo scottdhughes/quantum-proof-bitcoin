@@ -3,6 +3,7 @@ import importlib.util
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
 from unittest import mock
 from pathlib import Path
@@ -57,7 +58,29 @@ class MLDSAReferenceTests(unittest.TestCase):
 
     def test_source_pins_and_lineage_limit(self):
         sources = self.manifest["sources"]
-        self.assertEqual(sources["openssl"]["version"], "3.6.3")
+        self.assertEqual(sources["openssl"]["version"], "3.6.4")
+        self.assertEqual(
+            sources["openssl"]["commit"],
+            "d3c1b1169b3569ff3069e5b399f47b2b28e03d79",
+        )
+        self.assertEqual(
+            sources["openssl"]["git_tree"],
+            "0f2db317fdf20b06193b96e79ac699b2d4e36d7d",
+        )
+        self.assertEqual(sources["openssl"]["tag"], "openssl-3.6.4")
+        self.assertEqual(
+            sources["openssl"]["tag_object"],
+            "360ffdb6d82f298d8d22c838dc2b7bf61ece056d",
+        )
+        self.assertEqual(
+            sources["openssl"]["release_tarball_url"],
+            "https://github.com/openssl/openssl/releases/download/"
+            "openssl-3.6.4/openssl-3.6.4.tar.gz",
+        )
+        self.assertEqual(
+            sources["openssl"]["release_tarball_sha256"],
+            "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef",
+        )
         self.assertEqual(sources["mldsa_native"]["tag"], "v1.0.0-beta2")
         self.assertEqual(sources["libcrux"]["version"], "0.0.10")
         self.assertEqual(
@@ -113,6 +136,65 @@ class MLDSAReferenceTests(unittest.TestCase):
         mutated["acvp_coverage"]["sigver"]["test_case_ids"].pop()
         with self.assertRaisesRegex(compare_oracles.ReferenceError, "ACVP coverage"):
             compare_oracles.validate_manifest(mutated)
+
+    def test_manifest_rejects_missing_openssl_tree(self):
+        mutated = copy.deepcopy(self.manifest)
+        del mutated["sources"]["openssl"]["git_tree"]
+        with self.assertRaisesRegex(compare_oracles.ReferenceError, "git_tree"):
+            compare_oracles.validate_manifest(mutated)
+
+    def test_manifest_rejects_openssl_release_provenance_drift(self):
+        hostile_values = (
+            ("commit", "0" * 40, "commit does not match"),
+            ("tag", "openssl-3.6.5", "tag does not match"),
+            ("tag_object", "0" * 40, "tag_object does not match"),
+            ("tag_object", "not-a-git-object", "tag_object must be"),
+            (
+                "release_tarball_url",
+                "https://example.invalid/openssl-3.6.4.tar.gz",
+                "release_tarball_url does not match",
+            ),
+            (
+                "release_tarball_sha256",
+                "0" * 64,
+                "release_tarball_sha256 does not match",
+            ),
+            (
+                "release_tarball_sha256",
+                "not-a-sha256",
+                "release_tarball_sha256 must be",
+            ),
+        )
+        for field, hostile, message in hostile_values:
+            with self.subTest(field=field, hostile=hostile):
+                mutated = copy.deepcopy(self.manifest)
+                mutated["sources"]["openssl"][field] = hostile
+                with self.assertRaisesRegex(
+                    compare_oracles.ReferenceError, message
+                ):
+                    compare_oracles.validate_manifest(mutated)
+
+    def test_openssl_source_rejects_tree_mismatch(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source_dir = Path(temporary)
+            for relative_path in (
+                "crypto/ml_dsa/ml_dsa_sign.c",
+                "doc/man7/EVP_SIGNATURE-ML-DSA.pod",
+                "providers/implementations/signature/ml_dsa_sig.c.in",
+            ):
+                path = source_dir / relative_path
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.touch()
+            with (
+                mock.patch.object(compare_oracles, "require_git_commit"),
+                mock.patch.object(compare_oracles, "run", return_value="0" * 40),
+                self.assertRaisesRegex(compare_oracles.ReferenceError, "tree mismatch"),
+            ):
+                compare_oracles.require_openssl_source(
+                    source_dir,
+                    self.manifest["sources"]["openssl"]["commit"],
+                    self.manifest["sources"]["openssl"]["git_tree"],
+                )
 
     def test_hex_mutation_is_bounded(self):
         original = "00112233"
