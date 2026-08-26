@@ -3,7 +3,7 @@
 ## Status: AWAITING_EXTERNAL_REVIEW - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-EXTERNAL-REVIEW-v1
 ## Prepared: 2026-07-19
-## Evidence-Updated: 2026-08-25
+## Evidence-Updated: 2026-08-26
 ## Owner: @scottdhughes
 ## Tracking: https://github.com/scottdhughes/quantum-proof-bitcoin/issues/181
 ## Consensus-Relevant: NO
@@ -22,11 +22,12 @@ The review has three bounded subjects:
 3. the cryptographic and implementation risks that a future production design
    must close
 
-The comparator implementation baseline is PQBTC commit
-`6ffd47881fc2071724fa6e31fb3cf9557a64b467`, merged on `main` by
-`83c47cf6d93e07bb30d1f22f491128ac43c70176`. The reviewer must record the exact
-PQBTC revision used for the review and confirm whether any of these files differ
-from that baseline:
+The active comparator implementation baseline is PQBTC commit
+`b22b21c3c6a06cb46f643eb1216325ecddacf7a4`. Pointer-only protected-main
+evidence head `0fa8f5fc4321f057fb758e4c2dc39b790023943c` has an empty guarded
+comparator diff from that baseline. The reviewer must record the exact PQBTC
+revision used for the review and confirm whether any of these files differ from
+the active baseline:
 
 - `contrib/ml-dsa-ref/vectors.json`
 - `contrib/ml-dsa-ref/compare_oracles.py`
@@ -120,9 +121,31 @@ signature-verification cases, for 70 cases total.
 
 | Oracle | Frozen source | Role and limitation |
 | --- | --- | --- |
-| OpenSSL | Version 3.6.4, commit `d3c1b1169b3569ff3069e5b399f47b2b28e03d79` | Separate provider oracle; not a proposed node dependency; fresh exact-commit evidence pending after repin |
+| OpenSSL | Version 3.6.4, commit `d3c1b1169b3569ff3069e5b399f47b2b28e03d79` | Separate provider oracle; not a proposed node dependency; fresh post-repin exact-main evidence recorded at `0fa8f5fc4321f057fb758e4c2dc39b790023943c`; independent re-review remains open |
 | `mldsa-native` | Tag `v1.0.0-beta2`, commit `9b0ee84f4cf399043eca59eca4e5f8531ca1d61b` | Portable C; forked from PQ-Crystals, so not independent design |
 | libcrux | `libcrux-ml-dsa-v0.0.10`, commit `c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd` | Portable Rust with separate implementation history and disclosed reference influence |
+
+The
+[post-repin exact-main receipt](reviews/evidence/ml-dsa-44-trusted-main/0fa8f5fc4321f057fb758e4c2dc39b790023943c/SOURCE.json)
+binds that protected-main head to baseline
+`b22b21c3c6a06cb46f643eb1216325ecddacf7a4` with an empty guarded diff.
+Resource run `32910153642`, advisory run `32910153947`, sustained run
+`32924009052`, and review-reproduction run `32924008998`, all attempt `1`,
+supply the bounded GCC/Clang resource, advisory/SBOM/Miri, four 1,800-second
+sanitizer, and three-oracle differential evidence. The resource pair is a third
+policy-enforced protected-main sample and post-repin reconfirmation, not a new
+threshold basis or ceiling-tightening authorization. The sustained lanes
+recorded nonzero retained-corpus imports and zero crashes. The review lane
+recorded nonzero imports and zero crashes, sanitizer markers, oracle errors, or
+disagreements.
+
+The signer and review artifacts embed self-contained retained-source
+provenance. The two strict-verifier campaign artifacts record nonzero imported
+seed counts but omit `retained_corpus_source` and `retained_corpus_import`.
+Their workflow restore logs establish source selection, but strict-verifier
+retained-corpus provenance is therefore not yet artifact-self-contained or
+fail-closed. These are internal engineering receipts and do not satisfy issue
+`#181` or approve production use.
 
 The libcrux annotated tag object is
 `255922337dee37aa32b21dbed27785f535de0336`, its ML-DSA source tree is
@@ -156,8 +179,13 @@ exact PQBTC revision. First run the repository-only checks:
 
 ```bash
 git rev-parse HEAD
-git diff --exit-code 6ffd47881fc2071724fa6e31fb3cf9557a64b467 -- \
-  contrib/ml-dsa-ref ci/test/test_ml_dsa_reference.py
+git diff --exit-code b22b21c3c6a06cb46f643eb1216325ecddacf7a4 -- \
+  contrib/ml-dsa-ref/vectors.json \
+  contrib/ml-dsa-ref/compare_oracles.py \
+  contrib/ml-dsa-ref/openssl_oracle.c \
+  contrib/ml-dsa-ref/mldsa_native_oracle.c \
+  contrib/ml-dsa-ref/libcrux_oracle.rs \
+  ci/test/test_ml_dsa_reference.py
 python3 contrib/ml-dsa-ref/compare_oracles.py --manifest-only
 python3 -m unittest ci.test.test_ml_dsa_reference
 ```

@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-08-25
+## Updated: 2026-08-26
 ## Current Phase: Phase 1 - Cryptographic Production Hold
 
 ## Purpose
@@ -75,12 +75,17 @@ independent design, external cryptographic review, or production approval.
 
 The 2026-08-25 OpenSSL advisory refresh correctly failed closed when the
 superseded 3.6.3 comparator became affected by eleven CVEs. Source review found
-no reachable path from the isolated default-provider EVP ML-DSA oracle, but
-the fixed 3.6.4 release now replaces that pin rather than relying on
-non-applicability. The repin changes only the research comparator and guarded
-evidence contracts. Fresh exact-main oracle, differential, and retained-corpus
-evidence plus a separate review-pointer advance remain required; production
-stays `NONE`, issue `#181` remains open, and `RELEASE_HOLD` is unchanged.
+no reachable path from the isolated default-provider EVP ML-DSA oracle, but PR
+`#247` repinned the comparator to fixed OpenSSL 3.6.4 at
+`b22b21c3c6a06cb46f643eb1216325ecddacf7a4`. PR `#248` advanced the review
+pointer and merged at exact protected-main evidence head
+`0fa8f5fc4321f057fb758e4c2dc39b790023943c`; the guarded comparator diff was
+empty. Runs `32910153642`, `32910153947`, `32924009052`, and `32924008998`
+supply the bounded fresh resource, advisory/SBOM/Miri, retained-corpus, and
+differential evidence recorded in the
+[post-repin receipt](reviews/evidence/ml-dsa-44-trusted-main/0fa8f5fc4321f057fb758e4c2dc39b790023943c/SOURCE.json).
+Production stays `NONE`, issues `#181`, `#188`, and `#189` remain open, and
+`RELEASE_HOLD` is unchanged.
 
 The measured decision in `PQSIG_CANDIDATE_SELECTION.md` selects FIPS 204
 `ML-DSA-44` as the primary engineering candidate and retains FIPS 205
@@ -272,6 +277,30 @@ This evidence head predates PR `#247`'s OpenSSL 3.6.4 comparator repin and does
 not satisfy that repin's fresh exact-main oracle, differential, or retained-
 corpus evidence requirement.
 
+PR `#247` subsequently landed the OpenSSL 3.6.4 comparator repin at
+`b22b21c3c6a06cb46f643eb1216325ecddacf7a4`; PR `#248` advanced the review
+pointer and merged at exact protected-main evidence head
+`0fa8f5fc4321f057fb758e4c2dc39b790023943c`. The guarded comparator diff was
+empty. Automatic resource run `32910153642` supplied a third policy-enforced
+protected-main GCC/Clang pair and post-repin reconfirmation without changing
+the frozen ceilings or sampling prerequisite. Advisory run `32910153947`
+verified all 41 retained checksum entries with zero OpenSSL 3.6.4 affected IDs,
+zero published `mldsa-native` advisories, and `3/3` portable Miri checks.
+Sustained run `32924009052` completed four 1,800-second verifier and signer
+sanitizer campaigns with zero crashes. Review run `32924008998` passed its retained-
+corpus, differential, replay, and coverage checks with zero crashes, oracle
+errors, or disagreements.
+
+The
+[versioned post-repin receipt](reviews/evidence/ml-dsa-44-trusted-main/0fa8f5fc4321f057fb758e4c2dc39b790023943c/SOURCE.json)
+preserves exact workflow, artifact, checksum, corpus, and claim boundaries. The
+signer and review artifacts embed retained-source provenance. The strict-
+verifier artifacts record nonzero imported counts but omit their retained-
+source fields, so their workflow restore logs—not the artifacts alone—establish
+source selection. These runs do not execute the fork-lifecycle or candidate-
+fault checkpoint, satisfy independent review, close issues `#184`, `#186`,
+`#188`, or `#189`, select a production backend, or remove `RELEASE_HOLD`.
+
 This evidence is an internal engineering tranche, not external cryptographic
 review or production approval. Issue `#184` remains open, production remains
 `NONE`, and `RELEASE_HOLD` remains in force.
@@ -454,6 +483,12 @@ Cryptography implementation lane:
    direct-wrapper, retained-corpus, and differential observations. Only the
    portable-wrapper logs directly execute the fault, `retained_results=false`,
    and issues `#181` and `#186` plus the production hold remain open.
+   PRs `#247` and `#248` establish the OpenSSL 3.6.4 post-repin evidence head
+   `0fa8f5fc4321f057fb758e4c2dc39b790023943c`; runs `32910153642`,
+   `32910153947`, `32924009052`, and `32924008998` satisfy the bounded fresh-
+   evidence refresh. Strict-verifier artifact-self-contained retained-corpus
+   provenance remains open, as do issues `#181`, `#188`, and `#189` and the
+   production hold.
 
 
 ## Historical Queue Ledger
@@ -1946,6 +1981,18 @@ Aineko must ask before:
 
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
+
+- 2026-08-26: PR `#247` repinned the research comparator to OpenSSL 3.6.4 at
+  `b22b21c3c6a06cb46f643eb1216325ecddacf7a4`; PR `#248` advanced the pointer
+  and produced protected-main evidence head
+  `0fa8f5fc4321f057fb758e4c2dc39b790023943c` with an empty guarded comparator
+  diff. Runs `32910153642`, `32910153947`, `32924009052`, and `32924008998`
+  supplied the bounded resource, advisory/SBOM/Miri, four-lane sustained, and
+  differential evidence. Strict-verifier artifacts retain positive imported
+  counts but not artifact-self-contained source identity; signer and review
+  source provenance is self-contained. No run executed the fork-lifecycle or
+  candidate-fault checkpoint. Issues `#181`, `#188`, and `#189` remain open,
+  production backend `NONE` is unchanged, and `RELEASE_HOLD` remains in force.
 
 - 2026-08-25: PR `#244` landed the isolated wrapper's deterministic candidate-
   corruption checkpoint at `c2021c128b2c04f34477324c48ec7fdd6fc4d50e`; PR
