@@ -2,7 +2,7 @@
 
 ## Status: REFERENCE ONLY - NOT CONSENSUS
 ## Spec-ID: ML-DSA-44-REFERENCE-v2
-## Updated: 2026-08-25
+## Updated: 2026-08-26
 ## Consensus-Relevant: NO
 
 ## Decision Boundary
@@ -136,6 +136,23 @@ For 0077 it binds pinned Wycheproof ML-DSA-44 tcIds 125 and 126 by source,
 case identity, and component hashes, then requires all three oracles to reject
 the positive and negative signer-response coefficient cases at the
 infinity-norm boundary.
+
+Fresh post-repin exact-main evidence is bound by the
+[versioned receipt](reviews/evidence/ml-dsa-44-trusted-main/0fa8f5fc4321f057fb758e4c2dc39b790023943c/SOURCE.json).
+Evidence head `0fa8f5fc4321f057fb758e4c2dc39b790023943c` has an empty guarded
+comparator diff from OpenSSL 3.6.4 repin baseline
+`b22b21c3c6a06cb46f643eb1216325ecddacf7a4`. Review run `32924008998`
+passed all exact and promoted replays and coverage floors with zero crashes,
+sanitizer markers, oracle errors, or disagreements. Sustained run
+`32924009052` completed the four 1,800-second verifier and signer sanitizer
+campaigns with nonzero retained-corpus imports and zero crashes; the same
+receipt binds resource run `32910153642` and advisory run `32910153947`.
+
+The signer and review artifacts retain self-contained retained-source
+provenance. The strict-verifier campaign artifacts retain imported counts but
+omit `retained_corpus_source` and `retained_corpus_import`, so workflow restore
+logs—not the artifacts alone—establish their source selection. This is fresh
+conformance evidence, not independent review or production approval.
 
 Run:
 

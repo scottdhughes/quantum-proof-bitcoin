@@ -1,8 +1,8 @@
 # ML-DSA-44 Advisory Ledger and Dependency Refresh
 
-Status: engineering contract implemented; exact-commit workflow evidence and
-independent re-review remain required. This document does not change the
-production backend (`NONE`) or the release hold.
+Status: engineering contract implemented; fresh post-repin exact-main workflow
+evidence is recorded, while independent re-review remains required. This
+document does not change the production backend (`NONE`) or the release hold.
 
 ## Purpose and Scope
 
@@ -127,8 +127,18 @@ proves that the equivalent fix is an ancestor of the pinned release. The
 negative lookup for the published object remains manually reviewed provenance
 bound by the exact feed-record hash, rather than a fresh negative-API claim on
 every run. Under the reviewed feed, exact 3.6.4 has zero affected IDs. Fresh
-exact-commit comparator, differential, and retained-corpus evidence remains
-required after this guarded repin.
+post-repin exact-main evidence is recorded at protected-main head
+`0fa8f5fc4321f057fb758e4c2dc39b790023943c`, whose guarded comparator diff from
+repin baseline `b22b21c3c6a06cb46f643eb1216325ecddacf7a4` was empty. Push
+advisory run `32910153947`, attempt `1`, verified all `41/41` retained
+checksum entries and reported zero affected OpenSSL 3.6.4 IDs, zero published
+`mldsa-native`
+advisories, and `3/3` portable Miri checks. The full-lock cargo-audit and OSV
+results still contain the seven exactly adjudicated findings outside the
+selected graph; this is not a scanner-empty claim. The
+[versioned post-repin receipt](reviews/evidence/ml-dsa-44-trusted-main/0fa8f5fc4321f057fb758e4c2dc39b790023943c/SOURCE.json)
+binds the exact run and retained artifact. Independent exact-commit re-review
+remains required.
 
 The historical transition retains this per-record applicability summary; the
 machine ledger binds every row to the complete reviewed oracle source closure

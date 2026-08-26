@@ -3,7 +3,7 @@
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-BACKEND-ADMISSION-v1
 ## Decided: 2026-07-19
-## Evidence-Updated: 2026-08-25
+## Evidence-Updated: 2026-08-26
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -71,8 +71,8 @@ CVEs on 2026-08-25. None of those TLS, QUIC, DTLS, CMS, CMP, OCSP, or non-ML-DSA
 `EVP_Cipher` paths is reachable from this isolated ML-DSA oracle. The fixed
 3.6.4 release is nevertheless the active comparator pin; path
 non-applicability is not represented as package-level remediation. Fresh
-exact-commit oracle and retained-corpus evidence remains required after this
-repin.
+post-repin exact-main evidence is recorded below, while independent
+exact-commit re-review remains required.
 
 ### mldsa-native v1.0.0-beta2 portable C
 
@@ -221,6 +221,27 @@ This evidence head predates PR `#247`'s OpenSSL 3.6.4 comparator repin and does
 not satisfy that repin's fresh exact-main oracle, differential, or retained-
 corpus evidence requirement.
 
+PR `#247` landed the OpenSSL 3.6.4 comparator repin at
+`b22b21c3c6a06cb46f643eb1216325ecddacf7a4`; PR `#248` advanced the review
+pointer and merged at exact protected-main evidence head
+`0fa8f5fc4321f057fb758e4c2dc39b790023943c`. Their guarded comparator diff was
+empty. Runs `32910153642`, `32910153947`, `32924009052`, and `32924008998`,
+all attempt `1`, provide the bounded resource, advisory/SBOM/Miri, sustained
+sanitizer, and review-reproduction evidence recorded in the
+[post-repin receipt](reviews/evidence/ml-dsa-44-trusted-main/0fa8f5fc4321f057fb758e4c2dc39b790023943c/SOURCE.json).
+The resource run is a third policy-enforced protected-main GCC/Clang pair and a
+post-repin reconfirmation; it does not add a sampling prerequisite, change a
+ceiling, or authorize tightening.
+
+The signer and review artifacts retain self-contained corpus-source provenance.
+The strict-verifier ASan/UBSan and MSan artifacts retain positive imported
+counts, but their campaign records omit `retained_corpus_source` and
+`retained_corpus_import`; workflow restore logs establish the selected source,
+so that provenance is not yet artifact-self-contained or fail-closed. None of
+these four runs executes the fork-lifecycle or candidate-fault checkpoint, so
+they do not advance issues `#184` or `#186`. They do not satisfy issue `#181`,
+select a production backend, or change `RELEASE_HOLD`.
+
 A separate Linux x86_64 test-only lane now defines direct strict-verifier
 resource observations. Each of four batches makes 4,287 calls on a 128 KiB
 guarded pthread stack while linker interposition requires zero project heap
@@ -296,8 +317,8 @@ Prototype admission closes no production finding:
 | Supported-platform side channels | #185 | bounded x86_64 Valgrind constant-time/variable-latency evidence; broader platforms and leakage models open |
 | Fault model and injected faults | #186 | test-only pre-self-verification candidate-corruption regression with atomic output and cleanup evidence, directly replayed in portable GCC/Clang normal and ASan/UBSan logs at the reviewed exact head; no fault-specific retained artifact, and broader checkpoints, control-flow and common-mode analysis, platform/hardware model, physical campaign, and exact-commit independent review remain open |
 | End-to-end secret erasure | #187 | source cleanup and sanitizer evidence only; compiler/caller/platform boundary open |
-| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential/stateful fuzzing, promoted regressions, portable Miri evidence, bounded malformed research-CLI argv replay, exact-main GCC/Clang direct-verifier observations, a reviewed coarse Linux x86_64 numeric regression policy, and both additional policy-enforced trusted-main GCC/Clang sample pairs; ceiling tightening remains a separate review, while broader platform/Rust sanitizer and toolchain coverage, concurrency and production-parser limits, and exact-commit re-review remain open |
-| Backend advisories, SBOM, and reproducible build | #189 | dated fail-closed ledger, full-lock cargo-audit/OSV scans, exact selected graph, CycloneDX SBOM, weekly retained refresh, exact portable ML-DSA-44 RUSTSEC-2026-0077 regressions, and promoted trusted-main test-only SIMD256 0125/0126 PASS evidence; exact-commit independent re-review remains open, and optimized-backend admission is a separate future decision |
+| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential/stateful fuzzing, promoted regressions, portable Miri evidence, bounded malformed research-CLI argv replay, exact-main GCC/Clang direct-verifier observations, a reviewed coarse Linux x86_64 numeric regression policy, both prerequisite policy-enforced trusted-main GCC/Clang sample pairs, and a later post-repin reconfirmation; ceiling tightening remains a separate review, while broader platform/Rust sanitizer and toolchain coverage, concurrency and production-parser limits, artifact-self-contained strict-verifier provenance, and exact-commit re-review remain open |
+| Backend advisories, SBOM, and reproducible build | #189 | dated fail-closed ledger, full-lock cargo-audit/OSV scans, exact selected graph, CycloneDX SBOM, weekly retained refresh, exact portable ML-DSA-44 RUSTSEC-2026-0077 regressions, promoted trusted-main test-only SIMD256 0125/0126 PASS evidence, and a fresh post-repin exact-main advisory/SBOM/Miri receipt; exact-commit independent re-review remains open, and optimized-backend admission is a separate future decision |
 | Wallet and key format | #190 | open |
 | Independent human cryptographic review | #181 | open |
 
