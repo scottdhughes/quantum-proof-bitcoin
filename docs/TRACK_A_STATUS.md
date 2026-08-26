@@ -246,6 +246,32 @@ records the workflow, job, artifact, digest, expiry, retained-source, campaign,
 and claim-boundary fields needed to audit this tranche after hosted artifacts
 expire.
 
+PR `#244` subsequently implemented the bounded test-only candidate-corruption
+checkpoint at merge commit `c2021c128b2c04f34477324c48ec7fdd6fc4d50e`.
+PR `#245` advanced the review pointer and merged at exact protected-main
+evidence head `069c7a21dfcb19852ed40aad483b7612e6094c9b`. Main-dispatched wrapper
+run `32865079872`, attempt `1`, directly replayed the checkpoint only in the
+portable-wrapper GCC and Clang normal and ASan/UBSan logs; there is no fault-
+specific retained artifact. The checksummed static-analysis and Valgrind
+artifacts are adjacent exact-head evidence, not direct fault results. The
+static-analysis report records
+`audit_input_dirty=false` and `tracked_worktree_dirty=true`: the audited inputs
+were clean, but the overall CI worktree was not globally clean. The machine
+contract remains `retained_results=false`.
+
+Automatic resource run `32541060189`, attempt `1`, supplied the second
+additional policy-enforced GCC/Clang direct-verifier pair. Sustained run
+`32865082841`, attempt `1`, and review-reproduction run `32865085933`, attempt
+`1`, supplied adjacent exact-head, checksum-bound artifacts without executing
+the fault checkpoint. The versioned
+[candidate-fault evidence receipt](reviews/evidence/ml-dsa-44-trusted-main/069c7a21dfcb19852ed40aad483b7612e6094c9b/SOURCE.json)
+records the exact execution and retention boundaries. These results do not
+satisfy issue `#181`, close issue `#186`, select a production backend, or remove
+`RELEASE_HOLD`.
+This evidence head predates PR `#247`'s OpenSSL 3.6.4 comparator repin and does
+not satisfy that repin's fresh exact-main oracle, differential, or retained-
+corpus evidence requirement.
+
 This evidence is an internal engineering tranche, not external cryptographic
 review or production approval. Issue `#184` remains open, production remains
 `NONE`, and `RELEASE_HOLD` remains in force.
@@ -339,10 +365,11 @@ Completed owned tranche:
      with exact run, job, artifact, checksum, compiler, stack, and observed
      numeric fields
    - require two additional independent protected-main samples per compiler
-     after the frozen acceptance basis before tightening; run `32419767106`
-     supplies the first and one further sample pair remains. The current raw
-     samples partition one batch and do not justify percentile or confidence-
-     interval claims
+     after the frozen acceptance basis before tightening; runs `32419767106`
+     and `32541060189` supply those two pairs. This completes only the sampling
+     prerequisite: tightening remains a separate review and is not authorized
+     here. The current raw samples partition batches and do not justify
+     percentile or confidence-interval claims
    - treat the four 4,287-call batches as research workloads only, not a
      consensus, block, transaction, mempool, or production limit
    - preserve broader-platform/toolchain, concurrency, production-parser, and
@@ -420,6 +447,13 @@ Cryptography implementation lane:
    and `31521183046` supply the associated resource, direct lifecycle,
    retained-corpus, and differential observations. Those results do not close
    issue `#184`, establish portable child signing, or change the hold.
+   PR `#244` adds the bounded test-only candidate-corruption checkpoint and PR
+   `#245` anchors it at evidence head
+   `069c7a21dfcb19852ed40aad483b7612e6094c9b`; runs `32541060189`,
+   `32865079872`, `32865082841`, and `32865085933` supply the bounded resource,
+   direct-wrapper, retained-corpus, and differential observations. Only the
+   portable-wrapper logs directly execute the fault, `retained_results=false`,
+   and issues `#181` and `#186` plus the production hold remain open.
 
 
 ## Historical Queue Ledger
@@ -1913,6 +1947,21 @@ Aineko must ask before:
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
 
+- 2026-08-25: PR `#244` landed the isolated wrapper's deterministic candidate-
+  corruption checkpoint at `c2021c128b2c04f34477324c48ec7fdd6fc4d50e`; PR
+  `#245` advanced the review pointer and produced exact protected-main evidence
+  head `069c7a21dfcb19852ed40aad483b7612e6094c9b`. Automatic resource run
+  `32541060189` supplied the second additional policy-enforced GCC/Clang pair;
+  collecting it does not tighten the frozen ceilings or close issue `#188`.
+  Wrapper run `32865079872` directly executed the checkpoint only in portable
+  GCC/Clang normal and ASan/UBSan logs; its static report records
+  `audit_input_dirty=false` and `tracked_worktree_dirty=true`, and there is no
+  fault-specific artifact. Sustained run
+  `32865082841` and review run `32865085933` retained adjacent exact-head,
+  checksum-bound evidence but did not execute the fault. The fault contract
+  remains `retained_results=false`; issues `#181` and `#186`, production
+  backend `NONE`, and `RELEASE_HOLD` remain unchanged.
+
 - 2026-08-20: The coarse test-only Linux x86_64 resource-regression policy
   landed at `18db91c542b51f37c2dabf198979c33d793ecddf`; the separately reviewed
   pointer now names `1833f20ee66fe7cac9f8e41a98b07f9eab150ec7`. Automatic protected-main
@@ -1927,8 +1976,9 @@ above as the controlling live next-PR handoff when these older notes disagree.
   remains `promotion_eligible=false`; it is not a supported-platform,
   consensus, production, or worst-case resource bound. This pair supplies the
   first of two additional protected-main samples per compiler required before
-  tightening; one further pair remains. Issues `#188` and `#181` remain open,
-  production remains `NONE`, and `RELEASE_HOLD` remains in force.
+  tightening. At this dated snapshot one further pair remained; the 2026-08-25
+  entry above records its later collection. Issues `#188` and `#181` remain
+  open, production remains `NONE`, and `RELEASE_HOLD` remains in force.
 
 - 2026-08-12: Separate review of exact protected-main resource run
   `31520865906` selected deliberately coarse test-only Linux x86_64
