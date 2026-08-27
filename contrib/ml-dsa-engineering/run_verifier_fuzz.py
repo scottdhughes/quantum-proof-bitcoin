@@ -10,17 +10,21 @@ import ctypes
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
+import io
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import platform
 import re
 import shutil
+import stat
 import struct
 import subprocess
 import sys
 import tempfile
 import time
+from typing import Any
+import zipfile
 
 import run_wrapper_tests as wrapper
 
@@ -160,6 +164,44 @@ SANITIZERS = {
 CAMPAIGN_SCHEMA_VERSION = 1
 MAX_RETAINED_CORPUS_FILES = 4096
 MAX_RETAINED_CORPUS_BYTES = 32 * 1024 * 1024
+MAX_RETAINED_ARCHIVE_BYTES = 64 * 1024 * 1024
+MAX_RETAINED_ARCHIVE_FILES = 8192
+MAX_RETAINED_ARCHIVE_MEMBER_BYTES = 64 * 1024 * 1024
+MAX_RETAINED_ARCHIVE_EXPANDED_BYTES = 256 * 1024 * 1024
+MAX_RETAINED_METADATA_BYTES = 8 * 1024 * 1024
+TARGET_NAME = "strict-verifier"
+RETAINED_RECEIPT_SCHEMA_VERSION = 1
+RETAINED_REPOSITORY = "scottdhughes/quantum-proof-bitcoin"
+RETAINED_REPOSITORY_ID = 1136579990
+RETAINED_WORKFLOW_PATH = ".github/workflows/ml-dsa-44-sustained-fuzz.yml"
+RETAINED_WORKFLOW_ID = 317034854
+RETAINED_ARTIFACT_PREFIX = "ml-dsa-44-sustained-v2"
+RETAINED_BOOTSTRAP = {
+    "address-undefined": {
+        "run_id": 32924009052,
+        "run_attempt": 1,
+        "head_sha": "0fa8f5fc4321f057fb758e4c2dc39b790023943c",
+        "artifact_id": 9591475482,
+        "artifact_name": "ml-dsa-44-sustained-asan-ubsan-32924009052-1",
+        "artifact_size_bytes": 2013751,
+        "artifact_digest": (
+            "sha256:43d37b2281b341e60e3b54424993a504"
+            "936f701cf1ff8a40d59d15351c3e1e15"
+        ),
+    },
+    "memory": {
+        "run_id": 32924009052,
+        "run_attempt": 1,
+        "head_sha": "0fa8f5fc4321f057fb758e4c2dc39b790023943c",
+        "artifact_id": 9591473287,
+        "artifact_name": "ml-dsa-44-sustained-msan-32924009052-1",
+        "artifact_size_bytes": 1337936,
+        "artifact_digest": (
+            "sha256:2352231292015cc43880a71cf9481c88"
+            "f3e86624654f9227d9767391be516f51"
+        ),
+    },
+}
 CAMPAIGN_TIMEOUT_ALLOWANCE_SECONDS = 30
 CORPUS_MINIMIZATION_TIMEOUT_SECONDS = 150
 CRASH_MINIMIZATION_TIMEOUT_SECONDS = 75
@@ -949,32 +991,815 @@ def materialize_corpus(directory: Path, cases: list[CorpusCase]) -> None:
         (directory / corpus_filename(case)).write_bytes(case.frame)
 
 
-def import_seed_corpus(source: Path, destination: Path) -> int:
-    if not source.is_dir():
-        raise FuzzHarnessError(f"seed corpus is not a directory: {source}")
-    imported = 0
+def filesystem_identity(status: os.stat_result) -> tuple[int, int, int, int, int]:
+    return (
+        status.st_dev,
+        status.st_ino,
+        status.st_mode,
+        status.st_size,
+        status.st_mtime_ns,
+    )
+
+
+def read_stable_regular_file(path: Path, label: str, maximum_size: int) -> bytes:
+    try:
+        before = path.lstat()
+    except FileNotFoundError as error:
+        raise FuzzHarnessError(f"{label} does not exist: {path}") from error
+    if stat.S_ISLNK(before.st_mode):
+        raise FuzzHarnessError(f"{label} must not be a symlink: {path}")
+    if not stat.S_ISREG(before.st_mode):
+        raise FuzzHarnessError(f"{label} is not a regular file: {path}")
+    if before.st_size > maximum_size:
+        raise FuzzHarnessError(f"{label} exceeds its size bound: {path}")
+    try:
+        data = path.read_bytes()
+        after = path.lstat()
+    except OSError as error:
+        raise FuzzHarnessError(f"cannot read {label}: {path}: {error}") from error
+    if (
+        filesystem_identity(after) != filesystem_identity(before)
+        or len(data) != before.st_size
+    ):
+        raise FuzzHarnessError(f"{label} changed while it was read: {path}")
+    return data
+
+
+def read_json_object(path: Path, label: str) -> dict[str, Any]:
+    try:
+        value = json.loads(
+            read_stable_regular_file(path, label, MAX_RETAINED_METADATA_BYTES).decode(
+                "utf8"
+            )
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise FuzzHarnessError(f"{label} is malformed") from error
+    if not isinstance(value, dict):
+        raise FuzzHarnessError(f"{label} must be a JSON object")
+    return value
+
+
+def named_file_summary(entries: list[tuple[str, bytes]]) -> dict[str, Any]:
+    digest = hashlib.sha256()
     total_bytes = 0
-    candidates = [
-        path for path in sorted(source.iterdir()) if not path.is_symlink() and path.is_file()
-    ]
+    for name, data in sorted(entries):
+        file_digest = hashlib.sha256(data).hexdigest()
+        digest.update(f"{name}\0{len(data)}\0{file_digest}\n".encode())
+        total_bytes += len(data)
+    return {
+        "file_count": len(entries),
+        "total_bytes": total_bytes,
+        "aggregate_sha256": digest.hexdigest(),
+    }
+
+
+def content_inventory_summary(contents: dict[str, bytes]) -> dict[str, Any]:
+    digest = hashlib.sha256()
+    total_bytes = 0
+    for file_digest, data in sorted(contents.items()):
+        digest.update(f"{len(data)}\0{file_digest}\n".encode())
+        total_bytes += len(data)
+    return {
+        "file_count": len(contents),
+        "total_bytes": total_bytes,
+        "aggregate_sha256": digest.hexdigest(),
+    }
+
+
+def read_flat_retained_corpus(
+    source: Path,
+    *,
+    label: str,
+    require_nonempty: bool,
+) -> list[tuple[str, bytes]]:
+    try:
+        source_before = source.lstat()
+    except FileNotFoundError as error:
+        raise FuzzHarnessError(f"{label} does not exist: {source}") from error
+    if stat.S_ISLNK(source_before.st_mode) or not stat.S_ISDIR(
+        source_before.st_mode
+    ):
+        raise FuzzHarnessError(f"{label} must be a regular directory: {source}")
+    try:
+        candidates = sorted(source.iterdir(), key=lambda path: path.name)
+    except OSError as error:
+        raise FuzzHarnessError(f"cannot enumerate {label}: {source}: {error}") from error
+    if require_nonempty and not candidates:
+        raise FuzzHarnessError(f"{label} is empty")
     if len(candidates) > MAX_RETAINED_CORPUS_FILES:
         raise FuzzHarnessError("retained corpus exceeds the file-count bound")
+    entries = []
+    total_bytes = 0
     for path in candidates:
-        size = path.stat().st_size
-        if size > MAX_FRAME_BYTES:
-            raise FuzzHarnessError(f"retained corpus input exceeds fuzz bound: {path}")
-        total_bytes += size
+        data = read_stable_regular_file(path, f"{label} input", MAX_FRAME_BYTES)
+        total_bytes += len(data)
         if total_bytes > MAX_RETAINED_CORPUS_BYTES:
             raise FuzzHarnessError("retained corpus exceeds the aggregate byte bound")
-        data = path.read_bytes()
-        if len(data) != size:
-            raise FuzzHarnessError(f"retained corpus input changed during import: {path}")
+        entries.append((path.name, data))
+    try:
+        source_after = source.lstat()
+    except OSError as error:
+        raise FuzzHarnessError(f"cannot recheck {label}: {source}: {error}") from error
+    if filesystem_identity(source_after) != filesystem_identity(source_before):
+        raise FuzzHarnessError(f"{label} changed while it was read: {source}")
+    return entries
+
+
+def _validate_summary(value: Any, label: str, *, require_nonempty: bool) -> dict:
+    if not isinstance(value, dict) or set(value) != {
+        "file_count",
+        "total_bytes",
+        "aggregate_sha256",
+    }:
+        raise FuzzHarnessError(f"{label} is malformed")
+    file_count = value["file_count"]
+    total_bytes = value["total_bytes"]
+    aggregate = value["aggregate_sha256"]
+    if (
+        type(file_count) is not int
+        or type(total_bytes) is not int
+        or file_count < (1 if require_nonempty else 0)
+        or file_count > MAX_RETAINED_CORPUS_FILES
+        or total_bytes < 0
+        or total_bytes > MAX_RETAINED_CORPUS_BYTES
+        or not isinstance(aggregate, str)
+        or re.fullmatch(r"[0-9a-f]{64}", aggregate) is None
+    ):
+        raise FuzzHarnessError(f"{label} is malformed or exceeds a resource bound")
+    return value
+
+
+def import_seed_corpus(
+    source: Path,
+    destination: Path,
+    *,
+    expected_source_summary: dict | None = None,
+) -> dict[str, Any]:
+    entries = read_flat_retained_corpus(
+        source,
+        label="seed corpus",
+        require_nonempty=expected_source_summary is not None,
+    )
+    source_summary = named_file_summary(entries)
+    if expected_source_summary is not None:
+        expected_source_summary = _validate_summary(
+            expected_source_summary,
+            "retained source summary",
+            require_nonempty=True,
+        )
+        if source_summary != expected_source_summary:
+            raise FuzzHarnessError(
+                "retained corpus summary differs from validated evidence"
+            )
+
+    retained: dict[str, bytes] = {}
+    for _, data in entries:
         digest = hashlib.sha256(data).hexdigest()
+        previous = retained.setdefault(digest, data)
+        if previous != data:
+            raise FuzzHarnessError(
+                f"retained corpus SHA256 collision detected: {digest}"
+            )
+
+    try:
+        destination_status = destination.lstat()
+    except FileNotFoundError as error:
+        raise FuzzHarnessError(
+            f"working corpus does not exist: {destination}"
+        ) from error
+    if stat.S_ISLNK(destination_status.st_mode) or not stat.S_ISDIR(
+        destination_status.st_mode
+    ):
+        raise FuzzHarnessError(
+            f"working corpus must be a regular directory: {destination}"
+        )
+    existing: dict[str, bytes] = {}
+    for path in sorted(destination.iterdir(), key=lambda item: item.name):
+        data = read_stable_regular_file(
+            path,
+            "working corpus input",
+            MAX_FRAME_BYTES,
+        )
+        digest = hashlib.sha256(data).hexdigest()
+        previous = existing.setdefault(digest, data)
+        if previous != data:
+            raise FuzzHarnessError(
+                f"working corpus SHA256 collision detected: {path}"
+            )
+
+    imported: dict[str, bytes] = {}
+    for digest, data in retained.items():
+        if digest in existing:
+            if existing[digest] != data:
+                raise FuzzHarnessError(
+                    f"working corpus SHA256 collision detected: {digest}"
+                )
+            continue
         target = destination / f"retained_{digest}.bin"
-        if not target.exists():
-            target.write_bytes(data)
-            imported += 1
-    return imported
+        if target.exists() or target.is_symlink():
+            raise FuzzHarnessError(
+                f"retained corpus destination already exists: {target}"
+            )
+        try:
+            with target.open("xb") as stream:
+                stream.write(data)
+        except OSError as error:
+            raise FuzzHarnessError(
+                f"cannot import retained corpus input: {target}: {error}"
+            ) from error
+        copied = read_stable_regular_file(
+            target,
+            "imported retained corpus input",
+            MAX_FRAME_BYTES,
+        )
+        if copied != data:
+            raise FuzzHarnessError(
+                f"imported retained corpus input differs: {target}"
+            )
+        existing[digest] = data
+        imported[digest] = data
+
+    receipt = {
+        "source_summary": source_summary,
+        "unique_source_summary": content_inventory_summary(retained),
+        "imported_summary": content_inventory_summary(imported),
+    }
+    if (
+        expected_source_summary is not None
+        and receipt["imported_summary"]["file_count"] < 1
+    ):
+        raise FuzzHarnessError("validated retained corpus imported no novel inputs")
+    return receipt
+
+
+def ensure_ancestor(source_head: str, current_head: str) -> None:
+    if (
+        re.fullmatch(r"[0-9a-f]{40}", source_head) is None
+        or re.fullmatch(r"[0-9a-f]{40}", current_head) is None
+    ):
+        raise FuzzHarnessError("retained source ancestry contains a malformed commit")
+    completed = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", source_head, current_head],
+        cwd=REPO_ROOT,
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if completed.returncode != 0:
+        detail = completed.stderr.strip() or "source is not an ancestor"
+        raise FuzzHarnessError(f"retained source ancestry check failed: {detail}")
+
+
+def repository_head() -> str:
+    completed = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=REPO_ROOT,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    return completed.stdout.strip() if completed.returncode == 0 else "unknown"
+
+
+def _parse_timestamp(value: Any, label: str) -> datetime:
+    if not isinstance(value, str):
+        raise FuzzHarnessError(f"{label} is malformed")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise FuzzHarnessError(f"{label} is malformed") from error
+    if parsed.tzinfo is None:
+        raise FuzzHarnessError(f"{label} must include a timezone")
+    return parsed.astimezone(timezone.utc)
+
+
+def _artifact_label(sanitizer: str) -> str:
+    if sanitizer == "address-undefined":
+        return "asan-ubsan"
+    if sanitizer == "memory":
+        return "msan"
+    raise FuzzHarnessError("retained evidence sanitizer is unsupported")
+
+
+def _validate_run_and_artifact_metadata(
+    run: dict[str, Any],
+    artifact: dict[str, Any],
+    *,
+    expected_sanitizer: str,
+    now: datetime,
+) -> tuple[dict[str, Any], bool]:
+    run_id = run.get("id")
+    run_attempt = run.get("run_attempt")
+    head_sha = run.get("head_sha")
+    repository = run.get("repository")
+    if (
+        type(run_id) is not int
+        or run_id < 1
+        or type(run_attempt) is not int
+        or run_attempt < 1
+        or not isinstance(head_sha, str)
+        or re.fullmatch(r"[0-9a-f]{40}", head_sha) is None
+        or not isinstance(repository, dict)
+        or repository.get("id") != RETAINED_REPOSITORY_ID
+        or repository.get("full_name") != RETAINED_REPOSITORY
+        or run.get("workflow_id") != RETAINED_WORKFLOW_ID
+        or run.get("path") != RETAINED_WORKFLOW_PATH
+        or run.get("event") not in {"schedule", "workflow_dispatch"}
+        or run.get("head_branch") != "main"
+        or run.get("status") != "completed"
+        or run.get("conclusion") != "success"
+    ):
+        raise FuzzHarnessError("retained workflow run metadata differs")
+
+    artifact_id = artifact.get("id")
+    artifact_name = artifact.get("name")
+    artifact_size = artifact.get("size_in_bytes")
+    artifact_digest = artifact.get("digest")
+    workflow_run = artifact.get("workflow_run")
+    if (
+        type(artifact_id) is not int
+        or artifact_id < 1
+        or not isinstance(artifact_name, str)
+        or re.fullmatch(r"[A-Za-z0-9._-]+", artifact_name) is None
+        or type(artifact_size) is not int
+        or not 1 <= artifact_size <= MAX_RETAINED_ARCHIVE_BYTES
+        or not isinstance(artifact_digest, str)
+        or re.fullmatch(r"sha256:[0-9a-f]{64}", artifact_digest) is None
+        or artifact.get("expired") is not False
+        or not isinstance(workflow_run, dict)
+        or workflow_run.get("id") != run_id
+        or workflow_run.get("repository_id") != RETAINED_REPOSITORY_ID
+        or workflow_run.get("head_repository_id") != RETAINED_REPOSITORY_ID
+        or workflow_run.get("head_branch") != "main"
+        or workflow_run.get("head_sha") != head_sha
+    ):
+        raise FuzzHarnessError("retained artifact metadata differs")
+    created_at = artifact.get("created_at")
+    expires_at = artifact.get("expires_at")
+    created_time = _parse_timestamp(created_at, "retained artifact creation time")
+    expiry_time = _parse_timestamp(expires_at, "retained artifact expiry")
+    if created_time > now or expiry_time <= created_time or expiry_time <= now:
+        raise FuzzHarnessError("retained artifact is expired")
+
+    bootstrap = RETAINED_BOOTSTRAP[expected_sanitizer]
+    legacy_bootstrap = all(
+        (
+            run_id == bootstrap["run_id"],
+            run_attempt == bootstrap["run_attempt"],
+            head_sha == bootstrap["head_sha"],
+            artifact_id == bootstrap["artifact_id"],
+            artifact_name == bootstrap["artifact_name"],
+            artifact_size == bootstrap["artifact_size_bytes"],
+            artifact_digest == bootstrap["artifact_digest"],
+            run.get("event") == "workflow_dispatch",
+        )
+    )
+    expected_name = (
+        f"{RETAINED_ARTIFACT_PREFIX}-{_artifact_label(expected_sanitizer)}-"
+        f"{run_id}-{run_attempt}"
+    )
+    if not legacy_bootstrap and artifact_name != expected_name:
+        raise FuzzHarnessError("retained artifact name is not the exact v2 identity")
+    return (
+        {
+            "repository": RETAINED_REPOSITORY,
+            "repository_id": RETAINED_REPOSITORY_ID,
+            "workflow_path": RETAINED_WORKFLOW_PATH,
+            "workflow_id": RETAINED_WORKFLOW_ID,
+            "event": run["event"],
+            "sanitizer": expected_sanitizer,
+            "run_id": run_id,
+            "run_attempt": run_attempt,
+            "head_sha": head_sha,
+            "artifact_id": artifact_id,
+            "artifact_name": artifact_name,
+            "artifact_size_bytes": artifact_size,
+            "artifact_digest": artifact_digest,
+            "artifact_created_at": created_at,
+            "artifact_expires_at": expires_at,
+            "legacy_bootstrap": legacy_bootstrap,
+        },
+        legacy_bootstrap,
+    )
+
+
+def _safe_archive_member(info: zipfile.ZipInfo) -> str:
+    name = info.filename
+    path = PurePosixPath(name)
+    mode = info.external_attr >> 16
+    if (
+        info.orig_filename != name
+        or not name
+        or "\x00" in name
+        or "\\" in name
+        or name.startswith("/")
+        or path.is_absolute()
+        or ".." in path.parts
+        or "." in path.parts
+        or path.as_posix() != name
+        or info.flag_bits & 0x1
+        or info.compress_type not in {zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED}
+        or info.create_system != 3
+        or not stat.S_ISREG(mode)
+    ):
+        raise FuzzHarnessError(f"retained archive member is unsafe: {name!r}")
+    return name
+
+
+def _extract_retained_archive(archive_data: bytes, destination: Path) -> None:
+    if destination.exists() or destination.is_symlink():
+        raise FuzzHarnessError(
+            f"retained extraction destination already exists: {destination}"
+        )
+    destination.mkdir(parents=True)
+    try:
+        with zipfile.ZipFile(io.BytesIO(archive_data), "r") as archive:
+            infos = archive.infolist()
+            if not infos or len(infos) > MAX_RETAINED_ARCHIVE_FILES:
+                raise FuzzHarnessError(
+                    "retained archive is empty or exceeds its file-count bound"
+                )
+            names: set[str] = set()
+            expanded = 0
+            for info in infos:
+                name = _safe_archive_member(info)
+                if name in names:
+                    raise FuzzHarnessError(
+                        f"retained archive contains a duplicate member: {name}"
+                    )
+                names.add(name)
+                if info.file_size > MAX_RETAINED_ARCHIVE_MEMBER_BYTES:
+                    raise FuzzHarnessError(
+                        f"retained archive member exceeds its bound: {name}"
+                    )
+                expanded += info.file_size
+                if expanded > MAX_RETAINED_ARCHIVE_EXPANDED_BYTES:
+                    raise FuzzHarnessError(
+                        "retained archive exceeds its expanded-size bound"
+                    )
+                try:
+                    with archive.open(info, "r") as stream:
+                        data = stream.read(MAX_RETAINED_ARCHIVE_MEMBER_BYTES + 1)
+                        trailing = stream.read(1)
+                except (OSError, RuntimeError, zipfile.BadZipFile) as error:
+                    raise FuzzHarnessError(
+                        f"cannot read retained archive member {name}: {error}"
+                    ) from error
+                if trailing or len(data) != info.file_size:
+                    raise FuzzHarnessError(
+                        f"retained archive member size differs: {name}"
+                    )
+                target = destination.joinpath(*PurePosixPath(name).parts)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                try:
+                    with target.open("xb") as output:
+                        output.write(data)
+                except OSError as error:
+                    raise FuzzHarnessError(
+                        f"cannot extract retained archive member {name}: {error}"
+                    ) from error
+    except zipfile.BadZipFile as error:
+        raise FuzzHarnessError("retained artifact is not a valid ZIP archive") from error
+
+
+def validate_sha256_manifest(evidence_dir: Path) -> str:
+    manifest_path = evidence_dir / "SHA256SUMS"
+    manifest = read_stable_regular_file(
+        manifest_path,
+        "retained evidence checksum manifest",
+        MAX_RETAINED_METADATA_BYTES,
+    )
+    try:
+        lines = manifest.decode("utf8").splitlines()
+    except UnicodeDecodeError as error:
+        raise FuzzHarnessError(
+            "retained evidence checksum manifest is not UTF-8"
+        ) from error
+    if not lines:
+        raise FuzzHarnessError("retained evidence checksum manifest is empty")
+    expected: dict[str, str] = {}
+    for line in lines:
+        match = re.fullmatch(r"([0-9a-f]{64})  (.+)", line)
+        if match is None:
+            raise FuzzHarnessError("retained evidence checksum line is malformed")
+        digest, relative = match.groups()
+        path = PurePosixPath(relative)
+        if (
+            path.is_absolute()
+            or ".." in path.parts
+            or "." in path.parts
+            or "\\" in relative
+            or path.as_posix() != relative
+            or relative == "SHA256SUMS"
+            or relative in expected
+        ):
+            raise FuzzHarnessError(
+                f"retained evidence checksum path is unsafe: {relative}"
+            )
+        expected[relative] = digest
+
+    actual: dict[str, str] = {}
+    for path in sorted(evidence_dir.rglob("*")):
+        status = path.lstat()
+        if stat.S_ISLNK(status.st_mode):
+            raise FuzzHarnessError(
+                f"retained evidence contains a symlink: {path}"
+            )
+        if stat.S_ISDIR(status.st_mode):
+            continue
+        if not stat.S_ISREG(status.st_mode):
+            raise FuzzHarnessError(
+                f"retained evidence contains a special entry: {path}"
+            )
+        if path != manifest_path:
+            actual[path.relative_to(evidence_dir).as_posix()] = sha256_file(path)
+    if set(actual) != set(expected):
+        raise FuzzHarnessError("retained evidence checksum inventory differs")
+    for relative, digest in actual.items():
+        if digest != expected[relative]:
+            raise FuzzHarnessError(
+                f"retained evidence checksum differs: {relative}"
+            )
+    return hashlib.sha256(manifest).hexdigest()
+
+
+def _validate_retained_campaign(
+    evidence_dir: Path,
+    *,
+    source: dict[str, Any],
+    expected_sanitizer: str,
+    legacy_bootstrap: bool,
+) -> tuple[dict[str, Any], str]:
+    seed_entries = read_flat_retained_corpus(
+        evidence_dir / "minimized-corpus",
+        label="retained minimized corpus",
+        require_nonempty=True,
+    )
+    source_summary = named_file_summary(seed_entries)
+    checksum_digest = validate_sha256_manifest(evidence_dir)
+    campaign = read_json_object(
+        evidence_dir / "campaign.json",
+        "retained campaign report",
+    )
+    expected_coverage = expected_sanitizer == "address-undefined"
+    common_valid = (
+        campaign.get("schema_version") == CAMPAIGN_SCHEMA_VERSION
+        and campaign.get("status") == "pass"
+        and campaign.get("return_code") == 0
+        and campaign.get("processing_error") is None
+        and campaign.get("repository_commit") == source["head_sha"]
+        and campaign.get("repository_dirty") is False
+        and campaign.get("sanitizer") == expected_sanitizer
+        and campaign.get("coverage_enabled") is expected_coverage
+        and campaign.get("campaign_limit") == {"runs": None, "seconds": 1800}
+        and campaign.get("minimized_corpus") == source_summary
+        and isinstance(campaign.get("crash_artifacts"), dict)
+        and campaign["crash_artifacts"].get("file_count") == 0
+        and isinstance(campaign.get("minimized_crash_artifacts"), dict)
+        and campaign["minimized_crash_artifacts"].get("file_count") == 0
+        and type(campaign.get("imported_retained_seeds")) is int
+        and campaign["imported_retained_seeds"] > 0
+    )
+    if not common_valid:
+        raise FuzzHarnessError("retained campaign provenance differs")
+    if legacy_bootstrap:
+        if campaign.get("repository_head") is not None:
+            raise FuzzHarnessError("legacy retained campaign shape differs")
+    else:
+        if (
+            campaign.get("target") != TARGET_NAME
+            or campaign.get("repository_head") != source["head_sha"]
+            or not isinstance(campaign.get("retained_corpus_source"), dict)
+            or not isinstance(campaign.get("retained_corpus_import"), dict)
+        ):
+            raise FuzzHarnessError("retained v2 campaign provenance differs")
+        prior_receipt = _validate_retained_source_receipt_object(
+            campaign["retained_corpus_source"]
+        )
+        ensure_ancestor(
+            prior_receipt["source"]["head_sha"],
+            source["head_sha"],
+        )
+        retained_import = campaign["retained_corpus_import"]
+        if (
+            prior_receipt["source"]["sanitizer"] != expected_sanitizer
+            or set(retained_import)
+            != {"source_summary", "unique_source_summary", "imported_summary"}
+            or _validate_summary(
+                retained_import.get("source_summary"),
+                "retained campaign source summary",
+                require_nonempty=True,
+            )
+            != prior_receipt["retained_corpus"]
+            or _validate_summary(
+                retained_import.get("unique_source_summary"),
+                "retained campaign unique-source summary",
+                require_nonempty=True,
+            )["file_count"]
+            > retained_import["source_summary"]["file_count"]
+            or _validate_summary(
+                retained_import.get("imported_summary"),
+                "retained campaign import summary",
+                require_nonempty=True,
+            )["file_count"]
+            != campaign["imported_retained_seeds"]
+        ):
+            raise FuzzHarnessError("retained v2 campaign import receipt differs")
+    return source_summary, checksum_digest
+
+
+def _validate_retained_source_receipt_object(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict) or set(value) != {
+        "schema_version",
+        "source",
+        "archive",
+        "retained_corpus",
+    }:
+        raise FuzzHarnessError("retained source receipt is malformed")
+    if value.get("schema_version") != RETAINED_RECEIPT_SCHEMA_VERSION:
+        raise FuzzHarnessError("retained source receipt schema differs")
+    source = value.get("source")
+    archive = value.get("archive")
+    if not isinstance(source, dict) or set(source) != {
+        "repository",
+        "repository_id",
+        "workflow_path",
+        "workflow_id",
+        "event",
+        "sanitizer",
+        "run_id",
+        "run_attempt",
+        "head_sha",
+        "artifact_id",
+        "artifact_name",
+        "artifact_size_bytes",
+        "artifact_digest",
+        "artifact_created_at",
+        "artifact_expires_at",
+        "legacy_bootstrap",
+    }:
+        raise FuzzHarnessError("retained source receipt identity is malformed")
+    if (
+        source.get("repository") != RETAINED_REPOSITORY
+        or source.get("repository_id") != RETAINED_REPOSITORY_ID
+        or source.get("workflow_path") != RETAINED_WORKFLOW_PATH
+        or source.get("workflow_id") != RETAINED_WORKFLOW_ID
+        or source.get("event") not in {"schedule", "workflow_dispatch"}
+        or source.get("sanitizer") not in SANITIZERS
+        or type(source.get("run_id")) is not int
+        or source["run_id"] < 1
+        or type(source.get("run_attempt")) is not int
+        or source["run_attempt"] < 1
+        or not isinstance(source.get("head_sha"), str)
+        or re.fullmatch(r"[0-9a-f]{40}", source["head_sha"]) is None
+        or type(source.get("artifact_id")) is not int
+        or source["artifact_id"] < 1
+        or not isinstance(source.get("artifact_name"), str)
+        or re.fullmatch(r"[A-Za-z0-9._-]+", source["artifact_name"]) is None
+        or type(source.get("artifact_size_bytes")) is not int
+        or not 1 <= source["artifact_size_bytes"] <= MAX_RETAINED_ARCHIVE_BYTES
+        or not isinstance(source.get("artifact_digest"), str)
+        or re.fullmatch(r"sha256:[0-9a-f]{64}", source["artifact_digest"])
+        is None
+        or type(source.get("legacy_bootstrap")) is not bool
+    ):
+        raise FuzzHarnessError("retained source receipt identity differs")
+    _parse_timestamp(
+        source.get("artifact_created_at"),
+        "retained source receipt creation time",
+    )
+    _parse_timestamp(
+        source.get("artifact_expires_at"),
+        "retained source receipt expiry",
+    )
+    bootstrap = RETAINED_BOOTSTRAP[source["sanitizer"]]
+    exact_bootstrap = all(
+        (
+            source["run_id"] == bootstrap["run_id"],
+            source["run_attempt"] == bootstrap["run_attempt"],
+            source["head_sha"] == bootstrap["head_sha"],
+            source["artifact_id"] == bootstrap["artifact_id"],
+            source["artifact_name"] == bootstrap["artifact_name"],
+            source["artifact_size_bytes"] == bootstrap["artifact_size_bytes"],
+            source["artifact_digest"] == bootstrap["artifact_digest"],
+            source["event"] == "workflow_dispatch",
+        )
+    )
+    expected_v2_name = (
+        f"{RETAINED_ARTIFACT_PREFIX}-{_artifact_label(source['sanitizer'])}-"
+        f"{source['run_id']}-{source['run_attempt']}"
+    )
+    if source["legacy_bootstrap"] is not exact_bootstrap or (
+        not exact_bootstrap and source["artifact_name"] != expected_v2_name
+    ):
+        raise FuzzHarnessError("retained source receipt artifact identity differs")
+    if not isinstance(archive, dict) or set(archive) != {
+        "size_bytes",
+        "sha256",
+        "sha256sums_sha256",
+    }:
+        raise FuzzHarnessError("retained source receipt archive is malformed")
+    if (
+        archive.get("size_bytes") != source["artifact_size_bytes"]
+        or type(archive.get("size_bytes")) is not int
+        or not isinstance(archive.get("sha256"), str)
+        or f"sha256:{archive['sha256']}" != source["artifact_digest"]
+        or not isinstance(archive.get("sha256sums_sha256"), str)
+        or re.fullmatch(r"[0-9a-f]{64}", archive["sha256sums_sha256"])
+        is None
+    ):
+        raise FuzzHarnessError("retained source receipt archive differs")
+    _validate_summary(
+        value.get("retained_corpus"),
+        "retained source receipt corpus summary",
+        require_nonempty=True,
+    )
+    return value
+
+
+def read_retained_source_receipt(
+    path: Path,
+    *,
+    expected_sanitizer: str | None = None,
+    expected_current_head: str | None = None,
+) -> dict[str, Any]:
+    receipt = _validate_retained_source_receipt_object(
+        read_json_object(path, "retained source receipt")
+    )
+    source = receipt["source"]
+    if expected_sanitizer is not None and source["sanitizer"] != expected_sanitizer:
+        raise FuzzHarnessError("retained source receipt sanitizer differs")
+    if _parse_timestamp(
+        source["artifact_expires_at"],
+        "retained source receipt expiry",
+    ) <= datetime.now(timezone.utc):
+        raise FuzzHarnessError("retained source receipt artifact is expired")
+    if expected_current_head is not None:
+        ensure_ancestor(source["head_sha"], expected_current_head)
+    return receipt
+
+
+def validate_retained_archive(
+    archive_path: Path,
+    run_metadata_path: Path,
+    artifact_metadata_path: Path,
+    extract_to: Path,
+    expected_sanitizer: str,
+    expected_current_head: str,
+    *,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    if expected_sanitizer not in SANITIZERS:
+        raise FuzzHarnessError("retained evidence sanitizer is unsupported")
+    if (
+        re.fullmatch(r"[0-9a-f]{40}", expected_current_head) is None
+        or repository_head() != expected_current_head
+    ):
+        raise FuzzHarnessError("retained validation checkout head differs")
+    run = read_json_object(run_metadata_path, "retained workflow run metadata")
+    artifact = read_json_object(
+        artifact_metadata_path,
+        "retained artifact metadata",
+    )
+    source, legacy_bootstrap = _validate_run_and_artifact_metadata(
+        run,
+        artifact,
+        expected_sanitizer=expected_sanitizer,
+        now=(now or datetime.now(timezone.utc)).astimezone(timezone.utc),
+    )
+    ensure_ancestor(source["head_sha"], expected_current_head)
+    archive_data = read_stable_regular_file(
+        archive_path,
+        "retained artifact archive",
+        MAX_RETAINED_ARCHIVE_BYTES,
+    )
+    archive_sha256 = hashlib.sha256(archive_data).hexdigest()
+    if (
+        len(archive_data) != source["artifact_size_bytes"]
+        or f"sha256:{archive_sha256}" != source["artifact_digest"]
+    ):
+        raise FuzzHarnessError("retained artifact archive digest or size differs")
+    _extract_retained_archive(archive_data, extract_to)
+    retained_summary, checksum_digest = _validate_retained_campaign(
+        extract_to,
+        source=source,
+        expected_sanitizer=expected_sanitizer,
+        legacy_bootstrap=legacy_bootstrap,
+    )
+    return _validate_retained_source_receipt_object(
+        {
+            "schema_version": RETAINED_RECEIPT_SCHEMA_VERSION,
+            "source": source,
+            "archive": {
+                "size_bytes": len(archive_data),
+                "sha256": archive_sha256,
+                "sha256sums_sha256": checksum_digest,
+            },
+            "retained_corpus": retained_summary,
+        }
+    )
 
 
 def directory_summary(directory: Path) -> dict:
@@ -1403,6 +2228,9 @@ def write_campaign_report(
     completed: subprocess.CompletedProcess[str],
     processing_error: str | None,
     crash_minimization: list[dict],
+    retained_source: dict[str, Any] | None = None,
+    retained_import: dict[str, Any] | None = None,
+    target: str | None = None,
 ) -> None:
     progress_lines = [
         line.strip()
@@ -1471,6 +2299,15 @@ def write_campaign_report(
         "last_progress_line": progress_lines[-1] if progress_lines else None,
         "final_stats": final_stats,
     }
+    if target is not None:
+        report.update(
+            {
+                "target": target,
+                "repository_head": repository_head(),
+                "retained_corpus_source": retained_source,
+                "retained_corpus_import": retained_import,
+            }
+        )
     (output_dir / "campaign.json").write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n",
         encoding="utf8",
@@ -1504,8 +2341,75 @@ def main() -> int:
     parser.add_argument("--seed", type=int, default=188)
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--seed-corpus", type=Path)
+    parser.add_argument("--retained-source-receipt", type=Path)
     parser.add_argument("--coverage", action="store_true")
+    parser.add_argument("--validate-retained-archive", type=Path)
+    parser.add_argument("--retained-run-metadata", type=Path)
+    parser.add_argument("--retained-artifact-metadata", type=Path)
+    parser.add_argument("--extract-retained-to", type=Path)
+    parser.add_argument(
+        "--expected-retained-sanitizer",
+        choices=sorted(SANITIZERS),
+    )
+    parser.add_argument("--expected-current-head")
+    parser.add_argument("--write-retained-source-receipt", type=Path)
     args = parser.parse_args()
+    validation_values = (
+        args.validate_retained_archive,
+        args.retained_run_metadata,
+        args.retained_artifact_metadata,
+        args.extract_retained_to,
+        args.expected_retained_sanitizer,
+        args.expected_current_head,
+        args.write_retained_source_receipt,
+    )
+    if any(value is not None for value in validation_values):
+        if not all(value is not None for value in validation_values):
+            raise FuzzHarnessError(
+                "retained archive validation options must be supplied together"
+            )
+        if (
+            args.manifest_only
+            or args.sanitizers
+            or args.runs is not None
+            or args.seconds is not None
+            or args.output_dir is not None
+            or args.seed_corpus is not None
+            or args.retained_source_receipt is not None
+            or args.coverage
+            or args.seed != 188
+        ):
+            raise FuzzHarnessError(
+                "retained archive validation is mutually exclusive with campaign options"
+            )
+        if repository_dirty() is not False:
+            raise FuzzHarnessError(
+                "retained archive validation requires a clean tracked checkout"
+            )
+        receipt = validate_retained_archive(
+            args.validate_retained_archive,
+            args.retained_run_metadata,
+            args.retained_artifact_metadata,
+            args.extract_retained_to,
+            args.expected_retained_sanitizer,
+            args.expected_current_head,
+        )
+        receipt_path = args.write_retained_source_receipt
+        if receipt_path.exists() or receipt_path.is_symlink():
+            raise FuzzHarnessError(
+                f"retained source receipt already exists: {receipt_path}"
+            )
+        receipt_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with receipt_path.open("x", encoding="utf8") as stream:
+                json.dump(receipt, stream, indent=2, sort_keys=True)
+                stream.write("\n")
+        except OSError as error:
+            raise FuzzHarnessError(
+                f"cannot write retained source receipt: {receipt_path}: {error}"
+            ) from error
+        print(json.dumps(receipt, indent=2, sort_keys=True))
+        return 0
     if args.runs is not None and args.seconds is not None:
         raise FuzzHarnessError("--runs and --seconds are mutually exclusive")
     if args.runs is not None and args.runs < 1:
@@ -1518,16 +2422,48 @@ def main() -> int:
         raise FuzzHarnessError("--coverage requires --sanitizers")
     if args.coverage and args.sanitizer == "memory":
         raise FuzzHarnessError("coverage is collected only in the address-undefined campaign")
+    if (args.seed_corpus is None) != (args.retained_source_receipt is None):
+        raise FuzzHarnessError(
+            "--seed-corpus and --retained-source-receipt must be supplied together"
+        )
     if not args.sanitizers and (
         args.runs is not None
         or args.seconds is not None
         or args.output_dir is not None
         or args.seed_corpus is not None
+        or args.retained_source_receipt is not None
         or args.coverage
         or args.sanitizer != "address-undefined"
         or args.seed != 188
     ):
         raise FuzzHarnessError("fuzz campaign options require --sanitizers")
+
+    github_event = os.environ.get("GITHUB_EVENT_NAME")
+    if args.sanitizers and github_event in {"schedule", "workflow_dispatch"}:
+        if (
+            os.environ.get("GITHUB_REF") != "refs/heads/main"
+            or os.environ.get("GITHUB_SHA") != repository_head()
+            or repository_dirty() is not False
+            or args.seconds != 1800
+            or args.runs is not None
+            or args.seed_corpus is None
+            or args.retained_source_receipt is None
+        ):
+            raise FuzzHarnessError(
+                "trusted 1800-second campaigns require a clean exact-main checkout "
+                "and validated retained corpus"
+            )
+    if args.sanitizers and github_event in {"pull_request", "push"}:
+        if (
+            args.seconds != 60
+            or args.runs is not None
+            or args.seed != 188
+            or args.seed_corpus is not None
+            or args.retained_source_receipt is not None
+        ):
+            raise FuzzHarnessError(
+                "pull-request and push campaigns must remain unseeded 60-second checks"
+            )
 
     wrapper.validate_source_capsule()
     wycheproof = validate_wycheproof_source()
@@ -1587,14 +2523,32 @@ def main() -> int:
             artifact_dir.mkdir()
             materialize_corpus(corpus_dir, cases)
             imported_seeds = 0
-            if args.seed_corpus is not None:
-                imported_seeds = import_seed_corpus(args.seed_corpus.resolve(), corpus_dir)
+            retained_source: dict[str, Any] | None = None
+            retained_import: dict[str, Any] | None = None
             started_at = datetime.now(timezone.utc).isoformat()
             monotonic_start = time.monotonic()
-            completed = subprocess.CompletedProcess([], 1, "", "campaign did not start")
+            completed = subprocess.CompletedProcess(
+                ["strict-verifier-fuzzer-not-run"],
+                1,
+                "",
+                "campaign did not start",
+            )
             processing_error = None
             crash_minimization = []
             try:
+                if args.retained_source_receipt is not None:
+                    retained_source = read_retained_source_receipt(
+                        args.retained_source_receipt.resolve(),
+                        expected_sanitizer=args.sanitizer,
+                        expected_current_head=repository_head(),
+                    )
+                if args.seed_corpus is not None:
+                    retained_import = import_seed_corpus(
+                        args.seed_corpus.resolve(),
+                        corpus_dir,
+                        expected_source_summary=retained_source["retained_corpus"],
+                    )
+                    imported_seeds = retained_import["imported_summary"]["file_count"]
                 fuzzer = compile_fuzzer(
                     compiler,
                     build_dir,
@@ -1657,6 +2611,9 @@ def main() -> int:
                     completed=completed,
                     processing_error=processing_error,
                     crash_minimization=crash_minimization,
+                    retained_source=retained_source,
+                    retained_import=retained_import,
+                    target=TARGET_NAME,
                 )
                 write_evidence_hashes(output_dir)
             if processing_error is not None:

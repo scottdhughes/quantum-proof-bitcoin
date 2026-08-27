@@ -169,15 +169,37 @@ Each run retains the complete log, machine-readable campaign metadata,
 content-addressed SHA256 provenance, crash inputs, best-effort minimized crash
 inputs, and a coverage-minimized corpus for 90 days. ASan/UBSan also emits
 text and JSON LLVM source-coverage summaries.
-Scheduled and manual runs may seed from the most recent successful retained
-corpus; imported files are bounded to the 8,096-byte frame limit and renamed
-by content hash. Scheduled and manual campaigns use a varying recorded seed;
-pull-request and push smokes retain seed 188 for exact repeatability. MSan
-instruments the complete portable backend translation unit, but system-library
-coverage still depends on LLVM interceptors and is not an all-code proof. A
-retained crash is evidence to investigate, not an
+
+The prospective strict-verifier restore contract applies only to scheduled
+and manually dispatched 1,800-second runs on `main`. It requires an artifact
+from an ancestral, successful `main` run whose strict-verifier campaign passed
+for 1,800 seconds under the same sanitizer. The source event, run and attempt,
+head commit, and exact artifact ID, name, API-reported SHA-256 digest, and byte
+size must agree before download and again before import. The downloaded ZIP is
+treated as hostile input: bounded extraction rejects unsafe paths, duplicate,
+encrypted, non-regular, or otherwise ambiguous members, and the complete
+`SHA256SUMS` inventory must account for and verify every other extracted
+evidence file. Campaign identity, status, duration, sanitizer,
+minimized-corpus digest, and corpus bounds are also checked. An unavailable
+source or any mismatch fails before fuzzing begins.
+
+Import must contribute at least one content-novel frame relative to the fixed
+corpus. The resulting `campaign.json` records a self-contained source and
+import receipt, including the validated identities and digests, source corpus
+counts, byte totals, a name-bound source aggregate, and a content-bound
+novel-import aggregate. The two
+sanitizer-specific artifacts from legacy run `32924009052` at head
+`0fa8f5fc4321f057fb758e4c2dc39b790023943c` are accepted only through their
+exact bootstrap allowlist entries for migration, not as a general fallback.
+Pull-request and push runs remain 60-second seed-188 smokes with no retained-
+corpus input. Scheduled and manual campaigns retain a varying recorded seed.
+MSan instruments the complete portable backend translation unit, but
+system-library coverage still depends on LLVM interceptors and is not an
+all-code proof. A retained crash is evidence to investigate, not an
 automatically trusted regression vector: promotion into a checked-in corpus
-still requires review.
+still requires review. This prospective research-only contract is not fresh
+post-merge evidence; `production_backend` remains `NONE`, and `RELEASE_HOLD`
+remains in force.
 
 The stateful signer harness adds a separate test-only target for the wrapper's
 seeded key generation and hedged-signing transition contract. Every input

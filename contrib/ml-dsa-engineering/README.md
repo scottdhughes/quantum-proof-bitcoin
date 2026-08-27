@@ -235,6 +235,35 @@ security, constant-time behavior, leakage resistance, fault resistance,
 thread safety, or production fitness. It does not replace independent human
 review, close a production gate, or alter the release hold.
 
+## Strict-Verifier Retained-Corpus Provenance
+
+The prospective strict-verifier restore contract leaves pull-request and push
+runs as 60-second, seed-188 smokes with no retained-corpus input. A scheduled
+or manually dispatched 1,800-second run is main-only and requires a retained
+artifact from an ancestral, successful `main` run whose strict-verifier
+campaign passed for 1,800 seconds under the same sanitizer. Selection and
+download bind the repository and workflow, source event, run and attempt, head
+commit, and the exact artifact ID, name, API-reported SHA-256 digest, and byte
+size.
+An unavailable source or any mismatch fails before fuzzing begins.
+
+The archive is treated as hostile input: bounded extraction rejects unsafe
+paths, duplicate, encrypted, non-regular, or otherwise ambiguous ZIP members,
+and the complete `SHA256SUMS` inventory must account for and match every other
+extracted evidence file.
+Campaign metadata and the nonempty minimized corpus are then checked against
+the source binding and resource limits. Import must add at least one
+content-novel frame relative to the fixed corpus, and `campaign.json` records
+a self-contained source and import receipt with the validated identities,
+digests, counts, byte totals, a name-bound source aggregate, and a
+content-bound novel-import aggregate. The two
+sanitizer-specific artifacts from legacy run `32924009052` at head
+`0fa8f5fc4321f057fb758e4c2dc39b790023943c` are accepted only through their
+exact bootstrap allowlist entries for migration; that allowance is not a
+general fallback. This is a prospective research-only contract, not fresh
+post-merge evidence: `production_backend` remains `NONE`, and `RELEASE_HOLD`
+remains in force.
+
 ## Stateful Signer and Seeded-Keygen Fuzzing
 
 `run_stateful_signer_fuzz.py` owns a separate test-only libFuzzer target for
