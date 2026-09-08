@@ -61,11 +61,12 @@ advisory PASS with a dated, per-advisory contract covering all current
 RustSec entries across the selected graph. It separates the published
 139-package lock universe, the exact 16-package selected portable graph, and
 the conservative 24-component CycloneDX normal-dependency/target closure. The
-driver fails on a new or missing selected-package RustSec advisory, scanner
-finding, alias, version, full-lock package, graph edge, backend, architecture,
-SBOM component, or evidence input. Current full-lock findings remain visible
-and are accepted only under their exact reviewed outside-selected-graph
-dispositions.
+driver fails on a new or missing selected-package RustSec advisory,
+advisory-backed scanner finding, cargo package-status warning, alias, version,
+full-lock package, graph edge, backend, architecture, SBOM component, or
+evidence input. Current full-lock results remain visible and are accepted only
+under their exact reviewed dispositions: seven advisory findings and one
+yanked-package warning, all outside the selected execution graph.
 
 The scheduled read-only workflow pins cargo-audit, OSV Scanner,
 cargo-cyclonedx, and Miri. It also validates the official live OpenSSL
