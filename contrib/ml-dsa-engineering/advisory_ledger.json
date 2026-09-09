@@ -1512,6 +1512,19 @@
         "disposition": "NOT_APPLICABLE_CURRENT_SELECTED_GRAPH",
         "reason": "Criterion/rayon benchmark dependency absent from the selected portable oracle graph."
       }
+    ],
+    "expected_package_warnings": [
+      {
+        "package": "chacha20",
+        "version": "0.10.0",
+        "cargo_audit_kind": "yanked",
+        "cargo_audit_category": "yanked",
+        "selected_graph": false,
+        "sbom_graph": true,
+        "disposition": "NOT_APPLICABLE_CURRENT_SELECTED_GRAPH",
+        "reason": "Retained in the published crate's complete Cargo.lock and conservative SBOM through rand's optional std_rng edge, but absent from the exact 16-package portable execution graph; review the replacement on any libcrux or rand repin.",
+        "reviewed_on": "2026-09-08"
+      }
     ]
   },
   "miri": {

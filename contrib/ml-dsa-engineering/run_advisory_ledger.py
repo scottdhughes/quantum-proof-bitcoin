@@ -503,6 +503,9 @@ EXPECTED_SCANNER_FINDINGS = {
     ("RUSTSEC-2026-0190", "anyhow", "1.0.102", "warning", "unsound"),
     ("RUSTSEC-2026-0204", "crossbeam-epoch", "0.9.18", "vulnerability", None),
 }
+EXPECTED_SCANNER_PACKAGE_WARNINGS = {
+    ("chacha20", "0.10.0", "yanked", "yanked"),
+}
 EXPECTED_EXECUTION = {
     "parameter_set": 44,
     "default_features": False,
@@ -2077,6 +2080,46 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
         if finding.get("disposition") != "NOT_APPLICABLE_CURRENT_SELECTED_GRAPH":
             raise AuditError(f"{finding['id']} lacks an exact selected-graph disposition")
 
+    package_warnings = scanner.get("expected_package_warnings")
+    if not isinstance(package_warnings, list):
+        raise AuditError("expected package warnings must be a list")
+    package_warning_set = _unique_rows(
+        package_warnings,
+        ("package", "version", "cargo_audit_kind", "cargo_audit_category"),
+        "scanner package warning",
+    )
+    if package_warning_set != EXPECTED_SCANNER_PACKAGE_WARNINGS:
+        raise AuditError("expected cargo-audit package warnings drifted")
+    for warning in package_warnings:
+        _require_keys(
+            warning,
+            {
+                "package",
+                "version",
+                "cargo_audit_kind",
+                "cargo_audit_category",
+                "selected_graph",
+                "sbom_graph",
+                "disposition",
+                "reason",
+                "reviewed_on",
+            },
+            "scanner package warning",
+        )
+        package_identity = (warning["package"], warning["version"])
+        if package_identity not in full_lock_set:
+            raise AuditError("cargo-audit package warning is absent from the full lock")
+        if warning.get("selected_graph") is not False or package_identity in graph_set:
+            raise AuditError("cargo-audit package warning conflicts with selected graph")
+        if warning.get("sbom_graph") is not True or package_identity not in sbom_set:
+            raise AuditError("cargo-audit package warning conflicts with SBOM graph")
+        if warning.get("disposition") != "NOT_APPLICABLE_CURRENT_SELECTED_GRAPH":
+            raise AuditError("cargo-audit package warning lacks an exact disposition")
+        if warning.get("reviewed_on") != "2026-09-08":
+            raise AuditError("cargo-audit package warning review date drifted")
+        if not isinstance(warning.get("reason"), str) or not warning["reason"]:
+            raise AuditError("cargo-audit package warning reason is missing")
+
     expected_tools = {
         "cargo_audit": (
             "0.22.2",
@@ -2787,10 +2830,20 @@ def validate_oracle_feed_summaries(
 
 
 def _finding_tuple(entry: dict[str, Any], kind: str, category: str | None) -> tuple[Any, ...]:
+    if not isinstance(entry, dict):
+        raise AuditError("cargo-audit finding entries must be objects")
+    expected_keys = {"advisory", "package", "affected", "versions"}
+    if kind == "warning":
+        expected_keys.add("kind")
+    elif kind != "vulnerability" or category is not None:
+        raise AuditError("cargo-audit finding classification is invalid")
+    _require_keys(entry, expected_keys, "cargo-audit finding")
     advisory = entry.get("advisory")
     package = entry.get("package")
     if not isinstance(advisory, dict) or not isinstance(package, dict):
         raise AuditError("cargo-audit finding is missing advisory/package objects")
+    if kind == "warning" and entry.get("kind") != category:
+        raise AuditError("cargo-audit warning kind/category mismatch")
     finding_id = advisory.get("id")
     name = package.get("name")
     version = package.get("version")
@@ -2801,7 +2854,30 @@ def _finding_tuple(entry: dict[str, Any], kind: str, category: str | None) -> tu
     return finding_id, name, version, kind, category
 
 
-def parse_cargo_audit(report: dict[str, Any]) -> set[tuple[Any, ...]]:
+def _package_warning_tuple(entry: dict[str, Any], category: str) -> tuple[Any, ...]:
+    _require_keys(
+        entry,
+        {"kind", "package", "advisory", "affected", "versions"},
+        "cargo-audit package warning",
+    )
+    package = entry.get("package")
+    kind = entry.get("kind")
+    if not isinstance(package, dict) or entry.get("advisory") is not None:
+        raise AuditError("cargo-audit package warning structure is invalid")
+    name = package.get("name")
+    version = package.get("version")
+    if not all(isinstance(value, str) and value for value in (name, version, kind)):
+        raise AuditError("cargo-audit package warning identity is invalid")
+    if kind != category:
+        raise AuditError("cargo-audit package warning kind/category mismatch")
+    if entry.get("affected") is not None or entry.get("versions") is not None:
+        raise AuditError("cargo-audit package warning advisory fields are unexpected")
+    return name, version, kind, category
+
+
+def parse_cargo_audit(
+    report: dict[str, Any],
+) -> tuple[set[tuple[Any, ...]], set[tuple[Any, ...]]]:
     database = report.get("database")
     lockfile = report.get("lockfile")
     vulnerabilities = report.get("vulnerabilities")
@@ -2819,15 +2895,34 @@ def parse_cargo_audit(report: dict[str, Any]) -> set[tuple[Any, ...]]:
     items = vulnerabilities.get("list")
     if not isinstance(items, list) or vulnerabilities.get("count") != len(items):
         raise AuditError("cargo-audit vulnerability list/count mismatch")
-    findings = {_finding_tuple(item, "vulnerability", None) for item in items}
+    findings: set[tuple[Any, ...]] = set()
+    for item in items:
+        finding = _finding_tuple(item, "vulnerability", None)
+        if finding in findings:
+            raise AuditError(f"duplicate cargo-audit finding: {finding}")
+        findings.add(finding)
+    package_warnings: set[tuple[Any, ...]] = set()
     for category, entries in warnings.items():
         if not isinstance(category, str) or not isinstance(entries, list):
             raise AuditError("cargo-audit warning structure is invalid")
         for entry in entries:
-            findings.add(_finding_tuple(entry, "warning", category))
+            if not isinstance(entry, dict):
+                raise AuditError("cargo-audit warning entries must be objects")
+            if entry.get("advisory") is None:
+                package_warning = _package_warning_tuple(entry, category)
+                if package_warning in package_warnings:
+                    raise AuditError(
+                        f"duplicate cargo-audit package warning: {package_warning}"
+                    )
+                package_warnings.add(package_warning)
+            else:
+                finding = _finding_tuple(entry, "warning", category)
+                if finding in findings:
+                    raise AuditError(f"duplicate cargo-audit finding: {finding}")
+                findings.add(finding)
     if not findings:
         raise AuditError("cargo-audit report unexpectedly contains no retained findings")
-    return findings
+    return findings, package_warnings
 
 
 def _advisory_alias_map(ledger: dict[str, Any]) -> dict[str, str]:
@@ -3146,11 +3241,19 @@ def validate_evidence(
         raise AuditError("OSV exit code does not match the classified finding set")
 
     expected = EXPECTED_SCANNER_FINDINGS
-    actual_cargo = parse_cargo_audit(cargo_audit)
+    actual_cargo, actual_package_warnings = parse_cargo_audit(cargo_audit)
     if actual_cargo != expected:
         unknown = sorted(actual_cargo - expected, key=str)
         missing = sorted(expected - actual_cargo, key=str)
         raise AuditError(f"cargo-audit finding drift; unknown={unknown}, missing={missing}")
+    expected_package_warnings = EXPECTED_SCANNER_PACKAGE_WARNINGS
+    if actual_package_warnings != expected_package_warnings:
+        unknown = sorted(actual_package_warnings - expected_package_warnings, key=str)
+        missing = sorted(expected_package_warnings - actual_package_warnings, key=str)
+        raise AuditError(
+            "cargo-audit package warning drift; "
+            f"unknown={unknown}, missing={missing}"
+        )
     expected_osv = {(row[0], row[1], row[2]) for row in expected}
     actual_osv = parse_osv(osv, ledger)
     if actual_osv != expected_osv:
@@ -3165,6 +3268,11 @@ def validate_evidence(
         finding_ids_by_package.setdefault(
             (finding["package"], finding["version"]), []
         ).append(finding["id"])
+    package_warnings_by_package: dict[tuple[str, str], list[str]] = {}
+    for warning in ledger["scanners"]["expected_package_warnings"]:
+        package_warnings_by_package.setdefault(
+            (warning["package"], warning["version"]), []
+        ).append(warning["cargo_audit_kind"])
     return {
         "schema_version": 1,
         "status": "PASS",
@@ -3179,6 +3287,15 @@ def validate_evidence(
                 "disposition": finding["disposition"],
             }
             for finding in ledger["scanners"]["expected_findings"]
+        ],
+        "classified_package_warnings": [
+            {
+                "kind": warning["cargo_audit_kind"],
+                "package": warning["package"],
+                "version": warning["version"],
+                "disposition": warning["disposition"],
+            }
+            for warning in ledger["scanners"]["expected_package_warnings"]
         ],
         "oracle_advisory_inventory": [
             {
@@ -3195,6 +3312,11 @@ def validate_evidence(
                 "version": package["version"],
                 "current_finding_ids": sorted(
                     finding_ids_by_package.get(
+                        (package["name"], package["version"]), []
+                    )
+                ),
+                "current_package_warnings": sorted(
+                    package_warnings_by_package.get(
                         (package["name"], package["version"]), []
                     )
                 ),
@@ -3498,6 +3620,14 @@ def build_plan(ledger: dict[str, Any]) -> dict[str, Any]:
         "expected_scanner_ids": sorted(
             finding["id"] for finding in ledger["scanners"]["expected_findings"]
         ),
+        "expected_package_warnings": [
+            {
+                "kind": warning["cargo_audit_kind"],
+                "package": warning["package"],
+                "version": warning["version"],
+            }
+            for warning in ledger["scanners"]["expected_package_warnings"]
+        ],
         "selected_graph_packages": ledger["source_contract"]["selected_graph"]["package_count"],
         "tracked_advisory_ids": sorted(entry["id"] for entry in ledger["advisories"]),
         "oracle_advisory_feeds": {
