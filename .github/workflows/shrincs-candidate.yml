@@ -1,0 +1,40 @@
+name: SHRINCS candidate foundation
+
+on:
+  pull_request:
+    paths:
+      - "docs/SHRINCS_DECISION_TRACK.md"
+      - "contrib/shrincs/**"
+      - "ci/test/test_shrincs_candidate.py"
+      - ".github/workflows/shrincs-candidate.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/SHRINCS_DECISION_TRACK.md"
+      - "contrib/shrincs/**"
+      - "ci/test/test_shrincs_candidate.py"
+      - ".github/workflows/shrincs-candidate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  manifest:
+    name: consensus-disabled manifest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate frozen pins and release hold
+        run: python3 contrib/shrincs/check_manifest.py --json
+
+      - name: Run SHRINCS candidate regression tests
+        run: python3 -m unittest discover -s ci/test -p 'test_shrincs_candidate.py'
