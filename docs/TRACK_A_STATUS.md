@@ -101,6 +101,19 @@ The strict artifacts now contain self-contained source/import receipts. This
 closes that evidence-format item only; issues `#181`, `#184`, `#188`, and
 `#189` remain open, production stays `NONE`, and `RELEASE_HOLD` is unchanged.
 
+The isolated wrapper also has a deterministic four-thread strict-verifier
+regression over shared immutable valid and cryptographic-rejection inputs. It
+runs in the existing normal and ASan/UBSan compiler lanes and in a dedicated
+Linux Clang ThreadSanitizer path. That path first requires a separately
+compiled deliberate-race positive control to exit nonzero with the canonical
+`ThreadSanitizer: data race` marker, then runs the clean verifier target without
+the separate `fork()` lifecycle test. The harness has a 20-second watchdog.
+This is bounded functional and race-detection coverage only. Broader thread
+counts and schedules, sign/verify coexistence, adversarial interleavings,
+supported-platform coverage, concurrent aggregate resource limits, broader
+Rust/platform coverage, production-parser limits, and exact-commit re-review
+remain open.
+
 The measured decision in `PQSIG_CANDIDATE_SELECTION.md` selects FIPS 204
 `ML-DSA-44` as the primary engineering candidate and retains FIPS 205
 `SLH-DSA-SHA2-128s` as the conservative fallback. Production remains on
@@ -420,9 +433,12 @@ Completed owned tranche:
      content-novel frames, embedded checksum-bound source/import receipts,
      retained nonempty minimized corpora, and recorded zero crashes; this
      closes the prior artifact-self-contained provenance item only
-   - preserve broader-platform/toolchain, concurrency, production-parser, and
-     exact-commit re-review requirements; keep each single-compiler artifact
-     non-promotion-eligible
+   - preserve broader-platform/toolchain and broader concurrency requirements,
+     including other thread counts and schedules, sign/verify coexistence,
+     adversarial interleavings, and supported-platform coverage; also preserve
+     concurrent aggregate resource, production-parser, and exact-commit re-
+     review requirements; keep each single-compiler artifact non-promotion-
+     eligible
    - keep production at `NONE` and `RELEASE_HOLD`; this tranche authorizes no
      SIMD256 admission or consensus, wallet, Script, `ALG_ID`, or
      inventory-policy change, and issues `#188` and `#181` remain open

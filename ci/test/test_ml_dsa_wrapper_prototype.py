@@ -230,6 +230,176 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         self.assertEqual(len(commands), 4)
         self.assertTrue(all("-pthread" in command for command in commands))
 
+    @unittest.skipIf(sys.platform == "win32", "POSIX-only pthread contract")
+    def test_concurrent_verifier_sanitizer_build_contract(self):
+        wrapper = load_wrapper_runner()
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.object(
+            wrapper, "run"
+        ) as run:
+            build = Path(temporary)
+            outputs = {
+                sanitizer: wrapper.compile_concurrency_smoke(
+                    "cc", build, sanitizer=sanitizer
+                )
+                for sanitizer in ("none", "address-undefined", "thread")
+            }
+
+        commands = [call.args[0] for call in run.call_args_list]
+        self.assertEqual(len(commands), 3)
+        self.assertEqual(len(set(outputs.values())), 3)
+        for command in commands:
+            self.assertIn("-pthread", command)
+            self.assertIn("-DPQBTC_MLDSA44_TESTING=1", command)
+            self.assertIn(
+                str(ENGINEERING_DIR / "pqbtc_mldsa44_concurrent_verify.c"), command
+            )
+        self.assertIn("-O2", commands[0])
+        self.assertNotIn("-fsanitize=thread", commands[0])
+        self.assertIn("-fsanitize=address,undefined", commands[1])
+        self.assertNotIn("-fsanitize=thread", commands[1])
+        self.assertIn("-fsanitize=thread", commands[2])
+        self.assertNotIn("-fsanitize=address,undefined", commands[2])
+        self.assertNotIn(
+            str(ENGINEERING_DIR / "pqbtc_mldsa44_smoke.c"), commands[2]
+        )
+
+    @unittest.skipIf(sys.platform == "win32", "POSIX-only pthread contract")
+    def test_thread_sanitizer_positive_control_is_separately_compiled(self):
+        wrapper = load_wrapper_runner()
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.object(
+            wrapper, "run"
+        ) as run:
+            output = wrapper.compile_thread_sanitizer_positive_control(
+                "cc", Path(temporary)
+            )
+
+        command = run.call_args.args[0]
+        self.assertEqual(output.name, "pqbtc_tsan_positive_control")
+        self.assertIn("-pthread", command)
+        self.assertIn("-fsanitize=thread", command)
+        self.assertIn(
+            str(ENGINEERING_DIR / "pqbtc_tsan_positive_control.c"), command
+        )
+        self.assertNotIn(str(ENGINEERING_DIR / "pqbtc_mldsa44.c"), command)
+        self.assertNotIn(
+            str(ENGINEERING_DIR / "pqbtc_mldsa44_smoke.c"), command
+        )
+        self.assertNotIn(
+            str(ENGINEERING_DIR / "pqbtc_mldsa44_concurrent_verify.c"), command
+        )
+
+    def test_thread_sanitizer_positive_control_requires_canonical_marker(self):
+        wrapper = load_wrapper_runner()
+        executable = Path("/tmp/pqbtc-tsan-positive-control")
+        detected = subprocess.CompletedProcess(
+            [str(executable)],
+            66,
+            stdout="",
+            stderr="WARNING: ThreadSanitizer: data race (pid=123)\n",
+        )
+        with mock.patch.object(
+            wrapper.subprocess, "run", return_value=detected
+        ) as run, mock.patch("builtins.print") as print_message:
+            wrapper.run_thread_sanitizer_positive_control(executable)
+        self.assertEqual(run.call_args.kwargs["timeout"], 30)
+        self.assertEqual(
+            run.call_args.kwargs["env"]["TSAN_OPTIONS"],
+            "halt_on_error=1:second_deadlock_stack=1",
+        )
+        print_message.assert_called_once_with(
+            "ThreadSanitizer positive control passed: deliberate data race detected"
+        )
+
+        unprefixed_marker = subprocess.CompletedProcess(
+            [str(executable)],
+            66,
+            stdout="ThreadSanitizer: data race\n",
+            stderr="",
+        )
+        with mock.patch.object(
+            wrapper.subprocess, "run", return_value=unprefixed_marker
+        ), mock.patch("builtins.print"):
+            wrapper.run_thread_sanitizer_positive_control(executable)
+
+        clean_exit = subprocess.CompletedProcess(
+            [str(executable)], 0, stdout="", stderr=""
+        )
+        with mock.patch.object(
+            wrapper.subprocess, "run", return_value=clean_exit
+        ), self.assertRaisesRegex(wrapper.HarnessError, "exited successfully"):
+            wrapper.run_thread_sanitizer_positive_control(executable)
+
+        unrelated_failure = subprocess.CompletedProcess(
+            [str(executable)],
+            1,
+            stdout="",
+            stderr="FATAL: ThreadSanitizer: unexpected memory mapping\n",
+        )
+        with mock.patch.object(
+            wrapper.subprocess, "run", return_value=unrelated_failure
+        ), self.assertRaisesRegex(wrapper.HarnessError, "canonical data-race marker"):
+            wrapper.run_thread_sanitizer_positive_control(executable)
+
+    @unittest.skipIf(sys.platform == "win32", "POSIX-only pthread contract")
+    def test_thread_sanitizer_mode_calibrates_before_clean_harness(self):
+        wrapper = load_wrapper_runner()
+        events = []
+
+        def compile_control(_compiler, build_dir):
+            events.append("compile-control")
+            return build_dir / "positive-control"
+
+        def run_control(_executable):
+            events.append("run-control")
+
+        def compile_clean(_compiler, build_dir, sanitizer):
+            self.assertEqual(sanitizer, "thread")
+            events.append("compile-clean")
+            return build_dir / "clean-harness"
+
+        def run_clean(_executable, sanitizer):
+            self.assertEqual(sanitizer, "thread")
+            events.append("run-clean")
+
+        with mock.patch.object(
+            sys, "argv", ["run_wrapper_tests.py", "--thread-sanitizer"]
+        ), mock.patch.object(
+            wrapper, "validate_source_capsule", return_value={}
+        ), mock.patch.object(
+            wrapper.shutil, "which", return_value="/usr/bin/cc"
+        ), mock.patch.object(
+            wrapper,
+            "compile_thread_sanitizer_positive_control",
+            side_effect=compile_control,
+        ), mock.patch.object(
+            wrapper,
+            "run_thread_sanitizer_positive_control",
+            side_effect=run_control,
+        ), mock.patch.object(
+            wrapper, "compile_concurrency_smoke", side_effect=compile_clean
+        ), mock.patch.object(
+            wrapper, "run_concurrency_smoke", side_effect=run_clean
+        ):
+            self.assertEqual(wrapper.main(), 0)
+
+        self.assertEqual(
+            events,
+            ["compile-control", "run-control", "compile-clean", "run-clean"],
+        )
+
+    def test_concurrent_verifier_has_short_watchdog(self):
+        source = (
+            ENGINEERING_DIR / "pqbtc_mldsa44_concurrent_verify.c"
+        ).read_text(encoding="utf8")
+        armed = source.index("alarm(20);")
+        create = source.index("pthread_create(")
+        joined = source.rindex("pthread_join(")
+        disarmed = source.index("alarm(0);")
+        first_immutability_check = source.index("CHECK(memcmp(")
+        self.assertLess(armed, create)
+        self.assertLess(joined, disarmed)
+        self.assertLess(disarmed, first_immutability_check)
+
     def test_production_hold_and_isolation_remain_explicit(self):
         admission = json.loads(ADMISSION.read_text(encoding="utf8"))
         self.assertEqual(admission["decision"]["production_backend"], "NONE")
@@ -260,6 +430,31 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
             cwd=REPO_ROOT,
             check=True,
         )
+
+    def test_concurrent_verifier_build_and_behavior(self):
+        subprocess.run(
+            [
+                sys.executable,
+                str(ENGINEERING_DIR / "run_wrapper_tests.py"),
+                "--concurrency-only",
+            ],
+            cwd=REPO_ROOT,
+            check=True,
+        )
+
+    def test_wrapper_workflow_has_dedicated_thread_sanitizer_lane(self):
+        workflow = (
+            REPO_ROOT / ".github/workflows/ml-dsa-44-wrapper-prototype.yml"
+        ).read_text(encoding="utf8")
+        self.assertIn("concurrent-verifier-tsan:", workflow)
+        self.assertIn("Concurrent strict verifier (Clang TSan)", workflow)
+        self.assertIn("CC: clang", workflow)
+        self.assertIn("sudo sysctl -w vm.mmap_rnd_bits=28", workflow)
+        self.assertIn("TSAN_OPTIONS: halt_on_error=1:second_deadlock_stack=1", workflow)
+        self.assertIn(
+            "Calibrate ThreadSanitizer and run concurrent verifier", workflow
+        )
+        self.assertIn("run_wrapper_tests.py --thread-sanitizer", workflow)
 
     def test_verifier_fuzz_corpus_is_frozen(self):
         manifest = json.loads(FUZZ_MANIFEST.read_text(encoding="utf8"))
@@ -317,8 +512,8 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
             {
                 "check": "clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling",
                 "annotation": "NOLINTNEXTLINE",
-                "occurrences": 13,
-                "expected_occurrences": 13,
+                "occurrences": 19,
+                "expected_occurrences": 19,
                 "reason": (
                     "C11 Annex K _s functions are optional and unavailable on "
                     "the supported Linux toolchain"
@@ -335,6 +530,8 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
             "ci/test/test_ml_dsa_resource_envelope.py",
             "ci/test/test_ml_dsa_wrapper_prototype.py",
             "contrib/ml-dsa-engineering/README.md",
+            "contrib/ml-dsa-engineering/pqbtc_mldsa44_concurrent_verify.c",
+            "contrib/ml-dsa-engineering/pqbtc_tsan_positive_control.c",
             "contrib/ml-dsa-engineering/pqbtc_mldsa44_resource_probe.c",
             "contrib/ml-dsa-engineering/pqbtc_mldsa44_stateful_fuzz.c",
             "contrib/ml-dsa-engineering/run_verifier_resource_envelope.py",
@@ -356,8 +553,8 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         self.assertEqual(
             counts,
             {
-                "clang-tidy": 6,
-                "iwyu": 4,
+                "clang-tidy": 7,
+                "iwyu": 5,
                 "header-self-containment": 2,
             },
         )
@@ -400,10 +597,12 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
             "clang-tidy-wrapper-production",
             "clang-tidy-wrapper-testing",
             "clang-tidy-smoke-testing",
+            "clang-tidy-concurrent-verifier-testing",
             "clang-tidy-verifier-fuzz",
             "clang-tidy-stateful-signer-fuzz",
             "clang-tidy-verifier-resource-probe",
             "iwyu-smoke-testing",
+            "iwyu-concurrent-verifier-testing",
             "iwyu-verifier-fuzz",
             "iwyu-stateful-signer-fuzz",
             "iwyu-verifier-resource-probe",
@@ -424,8 +623,26 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         )
         self.assertIn(testing_define, checks["clang-tidy-smoke-testing"]["command"])
         self.assertIn(testing_define, checks["iwyu-smoke-testing"]["command"])
+        self.assertIn(
+            testing_define,
+            checks["clang-tidy-concurrent-verifier-testing"]["command"],
+        )
+        self.assertIn(
+            testing_define,
+            checks["iwyu-concurrent-verifier-testing"]["command"],
+        )
         self.assertIn("-pthread", checks["clang-tidy-smoke-testing"]["command"])
         self.assertIn("-pthread", checks["iwyu-smoke-testing"]["command"])
+        for check_id in (
+            "clang-tidy-concurrent-verifier-testing",
+            "iwyu-concurrent-verifier-testing",
+        ):
+            self.assertEqual(
+                checks[check_id]["input"],
+                "contrib/ml-dsa-engineering/pqbtc_mldsa44_concurrent_verify.c",
+            )
+            self.assertEqual(checks[check_id]["variant"], "testing")
+            self.assertIn("-pthread", checks[check_id]["command"])
         self.assertNotIn(
             testing_define, checks["clang-tidy-verifier-fuzz"]["command"]
         )
