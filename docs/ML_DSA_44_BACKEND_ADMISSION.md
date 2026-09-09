@@ -346,7 +346,7 @@ Prototype admission closes no production finding:
 
 | Gate | Tracking | State after this decision |
 | --- | --- | --- |
-| Entropy and fail-closed binding | #184 | isolated wrapper, Linux/macOS RBG evidence, and coordinated standard-POSIX-fork module-lock observations reconfirmed under portable GCC/Clang normal and ASan/UBSan jobs at `08eaa8d`; async-signal-safe child signing, alternate/reentrant fork and clone behavior, handler ordering, module lifetime, and broader supported-platform lifecycle remain open |
+| Entropy and fail-closed binding | #184 | isolated wrapper, Linux/macOS RBG evidence, and coordinated standard-POSIX-fork module-lock observations reconfirmed under portable GCC/Clang normal and ASan/UBSan jobs at `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942`; async-signal-safe child signing, alternate/reentrant fork and clone behavior, handler ordering, module lifetime, and broader supported-platform lifecycle remain open |
 | Supported-platform side channels | #185 | bounded x86_64 Valgrind constant-time/variable-latency evidence; broader platforms and leakage models open |
 | Fault model and injected faults | #186 | test-only pre-self-verification candidate-corruption regression with atomic output and cleanup evidence, directly replayed in portable GCC/Clang normal and ASan/UBSan logs at the reviewed exact head; no fault-specific retained artifact, and broader checkpoints, control-flow and common-mode analysis, platform/hardware model, physical campaign, and exact-commit independent review remain open |
 | End-to-end secret erasure | #187 | source cleanup and sanitizer evidence only; compiler/caller/platform boundary open |
