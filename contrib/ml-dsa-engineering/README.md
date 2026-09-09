@@ -62,7 +62,7 @@ RustSec entries across the selected graph. It separates the published
 139-package lock universe, the exact 16-package selected portable graph, and
 the conservative 24-component CycloneDX normal-dependency/target closure. The
 driver fails on a new or missing selected-package RustSec advisory,
-advisory-backed scanner finding, cargo package-status warning, alias, version,
+advisory-backed scanner finding, cargo-audit package-status warning, alias, version,
 full-lock package, graph edge, backend, architecture, SBOM component, or
 evidence input. Current full-lock results remain visible and are accepted only
 under their exact reviewed dispositions: seven advisory findings and one
