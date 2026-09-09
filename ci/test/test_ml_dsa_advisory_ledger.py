@@ -271,13 +271,57 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
                     "version": finding["version"],
                     "source": "registry+https://github.com/rust-lang/crates.io-index",
                 },
+                "affected": None,
                 "versions": {"patched": [], "unaffected": []},
             }
             if finding["cargo_audit_kind"] == "vulnerability":
                 vulnerabilities.append(item)
             else:
                 category = str(finding["cargo_audit_category"])
+                item["kind"] = category
                 warnings.setdefault(category, []).append(item)
+        warnings["yanked"] = [
+            {
+                "kind": "yanked",
+                "package": {
+                    "name": "chacha20",
+                    "version": "0.10.0",
+                    "source": (
+                        "registry+https://github.com/rust-lang/crates.io-index"
+                    ),
+                    "checksum": (
+                        "6f8d983286843e49675a4b7a2d174efe136dc93a18d69130dd18198a6c167601"
+                    ),
+                    "dependencies": [
+                        {
+                            "name": "cfg-if",
+                            "version": "1.0.4",
+                            "source": (
+                                "registry+https://github.com/rust-lang/crates.io-index"
+                            ),
+                        },
+                        {
+                            "name": "cpufeatures",
+                            "version": "0.3.0",
+                            "source": (
+                                "registry+https://github.com/rust-lang/crates.io-index"
+                            ),
+                        },
+                        {
+                            "name": "rand_core",
+                            "version": "0.10.1",
+                            "source": (
+                                "registry+https://github.com/rust-lang/crates.io-index"
+                            ),
+                        },
+                    ],
+                    "replace": None,
+                },
+                "advisory": None,
+                "affected": None,
+                "versions": None,
+            }
+        ]
         return {
             "database": {
                 "advisory-count": 1166,
@@ -1002,6 +1046,10 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         plan = json.loads(completed.stdout)
         self.assertEqual(plan["execution_contract"], self.ledger["execution_contract"])
         self.assertEqual(set(plan["expected_scanner_ids"]), EXPECTED_CURRENT_SCAN_IDS)
+        self.assertEqual(
+            plan["expected_package_warnings"],
+            [{"kind": "yanked", "package": "chacha20", "version": "0.10.0"}],
+        )
         self.assertEqual(plan["miri"]["role"], "SUPPLEMENTARY")
         self.assertTrue(plan["miri"]["required"])
 
@@ -1036,6 +1084,17 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             report["oracle_advisory_feed_validation"]["mldsa_native"]
             ["published_advisory_ids"],
             [],
+        )
+        self.assertEqual(
+            report["classified_package_warnings"],
+            [
+                {
+                    "kind": "yanked",
+                    "package": "chacha20",
+                    "version": "0.10.0",
+                    "disposition": "NOT_APPLICABLE_CURRENT_SELECTED_GRAPH",
+                }
+            ],
         )
 
     def test_openssl_live_feed_semver_boundaries_are_fail_closed(self):
@@ -1373,6 +1432,7 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
                     "name": "libcrux-ml-dsa",
                     "version": "0.0.10",
                 },
+                "affected": None,
                 "versions": {"patched": [], "unaffected": []},
             }
         )
@@ -1392,8 +1452,10 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         cargo_extra = self.cargo_audit_evidence()
         cargo_extra["warnings"].setdefault("notice", []).append(
             {
+                "kind": "notice",
                 "advisory": {"id": "RUSTSEC-2099-0001"},
                 "package": {"name": "unexpected", "version": "1.0.0"},
+                "affected": None,
                 "versions": {"patched": [], "unaffected": []},
             }
         )
@@ -1423,6 +1485,115 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             with self.subTest(label=label):
                 with self.assertRaises(advisory.AuditError):
                     self.validate_exact_evidence(**override)
+
+    def test_cargo_audit_package_warnings_are_exact_and_fail_closed(self):
+        missing = self.cargo_audit_evidence()
+        del missing["warnings"]["yanked"]
+
+        wrong_package = self.cargo_audit_evidence()
+        wrong_package["warnings"]["yanked"][0]["package"]["name"] = "wrong"
+
+        wrong_version = self.cargo_audit_evidence()
+        wrong_version["warnings"]["yanked"][0]["package"]["version"] = "9.9.9"
+
+        wrong_category = self.cargo_audit_evidence()
+        wrong_category["warnings"]["withdrawn"] = wrong_category["warnings"].pop(
+            "yanked"
+        )
+
+        wrong_kind = self.cargo_audit_evidence()
+        wrong_kind["warnings"]["yanked"][0]["kind"] = "withdrawn"
+
+        extra = self.cargo_audit_evidence()
+        extra["warnings"]["yanked"].append(
+            {
+                "kind": "yanked",
+                "package": {"name": "unexpected", "version": "1.0.0"},
+                "advisory": None,
+                "affected": None,
+                "versions": None,
+            }
+        )
+
+        missing_advisory_member = self.cargo_audit_evidence()
+        del missing_advisory_member["warnings"]["yanked"][0]["advisory"]
+
+        malformed_advisory = self.cargo_audit_evidence()
+        malformed_advisory["warnings"]["yanked"][0]["advisory"] = {}
+
+        invalid_package = self.cargo_audit_evidence()
+        invalid_package["warnings"]["yanked"][0]["package"]["name"] = ""
+
+        for label, cargo in (
+            ("missing", missing),
+            ("wrong package", wrong_package),
+            ("wrong version", wrong_version),
+            ("wrong category", wrong_category),
+            ("wrong kind", wrong_kind),
+            ("extra", extra),
+            ("missing advisory member", missing_advisory_member),
+            ("malformed advisory", malformed_advisory),
+            ("invalid package", invalid_package),
+        ):
+            with self.subTest(label=label):
+                with self.assertRaises(advisory.AuditError):
+                    self.validate_exact_evidence(cargo_audit=cargo)
+
+    def test_cargo_audit_advisory_warning_kind_is_required_and_exact(self):
+        missing_kind = self.cargo_audit_evidence()
+        del missing_kind["warnings"]["unmaintained"][0]["kind"]
+
+        wrong_kind = self.cargo_audit_evidence()
+        wrong_kind["warnings"]["unmaintained"][0]["kind"] = "yanked"
+
+        for label, cargo in (
+            ("missing", missing_kind),
+            ("wrong", wrong_kind),
+        ):
+            with self.subTest(label=label):
+                with self.assertRaises(advisory.AuditError):
+                    self.validate_exact_evidence(cargo_audit=cargo)
+
+    def test_duplicate_cargo_audit_advisory_rows_are_rejected(self):
+        duplicate_vulnerability = self.cargo_audit_evidence()
+        duplicate_vulnerability["vulnerabilities"]["list"].append(
+            copy.deepcopy(duplicate_vulnerability["vulnerabilities"]["list"][0])
+        )
+        duplicate_vulnerability["vulnerabilities"]["count"] += 1
+
+        duplicate_warning = self.cargo_audit_evidence()
+        duplicate_warning["warnings"]["unmaintained"].append(
+            copy.deepcopy(duplicate_warning["warnings"]["unmaintained"][0])
+        )
+
+        for label, cargo in (
+            ("vulnerability", duplicate_vulnerability),
+            ("warning", duplicate_warning),
+        ):
+            with self.subTest(label=label):
+                with self.assertRaises(advisory.AuditError):
+                    self.validate_exact_evidence(cargo_audit=cargo)
+
+    def test_package_warning_ledger_scope_cannot_be_weakened(self):
+        missing = copy.deepcopy(self.ledger)
+        missing["scanners"]["expected_package_warnings"] = []
+
+        selected = copy.deepcopy(self.ledger)
+        selected["scanners"]["expected_package_warnings"][0][
+            "selected_graph"
+        ] = True
+
+        omitted_reason = copy.deepcopy(self.ledger)
+        omitted_reason["scanners"]["expected_package_warnings"][0]["reason"] = ""
+
+        for label, ledger in (
+            ("missing", missing),
+            ("selected graph", selected),
+            ("omitted reason", omitted_reason),
+        ):
+            with self.subTest(label=label):
+                with self.assertRaises(advisory.AuditError):
+                    advisory.validate_ledger(ledger, self.vectors)
 
     def test_osv_rejects_unresolved_vulnerabilities_and_truncated_inventory(self):
         for identifier in ("CVE-2099-0001", "OSV-2099-0001"):

@@ -52,8 +52,9 @@ Three dependency scopes remain separate:
    root library target. It is retained as an SBOM, not mislabeled as the
    executed graph.
 
-The workflow records all three. A finding outside the selected graph is not
-discarded; it must have an exact package/version disposition in the ledger.
+The workflow records all three. An advisory finding or package-status warning
+outside the selected graph is not discarded; it must have an exact
+package/version disposition in the ledger.
 
 ## Backend and Architecture Contract
 
@@ -134,11 +135,19 @@ advisory run `32910153947`, attempt `1`, verified all `41/41` retained
 checksum entries and reported zero affected OpenSSL 3.6.4 IDs, zero published
 `mldsa-native`
 advisories, and `3/3` portable Miri checks. The full-lock cargo-audit and OSV
-results still contain the seven exactly adjudicated findings outside the
-selected graph; this is not a scanner-empty claim. The
+results still contain the seven exactly adjudicated advisory findings outside
+the selected graph; this is not a scanner-empty claim. The
 [versioned post-repin receipt](reviews/evidence/ml-dsa-44-trusted-main/0fa8f5fc4321f057fb758e4c2dc39b790023943c/SOURCE.json)
 binds the exact run and retained artifact. Independent exact-commit re-review
 remains required.
+
+A later weekly cargo-audit run on 2026-09-07 also surfaced a package-status
+warning for the yanked `chacha20 0.10.0` release. That package remains in the
+published full lock and the conservative SBOM through `rand`'s optional
+`std_rng` edge, but it is absent from the exact 16-package selected execution
+graph. The ledger keeps this warning separate from RustSec/OSV advisory IDs
+and requires exact package, version, kind, category, graph disposition, and
+review date equality.
 
 The historical transition retains this per-record applicability summary; the
 machine ledger binds every row to the complete reviewed oracle source closure
@@ -253,14 +262,20 @@ classified:
 - RUSTSEC-2024-0436 and RUSTSEC-2026-0162/0163/0166: unmaintained
   paste/pqcrypto test dependencies outside the selected graph;
 - RUSTSEC-2026-0173: unmaintained `proc-macro-error2 2.0.1`, present in the
-  broad lock but absent from the exact selected cargo tree; and
+  broad lock but absent from the exact selected cargo tree;
 - RUSTSEC-2026-0190: unsound `anyhow 1.0.102`, a target/unselected locked
-  dependency absent from the exact Linux selected tree.
+  dependency absent from the exact Linux selected tree; and
+- cargo-audit package warning `yanked`: `chacha20 0.10.0`, present in the
+  published full lock and conservative SBOM but absent from the exact selected
+  execution graph. It must be reviewed again on a libcrux or `rand` repin and
+  is not counted as an eighth advisory.
 
 The scanners therefore return nonzero. The workflow captures their complete
 JSON and exit codes without suppressing warnings; the local driver then
-requires exact equality with the reviewed finding set. A new, removed, or
-changed finding fails until it is explicitly reviewed.
+requires independent exact equality with the reviewed advisory-finding and
+package-warning sets. A new, removed, or changed result fails until it is
+explicitly reviewed. Accepting the exact yanked-package warning does not claim
+that the package is unaffected or suitable for production.
 
 ## Retained External-Tool Evidence
 
