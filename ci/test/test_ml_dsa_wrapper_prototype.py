@@ -310,6 +310,17 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
             "ThreadSanitizer positive control passed: deliberate data race detected"
         )
 
+        unprefixed_marker = subprocess.CompletedProcess(
+            [str(executable)],
+            66,
+            stdout="ThreadSanitizer: data race\n",
+            stderr="",
+        )
+        with mock.patch.object(
+            wrapper.subprocess, "run", return_value=unprefixed_marker
+        ), mock.patch("builtins.print"):
+            wrapper.run_thread_sanitizer_positive_control(executable)
+
         clean_exit = subprocess.CompletedProcess(
             [str(executable)], 0, stdout="", stderr=""
         )

@@ -270,7 +270,7 @@ def run_thread_sanitizer_positive_control(executable: Path) -> None:
             "detecting its deliberate data race"
         )
     output = completed.stdout + completed.stderr
-    if "WARNING: ThreadSanitizer: data race" not in output:
+    if "ThreadSanitizer: data race" not in output:
         raise HarnessError(
             "ThreadSanitizer positive control failed without the canonical "
             "data-race marker\n"
