@@ -2,7 +2,7 @@
 
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-WRAPPER-PROTOTYPE-v1
-## Updated: 2026-08-25
+## Updated: 2026-09-09
 ## Consensus-Relevant: NO
 
 ## Scope
@@ -198,8 +198,23 @@ system-library coverage still depends on LLVM interceptors and is not an
 all-code proof. A retained crash is evidence to investigate, not an
 automatically trusted regression vector: promotion into a checked-in corpus
 still requires review. This prospective research-only contract is not fresh
-post-merge evidence; `production_backend` remains `NONE`, and `RELEASE_HOLD`
-remains in force.
+post-merge evidence until the implementation is separately re-baselined and
+exercised on protected `main`.
+
+That post-merge requirement is now satisfied for the bounded evidence format.
+PR `#250` landed the contract at
+`e4da9f921e8520b5f42ba454a68f847272c872f1`; PR `#251` advanced the review
+pointer to `e11258553613e5e1db7f98478419b5b3e9843c92`; and exact clean
+protected-main head `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942` has an empty guarded
+diff. Main-dispatched run `34307476916`, attempt `1`, validated exact ancestral
+source artifacts and completed the strict ASan/UBSan and MSan 1,800-second
+campaigns with `78` and `32` content-novel retained imports and `8,013,773`
+and `13,130,663` executions. Their nonempty minimized corpora contain `131`
+and `80` files. Both current artifacts embed the source and import receipts;
+all outer and internal checksums matched, and neither lane recorded a crash,
+minimized crash, sanitizer marker, or failure marker. This closes the previous
+artifact-self-contained provenance gap only. `production_backend` remains
+`NONE`, issue `#188` remains open, and `RELEASE_HOLD` remains in force.
 
 The stateful signer harness adds a separate test-only target for the wrapper's
 seeded key generation and hedged-signing transition contract. Every input
@@ -256,6 +271,18 @@ Each downloaded archive matched its API digest and all `18/18` internal
 checksums passed. Static analysis passed all 12 scoped checks; both calibrated
 Valgrind controls fired while the wrapper path recorded zero errors,
 variable-latency findings, or leaks.
+
+Main-dispatched wrapper run `34307476900`, attempt `1`, reconfirmed the same
+direct lifecycle assertions at exact head
+`08eaa8ddee93069d2de09e8fb46aef6e7b1d0942`. Portable Clang job
+`102327071407` and portable GCC job `102327071511` each passed the normal and
+ASan/UBSan wrapper harness. Static-analysis artifact `10087924165` and the
+Clang/GCC Valgrind artifacts `10087310127` / `10087233631` matched their API
+digests and complete `18/18` internal inventories. Static analysis passed
+`12/12`; both Valgrind reports passed their calibrated controls with zero
+wrapper-path errors, leaks, or variable-latency findings. Only the portable
+jobs call `fork()`; the retained artifacts remain adjacent audit evidence, not
+direct fork results, and the lifecycle limitations above remain unchanged.
 
 Exact-main sustained run `31521182965`, attempt `1`, completed all four
 1,800-second jobs at
@@ -327,6 +354,27 @@ The versioned
 [exact-main evidence receipt](reviews/evidence/ml-dsa-44-trusted-main/79de77faf112453868779861ae0c982dba533f84/SOURCE.json)
 records the complete workflow, job, artifact, checksum, retained-source, and
 scope metadata for the resource, wrapper, sustained, and review lanes.
+
+The later exact-main evidence tranche at
+`08eaa8ddee93069d2de09e8fb46aef6e7b1d0942` reconfirmed the direct lifecycle
+test and completed the retained-corpus work required after PR `#250`.
+Sustained run `34307476916` completed all four 1,800-second lanes: stateful
+ASan/UBSan and MSan imported `179` / `139` novel frames, executed `93,446` /
+`272,035` inputs, and replayed `31/31` deterministic cases in each lane;
+strict ASan/UBSan and MSan imported `78` / `32` novel frames and executed
+`8,013,773` / `13,130,663` inputs. Review run `34307477001` imported `86`
+novel retained frames, executed `1,777,804` inputs, and passed every replay and
+coverage floor. All five campaign lanes retained nonempty minimized corpora and
+recorded zero crashes; no sanitizer, oracle-error, disagreement, or prohibited
+failure marker was found. The strict source/import receipts are self-contained
+inside each strict artifact. Review-source provenance remains in
+checksum-bound supplemental files inside the review artifact rather than in
+its `campaign.json`; both the source and current artifacts were independently
+verified against their API metadata and complete checksum inventories. The
+[2026-09-09 exact-main receipt](reviews/evidence/ml-dsa-44-trusted-main/08eaa8ddee93069d2de09e8fb46aef6e7b1d0942/SOURCE.json)
+records the exact identities and boundaries. These bounded observations do not
+establish production support, close issue `#181` or `#188`, or remove the
+release hold.
 
 PR `#244` later added the bounded candidate-corruption checkpoint at merge
 commit `c2021c128b2c04f34477324c48ec7fdd6fc4d50e`; PR `#245` advanced the review

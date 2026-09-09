@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-08-26
+## Updated: 2026-09-09
 ## Current Phase: Phase 1 - Cryptographic Production Hold
 
 ## Purpose
@@ -86,6 +86,20 @@ differential evidence recorded in the
 [post-repin receipt](reviews/evidence/ml-dsa-44-trusted-main/0fa8f5fc4321f057fb758e4c2dc39b790023943c/SOURCE.json).
 Production stays `NONE`, issues `#181`, `#188`, and `#189` remain open, and
 `RELEASE_HOLD` is unchanged.
+
+PR `#250` later hardened strict-verifier retained-corpus provenance; PR `#252`
+separated cargo-audit package-status warnings from advisory findings; and PR
+`#251` advanced the frozen review pointer to
+`e11258553613e5e1db7f98478419b5b3e9843c92`. Protected-main evidence head
+`08eaa8ddee93069d2de09e8fb46aef6e7b1d0942` has an empty guarded diff from
+that baseline. Runs `34307210503`, `34307210685`, `34307476900`,
+`34307476916`, and `34307477001` provide the exact-head resource,
+advisory/SBOM/Miri, direct wrapper, four-lane sustained, and three-oracle
+reproduction evidence recorded in the
+[2026-09-09 receipt](reviews/evidence/ml-dsa-44-trusted-main/08eaa8ddee93069d2de09e8fb46aef6e7b1d0942/SOURCE.json).
+The strict artifacts now contain self-contained source/import receipts. This
+closes that evidence-format item only; issues `#181`, `#184`, `#188`, and
+`#189` remain open, production stays `NONE`, and `RELEASE_HOLD` is unchanged.
 
 The measured decision in `PQSIG_CANDIDATE_SELECTION.md` selects FIPS 204
 `ML-DSA-44` as the primary engineering candidate and retains FIPS 205
@@ -401,6 +415,11 @@ Completed owned tranche:
      percentile or confidence-interval claims
    - treat the four 4,287-call batches as research workloads only, not a
      consensus, block, transaction, mempool, or production limit
+   - retain exact-main run `34307476916` as the first completed post-PR-`#250`
+     strict-verifier evidence: both 1,800-second strict lanes imported
+     content-novel frames, embedded checksum-bound source/import receipts,
+     retained nonempty minimized corpora, and recorded zero crashes; this
+     closes the prior artifact-self-contained provenance item only
    - preserve broader-platform/toolchain, concurrency, production-parser, and
      exact-commit re-review requirements; keep each single-compiler artifact
      non-promotion-eligible
@@ -487,8 +506,16 @@ Cryptography implementation lane:
    `0fa8f5fc4321f057fb758e4c2dc39b790023943c`; runs `32910153642`,
    `32910153947`, `32924009052`, and `32924008998` satisfy the bounded fresh-
    evidence refresh. Strict-verifier artifact-self-contained retained-corpus
-   provenance remains open, as do issues `#181`, `#188`, and `#189` and the
-   production hold.
+   provenance remained open at that historical evidence head.
+   PR `#250` then landed the fail-closed provenance contract, and PR `#251`
+   anchored exact protected-main evidence head
+   `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942` to baseline
+   `e11258553613e5e1db7f98478419b5b3e9843c92`. Runs `34307210503`,
+   `34307210685`, `34307476900`, `34307476916`, and `34307477001` passed
+   the exact-head resource, advisory, direct-wrapper, retained-corpus, and
+   differential tranches. The strict artifacts now carry self-contained
+   source/import receipts. Issues `#181`, `#184`, `#188`, and `#189` and the
+   production hold remain open.
 
 
 ## Historical Queue Ledger
@@ -1981,6 +2008,24 @@ Aineko must ask before:
 
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
+
+- 2026-09-09: PR `#250` landed fail-closed, artifact-self-contained strict-
+  verifier retained-corpus provenance; PR `#252` separately classified the
+  cargo-audit yanked-package warning; and PR `#251` advanced the review pointer
+  to `e11258553613e5e1db7f98478419b5b3e9843c92`. Exact clean protected-main
+  head `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942` has an empty guarded diff.
+  Automatic runs `34307210503` and `34307210685` passed the resource and
+  advisory/SBOM/Miri lanes. Main-dispatched wrapper run `34307476900`
+  directly reconfirmed the coordinated held-lock fork and fail-closed
+  readiness controls under portable GCC/Clang normal and ASan/UBSan jobs.
+  Sustained run `34307476916` completed all four 1,800-second lanes with
+  positive retained imports, self-contained strict source/import receipts,
+  and zero crashes. Review run `34307477001` completed `1,777,804`
+  three-oracle executions with `86` novel imports, passing replays and coverage
+  floors, and zero crashes or disagreements. This closes the prior strict
+  evidence-format gap only. Issues `#181`, `#184`, `#188`, and `#189` remain
+  open, production backend `NONE` is unchanged, and `RELEASE_HOLD` remains in
+  force.
 
 - 2026-08-26: PR `#247` repinned the research comparator to OpenSSL 3.6.4 at
   `b22b21c3c6a06cb46f643eb1216325ecddacf7a4`; PR `#248` advanced the pointer

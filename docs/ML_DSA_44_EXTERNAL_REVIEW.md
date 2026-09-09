@@ -3,7 +3,7 @@
 ## Status: AWAITING_EXTERNAL_REVIEW - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-EXTERNAL-REVIEW-v1
 ## Prepared: 2026-07-19
-## Evidence-Updated: 2026-08-26
+## Evidence-Updated: 2026-09-09
 ## Owner: @scottdhughes
 ## Tracking: https://github.com/scottdhughes/quantum-proof-bitcoin/issues/181
 ## Consensus-Relevant: NO
@@ -22,12 +22,14 @@ The review has three bounded subjects:
 3. the cryptographic and implementation risks that a future production design
    must close
 
-The active comparator implementation baseline is PQBTC commit
+The active frozen review baseline is PQBTC commit
+`e11258553613e5e1db7f98478419b5b3e9843c92`; its comparator remains the
+OpenSSL 3.6.4 implementation established at
 `b22b21c3c6a06cb46f643eb1216325ecddacf7a4`. Pointer-only protected-main
-evidence head `0fa8f5fc4321f057fb758e4c2dc39b790023943c` has an empty guarded
-comparator diff from that baseline. The reviewer must record the exact PQBTC
+evidence head `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942` has an empty guarded
+diff from the active baseline. The reviewer must record the exact PQBTC
 revision used for the review and confirm whether any of these files differ from
-the active baseline:
+that baseline:
 
 - `contrib/ml-dsa-ref/vectors.json`
 - `contrib/ml-dsa-ref/compare_oracles.py`
@@ -121,7 +123,7 @@ signature-verification cases, for 70 cases total.
 
 | Oracle | Frozen source | Role and limitation |
 | --- | --- | --- |
-| OpenSSL | Version 3.6.4, commit `d3c1b1169b3569ff3069e5b399f47b2b28e03d79` | Separate provider oracle; not a proposed node dependency; fresh post-repin exact-main evidence recorded at `0fa8f5fc4321f057fb758e4c2dc39b790023943c`; independent re-review remains open |
+| OpenSSL | Version 3.6.4, commit `d3c1b1169b3569ff3069e5b399f47b2b28e03d79` | Separate provider oracle; not a proposed node dependency; fresh exact-main evidence recorded at `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942`; independent re-review remains open |
 | `mldsa-native` | Tag `v1.0.0-beta2`, commit `9b0ee84f4cf399043eca59eca4e5f8531ca1d61b` | Portable C; forked from PQ-Crystals, so not independent design |
 | libcrux | `libcrux-ml-dsa-v0.0.10`, commit `c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd` | Portable Rust with separate implementation history and disclosed reference influence |
 
@@ -139,13 +141,36 @@ recorded nonzero retained-corpus imports and zero crashes. The review lane
 recorded nonzero imports and zero crashes, sanitizer markers, oracle errors, or
 disagreements.
 
-The signer and review artifacts embed self-contained retained-source
-provenance. The two strict-verifier campaign artifacts record nonzero imported
-seed counts but omit `retained_corpus_source` and `retained_corpus_import`.
-Their workflow restore logs establish source selection, but strict-verifier
-retained-corpus provenance is therefore not yet artifact-self-contained or
-fail-closed. These are internal engineering receipts and do not satisfy issue
-`#181` or approve production use.
+In that historical tranche, the signer and review artifacts embed retained-
+source provenance, while the two strict-verifier campaign artifacts record
+nonzero imported seed counts but omit `retained_corpus_source` and
+`retained_corpus_import`. Their workflow restore logs establish source
+selection, but the strict artifact format was not yet self-contained or
+fail-closed.
+
+PR `#250` closed that evidence-format gap, and PR `#251` separately advanced
+the review pointer. The
+[2026-09-09 exact-main receipt](reviews/evidence/ml-dsa-44-trusted-main/08eaa8ddee93069d2de09e8fb46aef6e7b1d0942/SOURCE.json)
+binds protected-main head `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942` to baseline
+`e11258553613e5e1db7f98478419b5b3e9843c92` with an empty guarded diff.
+Sustained run `34307476916` completed the strict ASan/UBSan and MSan
+1,800-second campaigns with `78` and `32` novel retained imports,
+`8,013,773` and `13,130,663` executions, nonempty minimized corpora,
+self-contained source/import receipts, and zero crash or sanitizer markers.
+The same run's two stateful lanes imported `179` and `139` novel frames,
+replayed `31/31` deterministic cases each, and recorded zero crashes.
+
+Review run `34307477001` imported `86` novel retained frames, completed
+`1,777,804` three-oracle executions, and passed all exact/promoted replays and
+coverage floors with zero crashes, oracle errors, disagreements, or sanitizer
+markers. Its source provenance is checksum-bound in supplemental files inside
+the same artifact rather than embedded in `campaign.json`. Both source and
+current artifacts were independently matched to GitHub API metadata and
+complete checksum inventories. Wrapper run `34307476900` separately
+reconfirmed the coordinated held-lock fork and fail-closed lifecycle controls
+under portable GCC/Clang normal and ASan/UBSan jobs; only those job logs are
+direct fork evidence. These are internal bounded engineering receipts. They do
+not satisfy issue `#181`, approve production use, or remove the release hold.
 
 The libcrux annotated tag object is
 `255922337dee37aa32b21dbed27785f535de0336`, its ML-DSA source tree is

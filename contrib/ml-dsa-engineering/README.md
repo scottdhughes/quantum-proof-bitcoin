@@ -261,9 +261,25 @@ content-bound novel-import aggregate. The two
 sanitizer-specific artifacts from legacy run `32924009052` at head
 `0fa8f5fc4321f057fb758e4c2dc39b790023943c` are accepted only through their
 exact bootstrap allowlist entries for migration; that allowance is not a
-general fallback. This is a prospective research-only contract, not fresh
-post-merge evidence: `production_backend` remains `NONE`, and `RELEASE_HOLD`
-remains in force.
+general fallback.
+
+PR `#250` landed this contract at
+`e4da9f921e8520b5f42ba454a68f847272c872f1`, and PR `#251` advanced the
+review pointer to `e11258553613e5e1db7f98478419b5b3e9843c92`. Exact clean
+protected-main head `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942` has an empty
+guarded diff from that pointer. Main-dispatched sustained run `34307476916`,
+attempt `1`, completed both strict-verifier 1,800-second campaigns after
+validating ancestral source artifacts by exact API identity and complete
+checksums. ASan/UBSan imported `78` novel retained frames and completed
+`8,013,773` executions; MSan imported `32` and completed `13,130,663`.
+Both minimized corpora were nonempty, both new artifacts carry the required
+self-contained source and import receipts, and neither lane recorded a crash,
+minimized crash, or sanitizer failure marker. The versioned
+[exact-main receipt](../../docs/reviews/evidence/ml-dsa-44-trusted-main/08eaa8ddee93069d2de09e8fb46aef6e7b1d0942/SOURCE.json)
+binds the source and current artifact metadata and checksums. This closes the
+identified evidence-format gap, not issue `#188`: the work remains
+research-only, `production_backend` remains `NONE`, and `RELEASE_HOLD` remains
+in force.
 
 ## Stateful Signer and Seeded-Keygen Fuzzing
 
@@ -290,6 +306,13 @@ bounded test-only
 issue-`#188` evidence; it does not connect the wrapper to production, prove
 broader fork/clone lifecycle behavior or resource limits, close the issue, or
 change the release hold.
+
+The same exact-main run `34307476916` completed the stateful ASan/UBSan and
+MSan 1,800-second campaigns with `179` and `139` novel retained imports,
+`93,446` and `272,035` executions, and `31/31` deterministic replays in each
+lane. Both minimized corpora were nonempty and all crash, minimized-crash,
+sanitizer, and failure-marker inventories were empty. These campaigns do not
+call `fork()` and do not extend the separate direct lifecycle observation.
 
 ## Differential Verifier Fuzzing
 
@@ -338,6 +361,17 @@ is not multi-platform differential evidence, and the prebuilt OpenSSL and Rust
 implementation bodies are not fully sanitizer-instrumented by the C fuzz
 build. It does not alter the release hold.
 
+Main-dispatched review-reproduction run `34307477001`, attempt `1`, later
+repeated the 1,800-second three-oracle campaign at exact clean protected-main
+head `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942`. It imported `86` novel
+retained frames, completed `1,777,804` executions, minimized to `162` files,
+and passed all `5/5` exact replays, `38/38` promoted replays, 13 comparator
+checks, and every coverage floor. It recorded zero crashes, minimized crashes,
+oracle errors, disagreements, sanitizer markers, or prohibited failure
+markers. Its retained source artifact and the current artifact were both
+independently matched to their GitHub API digests, sizes, complete checksum
+inventories, and ancestral source heads.
+
 ## Direct-Verifier Resource-Envelope Observation
 
 `verifier_resource_policy.json`, `pqbtc_mldsa44_resource_probe.c`, and
@@ -385,6 +419,17 @@ sample pairs required before considering tighter ceilings. That completes only
 the sampling prerequisite: any ceiling change remains a separate review.
 Numeric rejection preserves a checksummed raw observation and a recomputable
 `FAIL` receipt while the workflow job remains failed.
+
+Automatic protected-main push run `34307210503`, attempt `1`, reconfirmed the
+same frozen policy at exact clean head
+`08eaa8ddee93069d2de09e8fb46aef6e7b1d0942`. GCC and Clang each passed all
+`21/21` numeric checks and `4/4` detector controls. Their aggregate CPU/wall
+observations were `1,608,394,735` / `1,608,709,397` ns and `1,331,677,561` /
+`1,331,971,985` ns, with peak RSS of `32,292` and `32,256` KiB. Both artifacts
+matched their API digest and size, all `24/24` internal checksums passed, and
+the repository evidence verifier reported `PASS`. Each remains
+`promotion_eligible=false`; this is another bounded Linux x86_64 observation,
+not a supported-platform, worst-case, consensus, or production limit.
 
 Pull-request output remains `UNTRUSTED_PR_OBSERVATION`; the policy change must
 first merge, then a separate reviewed baseline-pointer change must authorize
