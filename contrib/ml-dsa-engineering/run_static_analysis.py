@@ -26,6 +26,12 @@ ENGINEERING_ROOT = "contrib/ml-dsa-engineering"
 VENDOR_ROOT = f"{ENGINEERING_ROOT}/vendor"
 WRAPPER_SOURCE = f"{ENGINEERING_ROOT}/pqbtc_mldsa44.c"
 SMOKE_SOURCE = f"{ENGINEERING_ROOT}/pqbtc_mldsa44_smoke.c"
+CONCURRENT_VERIFY_SOURCE = (
+    f"{ENGINEERING_ROOT}/pqbtc_mldsa44_concurrent_verify.c"
+)
+TSAN_POSITIVE_CONTROL_SOURCE = (
+    f"{ENGINEERING_ROOT}/pqbtc_tsan_positive_control.c"
+)
 FUZZ_SOURCE = f"{ENGINEERING_ROOT}/pqbtc_mldsa44_verify_fuzz.c"
 STATEFUL_FUZZ_SOURCE = f"{ENGINEERING_ROOT}/pqbtc_mldsa44_stateful_fuzz.c"
 RESOURCE_PROBE_SOURCE = f"{ENGINEERING_ROOT}/pqbtc_mldsa44_resource_probe.c"
@@ -43,7 +49,7 @@ ANNEX_K_TIDY_CHECK = (
     "clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling"
 )
 CLANG_TIDY_CHECKS = "clang-analyzer-*"
-EXPECTED_ANNEX_K_SUPPRESSIONS = 13
+EXPECTED_ANNEX_K_SUPPRESSIONS = 19
 
 FIRST_PARTY_HEADER_FILTER = (
     r"(^|.*/)contrib/ml-dsa-engineering/pqbtc_mldsa44[^/]*\.h$"
@@ -77,6 +83,8 @@ EVIDENCE_SOURCES = [
     "contrib/ml-dsa-engineering/run_wrapper_tests.py",
     WRAPPER_SOURCE,
     SMOKE_SOURCE,
+    CONCURRENT_VERIFY_SOURCE,
+    TSAN_POSITIVE_CONTROL_SOURCE,
     FUZZ_SOURCE,
     STATEFUL_FUZZ_SOURCE,
     RESOURCE_PROBE_SOURCE,
@@ -119,6 +127,7 @@ def annex_k_suppression_count() -> int:
         for relative in (
             WRAPPER_SOURCE,
             SMOKE_SOURCE,
+            CONCURRENT_VERIFY_SOURCE,
             FUZZ_SOURCE,
             STATEFUL_FUZZ_SOURCE,
             RESOURCE_PROBE_SOURCE,
@@ -220,6 +229,18 @@ def build_plan(
             ),
         },
         {
+            "id": "clang-tidy-concurrent-verifier-testing",
+            "kind": "clang-tidy",
+            "input": CONCURRENT_VERIFY_SOURCE,
+            "variant": "testing",
+            "command": tidy_command(
+                clang_tidy,
+                plugin,
+                CONCURRENT_VERIFY_SOURCE,
+                ["-DPQBTC_MLDSA44_TESTING=1"],
+            ),
+        },
+        {
             "id": "clang-tidy-verifier-fuzz",
             "kind": "clang-tidy",
             "input": FUZZ_SOURCE,
@@ -258,6 +279,19 @@ def build_plan(
             "command": iwyu_command(
                 iwyu,
                 SMOKE_SOURCE,
+                [PUBLIC_HEADER, TEST_HEADER],
+                ["-DPQBTC_MLDSA44_TESTING=1"],
+            ),
+        },
+        {
+            "id": "iwyu-concurrent-verifier-testing",
+            "kind": "iwyu",
+            "input": CONCURRENT_VERIFY_SOURCE,
+            "variant": "testing",
+            "check_also": [PUBLIC_HEADER, TEST_HEADER],
+            "command": iwyu_command(
+                iwyu,
+                CONCURRENT_VERIFY_SOURCE,
                 [PUBLIC_HEADER, TEST_HEADER],
                 ["-DPQBTC_MLDSA44_TESTING=1"],
             ),
@@ -377,8 +411,8 @@ def validate_plan(plan: dict[str, object]) -> None:
         raise AuditError("static-analysis plan has no check list")
 
     expected_counts = {
-        "clang-tidy": 6,
-        "iwyu": 4,
+        "clang-tidy": 7,
+        "iwyu": 5,
         "header-self-containment": 2,
     }
     counts = {kind: 0 for kind in expected_counts}

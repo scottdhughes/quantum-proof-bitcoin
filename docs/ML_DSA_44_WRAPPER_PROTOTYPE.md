@@ -113,12 +113,28 @@ backend for its signing temporaries.
   generated exact-length candidate, with zero output, observed candidate
   cleanup, consumed-randomizer rejection, and fresh-randomizer recovery; and
 - concurrent calls in which one repeated randomizer is accepted and the other
-  is rejected atomically.
+  is rejected atomically;
+- four synchronized strict-verifier threads sharing immutable inputs, with 32
+  iterations each over one valid signature and three valid-length
+  cryptographic-rejection cases, exact result accounting, and post-join input
+  equality, with a 20-second watchdog bounding a synchronization failure.
 
 The dedicated workflow runs the harness and ASan/UBSan build with GCC and
-Clang on Ubuntu. The local macOS Clang harness also exercises `getentropy`.
-Injected failures validate wrapper control flow; they are not physical fault
-testing or evidence that the real rejection loop exhausted.
+Clang on Ubuntu. A separate Linux Clang ThreadSanitizer path first compiles and
+runs an isolated deliberate-race positive control. The clean target runs only
+if that control exits nonzero and emits the canonical `ThreadSanitizer: data
+race` marker. The clean target contains only the concurrent verifier harness;
+it deliberately excludes the smoke program's `fork()` lifecycle regression
+because process cloning is a different detector contract. The local macOS
+Clang harness also exercises `getentropy`. Injected failures validate wrapper
+control flow; they are not physical fault testing or evidence that the real
+rejection loop exhausted.
+
+The four-thread shared-input test is a bounded functional and race-detection
+regression, not general concurrency evidence or a supported-platform resource
+limit. Broader thread counts and schedules, sign/verify coexistence,
+adversarial interleavings, supported-platform coverage, and concurrent
+aggregate resource limits remain open.
 
 Run the bounded checks with:
 
@@ -126,6 +142,8 @@ Run the bounded checks with:
 python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --manifest-only
 python3 contrib/ml-dsa-engineering/run_wrapper_tests.py
 python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --sanitizers
+python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --concurrency-only
+CC=clang python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --thread-sanitizer
 python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py --manifest-only
 python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py
 CC=clang python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py --sanitizers --runs 10000
@@ -490,9 +508,11 @@ Automatic protected-main run `32541060189`, attempt `1`, at
 independent policy-enforced GCC/Clang sample pair required before considering
 ceiling tightening. Collecting that pair does not tighten the frozen ceilings
 or close issue `#188`; any change requires a separate review. Broader-platform
-and toolchain coverage, concurrency and production-parser limits, and exact-
-commit re-review remain open. Issue `#181` also remains open, production
-remains `NONE`, and `RELEASE_HOLD` remains in force.
+and toolchain coverage, broader concurrency (including other thread counts and
+schedules, sign/verify coexistence, and adversarial interleavings), concurrent
+aggregate resource and production-parser limits, and exact-commit re-review
+remain open. Issue `#181` also remains open, production remains `NONE`, and
+`RELEASE_HOLD` remains in force.
 
 ## Pinned Upstream CBMC Reproduction
 
@@ -547,9 +567,16 @@ This prototype advances engineering evidence but closes no production gate:
   evidence. The three research oracle CLIs now enforce documented argv parser
   limits and replay fixed plus deterministic malformed-input mutations,
   including non-UTF-8 arguments, with separate ASan/UBSan coverage for the C
-  adapters. Broader-platform and Rust sanitizer coverage, reviewed
-  allocation/stack/CPU and adversarial-batch acceptance limits, and
-  exact-commit re-review remain open;
+  adapters. A deterministic four-thread strict-verifier regression now covers
+  shared immutable valid and cryptographic-rejection inputs in normal,
+  ASan/UBSan, and calibrated Clang ThreadSanitizer modes. Its dedicated race-
+  detector path requires an isolated deliberate-race control to exit nonzero
+  with the canonical ThreadSanitizer data-race marker before running the clean
+  target, and the harness has a 20-second watchdog. Broader concurrency,
+  including other thread counts and schedules, sign/verify coexistence, and
+  adversarial interleavings, remains open alongside broader-platform and Rust
+  sanitizer coverage, reviewed concurrent aggregate resource limits,
+  production-parser limits, and exact-commit re-review;
 - issue `#189`: a dated fail-closed selected-graph advisory ledger, full-lock
   cargo-audit/OSV scans, selected dependency graph, CycloneDX SBOM, and weekly
   retained refresh are implemented; exact-commit independent re-review remains

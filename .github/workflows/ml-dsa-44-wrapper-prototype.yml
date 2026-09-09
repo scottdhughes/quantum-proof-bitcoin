@@ -49,6 +49,45 @@ jobs:
           python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py --manifest-only
           python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py
 
+  concurrent-verifier-tsan:
+    name: Concurrent strict verifier (Clang TSan)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CC: clang
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      TSAN_OPTIONS: halt_on_error=1:second_deadlock_stack=1
+    steps:
+      - name: Checkout exact test head
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact clean x86_64 checkout
+        run: |
+          set -euxo pipefail
+          test "$(uname -s)" = "Linux"
+          test "$(uname -m)" = "x86_64"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          command -v "$CC"
+
+      - name: Prepare ThreadSanitizer address space
+        run: sudo sysctl -w vm.mmap_rnd_bits=28
+
+      - name: Calibrate ThreadSanitizer and run concurrent verifier
+        run: |
+          set -euxo pipefail
+          python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --thread-sanitizer
+
+      - name: Verify checkout remained exact and clean
+        if: always()
+        run: |
+          set -euxo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
   static-analysis:
     name: Isolated wrapper (clang-tidy 20 + scoped IWYU)
     runs-on: ubuntu-24.04

@@ -38,13 +38,25 @@ normal build exports only `pqbtc_mldsa44_sign_hedged` and
 `pqbtc_mldsa44_verify_strict`; deterministic, fixed-randomizer, seeded-keygen,
 and failure controls exist only in a separately compiled test build. The
 network-free harness checks source hashes, symbols, frozen vectors, OS entropy,
-failure behavior, concurrency, deterministic held-lock fork recovery in both
-parent and child, and ASan/UBSan execution. This is a platform observation of
-the module-lock boundary, not generic POSIX child-signing support: the signer
-is not async-signal-safe, so a portable multithreaded child must `exec` before
-signing. The module must remain loaded while the process can fork. Reentrant or
-signal-handler fork, `_Fork`, `vfork`, raw `clone`, arbitrary at-fork handler
-ordering, and production admission remain unsupported.
+failure behavior, signer concurrency, deterministic held-lock fork recovery in
+both parent and child, and ASan/UBSan execution. A separate four-thread harness
+starts strict-verifier calls together over shared immutable inputs, requires
+one valid and three cryptographic-rejection workloads to retain their exact
+results for 32 iterations each, and rechecks every input after the threads
+join. A 20-second watchdog bounds a synchronization failure. The dedicated
+Linux Clang ThreadSanitizer path first compiles and runs a separate deliberate-
+race positive control. It proceeds to the clean verifier target only when the
+control exits nonzero and emits the canonical `ThreadSanitizer: data race`
+marker. That clean target excludes the `fork()` lifecycle smoke test.
+
+This is bounded behavior and race-detection evidence, not general concurrency
+coverage, a concurrent aggregate resource limit, or generic POSIX child-
+signing support. Broader thread counts and schedules, sign/verify coexistence,
+adversarial interleavings, and supported-platform coverage remain open. The
+signer is not async-signal-safe, so a portable multithreaded child must `exec`
+before signing. The module must remain loaded while the process can fork.
+Reentrant or signal-handler fork, `_Fork`, `vfork`, raw `clone`, arbitrary at-
+fork handler ordering, and production admission remain unsupported.
 
 The normative requirements and lifecycle limits are in
 `docs/ML_DSA_44_HEDGED_SIGNING_CONTRACT.md`. The admission disposition and
@@ -449,7 +461,9 @@ exact-commit checkout without weakening its build-command binding.
 This lane observes one production-shaped portable-C verifier configuration;
 it does not link a production backend or establish a supported-platform
 resource envelope. Issue `#188` remains open for a separate ceiling-tightening
-decision, broader platforms and toolchains, concurrency and production-parser
-limits, and exact-commit re-review. Issue `#181` remains open for qualified
-independent review. The production backend remains `NONE`, SIMD256 remains
-unadmitted, and the release hold remains true.
+decision, broader platforms and toolchains, broader concurrency (including
+other thread counts and schedules, sign/verify coexistence, and adversarial
+interleavings), concurrent aggregate resource and production-parser limits,
+and exact-commit re-review. Issue `#181` remains open for qualified independent
+review. The production backend remains `NONE`, SIMD256 remains unadmitted, and
+the release hold remains true.
