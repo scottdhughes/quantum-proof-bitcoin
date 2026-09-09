@@ -149,6 +149,20 @@ graph. The ledger keeps this warning separate from RustSec/OSV advisory IDs
 and requires exact package, version, kind, category, graph disposition, and
 review date equality.
 
+On 2026-09-09, the
+[exact-main receipt](reviews/evidence/ml-dsa-44-trusted-main/08eaa8ddee93069d2de09e8fb46aef6e7b1d0942/SOURCE.json)
+bound protected-main head `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942`
+to baseline `e11258553613e5e1db7f98478419b5b3e9843c92`. Push advisory
+run `34307210685`, attempt `1`, retained artifact `10087321134` with API
+SHA-256 `7d2869bae7f3786359d784226f529cfbb7142164fb984bd86d5ae7ae0503ee01`.
+It reproduced seven exactly classified full-lock advisories plus the separate
+yanked-package warning for `chacha20 0.10.0`, all outside the selected
+execution graph; that selected graph contained no affected finding or package
+warning. It also reported zero affected OpenSSL 3.6.4 IDs and passed all `3/3`
+portable Miri checks. This is deliberately not a scanner-empty, independent
+review, production-backend, or release-readiness claim: `production_backend`
+remains `NONE`, and the release hold remains unchanged.
+
 The historical transition retains this per-record applicability summary; the
 machine ledger binds every row to the complete reviewed oracle source closure
 and the exact official feed-record hash.

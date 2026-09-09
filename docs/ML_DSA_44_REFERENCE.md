@@ -2,7 +2,7 @@
 
 ## Status: REFERENCE ONLY - NOT CONSENSUS
 ## Spec-ID: ML-DSA-44-REFERENCE-v2
-## Updated: 2026-08-26
+## Updated: 2026-09-09
 ## Consensus-Relevant: NO
 
 ## Decision Boundary
@@ -148,11 +148,33 @@ sanitizer markers, oracle errors, or disagreements. Sustained run
 campaigns with nonzero retained-corpus imports and zero crashes; the same
 receipt binds resource run `32910153642` and advisory run `32910153947`.
 
-The signer and review artifacts retain self-contained retained-source
-provenance. The strict-verifier campaign artifacts retain imported counts but
-omit `retained_corpus_source` and `retained_corpus_import`, so workflow restore
-logs—not the artifacts alone—establish their source selection. This is fresh
-conformance evidence, not independent review or production approval.
+In that 2026-08-26 tranche, the signer and review artifacts retain self-
+contained retained-source provenance. Its strict-verifier campaign artifacts
+retain imported counts but omit `retained_corpus_source` and
+`retained_corpus_import`, so workflow restore logs—not those historical
+artifacts alone—establish their source selection. This is conformance
+evidence, not independent review or production approval.
+
+On 2026-09-09, the
+[exact-main receipt](reviews/evidence/ml-dsa-44-trusted-main/08eaa8ddee93069d2de09e8fb46aef6e7b1d0942/SOURCE.json)
+bound protected-main head `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942`
+to baseline `e11258553613e5e1db7f98478419b5b3e9843c92`. Manual review
+run `34307477001`, attempt `1`, completed its 1,800-second ASan/UBSan
+differential campaign with `1,777,804` executions, `86` novel retained-seed
+imports, all `5/5` exact and `38/38` promoted replays passing, all target and
+OpenSSL-bridge coverage floors met, and zero crashes, sanitizer markers,
+oracle errors, or disagreements. Its retained-source selection is recorded in
+checksum-bound supplemental files in the same artifact rather than embedded
+in `campaign.json`. Sustained run `34307476916`, attempt `1`, completed all
+four 1,800-second verifier and stateful-signer ASan/UBSan and MSan campaigns:
+the campaigns executed `8,013,773`, `13,130,663`, `93,446`, and `272,035`
+units and imported `78`, `32`, `179`, and `139` novel retained seeds,
+respectively, with zero crash or minimized-crash artifacts. Each strict
+campaign embeds its exact retained source and import receipts in
+`retained_corpus_source` and `retained_corpus_import`. These results are
+bounded conformance and robustness evidence only; they do not establish
+independent cryptographic review, production support, exhaustive coverage, or
+grounds to change `production_backend=NONE` or the release hold.
 
 Run:
 

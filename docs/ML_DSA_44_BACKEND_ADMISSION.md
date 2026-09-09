@@ -3,7 +3,7 @@
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-BACKEND-ADMISSION-v1
 ## Decided: 2026-07-19
-## Evidence-Updated: 2026-08-26
+## Evidence-Updated: 2026-09-09
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -242,6 +242,39 @@ these four runs executes the fork-lifecycle or candidate-fault checkpoint, so
 they do not advance issues `#184` or `#186`. They do not satisfy issue `#181`,
 select a production backend, or change `RELEASE_HOLD`.
 
+PR `#250` subsequently made the strict-verifier restore and import receipt
+artifact-self-contained and fail-closed. PR `#251` advanced the review pointer
+to `e11258553613e5e1db7f98478419b5b3e9843c92`; exact clean protected-main
+evidence head `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942` has an empty guarded
+diff from that baseline. Automatic resource run `34307210503` produced a
+passing `TRUSTED_MAIN_OBSERVATION` GCC/Clang pair with all `21/21` numeric and
+`4/4` detector checks passing per compiler. Automatic advisory run
+`34307210685` preserved the seven classified full-lock advisory findings and
+one separately classified yanked-package warning, all outside the selected
+execution graph, while OpenSSL 3.6.4 had zero affected IDs and portable Miri
+passed `3/3`.
+
+Main-dispatched wrapper run `34307476900` passed all five jobs. Its portable
+GCC and Clang jobs each executed the normal and ASan/UBSan harness, directly
+reconfirming the held-lock fork and fail-closed lifecycle-readiness assertions.
+The static and Valgrind artifacts are adjacent audit evidence, not direct fork
+results; the static report's overall worktree-dirty flag is confined to an
+unrelated LevelDB file, while every audited input was clean and matched the
+exact head. Sustained run `34307476916` completed all four 1,800-second lanes
+with positive retained imports and zero crashes. In particular, the strict
+ASan/UBSan and MSan artifacts now bind validated source artifacts and novel
+imports in self-contained receipts. Review run `34307477001` completed
+`1,777,804` three-oracle executions with `86` novel retained imports, passing
+replays and coverage floors, and zero crashes, oracle errors, disagreements,
+or sanitizer markers. Review-source provenance is checksum-bound in
+supplemental files inside the same artifact rather than embedded in its
+`campaign.json`. The
+[2026-09-09 exact-main receipt](reviews/evidence/ml-dsa-44-trusted-main/08eaa8ddee93069d2de09e8fb46aef6e7b1d0942/SOURCE.json)
+binds the exact workflow, artifact, checksum, source, and claim boundaries.
+These results close the identified strict evidence-format gap only; they do
+not satisfy issue `#181`, close issue `#184`, `#188`, or `#189`, select a
+production backend, or change `RELEASE_HOLD`.
+
 A separate Linux x86_64 test-only lane now defines direct strict-verifier
 resource observations. Each of four batches makes 4,287 calls on a 128 KiB
 guarded pthread stack while linker interposition requires zero project heap
@@ -313,12 +346,12 @@ Prototype admission closes no production finding:
 
 | Gate | Tracking | State after this decision |
 | --- | --- | --- |
-| Entropy and fail-closed binding | #184 | isolated wrapper, Linux/macOS RBG evidence, and one coordinated standard-POSIX-fork module-lock observation; async-signal-safe child signing, alternate/reentrant fork and clone behavior, handler ordering, module lifetime, and broader supported-platform lifecycle remain open |
+| Entropy and fail-closed binding | #184 | isolated wrapper, Linux/macOS RBG evidence, and coordinated standard-POSIX-fork module-lock observations reconfirmed under portable GCC/Clang normal and ASan/UBSan jobs at `08eaa8d`; async-signal-safe child signing, alternate/reentrant fork and clone behavior, handler ordering, module lifetime, and broader supported-platform lifecycle remain open |
 | Supported-platform side channels | #185 | bounded x86_64 Valgrind constant-time/variable-latency evidence; broader platforms and leakage models open |
 | Fault model and injected faults | #186 | test-only pre-self-verification candidate-corruption regression with atomic output and cleanup evidence, directly replayed in portable GCC/Clang normal and ASan/UBSan logs at the reviewed exact head; no fault-specific retained artifact, and broader checkpoints, control-flow and common-mode analysis, platform/hardware model, physical campaign, and exact-commit independent review remain open |
 | End-to-end secret erasure | #187 | source cleanup and sanitizer evidence only; compiler/caller/platform boundary open |
-| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential/stateful fuzzing, promoted regressions, portable Miri evidence, bounded malformed research-CLI argv replay, exact-main GCC/Clang direct-verifier observations, a reviewed coarse Linux x86_64 numeric regression policy, both prerequisite policy-enforced trusted-main GCC/Clang sample pairs, and a later post-repin reconfirmation; ceiling tightening remains a separate review, while broader platform/Rust sanitizer and toolchain coverage, concurrency and production-parser limits, artifact-self-contained strict-verifier provenance, and exact-commit re-review remain open |
-| Backend advisories, SBOM, and reproducible build | #189 | dated fail-closed ledger, full-lock cargo-audit/OSV scans, exact selected graph, CycloneDX SBOM, weekly retained refresh, exact portable ML-DSA-44 RUSTSEC-2026-0077 regressions, promoted trusted-main test-only SIMD256 0125/0126 PASS evidence, and a fresh post-repin exact-main advisory/SBOM/Miri receipt; exact-commit independent re-review remains open, and optimized-backend admission is a separate future decision |
+| Structure-aware fuzzing and resource limits | #188 | pinned Wycheproof replay, scheduled structure-aware ASan/UBSan and MSan campaigns, bounded differential/stateful fuzzing, promoted regressions, portable Miri evidence, bounded malformed research-CLI argv replay, exact-main GCC/Clang direct-verifier observations, a reviewed coarse Linux x86_64 numeric regression policy, both prerequisite policy-enforced trusted-main GCC/Clang sample pairs, a later post-repin reconfirmation, and exact-main self-contained strict-verifier source/import receipts; ceiling tightening remains a separate review, while broader platform/Rust sanitizer and toolchain coverage, concurrency and production-parser limits, and exact-commit re-review remain open |
+| Backend advisories, SBOM, and reproducible build | #189 | dated fail-closed ledger, full-lock cargo-audit/OSV scans, exact selected graph, CycloneDX SBOM, weekly retained refresh, exact portable ML-DSA-44 RUSTSEC-2026-0077 regressions, promoted trusted-main test-only SIMD256 0125/0126 PASS evidence, and fresh exact-main advisory/SBOM/Miri evidence that classifies seven advisory findings plus one yanked-package warning outside the selected graph; exact-commit independent re-review remains open, and optimized-backend admission is a separate future decision |
 | Wallet and key format | #190 | open |
 | Independent human cryptographic review | #181 | open |
 
