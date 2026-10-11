@@ -2,7 +2,7 @@
 
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-WRAPPER-PROTOTYPE-v1
-## Updated: 2026-09-09
+## Updated: 2026-10-11
 ## Consensus-Relevant: NO
 
 ## Scope
@@ -320,10 +320,13 @@ the fork lifecycle test.
 The pinned review-reproduction workflow adds a 60-second pull-request smoke or
 a 1,800-second scheduled/manual main Linux Clang ASan/UBSan differential
 campaign. Its fuzz target calls the isolated wrapper,
-OpenSSL 3.6.4's explicitly selected default provider in a separate library
+OpenSSL 3.6.5's explicitly selected default provider in a separate library
 context, and libcrux 0.0.10 in-process for every parsed frame and aborts
-on any setup error or accept/reject disagreement. The wrapper's exact
-invalid-argument taxonomy is still checked separately. The retained evidence
+on any setup error or accept/reject disagreement. Fresh trusted-main
+reproduction of the 3.6.5 pin is pending the repin merge and a separate
+baseline-pointer update; earlier 3.6.4 reports retain their original scope.
+The wrapper's exact invalid-argument taxonomy is still checked separately.
+The retained evidence
 records source and binary hashes, both external-oracle pins, the resolved
 `libcrypto` binary hash, coverage, minimized corpus, and crash artifacts. A
 pull-request run is explicitly labeled `pull_request_head_smoke_only`, records

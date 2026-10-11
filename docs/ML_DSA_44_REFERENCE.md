@@ -137,7 +137,7 @@ case identity, and component hashes, then requires all three oracles to reject
 the positive and negative signer-response coefficient cases at the
 infinity-norm boundary.
 
-Fresh post-repin exact-main evidence is bound by the
+Historical 3.6.4 post-repin exact-main evidence is bound by the
 [versioned receipt](reviews/evidence/ml-dsa-44-trusted-main/0fa8f5fc4321f057fb758e4c2dc39b790023943c/SOURCE.json).
 Evidence head `0fa8f5fc4321f057fb758e4c2dc39b790023943c` has an empty guarded
 comparator diff from OpenSSL 3.6.4 repin baseline
@@ -147,6 +147,10 @@ sanitizer markers, oracle errors, or disagreements. Sustained run
 `32924009052` completed the four 1,800-second verifier and signer sanitizer
 campaigns with nonzero retained-corpus imports and zero crashes; the same
 receipt binds resource run `32910153642` and advisory run `32910153947`.
+
+The OpenSSL 3.6.5 pin awaits fresh trusted-main reproduction after the repin
+merge and a separate baseline-pointer update. These historical receipts do
+not establish conformance for the new source pin.
 
 In that 2026-08-26 tranche, the signer and review artifacts retain self-
 contained retained-source provenance. Its strict-verifier campaign artifacts

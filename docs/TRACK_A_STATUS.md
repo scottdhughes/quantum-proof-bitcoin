@@ -59,8 +59,11 @@ baseline remains `pq_required: 121`, `pq_backlog: 0`, `legacy_only: 14`, and
 The isolated `ML-DSA-44` comparator is recorded in
 `ML_DSA_44_REFERENCE.md`. It pins FIPS 204, NIST's potential-updates and
 Section 6 guidance artifacts, all 70 applicable external/pure ACVP cases,
-OpenSSL 3.6.4, `mldsa-native` `v1.0.0-beta2`, and libcrux 0.0.10. The three
-codebases are required to agree on all official and repo-defined exact outputs,
+OpenSSL 3.6.5, `mldsa-native` `v1.0.0-beta2`, and libcrux 0.0.10. Fresh
+trusted-main reproduction of the 3.6.5 pin is pending the repin merge and a
+separate baseline-pointer update; prior 3.6.4 evidence retains its original
+scope. The three codebases are required to agree on all official and
+repo-defined exact outputs,
 cross-verify randomized signatures, and reject the bounded malformed/mutated
 corpus. The two portable-C adapters must pass the ASan/UBSan tranche. Both
 retained upstream
