@@ -3,7 +3,7 @@
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-BACKEND-ADMISSION-v1
 ## Decided: 2026-07-19
-## Evidence-Updated: 2026-09-09
+## Evidence-Updated: 2026-10-11
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -20,7 +20,7 @@ hedged-signing wrapper. The production backend remains `NONE`, and
 The authorized slice now vendors the exact portable dependency closure and
 compiles it only inside the isolated `contrib/` wrapper. It does not link that
 wrapper into the node, wallet, Script, consensus, packaging, or an `ALG_ID`.
-OpenSSL 3.6.4 and libcrux 0.0.10 remain comparator oracles, not production
+OpenSSL 3.6.5 and libcrux 0.0.10 remain comparator oracles, not production
 dependencies.
 
 The machine-readable disposition is
@@ -30,14 +30,17 @@ release gate is recorded.
 
 ## Selection Boundary
 
-Algorithm conformance is not the differentiator in this decision. All three
-pinned implementations pass the frozen ML-DSA-44 comparator. Backend admission
-also requires a reviewable entropy boundary, secret lifetime, production/test
-API separation, toolchain fit, advisory posture, and reproducible source pin.
+Algorithm conformance is not the differentiator in this decision. The previous
+three-oracle pin set passed the frozen ML-DSA-44 comparator. The new OpenSSL
+3.6.5 pin awaits fresh trusted-main reproduction; the unchanged mldsa-native
+and libcrux source pins retain their bounded conformance evidence. Backend
+admission also requires a reviewable entropy boundary, secret lifetime,
+production/test API separation, toolchain fit, advisory posture, and
+reproducible source pin.
 
-| Gate | OpenSSL 3.6.4 | mldsa-native beta2 portable C | libcrux 0.0.10 portable |
+| Gate | OpenSSL 3.6.5 | mldsa-native beta2 portable C | libcrux 0.0.10 portable |
 | --- | --- | --- | --- |
-| Exact FIPS 204 evidence | Pass | Pass | Pass |
+| Exact FIPS 204 evidence | Pending fresh trusted-main reproduction | Pass | Pass |
 | Hedged entropy boundary | Internal OpenSSL DRBG, but deterministic and test-entropy controls are public parameters | High-level randomized API calls an integrator-owned `mld_randombytes` hook and propagates RNG failure | Signing API requires the caller to supply the 32-byte randomizer |
 | Secret cleanup | Randomizer and signing temporaries are cleansed in the reviewed source; provider and caller key lifetimes remain unreviewed | Signing allocations and randomizer are zeroized; upstream explicitly warns that compiler-created copies remain possible | Signing-key wrapper is clonable raw bytes without an evident zeroizing `Drop` |
 | Side-channel evidence | No supported PQBTC binary evidence | Bounded x86_64 Valgrind constant-time/variable-latency audit passes with calibrated positive controls; ARM, Windows, cache/speculative/physical leakage, rejection-count independence, and production binaries remain open. CBMC covers memory/type/selected-UB properties, not timing | Formal scope covers selected arithmetic, NTT, and serialization; not the complete implementation or compiled timing |
@@ -53,7 +56,7 @@ project gates below.
 
 ## Candidate Findings
 
-### OpenSSL 3.6.4
+### OpenSSL 3.6.5
 
 OpenSSL's ML-DSA provider generates per-message randomness through its private
 DRBG, returns failure when generation fails, and cleanses its local randomizer.
@@ -69,10 +72,12 @@ repository. It is not the narrowest production integration.
 The live advisory feed expanded the superseded 3.6.3 pin to eleven affected
 CVEs on 2026-08-25. None of those TLS, QUIC, DTLS, CMS, CMP, OCSP, or non-ML-DSA
 `EVP_Cipher` paths is reachable from this isolated ML-DSA oracle. The fixed
-3.6.4 release is nevertheless the active comparator pin; path
-non-applicability is not represented as package-level remediation. Fresh
-post-repin exact-main evidence is recorded below, while independent
-exact-commit re-review remains required.
+3.6.4 release replaced that comparator. The September 29 security release
+fixed thirteen further CVEs affecting 3.6.4; the current oracle is pinned to
+3.6.5. Both historical transitions remain hash-bound in the advisory ledger.
+The 3.6.5 trusted-main reproduction is pending the repin merge and a separate
+baseline-pointer update. Historical 3.6.4 evidence below does not cover the
+new source pin. Independent exact-commit re-review remains required.
 
 ### mldsa-native v1.0.0-beta2 portable C
 

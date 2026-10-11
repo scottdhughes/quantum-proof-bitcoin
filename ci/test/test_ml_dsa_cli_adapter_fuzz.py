@@ -428,21 +428,21 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
         )
         vector_guard = pr_vector_guard_script(workflow)
         self.assertIn(
-            "OPENSSL_COMMIT: d3c1b1169b3569ff3069e5b399f47b2b28e03d79",
+            "OPENSSL_COMMIT: c8bd5a57108599ac650bbae77fcabe3109dab2e8",
             workflow,
         )
         self.assertIn(
-            "OPENSSL_TREE: 0f2db317fdf20b06193b96e79ac699b2d4e36d7d",
+            "OPENSSL_TREE: 96ac34688809c56b1afa117c75c0ef303ff19a75",
             workflow,
         )
-        self.assertIn("OPENSSL_TAG: openssl-3.6.4", workflow)
+        self.assertIn("OPENSSL_TAG: openssl-3.6.5", workflow)
         self.assertIn(
-            "OPENSSL_TAG_OBJECT: 360ffdb6d82f298d8d22c838dc2b7bf61ece056d",
+            "OPENSSL_TAG_OBJECT: f93be98fe7c796e92fc999dd1a21a5212d4e4f8e",
             workflow,
         )
         self.assertIn(
             "OPENSSL_RELEASE_TARBALL_SHA256: "
-            "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef",
+            "a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98",
             workflow,
         )
         self.assertIn(
@@ -469,11 +469,11 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
             workflow,
         )
         self.assertIn(
-            '"955da4f4bcec375bd05cb6d3f0a005fff244442f8d2b70880d4bf0f952a7927d"',
+            '"feec9dabee7bbca2916768f31fbc4130a18cecf607fb827709262b877edd445b"',
             vector_guard,
         )
         self.assertIn(
-            '"feec9dabee7bbca2916768f31fbc4130a18cecf607fb827709262b877edd445b"',
+            '"9cad66d81b2185e8e4e1e377697c92ce5ee4e4e7b6c9d3d453c342b8288962c2"',
             vector_guard,
         )
         self.assertNotIn(
@@ -554,39 +554,46 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
         candidate_bytes = (REFERENCE_DIR / "vectors.json").read_bytes()
         self.assertEqual(
             hashlib.sha256(candidate_bytes).hexdigest(),
-            "feec9dabee7bbca2916768f31fbc4130a18cecf607fb827709262b877edd445b",
+            "9cad66d81b2185e8e4e1e377697c92ce5ee4e4e7b6c9d3d453c342b8288962c2",
         )
         current_openssl_commit = (
-            b"d3c1b1169b3569ff3069e5b399f47b2b28e03d79"
+            b"c8bd5a57108599ac650bbae77fcabe3109dab2e8"
         )
         baseline_openssl_commit = (
-            b"aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f"
+            b"d3c1b1169b3569ff3069e5b399f47b2b28e03d79"
         )
         openssl_release_lines = (
-            b'      "git_tree": "0f2db317fdf20b06193b96e79ac699b2d4e36d7d",\n',
-            b'      "tag": "openssl-3.6.4",\n',
-            b'      "tag_object": "360ffdb6d82f298d8d22c838dc2b7bf61ece056d",\n',
+            b'      "git_tree": "96ac34688809c56b1afa117c75c0ef303ff19a75",\n',
+            b'      "tag": "openssl-3.6.5",\n',
+            b'      "tag_object": "f93be98fe7c796e92fc999dd1a21a5212d4e4f8e",\n',
             b'      "release_tarball_url": "https://github.com/openssl/openssl/'
-            b'releases/download/openssl-3.6.4/openssl-3.6.4.tar.gz",\n',
-            b'      "release_tarball_sha256": "9bffaa1ad1e07b354c21bd3324ec02fa'
-            b'15579f45a7d0494b3e74bc449b7333ef",\n',
+            b'releases/download/openssl-3.6.5/openssl-3.6.5.tar.gz",\n',
+            b'      "release_tarball_sha256": "a2157c2830efdec3788939b00c9b063830'
+            b'6d3f0bbb76dc4832ee503bb397df98",\n',
         )
         self.assertEqual(candidate_bytes.count(current_openssl_commit), 1)
         for release_line in openssl_release_lines:
             self.assertEqual(candidate_bytes.count(release_line), 1)
-        self.assertEqual(candidate_bytes.count(b'"version": "3.6.4"'), 1)
+        self.assertEqual(candidate_bytes.count(b'"version": "3.6.5"'), 1)
         baseline_bytes = candidate_bytes.replace(
             current_openssl_commit,
             baseline_openssl_commit,
             1,
         ).replace(
-            b'"version": "3.6.4"', b'"version": "3.6.3"', 1
+            b"3.6.5", b"3.6.4"
+        ).replace(
+            b"96ac34688809c56b1afa117c75c0ef303ff19a75",
+            b"0f2db317fdf20b06193b96e79ac699b2d4e36d7d",
+        ).replace(
+            b"f93be98fe7c796e92fc999dd1a21a5212d4e4f8e",
+            b"360ffdb6d82f298d8d22c838dc2b7bf61ece056d",
+        ).replace(
+            b"a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98",
+            b"9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef",
         )
-        for release_line in openssl_release_lines:
-            baseline_bytes = baseline_bytes.replace(release_line, b"", 1)
         self.assertEqual(
             hashlib.sha256(baseline_bytes).hexdigest(),
-            "955da4f4bcec375bd05cb6d3f0a005fff244442f8d2b70880d4bf0f952a7927d",
+            "feec9dabee7bbca2916768f31fbc4130a18cecf607fb827709262b877edd445b",
         )
 
         def run_guard(current_bytes, *, committed_baseline=baseline_bytes):

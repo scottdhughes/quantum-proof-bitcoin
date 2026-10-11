@@ -115,6 +115,23 @@ OPENSSL_REVIEWED_36_IDS = {
     "CVE-2026-75803",
     "CVE-2026-9076",
 }
+OPENSSL_364_AFFECTED_IDS = {
+    "CVE-2026-35189",
+    "CVE-2026-35191",
+    "CVE-2026-42772",
+    "CVE-2026-54872",
+    "CVE-2026-54873",
+    "CVE-2026-54875",
+    "CVE-2026-72897",
+    "CVE-2026-75804",
+    "CVE-2026-75805",
+    "CVE-2026-75806",
+    "CVE-2026-77696",
+    "CVE-2026-84782",
+    "CVE-2026-84784",
+}
+OPENSSL_REVIEWED_36_IDS.update(OPENSSL_364_AFFECTED_IDS)
+
 OPENSSL_363_AFFECTED_RECORD_SHA256 = {
     "CVE-2026-14456": "d43237de0c2a875d479ed8a2b4e4d9b36b561b8596b9c9892ad6d4f5e2cbec27",
     "CVE-2026-14457": "eaa5c1bee6f33ecd9ebcfa645da55e747afa658ad0aeddb3c9d429c3123901fe",
@@ -477,7 +494,11 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         inventory = source["advisory_inventory"]
         dispositions = inventory["reviewed_affected_pin_dispositions"]
         transitions = inventory["historical_pin_transitions"]
-        historical_records = transitions[0]["from_pin_affected_records"]
+        historical_records = [
+            record
+            for transition in transitions
+            for record in transition["from_pin_affected_records"]
+        ]
         return {
             "status": "PASS",
             "repository": feed["repository"],
@@ -485,9 +506,9 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             "tree": "9d2bf1bf2b5becc1dd49ab3602ad4c1fe605981d",
             "secjson_tree": "68602ed5f20c17189a8a76b534ff497eba0eac94",
             "committed_at": "2026-07-20T16:08:14+00:00",
-            "record_count": 283,
-            "minimum_record_count": 283,
-            "data_versions": {"5.0": 224, "5.1": 59},
+            "record_count": 297,
+            "minimum_record_count": 297,
+            "data_versions": {"5.0": 238, "5.1": 59},
             "branch": "3.6",
             "branch_relevant_ids": sorted(OPENSSL_REVIEWED_36_IDS),
             "exact_pin": source["version"],
@@ -535,7 +556,7 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         cve_id: str,
         *,
         lower: str = "3.6.0",
-        upper: str = "3.6.4",
+        upper: str = "3.6.5",
         inclusive: bool = False,
         data_version: str = "5.1",
     ) -> dict[str, object]:
@@ -567,14 +588,16 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         self,
         root: Path,
         *,
-        upper: str = "3.6.4",
+        upper: str = "3.6.5",
         inclusive: bool = False,
     ) -> Path:
         repository = root / "release-metadata"
         secjson = repository / "secjson"
         secjson.mkdir(parents=True)
         for index, cve_id in enumerate(sorted(OPENSSL_REVIEWED_36_IDS)):
-            record_upper = upper if index == 0 else "3.6.4"
+            record_upper = upper if index == 0 else (
+                "3.6.5" if cve_id in OPENSSL_364_AFFECTED_IDS else "3.6.4"
+            )
             record_inclusive = inclusive if index == 0 else False
             record = self.openssl_cve(
                 cve_id,
@@ -656,12 +679,16 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             if item["name"] == "openssl"
         )
         inventory = source["advisory_inventory"]
-        transition = inventory["historical_pin_transitions"][0]
-        for historical_record in transition["from_pin_affected_records"]:
+        transitions = inventory["historical_pin_transitions"]
+        for historical_record in (
+            record
+            for transition in transitions
+            for record in transition["from_pin_affected_records"]
+        ):
             historical_record["record_sha256"] = sha256_file(
                 repository / "secjson" / f"{historical_record['id']}.json"
             )
-        for disposition in transition["reviewed_path_dispositions"]:
+        for disposition in transitions[0]["reviewed_path_dispositions"]:
             disposition["record_sha256"] = sha256_file(
                 repository / "secjson" / f"{disposition['id']}.json"
             )
@@ -746,16 +773,16 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         self.assertEqual(self.ledger["inventory_date"], "2026-07-21")
         openssl = self.oracle_source("openssl")
         openssl_inventory = openssl["advisory_inventory"]
-        self.assertEqual(openssl["version"], "3.6.4")
+        self.assertEqual(openssl["version"], "3.6.5")
         self.assertEqual(
             openssl["commit"],
-            "d3c1b1169b3569ff3069e5b399f47b2b28e03d79",
+            "c8bd5a57108599ac650bbae77fcabe3109dab2e8",
         )
         self.assertEqual(
             openssl["tree"],
-            "0f2db317fdf20b06193b96e79ac699b2d4e36d7d",
+            "96ac34688809c56b1afa117c75c0ef303ff19a75",
         )
-        self.assertEqual(openssl_inventory["as_of"], "2026-08-25")
+        self.assertEqual(openssl_inventory["as_of"], "2026-10-11")
         self.assertEqual(
             openssl_inventory["status"],
             "LIVE_FEED_NO_EXACT_PIN_ADVISORIES_AFTER_REPIN",
@@ -764,12 +791,21 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         self.assertEqual(
             openssl_inventory["reviewed_affected_pin_dispositions"], []
         )
-        self.assertEqual(len(openssl_inventory["historical_pin_transitions"]), 1)
+        self.assertEqual(len(openssl_inventory["historical_pin_transitions"]), 2)
         transition = openssl_inventory["historical_pin_transitions"][0]
         self.assertEqual(transition["from_version"], "3.6.3")
         self.assertEqual(transition["to_version"], "3.6.4")
-        self.assertEqual(transition["to_commit"], openssl["commit"])
-        self.assertEqual(transition["to_tree"], openssl["tree"])
+        self.assertEqual(
+            transition["to_commit"], "d3c1b1169b3569ff3069e5b399f47b2b28e03d79"
+        )
+        latest = openssl_inventory["historical_pin_transitions"][1]
+        self.assertEqual(latest["from_commit"], transition["to_commit"])
+        self.assertEqual(latest["to_commit"], openssl["commit"])
+        self.assertEqual(latest["to_tree"], openssl["tree"])
+        self.assertEqual(
+            {record["id"] for record in latest["from_pin_affected_records"]},
+            OPENSSL_364_AFFECTED_IDS,
+        )
         self.assertEqual(transition["to_pin_affected_ids"], [])
         self.assertEqual(
             {
@@ -849,8 +885,8 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
                 }
             ],
         )
-        self.assertEqual(openssl["advisory_feed"]["reviewed_on"], "2026-08-25")
-        self.assertEqual(openssl["advisory_feed"]["minimum_cve_records"], 283)
+        self.assertEqual(openssl["advisory_feed"]["reviewed_on"], "2026-10-11")
+        self.assertEqual(openssl["advisory_feed"]["minimum_cve_records"], 297)
         self.assertEqual(
             {finding["id"] for finding in self.expected_findings()},
             EXPECTED_CURRENT_SCAN_IDS,
@@ -1103,29 +1139,31 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             summary = advisory.validate_openssl_advisory_feed(
                 self.openssl_fixture_ledger(repository), repository
             )
-            self.assertEqual(summary["record_count"], 283)
+            self.assertEqual(summary["record_count"], 297)
             self.assertEqual(summary["exact_pin_affected_ids"], [])
             self.assertEqual(
                 set(summary["branch_relevant_ids"]), OPENSSL_REVIEWED_36_IDS
             )
 
-        for upper, inclusive in (("3.6.5", False), ("3.6.4", True)):
+        for upper, inclusive in (("3.6.6", False), ("3.6.5", True)):
             with self.subTest(upper=upper, inclusive=inclusive):
                 with tempfile.TemporaryDirectory() as temporary:
                     repository = self.write_openssl_feed(
                         Path(temporary), upper=upper, inclusive=inclusive
                     )
-                    with self.assertRaisesRegex(advisory.AuditError, "3.6.4"):
+                    with self.assertRaisesRegex(advisory.AuditError, "3.6.5"):
                         advisory.validate_openssl_advisory_feed(
                             self.openssl_fixture_ledger(repository), repository
                         )
 
     def test_openssl_live_feed_binds_reviewed_affected_record(self):
-        transition = self.oracle_source("openssl")["advisory_inventory"][
+        transitions = self.oracle_source("openssl")["advisory_inventory"][
             "historical_pin_transitions"
-        ][0]
+        ]
         affected_ids = tuple(
-            record["id"] for record in transition["from_pin_affected_records"]
+            record["id"]
+            for transition in transitions
+            for record in transition["from_pin_affected_records"]
         )
         for cve_id in affected_ids:
             with self.subTest(cve_id=cve_id, mutation="record bytes"):
@@ -1143,7 +1181,7 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
                         advisory.validate_openssl_advisory_feed(ledger, repository)
 
         for cve_id in affected_ids:
-            for field, value in (("lessThan", "3.6.5"), ("dataVersion", "5.0")):
+            for field, value in (("lessThan", "3.6.6"), ("dataVersion", "5.0")):
                 with self.subTest(cve_id=cve_id, field=field):
                     with tempfile.TemporaryDirectory() as temporary:
                         repository = self.write_openssl_feed(Path(temporary))
@@ -1162,7 +1200,7 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
                         self.commit_fixture(repository, f"change affected {field}")
                         ledger = self.openssl_fixture_ledger(repository)
                         expected_error = (
-                            "3.6.4 advisory status"
+                            "3.6.5 advisory status"
                             if field == "lessThan"
                             else "historical pin-transition"
                         )
@@ -1416,7 +1454,8 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
                 report,
                 {
                     "error": (
-                        "OpenSSL 3.6.3 historical CVE record hashes drifted"
+                        "openssl 3.6.5 historical affected records[0].record_sha256 "
+                        "value drifted"
                     ),
                     "schema_version": 1,
                     "status": "FAIL",
@@ -1951,7 +1990,7 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
             ),
             (
                 "oracle admission",
-                lambda value: value["candidate_assessments"]["openssl_3_6_4"].__setitem__(
+                lambda value: value["candidate_assessments"]["openssl_3_6_5"].__setitem__(
                     "outcome",
                     "PRODUCTION_ADMITTED",
                 ),

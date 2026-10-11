@@ -1,7 +1,7 @@
 # ML-DSA-44 Advisory Ledger and Dependency Refresh
 
-Status: engineering contract implemented; fresh post-repin exact-main workflow
-evidence is recorded, while independent re-review remains required. This
+Status: engineering contract implemented; OpenSSL 3.6.5 repin awaiting fresh
+trusted-main reproduction, while independent re-review remains required. This
 document does not change the production backend (`NONE`) or the release hold.
 
 ## Purpose and Scope
@@ -12,21 +12,22 @@ scheduled workflow fails closed if a selected-package RustSec entry, scanner
 finding, package version, dependency graph, architecture, backend, SBOM
 component, or required evidence file differs from that reviewed contract.
 
-The ledger also inventories the exact OpenSSL 3.6.4 and mldsa-native beta2
+The ledger also inventories the exact OpenSSL 3.6.5 and mldsa-native beta2
 source pins. Their dated rows name the official OpenSSL 3.6 feed and the
 mldsa-native repository-advisory feed, respectively. Cargo advisory scanners
 apply only to the libcrux crate and its published `Cargo.lock`; an empty Cargo
 result is not claimed for either C source oracle.
 
 The global dependency snapshot and the mldsa-native/libcrux rows retain their
-2026-07-21 date. The OpenSSL row was refreshed on 2026-08-25 after the live
-feed expanded the superseded 3.6.3 pin from two to eleven affected CVEs and
-OpenSSL published the fixed 3.6.4 release. Every relevant workflow run
+2026-07-21 date. The OpenSSL row was refreshed on 2026-10-11 after the live
+feed identified thirteen CVEs affecting 3.6.4 and OpenSSL published the fixed
+3.6.5 release on September 29. The earlier 3.6.3-to-3.6.4 transition and all
+eleven of its affected records remain unchanged. Every relevant workflow run
 continues to acquire and validate both public machine feeds. OpenSSL is checked
 from the current Git head of the official `openssl/release-metadata` `secjson`
-corpus. The validator requires the reviewed 283-record completeness floor, all
-48 reviewed OpenSSL 3.6 records, supported CVE 5.0/5.1 structures, and exact
-semver evaluation for the 3.6.4 pin. A missing record, ambiguous range,
+corpus. The validator requires the reviewed 297-record completeness floor, all
+61 reviewed OpenSSL 3.6 records, supported CVE 5.0/5.1 structures, and exact
+semver evaluation for the 3.6.5 pin. A missing record, ambiguous range,
 malformed schema, or advisory affecting the exact pin fails closed.
 The sole reviewed semver-range irregularity is CVE-2023-2650's empty exclusive
 `3.1.1` to `3.1.1` row; it is outside 3.6, exactly allowlisted, and retained in

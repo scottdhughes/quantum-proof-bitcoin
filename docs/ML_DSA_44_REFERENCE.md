@@ -74,11 +74,11 @@ streaming design must specify and validate the `mu` trust boundary separately.
   the official 32-byte `rnd` for each case
 - all 15 external/pure signature-verification group 1 cases; cases 6, 7, and
   11 are accepted and the other 12 are rejected
-- OpenSSL 3.6.4 source commit
-  `d3c1b1169b3569ff3069e5b399f47b2b28e03d79`, tree
-  `0f2db317fdf20b06193b96e79ac699b2d4e36d7d`, annotated tag object
-  `360ffdb6d82f298d8d22c838dc2b7bf61ece056d`, and release-tarball SHA-256
-  `9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef`
+- OpenSSL 3.6.5 source commit
+  `c8bd5a57108599ac650bbae77fcabe3109dab2e8`, tree
+  `96ac34688809c56b1afa117c75c0ef303ff19a75`, annotated tag object
+  `f93be98fe7c796e92fc999dd1a21a5212d4e4f8e`, and release-tarball SHA-256
+  `a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98`
 - `mldsa-native` `v1.0.0-beta2` commit
   `9b0ee84f4cf399043eca59eca4e5f8531ca1d61b`
 - `libcrux-ml-dsa` `v0.0.10` commit
@@ -196,7 +196,7 @@ python3 contrib/ml-dsa-ref/compare_oracles.py \
 The full run requires clean source checkouts at the exact pinned commits, a
 full-history libcrux checkout for its ancestry check, the exact pinned libcrux
 crate archive, and Rust/Cargo access to the crate's locked dependencies. The
-installed OpenSSL CLI and `pkg-config` library must both report 3.6.4. The
+installed OpenSSL CLI and `pkg-config` library must both report 3.6.5. The
 OpenSSL adapter links that installed library; its source checkout establishes
 review provenance and is not compiled by the harness.
 

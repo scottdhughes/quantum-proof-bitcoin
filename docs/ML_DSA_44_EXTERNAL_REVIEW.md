@@ -3,7 +3,7 @@
 ## Status: AWAITING_EXTERNAL_REVIEW - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-EXTERNAL-REVIEW-v1
 ## Prepared: 2026-07-19
-## Evidence-Updated: 2026-09-09
+## Evidence-Updated: 2026-10-11
 ## Owner: @scottdhughes
 ## Tracking: https://github.com/scottdhughes/quantum-proof-bitcoin/issues/181
 ## Consensus-Relevant: NO
@@ -22,14 +22,15 @@ The review has three bounded subjects:
 3. the cryptographic and implementation risks that a future production design
    must close
 
-The active frozen review baseline is PQBTC commit
-`e11258553613e5e1db7f98478419b5b3e9843c92`; its comparator remains the
-OpenSSL 3.6.4 implementation established at
-`b22b21c3c6a06cb46f643eb1216325ecddacf7a4`. Pointer-only protected-main
-evidence head `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942` has an empty guarded
-diff from the active baseline. The reviewer must record the exact PQBTC
-revision used for the review and confirm whether any of these files differ from
-that baseline:
+The frozen review baseline pointer currently names PQBTC commit
+`3f428d66c32598b96d6efa0db3a6caf74e3ea6dc`. Main commit
+`93a46456c647118dd76a2a7107a5cc714a8714df` adds the bounded concurrent
+verifier tranche after that baseline, so scheduled frozen-baseline reproduction
+correctly rejects its nonempty guarded diff. The current comparator update
+pins OpenSSL 3.6.5; trusted-main reproduction of that pin is pending its merge
+and a separate baseline-pointer PR. Historical 3.6.4 reports retain their
+original scope. The reviewer must record the exact PQBTC revision used for the
+review and confirm whether any of these files differ from the selected baseline:
 
 - `contrib/ml-dsa-ref/vectors.json`
 - `contrib/ml-dsa-ref/compare_oracles.py`
@@ -123,7 +124,7 @@ signature-verification cases, for 70 cases total.
 
 | Oracle | Frozen source | Role and limitation |
 | --- | --- | --- |
-| OpenSSL | Version 3.6.4, commit `d3c1b1169b3569ff3069e5b399f47b2b28e03d79` | Separate provider oracle; not a proposed node dependency; fresh exact-main evidence recorded at `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942`; independent re-review remains open |
+| OpenSSL | Version 3.6.5, commit `c8bd5a57108599ac650bbae77fcabe3109dab2e8` | Separate provider oracle; not a proposed node dependency; trusted-main evidence for this pin is pending; independent re-review remains open |
 | `mldsa-native` | Tag `v1.0.0-beta2`, commit `9b0ee84f4cf399043eca59eca4e5f8531ca1d61b` | Portable C; forked from PQ-Crystals, so not independent design |
 | libcrux | `libcrux-ml-dsa-v0.0.10`, commit `c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd` | Portable Rust with separate implementation history and disclosed reference influence |
 

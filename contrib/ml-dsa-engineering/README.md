@@ -82,13 +82,15 @@ yanked-package warning, all outside the selected execution graph.
 
 The scheduled read-only workflow pins cargo-audit, OSV Scanner,
 cargo-cyclonedx, and Miri. It also validates the official live OpenSSL
-release-metadata corpus against exact 3.6.4 semver ranges and requires the
+release-metadata corpus against exact 3.6.5 semver ranges and requires the
 public mldsa-native repository-advisory API to remain a complete empty result.
 The 2026-08-25 feed refresh identified eleven CVEs affecting the superseded
 3.6.3 pin. None reaches the isolated default-provider EVP ML-DSA oracle, but
-the fixed 3.6.4 release now replaces that knowingly affected comparator rather
-than treating path non-applicability as package-level remediation. The active
-3.6.4 pin has zero affected IDs under the reviewed feed. The retained
+the fixed 3.6.4 release replaced that affected comparator. The September 29
+security release subsequently fixed thirteen CVEs affecting 3.6.4. The current
+comparator is pinned to 3.6.5, which has zero affected IDs in the October 11
+297-record feed. Both transitions bind the superseded advisory records by
+hash and exact range; neither changes the production backend. The retained
 transition records the old path analysis and the upstream CVE-2026-63076
 metadata error: its cited 3.6.4 fix commit is absent, while released commit
 `49de27169f4cc42619a096c38412e47a3f890803` contains the equivalent fix.
@@ -345,7 +347,7 @@ full candidate, baseline, and retained SHA-256 inventories preserve the exact
 set-difference receipt after the source artifact expires. Its 13 argument
 errors and 25 verification rejections replay before fuzzing.
 Every parsed frame is evaluated by the admitted
-wrapper, OpenSSL 3.6.4's explicitly selected default provider in an isolated
+wrapper, OpenSSL 3.6.5's explicitly selected default provider in an isolated
 library context, and libcrux 0.0.10. An oracle setup error or accept/reject
 disagreement aborts through the normal
 libFuzzer crash path.

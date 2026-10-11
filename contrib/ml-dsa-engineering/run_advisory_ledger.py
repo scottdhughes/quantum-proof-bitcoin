@@ -95,6 +95,38 @@ EXPECTED_OPENSSL_36_IDS = {
     "CVE-2026-75803",
     "CVE-2026-9076",
 }
+EXPECTED_OPENSSL_364_RECORD_SHA256 = {
+    "CVE-2026-35189": "b1a6a9c4a341c408daa1e9f7aa6234aa67f9eab64d028f6f48bed1b6850165f9",
+    "CVE-2026-35191": "b53ffa12734549fa6461cd7404020c4ca32c82b583250dfd6c0e27844aaca505",
+    "CVE-2026-42772": "c25df2370844ea84a9fb4bb03e9fc0826f681611e650d84880ab3fcc939737f6",
+    "CVE-2026-54872": "10d99b21a92367dce52b02214419efe3053508c95627a8308b8be3d5a6df3751",
+    "CVE-2026-54873": "b76f3c94bbf74052492ad6389b43666c2b1323fb8e5c8b70123f64dcf8dcc1b4",
+    "CVE-2026-54875": "5a0954acb732a9b1f07ff2cdd0ff35f99754f4d02a92fd6f1019105bb4598fc8",
+    "CVE-2026-72897": "b18da0941524d8752528b8aab7a08a411291576882e8e2dc3ec0fdea7c140265",
+    "CVE-2026-75804": "0810971c0129cc950cf406f5c4a7b273caf0372f5619b60dd64b70fd1309f128",
+    "CVE-2026-75805": "7f1807723a2ba77515d6513e9bb7e5ae250d7f4c472459286b9562c396897858",
+    "CVE-2026-75806": "1d0580785328144c95133bd11dfe6e1a880915c0514f491f1669f05ab2589b13",
+    "CVE-2026-77696": "9e04c5c48f414b47cdb8708157b1c733fe231214622ef383b06c00ca4a176532",
+    "CVE-2026-84782": "281dcd4742dedb86b29381be85d1e7cfaa0a5af0583fadb0a7dec6e7c903f1ad",
+    "CVE-2026-84784": "6ce81b6cc6b95da706082eb519019faa9a5a61f81c10c7d9945204b13261dcc6",
+}
+EXPECTED_OPENSSL_365_PIN_TRANSITION = {
+    "from_version": "3.6.4",
+    "from_commit": "d3c1b1169b3569ff3069e5b399f47b2b28e03d79",
+    "from_tree": "0f2db317fdf20b06193b96e79ac699b2d4e36d7d",
+    "to_version": "3.6.5",
+    "to_commit": "c8bd5a57108599ac650bbae77fcabe3109dab2e8",
+    "to_tree": "96ac34688809c56b1afa117c75c0ef303ff19a75",
+    "release_tag": "openssl-3.6.5",
+    "reviewed_on": "2026-10-11",
+    "disposition": "REPINNED_RESEARCH_ORACLE",
+    "to_pin_affected_ids": [],
+    "reviewed_path_dispositions": [],
+    "release_metadata_exceptions": [],
+}
+
+EXPECTED_OPENSSL_36_IDS.update(EXPECTED_OPENSSL_364_RECORD_SHA256)
+
 EXPECTED_OPENSSL_363_AFFECTED_IDS = [
     "CVE-2026-14456",
     "CVE-2026-14457",
@@ -1176,7 +1208,7 @@ def _validate_simd256_backend_admission(
     if not isinstance(assessments, dict):
         raise AuditError("backend candidate assessments are missing")
     expected_outcomes = {
-        "openssl_3_6_4": "ORACLE_ONLY",
+        "openssl_3_6_5": "ORACLE_ONLY",
         "mldsa_native_portable_c": "ISOLATED_PROTOTYPE_ADMITTED",
         "libcrux_ml_dsa_0_0_10_portable": "ORACLE_ONLY",
     }
@@ -1535,7 +1567,7 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
         raise AuditError("oracle inventory must contain exactly three pinned sources")
     vector_sources = vectors.get("sources", {})
     expected_source_values = {
-        "openssl": ("3.6.4", vector_sources.get("openssl", {}).get("commit")),
+        "openssl": ("3.6.5", vector_sources.get("openssl", {}).get("commit")),
         "mldsa_native": (
             "v1.0.0-beta2",
             vector_sources.get("mldsa_native", {}).get("commit"),
@@ -1543,7 +1575,7 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
         "libcrux": ("0.0.10", vector_sources.get("libcrux", {}).get("commit")),
     }
     expected_inventory_dates = {
-        "openssl": "2026-08-25",
+        "openssl": "2026-10-11",
         "mldsa_native": ledger["inventory_date"],
         "libcrux": ledger["inventory_date"],
     }
@@ -1606,9 +1638,9 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
         or openssl_feed["repository"]
         != "https://github.com/openssl/release-metadata.git"
         or openssl_feed["path"] != "secjson"
-        or openssl_feed["reviewed_on"] != "2026-08-25"
+        or openssl_feed["reviewed_on"] != "2026-10-11"
         or openssl_feed["accepted_data_versions"] != ["5.0", "5.1"]
-        or openssl_feed["minimum_cve_records"] != 283
+        or openssl_feed["minimum_cve_records"] != 297
         or openssl_feed["reviewed_branch"] != "3.6"
         or openssl_feed["reviewed_empty_non_target_ranges"]
         != [
@@ -1635,11 +1667,46 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
         raise AuditError("openssl research-only oracle role drifted")
     openssl_dispositions = openssl_inventory["reviewed_affected_pin_dispositions"]
     if openssl_dispositions != [] or openssl_inventory["current_affected_ids"] != []:
-        raise AuditError("OpenSSL 3.6.4 exact-pin advisory set must remain empty")
+        raise AuditError("OpenSSL 3.6.5 exact-pin advisory set must remain empty")
 
     transitions = openssl_inventory["historical_pin_transitions"]
-    if not isinstance(transitions, list) or len(transitions) != 1:
-        raise AuditError("openssl pin transition history must contain one record")
+    if not isinstance(transitions, list) or len(transitions) != 2:
+        raise AuditError("openssl pin transition history must contain two records")
+    latest_transition = transitions[1]
+    if not isinstance(latest_transition, dict):
+        raise AuditError("openssl latest pin transition must be an object")
+    _require_keys(
+        latest_transition,
+        set(EXPECTED_OPENSSL_365_PIN_TRANSITION) | {"from_pin_affected_records"},
+        "openssl 3.6.5 pin transition",
+    )
+    for key, expected in EXPECTED_OPENSSL_365_PIN_TRANSITION.items():
+        _require_exact_json(
+            latest_transition[key], expected, f"openssl 3.6.5 transition.{key}"
+        )
+    expected_latest_records = [
+        {
+            "id": record_id,
+            "record_sha256": record_sha256,
+            "reviewed_feed_record": {
+                "data_version": "5.1",
+                "ranges": [
+                    {
+                        "version": "3.6.0",
+                        "lessThan": "3.6.5",
+                        "status": "affected",
+                        "versionType": "semver",
+                    }
+                ],
+            },
+        }
+        for record_id, record_sha256 in EXPECTED_OPENSSL_364_RECORD_SHA256.items()
+    ]
+    _require_exact_json(
+        latest_transition["from_pin_affected_records"],
+        expected_latest_records,
+        "openssl 3.6.5 historical affected records",
+    )
     transition = transitions[0]
     if not isinstance(transition, dict):
         raise AuditError("openssl pin transition history entry must be an object")
@@ -2522,9 +2589,11 @@ def validate_openssl_advisory_feed(
     historical_transitions = source["advisory_inventory"][
         "historical_pin_transitions"
     ]
-    for historical_record in historical_transitions[0][
-        "from_pin_affected_records"
-    ]:
+    for historical_record in (
+        record
+        for transition in historical_transitions
+        for record in transition["from_pin_affected_records"]
+    ):
         record = relevant_by_id.get(historical_record["id"])
         if (
             record is None

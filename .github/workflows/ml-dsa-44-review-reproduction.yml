@@ -33,12 +33,12 @@ jobs:
     env:
       # The pointer is advanced separately after the guarded tree is reviewed.
       BASELINE_FILE: contrib/ml-dsa-ref/review_baseline_commit.txt
-      OPENSSL_COMMIT: d3c1b1169b3569ff3069e5b399f47b2b28e03d79
-      OPENSSL_TREE: 0f2db317fdf20b06193b96e79ac699b2d4e36d7d
-      OPENSSL_TAG: openssl-3.6.4
-      OPENSSL_TAG_OBJECT: 360ffdb6d82f298d8d22c838dc2b7bf61ece056d
-      OPENSSL_RELEASE_TARBALL_URL: https://github.com/openssl/openssl/releases/download/openssl-3.6.4/openssl-3.6.4.tar.gz
-      OPENSSL_RELEASE_TARBALL_SHA256: 9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef
+      OPENSSL_COMMIT: c8bd5a57108599ac650bbae77fcabe3109dab2e8
+      OPENSSL_TREE: 96ac34688809c56b1afa117c75c0ef303ff19a75
+      OPENSSL_TAG: openssl-3.6.5
+      OPENSSL_TAG_OBJECT: f93be98fe7c796e92fc999dd1a21a5212d4e4f8e
+      OPENSSL_RELEASE_TARBALL_URL: https://github.com/openssl/openssl/releases/download/openssl-3.6.5/openssl-3.6.5.tar.gz
+      OPENSSL_RELEASE_TARBALL_SHA256: a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98
       OPENSSL_CVE_2026_63076_EQUIVALENT_FIX: 49de27169f4cc42619a096c38412e47a3f890803
       MLDSA_NATIVE_COMMIT: 9b0ee84f4cf399043eca59eca4e5f8531ca1d61b
       LIBCRUX_COMMIT: c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd
@@ -165,18 +165,18 @@ jobs:
           allowed_sha256 = (
               {
                   "baseline": (
-                      "955da4f4bcec375bd05cb6d3f0a005fff244442f8d2b70880d4bf0f952a7927d"
+                      "feec9dabee7bbca2916768f31fbc4130a18cecf607fb827709262b877edd445b"
                   ),
                   "current": (
-                      "feec9dabee7bbca2916768f31fbc4130a18cecf607fb827709262b877edd445b"
+                      "9cad66d81b2185e8e4e1e377697c92ce5ee4e4e7b6c9d3d453c342b8288962c2"
                   ),
               },
               {
                   "baseline": (
-                      "feec9dabee7bbca2916768f31fbc4130a18cecf607fb827709262b877edd445b"
+                      "9cad66d81b2185e8e4e1e377697c92ce5ee4e4e7b6c9d3d453c342b8288962c2"
                   ),
                   "current": (
-                      "feec9dabee7bbca2916768f31fbc4130a18cecf607fb827709262b877edd445b"
+                      "9cad66d81b2185e8e4e1e377697c92ce5ee4e4e7b6c9d3d453c342b8288962c2"
                   ),
               },
           )
@@ -221,10 +221,10 @@ jobs:
               for transition in openssl_oracles[0]["advisory_inventory"][
                   "historical_pin_transitions"
               ]
-              if transition.get("to_commit") == os.environ["OPENSSL_COMMIT"]
+              if transition.get("to_version") == "3.6.4"
           ]
           if len(transitions) != 1:
-              raise SystemExit("advisory ledger must contain the 3.6.4 transition")
+              raise SystemExit("advisory ledger must retain the 3.6.4 transition")
           transition = transitions[0]
           exceptions = [
               item
@@ -544,7 +544,7 @@ jobs:
           expected = {
               "commit": os.environ["OPENSSL_COMMIT"],
               "git_tree": os.environ["OPENSSL_TREE"],
-              "version": "3.6.4",
+              "version": "3.6.5",
               "tag": os.environ["OPENSSL_TAG"],
               "tag_object": os.environ["OPENSSL_TAG_OBJECT"],
               "release_tarball_url": os.environ["OPENSSL_RELEASE_TARBALL_URL"],
@@ -571,9 +571,9 @@ jobs:
             -o artifacts/libcrux-ml-dsa-0.0.10.crate
           curl --fail --location --retry 5 --retry-all-errors \
             "$OPENSSL_RELEASE_TARBALL_URL" \
-            -o artifacts/openssl-3.6.4.tar.gz
+            -o artifacts/openssl-3.6.5.tar.gz
           openssl_release_tarball_sha256="$(
-            sha256sum artifacts/openssl-3.6.4.tar.gz | cut -d ' ' -f 1
+            sha256sum artifacts/openssl-3.6.5.tar.gz | cut -d ' ' -f 1
           )"
           test "$openssl_release_tarball_sha256" = \
             "$OPENSSL_RELEASE_TARBALL_SHA256"
@@ -621,7 +621,7 @@ jobs:
             } >> "$context"
           done
 
-      - name: Build pinned OpenSSL 3.6.4 out of tree
+      - name: Build pinned OpenSSL 3.6.5 out of tree
         timeout-minutes: 25
         run: |
           set -euxo pipefail
@@ -977,14 +977,14 @@ jobs:
               / "openssl-install"
           ).resolve()
           libcrypto = Path(openssl_runtime["libcrypto_path"]).resolve()
-          assert openssl_runtime["pkg_config_version"] == "3.6.4"
+          assert openssl_runtime["pkg_config_version"] == "3.6.5"
           assert Path(openssl_runtime["pkg_config_prefix"]).resolve() == openssl_prefix
           assert openssl_runtime["libcrypto_resolution"] == "linked-dependency"
           assert libcrypto.is_relative_to(openssl_prefix)
           assert openssl_runtime["libcrypto_sha256"]
           assert openssl_runtime["openssl_conf"] == "/dev/null"
           assert "OpenSSL Default Provider" in openssl_runtime["provider_inventory"]
-          assert "version: 3.6.4" in openssl_runtime["provider_inventory"]
+          assert "version: 3.6.5" in openssl_runtime["provider_inventory"]
           assert differential["libcrux"]["commit"] == os.environ["LIBCRUX_COMMIT"]
           assert differential["libcrux"]["bridge_source_sha256"]
           assert differential["libcrux"]["rlib_sha256"]

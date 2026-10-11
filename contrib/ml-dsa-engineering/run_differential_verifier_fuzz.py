@@ -112,8 +112,8 @@ def validate_local_inputs(manifest: dict) -> dict:
     missing = [str(path.relative_to(REPO_ROOT)) for path in expected_files if not path.is_file()]
     if missing:
         raise DifferentialFuzzError(f"missing differential fuzz inputs: {missing}")
-    if manifest["sources"]["openssl"]["version"] != "3.6.4":
-        raise DifferentialFuzzError("differential fuzzing requires OpenSSL 3.6.4")
+    if manifest["sources"]["openssl"]["version"] != "3.6.5":
+        raise DifferentialFuzzError("differential fuzzing requires OpenSSL 3.6.5")
     if manifest["sources"]["libcrux"]["version"] != "0.0.10":
         raise DifferentialFuzzError("differential fuzzing requires libcrux 0.0.10")
     return {
@@ -1031,7 +1031,7 @@ def main() -> int:
         if args.manifest_only:
             print(
                 "ML-DSA-44 differential verifier fuzz inputs OK: "
-                "wrapper + OpenSSL 3.6.4 + libcrux 0.0.10"
+                "wrapper + OpenSSL 3.6.5 + libcrux 0.0.10"
             )
             return 0
         if not 1 <= args.seconds <= MAX_CAMPAIGN_SECONDS:
