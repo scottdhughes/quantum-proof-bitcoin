@@ -119,11 +119,11 @@
     }
   },
   "candidate_assessments": {
-    "openssl_3_6_4": {
-      "source_commit": "d3c1b1169b3569ff3069e5b399f47b2b28e03d79",
-      "source_tree": "0f2db317fdf20b06193b96e79ac699b2d4e36d7d",
+    "openssl_3_6_5": {
+      "source_commit": "c8bd5a57108599ac650bbae77fcabe3109dab2e8",
+      "source_tree": "96ac34688809c56b1afa117c75c0ef303ff19a75",
       "license_expression": "Apache-2.0",
-      "conformance": "PASS",
+      "conformance": "PENDING_TRUSTED_MAIN_REPRODUCTION",
       "entropy_boundary": "INTERNAL_DRBG_WITH_PUBLIC_TEST_AND_DETERMINISTIC_CONTROLS",
       "secret_erasure": "PARTIAL_SOURCE_EVIDENCE",
       "side_channel_posture": "NO_PQBTC_BINARY_EVIDENCE",

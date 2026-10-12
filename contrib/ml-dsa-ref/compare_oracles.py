@@ -32,18 +32,18 @@ MLDSA_NATIVE_SOURCE = HERE / "mldsa_native_oracle.c"
 LIBCRUX_SOURCE = HERE / "libcrux_oracle.rs"
 REPO_ROOT = HERE.parents[1]
 HEX_64 = re.compile(r"^[0-9a-f]{64}$")
-OPENSSL_3_6_4_RELEASE = {
-    "version": "3.6.4",
-    "commit": "d3c1b1169b3569ff3069e5b399f47b2b28e03d79",
-    "git_tree": "0f2db317fdf20b06193b96e79ac699b2d4e36d7d",
-    "tag": "openssl-3.6.4",
-    "tag_object": "360ffdb6d82f298d8d22c838dc2b7bf61ece056d",
+OPENSSL_3_6_5_RELEASE = {
+    "version": "3.6.5",
+    "commit": "c8bd5a57108599ac650bbae77fcabe3109dab2e8",
+    "git_tree": "96ac34688809c56b1afa117c75c0ef303ff19a75",
+    "tag": "openssl-3.6.5",
+    "tag_object": "f93be98fe7c796e92fc999dd1a21a5212d4e4f8e",
     "release_tarball_url": (
         "https://github.com/openssl/openssl/releases/download/"
-        "openssl-3.6.4/openssl-3.6.4.tar.gz"
+        "openssl-3.6.5/openssl-3.6.5.tar.gz"
     ),
     "release_tarball_sha256": (
-        "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef"
+        "a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98"
     ),
 }
 
@@ -151,10 +151,10 @@ def validate_manifest(manifest: dict) -> None:
             raise ReferenceError(f"OpenSSL {field} must be a full Git object ID")
     if HEX_64.fullmatch(openssl.get("release_tarball_sha256", "")) is None:
         raise ReferenceError("OpenSSL release_tarball_sha256 must be SHA256")
-    for field, expected in OPENSSL_3_6_4_RELEASE.items():
+    for field, expected in OPENSSL_3_6_5_RELEASE.items():
         if openssl.get(field) != expected:
             raise ReferenceError(
-                f"OpenSSL {field} does not match the frozen 3.6.4 release"
+                f"OpenSSL {field} does not match the frozen 3.6.5 release"
             )
     if sources["mldsa_native"].get("tag") != "v1.0.0-beta2":
         raise ReferenceError("mldsa-native tag must be v1.0.0-beta2")

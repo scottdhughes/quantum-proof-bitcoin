@@ -58,28 +58,28 @@ class MLDSAReferenceTests(unittest.TestCase):
 
     def test_source_pins_and_lineage_limit(self):
         sources = self.manifest["sources"]
-        self.assertEqual(sources["openssl"]["version"], "3.6.4")
+        self.assertEqual(sources["openssl"]["version"], "3.6.5")
         self.assertEqual(
             sources["openssl"]["commit"],
-            "d3c1b1169b3569ff3069e5b399f47b2b28e03d79",
+            "c8bd5a57108599ac650bbae77fcabe3109dab2e8",
         )
         self.assertEqual(
             sources["openssl"]["git_tree"],
-            "0f2db317fdf20b06193b96e79ac699b2d4e36d7d",
+            "96ac34688809c56b1afa117c75c0ef303ff19a75",
         )
-        self.assertEqual(sources["openssl"]["tag"], "openssl-3.6.4")
+        self.assertEqual(sources["openssl"]["tag"], "openssl-3.6.5")
         self.assertEqual(
             sources["openssl"]["tag_object"],
-            "360ffdb6d82f298d8d22c838dc2b7bf61ece056d",
+            "f93be98fe7c796e92fc999dd1a21a5212d4e4f8e",
         )
         self.assertEqual(
             sources["openssl"]["release_tarball_url"],
             "https://github.com/openssl/openssl/releases/download/"
-            "openssl-3.6.4/openssl-3.6.4.tar.gz",
+            "openssl-3.6.5/openssl-3.6.5.tar.gz",
         )
         self.assertEqual(
             sources["openssl"]["release_tarball_sha256"],
-            "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef",
+            "a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98",
         )
         self.assertEqual(sources["mldsa_native"]["tag"], "v1.0.0-beta2")
         self.assertEqual(sources["libcrux"]["version"], "0.0.10")
@@ -146,12 +146,12 @@ class MLDSAReferenceTests(unittest.TestCase):
     def test_manifest_rejects_openssl_release_provenance_drift(self):
         hostile_values = (
             ("commit", "0" * 40, "commit does not match"),
-            ("tag", "openssl-3.6.5", "tag does not match"),
+            ("tag", "openssl-3.6.4", "tag does not match"),
             ("tag_object", "0" * 40, "tag_object does not match"),
             ("tag_object", "not-a-git-object", "tag_object must be"),
             (
                 "release_tarball_url",
-                "https://example.invalid/openssl-3.6.4.tar.gz",
+                "https://example.invalid/openssl-3.6.5.tar.gz",
                 "release_tarball_url does not match",
             ),
             (

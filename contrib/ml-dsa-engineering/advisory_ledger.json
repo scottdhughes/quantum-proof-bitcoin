@@ -9,11 +9,11 @@
     "oracles": [
       {
         "name": "openssl",
-        "version": "3.6.4",
-        "commit": "d3c1b1169b3569ff3069e5b399f47b2b28e03d79",
-        "tree": "0f2db317fdf20b06193b96e79ac699b2d4e36d7d",
+        "version": "3.6.5",
+        "commit": "c8bd5a57108599ac650bbae77fcabe3109dab2e8",
+        "tree": "96ac34688809c56b1afa117c75c0ef303ff19a75",
         "advisory_inventory": {
-          "as_of": "2026-08-25",
+          "as_of": "2026-10-11",
           "source": "https://github.com/openssl/release-metadata.git",
           "status": "LIVE_FEED_NO_EXACT_PIN_ADVISORIES_AFTER_REPIN",
           "current_affected_ids": [],
@@ -813,6 +813,217 @@
                   "equivalent_released_fix_commit_status": "PRESENT_IN_OPENSSL_3_6_4_TARGET"
                 }
               ]
+            },
+            {
+              "from_version": "3.6.4",
+              "from_commit": "d3c1b1169b3569ff3069e5b399f47b2b28e03d79",
+              "from_tree": "0f2db317fdf20b06193b96e79ac699b2d4e36d7d",
+              "to_version": "3.6.5",
+              "to_commit": "c8bd5a57108599ac650bbae77fcabe3109dab2e8",
+              "to_tree": "96ac34688809c56b1afa117c75c0ef303ff19a75",
+              "release_tag": "openssl-3.6.5",
+              "reviewed_on": "2026-10-11",
+              "disposition": "REPINNED_RESEARCH_ORACLE",
+              "from_pin_affected_records": [
+                {
+                  "id": "CVE-2026-35189",
+                  "record_sha256": "b1a6a9c4a341c408daa1e9f7aa6234aa67f9eab64d028f6f48bed1b6850165f9",
+                  "reviewed_feed_record": {
+                    "data_version": "5.1",
+                    "ranges": [
+                      {
+                        "lessThan": "3.6.5",
+                        "status": "affected",
+                        "version": "3.6.0",
+                        "versionType": "semver"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "CVE-2026-35191",
+                  "record_sha256": "b53ffa12734549fa6461cd7404020c4ca32c82b583250dfd6c0e27844aaca505",
+                  "reviewed_feed_record": {
+                    "data_version": "5.1",
+                    "ranges": [
+                      {
+                        "lessThan": "3.6.5",
+                        "status": "affected",
+                        "version": "3.6.0",
+                        "versionType": "semver"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "CVE-2026-42772",
+                  "record_sha256": "c25df2370844ea84a9fb4bb03e9fc0826f681611e650d84880ab3fcc939737f6",
+                  "reviewed_feed_record": {
+                    "data_version": "5.1",
+                    "ranges": [
+                      {
+                        "lessThan": "3.6.5",
+                        "status": "affected",
+                        "version": "3.6.0",
+                        "versionType": "semver"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "CVE-2026-54872",
+                  "record_sha256": "10d99b21a92367dce52b02214419efe3053508c95627a8308b8be3d5a6df3751",
+                  "reviewed_feed_record": {
+                    "data_version": "5.1",
+                    "ranges": [
+                      {
+                        "lessThan": "3.6.5",
+                        "status": "affected",
+                        "version": "3.6.0",
+                        "versionType": "semver"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "CVE-2026-54873",
+                  "record_sha256": "b76f3c94bbf74052492ad6389b43666c2b1323fb8e5c8b70123f64dcf8dcc1b4",
+                  "reviewed_feed_record": {
+                    "data_version": "5.1",
+                    "ranges": [
+                      {
+                        "lessThan": "3.6.5",
+                        "status": "affected",
+                        "version": "3.6.0",
+                        "versionType": "semver"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "CVE-2026-54875",
+                  "record_sha256": "5a0954acb732a9b1f07ff2cdd0ff35f99754f4d02a92fd6f1019105bb4598fc8",
+                  "reviewed_feed_record": {
+                    "data_version": "5.1",
+                    "ranges": [
+                      {
+                        "lessThan": "3.6.5",
+                        "status": "affected",
+                        "version": "3.6.0",
+                        "versionType": "semver"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "CVE-2026-72897",
+                  "record_sha256": "b18da0941524d8752528b8aab7a08a411291576882e8e2dc3ec0fdea7c140265",
+                  "reviewed_feed_record": {
+                    "data_version": "5.1",
+                    "ranges": [
+                      {
+                        "lessThan": "3.6.5",
+                        "status": "affected",
+                        "version": "3.6.0",
+                        "versionType": "semver"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "CVE-2026-75804",
+                  "record_sha256": "0810971c0129cc950cf406f5c4a7b273caf0372f5619b60dd64b70fd1309f128",
+                  "reviewed_feed_record": {
+                    "data_version": "5.1",
+                    "ranges": [
+                      {
+                        "lessThan": "3.6.5",
+                        "status": "affected",
+                        "version": "3.6.0",
+                        "versionType": "semver"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "CVE-2026-75805",
+                  "record_sha256": "7f1807723a2ba77515d6513e9bb7e5ae250d7f4c472459286b9562c396897858",
+                  "reviewed_feed_record": {
+                    "data_version": "5.1",
+                    "ranges": [
+                      {
+                        "lessThan": "3.6.5",
+                        "status": "affected",
+                        "version": "3.6.0",
+                        "versionType": "semver"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "CVE-2026-75806",
+                  "record_sha256": "1d0580785328144c95133bd11dfe6e1a880915c0514f491f1669f05ab2589b13",
+                  "reviewed_feed_record": {
+                    "data_version": "5.1",
+                    "ranges": [
+                      {
+                        "lessThan": "3.6.5",
+                        "status": "affected",
+                        "version": "3.6.0",
+                        "versionType": "semver"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "CVE-2026-77696",
+                  "record_sha256": "9e04c5c48f414b47cdb8708157b1c733fe231214622ef383b06c00ca4a176532",
+                  "reviewed_feed_record": {
+                    "data_version": "5.1",
+                    "ranges": [
+                      {
+                        "lessThan": "3.6.5",
+                        "status": "affected",
+                        "version": "3.6.0",
+                        "versionType": "semver"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "CVE-2026-84782",
+                  "record_sha256": "281dcd4742dedb86b29381be85d1e7cfaa0a5af0583fadb0a7dec6e7c903f1ad",
+                  "reviewed_feed_record": {
+                    "data_version": "5.1",
+                    "ranges": [
+                      {
+                        "lessThan": "3.6.5",
+                        "status": "affected",
+                        "version": "3.6.0",
+                        "versionType": "semver"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "CVE-2026-84784",
+                  "record_sha256": "6ce81b6cc6b95da706082eb519019faa9a5a61f81c10c7d9945204b13261dcc6",
+                  "reviewed_feed_record": {
+                    "data_version": "5.1",
+                    "ranges": [
+                      {
+                        "lessThan": "3.6.5",
+                        "status": "affected",
+                        "version": "3.6.0",
+                        "versionType": "semver"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "to_pin_affected_ids": [],
+              "reviewed_path_dispositions": [],
+              "release_metadata_exceptions": []
             }
           ],
           "refresh": "automated structured-feed validation on pull requests, pushes to main, the weekly schedule, and manual dispatch"
@@ -821,9 +1032,9 @@
           "type": "openssl-release-metadata",
           "repository": "https://github.com/openssl/release-metadata.git",
           "path": "secjson",
-          "reviewed_on": "2026-08-25",
+          "reviewed_on": "2026-10-11",
           "accepted_data_versions": ["5.0", "5.1"],
-          "minimum_cve_records": 283,
+          "minimum_cve_records": 297,
           "reviewed_branch": "3.6",
           "reviewed_empty_non_target_ranges": [
             {
@@ -882,7 +1093,20 @@
             "CVE-2026-63076",
             "CVE-2026-7383",
             "CVE-2026-75803",
-            "CVE-2026-9076"
+            "CVE-2026-9076",
+            "CVE-2026-35189",
+            "CVE-2026-35191",
+            "CVE-2026-42772",
+            "CVE-2026-54872",
+            "CVE-2026-54873",
+            "CVE-2026-54875",
+            "CVE-2026-72897",
+            "CVE-2026-75804",
+            "CVE-2026-75805",
+            "CVE-2026-75806",
+            "CVE-2026-77696",
+            "CVE-2026-84782",
+            "CVE-2026-84784"
           ]
         },
         "role": "source-pinned oracle; not a node dependency"

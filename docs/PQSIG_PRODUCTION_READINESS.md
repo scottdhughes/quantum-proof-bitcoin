@@ -3,7 +3,7 @@
 ## Status: RELEASE_HOLD - AWAITING_EXTERNAL_REVIEW
 ## Spec-ID: PQSIG-PRODUCTION-READINESS-v1
 ## Decided: 2026-07-18
-## Evidence-Updated: 2026-08-25
+## Evidence-Updated: 2026-10-11
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -156,12 +156,15 @@ selected for activation by this record.
    randomized interoperability, mutation, and bounded sanitizer tranche is
    green. Do not assign an active `ALG_ID` or connect it to Script yet.
 2. Maintain the isolated FIPS 204 `ML-DSA-44` comparator in
-   `ML_DSA_44_REFERENCE.md`. Its 70-case ACVP, randomized interoperability,
-   mutation, sanitizer, disclosed-advisory regression, timing, and raw-payload
-   evidence is green across OpenSSL, `mldsa-native`, and libcrux. Preserve the
+   `ML_DSA_44_REFERENCE.md`. The previous three-oracle pin set has bounded
+   70-case ACVP, randomized interoperability, mutation, sanitizer,
+   disclosed-advisory regression, timing, and raw-payload evidence. Fresh
+   trusted-main reproduction of the OpenSSL 3.6.5 pin remains pending the
+   repin merge and a separate baseline-pointer update; historical 3.6.4
+   evidence does not cover the new source pin. Preserve the
    qualified `separate_implementation_lineage_with_reference_influence`
    assessment.
-3. Use the OpenSSL 3.6.4 runtime and pinned source checkout only as a prototype
+3. Use the OpenSSL 3.6.5 runtime and pinned source checkout only as a prototype
    and differential-test oracle. Do not introduce a host OpenSSL dependency
    into consensus verification.
 4. Preserve a second independent implementation or vector source for every

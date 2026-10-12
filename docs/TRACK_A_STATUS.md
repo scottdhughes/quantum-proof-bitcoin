@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-09-09
+## Updated: 2026-10-11
 ## Current Phase: Phase 1 - Cryptographic Production Hold
 
 ## Purpose
@@ -59,8 +59,11 @@ baseline remains `pq_required: 121`, `pq_backlog: 0`, `legacy_only: 14`, and
 The isolated `ML-DSA-44` comparator is recorded in
 `ML_DSA_44_REFERENCE.md`. It pins FIPS 204, NIST's potential-updates and
 Section 6 guidance artifacts, all 70 applicable external/pure ACVP cases,
-OpenSSL 3.6.4, `mldsa-native` `v1.0.0-beta2`, and libcrux 0.0.10. The three
-codebases are required to agree on all official and repo-defined exact outputs,
+OpenSSL 3.6.5, `mldsa-native` `v1.0.0-beta2`, and libcrux 0.0.10. Fresh
+trusted-main reproduction of the 3.6.5 pin is pending the repin merge and a
+separate baseline-pointer update; prior 3.6.4 evidence retains its original
+scope. The three codebases are required to agree on all official and
+repo-defined exact outputs,
 cross-verify randomized signatures, and reject the bounded malformed/mutated
 corpus. The two portable-C adapters must pass the ASan/UBSan tranche. Both
 retained upstream
@@ -480,6 +483,15 @@ Cryptography implementation lane:
    - do not allocate or activate an `ALG_ID` in the evidence slices
 
 ## Current Queue
+
+The current dated assessment and completion sequence are in
+[PROJECT_COMPLETION_PLAN.md](PROJECT_COMPLETION_PLAN.md). Immediate maintenance
+is the OpenSSL 3.6.5 comparator repin after thirteen newly affecting 3.6.4 CVEs.
+After that merge, a separate pointer PR must cover the repin and the already
+merged concurrency tranche before frozen-baseline main reproduction resumes.
+The new pin needs fresh trusted-main evidence; historical 3.6.4 reports retain
+their original scope. Wallet/key-format and secret-lifecycle contracts are the
+next substantive deliverables after maintenance.
 
 1. Preserve the reviewed post-promotion baseline:
    - `pq_required`: 121

@@ -1,7 +1,7 @@
 # ML-DSA-44 Advisory Ledger and Dependency Refresh
 
-Status: engineering contract implemented; fresh post-repin exact-main workflow
-evidence is recorded, while independent re-review remains required. This
+Status: engineering contract implemented; OpenSSL 3.6.5 repin awaiting fresh
+trusted-main reproduction, while independent re-review remains required. This
 document does not change the production backend (`NONE`) or the release hold.
 
 ## Purpose and Scope
@@ -12,21 +12,22 @@ scheduled workflow fails closed if a selected-package RustSec entry, scanner
 finding, package version, dependency graph, architecture, backend, SBOM
 component, or required evidence file differs from that reviewed contract.
 
-The ledger also inventories the exact OpenSSL 3.6.4 and mldsa-native beta2
+The ledger also inventories the exact OpenSSL 3.6.5 and mldsa-native beta2
 source pins. Their dated rows name the official OpenSSL 3.6 feed and the
 mldsa-native repository-advisory feed, respectively. Cargo advisory scanners
 apply only to the libcrux crate and its published `Cargo.lock`; an empty Cargo
 result is not claimed for either C source oracle.
 
 The global dependency snapshot and the mldsa-native/libcrux rows retain their
-2026-07-21 date. The OpenSSL row was refreshed on 2026-08-25 after the live
-feed expanded the superseded 3.6.3 pin from two to eleven affected CVEs and
-OpenSSL published the fixed 3.6.4 release. Every relevant workflow run
+2026-07-21 date. The OpenSSL row was refreshed on 2026-10-11 after the live
+feed identified thirteen CVEs affecting 3.6.4 and OpenSSL published the fixed
+3.6.5 release on September 29. The earlier 3.6.3-to-3.6.4 transition and all
+eleven of its affected records remain unchanged. Every relevant workflow run
 continues to acquire and validate both public machine feeds. OpenSSL is checked
 from the current Git head of the official `openssl/release-metadata` `secjson`
-corpus. The validator requires the reviewed 283-record completeness floor, all
-48 reviewed OpenSSL 3.6 records, supported CVE 5.0/5.1 structures, and exact
-semver evaluation for the 3.6.4 pin. A missing record, ambiguous range,
+corpus. The validator requires the reviewed 297-record completeness floor, all
+61 reviewed OpenSSL 3.6 records, supported CVE 5.0/5.1 structures, and exact
+semver evaluation for the 3.6.5 pin. A missing record, ambiguous range,
 malformed schema, or advisory affecting the exact pin fails closed.
 The sole reviewed semver-range irregularity is CVE-2023-2650's empty exclusive
 `3.1.1` to `3.1.1` row; it is outside 3.6, exactly allowlisted, and retained in
@@ -97,7 +98,7 @@ a fixed range is not represented as a regression-test PASS. `UNTESTED` is
 permitted only when the pin is not affected or the current path is not
 applicable and a future admission block is explicit.
 
-### OpenSSL 3.6.4 Repin
+### Historical OpenSSL 3.6.4 Repin
 
 The 2026-08-25 fail-closed refresh evaluated official release-metadata commit
 `18c7d2226fd32d230d7b976b899a0a346592688c`, including `secjson` tree
@@ -110,8 +111,8 @@ ranges are all `[3.6.0, 3.6.4)`.
 None of the affected TLS, QUIC, DTLS, CMS, CMP, X.509/OCSP, or empty-input
 AEAD `EVP_Cipher` paths is reachable from the reviewed default-provider EVP
 ML-DSA key-generation, signing, and verification adapters. That establishes
-path non-applicability only; it does not make 3.6.3 unaffected. The active
-research comparator is therefore repinned to OpenSSL 3.6.4 commit
+path non-applicability only; it does not make 3.6.3 unaffected. That tranche
+repinned the research comparator to OpenSSL 3.6.4 commit
 `d3c1b1169b3569ff3069e5b399f47b2b28e03d79`, tree
 `0f2db317fdf20b06193b96e79ac699b2d4e36d7d`. The annotated release tag object
 is `360ffdb6d82f298d8d22c838dc2b7bf61ece056d`; the release archive SHA-256 is
@@ -127,8 +128,8 @@ the repository does not silently rewrite the upstream record. The workflow
 proves that the equivalent fix is an ancestor of the pinned release. The
 negative lookup for the published object remains manually reviewed provenance
 bound by the exact feed-record hash, rather than a fresh negative-API claim on
-every run. Under the reviewed feed, exact 3.6.4 has zero affected IDs. Fresh
-post-repin exact-main evidence is recorded at protected-main head
+every run. Under that August 25 feed, exact 3.6.4 had zero affected IDs.
+Historical post-repin exact-main evidence is recorded at protected-main head
 `0fa8f5fc4321f057fb758e4c2dc39b790023943c`, whose guarded comparator diff from
 repin baseline `b22b21c3c6a06cb46f643eb1216325ecddacf7a4` was empty. Push
 advisory run `32910153947`, attempt `1`, verified all `41/41` retained
@@ -297,7 +298,7 @@ The read-only workflow pins and hashes cargo-audit 0.22.2, OSV Scanner 2.4.0,
 and cargo-cyclonedx 0.5.9. Each run also retains:
 
 - the raw OpenSSL `secjson` archive, current repository commit/root/subtree
-  identities, normalized 3.6 ranges, and exact 3.6.4 affected-ID result;
+  identities, normalized 3.6 ranges, and exact 3.6.5 affected-ID result;
 - the raw mldsa-native advisory body, response headers, curl metadata, request
   contract, exit code, and normalized published-ID result;
 - the current RustSec database commit and every database entry found across all

@@ -10,7 +10,7 @@ define consensus behavior, and does not allocate or activate an `ALG_ID`.
   March 19, 2025 Section 6 guidance, all pinned by SHA256 in `vectors.json`
 - all 70 NIST ACVP external/pure ML-DSA-44 cases at the exact ACVP-Server
   commit and source-file hashes pinned in `vectors.json`
-- an OpenSSL 3.6.4 runtime plus a clean checkout at its pinned commit/tree,
+- an OpenSSL 3.6.5 runtime plus a clean checkout at its pinned commit/tree,
   annotated release-tag object, and release-tarball digest
 - `pq-code-package/mldsa-native` `v1.0.0-beta2` at its pinned commit
 - `libcrux-ml-dsa` `v0.0.10` at its pinned source commit and annotated tag,
