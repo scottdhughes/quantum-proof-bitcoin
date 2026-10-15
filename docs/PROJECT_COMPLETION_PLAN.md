@@ -1,7 +1,7 @@
 # Project Completion Plan
 
-Assessment date: 2026-10-11. Protected-main revision observed:
-`93a46456c647118dd76a2a7107a5cc714a8714df`.
+Assessment date: 2026-10-15. Protected-main evidence revision observed:
+`1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d`.
 
 This is an engineering work sequence. The controlling production decision
 remains [PQSIG_PRODUCTION_READINESS.md](PQSIG_PRODUCTION_READINESS.md).
@@ -10,8 +10,8 @@ Production backend remains `NONE` and the release hold remains in force.
 ## Progress
 
 The Bitcoin integration and CI inventory baseline are established. The October
-5 Promotion Matrix run
-[37313739622](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/37313739622)
+13 Promotion Matrix run
+[38457326871](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/38457326871)
 completed successfully on this main revision. The inventory still requires
 121 PQ tests and 141 dual-profile tests, with 14 legacy-only tests and no PQ
 backlog. The existing rc2 signature path remains a research fixture; its known
@@ -25,10 +25,17 @@ Valgrind checks, and bounded concurrent verification with calibrated TSan.
 These results have explicit source, toolchain, platform, and campaign bounds.
 The wrapper is not connected to the node or wallet.
 
-The October 7 scheduled sustained run
-[37611714495](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/37611714495)
-completed successfully. Its artifacts have not been independently audited in
-this assessment, so the run status alone is not a new evidence receipt.
+The October 14 scheduled sustained run
+[38543015542](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/38543015542)
+completed four retained-corpus 1,800-second sanitizer campaigns on this exact
+head. Scheduled review run
+[38550795835](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/38550795835)
+reproduced OpenSSL 3.6.5 conformance and completed the fifth 1,800-second
+campaign. The [versioned receipt](reviews/evidence/ml-dsa-44-trusted-main/1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d/SOURCE.json)
+records independently checked archive digests, internal checksums, retained
+source artifacts and ancestry, nonzero imports, durations, and zero crash
+results. Resource run `38457326603` passed its GCC and Clang numeric policies
+on the same head. These are bounded engineering results, not release approval.
 
 The SHRINCS track remains a separate draft research stack, including draft PRs
 #227, #229-#234, #236-#239, and #241. A public zero-value labnet and its soak
@@ -37,33 +44,31 @@ acceptance or authorize merging the alternative signature track into main.
 
 ## Immediate Maintenance
 
-1. Repin the isolated OpenSSL oracle from 3.6.4 to the security release 3.6.5.
-   Scheduled advisory run
+1. Completed: PR #257 repinned the isolated OpenSSL oracle from 3.6.4 to the
+   security release 3.6.5 at
+   `e44a19f352181b3f0aab090d122e2a4562e95512`. Scheduled advisory run
    [37337066507](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/37337066507)
-   correctly rejected thirteen affecting CVEs. The new source commit, tree,
-   annotated tag, release archive, runtime version, vector provenance, and
-   historical advisory records must agree. The exact cryptographic vectors
-   and selected ML-DSA profile remain unchanged.
-2. After that PR merges and its required checks pass, verify the exact merge
-   commit and create a separate pointer-only PR. Advance
-   `contrib/ml-dsa-ref/review_baseline_commit.txt` to that merge commit.
-   Require an empty guarded diff and preserve the baseline validator.
-   Scheduled review run
-   [37617963623](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/37617963623)
-   stopped because the current pointer predates the merged concurrent tests.
-3. After the pointer PR merges, record its exact main commit and dispatch:
-   - `ML-DSA-44 wrapper prototype`, including calibrated Linux TSan;
-   - `ML-DSA-44 verifier resource envelope` for GCC and Clang;
-   - `ML-DSA-44 advisory ledger` for current feeds, SBOM, and portable Miri;
-   - `ML-DSA-44 sustained verifier fuzzing`, four retained-corpus
-     1,800-second sanitizer campaigns;
-   - `ML-DSA-44 review reproduction`, the retained-corpus 1,800-second
-     three-oracle campaign.
-4. Independently verify artifact identity, expiry, archive size/digest, safe
-   member paths, complete internal checksums, source ancestry, positive novel
-   corpus import, requested duration, and zero crash/disagreement results.
-   Commit a versioned receipt and update the issue-owned status using only
-   those verified results.
+   correctly rejected thirteen affecting CVEs. The source commit, tree,
+   annotated tag, release archive, runtime version, and vector provenance now
+   agree, while historical advisory records and the exact cryptographic
+   vectors remain unchanged.
+2. Completed: PR #258 separately advanced the review pointer to that merge
+   commit. The post-pointer main head above has an empty guarded baseline
+   diff; scheduled frozen-baseline reproduction has resumed successfully.
+3. Record the completed resource and retained-corpus evidence above. Current-
+   feed advisory/SBOM/Miri run `38795613101` also passed and its artifact was
+   independently checked: zero affected OpenSSL 3.6.5 feed entries, the exact
+   reviewed Rust scanner dispositions, and portable Miri `3/3`. Finish
+   collecting the separately dispatched exact-main wrapper run `38795609463`
+   before describing the whole refresh as complete. Portable GCC/Clang and
+   calibrated TSan jobs have passed; their direct lifecycle/concurrency scope
+   must remain distinct from fuzzing.
+4. Merge the tested evidence/admission-status bookkeeping, then advance the
+   guarded baseline in a separate pointer-only PR. The machine-readable
+   OpenSSL conformance entry must cite the verified main report, while its
+   disposition stays `ORACLE_ONLY`. Do not weaken the baseline guard to make
+   bookkeeping pass. Record subsequent main observations under their own
+   exact revisions rather than relabeling earlier evidence.
 
 ## Remaining Deliverables
 

@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-10-11
+## Updated: 2026-10-15
 ## Current Phase: Phase 1 - Cryptographic Production Hold
 
 ## Purpose
@@ -59,10 +59,14 @@ baseline remains `pq_required: 121`, `pq_backlog: 0`, `legacy_only: 14`, and
 The isolated `ML-DSA-44` comparator is recorded in
 `ML_DSA_44_REFERENCE.md`. It pins FIPS 204, NIST's potential-updates and
 Section 6 guidance artifacts, all 70 applicable external/pure ACVP cases,
-OpenSSL 3.6.5, `mldsa-native` `v1.0.0-beta2`, and libcrux 0.0.10. Fresh
-trusted-main reproduction of the 3.6.5 pin is pending the repin merge and a
-separate baseline-pointer update; prior 3.6.4 evidence retains its original
-scope. The three codebases are required to agree on all official and
+OpenSSL 3.6.5, `mldsa-native` `v1.0.0-beta2`, and libcrux 0.0.10. Trusted-main
+review run `38550795835` reproduced the current pin set at
+`1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d`, with an empty guarded diff from
+the separately advanced `e44a19f352181b3f0aab090d122e2a4562e95512` baseline.
+The [versioned receipt](reviews/evidence/ml-dsa-44-trusted-main/1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d/SOURCE.json)
+records the 70-case ACVP checks and five completed 1,800-second retained-corpus
+campaigns. Prior 3.6.4 evidence retains its original scope. The three codebases
+are required to agree on all official and
 repo-defined exact outputs,
 cross-verify randomized signatures, and reject the bounded malformed/mutated
 corpus. The two portable-C adapters must pass the ASan/UBSan tranche. Both
@@ -485,13 +489,14 @@ Cryptography implementation lane:
 ## Current Queue
 
 The current dated assessment and completion sequence are in
-[PROJECT_COMPLETION_PLAN.md](PROJECT_COMPLETION_PLAN.md). Immediate maintenance
-is the OpenSSL 3.6.5 comparator repin after thirteen newly affecting 3.6.4 CVEs.
-After that merge, a separate pointer PR must cover the repin and the already
-merged concurrency tranche before frozen-baseline main reproduction resumes.
-The new pin needs fresh trusted-main evidence; historical 3.6.4 reports retain
-their original scope. Wallet/key-format and secret-lifecycle contracts are the
-next substantive deliverables after maintenance.
+[PROJECT_COMPLETION_PLAN.md](PROJECT_COMPLETION_PLAN.md). PRs #257 and #258
+completed the OpenSSL 3.6.5 comparator repin and separate baseline-pointer
+update. Trusted-main reproduction and all five retained-corpus campaigns
+passed at `1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d`; the versioned receipt
+preserves their exact bounds. Admission-status bookkeeping needs a separate
+pointer-only follow-up after merge, without weakening the guarded baseline.
+Historical 3.6.4 reports retain their original scope. Wallet/key-format and
+secret-lifecycle contracts remain the next substantive deliverables.
 
 1. Preserve the reviewed post-promotion baseline:
    - `pq_required`: 121

@@ -3,7 +3,7 @@
 ## Status: AWAITING_EXTERNAL_REVIEW - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-EXTERNAL-REVIEW-v1
 ## Prepared: 2026-07-19
-## Evidence-Updated: 2026-10-11
+## Evidence-Updated: 2026-10-15
 ## Owner: @scottdhughes
 ## Tracking: https://github.com/scottdhughes/quantum-proof-bitcoin/issues/181
 ## Consensus-Relevant: NO
@@ -22,15 +22,21 @@ The review has three bounded subjects:
 3. the cryptographic and implementation risks that a future production design
    must close
 
-The frozen review baseline pointer currently names PQBTC commit
-`3f428d66c32598b96d6efa0db3a6caf74e3ea6dc`. Main commit
-`93a46456c647118dd76a2a7107a5cc714a8714df` adds the bounded concurrent
-verifier tranche after that baseline, so scheduled frozen-baseline reproduction
-correctly rejects its nonempty guarded diff. The current comparator update
-pins OpenSSL 3.6.5; trusted-main reproduction of that pin is pending its merge
-and a separate baseline-pointer PR. Historical 3.6.4 reports retain their
-original scope. The reviewer must record the exact PQBTC revision used for the
-review and confirm whether any of these files differ from the selected baseline:
+PR #257 merged the OpenSSL 3.6.5 comparator repin at
+`e44a19f352181b3f0aab090d122e2a4562e95512`, including the earlier concurrent
+verifier tranche. PR #258 advanced the frozen review baseline pointer to that
+commit. The post-pointer protected-main evidence head is
+`1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d`; its guarded diff from that baseline
+is empty. Scheduled review run `38550795835` reproduced all 70 ACVP cases,
+the three-oracle checks, and a retained-corpus 1,800-second differential
+campaign at that exact head. Its independently checked artifact and source
+bindings are recorded in the
+[versioned receipt](reviews/evidence/ml-dsa-44-trusted-main/1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d/SOURCE.json).
+Historical 3.6.4 reports retain their original scope. Updating admission
+bookkeeping does not change those observed sources and requires a separate
+baseline-pointer follow-up after merge. The reviewer must record the exact
+PQBTC revision used for the review and confirm whether any of these files
+differ from the selected baseline:
 
 - `contrib/ml-dsa-ref/vectors.json`
 - `contrib/ml-dsa-ref/compare_oracles.py`
@@ -124,7 +130,7 @@ signature-verification cases, for 70 cases total.
 
 | Oracle | Frozen source | Role and limitation |
 | --- | --- | --- |
-| OpenSSL | Version 3.6.5, commit `c8bd5a57108599ac650bbae77fcabe3109dab2e8` | Separate provider oracle; not a proposed node dependency; trusted-main evidence for this pin is pending; independent re-review remains open |
+| OpenSSL | Version 3.6.5, commit `c8bd5a57108599ac650bbae77fcabe3109dab2e8` | Separate provider oracle; trusted-main conformance reproduced in run `38550795835`; not a proposed node dependency; independent re-review remains open |
 | `mldsa-native` | Tag `v1.0.0-beta2`, commit `9b0ee84f4cf399043eca59eca4e5f8531ca1d61b` | Portable C; forked from PQ-Crystals, so not independent design |
 | libcrux | `libcrux-ml-dsa-v0.0.10`, commit `c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd` | Portable Rust with separate implementation history and disclosed reference influence |
 

@@ -123,7 +123,13 @@
       "source_commit": "c8bd5a57108599ac650bbae77fcabe3109dab2e8",
       "source_tree": "96ac34688809c56b1afa117c75c0ef303ff19a75",
       "license_expression": "Apache-2.0",
-      "conformance": "PENDING_TRUSTED_MAIN_REPRODUCTION",
+      "conformance": "PASS",
+      "conformance_evidence": {
+        "head_sha": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+        "run_id": 38550795835,
+        "report_sha256": "de98d2dd4eb3ce506a0486755ed147a08de911ba3403d33d26098ca28c3877b4",
+        "receipt": "docs/reviews/evidence/ml-dsa-44-trusted-main/1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d/SOURCE.json"
+      },
       "entropy_boundary": "INTERNAL_DRBG_WITH_PUBLIC_TEST_AND_DETERMINISTIC_CONTROLS",
       "secret_erasure": "PARTIAL_SOURCE_EVIDENCE",
       "side_channel_posture": "NO_PQBTC_BINARY_EVIDENCE",

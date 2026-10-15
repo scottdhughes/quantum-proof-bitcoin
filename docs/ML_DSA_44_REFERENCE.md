@@ -148,9 +148,16 @@ sanitizer markers, oracle errors, or disagreements. Sustained run
 campaigns with nonzero retained-corpus imports and zero crashes; the same
 receipt binds resource run `32910153642` and advisory run `32910153947`.
 
-The OpenSSL 3.6.5 pin awaits fresh trusted-main reproduction after the repin
-merge and a separate baseline-pointer update. These historical receipts do
-not establish conformance for the new source pin.
+OpenSSL 3.6.5 trusted-main reproduction completed in scheduled review run
+`38550795835` at `1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d`, after PRs #257
+and #258 merged. Its guarded diff from baseline
+`e44a19f352181b3f0aab090d122e2a4562e95512` is empty. All 70 ACVP cases and
+three-oracle checks passed; the retained-corpus 1,800-second differential
+campaign completed `1,843,613` executions with zero crashes or disagreements.
+The [versioned receipt](reviews/evidence/ml-dsa-44-trusted-main/1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d/SOURCE.json)
+binds its artifact digest, checksum inventories, retained-source provenance,
+and coverage floors. Historical receipts do not establish conformance for
+this newer source pin; independent review remains open.
 
 In that 2026-08-26 tranche, the signer and review artifacts retain self-
 contained retained-source provenance. Its strict-verifier campaign artifacts

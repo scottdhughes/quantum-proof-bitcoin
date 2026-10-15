@@ -1,8 +1,20 @@
 # ML-DSA-44 Advisory Ledger and Dependency Refresh
 
-Status: engineering contract implemented; OpenSSL 3.6.5 repin awaiting fresh
-trusted-main reproduction, while independent re-review remains required. This
+Status: engineering contract implemented; OpenSSL 3.6.5 trusted-main comparator
+reproduction passed in run `38550795835`, while independent re-review remains required. This
 document does not change the production backend (`NONE`) or the release hold.
+
+Trusted-main refresh run `38795613101` passed on 2026-10-15 at exact head
+`1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d`. The
+[versioned receipt](reviews/evidence/ml-dsa-44-trusted-main/1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d/SOURCE.json)
+binds the downloaded archive digest, all 41 internal checksum entries, the
+retained OSV database hash, and normalized report. Portable Miri passed `3/3`;
+the 297-record OpenSSL feed lists zero affected IDs for the exact 3.6.5 pin,
+and the public mldsa-native advisory result is empty. The full Rust lock still
+has seven reviewed findings and one yanked-package warning outside the
+selected 16-package portable graph; these results are not empty scanner
+claims. The 24-component SBOM passed. This refresh did not run or re-admit
+SIMD256 and does not close issue #189 or independent review.
 
 ## Purpose and Scope
 
