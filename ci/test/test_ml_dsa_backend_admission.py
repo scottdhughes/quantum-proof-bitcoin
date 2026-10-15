@@ -63,17 +63,41 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
             {name: candidate["source_commit"] for name, candidate in assessments.items()},
             expected,
         )
-        for name, candidate in assessments.items():
+        for candidate in assessments.values():
             self.assertRegex(candidate["source_tree"], r"^[0-9a-f]{40}$")
-            self.assertEqual(
-                candidate["conformance"],
-                "PENDING_TRUSTED_MAIN_REPRODUCTION"
-                if name == "openssl_3_6_5" else "PASS",
-            )
+            self.assertEqual(candidate["conformance"], "PASS")
         self.assertEqual(
             assessments["openssl_3_6_5"]["source_tree"],
             sources["openssl"]["git_tree"],
         )
+
+    def test_openssl_conformance_is_bound_to_trusted_main_receipt(self):
+        candidate = self.admission["candidate_assessments"]["openssl_3_6_5"]
+        self.assertIn("conformance_evidence", candidate)
+        evidence = candidate["conformance_evidence"]
+        receipt_path = REPO_ROOT / evidence["receipt"]
+        self.assertTrue(receipt_path.is_file())
+        receipt = json.loads(receipt_path.read_text(encoding="utf8"))
+        review = receipt["workflows"]["review_reproduction"]
+        self.assertEqual(receipt["evidence_head"], evidence["head_sha"])
+        self.assertEqual(review["head_sha"], evidence["head_sha"])
+        self.assertEqual(review["run_id"], evidence["run_id"])
+        self.assertEqual(review["run_conclusion"], "success")
+        self.assertEqual(review["ref"], "refs/heads/main")
+        self.assertIn(review["event"], {"schedule", "workflow_dispatch"})
+        self.assertTrue(
+            receipt["verification"]["guarded_baseline_diff_empty_at_evidence_head"]
+        )
+        context = review["ml-dsa-44-review-run-context"]
+        self.assertEqual(context["evidence_trust_scope"], "frozen_baseline_reproduction")
+        self.assertEqual(context["promotion_eligible"], "true")
+        self.assertEqual(context["baseline_commit"], receipt["baseline_pointer"])
+        self.assertEqual(review["review_report_sha256"], evidence["report_sha256"])
+        self.assertEqual(review["conformance"]["status"], "PASS")
+        self.assertEqual(review["conformance"]["openssl_commit"], candidate["source_commit"])
+        self.assertEqual(review["conformance"]["openssl_tree"], candidate["source_tree"])
+        self.assertEqual(receipt["production_boundary"]["production_backend"], "NONE")
+        self.assertTrue(receipt["production_boundary"]["release_hold"])
 
     def test_exactly_one_isolated_prototype_is_admitted(self):
         assessments = self.admission["candidate_assessments"]

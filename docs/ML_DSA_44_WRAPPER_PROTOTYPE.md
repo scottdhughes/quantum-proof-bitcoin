@@ -2,7 +2,7 @@
 
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-WRAPPER-PROTOTYPE-v1
-## Updated: 2026-10-11
+## Updated: 2026-10-15
 ## Consensus-Relevant: NO
 
 ## Scope
@@ -322,9 +322,16 @@ a 1,800-second scheduled/manual main Linux Clang ASan/UBSan differential
 campaign. Its fuzz target calls the isolated wrapper,
 OpenSSL 3.6.5's explicitly selected default provider in a separate library
 context, and libcrux 0.0.10 in-process for every parsed frame and aborts
-on any setup error or accept/reject disagreement. Fresh trusted-main
-reproduction of the 3.6.5 pin is pending the repin merge and a separate
-baseline-pointer update; earlier 3.6.4 reports retain their original scope.
+on any setup error or accept/reject disagreement. Trusted-main run
+`38550795835` reproduced the 3.6.5 pin at
+`1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d`, after the repin and baseline-pointer
+merges. Its 1,800-second campaign completed `1,843,613` executions, imported
+`92` retained inputs, passed the replay and coverage floors, and recorded zero
+crashes or disagreements. The
+[versioned receipt](reviews/evidence/ml-dsa-44-trusted-main/1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d/SOURCE.json)
+also records the four completed 1,800-second strict-verifier/stateful-signer
+sanitizer campaigns in run `38543015542`. Earlier 3.6.4 reports retain their
+original scope. None of these campaigns calls `fork()`.
 The wrapper's exact invalid-argument taxonomy is still checked separately.
 The retained evidence
 records source and binary hashes, both external-oracle pins, the resolved
