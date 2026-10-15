@@ -55,14 +55,16 @@ acceptance or authorize merging the alternative signature track into main.
 2. Completed: PR #258 separately advanced the review pointer to that merge
    commit. The post-pointer main head above has an empty guarded baseline
    diff; scheduled frozen-baseline reproduction has resumed successfully.
-3. Record the completed resource and retained-corpus evidence above. Current-
-   feed advisory/SBOM/Miri run `38795613101` also passed and its artifact was
-   independently checked: zero affected OpenSSL 3.6.5 feed entries, the exact
-   reviewed Rust scanner dispositions, and portable Miri `3/3`. Finish
-   collecting the separately dispatched exact-main wrapper run `38795609463`
-   before describing the whole refresh as complete. Portable GCC/Clang and
-   calibrated TSan jobs have passed; their direct lifecycle/concurrency scope
-   must remain distinct from fuzzing.
+3. Completed: current-feed advisory/SBOM/Miri run `38795613101` and wrapper
+   run `38795609463` passed, and their retained artifacts were independently
+   checked. The advisory report records zero affected OpenSSL 3.6.5 feed
+   entries, the exact reviewed Rust dispositions, and portable Miri `3/3`.
+   Wrapper evidence includes normal and ASan/UBSan GCC/Clang tests, calibrated
+   TSan, `14/14` static-analysis checks, and both calibrated Valgrind lanes.
+   Its direct lifecycle claim remains coordinated standard-fork module-lock
+   recovery on tested Ubuntu/Linux only; other jobs do not extend that claim.
+   Static-analysis inputs are clean, but CI modifies a LevelDB file outside
+   the audit set; the receipt does not call the whole build checkout clean.
 4. Merge the tested evidence/admission-status bookkeeping, then advance the
    guarded baseline in a separate pointer-only PR. The machine-readable
    OpenSSL conformance entry must cite the verified main report, while its

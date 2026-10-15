@@ -1,13 +1,11 @@
 {
   "baseline_pointer": "e44a19f352181b3f0aab090d122e2a4562e95512",
   "baseline_pointer_file_sha256": "31de018b808c4a601e82180e69fe5473821efebdbf84ef973a069023b6bdb8e4",
-  "collection_complete": false,
+  "collection_complete": true,
   "evidence_head": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
   "implementation_commit": "e44a19f352181b3f0aab090d122e2a4562e95512",
   "observed_on": "2026-10-15",
-  "pending_collections": [
-    "wrapper_prototype"
-  ],
+  "pending_collections": [],
   "production_boundary": {
     "exact_commit_independent_re_review": "PENDING",
     "external_cryptographic_review_satisfied": false,
@@ -22,8 +20,8 @@
   "repository": "scottdhughes/quantum-proof-bitcoin",
   "schema_version": 1,
   "scope": {
-    "direct_evidence_claim": "EXACT_CLEAN_TRUSTED_MAIN_ISOLATED_PORTABLE_WRAPPER_AND_OPENSSL_3_6_5_COMPARATOR_ONLY",
-    "direct_fork_claim": "NO_NEW_DIRECT_FORK_OBSERVATION_CLAIM_IN_THIS_RECEIPT",
+    "direct_evidence_claim": "EXACT_TRUSTED_MAIN_SCOPED_AUDIT_INPUTS_AND_OPENSSL_3_6_5_COMPARATOR_ONLY",
+    "direct_fork_claim": "TESTED_UBUNTU_LINUX_STANDARD_FORK_MODULE_LOCK_RECOVERY_ONLY",
     "excluded_claims": [
       "production fitness",
       "independent cryptographic review",
@@ -1620,6 +1618,181 @@
       "run_conclusion": "success",
       "run_id": 38543015542,
       "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/38543015542"
+    },
+    "wrapper_prototype": {
+      "artifacts": [
+        {
+          "check_count": 14,
+          "created_at": "2026-10-15T20:08:32Z",
+          "digest": "sha256:7f877d2031590f096c1b1f7ebceb756a157965ec27626da48fd23e9154b40b90",
+          "download_sha256": "7f877d2031590f096c1b1f7ebceb756a157965ec27626da48fd23e9154b40b90",
+          "expired": false,
+          "expires_at": "2027-01-13T19:38:57Z",
+          "id": 12003567169,
+          "internal_checksum_manifests": [
+            {
+              "entries": 20,
+              "path": "SHA256SUMS",
+              "sha256": "21296a297575b435d4fcd4e7e16ee715dfccd247ac106e94a4cb40546f7dd88e"
+            }
+          ],
+          "name": "ml-dsa-44-wrapper-static-analysis-1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d-38795609463-1",
+          "plan_sha256": "ac09136c86aa1142f2da58eff78a10cd551324bedae157252363648ff6fdd149",
+          "report_sha256": "83b183708e5d2758679eca016ff4c4bb63b607ee58d8e951775b28405f2008c1",
+          "repository": {
+            "audit_input_dirty": false,
+            "commit": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+            "dirty_audit_inputs": [],
+            "tracked_changes": [
+              "src/leveldb/db/db_impl.cc"
+            ],
+            "tracked_worktree_dirty": true
+          },
+          "size_in_bytes": 13651,
+          "status": "passed"
+        },
+        {
+          "check_count": 5,
+          "created_at": "2026-10-15T19:42:44Z",
+          "digest": "sha256:9123f1e630e81775d43b025862f3a13b2cc7700856d9150ac030449e968f94f6",
+          "download_sha256": "9123f1e630e81775d43b025862f3a13b2cc7700856d9150ac030449e968f94f6",
+          "expired": false,
+          "expires_at": "2027-01-13T19:38:57Z",
+          "id": 12002406591,
+          "internal_checksum_manifests": [
+            {
+              "entries": 18,
+              "path": "audit/SHA256SUMS",
+              "sha256": "75945b8a1169b588822290059d69985f28f9cfced57126c32592fd87e230cc30"
+            }
+          ],
+          "name": "ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d-38795609463-1",
+          "plan_sha256": "87f5d0de859255668e4e24d3245d69a3989ad889ad35257aac3d9620ff1127eb",
+          "positive_controls_passed": 4,
+          "report_sha256": "e4959ae0c3a88ca888e4c018c2a469be0432941b23c71e09e53ee738443f187c",
+          "repository": {
+            "all_audit_inputs_tracked": true,
+            "audit_input_dirty": false,
+            "commit": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+            "dirty_audit_inputs": [],
+            "tracked_changes": [],
+            "untracked_evidence_sources": [],
+            "untracked_files": [
+              ".audit/mldsa-native/"
+            ],
+            "worktree_dirty": true
+          },
+          "size_in_bytes": 124539,
+          "status": "passed",
+          "upstream_environment": {
+            "commit": "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
+            "flake_lock_sha256": "cdc01dce87b0c9b8488baafb0e0ed5ec94064089f7b4d5b253aecfeef2ac1861",
+            "git_archive_tar_sha256": "4fd08a772d0a142863593471f0c26e239bac8babc8e2a960e072f06ee89ff30b",
+            "git_tree": "c73c7029182122fce2f2dd8ac544ae990abd74a2",
+            "nixpkgs_nar_hash": "sha256-z5NJPSBwsLf/OfD8WTmh79tlSU8XgIbwmk6qB1/TFzY=",
+            "nixpkgs_rev": "23d72dabcb3b12469f57b37170fcbc1789bd7457",
+            "path": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/.audit/mldsa-native",
+            "valgrind_patch_sha256": "d54b140f2bacaea91470940a963950b7126685810df2192640cd103328b421f4",
+            "validation_errors": [],
+            "worktree_clean": true,
+            "worktree_status": []
+          },
+          "wrapper_errors": 0,
+          "wrapper_leak_errors": 0,
+          "wrapper_variable_latency_findings": 0
+        },
+        {
+          "check_count": 5,
+          "created_at": "2026-10-15T19:42:29Z",
+          "digest": "sha256:d26f0309d6b7467508cc01d778268a19cf405cfdfe284573f71d9c97ff08998a",
+          "download_sha256": "d26f0309d6b7467508cc01d778268a19cf405cfdfe284573f71d9c97ff08998a",
+          "expired": false,
+          "expires_at": "2027-01-13T19:38:57Z",
+          "id": 12002306669,
+          "internal_checksum_manifests": [
+            {
+              "entries": 18,
+              "path": "audit/SHA256SUMS",
+              "sha256": "cdb0f28c3fcc29a59bedd592ae811fe7ede682f318f7684e249c5b2166239fc5"
+            }
+          ],
+          "name": "ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_gcc13-1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d-38795609463-1",
+          "plan_sha256": "2776e983319e8fb8c187828eea00582e0151b098324a2f4854929d94954bfede",
+          "positive_controls_passed": 4,
+          "report_sha256": "a964c97bf404da0d28c879c6bad69d7674983c9e708bae229c750bd5f0ce973e",
+          "repository": {
+            "all_audit_inputs_tracked": true,
+            "audit_input_dirty": false,
+            "commit": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+            "dirty_audit_inputs": [],
+            "tracked_changes": [],
+            "untracked_evidence_sources": [],
+            "untracked_files": [
+              ".audit/mldsa-native/"
+            ],
+            "worktree_dirty": true
+          },
+          "size_in_bytes": 115421,
+          "status": "passed",
+          "upstream_environment": {
+            "commit": "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
+            "flake_lock_sha256": "cdc01dce87b0c9b8488baafb0e0ed5ec94064089f7b4d5b253aecfeef2ac1861",
+            "git_archive_tar_sha256": "4fd08a772d0a142863593471f0c26e239bac8babc8e2a960e072f06ee89ff30b",
+            "git_tree": "c73c7029182122fce2f2dd8ac544ae990abd74a2",
+            "nixpkgs_nar_hash": "sha256-z5NJPSBwsLf/OfD8WTmh79tlSU8XgIbwmk6qB1/TFzY=",
+            "nixpkgs_rev": "23d72dabcb3b12469f57b37170fcbc1789bd7457",
+            "path": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/.audit/mldsa-native",
+            "valgrind_patch_sha256": "d54b140f2bacaea91470940a963950b7126685810df2192640cd103328b421f4",
+            "validation_errors": [],
+            "worktree_clean": true,
+            "worktree_status": []
+          },
+          "wrapper_errors": 0,
+          "wrapper_leak_errors": 0,
+          "wrapper_variable_latency_findings": 0
+        }
+      ],
+      "concurrent_verifier_observation": {
+        "clean_concurrent_verifier_passed": true,
+        "fork_called": false,
+        "job_conclusion": "success",
+        "job_id": 116631080705,
+        "log_sha256": "055c6e0abcf8465ebd79d6598383d34985be9274e1b038bd05719b56e98adaf8",
+        "positive_control_detected_deliberate_race": true
+      },
+      "direct_lifecycle_observation": [
+        {
+          "compiler": "gcc",
+          "job_conclusion": "success",
+          "job_id": 116631080595,
+          "log_sha256": "16da1c30a4f81cdadb1408d301938ec52ff4598efe925206cdc7595a2a4bd503",
+          "normal_and_asan_ubsan_passed": true
+        },
+        {
+          "compiler": "clang",
+          "job_conclusion": "success",
+          "job_id": 116631080672,
+          "log_sha256": "853db7b6491d162572677fa8dd126471a1e64060ce910d039fc94e41349c99c4",
+          "normal_and_asan_ubsan_passed": true
+        }
+      ],
+      "event": "workflow_dispatch",
+      "fork_called": true,
+      "head_sha": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+      "limitations": [
+        "Direct fork claim is coordinated standard fork() module-lock recovery on tested Ubuntu/Linux only.",
+        "The signer is not async-signal-safe; portable multithreaded-child signing requires exec first.",
+        "Fuzz, resource, static-analysis, CT, TSan, and advisory jobs do not extend direct fork coverage.",
+        "Static-analysis audit inputs are clean but its CI setup changes src/leveldb/db/db_impl.cc outside the audited input set; no whole-worktree-clean claim.",
+        "Valgrind setup retains an untracked .audit/mldsa-native checkout; audited inputs and the pinned upstream environment are clean.",
+        "No production admission, external review, broad concurrency, or physical leakage claim."
+      ],
+      "path": ".github/workflows/ml-dsa-44-wrapper-prototype.yml",
+      "ref": "refs/heads/main",
+      "run_attempt": 1,
+      "run_conclusion": "success",
+      "run_id": 38795609463,
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/38795609463"
     }
   }
 }
