@@ -6,6 +6,7 @@
 
 SHARED_EXCLUDED_SUBTREES = [
     "contrib/ml-dsa-engineering/vendor/mldsa-native/",
+    "src/crypto/shrincs/third_party/libshrincs/",
     "src/leveldb/",
     "src/crc32c/",
     "src/secp256k1/",

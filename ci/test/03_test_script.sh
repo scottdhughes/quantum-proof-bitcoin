@@ -262,6 +262,13 @@ if [ "$RUN_FUNCTIONAL_TESTS" = "true" ]; then
     else
       PQBTC_FUNCTIONAL_TESTS_ARRAY=()
     fi
+    # The mined SHRINCS gate executes the pinned signer model, not a fixture.
+    # Prepare it explicitly in CI; a missing/mismatched model must not skip it.
+    if [ "${#PQBTC_FUNCTIONAL_TESTS_ARRAY[@]}" -eq 0 ] || [[ " ${PQBTC_FUNCTIONAL_TESTS_ARRAY[*]} " == *" feature_shrincs_regtest.py "* ]]; then
+      export SHRINCS_BIP_DIR="${BASE_SCRATCH_DIR}/shrincs-functional-reference"
+      python3 "${BASE_ROOT_DIR}/contrib/shrincs-labnet/labnet.py" \
+        --state-dir "${BASE_SCRATCH_DIR}/shrincs-reference-state" fetch-upstream
+    fi
     LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \
     "${BASE_BUILD_DIR}/test/functional/test_runner.py" \
       --ci "${MAKEJOBS}" \

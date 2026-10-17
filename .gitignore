@@ -32,3 +32,6 @@ target/
 
 .DS_Store
 **/.DS_Store
+
+# Private zero-value SHRINCS labnet state and secret-key database.
+/.shrincs-labnet/

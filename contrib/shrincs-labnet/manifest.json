@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "profile": "pqbtc-shrincs-v0-private-regtest-labnet",
+  "zero_value_only": true,
+  "network": {
+    "chain": "regtest",
+    "nodes": 2,
+    "localhost_only": true,
+    "node0_p2p_port": 19444,
+    "node0_rpc_port": 19443,
+    "node1_p2p_port": 19445,
+    "node1_rpc_port": 19453,
+    "public_discovery": false
+  },
+  "consensus_activation": {
+    "mainnet": false,
+    "testnet": false,
+    "testnet4": false,
+    "signet": false,
+    "regtest": true
+  },
+  "shrincs": {
+    "upstream_repository": "SHRINCS/shrincs-bip",
+    "upstream_commit": "acc6bda51dc3b94848d118967247ad0f3cd7a80e",
+    "public_key_bytes": 48,
+    "stateful_structure": {
+      "shape": "unbalanced",
+      "depth": 4,
+      "usable_state_counters": 5
+    },
+    "stateless_signature_bytes": 5776,
+    "context": "PQBTC/SHRINCS/TXSIG/v0"
+  },
+  "signer_state": {
+    "backend": "sqlite",
+    "journal_mode": "WAL",
+    "synchronous": "FULL",
+    "reserve_before_sign": true,
+    "burn_on_failure": true,
+    "silent_stateless_fallback": false,
+    "self_verify_before_release": true
+  },
+  "production_ready": false
+}

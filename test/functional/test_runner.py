@@ -95,6 +95,7 @@ BASE_SCRIPTS = [
     'mempool_pq_stress.py',
     'feature_pq_reorg.py',
     'feature_pq_block_limits.py',
+    'feature_shrincs_regtest.py',
     # vv Tests less than 5m vv
     'feature_fee_estimation.py',
     'feature_taproot.py',
