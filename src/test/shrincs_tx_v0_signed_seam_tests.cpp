@@ -237,7 +237,7 @@ BOOST_AUTO_TEST_CASE(authenticated_vectors_verify_against_native_transaction_dig
     BOOST_CHECK_EQUAL(RawHex(digest), vectors::TRANSACTION_DIGEST_HEX);
     BOOST_CHECK_EQUAL(SerializeStripped(test_case.tx), vectors::STRIPPED_TRANSACTION_HEX);
     BOOST_CHECK_EQUAL(
-        std::string{signed_vectors.context.begin(), signed_vectors.context.end()},
+        (std::string{signed_vectors.context.begin(), signed_vectors.context.end()}),
         std::string{shrincs_tx_v0::SIGNING_CONTEXT});
     BOOST_CHECK_EQUAL(Sha256Hex(signed_vectors.public_key), vectors::PUBLIC_KEY_SHA256_HEX);
     BOOST_CHECK_EQUAL(Sha256Hex(signed_vectors.stateful_signature), vectors::STATEFUL_SIGNATURE_SHA256_HEX);
