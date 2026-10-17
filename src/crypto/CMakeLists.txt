@@ -40,6 +40,13 @@ target_include_directories(bitcoin_crypto
     ${CMAKE_CURRENT_SOURCE_DIR}/shrincs/third_party/libshrincs/include
 )
 
+# Keep the pinned vendor source unchanged: its CompCert fallback loop follows
+# __builtin_trap() on Clang. Retain that diagnostic without making it fatal;
+# all other warnings and all other source files keep the normal error policy.
+set_property(SOURCE shrincs/third_party/libshrincs/src/util.c APPEND PROPERTY
+  COMPILE_OPTIONS "$<$<COMPILE_LANG_AND_ID:C,Clang,AppleClang>:-Wno-error=unreachable-code>"
+)
+
 if(HAVE_SSE41)
   target_compile_definitions(bitcoin_crypto PRIVATE ENABLE_SSE41)
   target_sources(bitcoin_crypto PRIVATE sha256_sse41.cpp)
