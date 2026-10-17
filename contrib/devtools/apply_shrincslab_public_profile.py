@@ -571,6 +571,8 @@ regtest=1
 shrincslab=1
 server=1
 listen=1
+
+[regtest]
 port={P2P_PORT}
 rpcport={RPC_PORT}
 

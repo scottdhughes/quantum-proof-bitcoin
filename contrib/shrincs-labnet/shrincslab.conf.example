@@ -3,6 +3,8 @@ regtest=1
 shrincslab=1
 server=1
 listen=1
+
+[regtest]
 port=29333
 rpcport=29332
 

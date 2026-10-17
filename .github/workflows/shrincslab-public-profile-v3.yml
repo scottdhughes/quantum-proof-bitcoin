@@ -90,6 +90,38 @@ jobs:
             -DWITH_USDT=OFF -DBUILD_TESTS=ON
           cmake --build build --parallel 2
 
+      - name: Smoke-test generated public configuration
+        run: |
+          set -euo pipefail
+          EXAMPLE_STATE=$(mktemp -d "$RUNNER_TEMP/shrincslab-example.XXXXXX")
+          CONFIG="$EXAMPLE_STATE/pqbtc.conf"
+          # Change only the public P2P address for the contained CI probe.
+          # CLI bind arguments append to config binds rather than replacing them.
+          sed 's/^bind=0[.]0[.]0[.]0:29333$/bind=127.0.0.1:29333/' \
+            contrib/shrincs-labnet/shrincslab.conf.example > "$CONFIG"
+          test "$(grep -c '^bind=' "$CONFIG")" -eq 1
+          grep -q '^bind=127[.]0[.]0[.]1:29333$' "$CONFIG"
+          CLI="$GITHUB_WORKSPACE/build/bin/pqbtc-cli"
+          trap '"$CLI" -conf="$CONFIG" -datadir="$EXAMPLE_STATE" stop >/dev/null 2>&1 || true' EXIT
+          # Other settings come from the shipped example, including its
+          # selector, network section, and private RPC port.
+          build/bin/pqbtcd -conf="$CONFIG" -datadir="$EXAMPLE_STATE" \
+            -connect=0 -disablewallet=1 \
+            -pid="$EXAMPLE_STATE/example.pid" -daemonwait
+          read -r EXAMPLE_PID < "$EXAMPLE_STATE/example.pid"
+          test "$("$CLI" -conf="$CONFIG" -datadir="$EXAMPLE_STATE" getblockhash 0)" = \
+            122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69
+          "$CLI" -conf="$CONFIG" -datadir="$EXAMPLE_STATE" stop
+          for _ in $(seq 1 30); do
+            if ! kill -0 "$EXAMPLE_PID" 2>/dev/null; then
+              trap - EXIT
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "example node did not stop within 30 seconds" >&2
+          exit 1
+
       - name: Run native identity and signature suites
         run: |
           build/bin/test_pqbtc \

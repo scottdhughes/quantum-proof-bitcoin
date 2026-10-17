@@ -1,6 +1,7 @@
 """Exercise the complete layered public-labnet materialization sequence."""
 
 import hashlib
+import configparser
 import importlib.util
 import json
 from pathlib import Path
@@ -75,6 +76,18 @@ class ShrincsLabMaterializerTests(unittest.TestCase):
                 manifest["shrincs"]["chain_domain"]["sha256"],
                 "db0e425cda8dcebc9e64203d2a5dfde2e954954f3dc95b8b9807590103d07652",
             )
+            config = configparser.ConfigParser()
+            config.read_string("[global]\n" + (root / "contrib/shrincs-labnet/shrincslab.conf.example").read_text())
+            self.assertEqual(config["global"]["regtest"], "1")
+            self.assertEqual(config["global"]["shrincslab"], "1")
+            for key, value in (
+                ("port", "29333"), ("rpcport", "29332"),
+                ("bind", "0.0.0.0:29333"), ("rpcbind", "127.0.0.1"),
+                ("rpcallowip", "127.0.0.1"),
+            ):
+                with self.subTest(setting=key):
+                    self.assertNotIn(key, config["global"])
+                    self.assertEqual(config["regtest"][key], value)
             spec = importlib.util.spec_from_file_location(
                 "materialized_shrincs_guards", root / "ci/test/test_shrincs_tx_cpp_component.py"
             )
