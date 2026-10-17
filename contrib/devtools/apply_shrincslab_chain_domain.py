@@ -101,11 +101,15 @@ def patch_base_identity() -> dict[str, bool]:
     )
     ci_path = ROOT / "ci/test/test_shrincs_tx_cpp_component.py"
     ci_text = ci_path.read_text(encoding="utf-8")
-    marker = '        self.assertIn(\'bech32_hrp = "pqsl";\', chainparams)\n'
+    # Own a separate test instead of inserting inside the profile layer's
+    # replacement block, which must remain recognizable on its next pass.
+    marker = "    def test_validation_flags_follow_consensus_scope(self) -> None:\n"
     addition = (
-        marker
+        "    def test_labnet_base_directory_and_rpc_identity(self) -> None:\n"
         + '        base_params = (REPO_ROOT / "src" / "chainparamsbase.cpp").read_text(encoding="utf-8")\n'
         + '        self.assertIn(\'CBaseChainParams>("shrincslab", 29332)\', base_params)\n'
+        + "\n"
+        + marker
     )
     if addition in ci_text:
         changes["architecture_guard"] = False
