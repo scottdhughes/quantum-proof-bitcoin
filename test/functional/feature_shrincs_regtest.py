@@ -28,8 +28,6 @@ from test_framework.util import assert_equal
 from test_framework.wallet import MiniWallet
 
 DRAFT_COMMIT = "acc6bda51dc3b94848d118967247ad0f3cd7a80e"
-REPO_ROOT = Path(__file__).resolve().parents[2]
-MODEL_PATH = REPO_ROOT / "contrib" / "shrincs-tx" / "tx_model.py"
 
 
 def load_module(path: Path, name: str) -> ModuleType:
@@ -49,6 +47,14 @@ def git_head(path: Path) -> str:
         capture_output=True,
         text=True,
     ).stdout.strip()
+
+
+def load_transaction_model(config) -> ModuleType:
+    source = Path(config["environment"]["SRCDIR"])
+    return load_module(
+        source / "contrib" / "shrincs-tx" / "tx_model.py",
+        "pqbtc_shrincs_regtest_tx_model",
+    )
 
 
 def kdf(label: bytes, length: int) -> bytes:
@@ -159,7 +165,7 @@ class SHRINCSRegtestTest(BitcoinTestFramework):
     def run_test(self):
         shrincs_bip = Path(os.environ["SHRINCS_BIP_DIR"]).resolve()
         assert_equal(git_head(shrincs_bip), DRAFT_COMMIT)
-        model = load_module(MODEL_PATH, "pqbtc_shrincs_regtest_tx_model")
+        model = load_transaction_model(self.config)
         reference = load_module(
             shrincs_bip / "impl" / "shrincs.py",
             "pqbtc_shrincs_regtest_reference",

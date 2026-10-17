@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import configparser
 from pathlib import Path
 import sys
 import tempfile
@@ -56,6 +57,21 @@ class FakeReference:
 
 
 class NodeConfigTests(unittest.TestCase):
+    def test_both_nodes_bind_only_their_explicit_loopback_p2p_port(self):
+        layout = labnet.Layout(Path("state"), Path("build"))
+        for node in (layout.node0, layout.node1):
+            with self.subTest(node=node.index):
+                config = configparser.ConfigParser()
+                config.read_string("[global]\n" + node.config_text())
+                # An explicit normal bind also suppresses Core's implicit
+                # port+1 onion listener, which otherwise overlaps node1.
+                self.assertEqual(
+                    config["regtest"].get("bind"),
+                    f"127.0.0.1:{node.p2p_port}",
+                )
+                self.assertNotIn("bind", config["global"])
+                self.assertEqual(config["global"]["listenonion"], "0")
+
     def test_network_bindings_live_under_regtest_section(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

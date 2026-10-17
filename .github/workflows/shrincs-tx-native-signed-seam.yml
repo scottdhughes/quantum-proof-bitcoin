@@ -46,7 +46,9 @@ jobs:
           fetch-depth: 0
 
       - name: Enforce signed-seam-only scope
-        if: ${{ github.event_name == 'pull_request' }}
+        # The signed-seam path contract is not the descendant devnet contract.
+        # Keep all verifier/architecture tests enabled for descendant PRs.
+        if: ${{ github.event_name == 'pull_request' && github.base_ref == 'research/shrincs-tx-cpp-component' }}
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}

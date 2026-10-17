@@ -351,6 +351,8 @@ jobs:
           TEST_RUNNER_EXTRA: ${{ github.event_name != 'pull_request' && '--extended' || '' }}
         run: |
           PQBTC_FUNCTIONAL_TESTS="${PQBTC_FUNCTIONAL_TESTS:-$(paste -sd' ' ../ci/test/pq_functional_tests.txt)}"
+          export SHRINCS_BIP_DIR="$RUNNER_TEMP/shrincs-functional-reference"
+          py -3 ../contrib/shrincs-labnet/labnet.py --state-dir "$RUNNER_TEMP/shrincs-reference-state" fetch-upstream
           py -3 test/functional/test_runner.py --jobs $NUMBER_OF_PROCESSORS --ci --quiet --tmpdirprefix="${RUNNER_TEMP}" --combinedlogslen=99999999 --timeout-factor=${TEST_RUNNER_TIMEOUT_FACTOR} ${TEST_RUNNER_EXTRA} ${PQBTC_FUNCTIONAL_TESTS}
 
       - name: Clone corpora
@@ -502,6 +504,8 @@ jobs:
           TEST_RUNNER_EXTRA: ${{ github.event_name != 'pull_request' && '--extended' || '' }}
         run: |
           PQBTC_FUNCTIONAL_TESTS="${PQBTC_FUNCTIONAL_TESTS:-$(paste -sd' ' ci/test/pq_functional_tests.txt)}"
+          export SHRINCS_BIP_DIR="$RUNNER_TEMP/shrincs-functional-reference"
+          py -3 contrib/shrincs-labnet/labnet.py --state-dir "$RUNNER_TEMP/shrincs-reference-state" fetch-upstream
           py -3 test/functional/test_runner.py --jobs $NUMBER_OF_PROCESSORS --ci --quiet --tmpdirprefix="$RUNNER_TEMP" --combinedlogslen=99999999 --timeout-factor=$TEST_RUNNER_TIMEOUT_FACTOR $EXCLUDE $TEST_RUNNER_EXTRA $PQBTC_FUNCTIONAL_TESTS
 
   ci-matrix:
