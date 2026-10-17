@@ -1,0 +1,607 @@
+{
+  "baseline_pointer": "8cd01d70dec27064c87cb25139bd356a327da12b",
+  "baseline_pointer_file_sha256": "05e72b9f3368e3c3c43c51efb97cc9a957733bdb405f9850899e85372281d5c6",
+  "evidence_head": "3967012c52470e656a246b8b2e22c9dff193e892",
+  "observation_complete": true,
+  "observed_on": "2026-10-15",
+  "production_boundary": {
+    "external_cryptographic_review_satisfied": false,
+    "production_backend": "NONE",
+    "production_integration": false,
+    "release_hold": true,
+    "release_hold_changed": false,
+    "simd128_admitted": false,
+    "simd256_admitted": false
+  },
+  "repository": "scottdhughes/quantum-proof-bitcoin",
+  "schema_version": 1,
+  "scope": {
+    "collected_workflows": [
+      "resource_envelope"
+    ],
+    "fork_called": false,
+    "kind": "POST_BOOKKEEPING_POINTER_RESOURCE_REFRESH_ONLY",
+    "prior_campaign_evidence_head": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+    "prior_campaign_receipt": "docs/reviews/evidence/ml-dsa-44-trusted-main/1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d/SOURCE.json",
+    "prior_campaigns_relabelled": false,
+    "production_support_claim": false
+  },
+  "verification": {
+    "archive_sha256_and_size_matched": true,
+    "artifact_api_metadata_checked": true,
+    "guarded_baseline_diff_empty_at_evidence_head": true,
+    "internal_checksum_inventories_checked": true,
+    "resource_verifier_passed_on_exact_clean_head": true,
+    "unsafe_zip_members_found": false
+  },
+  "workflows": {
+    "resource_envelope": {
+      "artifacts": [
+        {
+          "created_at": "2026-10-15T21:12:37Z",
+          "digest": "sha256:29772dc3efd0330563452d2e12ee9121018828b9afe2b610e088bc7b930b9dc0",
+          "download_sha256": "29772dc3efd0330563452d2e12ee9121018828b9afe2b610e088bc7b930b9dc0",
+          "expired": false,
+          "expires_at": "2027-01-13T21:11:59Z",
+          "id": 12007681269,
+          "internal_checksum_manifests": [
+            {
+              "entries": 24,
+              "path": "SHA256SUMS",
+              "sha256": "a238eeb374fa2c432dfa5a57a16c25e3a70c2f9dc14e7f52d400e0e26cd23ee0"
+            }
+          ],
+          "name": "ml-dsa-44-resource-main-observation-3967012c52470e656a246b8b2e22c9dff193e892-gcc-38808011383-1",
+          "observation": {
+            "limitations": [
+              "Linux x86_64 only",
+              "sequential direct-verifier calls only",
+              "coarse timing and RSS gates are Linux x86_64 CI regression limits only",
+              "numeric gates are not supported-platform, consensus, or production limits",
+              "no node, wallet, script, consensus, block-scheduler, or concurrency claim",
+              "project-object allocator interposition does not measure dynamic-libc internals",
+              "compiler .su rows are per-function observations, not a formal call-chain sum",
+              "production backend remains NONE and the release hold remains active"
+            ],
+            "numeric_acceptance": {
+              "acceptance_basis_sha256": "2a5acb1914b4623a9f7bc34c4ac2a2eebce25be700622ae3e5eb94f223354761",
+              "aggregation": "first_call_plus_four_batches_control_excluded",
+              "checks": [
+                {
+                  "id": "first_call.cpu_ns",
+                  "limit": 10000000,
+                  "observed": 112853,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "first_call.wall_ns",
+                  "limit": 25000000,
+                  "observed": 114086,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "mixed_rotating.max_sample_cpu_ns",
+                  "limit": 75000000,
+                  "observed": 10967617,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "mixed_rotating.max_sample_wall_ns",
+                  "limit": 200000000,
+                  "observed": 10967479,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "mixed_rotating.cpu_ns",
+                  "limit": 2000000000,
+                  "observed": 271504143,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "mixed_rotating.wall_ns",
+                  "limit": 5000000000,
+                  "observed": 271540241,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "valid_rotating.max_sample_cpu_ns",
+                  "limit": 75000000,
+                  "observed": 16616895,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "valid_rotating.max_sample_wall_ns",
+                  "limit": 200000000,
+                  "observed": 16616482,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "valid_rotating.cpu_ns",
+                  "limit": 2000000000,
+                  "observed": 395138224,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "valid_rotating.wall_ns",
+                  "limit": 5000000000,
+                  "observed": 395253811,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "deep_reject_rotating.max_sample_cpu_ns",
+                  "limit": 75000000,
+                  "observed": 12116553,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "deep_reject_rotating.max_sample_wall_ns",
+                  "limit": 200000000,
+                  "observed": 12116500,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "deep_reject_rotating.cpu_ns",
+                  "limit": 2000000000,
+                  "observed": 365440202,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "deep_reject_rotating.wall_ns",
+                  "limit": 5000000000,
+                  "observed": 365513379,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "same_key_mixed.max_sample_cpu_ns",
+                  "limit": 75000000,
+                  "observed": 12682904,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "same_key_mixed.max_sample_wall_ns",
+                  "limit": 200000000,
+                  "observed": 12682629,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "same_key_mixed.cpu_ns",
+                  "limit": 2000000000,
+                  "observed": 375079204,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "same_key_mixed.wall_ns",
+                  "limit": 5000000000,
+                  "observed": 375221979,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "aggregate.cpu_ns",
+                  "limit": 8000000000,
+                  "observed": 1407274626,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "aggregate.wall_ns",
+                  "limit": 20000000000,
+                  "observed": 1407643496,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "process.peak_rss_kib",
+                  "limit": 65536,
+                  "observed": 32156,
+                  "status": "PASS",
+                  "unit": "KiB"
+                }
+              ],
+              "current_run_threshold_calibration": false,
+              "limits": {
+                "aggregate_cpu_ns": 8000000000,
+                "aggregate_wall_ns": 20000000000,
+                "aggregation": "first_call_plus_four_batches_control_excluded",
+                "batch_sample_cpu_ns": 75000000,
+                "batch_sample_wall_ns": 200000000,
+                "first_call_cpu_ns": 10000000,
+                "first_call_wall_ns": 25000000,
+                "peak_rss_kib": 65536,
+                "per_batch_cpu_ns": 2000000000,
+                "per_batch_wall_ns": 5000000000,
+                "status": "ENFORCED_TEST_ONLY_LINUX_X86_64_GROSS_REGRESSION_CEILING"
+              },
+              "observed": {
+                "aggregate": {
+                  "cpu_ns": 1407274626,
+                  "wall_ns": 1407643496
+                },
+                "batches": [
+                  {
+                    "cpu_ns": 271504143,
+                    "id": "mixed_rotating",
+                    "max_sample_cpu_ns": 10967617,
+                    "max_sample_wall_ns": 10967479,
+                    "wall_ns": 271540241
+                  },
+                  {
+                    "cpu_ns": 395138224,
+                    "id": "valid_rotating",
+                    "max_sample_cpu_ns": 16616895,
+                    "max_sample_wall_ns": 16616482,
+                    "wall_ns": 395253811
+                  },
+                  {
+                    "cpu_ns": 365440202,
+                    "id": "deep_reject_rotating",
+                    "max_sample_cpu_ns": 12116553,
+                    "max_sample_wall_ns": 12116500,
+                    "wall_ns": 365513379
+                  },
+                  {
+                    "cpu_ns": 375079204,
+                    "id": "same_key_mixed",
+                    "max_sample_cpu_ns": 12682904,
+                    "max_sample_wall_ns": 12682629,
+                    "wall_ns": 375221979
+                  }
+                ],
+                "excluded_control": {
+                  "cpu_ns": 14872,
+                  "wall_ns": 22848
+                },
+                "first_call": {
+                  "cpu_ns": 112853,
+                  "wall_ns": 114086
+                },
+                "peak_rss_kib": 32156
+              },
+              "schema_version": 1,
+              "scope": "test-only Linux x86_64 direct-verifier gross-regression gate",
+              "status": "PASS"
+            },
+            "status": "PASS",
+            "trust": {
+              "ci": {
+                "api_url": "https://api.github.com",
+                "base_ref": "",
+                "event_name": "push",
+                "expected_checkout_head": "3967012c52470e656a246b8b2e22c9dff193e892",
+                "github_actions": true,
+                "head_ref": "",
+                "job": "observe",
+                "ref": "refs/heads/main",
+                "ref_protected": true,
+                "repository": "scottdhughes/quantum-proof-bitcoin",
+                "repository_id": "1136579990",
+                "run_attempt": "1",
+                "run_id": "38808011383",
+                "run_number": "48",
+                "server_url": "https://github.com",
+                "sha": "3967012c52470e656a246b8b2e22c9dff193e892",
+                "workflow": "ML-DSA-44 verifier resource envelope",
+                "workflow_ref": "scottdhughes/quantum-proof-bitcoin/.github/workflows/ml-dsa-44-resource-envelope.yml@refs/heads/main",
+                "workflow_sha": "3967012c52470e656a246b8b2e22c9dff193e892"
+              },
+              "label": "TRUSTED_MAIN_OBSERVATION",
+              "promotion_eligible": false,
+              "reason": "exact clean main head matches the separately advanced guarded review baseline",
+              "requires_companion_compilers": [
+                "clang",
+                "gcc"
+              ],
+              "requires_external_workflow_provenance": true,
+              "requires_separate_numeric_policy_change": false,
+              "trusted_observation": true
+            }
+          },
+          "size_in_bytes": 532643
+        },
+        {
+          "created_at": "2026-10-15T21:12:50Z",
+          "digest": "sha256:7d95c3c9077022736880efb4c275f7b9bf1b870a06d2d243db01a6fa44415010",
+          "download_sha256": "7d95c3c9077022736880efb4c275f7b9bf1b870a06d2d243db01a6fa44415010",
+          "expired": false,
+          "expires_at": "2027-01-13T21:11:59Z",
+          "id": 12007506557,
+          "internal_checksum_manifests": [
+            {
+              "entries": 24,
+              "path": "SHA256SUMS",
+              "sha256": "a684c2ff3626a8bb6a210f30458ab1e8fd13fce18fc16b3443134679b8c51636"
+            }
+          ],
+          "name": "ml-dsa-44-resource-main-observation-3967012c52470e656a246b8b2e22c9dff193e892-clang-38808011383-1",
+          "observation": {
+            "limitations": [
+              "Linux x86_64 only",
+              "sequential direct-verifier calls only",
+              "coarse timing and RSS gates are Linux x86_64 CI regression limits only",
+              "numeric gates are not supported-platform, consensus, or production limits",
+              "no node, wallet, script, consensus, block-scheduler, or concurrency claim",
+              "project-object allocator interposition does not measure dynamic-libc internals",
+              "compiler .su rows are per-function observations, not a formal call-chain sum",
+              "production backend remains NONE and the release hold remains active"
+            ],
+            "numeric_acceptance": {
+              "acceptance_basis_sha256": "2a5acb1914b4623a9f7bc34c4ac2a2eebce25be700622ae3e5eb94f223354761",
+              "aggregation": "first_call_plus_four_batches_control_excluded",
+              "checks": [
+                {
+                  "id": "first_call.cpu_ns",
+                  "limit": 10000000,
+                  "observed": 108463,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "first_call.wall_ns",
+                  "limit": 25000000,
+                  "observed": 109704,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "mixed_rotating.max_sample_cpu_ns",
+                  "limit": 75000000,
+                  "observed": 8439984,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "mixed_rotating.max_sample_wall_ns",
+                  "limit": 200000000,
+                  "observed": 8440806,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "mixed_rotating.cpu_ns",
+                  "limit": 2000000000,
+                  "observed": 245188871,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "mixed_rotating.wall_ns",
+                  "limit": 5000000000,
+                  "observed": 245230280,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "valid_rotating.max_sample_cpu_ns",
+                  "limit": 75000000,
+                  "observed": 11991914,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "valid_rotating.max_sample_wall_ns",
+                  "limit": 200000000,
+                  "observed": 12022571,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "valid_rotating.cpu_ns",
+                  "limit": 2000000000,
+                  "observed": 366661791,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "valid_rotating.wall_ns",
+                  "limit": 5000000000,
+                  "observed": 366742733,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "deep_reject_rotating.max_sample_cpu_ns",
+                  "limit": 75000000,
+                  "observed": 12504977,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "deep_reject_rotating.max_sample_wall_ns",
+                  "limit": 200000000,
+                  "observed": 12518233,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "deep_reject_rotating.cpu_ns",
+                  "limit": 2000000000,
+                  "observed": 353018519,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "deep_reject_rotating.wall_ns",
+                  "limit": 5000000000,
+                  "observed": 353065451,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "same_key_mixed.max_sample_cpu_ns",
+                  "limit": 75000000,
+                  "observed": 11664317,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "same_key_mixed.max_sample_wall_ns",
+                  "limit": 200000000,
+                  "observed": 11665096,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "same_key_mixed.cpu_ns",
+                  "limit": 2000000000,
+                  "observed": 357924400,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "same_key_mixed.wall_ns",
+                  "limit": 5000000000,
+                  "observed": 357993719,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "aggregate.cpu_ns",
+                  "limit": 8000000000,
+                  "observed": 1322902044,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "aggregate.wall_ns",
+                  "limit": 20000000000,
+                  "observed": 1323141887,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "process.peak_rss_kib",
+                  "limit": 65536,
+                  "observed": 32032,
+                  "status": "PASS",
+                  "unit": "KiB"
+                }
+              ],
+              "current_run_threshold_calibration": false,
+              "limits": {
+                "aggregate_cpu_ns": 8000000000,
+                "aggregate_wall_ns": 20000000000,
+                "aggregation": "first_call_plus_four_batches_control_excluded",
+                "batch_sample_cpu_ns": 75000000,
+                "batch_sample_wall_ns": 200000000,
+                "first_call_cpu_ns": 10000000,
+                "first_call_wall_ns": 25000000,
+                "peak_rss_kib": 65536,
+                "per_batch_cpu_ns": 2000000000,
+                "per_batch_wall_ns": 5000000000,
+                "status": "ENFORCED_TEST_ONLY_LINUX_X86_64_GROSS_REGRESSION_CEILING"
+              },
+              "observed": {
+                "aggregate": {
+                  "cpu_ns": 1322902044,
+                  "wall_ns": 1323141887
+                },
+                "batches": [
+                  {
+                    "cpu_ns": 245188871,
+                    "id": "mixed_rotating",
+                    "max_sample_cpu_ns": 8439984,
+                    "max_sample_wall_ns": 8440806,
+                    "wall_ns": 245230280
+                  },
+                  {
+                    "cpu_ns": 366661791,
+                    "id": "valid_rotating",
+                    "max_sample_cpu_ns": 11991914,
+                    "max_sample_wall_ns": 12022571,
+                    "wall_ns": 366742733
+                  },
+                  {
+                    "cpu_ns": 353018519,
+                    "id": "deep_reject_rotating",
+                    "max_sample_cpu_ns": 12504977,
+                    "max_sample_wall_ns": 12518233,
+                    "wall_ns": 353065451
+                  },
+                  {
+                    "cpu_ns": 357924400,
+                    "id": "same_key_mixed",
+                    "max_sample_cpu_ns": 11664317,
+                    "max_sample_wall_ns": 11665096,
+                    "wall_ns": 357993719
+                  }
+                ],
+                "excluded_control": {
+                  "cpu_ns": 25194,
+                  "wall_ns": 43620
+                },
+                "first_call": {
+                  "cpu_ns": 108463,
+                  "wall_ns": 109704
+                },
+                "peak_rss_kib": 32032
+              },
+              "schema_version": 1,
+              "scope": "test-only Linux x86_64 direct-verifier gross-regression gate",
+              "status": "PASS"
+            },
+            "status": "PASS",
+            "trust": {
+              "ci": {
+                "api_url": "https://api.github.com",
+                "base_ref": "",
+                "event_name": "push",
+                "expected_checkout_head": "3967012c52470e656a246b8b2e22c9dff193e892",
+                "github_actions": true,
+                "head_ref": "",
+                "job": "observe",
+                "ref": "refs/heads/main",
+                "ref_protected": true,
+                "repository": "scottdhughes/quantum-proof-bitcoin",
+                "repository_id": "1136579990",
+                "run_attempt": "1",
+                "run_id": "38808011383",
+                "run_number": "48",
+                "server_url": "https://github.com",
+                "sha": "3967012c52470e656a246b8b2e22c9dff193e892",
+                "workflow": "ML-DSA-44 verifier resource envelope",
+                "workflow_ref": "scottdhughes/quantum-proof-bitcoin/.github/workflows/ml-dsa-44-resource-envelope.yml@refs/heads/main",
+                "workflow_sha": "3967012c52470e656a246b8b2e22c9dff193e892"
+              },
+              "label": "TRUSTED_MAIN_OBSERVATION",
+              "promotion_eligible": false,
+              "reason": "exact clean main head matches the separately advanced guarded review baseline",
+              "requires_companion_compilers": [
+                "clang",
+                "gcc"
+              ],
+              "requires_external_workflow_provenance": true,
+              "requires_separate_numeric_policy_change": false,
+              "trusted_observation": true
+            }
+          },
+          "size_in_bytes": 539613
+        }
+      ],
+      "event": "push",
+      "head_sha": "3967012c52470e656a246b8b2e22c9dff193e892",
+      "path": ".github/workflows/ml-dsa-44-resource-envelope.yml",
+      "ref": "refs/heads/main",
+      "run_attempt": 1,
+      "run_conclusion": "success",
+      "run_id": 38808011383,
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/38808011383"
+    }
+  }
+}

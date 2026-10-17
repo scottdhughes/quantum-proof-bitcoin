@@ -116,9 +116,11 @@ requires a new, explicit consensus and policy sizing design.
 
 ### Directional Prototype Timing
 
-The common OpenSSL 3.6.3 oracle provides the closest current same-codebase
-comparison. Values are medians of ten fixed-vector runs on arm64 macOS and are
-not release envelopes.
+At the recorded 2026-07-19 measurement date, the common OpenSSL 3.6.3 oracle
+provided the closest same-codebase comparison. Values are medians of ten
+fixed-vector runs on arm64 macOS and are not release envelopes. The active
+ML-DSA comparator has since moved to OpenSSL 3.6.4; these historical timings
+have not been relabeled as 3.6.4 measurements.
 
 | Operation | ML-DSA-44 | SLH-DSA-SHA2-128s |
 | --- | ---: | ---: |
