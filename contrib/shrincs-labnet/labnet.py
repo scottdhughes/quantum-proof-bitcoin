@@ -47,7 +47,8 @@ WALLET_NAME = "shrincs-labnet"
 COIN = 100_000_000
 DEFAULT_FUNDING = Decimal("0.01000000")
 DEFAULT_FEE_SATS = 20_000
-MARKER_NAME = ".pqbtc-shrincs-labnet"
+MARKER_NAME = ".pqbtc-shrincslab"
+NETWORK_HRP = "pqsl"
 
 
 class LabnetError(RuntimeError):
@@ -187,11 +188,11 @@ class Layout:
 
     @property
     def node0(self) -> "NodeLayout":
-        return NodeLayout(self, index=0, p2p_port=19444, rpc_port=19443)
+        return NodeLayout(self, index=0, p2p_port=29333, rpc_port=29332)
 
     @property
     def node1(self) -> "NodeLayout":
-        return NodeLayout(self, index=1, p2p_port=19445, rpc_port=19453)
+        return NodeLayout(self, index=1, p2p_port=29343, rpc_port=29342)
 
     @property
     def daemon(self) -> Path:
@@ -229,6 +230,7 @@ class NodeLayout:
         return "\n".join(
             [
                 "regtest=1",
+                "shrincslab=1",
                 "server=1",
                 "listen=1",
                 "discover=0",
@@ -267,6 +269,7 @@ class Node:
         command: list[str | Path] = [
             self.paths.layout.cli,
             "-regtest",
+            "-shrincslab",
             f"-datadir={self.paths.datadir}",
         ]
         if wallet:
@@ -673,7 +676,7 @@ class Labnet:
                 self.layout.marker,
                 json.dumps(
                     {
-                        "profile": "pqbtc-shrincs-v0-private-regtest-labnet",
+                        "profile": "pqbtc-shrincs-v0-public-zero-value-labnet",
                         "created_at": utc_now(),
                         "zero_value_only": True,
                     },
@@ -706,6 +709,7 @@ class Labnet:
                     [
                         self.layout.daemon,
                         "-regtest",
+                        "-shrincslab",
                         f"-datadir={node.paths.datadir}",
                         "-daemonwait",
                     ]
@@ -848,7 +852,7 @@ class Labnet:
                 )
             nodes.append(entry)
         result: dict[str, Any] = {
-            "profile": "pqbtc-shrincs-v0-private-regtest-labnet",
+            "profile": "pqbtc-shrincs-v0-public-zero-value-labnet",
             "zero_value_only": True,
             "state_dir": self.layout.state_dir,
             "build_dir": self.layout.build_dir,
@@ -942,14 +946,15 @@ class Labnet:
 
         if str(TEST_FRAMEWORK_ROOT) not in sys.path:
             sys.path.insert(0, str(TEST_FRAMEWORK_ROOT))
-        from test_framework.address import address_to_scriptpubkey, program_to_witness
+        from test_framework.address import address_to_scriptpubkey
+        from test_framework.segwit_addr import encode_segwit_address
 
         node = self.nodes[0]
         store = SignerStore(self.layout.signer_db)
         model = self.tx_model()
         public_key = store.public_key()
         program = model.output_commitment(public_key)
-        shrincs_address = program_to_witness(2, program, main=False)
+        shrincs_address = encode_segwit_address(NETWORK_HRP, 2, program)
         shrincs_script = model.script_pubkey(public_key)
         modes = ["stateful", "stateless"] if mode == "both" else [mode]
         results: list[dict[str, Any]] = []

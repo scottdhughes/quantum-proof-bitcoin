@@ -1,44 +1,56 @@
 {
-  "schema_version": 1,
-  "profile": "pqbtc-shrincs-v0-private-regtest-labnet",
-  "zero_value_only": true,
-  "network": {
-    "chain": "regtest",
-    "nodes": 2,
-    "localhost_only": true,
-    "node0_p2p_port": 19444,
-    "node0_rpc_port": 19443,
-    "node1_p2p_port": 19445,
-    "node1_rpc_port": 19453,
-    "public_discovery": false
-  },
   "consensus_activation": {
     "mainnet": false,
-    "testnet": false,
-    "testnet4": false,
+    "ordinary_regtest": false,
+    "shrincslab": true,
     "signet": false,
-    "regtest": true
+    "testnet": false,
+    "testnet4": false
   },
+  "network": {
+    "bech32_hrp": "pqsl",
+    "default_data_dir": "shrincslab",
+    "default_p2p_port": 29333,
+    "dns_seeds": [],
+    "fixed_seeds": [],
+    "genesis_bits": "207fffff",
+    "genesis_hash": "122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69",
+    "genesis_merkle_root": "2dec88624f3bbd6308ed55b83d9cb01933bbc76759498e52d21130c4e6ccd672",
+    "genesis_nonce": 2,
+    "genesis_time": 1786924800,
+    "internal_chain_type": "regtest",
+    "message_magic": "91e1cac8",
+    "public_discovery": false,
+    "recommended_rpc_port": 29332
+  },
+  "production_ready": false,
+  "profile": "pqbtc-shrincs-v0-public-zero-value-labnet",
+  "proof_of_work": {
+    "algorithm": "sha256d",
+    "allow_min_difficulty": true,
+    "economic_security": false,
+    "no_retargeting": true,
+    "pow_limit": "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  },
+  "schema_version": 2,
+  "selector": [
+    "-regtest",
+    "-shrincslab"
+  ],
   "shrincs": {
-    "upstream_repository": "SHRINCS/shrincs-bip",
-    "upstream_commit": "acc6bda51dc3b94848d118967247ad0f3cd7a80e",
-    "public_key_bytes": 48,
-    "stateful_structure": {
-      "shape": "unbalanced",
-      "depth": 4,
-      "usable_state_counters": 5
+    "chain_domain": {
+      "bound_genesis": "122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69",
+      "label": "PQBTC-SHRINCSLAB-v0|genesis=122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69",
+      "replay_compatible_with_private_regtest_fixture": false,
+      "sha256": "db0e425cda8dcebc9e64203d2a5dfde2e954954f3dc95b8b9807590103d07652"
     },
+    "context": "PQBTC/SHRINCS/TXSIG/v0",
+    "public_key_bytes": 48,
+    "stateful_signature_max": 4618,
+    "stateful_signature_min": 554,
     "stateless_signature_bytes": 5776,
-    "context": "PQBTC/SHRINCS/TXSIG/v0"
+    "upstream_commit": "acc6bda51dc3b94848d118967247ad0f3cd7a80e",
+    "upstream_repository": "SHRINCS/shrincs-bip"
   },
-  "signer_state": {
-    "backend": "sqlite",
-    "journal_mode": "WAL",
-    "synchronous": "FULL",
-    "reserve_before_sign": true,
-    "burn_on_failure": true,
-    "silent_stateless_fallback": false,
-    "self_verify_before_release": true
-  },
-  "production_ready": false
+  "zero_value_only": true
 }

@@ -76,6 +76,7 @@ set(TEST_PQBTC_SOURCES
   pqsig_tests.cpp
   shrincs_tx_v0_tests.cpp
   shrincs_tx_v0_signed_seam_tests.cpp
+  shrincslab_chainparams_tests.cpp
   peerman_tests.cpp
   pmt_tests.cpp
   policy_fee_tests.cpp

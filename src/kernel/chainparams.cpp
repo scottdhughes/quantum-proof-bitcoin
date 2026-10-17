@@ -76,6 +76,14 @@ static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits
     return CreateGenesisBlock(pszTimestamp, genesisOutputScript, nTime, nNonce, nBits, nVersion, genesisReward);
 }
 
+/** Dedicated, zero-value PQBTC SHRINCS labnet genesis. */
+static CBlock CreateShrincsLabGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
+{
+    const char* timestamp = "PQBTC SHRINCS Labnet 17/Aug/2026: hash-based post-quantum authorization";
+    const CScript unspendable_output = CScript() << OP_RETURN;
+    return CreateGenesisBlock(timestamp, unspendable_output, nTime, nNonce, nBits, nVersion, genesisReward);
+}
+
 /**
  * Main network on which people trade goods and services.
  */
@@ -509,7 +517,7 @@ public:
         m_chain_type = ChainType::REGTEST;
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
-        consensus.shrincs_v0 = true;
+        consensus.shrincs_v0 = opts.shrincs_labnet;
         consensus.nSubsidyHalvingInterval = 150;
         consensus.BIP34Height = 1; // Always active unless overridden
         consensus.BIP34Hash = uint256();
@@ -543,11 +551,14 @@ public:
         consensus.nMinimumChainWork = uint256{};
         consensus.defaultAssumeValid = uint256{};
 
-        pchMessageStart[0] = 0xfa;
-        pchMessageStart[1] = 0xbf;
-        pchMessageStart[2] = 0xb5;
-        pchMessageStart[3] = 0xda;
-        nDefaultPort = 18444;
+        if (opts.shrincs_labnet) {
+            // First four bytes of SHA256d("PQBTC-SHRINCSLAB-v0-message-start|165").
+            pchMessageStart = {0x91, 0xe1, 0xca, 0xc8};
+            nDefaultPort = 29333;
+        } else {
+            pchMessageStart = {0xfa, 0xbf, 0xb5, 0xda};
+            nDefaultPort = 18444;
+        }
         nPruneAfterHeight = opts.fastprune ? 100 : 1000;
         m_assumed_blockchain_size = 0;
         m_assumed_chain_state_size = 0;
@@ -578,17 +589,24 @@ public:
             consensus.vDeployments[deployment_pos].min_activation_height = version_bits_params.min_activation_height;
         }
 
-        genesis = CreateGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * COIN);
-        consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256{"0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"});
-        assert(genesis.hashMerkleRoot == uint256{"4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"});
+        if (opts.shrincs_labnet) {
+            genesis = CreateShrincsLabGenesisBlock(1786924800, 2, 0x207fffff, 1, 50 * COIN);
+            consensus.hashGenesisBlock = genesis.GetHash();
+            assert(consensus.hashGenesisBlock == uint256{"122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69"});
+            assert(genesis.hashMerkleRoot == uint256{"2dec88624f3bbd6308ed55b83d9cb01933bbc76759498e52d21130c4e6ccd672"});
+        } else {
+            genesis = CreateGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * COIN);
+            consensus.hashGenesisBlock = genesis.GetHash();
+            assert(consensus.hashGenesisBlock == uint256{"0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"});
+            assert(genesis.hashMerkleRoot == uint256{"4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"});
+        }
 
-        vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
+        vFixedSeeds.clear();
         vSeeds.clear();
-        vSeeds.emplace_back("dummySeed.invalid.");
+        if (!opts.shrincs_labnet) vSeeds.emplace_back("dummySeed.invalid.");
 
         fDefaultConsistencyChecks = true;
-        m_is_mockable_chain = true;
+        m_is_mockable_chain = !opts.shrincs_labnet;
 
         m_assumeutxo_data = {
             {   // For use by unit tests
@@ -613,19 +631,29 @@ public:
             },
         };
 
+        if (opts.shrincs_labnet) m_assumeutxo_data.clear();
+
         chainTxData = ChainTxData{
             .nTime = 0,
             .tx_count = 0,
-            .dTxRate = 0.001,
+            .dTxRate = opts.shrincs_labnet ? 0.0 : 0.001,
         };
 
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
-        base58Prefixes[SECRET_KEY] = std::vector<unsigned char>(1,239);
-        base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
-        base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
-
-        bech32_hrp = "bcrt";
+        if (opts.shrincs_labnet) {
+            base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1, 65);
+            base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 127);
+            base58Prefixes[SECRET_KEY] = std::vector<unsigned char>(1, 193);
+            base58Prefixes[EXT_PUBLIC_KEY] = {0xa4, 0x5d, 0xa6, 0x7c};
+            base58Prefixes[EXT_SECRET_KEY] = {0x73, 0xbc, 0xcb, 0x89};
+            bech32_hrp = "pqsl";
+        } else {
+            base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
+            base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
+            base58Prefixes[SECRET_KEY] = std::vector<unsigned char>(1,239);
+            base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
+            base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
+            bech32_hrp = "bcrt";
+        }
 
     }
 };
@@ -672,6 +700,9 @@ std::optional<ChainType> GetNetworkForMagic(const MessageStartChars& message)
     const auto testnet_msg = CChainParams::TestNet()->MessageStart();
     const auto testnet4_msg = CChainParams::TestNet4()->MessageStart();
     const auto regtest_msg = CChainParams::RegTest({})->MessageStart();
+    CChainParams::RegTestOptions shrincs_lab_options{};
+    shrincs_lab_options.shrincs_labnet = true;
+    const auto shrincs_lab_msg = CChainParams::RegTest(shrincs_lab_options)->MessageStart();
     const auto signet_msg = CChainParams::SigNet({})->MessageStart();
 
     if (std::ranges::equal(message, mainnet_msg)) {
@@ -681,6 +712,8 @@ std::optional<ChainType> GetNetworkForMagic(const MessageStartChars& message)
     } else if (std::ranges::equal(message, testnet4_msg)) {
         return ChainType::TESTNET4;
     } else if (std::ranges::equal(message, regtest_msg)) {
+        return ChainType::REGTEST;
+    } else if (std::ranges::equal(message, shrincs_lab_msg)) {
         return ChainType::REGTEST;
     } else if (std::ranges::equal(message, signet_msg)) {
         return ChainType::SIGNET;

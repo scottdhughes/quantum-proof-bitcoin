@@ -1800,7 +1800,7 @@ bool GenericTransactionSignatureChecker<T>::CheckSHRINCSSignature(
         immutable_tx,
         std::span<const CTxOut>{txdata->m_spent_outputs.data(), txdata->m_spent_outputs.size()},
         nIn,
-        shrincs_tx_v0::RegtestChainId())};
+        shrincs_tx_v0::ShrincsLabChainId())};
     if (!sighash) return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
 
     const std::string_view context{shrincs_tx_v0::SIGNING_CONTEXT};

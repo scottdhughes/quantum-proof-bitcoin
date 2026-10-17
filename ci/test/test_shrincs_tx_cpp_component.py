@@ -81,15 +81,19 @@ class ShrincsTxCppComponentTests(unittest.TestCase):
         chainparams = CHAINPARAMS.read_text(encoding="utf-8")
 
         self.assertIn("bool shrincs_v0{false};", consensus_params)
-        activation = "consensus.shrincs_v0 = true;"
+        activation = "consensus.shrincs_v0 = opts.shrincs_labnet;"
         self.assertEqual(chainparams.count(activation), 1)
         regtest_start = chainparams.index("class CRegTestParams")
         activation_position = chainparams.index(activation)
         self.assertGreater(activation_position, regtest_start)
-        self.assertIn(
-            "m_chain_type = ChainType::REGTEST;",
-            chainparams[regtest_start:activation_position],
-        )
+        self.assertIn("bool shrincs_labnet{false};", (REPO_ROOT / "src" / "kernel" / "chainparams.h").read_text(encoding="utf-8"))
+        self.assertIn("m_chain_type = ChainType::REGTEST;", chainparams[regtest_start:activation_position])
+        self.assertIn('bech32_hrp = "pqsl";', chainparams)
+        self.assertIn("0x91, 0xe1, 0xca, 0xc8", chainparams)
+
+    def test_labnet_base_directory_and_rpc_identity(self) -> None:
+        base_params = (REPO_ROOT / "src" / "chainparamsbase.cpp").read_text(encoding="utf-8")
+        self.assertIn('CBaseChainParams>("shrincslab", 29332)', base_params)
 
     def test_validation_flags_follow_consensus_scope(self) -> None:
         validation = VALIDATION.read_text(encoding="utf-8")

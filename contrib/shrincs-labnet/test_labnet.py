@@ -80,9 +80,10 @@ class NodeConfigTests(unittest.TestCase):
 
         global_settings, regtest_settings = text.split("[regtest]\n", 1)
         self.assertIn("regtest=1\n", global_settings)
+        self.assertIn("shrincslab=1\n", global_settings)
         for setting in (
-            "port=19444",
-            "rpcport=19443",
+            "port=29333",
+            "rpcport=29332",
             "rpcbind=127.0.0.1",
             "rpcallowip=127.0.0.1",
         ):

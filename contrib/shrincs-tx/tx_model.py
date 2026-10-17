@@ -26,7 +26,9 @@ SPEND_TYPE = 0
 SHRINCS_CONTEXT = b"PQBTC/SHRINCS/TXSIG/v0"
 OUTPUT_TAG = b"PQBTC/SHRINCS/OUTPUT/v0"
 SIGHASH_TAG = b"PQBTC/SHRINCS/SIGHASH/v0"
-TEST_CHAIN_ID = hashlib.sha256(b"PQBTC-SHRINCS-TX-V0-TEST-CHAIN").digest()
+SHRINCS_LAB_GENESIS = "122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69"
+SHRINCS_LAB_CHAIN_DOMAIN = b"PQBTC-SHRINCSLAB-v0|genesis=122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69"
+TEST_CHAIN_ID = hashlib.sha256(SHRINCS_LAB_CHAIN_DOMAIN).digest()
 
 
 class TxModelError(ValueError):
@@ -270,8 +272,8 @@ def transaction_surface_mutations(tx: Transaction) -> dict[str, Transaction]:
 def transaction_sighash(tx: Transaction, input_index: int, chain_id: bytes) -> bytes:
     """Return the proposed fixed-SIGHASH_ALL digest for one input.
 
-    `chain_id` is a 32-byte network-specific constant to be frozen with the
-    network genesis. No production chain ID is selected by this model.
+    `chain_id` is the 32-byte domain identifier frozen to the dedicated
+    zero-value SHRINCS labnet genesis.
     """
 
     require(len(chain_id) == 32, "chain_id must be 32 bytes")

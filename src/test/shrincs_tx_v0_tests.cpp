@@ -94,7 +94,7 @@ EnvelopeCase BuildEnvelopeCase(std::span<const unsigned char> public_key)
     if (!candidate_script) throw std::runtime_error{"invalid SHRINCS public key"};
 
     EnvelopeCase result;
-    result.chain_id = HashText("PQBTC-SHRINCS-TX-V0-TEST-CHAIN");
+    result.chain_id = shrincs_tx_v0::ShrincsLabChainId();
     result.tx.version = 2;
     result.tx.nLockTime = 840'000;
     result.tx.vin.emplace_back(
@@ -193,28 +193,28 @@ std::map<std::string, EnvelopeCase> TransactionMutationCases(const EnvelopeCase&
 const std::map<std::string, std::string>& ExpectedMutationDigests()
 {
     static const std::map<std::string, std::string> expected{
-        {"version", "f0a88b084ae764f57005649125ff40b9a8809973d4a8391f6f323e99e295c818"},
-        {"lock_time", "89adb3edb1d247dd2bdef96f1a50424de7ae86a86230aad08047707eb37a03fd"},
-        {"input0_prevout_txid", "63b6b437b73e98fb794d4519e136c729a3673a2da58c9dbe59cf9bbc5ac17fae"},
-        {"input0_prevout_index", "d6f46f8a93b0ca84082bce9f68aaedaa0ec27bc1fae932590f98c65d12862591"},
-        {"input0_amount", "25d76e3dfde70967dbf069462e904870c2d0e1edf4676b889fcf13dfd99f6b04"},
-        {"input0_script", "1f02eb074275eb8c81a4456b85ac08d453f0b14414d0355fc3b06fcdc28d1383"},
-        {"input0_sequence", "d75c90f0fa186b0ed956d849f65c227c367179be4f10e4ce581ba32045833bb2"},
-        {"input1_prevout_txid", "16817e99e5d91cdefdec9976647ffee024785e8c71b1573b8f811fc586a404aa"},
-        {"input1_prevout_index", "aad8ded0c68fcd781dd213539fee5b09256fc6a5036ae724fbc2c496635f8558"},
-        {"input1_amount", "5133fdfb421c75052a0ea3ccb83800037d06b1d3c2188b984f6dd464c64d9045"},
-        {"input1_script", "06450f8864e90463075bf98ee1a4d4a2c540bb6e5cd4a85fa6dfed89b67e0988"},
-        {"input1_sequence", "59ff024ec0ede20ea1af03150a15195e797232f7f72a913d5c258eb27bc1210d"},
-        {"input_order", "44f061b771ca1d911883ba99045ca98325fbd007d53ad5e3e2189886fa3d9d90"},
-        {"input_removed", "a977cb22b9dc90e6a86a888d5be37f81dee85c9202a89d21d2e9adf264147e12"},
-        {"input_added", "49d5c0bc340070c2a1b5af4e87e2524e25e86214025d4d2623d835be86ee2ae6"},
-        {"output0_amount", "04bd785d232039afb2cece0bdbff94b5566bf33618988c0abc649037ecc27e92"},
-        {"output0_script", "7be4ea4ca59a9c7d07d6866dca82cdc5a02e0b6c90edf3a3f3804c1b3323c2a1"},
-        {"output1_amount", "be8cd212318d44c41492126fb2feb4194fb97fbe928125241ad5b39b0d742a31"},
-        {"output1_script", "f848fe177c50411fbbfccd15ae9c3ae5ab8a8adc4f42062a879530061bd9e585"},
-        {"output_order", "6b3d05a5774d5f7fd0c013719e64043423a6d645de86ea55152ea565948acca0"},
-        {"output_removed", "d5ed7cc043381d4b4c20309aab9c2b3fb1dcbf968ac50928ad2eaa34c83c7dac"},
-        {"output_added", "71110447afe6534844d48e6fa949d1f1dee39fd4cf1759c904092d30b6ee69b1"},
+        {"version", "ab688118a5ec57448784f50217c6e5934d5b899e8d7e1bfc33022a0501cba706"},
+        {"lock_time", "3aa20139d00899b3cec6e063daa8daeac7870a3fb70ef0e95445fa3101be40cb"},
+        {"input0_prevout_txid", "9ab690225bba3d82bc1da407dc31cf9aceaa7b9a907980da01c80b939dcb10a0"},
+        {"input0_prevout_index", "875b2439d610da27773b3db83a45d0f3b583290b3edbfaf81e9ae81f439521f0"},
+        {"input0_amount", "26113870a7c6ad56755ef6b152cc5dac192143b9e75498e915fc9c030080f1da"},
+        {"input0_script", "517a8ef7914683cd9b6e64a342d244f64fe97398d7b668b19a1e4b5b9ffef5d7"},
+        {"input0_sequence", "c68c8708d58839458b3d0291c3657f65075bd21ba12c3169881d389f05e28cca"},
+        {"input1_prevout_txid", "5822a1133356047a3c85ba6c6c41909241a881b20e8644948e069376c4b01c8e"},
+        {"input1_prevout_index", "f521455dfbca3c78779dceef19eb42b2e5baf5fdb85ebc2a1d03d49a3c55ba34"},
+        {"input1_amount", "73e1d1edf417de7a90e9437516a563c6cf069cfcb7622786ecc9390533fcaad0"},
+        {"input1_script", "92166a8898eb7e1fe92c45deeaed3a3450727fa021454530dd30c55eaf360a17"},
+        {"input1_sequence", "1aae3a0e04337e332c27caf032aee5e28a36846120884cc3038260f877080553"},
+        {"input_order", "0d86e7ba927a09fc5a26e7ba0693a88d82d4f7430de87651f1ba5864a6599220"},
+        {"input_removed", "878c309fee385c11751a3aa30f5d39513a47e72321f0921aee55f87bfa164566"},
+        {"input_added", "05896a91c2bed4067fced0005296333ec06e354e5c1d84bda215acd4e6a800b5"},
+        {"output0_amount", "6c8c81132b477915ba240c4e0c0aa3709ca9134366e7ba47f41c76827ae384b0"},
+        {"output0_script", "cfa4d4b073c1aa860e928a82d5751a83d3a7b26df40b006fa348fa8d44c9e398"},
+        {"output1_amount", "7b6c816cdeefe4f263ff7e125d77d50e97dee718d354ebf15e41130d80bf79d1"},
+        {"output1_script", "4177012835fc69ecd8a6bb278537c7093f0f288fa45e090e9049af9845d64c90"},
+        {"output_order", "31a40e7c12a3a45d4f81ffa41fa896b49cfd72c4c7cf8d1bc3a89d889a439c09"},
+        {"output_removed", "8cccd781bfcf9037d91a20e9621201312c3c5d253520b4d0d8cc7088c03d36bf"},
+        {"output_added", "04f9078c2a8dc1e580a33cb315251dd1cab45da00940e392c4b4cf3e4e71339b"},
     };
     return expected;
 }
@@ -226,7 +226,7 @@ BOOST_AUTO_TEST_CASE(cpp_matches_python_design_and_signed_seam_vectors)
     const std::vector<unsigned char> public_key{SequentialPublicKey()};
     const EnvelopeCase test_case{BuildEnvelopeCase(public_key)};
 
-    BOOST_CHECK(test_case.chain_id == RawUint256("5ac90260b854c448631456ad49ca4988c20a13eeec3e283f59afac1f8cb29486"));
+    BOOST_CHECK(test_case.chain_id == RawUint256("db0e425cda8dcebc9e64203d2a5dfde2e954954f3dc95b8b9807590103d07652"));
     BOOST_CHECK_EQUAL(
         SerializeStripped(test_case.tx),
         "0200000002537b9332eb572ede46a4cf44321cf733a0c76ab6a9cf2d19cd7f3e1ea451c54b0300000000fdffffff21f5e2d90566de1e49bb495dc18bd495be7ee3ba896855982799c940dafcd0070100000000feffffff02f049020000000000225220e4aec884405768485ef6d3407f9d5da17781053f66f7945e8fd1dda7e9e1eb9768bf000000000000066a045051563040d10c00");
@@ -235,10 +235,10 @@ BOOST_AUTO_TEST_CASE(cpp_matches_python_design_and_signed_seam_vectors)
     BOOST_REQUIRE(commitment.has_value());
     BOOST_CHECK_EQUAL(RawHex(*commitment), "e4aec884405768485ef6d3407f9d5da17781053f66f7945e8fd1dda7e9e1eb97");
 
-    BOOST_CHECK_EQUAL(RawHex(RequireDigest(test_case)), "e81658399900d55841623b54f075cebfe6c9caf307e62e5952634d16ae61f35d");
+    BOOST_CHECK_EQUAL(RawHex(RequireDigest(test_case)), "87edbe9bb060421d9db6c2946672e384e8914cc11f2971249e3ede1c639361f1");
     EnvelopeCase second_input{test_case};
     second_input.input_index = 1;
-    BOOST_CHECK_EQUAL(RawHex(RequireDigest(second_input)), "cdf2b774b68cdbd23a424faee209495c523a790c92fa6ea293e166ea075245e7");
+    BOOST_CHECK_EQUAL(RawHex(RequireDigest(second_input)), "35a53e8064324de5ba7ca312a01769a1f76a21216df0ef97a78fdb9fb0190cb0");
 
     const std::vector<unsigned char> signed_public_key{ParseHex(
         "abd9967c038df9b774b48e0360d7cad25ad8c4073c7d3973d4ce8b8cdcc3f12bf784a8a40fb8c98d39ee302e705ae7da")};
@@ -246,7 +246,7 @@ BOOST_AUTO_TEST_CASE(cpp_matches_python_design_and_signed_seam_vectors)
     const std::optional<uint256> signed_commitment{shrincs_tx_v0::OutputCommitment(signed_public_key)};
     BOOST_REQUIRE(signed_commitment.has_value());
     BOOST_CHECK_EQUAL(RawHex(*signed_commitment), "d23ac81a74411a8645d375abd22acf8d10e3e18b96b173ec99d8fb1496759665");
-    BOOST_CHECK_EQUAL(RawHex(RequireDigest(signed_case)), "dc00d9f169e44ad39fea3db0736ee5ec834d8a3ae8e8ac7e8997ee1eacc399d5");
+    BOOST_CHECK_EQUAL(RawHex(RequireDigest(signed_case)), "df6af2fda86516112cba860db86b7d793232796e837c85604db00827c8df17b5");
     BOOST_CHECK_EQUAL(
         SerializeStripped(signed_case.tx),
         "0200000002537b9332eb572ede46a4cf44321cf733a0c76ab6a9cf2d19cd7f3e1ea451c54b0300000000fdffffff21f5e2d90566de1e49bb495dc18bd495be7ee3ba896855982799c940dafcd0070100000000feffffff02f049020000000000225220d23ac81a74411a8645d375abd22acf8d10e3e18b96b173ec99d8fb149675966568bf000000000000066a045051563040d10c00");
