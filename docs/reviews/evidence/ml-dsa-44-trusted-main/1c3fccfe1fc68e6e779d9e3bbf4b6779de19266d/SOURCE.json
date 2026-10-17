@@ -1,0 +1,1798 @@
+{
+  "baseline_pointer": "e44a19f352181b3f0aab090d122e2a4562e95512",
+  "baseline_pointer_file_sha256": "31de018b808c4a601e82180e69fe5473821efebdbf84ef973a069023b6bdb8e4",
+  "collection_complete": true,
+  "evidence_head": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+  "implementation_commit": "e44a19f352181b3f0aab090d122e2a4562e95512",
+  "observed_on": "2026-10-15",
+  "pending_collections": [],
+  "production_boundary": {
+    "exact_commit_independent_re_review": "PENDING",
+    "external_cryptographic_review_satisfied": false,
+    "production_backend": "NONE",
+    "production_integration": false,
+    "production_support_claim": false,
+    "release_hold": true,
+    "release_hold_changed": false,
+    "simd128_admitted": false,
+    "simd256_admitted": false
+  },
+  "repository": "scottdhughes/quantum-proof-bitcoin",
+  "schema_version": 1,
+  "scope": {
+    "direct_evidence_claim": "EXACT_TRUSTED_MAIN_SCOPED_AUDIT_INPUTS_AND_OPENSSL_3_6_5_COMPARATOR_ONLY",
+    "direct_fork_claim": "TESTED_UBUNTU_LINUX_STANDARD_FORK_MODULE_LOCK_RECOVERY_ONLY",
+    "excluded_claims": [
+      "production fitness",
+      "independent cryptographic review",
+      "portable or async-signal-safe multithreaded fork-child signing",
+      "VM snapshot/rollback or hardware RBG behavior",
+      "optimized backend admission",
+      "fork coverage from fuzz/resource/advisory jobs"
+    ],
+    "open_issues": [
+      181,
+      184,
+      185,
+      186,
+      187,
+      188,
+      189,
+      190
+    ]
+  },
+  "verification": {
+    "archive_sha256_and_size_matched": true,
+    "artifact_api_metadata_checked": true,
+    "guarded_baseline_diff_empty_at_evidence_head": true,
+    "internal_checksum_inventories_checked": true,
+    "retained_source_heads_are_ancestors": true,
+    "unsafe_zip_members_found": false
+  },
+  "workflows": {
+    "advisory_ledger": {
+      "artifacts": [
+        {
+          "created_at": "2026-10-15T19:51:04Z",
+          "digest": "sha256:eba268867fe80d8c02f8c022c5bcecf0c1af7f3c7a34fe14447536788964a271",
+          "download_sha256": "eba268867fe80d8c02f8c022c5bcecf0c1af7f3c7a34fe14447536788964a271",
+          "expired": false,
+          "expires_at": "2027-01-13T19:38:59Z",
+          "id": 12002856138,
+          "internal_checksum_manifests": [
+            {
+              "entries": 41,
+              "path": "SHA256SUMS",
+              "sha256": "2c5427bfc9d8e35d6f4bd0c447f725c72784caba21509d9fd488ea5ccc8a4ff0"
+            },
+            {
+              "entries": 1,
+              "path": "osv-db.sha256",
+              "sha256": "90ec713832cf672e698446841baa8bca147744222631fbddced1f0166c809846"
+            }
+          ],
+          "name": "ml-dsa-44-advisory-1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d-38795613101-1",
+          "size_in_bytes": 4346509
+        }
+      ],
+      "audit_summary": {
+        "counts": {
+          "full_lock_packages": 139,
+          "package_warnings": 1,
+          "sbom_components": 24,
+          "scanner_findings": 7,
+          "selected_graph_packages": 16
+        },
+        "execution_contract": {
+          "architecture": "x86_64",
+          "called_backend": "portable",
+          "compiled_backend": "portable",
+          "default_features": false,
+          "features": [
+            "mldsa44",
+            "std"
+          ],
+          "miri_role": "SUPPLEMENTARY",
+          "parameter_set": 44,
+          "production_backend": "NONE",
+          "release_hold": true,
+          "required_environment": {
+            "LIBCRUX_DISABLE_SIMD128": "1",
+            "LIBCRUX_DISABLE_SIMD256": "1"
+          },
+          "simd128_admitted": false,
+          "simd256_admitted": false,
+          "target_triple": "x86_64-unknown-linux-gnu"
+        },
+        "miri": {
+          "role": "SUPPLEMENTARY",
+          "status": "PASS",
+          "tests": 3
+        },
+        "openssl_feed": {
+          "commit": "5c123199650d7b43cd316f7f13382989fb3b3fb8",
+          "exact_pin": "3.6.5",
+          "exact_pin_affected_ids": [],
+          "record_count": 297,
+          "secjson_manifest_sha256": "3c1fc8c5728c18f7bc97eae7b086af3c44ac8f5d0eaecec5dd029864714438d3",
+          "status": "PASS",
+          "tree": "0c954ced94d0d851d294abe55142f3a2644254fb"
+        },
+        "scanner_exit_codes": {
+          "cargo_audit": 1,
+          "osv": 1
+        },
+        "scope": {
+          "external_re_review": "PENDING_EXACT_COMMIT_REVIEW_UNDER_ISSUE_181",
+          "issue_189": "REMAINS_OPEN_PENDING_EXACT_COMMIT_RE_REVIEW_UNDER_ISSUE_181",
+          "production_change": false,
+          "release_hold_changed": false,
+          "technical_remediation": "IMPLEMENTED_WITH_TRUSTED_MAIN_SIMD256_EVIDENCE"
+        },
+        "status": "PASS"
+      },
+      "event": "workflow_dispatch",
+      "fork_called": false,
+      "head_sha": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+      "path": ".github/workflows/ml-dsa-44-advisory-ledger.yml",
+      "ref": "refs/heads/main",
+      "report_sha256": "2c8bb1aab985d7bc5f3ad1c0d04b071a6c2515665dbcd4b6b834f04eca684ac8",
+      "run_attempt": 1,
+      "run_conclusion": "success",
+      "run_id": 38795613101,
+      "scanner_interpretation": "Seven reviewed full-lock findings and one yanked-package warning remain outside the selected portable graph; nonzero scanner exits are adjudicated, not claimed empty.",
+      "simd256_current_run": "SKIPPED_NOT_REQUESTED_PORTABLE_ONLY_REFRESH",
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/38795613101"
+    },
+    "resource_envelope": {
+      "artifacts": [
+        {
+          "created_at": "2026-10-13T19:45:47Z",
+          "digest": "sha256:fde83bf0b113bf807596ae288de332027451872e28f9ec97a3c3ff4da18fd85f",
+          "download_sha256": "fde83bf0b113bf807596ae288de332027451872e28f9ec97a3c3ff4da18fd85f",
+          "expired": false,
+          "expires_at": "2027-01-11T19:45:09Z",
+          "id": 11844610250,
+          "internal_checksum_manifests": [
+            {
+              "entries": 24,
+              "path": "SHA256SUMS",
+              "sha256": "57e1b8f42bdb7ae657563efa0402f0d8d8c0dfeef94e97ebc45701f27a0f9e9b"
+            }
+          ],
+          "name": "ml-dsa-44-resource-main-observation-1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d-clang-38457326603-1",
+          "observation": {
+            "limitations": [
+              "Linux x86_64 only",
+              "sequential direct-verifier calls only",
+              "coarse timing and RSS gates are Linux x86_64 CI regression limits only",
+              "numeric gates are not supported-platform, consensus, or production limits",
+              "no node, wallet, script, consensus, block-scheduler, or concurrency claim",
+              "project-object allocator interposition does not measure dynamic-libc internals",
+              "compiler .su rows are per-function observations, not a formal call-chain sum",
+              "production backend remains NONE and the release hold remains active"
+            ],
+            "numeric_acceptance": {
+              "acceptance_basis_sha256": "2a5acb1914b4623a9f7bc34c4ac2a2eebce25be700622ae3e5eb94f223354761",
+              "aggregation": "first_call_plus_four_batches_control_excluded",
+              "checks": [
+                {
+                  "id": "first_call.cpu_ns",
+                  "limit": 10000000,
+                  "observed": 105316,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "first_call.wall_ns",
+                  "limit": 25000000,
+                  "observed": 106439,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "mixed_rotating.max_sample_cpu_ns",
+                  "limit": 75000000,
+                  "observed": 8378853,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "mixed_rotating.max_sample_wall_ns",
+                  "limit": 200000000,
+                  "observed": 8379684,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "mixed_rotating.cpu_ns",
+                  "limit": 2000000000,
+                  "observed": 242801399,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "mixed_rotating.wall_ns",
+                  "limit": 5000000000,
+                  "observed": 242851801,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "valid_rotating.max_sample_cpu_ns",
+                  "limit": 75000000,
+                  "observed": 12462546,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "valid_rotating.max_sample_wall_ns",
+                  "limit": 200000000,
+                  "observed": 12463648,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "valid_rotating.cpu_ns",
+                  "limit": 2000000000,
+                  "observed": 367544142,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "valid_rotating.wall_ns",
+                  "limit": 5000000000,
+                  "observed": 367610490,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "deep_reject_rotating.max_sample_cpu_ns",
+                  "limit": 75000000,
+                  "observed": 12625701,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "deep_reject_rotating.max_sample_wall_ns",
+                  "limit": 200000000,
+                  "observed": 12626712,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "deep_reject_rotating.cpu_ns",
+                  "limit": 2000000000,
+                  "observed": 353218975,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "deep_reject_rotating.wall_ns",
+                  "limit": 5000000000,
+                  "observed": 353274420,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "same_key_mixed.max_sample_cpu_ns",
+                  "limit": 75000000,
+                  "observed": 11768092,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "same_key_mixed.max_sample_wall_ns",
+                  "limit": 200000000,
+                  "observed": 11785651,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "same_key_mixed.cpu_ns",
+                  "limit": 2000000000,
+                  "observed": 359806615,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "same_key_mixed.wall_ns",
+                  "limit": 5000000000,
+                  "observed": 359887731,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "aggregate.cpu_ns",
+                  "limit": 8000000000,
+                  "observed": 1323476447,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "aggregate.wall_ns",
+                  "limit": 20000000000,
+                  "observed": 1323730881,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "process.peak_rss_kib",
+                  "limit": 65536,
+                  "observed": 32184,
+                  "status": "PASS",
+                  "unit": "KiB"
+                }
+              ],
+              "current_run_threshold_calibration": false,
+              "limits": {
+                "aggregate_cpu_ns": 8000000000,
+                "aggregate_wall_ns": 20000000000,
+                "aggregation": "first_call_plus_four_batches_control_excluded",
+                "batch_sample_cpu_ns": 75000000,
+                "batch_sample_wall_ns": 200000000,
+                "first_call_cpu_ns": 10000000,
+                "first_call_wall_ns": 25000000,
+                "peak_rss_kib": 65536,
+                "per_batch_cpu_ns": 2000000000,
+                "per_batch_wall_ns": 5000000000,
+                "status": "ENFORCED_TEST_ONLY_LINUX_X86_64_GROSS_REGRESSION_CEILING"
+              },
+              "observed": {
+                "aggregate": {
+                  "cpu_ns": 1323476447,
+                  "wall_ns": 1323730881
+                },
+                "batches": [
+                  {
+                    "cpu_ns": 242801399,
+                    "id": "mixed_rotating",
+                    "max_sample_cpu_ns": 8378853,
+                    "max_sample_wall_ns": 8379684,
+                    "wall_ns": 242851801
+                  },
+                  {
+                    "cpu_ns": 367544142,
+                    "id": "valid_rotating",
+                    "max_sample_cpu_ns": 12462546,
+                    "max_sample_wall_ns": 12463648,
+                    "wall_ns": 367610490
+                  },
+                  {
+                    "cpu_ns": 353218975,
+                    "id": "deep_reject_rotating",
+                    "max_sample_cpu_ns": 12625701,
+                    "max_sample_wall_ns": 12626712,
+                    "wall_ns": 353274420
+                  },
+                  {
+                    "cpu_ns": 359806615,
+                    "id": "same_key_mixed",
+                    "max_sample_cpu_ns": 11768092,
+                    "max_sample_wall_ns": 11785651,
+                    "wall_ns": 359887731
+                  }
+                ],
+                "excluded_control": {
+                  "cpu_ns": 25168,
+                  "wall_ns": 43586
+                },
+                "first_call": {
+                  "cpu_ns": 105316,
+                  "wall_ns": 106439
+                },
+                "peak_rss_kib": 32184
+              },
+              "schema_version": 1,
+              "scope": "test-only Linux x86_64 direct-verifier gross-regression gate",
+              "status": "PASS"
+            },
+            "status": "PASS",
+            "trust": {
+              "ci": {
+                "api_url": "https://api.github.com",
+                "base_ref": "",
+                "event_name": "push",
+                "expected_checkout_head": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+                "github_actions": true,
+                "head_ref": "",
+                "job": "observe",
+                "ref": "refs/heads/main",
+                "ref_protected": true,
+                "repository": "scottdhughes/quantum-proof-bitcoin",
+                "repository_id": "1136579990",
+                "run_attempt": "1",
+                "run_id": "38457326603",
+                "run_number": "46",
+                "server_url": "https://github.com",
+                "sha": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+                "workflow": "ML-DSA-44 verifier resource envelope",
+                "workflow_ref": "scottdhughes/quantum-proof-bitcoin/.github/workflows/ml-dsa-44-resource-envelope.yml@refs/heads/main",
+                "workflow_sha": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d"
+              },
+              "label": "TRUSTED_MAIN_OBSERVATION",
+              "promotion_eligible": false,
+              "reason": "exact clean main head matches the separately advanced guarded review baseline",
+              "requires_companion_compilers": [
+                "clang",
+                "gcc"
+              ],
+              "requires_external_workflow_provenance": true,
+              "requires_separate_numeric_policy_change": false,
+              "trusted_observation": true
+            }
+          },
+          "size_in_bytes": 539625
+        },
+        {
+          "created_at": "2026-10-13T19:45:41Z",
+          "digest": "sha256:7f2b0c100021370c5f8427d1738176f997b2bc3839e1e0049f477a80190e27e5",
+          "download_sha256": "7f2b0c100021370c5f8427d1738176f997b2bc3839e1e0049f477a80190e27e5",
+          "expired": false,
+          "expires_at": "2027-01-11T19:45:09Z",
+          "id": 11843936790,
+          "internal_checksum_manifests": [
+            {
+              "entries": 24,
+              "path": "SHA256SUMS",
+              "sha256": "62f4311fe6c94a32892131c812c7af49fb9b40b691e9e8b9066bb0073196a09d"
+            }
+          ],
+          "name": "ml-dsa-44-resource-main-observation-1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d-gcc-38457326603-1",
+          "observation": {
+            "limitations": [
+              "Linux x86_64 only",
+              "sequential direct-verifier calls only",
+              "coarse timing and RSS gates are Linux x86_64 CI regression limits only",
+              "numeric gates are not supported-platform, consensus, or production limits",
+              "no node, wallet, script, consensus, block-scheduler, or concurrency claim",
+              "project-object allocator interposition does not measure dynamic-libc internals",
+              "compiler .su rows are per-function observations, not a formal call-chain sum",
+              "production backend remains NONE and the release hold remains active"
+            ],
+            "numeric_acceptance": {
+              "acceptance_basis_sha256": "2a5acb1914b4623a9f7bc34c4ac2a2eebce25be700622ae3e5eb94f223354761",
+              "aggregation": "first_call_plus_four_batches_control_excluded",
+              "checks": [
+                {
+                  "id": "first_call.cpu_ns",
+                  "limit": 10000000,
+                  "observed": 93940,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "first_call.wall_ns",
+                  "limit": 25000000,
+                  "observed": 94983,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "mixed_rotating.max_sample_cpu_ns",
+                  "limit": 75000000,
+                  "observed": 7526716,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "mixed_rotating.max_sample_wall_ns",
+                  "limit": 200000000,
+                  "observed": 7527288,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "mixed_rotating.cpu_ns",
+                  "limit": 2000000000,
+                  "observed": 208590384,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "mixed_rotating.wall_ns",
+                  "limit": 5000000000,
+                  "observed": 208637414,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "valid_rotating.max_sample_cpu_ns",
+                  "limit": 75000000,
+                  "observed": 10070151,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "valid_rotating.max_sample_wall_ns",
+                  "limit": 200000000,
+                  "observed": 10070545,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "valid_rotating.cpu_ns",
+                  "limit": 2000000000,
+                  "observed": 305785330,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "valid_rotating.wall_ns",
+                  "limit": 5000000000,
+                  "observed": 305813864,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "deep_reject_rotating.max_sample_cpu_ns",
+                  "limit": 75000000,
+                  "observed": 9798837,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "deep_reject_rotating.max_sample_wall_ns",
+                  "limit": 200000000,
+                  "observed": 9799230,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "deep_reject_rotating.cpu_ns",
+                  "limit": 2000000000,
+                  "observed": 266766662,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "deep_reject_rotating.wall_ns",
+                  "limit": 5000000000,
+                  "observed": 266782514,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "same_key_mixed.max_sample_cpu_ns",
+                  "limit": 75000000,
+                  "observed": 9639741,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "same_key_mixed.max_sample_wall_ns",
+                  "limit": 200000000,
+                  "observed": 9640290,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "same_key_mixed.cpu_ns",
+                  "limit": 2000000000,
+                  "observed": 278110398,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "same_key_mixed.wall_ns",
+                  "limit": 5000000000,
+                  "observed": 278157818,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "aggregate.cpu_ns",
+                  "limit": 8000000000,
+                  "observed": 1059346714,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "aggregate.wall_ns",
+                  "limit": 20000000000,
+                  "observed": 1059486593,
+                  "status": "PASS",
+                  "unit": "ns"
+                },
+                {
+                  "id": "process.peak_rss_kib",
+                  "limit": 65536,
+                  "observed": 32104,
+                  "status": "PASS",
+                  "unit": "KiB"
+                }
+              ],
+              "current_run_threshold_calibration": false,
+              "limits": {
+                "aggregate_cpu_ns": 8000000000,
+                "aggregate_wall_ns": 20000000000,
+                "aggregation": "first_call_plus_four_batches_control_excluded",
+                "batch_sample_cpu_ns": 75000000,
+                "batch_sample_wall_ns": 200000000,
+                "first_call_cpu_ns": 10000000,
+                "first_call_wall_ns": 25000000,
+                "peak_rss_kib": 65536,
+                "per_batch_cpu_ns": 2000000000,
+                "per_batch_wall_ns": 5000000000,
+                "status": "ENFORCED_TEST_ONLY_LINUX_X86_64_GROSS_REGRESSION_CEILING"
+              },
+              "observed": {
+                "aggregate": {
+                  "cpu_ns": 1059346714,
+                  "wall_ns": 1059486593
+                },
+                "batches": [
+                  {
+                    "cpu_ns": 208590384,
+                    "id": "mixed_rotating",
+                    "max_sample_cpu_ns": 7526716,
+                    "max_sample_wall_ns": 7527288,
+                    "wall_ns": 208637414
+                  },
+                  {
+                    "cpu_ns": 305785330,
+                    "id": "valid_rotating",
+                    "max_sample_cpu_ns": 10070151,
+                    "max_sample_wall_ns": 10070545,
+                    "wall_ns": 305813864
+                  },
+                  {
+                    "cpu_ns": 266766662,
+                    "id": "deep_reject_rotating",
+                    "max_sample_cpu_ns": 9798837,
+                    "max_sample_wall_ns": 9799230,
+                    "wall_ns": 266782514
+                  },
+                  {
+                    "cpu_ns": 278110398,
+                    "id": "same_key_mixed",
+                    "max_sample_cpu_ns": 9639741,
+                    "max_sample_wall_ns": 9640290,
+                    "wall_ns": 278157818
+                  }
+                ],
+                "excluded_control": {
+                  "cpu_ns": 12482,
+                  "wall_ns": 18860
+                },
+                "first_call": {
+                  "cpu_ns": 93940,
+                  "wall_ns": 94983
+                },
+                "peak_rss_kib": 32104
+              },
+              "schema_version": 1,
+              "scope": "test-only Linux x86_64 direct-verifier gross-regression gate",
+              "status": "PASS"
+            },
+            "status": "PASS",
+            "trust": {
+              "ci": {
+                "api_url": "https://api.github.com",
+                "base_ref": "",
+                "event_name": "push",
+                "expected_checkout_head": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+                "github_actions": true,
+                "head_ref": "",
+                "job": "observe",
+                "ref": "refs/heads/main",
+                "ref_protected": true,
+                "repository": "scottdhughes/quantum-proof-bitcoin",
+                "repository_id": "1136579990",
+                "run_attempt": "1",
+                "run_id": "38457326603",
+                "run_number": "46",
+                "server_url": "https://github.com",
+                "sha": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+                "workflow": "ML-DSA-44 verifier resource envelope",
+                "workflow_ref": "scottdhughes/quantum-proof-bitcoin/.github/workflows/ml-dsa-44-resource-envelope.yml@refs/heads/main",
+                "workflow_sha": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d"
+              },
+              "label": "TRUSTED_MAIN_OBSERVATION",
+              "promotion_eligible": false,
+              "reason": "exact clean main head matches the separately advanced guarded review baseline",
+              "requires_companion_compilers": [
+                "clang",
+                "gcc"
+              ],
+              "requires_external_workflow_provenance": true,
+              "requires_separate_numeric_policy_change": false,
+              "trusted_observation": true
+            }
+          },
+          "size_in_bytes": 532575
+        }
+      ],
+      "event": "push",
+      "fork_called": false,
+      "head_sha": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+      "path": ".github/workflows/ml-dsa-44-resource-envelope.yml",
+      "ref": "refs/heads/main",
+      "run_attempt": 1,
+      "run_conclusion": "success",
+      "run_id": 38457326603,
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/38457326603"
+    },
+    "review_reproduction": {
+      "artifacts": [
+        {
+          "created_at": "2026-10-14T11:18:13Z",
+          "digest": "sha256:c39fea4cdad44f2296935d666e9c7fae73a135da16b17b7155fffae0176d38bb",
+          "download_sha256": "c39fea4cdad44f2296935d666e9c7fae73a135da16b17b7155fffae0176d38bb",
+          "expired": false,
+          "expires_at": "2027-01-12T10:36:50Z",
+          "id": 11890351121,
+          "internal_checksum_manifests": [
+            {
+              "entries": 673,
+              "path": "ml-dsa-44-differential-fuzz/SHA256SUMS",
+              "sha256": "5ff2a9e809761d59ec1455e8eaf42bd76bc0c27bf07d55242ae2330298decd51"
+            },
+            {
+              "entries": 1,
+              "path": "ml-dsa-44-differential-fuzz-run.sha256",
+              "sha256": "bd9fec966a480d4a3ba5baa9daa1f60d3ddcf755f91832fd1d73da2027d6b5be"
+            },
+            {
+              "entries": 4,
+              "path": "ml-dsa-44-differential-supplemental.sha256",
+              "sha256": "d2c0158b90706bbaf341737d932fa04a92ea95888d99ce6a0274d530c74e9e7b"
+            },
+            {
+              "entries": 1,
+              "path": "ml-dsa-44-review-run.sha256",
+              "sha256": "6e8c0b6a0e24301a556cc2ef60817d077da27128e58322b79f25aaf10167fde4"
+            }
+          ],
+          "name": "ml-dsa-44-review-evidence-1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+          "size_in_bytes": 2353973
+        }
+      ],
+      "campaign": {
+        "campaign_limit": {
+          "runs": null,
+          "seconds": 1800
+        },
+        "campaign_sha256": "a39f85956ffbfad1694efacdefcca8f94fec8519441e12fff1f8523f0728a4b2",
+        "crash_artifacts": {
+          "aggregate_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "file_count": 0,
+          "total_bytes": 0
+        },
+        "duration_seconds": 1845.605,
+        "executed_units": 1843613,
+        "final_stats": [
+          "stat::number_of_executed_units: 1843613",
+          "stat::average_exec_per_sec:     1023",
+          "stat::new_units_added:          93",
+          "stat::slowest_unit_time_sec:    0",
+          "stat::peak_rss_mb:              484"
+        ],
+        "fuzzer_duration_seconds": 1801.161,
+        "imported_retained_seeds": 92,
+        "minimized_corpus": {
+          "aggregate_sha256": "0d43c5d51344defa643b3abbdbfb4f766ee4ed40b7d5f96a1b07b1722c9bbff3",
+          "file_count": 166,
+          "total_bytes": 585048
+        },
+        "minimized_crash_artifacts": {
+          "aggregate_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "file_count": 0,
+          "total_bytes": 0
+        },
+        "sanitizer": "address-undefined",
+        "source_corpus": {
+          "aggregate_sha256": "6ee1368b01bfd758dd1c78a79bb7789769137f8d93055dfe9c4d040706597979",
+          "expected_counts": {
+            "invalid_argument": 36,
+            "ok": 81,
+            "verify_rejection": 128
+          },
+          "source_counts": {
+            "project": 27,
+            "promoted": 38,
+            "wycheproof": 180
+          },
+          "total_cases": 245,
+          "unique_frames": 240
+        },
+        "source_files": {
+          "config_header_sha256": "50a5b8f09700a2e6b6237c119b5842236f4cd56029f802dbefddd5e724b0d624",
+          "corpus_manifest_sha256": "be6be534de033f543f60576035446a4194e8ca4dc3b5494a56fcb07354171076",
+          "driver_sha256": "38187956f120c5ca40422e078d023947e747e3e42f5edd1014fc51c33a595eec",
+          "fuzz_target_sha256": "e135513970ab4f107febcf711fec83b1d16919e7fe90fa4fa2b53e8a60ed3b4f",
+          "promoted_source_sha256": "458f8902fc50e240145a2dd6bfa717c3fca14d58e792ddbafe6f985b1c45ecc0",
+          "public_header_sha256": "9bb114b51bdc225605b99c92ed8b21ed5e08f9c8efb7ca7924214e1f679a8255",
+          "source_capsule_sha256": "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb",
+          "source_manifest_sha256": "19d5cd67692758d1315312b7e27e7c57dab470971ec18ea92faa383dbb8e1165",
+          "wrapper_sha256": "53282d3eb0d29b45cd430236bc8a01ca15f1d91622c2adeeb74b3f823ac832e4",
+          "wrapper_test_driver_sha256": "1d8a91c142f7582e788e09a878b6b36661e8b99a086499b7da783211fb0775c2",
+          "wycheproof_vectors_sha256": "5ec04790c240c443ca8b662b8fc871834602c7cce87fcd36a193110745b2b9ea"
+        },
+        "status": "pass"
+      },
+      "conformance": {
+        "acvp": {
+          "keygen_cases": 25,
+          "siggen_cases": 30,
+          "sigver_cases": 15,
+          "total_cases": 70
+        },
+        "checks": {
+          "adapter_asan_ubsan": "PASS",
+          "boundary_and_mutation_rejection": "PASS",
+          "fips204_and_update_artifact_provenance": "PASS",
+          "full_signature_byte_agreement": "PASS",
+          "libcrux_executed_security_regressions": "PASS",
+          "libcrux_source_and_crate_provenance": "PASS",
+          "nist_deterministic_and_randomized_siggen": "PASS",
+          "nist_selected_profile_acvp_70_cases": "PASS",
+          "nist_sigver_all_accept_reject_cases": "PASS",
+          "nist_source_provenance": "PASS",
+          "pqbtc_sighash_vector": "PASS",
+          "randomized_interoperability": "PASS",
+          "research_cli_adapter_fuzz": "PASS"
+        },
+        "lineage": {
+          "libcrux": {
+            "basis": "direct Rust implementation history begins at the pinned May 2024 commit; the resolved normal dependency graph does not include PQClean, pq-crystals, mldsa-native, or pqcrypto-mldsa",
+            "limit": "unit-test outputs and selected sampling/optimization comments cite PQ-Crystals; this is independent implementation evidence, not independent design, external cryptographic review, or production approval",
+            "normal_pqclean_or_pq_crystals_dependency": false,
+            "outcome": "separate_implementation_lineage_with_reference_influence"
+          },
+          "mldsa_native": "mldsa-native is forked from the pq-crystals reference implementation; agreement with OpenSSL is strong differential evidence but not independent cryptographic review"
+        },
+        "negative_testing": {
+          "boundary_cases": 2,
+          "cryptographic_rejections": 12,
+          "malformed_input_rejections": 34
+        },
+        "openssl_commit": "c8bd5a57108599ac650bbae77fcabe3109dab2e8",
+        "openssl_tree": "96ac34688809c56b1afa117c75c0ef303ff19a75",
+        "openssl_version": "OpenSSL 3.6.5 29 Sep 2026 (Library: OpenSSL 3.6.5 29 Sep 2026)",
+        "randomized_interoperability": {
+          "default_randomized_rounds": 6,
+          "fixed_randomizer_rounds": 2
+        },
+        "status": "PASS"
+      },
+      "coverage_floors": {
+        "campaign_seconds": 1800,
+        "openssl_bridge": {
+          "branches": {
+            "count": 50,
+            "covered": 37,
+            "percent": 74.0,
+            "required_percent": 74.0
+          },
+          "functions": {
+            "count": 4,
+            "covered": 3,
+            "percent": 75.0,
+            "required_percent": 75.0
+          },
+          "lines": {
+            "count": 113,
+            "covered": 81,
+            "percent": 71.681416,
+            "required_percent": 71.0
+          }
+        },
+        "schema_version": 1,
+        "target": {
+          "branches": {
+            "count": 114,
+            "covered": 98,
+            "percent": 85.964912,
+            "required_percent": 85.0
+          },
+          "functions": {
+            "count": 11,
+            "covered": 11,
+            "percent": 100.0,
+            "required_percent": 100.0
+          },
+          "lines": {
+            "count": 307,
+            "covered": 275,
+            "percent": 89.576547,
+            "required_percent": 89.0
+          }
+        }
+      },
+      "event": "schedule",
+      "exact_replay": {
+        "binary_sha256": "8e9ed3cc404aba16dea9b00e4ff4b0ca3d19c6417ad815b7c9dc7b9b4857925a",
+        "case_count": 5,
+        "expected_accept_count": 2,
+        "expected_reject_count": 3,
+        "status": "pass"
+      },
+      "fork_called": false,
+      "head_sha": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+      "ml-dsa-44-differential-campaign-parameters": {
+        "campaign_seconds": "1800",
+        "campaign_seed": "4191057476",
+        "checkout_head": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+        "event_name": "schedule",
+        "expected_checkout_head": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+        "github_run_attempt": "1",
+        "github_run_id": "38550795835",
+        "github_sha": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+        "retained_corpus_restored": "true",
+        "retained_seed_file_count": "164",
+        "retained_source_artifact": "ml-dsa-44-review-evidence-dd69a4568760bcaa4c4e57d5664ff7d5b5b57913",
+        "retained_source_head_sha": "dd69a4568760bcaa4c4e57d5664ff7d5b5b57913",
+        "retained_source_run_attempt": "1",
+        "retained_source_run_id": "34338526769"
+      },
+      "ml-dsa-44-differential-retained-corpus": {
+        "event_name": "schedule",
+        "restore_policy": "latest_successful_main_run",
+        "restored_seed_file_count": "164",
+        "seed_directory": "ml-dsa-44-differential-fuzz/minimized-corpus",
+        "source_artifact": "ml-dsa-44-review-evidence-dd69a4568760bcaa4c4e57d5664ff7d5b5b57913",
+        "source_campaign_minimized_aggregate_sha256": "9ed06a59363ea6a5033783d4499dc4f5265735df6b58cddc9bb6898ac82cd923",
+        "source_campaign_minimized_file_count": "164",
+        "source_campaign_minimized_total_bytes": "585209",
+        "source_campaign_repository_commit": "dd69a4568760bcaa4c4e57d5664ff7d5b5b57913",
+        "source_evidence_sha256": "08f221f4503cf4c1be90c9a0b4e01a5ff14e0c73327faa7160b7b45439ba02f8",
+        "source_head_sha": "dd69a4568760bcaa4c4e57d5664ff7d5b5b57913",
+        "source_run_attempt": "1",
+        "source_run_created_at": "2026-09-09T10:07:33Z",
+        "source_run_id": "34338526769",
+        "state": "restored"
+      },
+      "ml-dsa-44-review-run-context": {
+        "baseline_commit": "e44a19f352181b3f0aab090d122e2a4562e95512",
+        "baseline_pointer_path": "contrib/ml-dsa-ref/review_baseline_commit.txt",
+        "baseline_pointer_sha256": "31de018b808c4a601e82180e69fe5473821efebdbf84ef973a069023b6bdb8e4",
+        "event_name": "schedule",
+        "evidence_trust_scope": "frozen_baseline_reproduction",
+        "expected_base_head": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+        "expected_checkout_head": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+        "github_ref": "refs/heads/main",
+        "github_run_attempt": "1",
+        "github_run_id": "38550795835",
+        "github_sha": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+        "openssl_cve_2026_63076_equivalent_fix_ancestor": "true",
+        "openssl_cve_2026_63076_equivalent_fix_commit": "49de27169f4cc42619a096c38412e47a3f890803",
+        "openssl_release_commit": "c8bd5a57108599ac650bbae77fcabe3109dab2e8",
+        "openssl_release_tag": "openssl-3.6.5",
+        "openssl_release_tag_object": "f93be98fe7c796e92fc999dd1a21a5212d4e4f8e",
+        "openssl_release_tarball_sha256": "a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98",
+        "openssl_release_tarball_url": "https://github.com/openssl/openssl/releases/download/openssl-3.6.5/openssl-3.6.5.tar.gz",
+        "openssl_release_tree": "96ac34688809c56b1afa117c75c0ef303ff19a75",
+        "promotion_eligible": "true"
+      },
+      "path": ".github/workflows/ml-dsa-44-review-reproduction.yml",
+      "promoted_regression_replay": {
+        "binary_sha256": "8e9ed3cc404aba16dea9b00e4ff4b0ca3d19c6417ad815b7c9dc7b9b4857925a",
+        "case_count": 38,
+        "expected_accept_count": 0,
+        "expected_reject_count": 38,
+        "expected_result_counts": {
+          "invalid_argument": 13,
+          "verify_rejection": 25
+        },
+        "status": "pass"
+      },
+      "ref": "refs/heads/main",
+      "retained_source_artifact": {
+        "created_at": "2026-09-09T10:47:49Z",
+        "digest": "sha256:85dd5c1e0dddd5cccf89d8609d3bac7f30556279e8b715a29fa92739ed551cc9",
+        "download_sha256": "85dd5c1e0dddd5cccf89d8609d3bac7f30556279e8b715a29fa92739ed551cc9",
+        "expired": false,
+        "expires_at": "2026-12-08T10:07:33Z",
+        "id": 10100157573,
+        "internal_checksum_manifests": [
+          {
+            "entries": 682,
+            "path": "ml-dsa-44-differential-fuzz/SHA256SUMS",
+            "sha256": "08f221f4503cf4c1be90c9a0b4e01a5ff14e0c73327faa7160b7b45439ba02f8"
+          },
+          {
+            "entries": 1,
+            "path": "ml-dsa-44-differential-fuzz-run.sha256",
+            "sha256": "40242fa224fb121399cbf1a66fa1cda5ae134ec8bc6a9b180d2fe8341d02493c"
+          },
+          {
+            "entries": 4,
+            "path": "ml-dsa-44-differential-supplemental.sha256",
+            "sha256": "cae667e427a181a425ae211c8322c84facb2ca1d25b38d084d4140c4df817db3"
+          },
+          {
+            "entries": 1,
+            "path": "ml-dsa-44-review-run.sha256",
+            "sha256": "ed6d3c388fc3be15015b37a3e9532444ae67049ba6a5e6262da5a81e319f74bd"
+          }
+        ],
+        "name": "ml-dsa-44-review-evidence-dd69a4568760bcaa4c4e57d5664ff7d5b5b57913",
+        "size_in_bytes": 2381861
+      },
+      "review_report_sha256": "de98d2dd4eb3ce506a0486755ed147a08de911ba3403d33d26098ca28c3877b4",
+      "run_attempt": 1,
+      "run_conclusion": "success",
+      "run_id": 38550795835,
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/38550795835"
+    },
+    "sustained_fuzz": {
+      "artifacts": [
+        {
+          "campaign": {
+            "campaign_limit": {
+              "runs": null,
+              "seconds": 1800
+            },
+            "campaign_sha256": "2236737c7c97800836b079234cb6c518285dd22d79c7579866160e8575b1f120",
+            "crash_artifacts": {
+              "aggregate_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "file_count": 0,
+              "total_bytes": 0
+            },
+            "deterministic_replay": {
+              "case_count": 31,
+              "status": "pass"
+            },
+            "duration_seconds": 1828.141,
+            "executed_units": 58183,
+            "final_stats": [
+              "stat::number_of_executed_units: 58183",
+              "stat::average_exec_per_sec:     32",
+              "stat::new_units_added:          317",
+              "stat::slowest_unit_time_sec:    0",
+              "stat::peak_rss_mb:              82"
+            ],
+            "fuzzer_duration_seconds": 1801.106,
+            "imported_retained_seeds": 125,
+            "minimized_corpus": {
+              "aggregate_sha256": "218452616d222ec5449484c828155fcfbfd3d1f6f2120cd1a236af9046965952",
+              "file_count": 214,
+              "total_bytes": 118123
+            },
+            "minimized_crash_artifacts": {
+              "aggregate_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "file_count": 0,
+              "total_bytes": 0
+            },
+            "retained_corpus_import": {
+              "imported_summary": {
+                "aggregate_sha256": "2ca33fee7e6488a4eb80f22c8c89e37a486354505353fcbcb701dd8ddf4574fb",
+                "file_count": 125,
+                "total_bytes": 71672
+              },
+              "source_summary": {
+                "aggregate_sha256": "26f4df631e2c316bef51ec3c317b57ec20b3b7992deea85a0f081bada9c74ade",
+                "file_count": 137,
+                "total_bytes": 77567
+              },
+              "unique_source_summary": {
+                "aggregate_sha256": "653dca742bcab8070a19b04c228aa8951d64905a6012198ff31ef5fc57993d86",
+                "file_count": 137,
+                "total_bytes": 77567
+              }
+            },
+            "retained_corpus_source": {
+              "artifact": "ml-dsa-44-stateful-signer-msan-38274461341-1",
+              "evidence_sha256": "b2c4c59b3f57451c12d3394a08c3e838c0a628e32756a5d6726a572e7d738480",
+              "head_sha": "e44a19f352181b3f0aab090d122e2a4562e95512",
+              "restored_seed_aggregate_sha256": "26f4df631e2c316bef51ec3c317b57ec20b3b7992deea85a0f081bada9c74ade",
+              "restored_seed_file_count": 137,
+              "restored_seed_total_bytes": 77567,
+              "run_attempt": "1",
+              "run_id": "38274461341"
+            },
+            "sanitizer": "memory",
+            "source_corpus": {
+              "aggregate_sha256": "9ee9c275e59e8a4d383bd474b080406b764aafd9b219dffb522d9ef4e73f05d1",
+              "invalid_argument_variant_counts": {
+                "alias_context": 1,
+                "alias_message": 2,
+                "alias_public_key": 1,
+                "alias_secret_key": 1,
+                "long_output": 1,
+                "null_context": 1,
+                "null_message": 1,
+                "null_output": 1,
+                "null_public_key": 1,
+                "null_secret_key": 1,
+                "short_output": 1,
+                "short_public_key": 1,
+                "short_secret_key": 1
+              },
+              "scenario_counts": {
+                "attempts_exhausted_a_then_repeat_a_then_fresh_b": 1,
+                "backend_failure_a_then_repeat_a_then_fresh_b": 1,
+                "fresh_a_then_fresh_b": 4,
+                "fresh_a_then_invalid_then_repeat_a_then_fresh_b": 14,
+                "fresh_a_then_repeat_a_then_fresh_b": 1,
+                "fresh_a_then_reset_then_reuse_a": 1,
+                "fresh_a_then_short_b_then_repeat_a_then_fresh_b": 4,
+                "fresh_a_then_source_failure_then_repeat_a_then_fresh_b": 1,
+                "fresh_a_then_zero_then_repeat_a_then_fresh_b": 1,
+                "invalid_context_preserves_repeat_state": 1,
+                "self_verify_failure_a_then_repeat_a_then_fresh_b": 1,
+                "signature_length_failure_a_then_repeat_a_then_fresh_b": 1
+              },
+              "total_cases": 31,
+              "unique_frames": 31
+            },
+            "source_files": {
+              "config_header_sha256": "50a5b8f09700a2e6b6237c119b5842236f4cd56029f802dbefddd5e724b0d624",
+              "corpus_manifest_sha256": "2d7477edcea5dc1327feaa059c2cb2c7e3e381c13d4c1906b93613263ac21768",
+              "driver_sha256": "565a2888bb5605b9553442703a5e9c346cf82f4c1fbd505b9db6aabdd0737bc6",
+              "fuzz_target_sha256": "b39a38aa495a06629eea0ff83a8b3f2f9a2d0ed5dc86d6a8965cc91471d047be",
+              "fuzzer_binary_sha256": "63e52175dbaf79749e84115fa42e30a0651e4ad217cd3959f84b5c820ed0c37b",
+              "public_header_sha256": "9bb114b51bdc225605b99c92ed8b21ed5e08f9c8efb7ca7924214e1f679a8255",
+              "repo_vectors_sha256": "9cad66d81b2185e8e4e1e377697c92ce5ee4e4e7b6c9d3d453c342b8288962c2",
+              "source_capsule_sha256": "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb",
+              "source_manifest_sha256": "19d5cd67692758d1315312b7e27e7c57dab470971ec18ea92faa383dbb8e1165",
+              "test_header_sha256": "4d76421c13ff2cd28f73c81c5784d5b34f2bf1aef1901cac841de08240e8402f",
+              "verifier_fuzz_driver_sha256": "38187956f120c5ca40422e078d023947e747e3e42f5edd1014fc51c33a595eec",
+              "wrapper_sha256": "53282d3eb0d29b45cd430236bc8a01ca15f1d91622c2adeeb74b3f823ac832e4",
+              "wrapper_test_driver_sha256": "1d8a91c142f7582e788e09a878b6b36661e8b99a086499b7da783211fb0775c2"
+            },
+            "status": "pass"
+          },
+          "created_at": "2026-10-14T10:02:43Z",
+          "digest": "sha256:c0d51e21671f5c980a6798bb04c0cf29fb09dd2bae5165a164c12efa0a061c88",
+          "download_sha256": "c0d51e21671f5c980a6798bb04c0cf29fb09dd2bae5165a164c12efa0a061c88",
+          "expired": false,
+          "expires_at": "2027-01-12T09:31:48Z",
+          "id": 11884886730,
+          "internal_checksum_manifests": [
+            {
+              "entries": 584,
+              "path": "SHA256SUMS",
+              "sha256": "58bb2cf9d25b3c0fa54d7d3bec580e19258b8257fc8625b7e859bd7062e33088"
+            }
+          ],
+          "name": "ml-dsa-44-stateful-signer-msan-38543015542-1",
+          "retained_source_artifact": {
+            "created_at": "2026-10-12T16:03:04Z",
+            "digest": "sha256:77dd1178bad0f1ae6302f4b250ebb62c3659e7bc4aacfa4074eec74747eb71c6",
+            "download_sha256": "77dd1178bad0f1ae6302f4b250ebb62c3659e7bc4aacfa4074eec74747eb71c6",
+            "expired": false,
+            "expires_at": "2027-01-10T16:01:23Z",
+            "id": 11758661760,
+            "internal_checksum_manifests": [
+              {
+                "entries": 353,
+                "path": "SHA256SUMS",
+                "sha256": "b2c4c59b3f57451c12d3394a08c3e838c0a628e32756a5d6726a572e7d738480"
+              }
+            ],
+            "name": "ml-dsa-44-stateful-signer-msan-38274461341-1",
+            "size_in_bytes": 164444
+          },
+          "size_in_bytes": 267829
+        },
+        {
+          "campaign": {
+            "campaign_limit": {
+              "runs": null,
+              "seconds": 1800
+            },
+            "campaign_sha256": "ce06fe3144c4a198e6aa39de226b8dcf63606cc4dbcaba0ccd63a5a4218910a2",
+            "crash_artifacts": {
+              "aggregate_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "file_count": 0,
+              "total_bytes": 0
+            },
+            "deterministic_replay": {
+              "case_count": 31,
+              "status": "pass"
+            },
+            "duration_seconds": 1820.258,
+            "executed_units": 94424,
+            "final_stats": [
+              "stat::number_of_executed_units: 94424",
+              "stat::average_exec_per_sec:     52",
+              "stat::new_units_added:          304",
+              "stat::slowest_unit_time_sec:    0",
+              "stat::peak_rss_mb:              293"
+            ],
+            "fuzzer_duration_seconds": 1801.096,
+            "imported_retained_seeds": 179,
+            "minimized_corpus": {
+              "aggregate_sha256": "99a3641bc6f061602aaeac88b34667f4ff157c716c62fd45afa5ee658287a108",
+              "file_count": 272,
+              "total_bytes": 172303
+            },
+            "minimized_crash_artifacts": {
+              "aggregate_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "file_count": 0,
+              "total_bytes": 0
+            },
+            "retained_corpus_import": {
+              "imported_summary": {
+                "aggregate_sha256": "d7b069b6c3ed1270db49763cb89ebce9e3cad2fd28677a576474cc3cd9ec07ee",
+                "file_count": 179,
+                "total_bytes": 130315
+              },
+              "source_summary": {
+                "aggregate_sha256": "058225cfdaefd50821a6decdf036a2add4ed450d56e36a6999add5fe5cbbe949",
+                "file_count": 191,
+                "total_bytes": 132381
+              },
+              "unique_source_summary": {
+                "aggregate_sha256": "f2e2e27eb76dc6bb51ee36cffb12c74b78bbb4a52ba14a39688d56e05fd7efda",
+                "file_count": 191,
+                "total_bytes": 132381
+              }
+            },
+            "retained_corpus_source": {
+              "artifact": "ml-dsa-44-stateful-signer-asan-ubsan-38274461341-1",
+              "evidence_sha256": "9c09521b0aacbc6fadf0cace6a6111bd40e7c59eb4a79b14202dc0e98075c476",
+              "head_sha": "e44a19f352181b3f0aab090d122e2a4562e95512",
+              "restored_seed_aggregate_sha256": "058225cfdaefd50821a6decdf036a2add4ed450d56e36a6999add5fe5cbbe949",
+              "restored_seed_file_count": 191,
+              "restored_seed_total_bytes": 132381,
+              "run_attempt": "1",
+              "run_id": "38274461341"
+            },
+            "sanitizer": "address-undefined",
+            "source_corpus": {
+              "aggregate_sha256": "9ee9c275e59e8a4d383bd474b080406b764aafd9b219dffb522d9ef4e73f05d1",
+              "invalid_argument_variant_counts": {
+                "alias_context": 1,
+                "alias_message": 2,
+                "alias_public_key": 1,
+                "alias_secret_key": 1,
+                "long_output": 1,
+                "null_context": 1,
+                "null_message": 1,
+                "null_output": 1,
+                "null_public_key": 1,
+                "null_secret_key": 1,
+                "short_output": 1,
+                "short_public_key": 1,
+                "short_secret_key": 1
+              },
+              "scenario_counts": {
+                "attempts_exhausted_a_then_repeat_a_then_fresh_b": 1,
+                "backend_failure_a_then_repeat_a_then_fresh_b": 1,
+                "fresh_a_then_fresh_b": 4,
+                "fresh_a_then_invalid_then_repeat_a_then_fresh_b": 14,
+                "fresh_a_then_repeat_a_then_fresh_b": 1,
+                "fresh_a_then_reset_then_reuse_a": 1,
+                "fresh_a_then_short_b_then_repeat_a_then_fresh_b": 4,
+                "fresh_a_then_source_failure_then_repeat_a_then_fresh_b": 1,
+                "fresh_a_then_zero_then_repeat_a_then_fresh_b": 1,
+                "invalid_context_preserves_repeat_state": 1,
+                "self_verify_failure_a_then_repeat_a_then_fresh_b": 1,
+                "signature_length_failure_a_then_repeat_a_then_fresh_b": 1
+              },
+              "total_cases": 31,
+              "unique_frames": 31
+            },
+            "source_files": {
+              "config_header_sha256": "50a5b8f09700a2e6b6237c119b5842236f4cd56029f802dbefddd5e724b0d624",
+              "corpus_manifest_sha256": "2d7477edcea5dc1327feaa059c2cb2c7e3e381c13d4c1906b93613263ac21768",
+              "driver_sha256": "565a2888bb5605b9553442703a5e9c346cf82f4c1fbd505b9db6aabdd0737bc6",
+              "fuzz_target_sha256": "b39a38aa495a06629eea0ff83a8b3f2f9a2d0ed5dc86d6a8965cc91471d047be",
+              "fuzzer_binary_sha256": "83331a4957bc08cfdb165e0cfa08efae2de907abe031eb84cd5973c035804481",
+              "public_header_sha256": "9bb114b51bdc225605b99c92ed8b21ed5e08f9c8efb7ca7924214e1f679a8255",
+              "repo_vectors_sha256": "9cad66d81b2185e8e4e1e377697c92ce5ee4e4e7b6c9d3d453c342b8288962c2",
+              "source_capsule_sha256": "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb",
+              "source_manifest_sha256": "19d5cd67692758d1315312b7e27e7c57dab470971ec18ea92faa383dbb8e1165",
+              "test_header_sha256": "4d76421c13ff2cd28f73c81c5784d5b34f2bf1aef1901cac841de08240e8402f",
+              "verifier_fuzz_driver_sha256": "38187956f120c5ca40422e078d023947e747e3e42f5edd1014fc51c33a595eec",
+              "wrapper_sha256": "53282d3eb0d29b45cd430236bc8a01ca15f1d91622c2adeeb74b3f823ac832e4",
+              "wrapper_test_driver_sha256": "1d8a91c142f7582e788e09a878b6b36661e8b99a086499b7da783211fb0775c2"
+            },
+            "status": "pass"
+          },
+          "created_at": "2026-10-14T10:02:39Z",
+          "digest": "sha256:d71629217640106fb9cda73d02063448d022df8829f7f4746442f41ff3a3c052",
+          "download_sha256": "d71629217640106fb9cda73d02063448d022df8829f7f4746442f41ff3a3c052",
+          "expired": false,
+          "expires_at": "2027-01-12T09:31:48Z",
+          "id": 11884642612,
+          "internal_checksum_manifests": [
+            {
+              "entries": 766,
+              "path": "SHA256SUMS",
+              "sha256": "68c7480631d8e9895c1050a1946a9e5c676eeec233e70d284252fb06d22c94fb"
+            }
+          ],
+          "name": "ml-dsa-44-stateful-signer-asan-ubsan-38543015542-1",
+          "retained_source_artifact": {
+            "created_at": "2026-10-12T16:03:01Z",
+            "digest": "sha256:d3e423559fbd1e2fea8125d20c41b1004584464f5227394deb13e46e4286872a",
+            "download_sha256": "d3e423559fbd1e2fea8125d20c41b1004584464f5227394deb13e46e4286872a",
+            "expired": false,
+            "expires_at": "2027-01-10T16:01:23Z",
+            "id": 11758497114,
+            "internal_checksum_manifests": [
+              {
+                "entries": 523,
+                "path": "SHA256SUMS",
+                "sha256": "9c09521b0aacbc6fadf0cace6a6111bd40e7c59eb4a79b14202dc0e98075c476"
+              }
+            ],
+            "name": "ml-dsa-44-stateful-signer-asan-ubsan-38274461341-1",
+            "size_in_bytes": 449339
+          },
+          "size_in_bytes": 566397
+        },
+        {
+          "campaign": {
+            "campaign_limit": {
+              "runs": null,
+              "seconds": 1800
+            },
+            "campaign_sha256": "ddbdf54cc40f8a0a9170f05393580018acac96cb0163c1e9e0764e6f0f577f5a",
+            "crash_artifacts": {
+              "aggregate_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "file_count": 0,
+              "total_bytes": 0
+            },
+            "duration_seconds": 1804.634,
+            "executed_units": 7133062,
+            "final_stats": [
+              "stat::number_of_executed_units: 7133062",
+              "stat::average_exec_per_sec:     3960",
+              "stat::new_units_added:          154",
+              "stat::slowest_unit_time_sec:    0",
+              "stat::peak_rss_mb:              408"
+            ],
+            "imported_retained_seeds": 88,
+            "minimized_corpus": {
+              "aggregate_sha256": "1f0e5468de37c4ef39bed465813f2a975f6a1296487ab563067f9ca858a19fd7",
+              "file_count": 133,
+              "total_bytes": 435975
+            },
+            "minimized_crash_artifacts": {
+              "aggregate_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "file_count": 0,
+              "total_bytes": 0
+            },
+            "retained_corpus_import": {
+              "imported_summary": {
+                "aggregate_sha256": "53bcb8f3f361c0ed6cdfd1d386963b673f0413dc8f66c361d930cb6b99bf91ee",
+                "file_count": 88,
+                "total_bytes": 283997
+              },
+              "source_summary": {
+                "aggregate_sha256": "900a33b5b5f182621cb1a114538f4b4dc31757068ee2cb8a10cb1d28c6a32800",
+                "file_count": 136,
+                "total_bytes": 454591
+              },
+              "unique_source_summary": {
+                "aggregate_sha256": "1937ef8a4f56b9f912f7ee9c2774fe7416f025f8595cf80a5982646ae2d49fc8",
+                "file_count": 136,
+                "total_bytes": 454591
+              }
+            },
+            "retained_corpus_source": {
+              "archive": {
+                "sha256": "0ec1e17fd65bca0a58423c92b74602cdf24476115712dacf3729b09f8778a0a3",
+                "sha256sums_sha256": "9acc3c74e1d7ec7b648cc5821d8947b91c1d94e5a4adc1e7fd86024640912277",
+                "size_bytes": 1946675
+              },
+              "retained_corpus": {
+                "aggregate_sha256": "900a33b5b5f182621cb1a114538f4b4dc31757068ee2cb8a10cb1d28c6a32800",
+                "file_count": 136,
+                "total_bytes": 454591
+              },
+              "schema_version": 1,
+              "source": {
+                "artifact_created_at": "2026-10-07T11:35:55Z",
+                "artifact_digest": "sha256:0ec1e17fd65bca0a58423c92b74602cdf24476115712dacf3729b09f8778a0a3",
+                "artifact_expires_at": "2027-01-05T11:05:19Z",
+                "artifact_id": 11479148893,
+                "artifact_name": "ml-dsa-44-sustained-v2-asan-ubsan-37611714495-1",
+                "artifact_size_bytes": 1946675,
+                "event": "schedule",
+                "head_sha": "93a46456c647118dd76a2a7107a5cc714a8714df",
+                "legacy_bootstrap": false,
+                "repository": "scottdhughes/quantum-proof-bitcoin",
+                "repository_id": 1136579990,
+                "run_attempt": 1,
+                "run_id": 37611714495,
+                "sanitizer": "address-undefined",
+                "workflow_id": 317034854,
+                "workflow_path": ".github/workflows/ml-dsa-44-sustained-fuzz.yml"
+              }
+            },
+            "sanitizer": "address-undefined",
+            "source_corpus": {
+              "aggregate_sha256": "6ee1368b01bfd758dd1c78a79bb7789769137f8d93055dfe9c4d040706597979",
+              "expected_counts": {
+                "invalid_argument": 36,
+                "ok": 81,
+                "verify_rejection": 128
+              },
+              "source_counts": {
+                "project": 27,
+                "promoted": 38,
+                "wycheproof": 180
+              },
+              "total_cases": 245,
+              "unique_frames": 240
+            },
+            "source_files": {
+              "config_header_sha256": "50a5b8f09700a2e6b6237c119b5842236f4cd56029f802dbefddd5e724b0d624",
+              "corpus_manifest_sha256": "be6be534de033f543f60576035446a4194e8ca4dc3b5494a56fcb07354171076",
+              "driver_sha256": "38187956f120c5ca40422e078d023947e747e3e42f5edd1014fc51c33a595eec",
+              "fuzz_target_sha256": "e135513970ab4f107febcf711fec83b1d16919e7fe90fa4fa2b53e8a60ed3b4f",
+              "promoted_source_sha256": "458f8902fc50e240145a2dd6bfa717c3fca14d58e792ddbafe6f985b1c45ecc0",
+              "public_header_sha256": "9bb114b51bdc225605b99c92ed8b21ed5e08f9c8efb7ca7924214e1f679a8255",
+              "source_capsule_sha256": "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb",
+              "source_manifest_sha256": "19d5cd67692758d1315312b7e27e7c57dab470971ec18ea92faa383dbb8e1165",
+              "wrapper_sha256": "53282d3eb0d29b45cd430236bc8a01ca15f1d91622c2adeeb74b3f823ac832e4",
+              "wrapper_test_driver_sha256": "1d8a91c142f7582e788e09a878b6b36661e8b99a086499b7da783211fb0775c2",
+              "wycheproof_vectors_sha256": "5ec04790c240c443ca8b662b8fc871834602c7cce87fcd36a193110745b2b9ea"
+            },
+            "status": "pass"
+          },
+          "created_at": "2026-10-14T10:02:30Z",
+          "digest": "sha256:0b1c050b0f6d1d3c56dacf2bf9bb13cb81dd5bbaea8d63141b15a6b8f11ddeaf",
+          "download_sha256": "0b1c050b0f6d1d3c56dacf2bf9bb13cb81dd5bbaea8d63141b15a6b8f11ddeaf",
+          "expired": false,
+          "expires_at": "2027-01-12T09:31:48Z",
+          "id": 11884443123,
+          "internal_checksum_manifests": [
+            {
+              "entries": 587,
+              "path": "SHA256SUMS",
+              "sha256": "9f6f09b6f3fa52de64109315da5f611fa628b907975f799f650069fdcf5987bb"
+            }
+          ],
+          "name": "ml-dsa-44-sustained-v2-asan-ubsan-38543015542-1",
+          "retained_source_artifact": {
+            "created_at": "2026-10-07T11:35:55Z",
+            "digest": "sha256:0ec1e17fd65bca0a58423c92b74602cdf24476115712dacf3729b09f8778a0a3",
+            "download_sha256": "0ec1e17fd65bca0a58423c92b74602cdf24476115712dacf3729b09f8778a0a3",
+            "expired": false,
+            "expires_at": "2027-01-05T11:05:19Z",
+            "id": 11479148893,
+            "internal_checksum_manifests": [
+              {
+                "entries": 602,
+                "path": "SHA256SUMS",
+                "sha256": "9acc3c74e1d7ec7b648cc5821d8947b91c1d94e5a4adc1e7fd86024640912277"
+              }
+            ],
+            "name": "ml-dsa-44-sustained-v2-asan-ubsan-37611714495-1",
+            "size_in_bytes": 1946675
+          },
+          "size_in_bytes": 1911221
+        },
+        {
+          "campaign": {
+            "campaign_limit": {
+              "runs": null,
+              "seconds": 1800
+            },
+            "campaign_sha256": "5eed2afa9527f618d522f65393f65e2058c8df004921f205e46d2bab450b5e8a",
+            "crash_artifacts": {
+              "aggregate_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "file_count": 0,
+              "total_bytes": 0
+            },
+            "duration_seconds": 1803.731,
+            "executed_units": 3122582,
+            "final_stats": [
+              "stat::number_of_executed_units: 3122582",
+              "stat::average_exec_per_sec:     1733",
+              "stat::new_units_added:          0",
+              "stat::slowest_unit_time_sec:    0",
+              "stat::peak_rss_mb:              82"
+            ],
+            "imported_retained_seeds": 31,
+            "minimized_corpus": {
+              "aggregate_sha256": "314aa6b1b7c501892fa7fb5fb2b15523c3c1c44b5644e25bbaec40a890b158fc",
+              "file_count": 81,
+              "total_bytes": 293429
+            },
+            "minimized_crash_artifacts": {
+              "aggregate_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "file_count": 0,
+              "total_bytes": 0
+            },
+            "retained_corpus_import": {
+              "imported_summary": {
+                "aggregate_sha256": "589ad5c9a3c95c304f0c112e00b352a687d9bf7a99d2941445b797bade24a5cf",
+                "file_count": 31,
+                "total_bytes": 115560
+              },
+              "source_summary": {
+                "aggregate_sha256": "314aa6b1b7c501892fa7fb5fb2b15523c3c1c44b5644e25bbaec40a890b158fc",
+                "file_count": 81,
+                "total_bytes": 293429
+              },
+              "unique_source_summary": {
+                "aggregate_sha256": "02111851b8a5a989e36c25892e15f33eefe012f81ff0d52c8dc64762f2ff8dd9",
+                "file_count": 81,
+                "total_bytes": 293429
+              }
+            },
+            "retained_corpus_source": {
+              "archive": {
+                "sha256": "8c3b99bbb2e297eaf62b93c184a7951af00558ea2c48a10a197bd30a8e6527c3",
+                "sha256sums_sha256": "2353385e171317f674cd8fd2086086a62f325eb648432a564bd3b8b37d7d8268",
+                "size_bytes": 1181204
+              },
+              "retained_corpus": {
+                "aggregate_sha256": "314aa6b1b7c501892fa7fb5fb2b15523c3c1c44b5644e25bbaec40a890b158fc",
+                "file_count": 81,
+                "total_bytes": 293429
+              },
+              "schema_version": 1,
+              "source": {
+                "artifact_created_at": "2026-10-07T11:35:58Z",
+                "artifact_digest": "sha256:8c3b99bbb2e297eaf62b93c184a7951af00558ea2c48a10a197bd30a8e6527c3",
+                "artifact_expires_at": "2027-01-05T11:05:19Z",
+                "artifact_id": 11479543750,
+                "artifact_name": "ml-dsa-44-sustained-v2-msan-37611714495-1",
+                "artifact_size_bytes": 1181204,
+                "event": "schedule",
+                "head_sha": "93a46456c647118dd76a2a7107a5cc714a8714df",
+                "legacy_bootstrap": false,
+                "repository": "scottdhughes/quantum-proof-bitcoin",
+                "repository_id": 1136579990,
+                "run_attempt": 1,
+                "run_id": 37611714495,
+                "sanitizer": "memory",
+                "workflow_id": 317034854,
+                "workflow_path": ".github/workflows/ml-dsa-44-sustained-fuzz.yml"
+              }
+            },
+            "sanitizer": "memory",
+            "source_corpus": {
+              "aggregate_sha256": "6ee1368b01bfd758dd1c78a79bb7789769137f8d93055dfe9c4d040706597979",
+              "expected_counts": {
+                "invalid_argument": 36,
+                "ok": 81,
+                "verify_rejection": 128
+              },
+              "source_counts": {
+                "project": 27,
+                "promoted": 38,
+                "wycheproof": 180
+              },
+              "total_cases": 245,
+              "unique_frames": 240
+            },
+            "source_files": {
+              "config_header_sha256": "50a5b8f09700a2e6b6237c119b5842236f4cd56029f802dbefddd5e724b0d624",
+              "corpus_manifest_sha256": "be6be534de033f543f60576035446a4194e8ca4dc3b5494a56fcb07354171076",
+              "driver_sha256": "38187956f120c5ca40422e078d023947e747e3e42f5edd1014fc51c33a595eec",
+              "fuzz_target_sha256": "e135513970ab4f107febcf711fec83b1d16919e7fe90fa4fa2b53e8a60ed3b4f",
+              "promoted_source_sha256": "458f8902fc50e240145a2dd6bfa717c3fca14d58e792ddbafe6f985b1c45ecc0",
+              "public_header_sha256": "9bb114b51bdc225605b99c92ed8b21ed5e08f9c8efb7ca7924214e1f679a8255",
+              "source_capsule_sha256": "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb",
+              "source_manifest_sha256": "19d5cd67692758d1315312b7e27e7c57dab470971ec18ea92faa383dbb8e1165",
+              "wrapper_sha256": "53282d3eb0d29b45cd430236bc8a01ca15f1d91622c2adeeb74b3f823ac832e4",
+              "wrapper_test_driver_sha256": "1d8a91c142f7582e788e09a878b6b36661e8b99a086499b7da783211fb0775c2",
+              "wycheproof_vectors_sha256": "5ec04790c240c443ca8b662b8fc871834602c7cce87fcd36a193110745b2b9ea"
+            },
+            "status": "pass"
+          },
+          "created_at": "2026-10-14T10:02:40Z",
+          "digest": "sha256:31ad4459017cc70792dc6e1bdc7fe545d06458739253e4dc4175cd38d888786c",
+          "download_sha256": "31ad4459017cc70792dc6e1bdc7fe545d06458739253e4dc4175cd38d888786c",
+          "expired": false,
+          "expires_at": "2027-01-12T09:31:48Z",
+          "id": 11884418216,
+          "internal_checksum_manifests": [
+            {
+              "entries": 360,
+              "path": "SHA256SUMS",
+              "sha256": "714d8d610f6d5e41b808225e9c372c5d53a0b11a5b1f59a5b27668b954557ebd"
+            }
+          ],
+          "name": "ml-dsa-44-sustained-v2-msan-38543015542-1",
+          "retained_source_artifact": {
+            "created_at": "2026-10-07T11:35:58Z",
+            "digest": "sha256:8c3b99bbb2e297eaf62b93c184a7951af00558ea2c48a10a197bd30a8e6527c3",
+            "download_sha256": "8c3b99bbb2e297eaf62b93c184a7951af00558ea2c48a10a197bd30a8e6527c3",
+            "expired": false,
+            "expires_at": "2027-01-05T11:05:19Z",
+            "id": 11479543750,
+            "internal_checksum_manifests": [
+              {
+                "entries": 360,
+                "path": "SHA256SUMS",
+                "sha256": "2353385e171317f674cd8fd2086086a62f325eb648432a564bd3b8b37d7d8268"
+              }
+            ],
+            "name": "ml-dsa-44-sustained-v2-msan-37611714495-1",
+            "size_in_bytes": 1181204
+          },
+          "size_in_bytes": 1181188
+        }
+      ],
+      "event": "schedule",
+      "fork_called": false,
+      "head_sha": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+      "limitations": [
+        "Sanitizer harnesses do not execute fork()",
+        "No production backend or supported-platform claim"
+      ],
+      "path": ".github/workflows/ml-dsa-44-sustained-fuzz.yml",
+      "ref": "refs/heads/main",
+      "run_attempt": 1,
+      "run_conclusion": "success",
+      "run_id": 38543015542,
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/38543015542"
+    },
+    "wrapper_prototype": {
+      "artifacts": [
+        {
+          "check_count": 14,
+          "created_at": "2026-10-15T20:08:32Z",
+          "digest": "sha256:7f877d2031590f096c1b1f7ebceb756a157965ec27626da48fd23e9154b40b90",
+          "download_sha256": "7f877d2031590f096c1b1f7ebceb756a157965ec27626da48fd23e9154b40b90",
+          "expired": false,
+          "expires_at": "2027-01-13T19:38:57Z",
+          "id": 12003567169,
+          "internal_checksum_manifests": [
+            {
+              "entries": 20,
+              "path": "SHA256SUMS",
+              "sha256": "21296a297575b435d4fcd4e7e16ee715dfccd247ac106e94a4cb40546f7dd88e"
+            }
+          ],
+          "name": "ml-dsa-44-wrapper-static-analysis-1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d-38795609463-1",
+          "plan_sha256": "ac09136c86aa1142f2da58eff78a10cd551324bedae157252363648ff6fdd149",
+          "report_sha256": "83b183708e5d2758679eca016ff4c4bb63b607ee58d8e951775b28405f2008c1",
+          "repository": {
+            "audit_input_dirty": false,
+            "commit": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+            "dirty_audit_inputs": [],
+            "tracked_changes": [
+              "src/leveldb/db/db_impl.cc"
+            ],
+            "tracked_worktree_dirty": true
+          },
+          "size_in_bytes": 13651,
+          "status": "passed"
+        },
+        {
+          "check_count": 5,
+          "created_at": "2026-10-15T19:42:44Z",
+          "digest": "sha256:9123f1e630e81775d43b025862f3a13b2cc7700856d9150ac030449e968f94f6",
+          "download_sha256": "9123f1e630e81775d43b025862f3a13b2cc7700856d9150ac030449e968f94f6",
+          "expired": false,
+          "expires_at": "2027-01-13T19:38:57Z",
+          "id": 12002406591,
+          "internal_checksum_manifests": [
+            {
+              "entries": 18,
+              "path": "audit/SHA256SUMS",
+              "sha256": "75945b8a1169b588822290059d69985f28f9cfced57126c32592fd87e230cc30"
+            }
+          ],
+          "name": "ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d-38795609463-1",
+          "plan_sha256": "87f5d0de859255668e4e24d3245d69a3989ad889ad35257aac3d9620ff1127eb",
+          "positive_controls_passed": 4,
+          "report_sha256": "e4959ae0c3a88ca888e4c018c2a469be0432941b23c71e09e53ee738443f187c",
+          "repository": {
+            "all_audit_inputs_tracked": true,
+            "audit_input_dirty": false,
+            "commit": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+            "dirty_audit_inputs": [],
+            "tracked_changes": [],
+            "untracked_evidence_sources": [],
+            "untracked_files": [
+              ".audit/mldsa-native/"
+            ],
+            "worktree_dirty": true
+          },
+          "size_in_bytes": 124539,
+          "status": "passed",
+          "upstream_environment": {
+            "commit": "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
+            "flake_lock_sha256": "cdc01dce87b0c9b8488baafb0e0ed5ec94064089f7b4d5b253aecfeef2ac1861",
+            "git_archive_tar_sha256": "4fd08a772d0a142863593471f0c26e239bac8babc8e2a960e072f06ee89ff30b",
+            "git_tree": "c73c7029182122fce2f2dd8ac544ae990abd74a2",
+            "nixpkgs_nar_hash": "sha256-z5NJPSBwsLf/OfD8WTmh79tlSU8XgIbwmk6qB1/TFzY=",
+            "nixpkgs_rev": "23d72dabcb3b12469f57b37170fcbc1789bd7457",
+            "path": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/.audit/mldsa-native",
+            "valgrind_patch_sha256": "d54b140f2bacaea91470940a963950b7126685810df2192640cd103328b421f4",
+            "validation_errors": [],
+            "worktree_clean": true,
+            "worktree_status": []
+          },
+          "wrapper_errors": 0,
+          "wrapper_leak_errors": 0,
+          "wrapper_variable_latency_findings": 0
+        },
+        {
+          "check_count": 5,
+          "created_at": "2026-10-15T19:42:29Z",
+          "digest": "sha256:d26f0309d6b7467508cc01d778268a19cf405cfdfe284573f71d9c97ff08998a",
+          "download_sha256": "d26f0309d6b7467508cc01d778268a19cf405cfdfe284573f71d9c97ff08998a",
+          "expired": false,
+          "expires_at": "2027-01-13T19:38:57Z",
+          "id": 12002306669,
+          "internal_checksum_manifests": [
+            {
+              "entries": 18,
+              "path": "audit/SHA256SUMS",
+              "sha256": "cdb0f28c3fcc29a59bedd592ae811fe7ede682f318f7684e249c5b2166239fc5"
+            }
+          ],
+          "name": "ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_gcc13-1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d-38795609463-1",
+          "plan_sha256": "2776e983319e8fb8c187828eea00582e0151b098324a2f4854929d94954bfede",
+          "positive_controls_passed": 4,
+          "report_sha256": "a964c97bf404da0d28c879c6bad69d7674983c9e708bae229c750bd5f0ce973e",
+          "repository": {
+            "all_audit_inputs_tracked": true,
+            "audit_input_dirty": false,
+            "commit": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+            "dirty_audit_inputs": [],
+            "tracked_changes": [],
+            "untracked_evidence_sources": [],
+            "untracked_files": [
+              ".audit/mldsa-native/"
+            ],
+            "worktree_dirty": true
+          },
+          "size_in_bytes": 115421,
+          "status": "passed",
+          "upstream_environment": {
+            "commit": "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
+            "flake_lock_sha256": "cdc01dce87b0c9b8488baafb0e0ed5ec94064089f7b4d5b253aecfeef2ac1861",
+            "git_archive_tar_sha256": "4fd08a772d0a142863593471f0c26e239bac8babc8e2a960e072f06ee89ff30b",
+            "git_tree": "c73c7029182122fce2f2dd8ac544ae990abd74a2",
+            "nixpkgs_nar_hash": "sha256-z5NJPSBwsLf/OfD8WTmh79tlSU8XgIbwmk6qB1/TFzY=",
+            "nixpkgs_rev": "23d72dabcb3b12469f57b37170fcbc1789bd7457",
+            "path": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/.audit/mldsa-native",
+            "valgrind_patch_sha256": "d54b140f2bacaea91470940a963950b7126685810df2192640cd103328b421f4",
+            "validation_errors": [],
+            "worktree_clean": true,
+            "worktree_status": []
+          },
+          "wrapper_errors": 0,
+          "wrapper_leak_errors": 0,
+          "wrapper_variable_latency_findings": 0
+        }
+      ],
+      "concurrent_verifier_observation": {
+        "clean_concurrent_verifier_passed": true,
+        "fork_called": false,
+        "job_conclusion": "success",
+        "job_id": 116631080705,
+        "log_sha256": "055c6e0abcf8465ebd79d6598383d34985be9274e1b038bd05719b56e98adaf8",
+        "positive_control_detected_deliberate_race": true
+      },
+      "direct_lifecycle_observation": [
+        {
+          "compiler": "gcc",
+          "job_conclusion": "success",
+          "job_id": 116631080595,
+          "log_sha256": "16da1c30a4f81cdadb1408d301938ec52ff4598efe925206cdc7595a2a4bd503",
+          "normal_and_asan_ubsan_passed": true
+        },
+        {
+          "compiler": "clang",
+          "job_conclusion": "success",
+          "job_id": 116631080672,
+          "log_sha256": "853db7b6491d162572677fa8dd126471a1e64060ce910d039fc94e41349c99c4",
+          "normal_and_asan_ubsan_passed": true
+        }
+      ],
+      "event": "workflow_dispatch",
+      "fork_called": true,
+      "head_sha": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+      "limitations": [
+        "Direct fork claim is coordinated standard fork() module-lock recovery on tested Ubuntu/Linux only.",
+        "The signer is not async-signal-safe; portable multithreaded-child signing requires exec first.",
+        "Fuzz, resource, static-analysis, CT, TSan, and advisory jobs do not extend direct fork coverage.",
+        "Static-analysis audit inputs are clean but its CI setup changes src/leveldb/db/db_impl.cc outside the audited input set; no whole-worktree-clean claim.",
+        "Valgrind setup retains an untracked .audit/mldsa-native checkout; audited inputs and the pinned upstream environment are clean.",
+        "No production admission, external review, broad concurrency, or physical leakage claim."
+      ],
+      "path": ".github/workflows/ml-dsa-44-wrapper-prototype.yml",
+      "ref": "refs/heads/main",
+      "run_attempt": 1,
+      "run_conclusion": "success",
+      "run_id": 38795609463,
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/38795609463"
+    }
+  }
+}

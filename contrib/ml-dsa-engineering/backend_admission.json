@@ -96,17 +96,40 @@
       "posix_multithreaded_child_signing_portably_supported": false,
       "posix_module_unload_while_forkable_supported": false,
       "partial_output_released_on_failure": false,
+      "fault_injection_evidence": {
+        "scope": "TEST_BUILD_ONLY_GENERAL_PURPOSE_HOST_WRAPPER_BOUNDARY",
+        "checkpoints": [
+          "POST_SIGNATURE_PRE_SELF_VERIFY_CANDIDATE_BIT_FLIP"
+        ],
+        "uses_real_self_verifier": true,
+        "failure_result": "PQBTC_MLDSA44_ERR_VERIFY",
+        "failure_output": "ALL_ZERO",
+        "candidate_source_buffer_all_zero_observed": true,
+        "source_level_observer_only": true,
+        "consumed_randomizer_remains_consumed": true,
+        "production_exports_test_controls": false,
+        "retained_results": false,
+        "platform_fault_model_complete": false,
+        "physical_fault_model_complete": false,
+        "exact_commit_re_review": "PENDING"
+      },
       "node_linkage": false,
       "wallet_linkage": false,
       "consensus_linkage": false
     }
   },
   "candidate_assessments": {
-    "openssl_3_6_3": {
-      "source_commit": "aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f",
-      "source_tree": "a8a306c000bc2426afd3264b2c41bc7223728475",
+    "openssl_3_6_5": {
+      "source_commit": "c8bd5a57108599ac650bbae77fcabe3109dab2e8",
+      "source_tree": "96ac34688809c56b1afa117c75c0ef303ff19a75",
       "license_expression": "Apache-2.0",
       "conformance": "PASS",
+      "conformance_evidence": {
+        "head_sha": "1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d",
+        "run_id": 38550795835,
+        "report_sha256": "de98d2dd4eb3ce506a0486755ed147a08de911ba3403d33d26098ca28c3877b4",
+        "receipt": "docs/reviews/evidence/ml-dsa-44-trusted-main/1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d/SOURCE.json"
+      },
       "entropy_boundary": "INTERNAL_DRBG_WITH_PUBLIC_TEST_AND_DETERMINISTIC_CONTROLS",
       "secret_erasure": "PARTIAL_SOURCE_EVIDENCE",
       "side_channel_posture": "NO_PQBTC_BINARY_EVIDENCE",
@@ -165,7 +188,7 @@
     },
     {
       "id": "fault_resistance",
-      "status": "OPEN",
+      "status": "ISOLATED_CANDIDATE_CORRUPTION_REGRESSION_BROADER_FAULT_MODEL_OPEN",
       "tracking_issue": 186
     },
     {

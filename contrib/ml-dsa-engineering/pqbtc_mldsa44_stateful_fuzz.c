@@ -218,6 +218,7 @@ static void ClearFaults(void)
     pqbtc_mldsa44_test_force_backend_result(0);
     pqbtc_mldsa44_test_force_signature_length(0);
     pqbtc_mldsa44_test_force_verify_failure(0);
+    pqbtc_mldsa44_test_corrupt_candidate_before_verify(0);
 }
 
 static void SetFixedEntropy(const uint8_t randomizer[32], size_t reported_size)

@@ -2,7 +2,7 @@
 
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-WRAPPER-PROTOTYPE-v1
-## Updated: 2026-08-12
+## Updated: 2026-10-15
 ## Consensus-Relevant: NO
 
 ## Scope
@@ -108,14 +108,33 @@ backend for its signing temporaries.
   and self-verification failure;
 - output/key alias rejection, including on another malformed argument;
 - zero output on every injected failure;
-- zeroization-hook execution; and
+- zeroization-hook execution;
+- real self-verifier rejection after test-only corruption of a genuinely
+  generated exact-length candidate, with zero output, observed candidate
+  cleanup, consumed-randomizer rejection, and fresh-randomizer recovery; and
 - concurrent calls in which one repeated randomizer is accepted and the other
-  is rejected atomically.
+  is rejected atomically;
+- four synchronized strict-verifier threads sharing immutable inputs, with 32
+  iterations each over one valid signature and three valid-length
+  cryptographic-rejection cases, exact result accounting, and post-join input
+  equality, with a 20-second watchdog bounding a synchronization failure.
 
 The dedicated workflow runs the harness and ASan/UBSan build with GCC and
-Clang on Ubuntu. The local macOS Clang harness also exercises `getentropy`.
-Injected failures validate wrapper control flow; they are not physical fault
-testing or evidence that the real rejection loop exhausted.
+Clang on Ubuntu. A separate Linux Clang ThreadSanitizer path first compiles and
+runs an isolated deliberate-race positive control. The clean target runs only
+if that control exits nonzero and emits the canonical `ThreadSanitizer: data
+race` marker. The clean target contains only the concurrent verifier harness;
+it deliberately excludes the smoke program's `fork()` lifecycle regression
+because process cloning is a different detector contract. The local macOS
+Clang harness also exercises `getentropy`. Injected failures validate wrapper
+control flow; they are not physical fault testing or evidence that the real
+rejection loop exhausted.
+
+The four-thread shared-input test is a bounded functional and race-detection
+regression, not general concurrency evidence or a supported-platform resource
+limit. Broader thread counts and schedules, sign/verify coexistence,
+adversarial interleavings, supported-platform coverage, and concurrent
+aggregate resource limits remain open.
 
 Run the bounded checks with:
 
@@ -123,6 +142,8 @@ Run the bounded checks with:
 python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --manifest-only
 python3 contrib/ml-dsa-engineering/run_wrapper_tests.py
 python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --sanitizers
+python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --concurrency-only
+CC=clang python3 contrib/ml-dsa-engineering/run_wrapper_tests.py --thread-sanitizer
 python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py --manifest-only
 python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py
 CC=clang python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py --sanitizers --runs 10000
@@ -166,15 +187,52 @@ Each run retains the complete log, machine-readable campaign metadata,
 content-addressed SHA256 provenance, crash inputs, best-effort minimized crash
 inputs, and a coverage-minimized corpus for 90 days. ASan/UBSan also emits
 text and JSON LLVM source-coverage summaries.
-Scheduled and manual runs may seed from the most recent successful retained
-corpus; imported files are bounded to the 8,096-byte frame limit and renamed
-by content hash. Scheduled and manual campaigns use a varying recorded seed;
-pull-request and push smokes retain seed 188 for exact repeatability. MSan
-instruments the complete portable backend translation unit, but system-library
-coverage still depends on LLVM interceptors and is not an all-code proof. A
-retained crash is evidence to investigate, not an
+
+The prospective strict-verifier restore contract applies only to scheduled
+and manually dispatched 1,800-second runs on `main`. It requires an artifact
+from an ancestral, successful `main` run whose strict-verifier campaign passed
+for 1,800 seconds under the same sanitizer. The source event, run and attempt,
+head commit, and exact artifact ID, name, API-reported SHA-256 digest, and byte
+size must agree before download and again before import. The downloaded ZIP is
+treated as hostile input: bounded extraction rejects unsafe paths, duplicate,
+encrypted, non-regular, or otherwise ambiguous members, and the complete
+`SHA256SUMS` inventory must account for and verify every other extracted
+evidence file. Campaign identity, status, duration, sanitizer,
+minimized-corpus digest, and corpus bounds are also checked. An unavailable
+source or any mismatch fails before fuzzing begins.
+
+Import must contribute at least one content-novel frame relative to the fixed
+corpus. The resulting `campaign.json` records a self-contained source and
+import receipt, including the validated identities and digests, source corpus
+counts, byte totals, a name-bound source aggregate, and a content-bound
+novel-import aggregate. The two
+sanitizer-specific artifacts from legacy run `32924009052` at head
+`0fa8f5fc4321f057fb758e4c2dc39b790023943c` are accepted only through their
+exact bootstrap allowlist entries for migration, not as a general fallback.
+Pull-request and push runs remain 60-second seed-188 smokes with no retained-
+corpus input. Scheduled and manual campaigns retain a varying recorded seed.
+MSan instruments the complete portable backend translation unit, but
+system-library coverage still depends on LLVM interceptors and is not an
+all-code proof. A retained crash is evidence to investigate, not an
 automatically trusted regression vector: promotion into a checked-in corpus
-still requires review.
+still requires review. This prospective research-only contract is not fresh
+post-merge evidence until the implementation is separately re-baselined and
+exercised on protected `main`.
+
+That post-merge requirement is now satisfied for the bounded evidence format.
+PR `#250` landed the contract at
+`e4da9f921e8520b5f42ba454a68f847272c872f1`; PR `#251` advanced the review
+pointer to `e11258553613e5e1db7f98478419b5b3e9843c92`; and exact clean
+protected-main head `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942` has an empty guarded
+diff. Main-dispatched run `34307476916`, attempt `1`, validated exact ancestral
+source artifacts and completed the strict ASan/UBSan and MSan 1,800-second
+campaigns with `78` and `32` content-novel retained imports and `8,013,773`
+and `13,130,663` executions. Their nonempty minimized corpora contain `131`
+and `80` files. Both current artifacts embed the source and import receipts;
+all outer and internal checksums matched, and neither lane recorded a crash,
+minimized crash, sanitizer marker, or failure marker. This closes the previous
+artifact-self-contained provenance gap only. `production_backend` remains
+`NONE`, issue `#188` remains open, and `RELEASE_HOLD` remains in force.
 
 The stateful signer harness adds a separate test-only target for the wrapper's
 seeded key generation and hedged-signing transition contract. Every input
@@ -232,6 +290,18 @@ checksums passed. Static analysis passed all 12 scoped checks; both calibrated
 Valgrind controls fired while the wrapper path recorded zero errors,
 variable-latency findings, or leaks.
 
+Main-dispatched wrapper run `34307476900`, attempt `1`, reconfirmed the same
+direct lifecycle assertions at exact head
+`08eaa8ddee93069d2de09e8fb46aef6e7b1d0942`. Portable Clang job
+`102327071407` and portable GCC job `102327071511` each passed the normal and
+ASan/UBSan wrapper harness. Static-analysis artifact `10087924165` and the
+Clang/GCC Valgrind artifacts `10087310127` / `10087233631` matched their API
+digests and complete `18/18` internal inventories. Static analysis passed
+`12/12`; both Valgrind reports passed their calibrated controls with zero
+wrapper-path errors, leaks, or variable-latency findings. Only the portable
+jobs call `fork()`; the retained artifacts remain adjacent audit evidence, not
+direct fork results, and the lifecycle limitations above remain unchanged.
+
 Exact-main sustained run `31521182965`, attempt `1`, completed all four
 1,800-second jobs at
 `79de77faf112453868779861ae0c982dba533f84`. The strict-verifier ASan/UBSan
@@ -250,10 +320,20 @@ the fork lifecycle test.
 The pinned review-reproduction workflow adds a 60-second pull-request smoke or
 a 1,800-second scheduled/manual main Linux Clang ASan/UBSan differential
 campaign. Its fuzz target calls the isolated wrapper,
-OpenSSL 3.6.3's explicitly selected default provider in a separate library
+OpenSSL 3.6.5's explicitly selected default provider in a separate library
 context, and libcrux 0.0.10 in-process for every parsed frame and aborts
-on any setup error or accept/reject disagreement. The wrapper's exact
-invalid-argument taxonomy is still checked separately. The retained evidence
+on any setup error or accept/reject disagreement. Trusted-main run
+`38550795835` reproduced the 3.6.5 pin at
+`1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d`, after the repin and baseline-pointer
+merges. Its 1,800-second campaign completed `1,843,613` executions, imported
+`92` retained inputs, passed the replay and coverage floors, and recorded zero
+crashes or disagreements. The
+[versioned receipt](reviews/evidence/ml-dsa-44-trusted-main/1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d/SOURCE.json)
+also records the four completed 1,800-second strict-verifier/stateful-signer
+sanitizer campaigns in run `38543015542`. Earlier 3.6.4 reports retain their
+original scope. None of these campaigns calls `fork()`.
+The wrapper's exact invalid-argument taxonomy is still checked separately.
+The retained evidence
 records source and binary hashes, both external-oracle pins, the resolved
 `libcrypto` binary hash, coverage, minimized corpus, and crash artifacts. A
 pull-request run is explicitly labeled `pull_request_head_smoke_only`, records
@@ -302,6 +382,51 @@ The versioned
 [exact-main evidence receipt](reviews/evidence/ml-dsa-44-trusted-main/79de77faf112453868779861ae0c982dba533f84/SOURCE.json)
 records the complete workflow, job, artifact, checksum, retained-source, and
 scope metadata for the resource, wrapper, sustained, and review lanes.
+
+The later exact-main evidence tranche at
+`08eaa8ddee93069d2de09e8fb46aef6e7b1d0942` reconfirmed the direct lifecycle
+test and completed the retained-corpus work required after PR `#250`.
+Sustained run `34307476916` completed all four 1,800-second lanes: stateful
+ASan/UBSan and MSan imported `179` / `139` novel frames, executed `93,446` /
+`272,035` inputs, and replayed `31/31` deterministic cases in each lane;
+strict ASan/UBSan and MSan imported `78` / `32` novel frames and executed
+`8,013,773` / `13,130,663` inputs. Review run `34307477001` imported `86`
+novel retained frames, executed `1,777,804` inputs, and passed every replay and
+coverage floor. All five campaign lanes retained nonempty minimized corpora and
+recorded zero crashes; no sanitizer, oracle-error, disagreement, or prohibited
+failure marker was found. The strict source/import receipts are self-contained
+inside each strict artifact. Review-source provenance remains in
+checksum-bound supplemental files inside the review artifact rather than in
+its `campaign.json`; both the source and current artifacts were independently
+verified against their API metadata and complete checksum inventories. The
+[2026-09-09 exact-main receipt](reviews/evidence/ml-dsa-44-trusted-main/08eaa8ddee93069d2de09e8fb46aef6e7b1d0942/SOURCE.json)
+records the exact identities and boundaries. These bounded observations do not
+establish production support, close issue `#181` or `#188`, or remove the
+release hold.
+
+PR `#244` later added the bounded candidate-corruption checkpoint at merge
+commit `c2021c128b2c04f34477324c48ec7fdd6fc4d50e`; PR `#245` advanced the review
+pointer and produced exact protected-main evidence head
+`069c7a21dfcb19852ed40aad483b7612e6094c9b`. Main-dispatched wrapper run
+`32865079872`, attempt `1`, directly executed that checkpoint only in the
+portable-wrapper GCC and Clang normal and ASan/UBSan job logs. There is no
+fault-specific retained artifact. The checksummed static-analysis and Valgrind
+artifacts are adjacent exact-head evidence, not direct fault results. The
+static-analysis report records
+`audit_input_dirty=false` and `tracked_worktree_dirty=true`: the audited inputs
+were clean, but the overall CI worktree was not globally clean.
+
+Automatic resource run `32541060189`, attempt `1`, supplied the second
+additional policy-enforced GCC/Clang direct-verifier pair. Sustained run
+`32865082841`, attempt `1`, and review-reproduction run `32865085933`, attempt
+`1`, supplied adjacent exact-head, checksum-bound artifacts. Those three lanes
+bind or exercise the changed sources but do not execute the candidate fault.
+The fault evidence contract remains `retained_results=false`. The versioned
+[candidate-fault evidence receipt](reviews/evidence/ml-dsa-44-trusted-main/069c7a21dfcb19852ed40aad483b7612e6094c9b/SOURCE.json)
+preserves the exact run, artifact, checksum, and scope distinctions.
+This evidence head predates PR `#247`'s OpenSSL 3.6.4 comparator repin and does
+not satisfy that repin's fresh exact-main oracle, differential, or retained-
+corpus evidence requirement.
 
 ## Direct-Verifier Resource-Envelope Observation
 
@@ -356,20 +481,48 @@ raw samples partition one batch rather than supplying 31 independent batch
 repetitions, so the policy makes no percentile claim and requires at least two
 additional protected-main samples per compiler before tightening.
 
-Pull-request observations remain `UNTRUSTED_PR_OBSERVATION`. The numeric-
-policy change must merge and then receive a separate reviewed baseline-pointer
-advance before a clean protected-main push can produce policy-enforced
-`TRUSTED_MAIN_OBSERVATION` evidence. Manual dispatches remain untrusted. No
-individual compiler artifact is promotion-eligible: the exact-head GCC and
-Clang pair and external GitHub Actions provenance must be verified together.
+Pull-request observations remain `UNTRUSTED_PR_OBSERVATION`, and manual
+dispatches remain untrusted. The numeric-policy implementation landed at
+`18db91c542b51f37c2dabf198979c33d793ecddf`; the separately reviewed baseline
+pointer names `1833f20ee66fe7cac9f8e41a98b07f9eab150ec7`. Automatic protected-main
+push run `32419767106`, attempt `1`, then evaluated the policy at exact clean
+head `6315f49bbde6347bf09e9518e0b4ccc31347b963` with an empty guarded diff.
+Both compiler reports and all 24 internal checksums per artifact passed
+independent revalidation. GCC job `96589014091`, artifact `9425610867`, has
+outer SHA-256
+`dd949cf2eff6337191973e303e7544fb5758a96fffccf8638b70b835ecc18019`;
+Clang job `96589013980`, artifact `9425628829`, has outer SHA-256
+`8d4c293fe8e334da4ad84ed745ed8f8bfcc2dc41b460d417c52cf7a842e09362`.
+
+The policy-enforced GCC observation recorded aggregate CPU/wall times of
+`1,692,534,302` / `1,692,761,746` ns, a maximum retained batch-sample CPU/wall
+pair of `18,739,307` / `18,740,451` ns, a maximum batch-total CPU/wall pair of
+`439,410,363` / `439,435,547` ns, first-call CPU/wall times of `117,510` /
+`118,631` ns, and `31,780` KiB peak RSS. Clang recorded
+`1,173,297,728` / `1,173,472,276` ns aggregate, `16,096,929` / `16,097,287`
+ns maximum retained batch sample, `321,770,054` / `321,788,052` ns maximum
+batch total, `95,792` / `96,845` ns first call, and `31,820` KiB peak RSS.
+Every value passed the frozen coarse ceiling without calibrating that ceiling
+from the evaluated run. Both artifacts remain `promotion_eligible=false`; the
+exact-head GCC/Clang pair and external GitHub Actions provenance must be
+verified together. The versioned
+[policy-enforced exact-main receipt](reviews/evidence/ml-dsa-44-trusted-main/6315f49bbde6347bf09e9518e0b4ccc31347b963/SOURCE.json)
+records the selected run, job, artifact, checksum, compiler, stack, and numeric
+receipt fields.
 
 This is a test-only observation lane, not a supported-platform or worst-case
 resource proof. It changes no production linkage or behavior, does not admit
 SIMD256, and does not establish a consensus parser or adversarial block limit.
-Issue `#188` remains open pending fresh policy-enforced trusted-main evidence,
-broader-platform and toolchain coverage, concurrency and production-parser
-limits, and exact-commit re-review. Issue `#181` also remains open, production
-remains `NONE`, and `RELEASE_HOLD` remains in force.
+Automatic protected-main run `32541060189`, attempt `1`, at
+`069c7a21dfcb19852ed40aad483b7612e6094c9b` supplied the second additional
+independent policy-enforced GCC/Clang sample pair required before considering
+ceiling tightening. Collecting that pair does not tighten the frozen ceilings
+or close issue `#188`; any change requires a separate review. Broader-platform
+and toolchain coverage, broader concurrency (including other thread counts and
+schedules, sign/verify coexistence, and adversarial interleavings), concurrent
+aggregate resource and production-parser limits, and exact-commit re-review
+remain open. Issue `#181` also remains open, production remains `NONE`, and
+`RELEASE_HOLD` remains in force.
 
 ## Pinned Upstream CBMC Reproduction
 
@@ -408,8 +561,12 @@ This prototype advances engineering evidence but closes no production gate:
   with calibrated controls has passed, but ARM, Windows, cache, speculative,
   physical-leakage, rejection-count, and production-binary coverage remain
   open;
-- issue `#186`: self-verification and injected errors are partial controls,
-  not a complete fault model;
+- issue `#186`: a test-only post-signature candidate bit flip now reaches the
+  real self-verifier and requires rejection, zero output, observed candidate
+  cleanup, and consumed-randomizer semantics. This is one deterministic
+  wrapper checkpoint, not evidence for skipped control flow, common-mode
+  verifier faults, wider internal checkpoints, supported platforms, or
+  physical attacks;
 - issue `#187`: explicit source cleanup and sanitizer evidence do not prove
   erasure of compiler copies, registers, caller-owned keys, or crash artifacts;
 - issue `#188`: deterministic Wycheproof replay, bounded structure-aware
@@ -420,9 +577,16 @@ This prototype advances engineering evidence but closes no production gate:
   evidence. The three research oracle CLIs now enforce documented argv parser
   limits and replay fixed plus deterministic malformed-input mutations,
   including non-UTF-8 arguments, with separate ASan/UBSan coverage for the C
-  adapters. Broader-platform and Rust sanitizer coverage, reviewed
-  allocation/stack/CPU and adversarial-batch acceptance limits, and
-  exact-commit re-review remain open;
+  adapters. A deterministic four-thread strict-verifier regression now covers
+  shared immutable valid and cryptographic-rejection inputs in normal,
+  ASan/UBSan, and calibrated Clang ThreadSanitizer modes. Its dedicated race-
+  detector path requires an isolated deliberate-race control to exit nonzero
+  with the canonical ThreadSanitizer data-race marker before running the clean
+  target, and the harness has a 20-second watchdog. Broader concurrency,
+  including other thread counts and schedules, sign/verify coexistence, and
+  adversarial interleavings, remains open alongside broader-platform and Rust
+  sanitizer coverage, reviewed concurrent aggregate resource limits,
+  production-parser limits, and exact-commit re-review;
 - issue `#189`: a dated fail-closed selected-graph advisory ledger, full-lock
   cargo-audit/OSV scans, selected dependency graph, CycloneDX SBOM, and weekly
   retained refresh are implemented; exact-commit independent re-review remains

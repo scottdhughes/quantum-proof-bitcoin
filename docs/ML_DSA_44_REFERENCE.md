@@ -2,7 +2,7 @@
 
 ## Status: REFERENCE ONLY - NOT CONSENSUS
 ## Spec-ID: ML-DSA-44-REFERENCE-v2
-## Updated: 2026-08-01
+## Updated: 2026-09-09
 ## Consensus-Relevant: NO
 
 ## Decision Boundary
@@ -74,8 +74,11 @@ streaming design must specify and validate the `mu` trust boundary separately.
   the official 32-byte `rnd` for each case
 - all 15 external/pure signature-verification group 1 cases; cases 6, 7, and
   11 are accepted and the other 12 are rejected
-- OpenSSL 3.6.3 source commit
-  `aae016bfd52fcad2bc9657c2c782cfdf73b1ed5f`
+- OpenSSL 3.6.5 source commit
+  `c8bd5a57108599ac650bbae77fcabe3109dab2e8`, tree
+  `96ac34688809c56b1afa117c75c0ef303ff19a75`, annotated tag object
+  `f93be98fe7c796e92fc999dd1a21a5212d4e4f8e`, and release-tarball SHA-256
+  `a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98`
 - `mldsa-native` `v1.0.0-beta2` commit
   `9b0ee84f4cf399043eca59eca4e5f8531ca1d61b`
 - `libcrux-ml-dsa` `v0.0.10` commit
@@ -134,6 +137,56 @@ case identity, and component hashes, then requires all three oracles to reject
 the positive and negative signer-response coefficient cases at the
 infinity-norm boundary.
 
+Historical 3.6.4 post-repin exact-main evidence is bound by the
+[versioned receipt](reviews/evidence/ml-dsa-44-trusted-main/0fa8f5fc4321f057fb758e4c2dc39b790023943c/SOURCE.json).
+Evidence head `0fa8f5fc4321f057fb758e4c2dc39b790023943c` has an empty guarded
+comparator diff from OpenSSL 3.6.4 repin baseline
+`b22b21c3c6a06cb46f643eb1216325ecddacf7a4`. Review run `32924008998`
+passed all exact and promoted replays and coverage floors with zero crashes,
+sanitizer markers, oracle errors, or disagreements. Sustained run
+`32924009052` completed the four 1,800-second verifier and signer sanitizer
+campaigns with nonzero retained-corpus imports and zero crashes; the same
+receipt binds resource run `32910153642` and advisory run `32910153947`.
+
+OpenSSL 3.6.5 trusted-main reproduction completed in scheduled review run
+`38550795835` at `1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d`, after PRs #257
+and #258 merged. Its guarded diff from baseline
+`e44a19f352181b3f0aab090d122e2a4562e95512` is empty. All 70 ACVP cases and
+three-oracle checks passed; the retained-corpus 1,800-second differential
+campaign completed `1,843,613` executions with zero crashes or disagreements.
+The [versioned receipt](reviews/evidence/ml-dsa-44-trusted-main/1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d/SOURCE.json)
+binds its artifact digest, checksum inventories, retained-source provenance,
+and coverage floors. Historical receipts do not establish conformance for
+this newer source pin; independent review remains open.
+
+In that 2026-08-26 tranche, the signer and review artifacts retain self-
+contained retained-source provenance. Its strict-verifier campaign artifacts
+retain imported counts but omit `retained_corpus_source` and
+`retained_corpus_import`, so workflow restore logs—not those historical
+artifacts alone—establish their source selection. This is conformance
+evidence, not independent review or production approval.
+
+On 2026-09-09, the
+[exact-main receipt](reviews/evidence/ml-dsa-44-trusted-main/08eaa8ddee93069d2de09e8fb46aef6e7b1d0942/SOURCE.json)
+bound protected-main head `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942`
+to baseline `e11258553613e5e1db7f98478419b5b3e9843c92`. Manual review
+run `34307477001`, attempt `1`, completed its 1,800-second ASan/UBSan
+differential campaign with `1,777,804` executions, `86` novel retained-seed
+imports, all `5/5` exact and `38/38` promoted replays passing, all target and
+OpenSSL-bridge coverage floors met, and zero crashes, sanitizer markers,
+oracle errors, or disagreements. Its retained-source selection is recorded in
+checksum-bound supplemental files in the same artifact rather than embedded
+in `campaign.json`. Sustained run `34307476916`, attempt `1`, completed all
+four 1,800-second verifier and stateful-signer ASan/UBSan and MSan campaigns:
+the campaigns executed `8,013,773`, `13,130,663`, `93,446`, and `272,035`
+units and imported `78`, `32`, `179`, and `139` novel retained seeds,
+respectively, with zero crash or minimized-crash artifacts. Each strict
+campaign embeds its exact retained source and import receipts in
+`retained_corpus_source` and `retained_corpus_import`. These results are
+bounded conformance and robustness evidence only; they do not establish
+independent cryptographic review, production support, exhaustive coverage, or
+grounds to change `production_backend=NONE` or the release hold.
+
 Run:
 
 ```bash
@@ -154,17 +207,17 @@ python3 contrib/ml-dsa-ref/compare_oracles.py \
 The full run requires clean source checkouts at the exact pinned commits, a
 full-history libcrux checkout for its ancestry check, the exact pinned libcrux
 crate archive, and Rust/Cargo access to the crate's locked dependencies. The
-installed OpenSSL CLI and `pkg-config` library must both report 3.6.3. The
+installed OpenSSL CLI and `pkg-config` library must both report 3.6.5. The
 OpenSSL adapter links that installed library; its source checkout establishes
 review provenance and is not compiled by the harness.
 
 ## Prototype Measurements
 
-Local arm64 macOS measurement on 2026-07-19, using OpenSSL 3.6.3, the pinned
-portable-C oracle compiled with `-O2`, and the pinned portable-Rust libcrux
-oracle compiled in release mode. Values are medians of ten repetitions of the
-fixed PQBTC vector and are directional, not release envelopes. They time the
-adapter's cryptographic calls and exclude compilation, process startup,
+Historical local arm64 macOS measurement on 2026-07-19, using OpenSSL 3.6.3,
+the pinned portable-C oracle compiled with `-O2`, and the pinned portable-Rust
+libcrux oracle compiled in release mode. Values are medians of ten repetitions
+of the fixed PQBTC vector and are directional, not release envelopes. They time
+the adapter's cryptographic calls and exclude compilation, process startup,
 cross-verification, and OpenSSL context initialization.
 
 | Oracle | Keygen | Deterministic sign | Deterministic verify | Randomized sign | Randomized verify |
