@@ -46,7 +46,9 @@ jobs:
           fetch-depth: 0
 
       - name: Enforce C++ component-only scope
-        if: ${{ github.event_name == 'pull_request' }}
+        # This path contract belongs to the component/signed-seam stack layers.
+        # Descendant integration PRs still run every architecture and native test.
+        if: ${{ github.event_name == 'pull_request' && (github.base_ref == 'research/shrincs-tx-envelope-v0' || github.base_ref == 'research/shrincs-tx-cpp-component') }}
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}

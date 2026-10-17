@@ -245,6 +245,7 @@ class NodeLayout:
                 "",
                 "[regtest]",
                 f"port={self.p2p_port}",
+                f"bind=127.0.0.1:{self.p2p_port}",
                 f"rpcport={self.rpc_port}",
                 "rpcbind=127.0.0.1",
                 "rpcallowip=127.0.0.1",
