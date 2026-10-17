@@ -3,7 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 
-"""Mine and spend actual PQBTC-SHRINCS-v0 outputs on private regtest."""
+"""Mine and spend actual PQBTC-SHRINCS-v0 outputs on the dedicated SHRINCS labnet."""
 
 from __future__ import annotations
 
@@ -70,7 +70,10 @@ class SHRINCSRegtestTest(BitcoinTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1
-        self.extra_args = [["-acceptnonstdtxn=1"]]
+        self.extra_args = [["-shrincslab", "-acceptnonstdtxn=1"]]
+        # Keep regtest-shaped config, but read cookies and logs from
+        # the node-selected, isolated shrincslab/ network directory.
+        self.extra_init = [{"chain": "shrincslab"}]
 
     def _build_spend(
         self,

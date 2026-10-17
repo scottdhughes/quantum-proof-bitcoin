@@ -1,0 +1,62 @@
+services:
+  seed:
+    build:
+      context: ../..
+      dockerfile: contrib/shrincs-labnet/Dockerfile.shrincslab
+    command:
+      - -server=1
+      - -listen=1
+      - -port=29333
+      - -rpcbind=127.0.0.1
+      - -rpcport=29332
+      - -discover=0
+      - -dnsseed=0
+      - -fixedseeds=0
+      - -acceptnonstdtxn=1
+    ports:
+      - "29333:29333"
+    volumes:
+      - shrincslab-seed:/data
+
+  miner:
+    build:
+      context: ../..
+      dockerfile: contrib/shrincs-labnet/Dockerfile.shrincslab
+    command:
+      - -server=1
+      - -listen=1
+      - -port=29333
+      - -rpcbind=127.0.0.1
+      - -rpcport=29332
+      - -addnode=seed:29333
+      - -discover=0
+      - -dnsseed=0
+      - -fixedseeds=0
+      - -acceptnonstdtxn=1
+    depends_on: [seed]
+    volumes:
+      - shrincslab-miner:/data
+
+  observer:
+    build:
+      context: ../..
+      dockerfile: contrib/shrincs-labnet/Dockerfile.shrincslab
+    command:
+      - -server=1
+      - -listen=1
+      - -port=29333
+      - -rpcbind=127.0.0.1
+      - -rpcport=29332
+      - -addnode=seed:29333
+      - -discover=0
+      - -dnsseed=0
+      - -fixedseeds=0
+      - -acceptnonstdtxn=1
+    depends_on: [seed]
+    volumes:
+      - shrincslab-observer:/data
+
+volumes:
+  shrincslab-seed:
+  shrincslab-miner:
+  shrincslab-observer:

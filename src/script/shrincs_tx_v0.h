@@ -39,6 +39,8 @@ inline constexpr std::string_view OUTPUT_TAG{"PQBTC/SHRINCS/OUTPUT/v0"};
 inline constexpr std::string_view SIGHASH_TAG{"PQBTC/SHRINCS/SIGHASH/v0"};
 inline constexpr std::string_view SIGNING_CONTEXT{"PQBTC/SHRINCS/TXSIG/v0"};
 inline constexpr std::string_view REGTEST_CHAIN_ID_LABEL{"PQBTC-SHRINCS-TX-V0-TEST-CHAIN"};
+inline constexpr std::string_view SHRINCS_LAB_CHAIN_ID_LABEL{
+    "PQBTC-SHRINCSLAB-v0|genesis=122201a7b5dc205ec063486e4080760ab8f73c3f07804d69351da96bd6c2ab69"};
 
 static_assert(STATEFUL_SIGNATURE_MIN == STATEFUL_SIGNATURE_BASE + STATEFUL_SIGNATURE_STEP);
 static_assert(STATEFUL_SIGNATURE_MAX == STATEFUL_SIGNATURE_BASE + 255 * STATEFUL_SIGNATURE_STEP);
@@ -61,8 +63,11 @@ std::optional<SignatureMode> ClassifySignature(std::size_t signature_size);
 /** Return the FXMSS authentication depth encoded by a canonical stateful length. */
 std::optional<std::uint16_t> StatefulDepth(std::size_t signature_size);
 
-/** Fixed chain identifier for the private regtest/devnet activation. */
+/** Frozen chain identifier retained for signed-vector compatibility. */
 uint256 RegtestChainId();
+
+/** Genesis-bound chain identifier used by the SHRINCS labnet. */
+uint256 ShrincsLabChainId();
 
 /** Tagged commitment to one exact 48-byte current-draft SHRINCS public key. */
 std::optional<uint256> OutputCommitment(std::span<const unsigned char> public_key);

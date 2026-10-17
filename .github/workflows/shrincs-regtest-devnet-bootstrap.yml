@@ -42,7 +42,9 @@ jobs:
       - name: Prove activation scope is regtest-only
         run: |
           set -euo pipefail
-          test "$(grep -R --line-number 'consensus\.shrincs_v0 = true' src/kernel/chainparams.cpp | wc -l)" -eq 1
+          # The profile-owned guards pin either private regtest activation or
+          # the explicit public-labnet selector, including default-off scope.
+          python3 -m unittest ci.test.test_shrincs_tx_cpp_component
           grep -q 'class CRegTestParams' src/kernel/chainparams.cpp
           grep -q 'bool shrincs_v0{false};' src/consensus/params.h
           grep -q 'SCRIPT_VERIFY_SHRINCS_V0' src/script/interpreter.cpp

@@ -98,7 +98,7 @@ EnvelopeCase BuildEnvelopeCase(std::span<const unsigned char> public_key)
     if (!candidate_script) throw std::runtime_error{"invalid SHRINCS public key"};
 
     EnvelopeCase result;
-    result.chain_id = HashText("PQBTC-SHRINCS-TX-V0-TEST-CHAIN");
+    result.chain_id = shrincs_tx_v0::ShrincsLabChainId();
     result.tx.version = 2;
     result.tx.nLockTime = 840'000;
     result.tx.vin.emplace_back(

@@ -1,0 +1,27 @@
+# PQBTC SHRINCS public zero-value labnet
+regtest=1
+shrincslab=1
+server=1
+listen=1
+
+[regtest]
+port=29333
+rpcport=29332
+
+# Public P2P, private RPC.
+bind=0.0.0.0:29333
+rpcbind=127.0.0.1
+rpcallowip=127.0.0.1
+
+# No discovery exists yet. Add known peers explicitly.
+discover=0
+dnsseed=0
+fixedseeds=0
+listenonion=0
+upnp=0
+natpmp=0
+
+acceptnonstdtxn=1
+txindex=1
+fallbackfee=0.00010000
+persistmempool=1

@@ -120,6 +120,14 @@ uint256 RegtestChainId()
     return writer.GetSHA256();
 }
 
+uint256 ShrincsLabChainId()
+{
+    HashWriter writer;
+    writer.write(std::as_bytes(std::span<const char>{
+        SHRINCS_LAB_CHAIN_ID_LABEL.data(), SHRINCS_LAB_CHAIN_ID_LABEL.size()}));
+    return writer.GetSHA256();
+}
+
 std::optional<uint256> OutputCommitment(std::span<const unsigned char> public_key)
 {
     if (public_key.size() != PUBLIC_KEY_BYTES) return std::nullopt;

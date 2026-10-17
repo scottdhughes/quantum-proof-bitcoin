@@ -45,6 +45,7 @@ void ReadRegTestArgs(const ArgsManager& args, CChainParams::RegTestOptions& opti
 {
     if (auto value = args.GetBoolArg("-fastprune")) options.fastprune = *value;
     if (HasTestOption(args, "bip94")) options.enforce_bip94 = true;
+    options.shrincs_labnet = args.GetBoolArg("-shrincslab", false);
 
     for (const std::string& arg : args.GetArgs("-testactivationheight")) {
         const auto found{arg.find('@')};
@@ -116,6 +117,9 @@ const CChainParams &Params() {
 
 std::unique_ptr<const CChainParams> CreateChainParams(const ArgsManager& args, const ChainType chain)
 {
+    if (args.GetBoolArg("-shrincslab", false) && chain != ChainType::REGTEST) {
+        throw std::runtime_error("-shrincslab requires -regtest or -chain=regtest");
+    }
     switch (chain) {
     case ChainType::MAIN:
         return CChainParams::Main();

@@ -81,15 +81,19 @@ class ShrincsTxCppComponentTests(unittest.TestCase):
         chainparams = CHAINPARAMS.read_text(encoding="utf-8")
 
         self.assertIn("bool shrincs_v0{false};", consensus_params)
-        activation = "consensus.shrincs_v0 = true;"
+        activation = "consensus.shrincs_v0 = opts.shrincs_labnet;"
         self.assertEqual(chainparams.count(activation), 1)
         regtest_start = chainparams.index("class CRegTestParams")
         activation_position = chainparams.index(activation)
         self.assertGreater(activation_position, regtest_start)
-        self.assertIn(
-            "m_chain_type = ChainType::REGTEST;",
-            chainparams[regtest_start:activation_position],
-        )
+        self.assertIn("bool shrincs_labnet{false};", (REPO_ROOT / "src" / "kernel" / "chainparams.h").read_text(encoding="utf-8"))
+        self.assertIn("m_chain_type = ChainType::REGTEST;", chainparams[regtest_start:activation_position])
+        self.assertIn('bech32_hrp = "pqsl";', chainparams)
+        self.assertIn("0x91, 0xe1, 0xca, 0xc8", chainparams)
+
+    def test_labnet_base_directory_and_rpc_identity(self) -> None:
+        base_params = (REPO_ROOT / "src" / "chainparamsbase.cpp").read_text(encoding="utf-8")
+        self.assertIn('CBaseChainParams>("shrincslab", 29332)', base_params)
 
     def test_validation_flags_follow_consensus_scope(self) -> None:
         validation = VALIDATION.read_text(encoding="utf-8")
@@ -173,9 +177,9 @@ class ShrincsTxCppComponentTests(unittest.TestCase):
     def test_native_tests_bind_python_and_wolfram_results(self) -> None:
         test = TEST.read_text(encoding="utf-8")
         for expected in (
-            "e81658399900d55841623b54f075cebfe6c9caf307e62e5952634d16ae61f35d",
-            "cdf2b774b68cdbd23a424faee209495c523a790c92fa6ea293e166ea075245e7",
-            "dc00d9f169e44ad39fea3db0736ee5ec834d8a3ae8e8ac7e8997ee1eacc399d5",
+            "87edbe9bb060421d9db6c2946672e384e8914cc11f2971249e3ede1c639361f1",
+            "35a53e8064324de5ba7ca312a01769a1f76a21216df0ef97a78fdb9fb0190cb0",
+            "df6af2fda86516112cba860db86b7d793232796e837c85604db00827c8df17b5",
             "1'725'043U",
             "3'469'818U",
         ):
@@ -195,9 +199,9 @@ class ShrincsTxCppComponentTests(unittest.TestCase):
         ):
             self.assertIn(expected, test)
         for expected in (
-            "7677e9c8eab7d9955ebb64576e6c24f563cdb38b5e9624b8e3c22e72fc481697",
-            "546590eaa4c4ab44ba390ba424ebfae27b8cef5e14343b66626e3acf24b9daa6",
-            "dc00d9f169e44ad39fea3db0736ee5ec834d8a3ae8e8ac7e8997ee1eacc399d5",
+            "e30df62104d3f8f950105fae77304c8c390a057f4076174678e36108196b7b30",
+            "dcc01ab0cda032b2ab35e3db45bfe75fd34e4324ca30a4cf42025ed6cc07c291",
+            "df6af2fda86516112cba860db86b7d793232796e837c85604db00827c8df17b5",
         ):
             self.assertIn(expected, vector_header)
 
