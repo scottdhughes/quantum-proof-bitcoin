@@ -9,6 +9,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 HEADER = REPO_ROOT / "src" / "script" / "shrincs_tx_v0.h"
 SOURCE = REPO_ROOT / "src" / "script" / "shrincs_tx_v0.cpp"
 TEST = REPO_ROOT / "src" / "test" / "shrincs_tx_v0_tests.cpp"
+SIGNED_SEAM_TEST = REPO_ROOT / "src" / "test" / "shrincs_tx_v0_signed_seam_tests.cpp"
+SIGNED_SEAM_VECTORS = REPO_ROOT / "src" / "test" / "shrincs_tx_v0_signed_seam_vectors.h"
 TEST_CMAKE = REPO_ROOT / "src" / "test" / "CMakeLists.txt"
 TOP_CMAKE = REPO_ROOT / "src" / "CMakeLists.txt"
 
@@ -16,13 +18,15 @@ ALLOWED_REFERENCES = {
     HEADER.resolve(),
     SOURCE.resolve(),
     TEST.resolve(),
+    SIGNED_SEAM_TEST.resolve(),
+    SIGNED_SEAM_VECTORS.resolve(),
     TEST_CMAKE.resolve(),
 }
 
 
 class ShrincsTxCppComponentTests(unittest.TestCase):
     def test_expected_files_exist(self) -> None:
-        for path in (HEADER, SOURCE, TEST):
+        for path in (HEADER, SOURCE, TEST, SIGNED_SEAM_TEST, SIGNED_SEAM_VECTORS):
             with self.subTest(path=path):
                 self.assertTrue(path.is_file())
 
@@ -33,6 +37,19 @@ class ShrincsTxCppComponentTests(unittest.TestCase):
         self.assertIn("shrincs_tx_v0_tests.cpp", test_cmake)
         self.assertNotIn("shrincs_tx_v0", top_cmake)
         self.assertIn("deliberately compiled only", test_cmake)
+
+    def test_signed_seam_is_explicit_opt_in_and_test_only(self) -> None:
+        test_cmake = TEST_CMAKE.read_text(encoding="utf-8")
+        self.assertIn(
+            'option(PQBTC_ENABLE_SHRINCS_SIGNED_SEAM_TESTS "Build the research-only native SHRINCS transaction signed-seam suite" OFF)',
+            test_cmake,
+        )
+        self.assertIn("shrincs_tx_v0_signed_seam_tests.cpp", test_cmake)
+        self.assertIn("contrib/shrincs-ref/full_verify.c", test_cmake)
+        self.assertIn("contrib/shrincs-ref/stateful_verify.c", test_cmake)
+        self.assertIn("contrib/shrincs-ref/stateless_verify.c", test_cmake)
+        self.assertIn("PQBTC_LIBSHRINCS_SOURCE_DIR", test_cmake)
+        self.assertIn("test_pqbtc only", test_cmake)
 
     def test_no_other_node_source_references_component(self) -> None:
         references: list[str] = []
@@ -96,6 +113,24 @@ class ShrincsTxCppComponentTests(unittest.TestCase):
             self.assertIn(expected, test)
         self.assertIn("ExpectedMutationDigests", test)
         self.assertIn("BOOST_AUTO_TEST_SUITE(shrincs_tx_v0_tests)", test)
+
+    def test_signed_seam_binds_real_vectors_and_full_verifier(self) -> None:
+        test = SIGNED_SEAM_TEST.read_text(encoding="utf-8")
+        vector_header = SIGNED_SEAM_VECTORS.read_text(encoding="utf-8")
+        for expected in (
+            "pqbtc_shrincs_verify",
+            "STATEFUL_SIGNATURE_SHA256_HEX",
+            "STATELESS_SIGNATURE_SHA256_HEX",
+            "TransactionMutationCases",
+            "rejected, 56U",
+        ):
+            self.assertIn(expected, test)
+        for expected in (
+            "7677e9c8eab7d9955ebb64576e6c24f563cdb38b5e9624b8e3c22e72fc481697",
+            "546590eaa4c4ab44ba390ba424ebfae27b8cef5e14343b66626e3acf24b9daa6",
+            "dc00d9f169e44ad39fea3db0736ee5ec834d8a3ae8e8ac7e8997ee1eacc399d5",
+        ):
+            self.assertIn(expected, vector_header)
 
 
 if __name__ == "__main__":

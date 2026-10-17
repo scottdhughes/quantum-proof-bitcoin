@@ -6,10 +6,14 @@ on:
       - "src/script/shrincs_tx_v0.h"
       - "src/script/shrincs_tx_v0.cpp"
       - "src/test/shrincs_tx_v0_tests.cpp"
+      - "src/test/shrincs_tx_v0_signed_seam_tests.cpp"
+      - "src/test/shrincs_tx_v0_signed_seam_vectors.h"
       - "src/test/CMakeLists.txt"
       - "ci/test/test_shrincs_tx_cpp_component.py"
       - "docs/PQBTC_SHRINCS_TX_V0_CPP.md"
+      - "docs/PQBTC_SHRINCS_TX_V0_NATIVE_SIGNED_SEAM.md"
       - ".github/workflows/shrincs-tx-cpp-component.yml"
+      - ".github/workflows/shrincs-tx-native-signed-seam.yml"
   push:
     branches:
       - main
@@ -17,10 +21,14 @@ on:
       - "src/script/shrincs_tx_v0.h"
       - "src/script/shrincs_tx_v0.cpp"
       - "src/test/shrincs_tx_v0_tests.cpp"
+      - "src/test/shrincs_tx_v0_signed_seam_tests.cpp"
+      - "src/test/shrincs_tx_v0_signed_seam_vectors.h"
       - "src/test/CMakeLists.txt"
       - "ci/test/test_shrincs_tx_cpp_component.py"
       - "docs/PQBTC_SHRINCS_TX_V0_CPP.md"
+      - "docs/PQBTC_SHRINCS_TX_V0_NATIVE_SIGNED_SEAM.md"
       - ".github/workflows/shrincs-tx-cpp-component.yml"
+      - ".github/workflows/shrincs-tx-native-signed-seam.yml"
   workflow_dispatch:
 
 permissions:
@@ -46,7 +54,7 @@ jobs:
           set -euo pipefail
           git diff --name-only "$BASE_SHA" "$HEAD_SHA" | while read -r path; do
             case "$path" in
-              src/script/shrincs_tx_v0.h|src/script/shrincs_tx_v0.cpp|src/test/shrincs_tx_v0_tests.cpp|src/test/CMakeLists.txt|ci/test/test_shrincs_tx_cpp_component.py|docs/PQBTC_SHRINCS_TX_V0_CPP.md|.github/workflows/shrincs-tx-cpp-component.yml) ;;
+              src/script/shrincs_tx_v0.h|src/script/shrincs_tx_v0.cpp|src/test/shrincs_tx_v0_tests.cpp|src/test/shrincs_tx_v0_signed_seam_tests.cpp|src/test/shrincs_tx_v0_signed_seam_vectors.h|src/test/CMakeLists.txt|ci/test/test_shrincs_tx_cpp_component.py|docs/PQBTC_SHRINCS_TX_V0_CPP.md|docs/PQBTC_SHRINCS_TX_V0_NATIVE_SIGNED_SEAM.md|.github/workflows/shrincs-tx-cpp-component.yml|.github/workflows/shrincs-tx-native-signed-seam.yml) ;;
               *)
                 echo "Unexpected SHRINCS C++ component path: $path" >&2
                 exit 1
