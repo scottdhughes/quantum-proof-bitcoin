@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import re
@@ -42,23 +43,60 @@ def load_module(path: Path, name: str) -> ModuleType:
     require(spec is not None and spec.loader is not None, f"cannot load module from {path}")
     module = importlib.util.module_from_spec(spec)
     assert spec is not None and spec.loader is not None
-    spec.loader.exec_module(module)
+    # Execute source rather than a cached bytecode file, without dirtying the checkout.
+    exec(compile(path.read_bytes(), str(path), "exec", dont_inherit=True), module.__dict__)
     return module
 
 
-def git_head(path: Path) -> str:
+def git_output(path: Path, *args: str) -> bytes:
     result = subprocess.run(
-        ["git", "-C", str(path), "rev-parse", "HEAD"],
+        ["git", "--no-replace-objects", "--no-optional-locks", "-C", str(path), *args],
         check=True,
         capture_output=True,
-        text=True,
     )
-    return result.stdout.strip()
+    return result.stdout
+
+
+def git_head(path: Path) -> str:
+    return git_output(path, "rev-parse", "HEAD").decode().strip()
+
+
+def validate_checkout(path: Path) -> None:
+    root = Path(git_output(path, "rev-parse", "--show-toplevel").decode().strip())
+    require(path.resolve() == root.resolve(), "input must be the checkout root")
+    for entry in git_output(path, "ls-tree", "-rz", "HEAD").split(b"\0"):
+        if not entry:
+            continue
+        metadata, raw_name = entry.split(b"\t", 1)
+        mode, kind, object_id = metadata.split()
+        relative = Path(raw_name.decode())
+        require(kind == b"blob" and mode in (b"100644", b"100755"),
+                f"unsupported non-regular source: {relative}")
+        source = path
+        for part in relative.parts:
+            source = source / part
+            require(not source.is_symlink(), f"expected regular source: {relative}")
+        require(source.is_file(), f"tracked source is missing: {relative}")
+        data = source.read_bytes()
+        blob = b"blob " + str(len(data)).encode() + b"\0" + data
+        actual_id = hashlib.sha1(blob, usedforsecurity=False).hexdigest().encode()
+        require(actual_id == object_id, f"tracked source differs from pinned tree: {relative}")
+    require(not git_output(path, "diff", "--cached", "--name-only", "HEAD", "--"),
+            "staged changes differ from pinned source")
+    # No exclusions: ignored files can also shadow imports, headers, or build inputs.
+    require(not git_output(path, "ls-files", "--others", "-z", "--"),
+            "untracked files in pinned source checkout")
 
 
 def load_manifest(path: Path) -> dict[str, Any]:
     data = json.loads(path.read_text(encoding="utf-8"))
     require(isinstance(data, dict), "manifest root must be an object")
+    policy = load_module(REPO_ROOT / "contrib" / "shrincs" / "check_manifest.py",
+                         "pqbtc_shrincs_manifest_policy")
+    try:
+        policy.validate_manifest(data)
+    except policy.ManifestError as exc:
+        raise CompatibilityError(str(exc)) from exc
     return data
 
 
@@ -194,6 +232,8 @@ def validate_paths(manifest: dict[str, Any], libshrincs: Path, shrincs_bip: Path
     actual_lib = git_head(libshrincs)
     require(actual_draft == expected_draft, "shrincs-bip checkout does not match manifest pin")
     require(actual_lib == expected_lib, "libshrincs checkout does not match manifest pin")
+    validate_checkout(shrincs_bip)
+    validate_checkout(libshrincs)
     return expected_draft, expected_lib
 
 
