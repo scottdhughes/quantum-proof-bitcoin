@@ -44,6 +44,7 @@ jobs:
           set -euo pipefail
           python3 ci/test/test_shrincs_tx_cpp_component.py
           python3 contrib/shrincs-labnet/test_labnet.py -v
+          python3 -m unittest ci.test.test_shrincslab_materializers -v
           python3 - <<'PY'
           import json
           from pathlib import Path

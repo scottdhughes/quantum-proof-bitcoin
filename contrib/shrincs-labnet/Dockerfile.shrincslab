@@ -5,11 +5,12 @@ COPY . .
 RUN cmake -S . -B build -G Ninja     -DBUILD_GUI=OFF -DBUILD_GUI_TESTS=OFF -DBUILD_BENCH=OFF     -DBUILD_FUZZ_BINARY=OFF -DBUILD_KERNEL_LIB=OFF -DENABLE_WALLET=ON     -DENABLE_IPC=OFF -DENABLE_EXTERNAL_SIGNER=OFF -DWITH_ZMQ=OFF     -DWITH_USDT=OFF -DBUILD_TESTS=OFF     && cmake --build build --parallel 2 --target pqbtcd pqbtc-cli
 
 FROM ubuntu:24.04
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y     libevent-2.1-7t64 libevent-pthreads-2.1-7t64 libsqlite3-0 ca-certificates     && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y     libevent-2.1-7t64 libevent-extra-2.1-7t64 libevent-pthreads-2.1-7t64 libsqlite3-0 ca-certificates     && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /src/build/bin/pqbtcd /usr/local/bin/pqbtcd
 COPY --from=builder /src/build/bin/pqbtc-cli /usr/local/bin/pqbtc-cli
 RUN useradd --create-home --uid 10001 pqbtc && mkdir /data && chown pqbtc:pqbtc /data
 USER pqbtc
+RUN pqbtcd -nosettings -version >/dev/null && pqbtc-cli -version >/dev/null
 VOLUME ["/data"]
 EXPOSE 29333
 ENTRYPOINT ["pqbtcd", "-regtest", "-shrincslab", "-datadir=/data", "-printtoconsole"]

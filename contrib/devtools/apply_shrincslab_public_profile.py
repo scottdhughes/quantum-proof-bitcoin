@@ -610,17 +610,37 @@ RUN cmake -S . -B build -G Ninja \
 
 FROM ubuntu:24.04
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
-    libevent-2.1-7t64 libevent-pthreads-2.1-7t64 libsqlite3-0 ca-certificates \
+    libevent-2.1-7t64 libevent-extra-2.1-7t64 libevent-pthreads-2.1-7t64 libsqlite3-0 ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /src/build/bin/pqbtcd /usr/local/bin/pqbtcd
 COPY --from=builder /src/build/bin/pqbtc-cli /usr/local/bin/pqbtc-cli
 RUN useradd --create-home --uid 10001 pqbtc && mkdir /data && chown pqbtc:pqbtc /data
 USER pqbtc
+RUN pqbtcd -nosettings -version >/dev/null && pqbtc-cli -version >/dev/null
 VOLUME ["/data"]
 EXPOSE 29333
 ENTRYPOINT ["pqbtcd", "-regtest", "-shrincslab", "-datadir=/data", "-printtoconsole"]
 '''
     changes["dockerfile"] = write("contrib/shrincs-labnet/Dockerfile.shrincslab", dockerfile)
+    dockerignore = '''# Source inputs only: never import a host CMake cache or labnet state.
+**
+!CMakeLists.txt
+!COPYING
+!cmake/**
+!src/**
+!share/**
+!test/**
+!doc/**
+!contrib/filter-lcov.py
+!contrib/devtools/split-debug.sh.in
+**/.git
+**/.env*
+**/__pycache__
+**/*.pyc
+**/CMakeCache.txt
+**/CMakeFiles
+'''
+    changes["dockerignore"] = write("contrib/shrincs-labnet/Dockerfile.shrincslab.dockerignore", dockerignore)
     compose = '''services:
   seed:
     build:

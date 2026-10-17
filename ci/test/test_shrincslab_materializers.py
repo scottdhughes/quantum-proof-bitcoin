@@ -68,6 +68,9 @@ class ShrincsLabMaterializerTests(unittest.TestCase):
             run_script("apply_shrincslab_public_profile.py")
             run_script("apply_shrincslab_chain_domain.py")
             self.assertEqual(snapshot(), first)
+            policy = "contrib/shrincs-labnet/Dockerfile.shrincslab.dockerignore"
+            self.assertTrue((root / policy).is_file(), "materializer must preserve the source-only image context")
+            self.assertEqual((root / policy).read_bytes(), (REPO_ROOT / policy).read_bytes())
 
             manifest = json.loads((root / "contrib/shrincs-labnet/manifest.json").read_text())
             self.assertFalse(manifest["consensus_activation"]["ordinary_regtest"])
@@ -98,3 +101,57 @@ class ShrincsLabMaterializerTests(unittest.TestCase):
             guard.test_activation_defaults_off_and_is_assigned_only_in_regtest()
             guard.test_labnet_base_directory_and_rpc_identity()
             guard.test_validation_flags_follow_consensus_scope()
+
+    @unittest.skipUnless(shutil.which("docker"), "Docker is required for the real context regression")
+    def test_docker_context_excludes_host_build_and_private_state(self):
+        available = subprocess.run(
+            ["docker", "info", "--format", "{{.OSType}}"],
+            capture_output=True, text=True, check=False, timeout=15,
+        )
+        if available.returncode or available.stdout.strip() != "linux":
+            self.skipTest("a Linux Docker daemon is required for the real context regression")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "context"
+            source = {
+                "CMakeLists.txt": "source-cmake\n",
+                "COPYING": "source-license\n",
+                "cmake/module/check.cmake": "source-module\n",
+                "src/check.cpp": "source-native\n",
+                "share/check.txt": "source-share\n",
+                "test/CMakeLists.txt": "source-test\n",
+                "doc/CMakeLists.txt": "source-doc\n",
+                "contrib/filter-lcov.py": "source-coverage\n",
+                "contrib/devtools/split-debug.sh.in": "source-linux-debug-template\n",
+            }
+            contamination = (
+                "build/CMakeCache.txt", "build-other/CMakeCache.txt",
+                ".git/config", ".shrincs-labnet/signer.sqlite3",
+                ".env", "untracked-state/signer.sqlite3",
+                "src/__pycache__/check.pyc",
+            )
+            for name, content in {
+                **source, **dict.fromkeys(contamination, "synthetic-not-source\n"),
+            }.items():
+                destination = root / name
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_text(content)
+            dockerfile = root / "contrib/shrincs-labnet/Dockerfile.shrincslab"
+            dockerfile.parent.mkdir(parents=True)
+            dockerfile.write_text("FROM scratch\nCOPY . /\n")
+            policy = REPO_ROOT / "contrib/shrincs-labnet/Dockerfile.shrincslab.dockerignore"
+            if policy.is_file():
+                shutil.copy2(policy, dockerfile.with_name(dockerfile.name + ".dockerignore"))
+            output = Path(temporary) / "export"
+            result = subprocess.run(
+                ["docker", "build", "--progress=plain", "--no-cache", "--file", str(dockerfile),
+                 "--output", f"type=local,dest={output}", str(root)],
+                capture_output=True, text=True, check=False, timeout=120,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            for name, content in source.items():
+                with self.subTest(source=name):
+                    self.assertTrue((output / name).is_file(), f"required source missing from image context: {name}")
+                    self.assertEqual((output / name).read_text(), content)
+            for name in contamination:
+                with self.subTest(excluded=name):
+                    self.assertFalse((output / name).exists(), f"host-only file entered image context: {name}")

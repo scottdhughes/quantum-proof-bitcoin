@@ -1,0 +1,17 @@
+# Source inputs only: never import a host CMake cache or labnet state.
+**
+!CMakeLists.txt
+!COPYING
+!cmake/**
+!src/**
+!share/**
+!test/**
+!doc/**
+!contrib/filter-lcov.py
+!contrib/devtools/split-debug.sh.in
+**/.git
+**/.env*
+**/__pycache__
+**/*.pyc
+**/CMakeCache.txt
+**/CMakeFiles
