@@ -106,6 +106,30 @@ class ShrincsCandidateManifestTests(unittest.TestCase):
         data["required_gates"]["differential_verifiers"] = True
         self.assert_invalid(data, "differential_verifiers cannot be marked complete")
 
+    def test_required_gate_cannot_be_deleted(self) -> None:
+        for gate in (
+            "consensus_audit", "differential_verifiers", "exact_profile_frozen",
+            "external_cryptographic_review", "fault_review", "hardware_signer_evidence",
+            "independent_kats", "resource_envelope", "security_proof_reviewed",
+            "side_channel_review", "state_machine_crash_tests", "strict_parser",
+            "sustained_fuzzing", "zero_value_labnet_soak",
+        ):
+            with self.subTest(gate=gate):
+                data = copy.deepcopy(self.manifest)
+                del data["required_gates"][gate]
+                self.assert_invalid(data, "required gate set drifted")
+
+    def test_required_gate_cannot_be_renamed(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        value = data["required_gates"].pop("external_cryptographic_review")
+        data["required_gates"]["unrelated_placeholder"] = value
+        self.assert_invalid(data, "required gate set drifted")
+
+    def test_unknown_gate_cannot_be_added(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["required_gates"]["unrelated_placeholder"] = False
+        self.assert_invalid(data, "required gate set drifted")
+
 
 if __name__ == "__main__":
     unittest.main()
