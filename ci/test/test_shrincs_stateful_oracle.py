@@ -1,0 +1,230 @@
+"""Behavioral source-integrity and result-contract tests for the stateful oracle."""
+
+from __future__ import annotations
+
+import contextlib
+import importlib.util
+import io
+import json
+import os
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SPEC = importlib.util.spec_from_file_location(
+    "shrincs_stateful_oracle", REPO_ROOT / "contrib/shrincs-ref/check_stateful_fxmss.py",
+)
+assert SPEC is not None and SPEC.loader is not None
+CHECKER = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(CHECKER)
+
+
+class StatefulProvenanceTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory(prefix="pqbtc-stateful-provenance-")
+        self.addCleanup(self.temp.cleanup)
+        self.repo = Path(self.temp.name) / "source"
+        self.repo.mkdir()
+        self.git("init", "-q", "--object-format=sha1")
+        (self.repo / "impl").mkdir()
+        (self.repo / "impl/model.py").write_text("VALUE = 7\n", encoding="utf-8")
+        (self.repo / ".gitignore").write_text("build/\n", encoding="utf-8")
+        self.git("add", "--", ".gitignore", "impl/model.py")
+        self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                 "-c", "commit.gpgsign=false", "commit", "-qm", "fixture")
+        self.pin = self.git("rev-parse", "HEAD").strip()
+        self.manifest = {"upstream": {
+            "draft_specification": {"commit": self.pin},
+            "libshrincs_wotsc": {"commit": self.pin},
+        }}
+
+    def git(self, *args: str) -> str:
+        env = {"PATH": os.environ.get("PATH", ""), "GIT_CONFIG_GLOBAL": "/dev/null",
+               "GIT_CONFIG_NOSYSTEM": "1", "GIT_TERMINAL_PROMPT": "0"}
+        return subprocess.run(["git", "-C", str(self.repo), *args], check=True,
+                              capture_output=True, text=True, env=env).stdout
+
+    def validate(self, path: Path | None = None) -> None:
+        source = self.repo if path is None else path
+        CHECKER.validate_pins(self.manifest, source, source)
+
+    def test_pristine_checkout_is_accepted(self) -> None:
+        self.validate()
+
+    def test_tracked_source_change_is_rejected(self) -> None:
+        (self.repo / "impl/model.py").write_text("VALUE = 8\n", encoding="utf-8")
+        with self.assertRaises(CHECKER.StatefulOracleError):
+            self.validate()
+
+    def test_hidden_index_source_change_is_rejected(self) -> None:
+        for flag in ("--assume-unchanged", "--skip-worktree"):
+            with self.subTest(flag=flag):
+                self.git("update-index", flag, "--", "impl/model.py")
+                (self.repo / "impl/model.py").write_text("VALUE = 8\n", encoding="utf-8")
+                with self.assertRaises(CHECKER.StatefulOracleError):
+                    self.validate()
+                (self.repo / "impl/model.py").write_text("VALUE = 7\n", encoding="utf-8")
+                self.git("update-index", flag.replace("--", "--no-", 1), "--", "impl/model.py")
+
+    def test_nested_directory_cannot_borrow_parent_pin(self) -> None:
+        with self.assertRaises(CHECKER.StatefulOracleError):
+            self.validate(self.repo / "impl")
+
+    def test_untracked_source_is_rejected(self) -> None:
+        (self.repo / "injected.py").write_text("VALUE = 8\n", encoding="utf-8")
+        with self.assertRaises(CHECKER.StatefulOracleError):
+            self.validate()
+
+    def test_ignored_untracked_source_is_rejected(self) -> None:
+        (self.repo / "build").mkdir()
+        (self.repo / "build/injected.py").write_text("VALUE = 8\n", encoding="utf-8")
+        with self.assertRaises(CHECKER.StatefulOracleError):
+            self.validate()
+
+    def test_module_loading_does_not_write_bytecode(self) -> None:
+        loaded = CHECKER.load_module(self.repo / "impl/model.py", "stateful_fixture")
+        self.assertEqual(loaded.VALUE, 7)
+        self.assertFalse((self.repo / "impl/__pycache__").exists())
+        self.validate()
+
+    def test_module_annotations_keep_source_semantics(self) -> None:
+        source = self.repo / "impl/model.py"
+        source.write_text("VALUE: int = 7\n", encoding="utf-8")
+        loaded = CHECKER.load_module(source, "stateful_annotations")
+        self.assertIs(loaded.__annotations__["VALUE"], int)
+
+    def test_manifest_controls_are_enforced_before_upstream_import(self) -> None:
+        original = json.loads((REPO_ROOT / "contrib/shrincs/manifest.json").read_text())
+        for key, value in (("consensus_enabled", True), ("production_backend", "unexpected"),
+                           ("release_hold", False)):
+            with self.subTest(field=key):
+                path = Path(self.temp.name) / "manifest.json"
+                path.write_text(json.dumps(dict(original, **{key: value})), encoding="utf-8")
+                with self.assertRaises(CHECKER.StatefulOracleError):
+                    CHECKER.load_manifest(path)
+
+    def test_custom_manifest_cannot_replace_frozen_pin(self) -> None:
+        data = json.loads((REPO_ROOT / "contrib/shrincs/manifest.json").read_text())
+        data["upstream"]["draft_specification"]["commit"] = self.pin
+        path = Path(self.temp.name) / "manifest.json"
+        path.write_text(json.dumps(data), encoding="utf-8")
+        with self.assertRaises(CHECKER.StatefulOracleError):
+            CHECKER.load_manifest(path)
+
+
+class StatefulResultTests(unittest.TestCase):
+    def test_native_boundary_campaign_exercises_real_abi_arguments(self) -> None:
+        exercise = getattr(CHECKER, "exercise_native_abi_cases", None)
+        self.assertTrue(callable(exercise), "native ABI campaign must be retained in the harness")
+        calls = []
+
+        def verify(*args):
+            calls.append(args)
+            return int(len(calls) == 1)
+
+        vector = {"name": "fixture", "public_key": "00" * 48,
+                  "signature": "00" * 554, "message": "00" * 32, "context": ""}
+        self.assertEqual(exercise(verify, vector), 14)
+        self.assertEqual(len(calls), 14)
+        self.assertIsNone(calls[1][0])
+        self.assertIsNone(calls[2][2])
+        self.assertEqual([args[1] for args in calls[3:6]], [0, 47, 49])
+        self.assertEqual([args[3] for args in calls[6:10]], [0, 553, 555, 4619])
+        self.assertEqual(calls[10][4:6], (None, 1))
+        self.assertEqual(calls[11][6:8], (None, 1))
+        self.assertEqual(calls[12][5], 4097)
+        self.assertEqual(calls[13][7], 256)
+
+    def test_native_boundary_campaign_requires_exact_rejection_status(self) -> None:
+        exercise = getattr(CHECKER, "exercise_native_abi_cases", None)
+        self.assertTrue(callable(exercise), "native ABI campaign must be retained in the harness")
+        vector = {"name": "fixture", "public_key": "00" * 48,
+                  "signature": "00" * 554, "message": "00" * 32, "context": ""}
+        for invalid_result in (-1, 1, 2):
+            with self.subTest(result=invalid_result):
+                statuses = iter((1, invalid_result))
+                with self.assertRaises(CHECKER.StatefulOracleError):
+                    exercise(lambda *args: next(statuses), vector)
+
+    def test_missing_native_rejections_cannot_publish_pass_or_vectors(self) -> None:
+        lengths = (554, 570, 602, 602, 586, 586, 586)
+        vectors = [{"name": f"fixture-{i}", "public_key": "00" * 48,
+                    "signature": "00" * size, "message": "00" * 32, "context": ""}
+                   for i, size in enumerate(lengths)]
+        with tempfile.TemporaryDirectory(prefix="pqbtc-stateful-native-") as temp:
+            output = Path(temp) / "vectors.json"
+            argv = ["check_stateful_fxmss.py", "--shrincs-bip", temp, "--libshrincs", temp,
+                    "--library", str(Path(temp) / "unused.so"), "--vectors-out", str(output), "--json"]
+            with mock.patch("sys.argv", argv), \
+                    mock.patch.object(CHECKER, "validate_pins"), \
+                    mock.patch.object(CHECKER, "load_module", return_value=SimpleNamespace()), \
+                    mock.patch.object(CHECKER, "load_verifier", return_value=lambda *args: 1), \
+                    mock.patch.object(CHECKER, "create_vectors", return_value=vectors), \
+                    mock.patch.object(CHECKER, "exercise_negative_cases",
+                                      side_effect=[(size * 8, 384, 6) for size in lengths]), \
+                    contextlib.redirect_stdout(io.StringIO()) as stdout:
+                with self.assertRaises(CHECKER.StatefulOracleError):
+                    CHECKER.main()
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertFalse(output.exists())
+
+    def test_non_boolean_abi_result_is_an_error_not_a_rejection(self) -> None:
+        for result in (-1, 2):
+            with self.subTest(result=result):
+                with self.assertRaises(CHECKER.StatefulOracleError):
+                    CHECKER.verify_with_c(lambda *args: result, b"pk", b"sig", b"m", b"")
+
+    def test_boolean_abi_results_are_preserved(self) -> None:
+        self.assertTrue(CHECKER.verify_with_c(lambda *args: 1, b"p", b"s", b"m", b""))
+        self.assertFalse(CHECKER.verify_with_c(lambda *args: 0, b"p", b"s", b"m", b""))
+
+    def test_empty_generated_corpus_cannot_publish_pass_or_vectors(self) -> None:
+        # Replace only external crypto work; exercise real main/result/artifact handling.
+        with tempfile.TemporaryDirectory(prefix="pqbtc-stateful-empty-") as temp:
+            output = Path(temp) / "vectors.json"
+            argv = ["check_stateful_fxmss.py", "--shrincs-bip", temp, "--libshrincs", temp,
+                    "--library", str(Path(temp) / "unused.so"), "--vectors-out", str(output), "--json"]
+            with mock.patch("sys.argv", argv), \
+                    mock.patch.object(CHECKER, "validate_pins"), \
+                    mock.patch.object(CHECKER, "load_module", return_value=SimpleNamespace()), \
+                    mock.patch.object(CHECKER, "load_verifier", return_value=None), \
+                    mock.patch.object(CHECKER, "create_vectors", return_value=[]), \
+                    contextlib.redirect_stdout(io.StringIO()) as stdout:
+                with self.assertRaises(CHECKER.StatefulOracleError):
+                    CHECKER.main()
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertFalse(output.exists())
+
+    def test_partial_mutation_campaign_cannot_publish_pass_or_vectors(self) -> None:
+        # Literal seven-case lengths sum to 32688 signature bits,2688 key bits,42 negatives.
+        lengths = (554, 570, 602, 602, 586, 586, 586)
+        vectors = [{"name": f"fixture-{i}", "public_key": "00" * 48,
+                    "signature": "00" * size, "message": "00" * 32, "context": ""}
+                   for i, size in enumerate(lengths)]
+        for missing_field in range(3):
+            with self.subTest(missing_field=missing_field), \
+                    tempfile.TemporaryDirectory(prefix="pqbtc-stateful-partial-") as temp:
+                output = Path(temp) / "vectors.json"
+                counts = [[size * 8, 384, 6] for size in lengths]
+                counts[0][missing_field] -= 1
+                argv = ["check_stateful_fxmss.py", "--shrincs-bip", temp, "--libshrincs", temp,
+                        "--library", str(Path(temp) / "unused.so"), "--vectors-out", str(output), "--json"]
+                with mock.patch("sys.argv", argv), \
+                        mock.patch.object(CHECKER, "validate_pins"), \
+                        mock.patch.object(CHECKER, "load_module", return_value=SimpleNamespace()), \
+                        mock.patch.object(CHECKER, "load_verifier", return_value=lambda *args: 1), \
+                        mock.patch.object(CHECKER, "create_vectors", return_value=vectors), \
+                        mock.patch.object(CHECKER, "exercise_negative_cases", side_effect=counts), \
+                        contextlib.redirect_stdout(io.StringIO()) as stdout:
+                    with self.assertRaises(CHECKER.StatefulOracleError):
+                        CHECKER.main()
+                self.assertEqual(stdout.getvalue(), "")
+                self.assertFalse(output.exists())
+
+
+if __name__ == "__main__":
+    unittest.main()

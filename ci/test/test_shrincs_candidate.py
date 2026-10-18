@@ -71,6 +71,21 @@ class ShrincsCandidateManifestTests(unittest.TestCase):
         data["component_evidence"]["wotsc"]["formal_proofs_reproduced_by_pqbtc"] = True
         self.assert_invalid(data, "component_evidence.wotsc drifted")
 
+    def test_stateful_prototype_cannot_be_promoted_to_full_verifier(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["component_evidence"]["stateful_fxmss"]["qualifies_as_full_shrincs_verifier"] = True
+        self.assert_invalid(data, "component_evidence.stateful_fxmss drifted")
+
+    def test_stateful_prototype_cannot_be_marked_consensus_ready(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["component_evidence"]["stateful_fxmss"]["consensus_ready"] = True
+        self.assert_invalid(data, "component_evidence.stateful_fxmss drifted")
+
+    def test_stateful_mutation_count_drift_is_rejected(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["component_evidence"]["stateful_fxmss"]["signature_bit_mutations_rejected"] -= 1
+        self.assert_invalid(data, "component_evidence.stateful_fxmss drifted")
+
     def test_signature_profile_drift_is_rejected(self) -> None:
         data = copy.deepcopy(self.manifest)
         data["observed_profiles"]["draft_specification"]["stateless_signature_bytes"] = 5775
@@ -86,7 +101,7 @@ class ShrincsCandidateManifestTests(unittest.TestCase):
         data["wallet_state_contract"]["reserve_before_sign"] = False
         self.assert_invalid(data, "reserve_before_sign must remain enabled")
 
-    def test_gate_cannot_be_closed_in_component_tranche(self) -> None:
+    def test_full_differential_gate_cannot_be_closed(self) -> None:
         data = copy.deepcopy(self.manifest)
         data["required_gates"]["differential_verifiers"] = True
         self.assert_invalid(data, "differential_verifiers cannot be marked complete")

@@ -2,6 +2,22 @@
   "as_of": "2026-08-16",
   "candidate_id": "pqbtc-shrincs-v0",
   "component_evidence": {
+    "stateful_fxmss": {
+      "balanced_and_unbalanced_vectors": true,
+      "consensus_ready": false,
+      "independent_c_verifier": true,
+      "kat_case_count": 7,
+      "public_key_bit_mutations_rejected": 2688,
+      "qualifies_as_full_shrincs_verifier": false,
+      "scope": "complete current-draft stateful verification path only",
+      "signature_bit_mutations_rejected": 32688,
+      "status": "INDEPENDENT_DIFFERENTIAL_PROTOTYPE",
+      "structural_negatives_rejected": 42,
+      "uses_qualified_libshrincs_wotsc": true,
+      "valid_signatures_verified": 7,
+      "vectors_committed": false,
+      "vectors_retained_as_ci_artifact": true
+    },
     "wotsc": {
       "compiled_c_matches_committed_kats": true,
       "current_draft_matches_committed_kats": true,
