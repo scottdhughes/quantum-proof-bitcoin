@@ -93,6 +93,23 @@ The dedicated workflow:
 
 performs exact upstream checkouts, builds the C verifier, generates the deterministic vectors, runs exhaustive mutation tests, reruns under ASan/UBSan, and retains the vector artifact.
 
+The harness validates the shared frozen manifest policy before importing upstream code.
+Both upstream directories must be dedicated pristine checkout roots: tracked bytes
+must match their pinned Git objects even when index flags hide changes, and staged,
+untracked or ignored build/import inputs are rejected. Source imports do not read or
+write bytecode caches. These are the same source-integrity checks used by the WOTS+C
+harness; shared preflight code does not change the independent C verifier boundary.
+
+Run reviewed upstream code in a disposable environment without credentials or wallet
+data. Keep build products and vector output outside the pinned source checkouts.
+Source validation is not an execution sandbox and does not protect against concurrent
+modification after preflight or a compromised compiler/runtime.
+
+Only ABI status `0` is a signature rejection and `1` is acceptance; any other value
+fails the campaign. Observed valid-case and mutation counts must match the frozen
+manifest evidence record before a PASS or vector artifact is published. An empty or
+partial campaign therefore cannot replace the seven-case result.
+
 The repository-level safety controls remain:
 
 ```text

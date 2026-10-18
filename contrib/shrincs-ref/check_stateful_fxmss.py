@@ -7,7 +7,6 @@ import ctypes
 import hashlib
 import importlib.util
 import json
-import subprocess
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -30,24 +29,20 @@ def load_module(path: Path, name: str) -> ModuleType:
     require(spec is not None and spec.loader is not None, f"cannot load module from {path}")
     module = importlib.util.module_from_spec(spec)
     assert spec is not None and spec.loader is not None
-    spec.loader.exec_module(module)
+    exec(compile(path.read_bytes(), str(path), "exec", dont_inherit=True), module.__dict__)
     return module
 
 
+WOTSC_CHECKER = load_module(
+    REPO_ROOT / "contrib/shrincs-ref/check_libshrincs_wotsc.py", "pqbtc_stateful_source_policy",
+)
+
+
 def load_manifest(path: Path) -> dict[str, Any]:
-    data = json.loads(path.read_text(encoding="utf-8"))
-    require(isinstance(data, dict), "manifest root must be an object")
-    return data
-
-
-def git_head(path: Path) -> str:
-    result = subprocess.run(
-        ["git", "-C", str(path), "rev-parse", "HEAD"],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout.strip()
+    try:
+        return WOTSC_CHECKER.load_manifest(path)
+    except WOTSC_CHECKER.CompatibilityError as exc:
+        raise StatefulOracleError(str(exc)) from exc
 
 
 def kdf(label: bytes, length: int) -> bytes:
@@ -97,6 +92,7 @@ def verify_with_c(verify, public_key: bytes, signature: bytes, message: bytes, c
         context_buffer,
         len(context),
     )
+    require(result in (0, 1), f"independent verifier returned invalid ABI status: {result}")
     return result == 1
 
 
@@ -277,14 +273,10 @@ def exercise_negative_cases(verify, vector: dict[str, Any]) -> tuple[int, int, i
 
 
 def validate_pins(manifest: dict[str, Any], shrincs_bip: Path, libshrincs: Path) -> None:
-    upstream = manifest.get("upstream")
-    require(isinstance(upstream, dict), "manifest upstream object is missing")
-    draft = upstream.get("draft_specification")
-    lib = upstream.get("libshrincs_wotsc")
-    require(isinstance(draft, dict), "draft specification pin is missing")
-    require(isinstance(lib, dict), "libshrincs pin is missing")
-    require(git_head(shrincs_bip) == draft.get("commit"), "shrincs-bip checkout does not match manifest")
-    require(git_head(libshrincs) == lib.get("commit"), "libshrincs checkout does not match manifest")
+    try:
+        WOTSC_CHECKER.validate_paths(manifest, libshrincs, shrincs_bip)
+    except WOTSC_CHECKER.CompatibilityError as exc:
+        raise StatefulOracleError(str(exc)) from exc
 
 
 def main() -> int:
@@ -320,6 +312,25 @@ def main() -> int:
         public_key_mutations += pk_count
         structural_negatives += structural_count
 
+    result = {
+        "cases": len(vectors),
+        "valid_signatures": len(vectors),
+        "signature_bit_mutations_rejected": signature_mutations,
+        "public_key_bit_mutations_rejected": public_key_mutations,
+        "structural_negatives_rejected": structural_negatives,
+        "result": "PASS",
+    }
+    expected = manifest["component_evidence"]["stateful_fxmss"]
+    for observed, recorded in (
+        ("cases", "kat_case_count"),
+        ("valid_signatures", "valid_signatures_verified"),
+        ("signature_bit_mutations_rejected", "signature_bit_mutations_rejected"),
+        ("public_key_bit_mutations_rejected", "public_key_bit_mutations_rejected"),
+        ("structural_negatives_rejected", "structural_negatives_rejected"),
+    ):
+        require(result[observed] == expected[recorded],
+                f"incomplete stateful campaign: {observed} differs from frozen evidence contract")
+
     if args.vectors_out is not None:
         args.vectors_out.parent.mkdir(parents=True, exist_ok=True)
         args.vectors_out.write_text(
@@ -337,14 +348,6 @@ def main() -> int:
             encoding="utf-8",
         )
 
-    result = {
-        "cases": len(vectors),
-        "valid_signatures": len(vectors),
-        "signature_bit_mutations_rejected": signature_mutations,
-        "public_key_bit_mutations_rejected": public_key_mutations,
-        "structural_negatives_rejected": structural_negatives,
-        "result": "PASS",
-    }
     if args.json:
         print(json.dumps(result, sort_keys=True))
     else:
