@@ -55,7 +55,7 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
         assessments = self.admission["candidate_assessments"]
         sources = self.reference["sources"]
         expected = {
-            "openssl_3_6_3": sources["openssl"]["commit"],
+            "openssl_3_6_5": sources["openssl"]["commit"],
             "mldsa_native_portable_c": sources["mldsa_native"]["commit"],
             "libcrux_ml_dsa_0_0_10_portable": sources["libcrux"]["commit"],
         }
@@ -66,6 +66,38 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
         for candidate in assessments.values():
             self.assertRegex(candidate["source_tree"], r"^[0-9a-f]{40}$")
             self.assertEqual(candidate["conformance"], "PASS")
+        self.assertEqual(
+            assessments["openssl_3_6_5"]["source_tree"],
+            sources["openssl"]["git_tree"],
+        )
+
+    def test_openssl_conformance_is_bound_to_trusted_main_receipt(self):
+        candidate = self.admission["candidate_assessments"]["openssl_3_6_5"]
+        self.assertIn("conformance_evidence", candidate)
+        evidence = candidate["conformance_evidence"]
+        receipt_path = REPO_ROOT / evidence["receipt"]
+        self.assertTrue(receipt_path.is_file())
+        receipt = json.loads(receipt_path.read_text(encoding="utf8"))
+        review = receipt["workflows"]["review_reproduction"]
+        self.assertEqual(receipt["evidence_head"], evidence["head_sha"])
+        self.assertEqual(review["head_sha"], evidence["head_sha"])
+        self.assertEqual(review["run_id"], evidence["run_id"])
+        self.assertEqual(review["run_conclusion"], "success")
+        self.assertEqual(review["ref"], "refs/heads/main")
+        self.assertIn(review["event"], {"schedule", "workflow_dispatch"})
+        self.assertTrue(
+            receipt["verification"]["guarded_baseline_diff_empty_at_evidence_head"]
+        )
+        context = review["ml-dsa-44-review-run-context"]
+        self.assertEqual(context["evidence_trust_scope"], "frozen_baseline_reproduction")
+        self.assertEqual(context["promotion_eligible"], "true")
+        self.assertEqual(context["baseline_commit"], receipt["baseline_pointer"])
+        self.assertEqual(review["review_report_sha256"], evidence["report_sha256"])
+        self.assertEqual(review["conformance"]["status"], "PASS")
+        self.assertEqual(review["conformance"]["openssl_commit"], candidate["source_commit"])
+        self.assertEqual(review["conformance"]["openssl_tree"], candidate["source_tree"])
+        self.assertEqual(receipt["production_boundary"]["production_backend"], "NONE")
+        self.assertTrue(receipt["production_boundary"]["release_hold"])
 
     def test_exactly_one_isolated_prototype_is_admitted(self):
         assessments = self.admission["candidate_assessments"]
@@ -75,7 +107,7 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
             if candidate["outcome"] == "ISOLATED_PROTOTYPE_ADMITTED"
         ]
         self.assertEqual(admitted, ["mldsa_native_portable_c"])
-        self.assertEqual(assessments["openssl_3_6_3"]["outcome"], "ORACLE_ONLY")
+        self.assertEqual(assessments["openssl_3_6_5"]["outcome"], "ORACLE_ONLY")
         self.assertEqual(
             assessments["libcrux_ml_dsa_0_0_10_portable"]["outcome"],
             "ORACLE_ONLY",
@@ -118,6 +150,26 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
         )
         self.assertTrue(evidence["test_build_separate"])
         self.assertFalse(evidence["test_controls_in_production_shaped_build"])
+        self.assertEqual(
+            evidence["fault_injection_evidence"],
+            {
+                "scope": "TEST_BUILD_ONLY_GENERAL_PURPOSE_HOST_WRAPPER_BOUNDARY",
+                "checkpoints": [
+                    "POST_SIGNATURE_PRE_SELF_VERIFY_CANDIDATE_BIT_FLIP"
+                ],
+                "uses_real_self_verifier": True,
+                "failure_result": "PQBTC_MLDSA44_ERR_VERIFY",
+                "failure_output": "ALL_ZERO",
+                "candidate_source_buffer_all_zero_observed": True,
+                "source_level_observer_only": True,
+                "consumed_randomizer_remains_consumed": True,
+                "production_exports_test_controls": False,
+                "retained_results": False,
+                "platform_fault_model_complete": False,
+                "physical_fault_model_complete": False,
+                "exact_commit_re_review": "PENDING",
+            },
+        )
         self.assertFalse(evidence["node_linkage"])
         self.assertFalse(evidence["wallet_linkage"])
         self.assertFalse(evidence["consensus_linkage"])
@@ -139,7 +191,13 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
                     "supported_platform_side_channel",
                     "BOUNDED_X86_64_VALGRIND_EVIDENCE_BROADER_PLATFORMS_OPEN",
                 ),
-                186: ("fault_resistance", "OPEN"),
+                186: (
+                    "fault_resistance",
+                    (
+                        "ISOLATED_CANDIDATE_CORRUPTION_REGRESSION_"
+                        "BROADER_FAULT_MODEL_OPEN"
+                    ),
+                ),
                 187: (
                     "secret_lifecycle_and_erasure",
                     "ISOLATED_SOURCE_AND_SANITIZER_EVIDENCE_OPEN",
@@ -197,7 +255,7 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
         decision = DECISION_PATH.read_text(encoding="utf8")
         self.assertIn("MLDSA_NATIVE_PORTABLE_C_ISOLATED_PROTOTYPE", decision)
         self.assertIn("production backend remains `NONE`", decision)
-        self.assertIn("OpenSSL 3.6.3", decision)
+        self.assertIn("OpenSSL 3.6.5", decision)
         self.assertIn("mldsa-native", decision)
         self.assertIn("libcrux", decision)
         self.assertIn("RELEASE_HOLD", decision)

@@ -54,6 +54,23 @@ REQUIRED_STATE_CONTROLS = (
     "state_corruption_fails_closed",
 )
 
+REQUIRED_GATES = (
+    "consensus_audit",
+    "differential_verifiers",
+    "exact_profile_frozen",
+    "external_cryptographic_review",
+    "fault_review",
+    "hardware_signer_evidence",
+    "independent_kats",
+    "resource_envelope",
+    "security_proof_reviewed",
+    "side_channel_review",
+    "state_machine_crash_tests",
+    "strict_parser",
+    "sustained_fuzzing",
+    "zero_value_labnet_soak",
+)
+
 
 class ManifestError(ValueError):
     """Raised when the candidate manifest violates a frozen safety invariant."""
@@ -297,6 +314,7 @@ def validate_manifest(data: dict[str, Any]) -> None:
 
     gates = data.get("required_gates")
     _require(isinstance(gates, dict) and gates, "required_gates must be a non-empty object")
+    _require(set(gates) == set(REQUIRED_GATES), "required gate set drifted")
     for name, value in gates.items():
         _require(
             value is False,

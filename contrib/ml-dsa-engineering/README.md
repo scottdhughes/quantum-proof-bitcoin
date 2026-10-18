@@ -38,19 +38,33 @@ normal build exports only `pqbtc_mldsa44_sign_hedged` and
 `pqbtc_mldsa44_verify_strict`; deterministic, fixed-randomizer, seeded-keygen,
 and failure controls exist only in a separately compiled test build. The
 network-free harness checks source hashes, symbols, frozen vectors, OS entropy,
-failure behavior, concurrency, deterministic held-lock fork recovery in both
-parent and child, and ASan/UBSan execution. This is a platform observation of
-the module-lock boundary, not generic POSIX child-signing support: the signer
-is not async-signal-safe, so a portable multithreaded child must `exec` before
-signing. The module must remain loaded while the process can fork. Reentrant or
-signal-handler fork, `_Fork`, `vfork`, raw `clone`, arbitrary at-fork handler
-ordering, and production admission remain unsupported.
+failure behavior, signer concurrency, deterministic held-lock fork recovery in
+both parent and child, and ASan/UBSan execution. A separate four-thread harness
+starts strict-verifier calls together over shared immutable inputs, requires
+one valid and three cryptographic-rejection workloads to retain their exact
+results for 32 iterations each, and rechecks every input after the threads
+join. A 20-second watchdog bounds a synchronization failure. The dedicated
+Linux Clang ThreadSanitizer path first compiles and runs a separate deliberate-
+race positive control. It proceeds to the clean verifier target only when the
+control exits nonzero and emits the canonical `ThreadSanitizer: data race`
+marker. That clean target excludes the `fork()` lifecycle smoke test.
+
+This is bounded behavior and race-detection evidence, not general concurrency
+coverage, a concurrent aggregate resource limit, or generic POSIX child-
+signing support. Broader thread counts and schedules, sign/verify coexistence,
+adversarial interleavings, and supported-platform coverage remain open. The
+signer is not async-signal-safe, so a portable multithreaded child must `exec`
+before signing. The module must remain loaded while the process can fork.
+Reentrant or signal-handler fork, `_Fork`, `vfork`, raw `clone`, arbitrary at-
+fork handler ordering, and production admission remain unsupported.
 
 The normative requirements and lifecycle limits are in
 `docs/ML_DSA_44_HEDGED_SIGNING_CONTRACT.md`. The admission disposition and
 candidate comparison are in `docs/ML_DSA_44_BACKEND_ADMISSION.md`.
 The implemented evidence and remaining boundaries are in
-`docs/ML_DSA_44_WRAPPER_PROTOTYPE.md`.
+`docs/ML_DSA_44_WRAPPER_PROTOTYPE.md`. The bounded test-only candidate-
+corruption checkpoint and its physical-fault nonclaims are in
+`docs/ML_DSA_44_FAULT_MODEL.md`.
 
 ## Advisory Ledger, SBOM, and Portable Miri
 
@@ -59,21 +73,27 @@ advisory PASS with a dated, per-advisory contract covering all current
 RustSec entries across the selected graph. It separates the published
 139-package lock universe, the exact 16-package selected portable graph, and
 the conservative 24-component CycloneDX normal-dependency/target closure. The
-driver fails on a new or missing selected-package RustSec advisory, scanner
-finding, alias, version, full-lock package, graph edge, backend, architecture,
-SBOM component, or evidence input. Current full-lock findings remain visible
-and are accepted only under their exact reviewed outside-selected-graph
-dispositions.
+driver fails on a new or missing selected-package RustSec advisory,
+advisory-backed scanner finding, cargo-audit package-status warning, alias, version,
+full-lock package, graph edge, backend, architecture, SBOM component, or
+evidence input. Current full-lock results remain visible and are accepted only
+under their exact reviewed dispositions: seven advisory findings and one
+yanked-package warning, all outside the selected execution graph.
 
 The scheduled read-only workflow pins cargo-audit, OSV Scanner,
 cargo-cyclonedx, and Miri. It also validates the official live OpenSSL
-release-metadata corpus against exact 3.6.3 semver ranges and requires the
+release-metadata corpus against exact 3.6.5 semver ranges and requires the
 public mldsa-native repository-advisory API to remain a complete empty result.
-OpenSSL 3.6.3 is version-affected by CVE-2026-54876, but its TLS-client
-X.509/OCSP path is absent from the isolated EVP-only ML-DSA oracle. The ledger
-binds that `NOT_APPLICABLE` path disposition to the official CVE record and
-the exact local oracle source/include closure rather than claiming that the
-package pin is unaffected.
+The 2026-08-25 feed refresh identified eleven CVEs affecting the superseded
+3.6.3 pin. None reaches the isolated default-provider EVP ML-DSA oracle, but
+the fixed 3.6.4 release replaced that affected comparator. The September 29
+security release subsequently fixed thirteen CVEs affecting 3.6.4. The current
+comparator is pinned to 3.6.5, which has zero affected IDs in the October 11
+297-record feed. Both transitions bind the superseded advisory records by
+hash and exact range; neither changes the production backend. The retained
+transition records the old path analysis and the upstream CVE-2026-63076
+metadata error: its cited 3.6.4 fix commit is absent, while released commit
+`49de27169f4cc42619a096c38412e47a3f890803` contains the equivalent fix.
 It retains raw feed bodies and headers, OpenSSL commit/tree/archive evidence,
 the RustSec commit, exact OSV database snapshot, raw scans, lock and graph
 evidence, SBOM, Miri logs, normalized report, and verified checksums for 90
@@ -230,6 +250,51 @@ security, constant-time behavior, leakage resistance, fault resistance,
 thread safety, or production fitness. It does not replace independent human
 review, close a production gate, or alter the release hold.
 
+## Strict-Verifier Retained-Corpus Provenance
+
+The prospective strict-verifier restore contract leaves pull-request and push
+runs as 60-second, seed-188 smokes with no retained-corpus input. A scheduled
+or manually dispatched 1,800-second run is main-only and requires a retained
+artifact from an ancestral, successful `main` run whose strict-verifier
+campaign passed for 1,800 seconds under the same sanitizer. Selection and
+download bind the repository and workflow, source event, run and attempt, head
+commit, and the exact artifact ID, name, API-reported SHA-256 digest, and byte
+size.
+An unavailable source or any mismatch fails before fuzzing begins.
+
+The archive is treated as hostile input: bounded extraction rejects unsafe
+paths, duplicate, encrypted, non-regular, or otherwise ambiguous ZIP members,
+and the complete `SHA256SUMS` inventory must account for and match every other
+extracted evidence file.
+Campaign metadata and the nonempty minimized corpus are then checked against
+the source binding and resource limits. Import must add at least one
+content-novel frame relative to the fixed corpus, and `campaign.json` records
+a self-contained source and import receipt with the validated identities,
+digests, counts, byte totals, a name-bound source aggregate, and a
+content-bound novel-import aggregate. The two
+sanitizer-specific artifacts from legacy run `32924009052` at head
+`0fa8f5fc4321f057fb758e4c2dc39b790023943c` are accepted only through their
+exact bootstrap allowlist entries for migration; that allowance is not a
+general fallback.
+
+PR `#250` landed this contract at
+`e4da9f921e8520b5f42ba454a68f847272c872f1`, and PR `#251` advanced the
+review pointer to `e11258553613e5e1db7f98478419b5b3e9843c92`. Exact clean
+protected-main head `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942` has an empty
+guarded diff from that pointer. Main-dispatched sustained run `34307476916`,
+attempt `1`, completed both strict-verifier 1,800-second campaigns after
+validating ancestral source artifacts by exact API identity and complete
+checksums. ASan/UBSan imported `78` novel retained frames and completed
+`8,013,773` executions; MSan imported `32` and completed `13,130,663`.
+Both minimized corpora were nonempty, both new artifacts carry the required
+self-contained source and import receipts, and neither lane recorded a crash,
+minimized crash, or sanitizer failure marker. The versioned
+[exact-main receipt](../../docs/reviews/evidence/ml-dsa-44-trusted-main/08eaa8ddee93069d2de09e8fb46aef6e7b1d0942/SOURCE.json)
+binds the source and current artifact metadata and checksums. This closes the
+identified evidence-format gap, not issue `#188`: the work remains
+research-only, `production_backend` remains `NONE`, and `RELEASE_HOLD` remains
+in force.
+
 ## Stateful Signer and Seeded-Keygen Fuzzing
 
 `run_stateful_signer_fuzz.py` owns a separate test-only libFuzzer target for
@@ -256,6 +321,13 @@ issue-`#188` evidence; it does not connect the wrapper to production, prove
 broader fork/clone lifecycle behavior or resource limits, close the issue, or
 change the release hold.
 
+The same exact-main run `34307476916` completed the stateful ASan/UBSan and
+MSan 1,800-second campaigns with `179` and `139` novel retained imports,
+`93,446` and `272,035` executions, and `31/31` deterministic replays in each
+lane. Both minimized corpora were nonempty and all crash, minimized-crash,
+sanitizer, and failure-marker inventories were empty. These campaigns do not
+call `fork()` and do not extend the separate direct lifecycle observation.
+
 ## Differential Verifier Fuzzing
 
 On pull requests, the pinned review-reproduction workflow runs a separate
@@ -275,7 +347,7 @@ full candidate, baseline, and retained SHA-256 inventories preserve the exact
 set-difference receipt after the source artifact expires. Its 13 argument
 errors and 25 verification rejections replay before fuzzing.
 Every parsed frame is evaluated by the admitted
-wrapper, OpenSSL 3.6.3's explicitly selected default provider in an isolated
+wrapper, OpenSSL 3.6.5's explicitly selected default provider in an isolated
 library context, and libcrux 0.0.10. An oracle setup error or accept/reject
 disagreement aborts through the normal
 libFuzzer crash path.
@@ -302,6 +374,17 @@ not independent test vectors or a completeness claim. This single Linux run
 is not multi-platform differential evidence, and the prebuilt OpenSSL and Rust
 implementation bodies are not fully sanitizer-instrumented by the C fuzz
 build. It does not alter the release hold.
+
+Main-dispatched review-reproduction run `34307477001`, attempt `1`, later
+repeated the 1,800-second three-oracle campaign at exact clean protected-main
+head `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942`. It imported `86` novel
+retained frames, completed `1,777,804` executions, minimized to `162` files,
+and passed all `5/5` exact replays, `38/38` promoted replays, 13 comparator
+checks, and every coverage floor. It recorded zero crashes, minimized crashes,
+oracle errors, disagreements, sanitizer markers, or prohibited failure
+markers. Its retained source artifact and the current artifact were both
+independently matched to their GitHub API digests, sizes, complete checksum
+inventories, and ancestral source heads.
 
 ## Direct-Verifier Resource-Envelope Observation
 
@@ -344,10 +427,23 @@ Those ceilings were selected in a separate review of protected-main push run
 verified GCC and Clang artifacts are bound into the policy, including exact
 compiler targets and version-output hashes. The 31 raw samples partition one
 batch execution; they are not 31 independent batch repetitions and do not
-support percentile or confidence-interval claims. At least two more
-independent protected-main samples per compiler are required before tightening
-the ceilings. Numeric rejection preserves a checksummed raw observation and a
-recomputable `FAIL` receipt while the workflow job remains failed.
+support percentile or confidence-interval claims. Protected-main runs
+`32419767106` and `32541060189` supply the two additional policy-enforced
+sample pairs required before considering tighter ceilings. That completes only
+the sampling prerequisite: any ceiling change remains a separate review.
+Numeric rejection preserves a checksummed raw observation and a recomputable
+`FAIL` receipt while the workflow job remains failed.
+
+Automatic protected-main push run `34307210503`, attempt `1`, reconfirmed the
+same frozen policy at exact clean head
+`08eaa8ddee93069d2de09e8fb46aef6e7b1d0942`. GCC and Clang each passed all
+`21/21` numeric checks and `4/4` detector controls. Their aggregate CPU/wall
+observations were `1,608,394,735` / `1,608,709,397` ns and `1,331,677,561` /
+`1,331,971,985` ns, with peak RSS of `32,292` and `32,256` KiB. Both artifacts
+matched their API digest and size, all `24/24` internal checksums passed, and
+the repository evidence verifier reported `PASS`. Each remains
+`promotion_eligible=false`; this is another bounded Linux x86_64 observation,
+not a supported-platform, worst-case, consensus, or production limit.
 
 Pull-request output remains `UNTRUSTED_PR_OBSERVATION`; the policy change must
 first merge, then a separate reviewed baseline-pointer change must authorize
@@ -366,8 +462,10 @@ exact-commit checkout without weakening its build-command binding.
 
 This lane observes one production-shaped portable-C verifier configuration;
 it does not link a production backend or establish a supported-platform
-resource envelope. Issue `#188` remains open for fresh policy-enforced
-trusted-main evidence, broader platforms and toolchains, concurrency and
-production-parser limits, and exact-commit re-review. Issue `#181` remains
-open for qualified independent review. The production backend remains `NONE`,
-SIMD256 remains unadmitted, and the release hold remains true.
+resource envelope. Issue `#188` remains open for a separate ceiling-tightening
+decision, broader platforms and toolchains, broader concurrency (including
+other thread counts and schedules, sign/verify coexistence, and adversarial
+interleavings), concurrent aggregate resource and production-parser limits,
+and exact-commit re-review. Issue `#181` remains open for qualified independent
+review. The production backend remains `NONE`, SIMD256 remains unadmitted, and
+the release hold remains true.

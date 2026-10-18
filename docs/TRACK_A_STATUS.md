@@ -2,7 +2,7 @@
 
 ## Status: ACTIVE
 ## Spec-ID: TRACK-A-STATUS-v1
-## Updated: 2026-08-12
+## Updated: 2026-10-15
 ## Current Phase: Phase 1 - Cryptographic Production Hold
 
 ## Purpose
@@ -59,10 +59,18 @@ baseline remains `pq_required: 121`, `pq_backlog: 0`, `legacy_only: 14`, and
 The isolated `ML-DSA-44` comparator is recorded in
 `ML_DSA_44_REFERENCE.md`. It pins FIPS 204, NIST's potential-updates and
 Section 6 guidance artifacts, all 70 applicable external/pure ACVP cases,
-OpenSSL 3.6.3, `mldsa-native` `v1.0.0-beta2`, and libcrux 0.0.10. The three
-codebases agree on all official and repo-defined exact outputs, cross-verify
-randomized signatures, and reject the bounded malformed/mutated corpus. The
-two portable-C adapters pass the ASan/UBSan tranche. Both retained upstream
+OpenSSL 3.6.5, `mldsa-native` `v1.0.0-beta2`, and libcrux 0.0.10. Trusted-main
+review run `38550795835` reproduced the current pin set at
+`1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d`, with an empty guarded diff from
+the separately advanced `e44a19f352181b3f0aab090d122e2a4562e95512` baseline.
+The [versioned receipt](reviews/evidence/ml-dsa-44-trusted-main/1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d/SOURCE.json)
+records the 70-case ACVP checks and five completed 1,800-second retained-corpus
+campaigns. Prior 3.6.4 evidence retains its original scope. The three codebases
+are required to agree on all official and
+repo-defined exact outputs,
+cross-verify randomized signatures, and reject the bounded malformed/mutated
+corpus. The two portable-C adapters must pass the ASan/UBSan tranche. Both
+retained upstream
 libcrux security tests pass on their ML-DSA-65 scope; two exact ML-DSA-44
 RUSTSEC-2026-0076 malformed-hint cases reject without panic, and pinned
 Wycheproof tcIds 125 and 126 provide exact ML-DSA-44 RUSTSEC-2026-0077
@@ -71,6 +79,47 @@ infinity-norm boundary across all three oracles.
 Ten-run arm64 timings and a raw-payload cost model are recorded. The qualified
 libcrux result closes the independent implementation evidence gate but is not
 independent design, external cryptographic review, or production approval.
+
+The 2026-08-25 OpenSSL advisory refresh correctly failed closed when the
+superseded 3.6.3 comparator became affected by eleven CVEs. Source review found
+no reachable path from the isolated default-provider EVP ML-DSA oracle, but PR
+`#247` repinned the comparator to fixed OpenSSL 3.6.4 at
+`b22b21c3c6a06cb46f643eb1216325ecddacf7a4`. PR `#248` advanced the review
+pointer and merged at exact protected-main evidence head
+`0fa8f5fc4321f057fb758e4c2dc39b790023943c`; the guarded comparator diff was
+empty. Runs `32910153642`, `32910153947`, `32924009052`, and `32924008998`
+supply the bounded fresh resource, advisory/SBOM/Miri, retained-corpus, and
+differential evidence recorded in the
+[post-repin receipt](reviews/evidence/ml-dsa-44-trusted-main/0fa8f5fc4321f057fb758e4c2dc39b790023943c/SOURCE.json).
+Production stays `NONE`, issues `#181`, `#188`, and `#189` remain open, and
+`RELEASE_HOLD` is unchanged.
+
+PR `#250` later hardened strict-verifier retained-corpus provenance; PR `#252`
+separated cargo-audit package-status warnings from advisory findings; and PR
+`#251` advanced the frozen review pointer to
+`e11258553613e5e1db7f98478419b5b3e9843c92`. Protected-main evidence head
+`08eaa8ddee93069d2de09e8fb46aef6e7b1d0942` has an empty guarded diff from
+that baseline. Runs `34307210503`, `34307210685`, `34307476900`,
+`34307476916`, and `34307477001` provide the exact-head resource,
+advisory/SBOM/Miri, direct wrapper, four-lane sustained, and three-oracle
+reproduction evidence recorded in the
+[2026-09-09 receipt](reviews/evidence/ml-dsa-44-trusted-main/08eaa8ddee93069d2de09e8fb46aef6e7b1d0942/SOURCE.json).
+The strict artifacts now contain self-contained source/import receipts. This
+closes that evidence-format item only; issues `#181`, `#184`, `#188`, and
+`#189` remain open, production stays `NONE`, and `RELEASE_HOLD` is unchanged.
+
+The isolated wrapper also has a deterministic four-thread strict-verifier
+regression over shared immutable valid and cryptographic-rejection inputs. It
+runs in the existing normal and ASan/UBSan compiler lanes and in a dedicated
+Linux Clang ThreadSanitizer path. That path first requires a separately
+compiled deliberate-race positive control to exit nonzero with the canonical
+`ThreadSanitizer: data race` marker, then runs the clean verifier target without
+the separate `fork()` lifecycle test. The harness has a 20-second watchdog.
+This is bounded functional and race-detection coverage only. Broader thread
+counts and schedules, sign/verify coexistence, adversarial interleavings,
+supported-platform coverage, concurrent aggregate resource limits, broader
+Rust/platform coverage, production-parser limits, and exact-commit re-review
+remain open.
 
 The measured decision in `PQSIG_CANDIDATE_SELECTION.md` selects FIPS 204
 `ML-DSA-44` as the primary engineering candidate and retains FIPS 205
@@ -236,6 +285,56 @@ records the workflow, job, artifact, digest, expiry, retained-source, campaign,
 and claim-boundary fields needed to audit this tranche after hosted artifacts
 expire.
 
+PR `#244` subsequently implemented the bounded test-only candidate-corruption
+checkpoint at merge commit `c2021c128b2c04f34477324c48ec7fdd6fc4d50e`.
+PR `#245` advanced the review pointer and merged at exact protected-main
+evidence head `069c7a21dfcb19852ed40aad483b7612e6094c9b`. Main-dispatched wrapper
+run `32865079872`, attempt `1`, directly replayed the checkpoint only in the
+portable-wrapper GCC and Clang normal and ASan/UBSan logs; there is no fault-
+specific retained artifact. The checksummed static-analysis and Valgrind
+artifacts are adjacent exact-head evidence, not direct fault results. The
+static-analysis report records
+`audit_input_dirty=false` and `tracked_worktree_dirty=true`: the audited inputs
+were clean, but the overall CI worktree was not globally clean. The machine
+contract remains `retained_results=false`.
+
+Automatic resource run `32541060189`, attempt `1`, supplied the second
+additional policy-enforced GCC/Clang direct-verifier pair. Sustained run
+`32865082841`, attempt `1`, and review-reproduction run `32865085933`, attempt
+`1`, supplied adjacent exact-head, checksum-bound artifacts without executing
+the fault checkpoint. The versioned
+[candidate-fault evidence receipt](reviews/evidence/ml-dsa-44-trusted-main/069c7a21dfcb19852ed40aad483b7612e6094c9b/SOURCE.json)
+records the exact execution and retention boundaries. These results do not
+satisfy issue `#181`, close issue `#186`, select a production backend, or remove
+`RELEASE_HOLD`.
+This evidence head predates PR `#247`'s OpenSSL 3.6.4 comparator repin and does
+not satisfy that repin's fresh exact-main oracle, differential, or retained-
+corpus evidence requirement.
+
+PR `#247` subsequently landed the OpenSSL 3.6.4 comparator repin at
+`b22b21c3c6a06cb46f643eb1216325ecddacf7a4`; PR `#248` advanced the review
+pointer and merged at exact protected-main evidence head
+`0fa8f5fc4321f057fb758e4c2dc39b790023943c`. The guarded comparator diff was
+empty. Automatic resource run `32910153642` supplied a third policy-enforced
+protected-main GCC/Clang pair and post-repin reconfirmation without changing
+the frozen ceilings or sampling prerequisite. Advisory run `32910153947`
+verified all 41 retained checksum entries with zero OpenSSL 3.6.4 affected IDs,
+zero published `mldsa-native` advisories, and `3/3` portable Miri checks.
+Sustained run `32924009052` completed four 1,800-second verifier and signer
+sanitizer campaigns with zero crashes. Review run `32924008998` passed its retained-
+corpus, differential, replay, and coverage checks with zero crashes, oracle
+errors, or disagreements.
+
+The
+[versioned post-repin receipt](reviews/evidence/ml-dsa-44-trusted-main/0fa8f5fc4321f057fb758e4c2dc39b790023943c/SOURCE.json)
+preserves exact workflow, artifact, checksum, corpus, and claim boundaries. The
+signer and review artifacts embed retained-source provenance. The strict-
+verifier artifacts record nonzero imported counts but omit their retained-
+source fields, so their workflow restore logs—not the artifacts alone—establish
+source selection. These runs do not execute the fork-lifecycle or candidate-
+fault checkpoint, satisfy independent review, close issues `#184`, `#186`,
+`#188`, or `#189`, select a production backend, or remove `RELEASE_HOLD`.
+
 This evidence is an internal engineering tranche, not external cryptographic
 review or production approval. Issue `#184` remains open, production remains
 `NONE`, and `RELEASE_HOLD` remains in force.
@@ -301,10 +400,10 @@ tracked suites now have an explicit policy class and none remains in
 
 ## Current Follow-On Candidates
 
-Active owned tranche:
+Completed owned tranche:
 
-1. Land and re-baseline the coarse Linux x86_64 resource-regression policy
-   under `#188`
+1. Land, re-baseline, and record the coarse Linux x86_64 resource-regression
+   policy under `#188`
    - retain protected-main push run `31520865906` at
      `79de77faf112453868779861ae0c982dba533f84` as the immutable GCC and Clang
      acceptance basis, including exact workflow, artifact, checksum, report,
@@ -316,18 +415,37 @@ Active owned tranche:
      `25,000,000` nanoseconds, verifier-batch-sample CPU/wall ceilings of
      `75,000,000` / `200,000,000` nanoseconds, the exact 128 KiB guarded
      thread, and zero instrumented project heap calls
-   - merge the policy as `P`; expect its protected-main run to remain
-     `PENDING_BASELINE_OBSERVATION`; then land a pointer-only PR targeting
-     exact `P` and verify the automatic exact-head GCC/Clang
-     `TRUSTED_MAIN_OBSERVATION` artifacts and all archive/internal checksums
-   - require at least two additional independent protected-main samples per
-     compiler before tightening; the current raw samples partition one batch
-     and do not justify percentile or confidence-interval claims
+   - policy merge `18db91c542b51f37c2dabf198979c33d793ecddf` landed; the
+     pointer-only merge at `6315f49bbde6347bf09e9518e0b4ccc31347b963`
+     targets exact baseline `1833f20ee66fe7cac9f8e41a98b07f9eab150ec7`
+   - automatic protected-main push run `32419767106`, attempt `1`, produced
+     the policy-enforced exact-head GCC/Clang `TRUSTED_MAIN_OBSERVATION` pair;
+     both reports, both 24-entry internal inventories, and the outer artifact
+     hashes revalidated, while each artifact remained
+     `promotion_eligible=false`
+   - retain the versioned
+     [policy-enforced receipt](reviews/evidence/ml-dsa-44-trusted-main/6315f49bbde6347bf09e9518e0b4ccc31347b963/SOURCE.json)
+     with exact run, job, artifact, checksum, compiler, stack, and observed
+     numeric fields
+   - require two additional independent protected-main samples per compiler
+     after the frozen acceptance basis before tightening; runs `32419767106`
+     and `32541060189` supply those two pairs. This completes only the sampling
+     prerequisite: tightening remains a separate review and is not authorized
+     here. The current raw samples partition batches and do not justify
+     percentile or confidence-interval claims
    - treat the four 4,287-call batches as research workloads only, not a
      consensus, block, transaction, mempool, or production limit
-   - preserve broader-platform/toolchain, concurrency, production-parser, and
-     exact-commit re-review requirements; keep each single-compiler artifact
-     non-promotion-eligible
+   - retain exact-main run `34307476916` as the first completed post-PR-`#250`
+     strict-verifier evidence: both 1,800-second strict lanes imported
+     content-novel frames, embedded checksum-bound source/import receipts,
+     retained nonempty minimized corpora, and recorded zero crashes; this
+     closes the prior artifact-self-contained provenance item only
+   - preserve broader-platform/toolchain and broader concurrency requirements,
+     including other thread counts and schedules, sign/verify coexistence,
+     adversarial interleavings, and supported-platform coverage; also preserve
+     concurrent aggregate resource, production-parser, and exact-commit re-
+     review requirements; keep each single-compiler artifact non-promotion-
+     eligible
    - keep production at `NONE` and `RELEASE_HOLD`; this tranche authorizes no
      SIMD256 admission or consensus, wallet, Script, `ALG_ID`, or
      inventory-policy change, and issues `#188` and `#181` remain open
@@ -370,6 +488,16 @@ Cryptography implementation lane:
 
 ## Current Queue
 
+The current dated assessment and completion sequence are in
+[PROJECT_COMPLETION_PLAN.md](PROJECT_COMPLETION_PLAN.md). PRs #257 and #258
+completed the OpenSSL 3.6.5 comparator repin and separate baseline-pointer
+update. Trusted-main reproduction and all five retained-corpus campaigns
+passed at `1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d`; the versioned receipt
+preserves their exact bounds. Admission-status bookkeeping needs a separate
+pointer-only follow-up after merge, without weakening the guarded baseline.
+Historical 3.6.4 reports retain their original scope. Wallet/key-format and
+secret-lifecycle contracts remain the next substantive deliverables.
+
 1. Preserve the reviewed post-promotion baseline:
    - `pq_required`: 121
    - `pq_backlog`: 0
@@ -400,6 +528,27 @@ Cryptography implementation lane:
    and `31521183046` supply the associated resource, direct lifecycle,
    retained-corpus, and differential observations. Those results do not close
    issue `#184`, establish portable child signing, or change the hold.
+   PR `#244` adds the bounded test-only candidate-corruption checkpoint and PR
+   `#245` anchors it at evidence head
+   `069c7a21dfcb19852ed40aad483b7612e6094c9b`; runs `32541060189`,
+   `32865079872`, `32865082841`, and `32865085933` supply the bounded resource,
+   direct-wrapper, retained-corpus, and differential observations. Only the
+   portable-wrapper logs directly execute the fault, `retained_results=false`,
+   and issues `#181` and `#186` plus the production hold remain open.
+   PRs `#247` and `#248` establish the OpenSSL 3.6.4 post-repin evidence head
+   `0fa8f5fc4321f057fb758e4c2dc39b790023943c`; runs `32910153642`,
+   `32910153947`, `32924009052`, and `32924008998` satisfy the bounded fresh-
+   evidence refresh. Strict-verifier artifact-self-contained retained-corpus
+   provenance remained open at that historical evidence head.
+   PR `#250` then landed the fail-closed provenance contract, and PR `#251`
+   anchored exact protected-main evidence head
+   `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942` to baseline
+   `e11258553613e5e1db7f98478419b5b3e9843c92`. Runs `34307210503`,
+   `34307210685`, `34307476900`, `34307476916`, and `34307477001` passed
+   the exact-head resource, advisory, direct-wrapper, retained-corpus, and
+   differential tranches. The strict artifacts now carry self-contained
+   source/import receipts. Issues `#181`, `#184`, `#188`, and `#189` and the
+   production hold remain open.
 
 
 ## Historical Queue Ledger
@@ -1892,6 +2041,69 @@ Aineko must ask before:
 
 Entries below are dated decision snapshots. Use Current Follow-On Candidates
 above as the controlling live next-PR handoff when these older notes disagree.
+
+- 2026-09-09: PR `#250` landed fail-closed, artifact-self-contained strict-
+  verifier retained-corpus provenance; PR `#252` separately classified the
+  cargo-audit yanked-package warning; and PR `#251` advanced the review pointer
+  to `e11258553613e5e1db7f98478419b5b3e9843c92`. Exact clean protected-main
+  head `08eaa8ddee93069d2de09e8fb46aef6e7b1d0942` has an empty guarded diff.
+  Automatic runs `34307210503` and `34307210685` passed the resource and
+  advisory/SBOM/Miri lanes. Main-dispatched wrapper run `34307476900`
+  directly reconfirmed the coordinated held-lock fork and fail-closed
+  readiness controls under portable GCC/Clang normal and ASan/UBSan jobs.
+  Sustained run `34307476916` completed all four 1,800-second lanes with
+  positive retained imports, self-contained strict source/import receipts,
+  and zero crashes. Review run `34307477001` completed `1,777,804`
+  three-oracle executions with `86` novel imports, passing replays and coverage
+  floors, and zero crashes or disagreements. This closes the prior strict
+  evidence-format gap only. Issues `#181`, `#184`, `#188`, and `#189` remain
+  open, production backend `NONE` is unchanged, and `RELEASE_HOLD` remains in
+  force.
+
+- 2026-08-26: PR `#247` repinned the research comparator to OpenSSL 3.6.4 at
+  `b22b21c3c6a06cb46f643eb1216325ecddacf7a4`; PR `#248` advanced the pointer
+  and produced protected-main evidence head
+  `0fa8f5fc4321f057fb758e4c2dc39b790023943c` with an empty guarded comparator
+  diff. Runs `32910153642`, `32910153947`, `32924009052`, and `32924008998`
+  supplied the bounded resource, advisory/SBOM/Miri, four-lane sustained, and
+  differential evidence. Strict-verifier artifacts retain positive imported
+  counts but not artifact-self-contained source identity; signer and review
+  source provenance is self-contained. No run executed the fork-lifecycle or
+  candidate-fault checkpoint. Issues `#181`, `#188`, and `#189` remain open,
+  production backend `NONE` is unchanged, and `RELEASE_HOLD` remains in force.
+
+- 2026-08-25: PR `#244` landed the isolated wrapper's deterministic candidate-
+  corruption checkpoint at `c2021c128b2c04f34477324c48ec7fdd6fc4d50e`; PR
+  `#245` advanced the review pointer and produced exact protected-main evidence
+  head `069c7a21dfcb19852ed40aad483b7612e6094c9b`. Automatic resource run
+  `32541060189` supplied the second additional policy-enforced GCC/Clang pair;
+  collecting it does not tighten the frozen ceilings or close issue `#188`.
+  Wrapper run `32865079872` directly executed the checkpoint only in portable
+  GCC/Clang normal and ASan/UBSan logs; its static report records
+  `audit_input_dirty=false` and `tracked_worktree_dirty=true`, and there is no
+  fault-specific artifact. Sustained run
+  `32865082841` and review run `32865085933` retained adjacent exact-head,
+  checksum-bound evidence but did not execute the fault. The fault contract
+  remains `retained_results=false`; issues `#181` and `#186`, production
+  backend `NONE`, and `RELEASE_HOLD` remain unchanged.
+
+- 2026-08-20: The coarse test-only Linux x86_64 resource-regression policy
+  landed at `18db91c542b51f37c2dabf198979c33d793ecddf`; the separately reviewed
+  pointer now names `1833f20ee66fe7cac9f8e41a98b07f9eab150ec7`. Automatic protected-main
+  push run `32419767106`, attempt `1`, evaluated exact clean head
+  `6315f49bbde6347bf09e9518e0b4ccc31347b963` with an empty guarded diff. GCC
+  job `96589014091` / artifact `9425610867` and Clang job `96589013980` /
+  artifact `9425628829` both passed; their outer SHA-256 values are
+  `dd949cf2eff6337191973e303e7544fb5758a96fffccf8638b70b835ecc18019` and
+  `8d4c293fe8e334da4ad84ed745ed8f8bfcc2dc41b460d417c52cf7a842e09362`.
+  All 24 internal checksums per artifact revalidated. The pair is
+  policy-enforced `TRUSTED_MAIN_OBSERVATION` evidence, but each artifact
+  remains `promotion_eligible=false`; it is not a supported-platform,
+  consensus, production, or worst-case resource bound. This pair supplies the
+  first of two additional protected-main samples per compiler required before
+  tightening. At this dated snapshot one further pair remained; the 2026-08-25
+  entry above records its later collection. Issues `#188` and `#181` remain
+  open, production remains `NONE`, and `RELEASE_HOLD` remains in force.
 
 - 2026-08-12: Separate review of exact protected-main resource run
   `31520865906` selected deliberately coarse test-only Linux x86_64

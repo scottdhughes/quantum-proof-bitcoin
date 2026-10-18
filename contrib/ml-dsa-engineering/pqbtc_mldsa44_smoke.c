@@ -218,6 +218,7 @@ int main(void)
     uint8_t message[32];
     const uint8_t context[] = "PQBTC/tx-signature/v1";
     uint8_t randomizer[32];
+    uint8_t next_randomizer[32];
     uint8_t zero_randomizer[32] = {0};
     uint8_t long_context[256] = {0};
     size_t i;
@@ -226,6 +227,8 @@ int main(void)
         message[i] = (uint8_t)i;
     for (i = 0; i < sizeof(randomizer); ++i)
         randomizer[i] = (uint8_t)(i + 1);
+    for (i = 0; i < sizeof(next_randomizer); ++i)
+        next_randomizer[i] = (uint8_t)(i + 33);
 
     pqbtc_mldsa44_test_reset();
     CHECK(pqbtc_mldsa44_test_keypair_from_seed(public_key, secret_key, TEST_SEED) ==
@@ -391,6 +394,44 @@ int main(void)
               public_key, sizeof(public_key), message, sizeof(message),
               context, sizeof(context) - 1) == PQBTC_MLDSA44_ERR_VERIFY);
     CHECK(IsZero(signature, sizeof(signature)));
+
+    {
+        size_t zeroized_before;
+
+        pqbtc_mldsa44_test_reset();
+        CHECK(SetFixedEntropy(randomizer, sizeof(randomizer)) == PQBTC_MLDSA44_OK);
+        pqbtc_mldsa44_test_corrupt_candidate_before_verify(1);
+        for (i = 0; i < sizeof(signature); ++i)
+            signature[i] = 0xa5;
+        zeroized_before = pqbtc_mldsa44_test_zeroized_bytes();
+        CHECK(pqbtc_mldsa44_sign_hedged(
+                  signature, sizeof(signature), secret_key, sizeof(secret_key),
+                  public_key, sizeof(public_key), message, sizeof(message),
+                  context, sizeof(context) - 1) == PQBTC_MLDSA44_ERR_VERIFY);
+        CHECK(IsZero(signature, sizeof(signature)));
+        CHECK(pqbtc_mldsa44_test_entropy_requests() == 1);
+        CHECK(pqbtc_mldsa44_test_last_candidate_zeroized() == 1);
+        CHECK(
+            pqbtc_mldsa44_test_zeroized_bytes() >=
+            zeroized_before + PQBTC_MLDSA44_SIGNATURE_BYTES);
+
+        pqbtc_mldsa44_test_corrupt_candidate_before_verify(0);
+        CHECK(pqbtc_mldsa44_sign_hedged(
+                  signature, sizeof(signature), secret_key, sizeof(secret_key),
+                  public_key, sizeof(public_key), message, sizeof(message),
+                  context, sizeof(context) - 1) == PQBTC_MLDSA44_ERR_ENTROPY_REPEAT);
+        CHECK(IsZero(signature, sizeof(signature)));
+
+        CHECK(SetFixedEntropy(next_randomizer, sizeof(next_randomizer)) == PQBTC_MLDSA44_OK);
+        CHECK(pqbtc_mldsa44_sign_hedged(
+                  signature, sizeof(signature), secret_key, sizeof(secret_key),
+                  public_key, sizeof(public_key), message, sizeof(message),
+                  context, sizeof(context) - 1) == PQBTC_MLDSA44_OK);
+        CHECK(pqbtc_mldsa44_verify_strict(
+                  signature, sizeof(signature), public_key, sizeof(public_key),
+                  message, sizeof(message), context, sizeof(context) - 1) ==
+              PQBTC_MLDSA44_OK);
+    }
 
     pqbtc_mldsa44_test_reset();
     CHECK(SetFixedEntropy(randomizer, sizeof(randomizer)) == PQBTC_MLDSA44_OK);
