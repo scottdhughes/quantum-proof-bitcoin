@@ -32,7 +32,7 @@ jobs:
         compiler: [gcc, clang]
     env:
       EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
-      EVIDENCE_DIR: ${{ runner.temp }}/key-lifecycle-${{ matrix.compiler }}
+      EVIDENCE_DIR: /tmp/pqbtc-key-lifecycle-${{ matrix.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Checkout exact source
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
