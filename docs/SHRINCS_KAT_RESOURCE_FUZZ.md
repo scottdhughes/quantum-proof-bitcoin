@@ -104,8 +104,13 @@ bytes, and messages over 4,096 bytes must fail before SHA-256 work or allocation
 Static stack usage is collected from GCC `.su` files and must remain below a
 4,096-byte per-function research ceiling. That ceiling is a regression guard,
 not a final consensus limit.
-Dynamic or unknown qualifiers and missing verifier/hash/allocation entry-point
-records fail the evidence check. This is not an aggregate call-stack bound.
+Dynamic or unknown qualifiers, missing or empty translation units, and missing
+emitted helper records fail the evidence check. All nine object/stack-file pairs
+are required; GNU `nm` text-function symbols must match the `.su` records for
+each unit. Numeric GCC `constprop`, `isra`, and `part` clone IDs are normalized
+without merging ordinary functions with clones; ambiguous matches fail closed.
+The report retains every parsed record, object function inventory and input
+hash, as well as its compact top list. This is not an aggregate call-stack bound.
 
 ## Fuzzing
 
@@ -114,8 +119,9 @@ length-delimited input format. The seed corpus contains all eleven regenerated v
 vectors plus key/signature mutations, cross-mode lengths, parser boundaries,
 and deterministic noise. `shrincs_fuzz.dict` retains useful comparison
 constants discovered by completed campaigns.
-The seed builder requires an empty, non-symlink output directory and never
-deletes existing data. Native statuses other than `0` or `1` fail measurement
+The seed CLI independently validates all three frozen corpora, including the
+required maximum-envelope corpus, before creating output. It requires an empty,
+non-symlink output directory and never deletes existing data. Native statuses other than `0` or `1` fail measurement
 and terminate the fuzz driver, rather than counting as ordinary rejection.
 
 Pull requests run a sanitizer-backed smoke campaign. Scheduled runs use a

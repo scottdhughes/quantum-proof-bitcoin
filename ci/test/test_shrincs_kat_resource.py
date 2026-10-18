@@ -30,9 +30,9 @@ def load_module(name: str, filename: str):
 CHECK_KATS = load_module("shrincs_check_kats", "check_kats.py")
 RESOURCE = load_module("shrincs_resource_model", "resource_model.py")
 STACK = load_module("shrincs_stack_usage", "collect_stack_usage.py")
+sys.modules.setdefault("check_kats", CHECK_KATS)
 FUZZ = load_module("shrincs_fuzz_corpus", "build_fuzz_corpus.py")
 sys.modules.setdefault("resource_model", RESOURCE)
-sys.modules.setdefault("check_kats", CHECK_KATS)
 MEASURE = load_module("shrincs_measure_resources", "measure_resources.py")
 GENERATOR = load_module("shrincs_resource_vectors", "generate_resource_vectors.py")
 
@@ -119,6 +119,67 @@ class ShrincsKatResourceTests(unittest.TestCase):
             with self.assertRaises(STACK.StackUsageError):
                 STACK.collect(Path(directory))
 
+    def stack_fixture(self, root: Path) -> dict[str, str]:
+        functions = {
+            "full_verify": ["pqbtc_shrincs_verify"],
+            "stateful_verify": ["pqbtc_shrincs_stateful_verify"],
+            "stateless_verify": ["pqbtc_shrincs_stateless_verify", "wots_tw_public_key_from_signature",
+                                 "fors_public_key_from_signature.constprop.0"],
+            "sha256_counting": ["shrincs_sha256"],
+            "alloc_counting": ["__wrap_malloc", "__wrap_free"],
+            "wots": ["shrincs_wots_verify"], "thash": ["shrincs_thash"],
+            "util": ["shrincs_memcpy"], "sha256_real": ["shrincs_sha256_real"],
+        }
+        symbols = {}
+        for unit, names in functions.items():
+            (root / f"{unit}.o").write_bytes(b"fixture object")
+            records = [f"{unit}.c:1:1:{name.removesuffix('.0')}\t{1536 if name == 'wots_tw_public_key_from_signature' else 8}\tstatic\n"
+                       for name in names]
+            (root / f"{unit}.su").write_text("".join(records))
+            symbols[f"{unit}.o"] = "".join(f"{name} T 0 8\n" for name in names)
+        return symbols
+
+    def nm_fixture(self, symbols: dict[str, str]):
+        def run(command, **_kwargs):
+            return subprocess.CompletedProcess(command, 0, symbols[Path(command[-1]).name], "")
+        return mock.patch.object(subprocess, "run", side_effect=run)
+
+    def test_stack_rejects_missing_or_empty_helper_unit(self) -> None:
+        for variant in ("missing", "empty"):
+            with self.subTest(variant=variant), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                symbols = self.stack_fixture(root)
+                if variant == "missing":
+                    (root / "wots.su").unlink()
+                else:
+                    (root / "wots.su").write_text("")
+                with self.nm_fixture(symbols), self.assertRaises(STACK.StackUsageError):
+                    STACK.collect(root)
+
+    def test_stack_rejects_missing_maximum_helper_record(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            symbols = self.stack_fixture(root)
+            path = root / "stateless_verify.su"
+            path.write_text("".join(line for line in path.read_text().splitlines(keepends=True)
+                                    if "wots_tw_public_key_from_signature" not in line))
+            with self.nm_fixture(symbols), self.assertRaises(STACK.StackUsageError):
+                STACK.collect(root)
+
+    def test_stack_report_retains_all_records_and_object_inventory(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            symbols = self.stack_fixture(root)
+            output = root / "stack.json"
+            with self.nm_fixture(symbols), mock.patch.object(sys, "argv", ["collect_stack_usage.py", "--directory",
+                                               str(root), "--output", str(output), "--json"]):
+                self.assertEqual(STACK.main(), 0)
+            report = json.loads(output.read_text())
+            self.assertEqual(len(report.get("records", [])), 12)
+            self.assertEqual(set(report.get("units", {})), {"full_verify", "stateful_verify", "stateless_verify",
+                             "sha256_counting", "alloc_counting", "wots", "thash", "util", "sha256_real"})
+            self.assertEqual(report["maximum"]["frame_bytes"], 1536)
+
     def vector(self, name: str, signature_bytes: int) -> dict[str, str]:
         return {
             "name": name,
@@ -142,13 +203,38 @@ class ShrincsKatResourceTests(unittest.TestCase):
         self.assertTrue(any(name.startswith("valid-stateful") for name in cases))
         self.assertTrue(any(name.startswith("valid-stateless") for name in cases))
 
-    def test_seed_cli_includes_maximum_envelope_valid_inputs(self) -> None:
+    def test_seed_builder_includes_maximum_envelope_valid_inputs(self) -> None:
+        resource = [dict(self.vector("max-stateful", 4618), message=bytes(4096).hex(), context=bytes(255).hex()),
+                    dict(self.vector("max-stateless", 5776), message=bytes(4096).hex(), context=bytes(255).hex())]
+        encoded = set(FUZZ.build([self.vector("stateful", 554)], [self.vector("stateless", 5776)], resource).values())
+        for vector in resource:
+            self.assertIn(FUZZ.encode(bytes.fromhex(vector["public_key"]), bytes.fromhex(vector["signature"]),
+                                     bytes(4096), bytes(255)), encoded)
+
+    def test_seed_cli_rejects_unlocked_or_incomplete_corpora_before_output(self) -> None:
+        for variant in ("unlocked", "missing-resource", "missing-vector"):
+            with self.subTest(variant=variant), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                groups = {"stateful": [self.vector("stateful", 554)], "stateless": [self.vector("stateless", 5776)],
+                          "resource": [self.vector("max-stateful", 4618), self.vector("max-stateless", 5776)]}
+                if variant == "missing-vector":
+                    groups["resource"].pop()
+                arguments = []
+                for kind, vectors in groups.items():
+                    path = root / f"{kind}.json"
+                    path.write_text(json.dumps({"vectors": vectors}))
+                    if kind != "resource" or variant != "missing-resource":
+                        arguments += [f"--{kind}", str(path)]
+                completed = subprocess.run([sys.executable, str(REF_DIR / "build_fuzz_corpus.py"), *arguments,
+                                            "--output-dir", str(root / "out"), "--json"], capture_output=True, text=True)
+                self.assertNotEqual(completed.returncode, 0, "unchecked corpora produced purported valid seeds")
+                self.assertFalse((root / "out").exists(), "rejected input created output")
+
+    def test_seed_cli_rejects_single_corpus_drift(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            resource = [dict(self.vector("max-stateful", 4618), message=bytes(4096).hex(), context=bytes(255).hex()),
-                        dict(self.vector("max-stateless", 5776), message=bytes(4096).hex(), context=bytes(255).hex())]
             groups = {"stateful": [self.vector("stateful", 554)], "stateless": [self.vector("stateless", 5776)],
-                      "resource": resource}
+                      "resource": [self.vector("max-stateful", 4618), self.vector("max-stateless", 5776)]}
             arguments = []
             for kind, vectors in groups.items():
                 path = root / f"{kind}.json"
@@ -156,23 +242,21 @@ class ShrincsKatResourceTests(unittest.TestCase):
                 arguments += [f"--{kind}", str(path)]
             completed = subprocess.run([sys.executable, str(REF_DIR / "build_fuzz_corpus.py"), *arguments,
                                         "--output-dir", str(root / "out"), "--json"], capture_output=True, text=True)
-            self.assertEqual(completed.returncode, 0, completed.stderr)
-            encoded = {path.read_bytes() for path in (root / "out").iterdir()}
-            for vector in resource:
-                self.assertIn(FUZZ.encode(bytes.fromhex(vector["public_key"]), bytes.fromhex(vector["signature"]),
-                                          bytes(4096), bytes(255)), encoded)
+            self.assertNotEqual(completed.returncode, 0)
+            self.assertFalse((root / "out").exists())
 
     def test_seed_builder_preserves_nonempty_output_directory(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            for kind, length in (("stateful", 554), ("stateless", 5776)):
+            for kind, length in (("stateful", 554), ("stateless", 5776), ("resource", 4618)):
                 (root / f"{kind}.json").write_text(json.dumps({"vectors": [self.vector(kind, length)]}))
             output = root / "output"
             output.mkdir()
             sentinel = output / "keep.txt"
             sentinel.write_bytes(b"unrelated data")
             with mock.patch.object(sys, "argv", ["build_fuzz_corpus.py", "--stateful", str(root / "stateful.json"),
-                                                "--stateless", str(root / "stateless.json"), "--output-dir", str(output)]):
+                                                "--stateless", str(root / "stateless.json"), "--resource",
+                                                str(root / "resource.json"), "--output-dir", str(output)]):
                 try:
                     FUZZ.main()
                 except FUZZ.FuzzCorpusError:

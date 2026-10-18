@@ -9,6 +9,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+import check_kats
+
 HEADER_BYTES = 7
 MAX_PUBLIC_KEY_BYTES = 64
 MAX_SIGNATURE_BYTES = 6000
@@ -118,16 +120,20 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--stateful", type=Path, required=True)
     parser.add_argument("--stateless", type=Path, required=True)
-    parser.add_argument("--resource", type=Path)
+    parser.add_argument("--resource", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
-    cases = build(load_vectors(args.stateful), load_vectors(args.stateless),
-                  load_vectors(args.resource) if args.resource is not None else None)
     require(not args.output_dir.is_symlink(), "output directory must not be a symlink")
+    require(not args.output_dir.exists() or (args.output_dir.is_dir() and not any(args.output_dir.iterdir())),
+            "output directory must be empty; existing data is preserved")
+    lock = check_kats.load_lock()
+    check_kats.validate_corpus("stateful", args.stateful, lock)
+    check_kats.validate_corpus("stateless", args.stateless, lock)
+    check_kats.validate_resource_corpus(args.resource, lock)
+    cases = build(load_vectors(args.stateful), load_vectors(args.stateless), load_vectors(args.resource))
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    require(not any(args.output_dir.iterdir()), "output directory must be empty; existing data is preserved")
     for name, value in sorted(cases.items()):
         with (args.output_dir / name).open("xb") as handle:
             handle.write(value)
