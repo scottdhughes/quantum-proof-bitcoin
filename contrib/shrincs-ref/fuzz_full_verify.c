@@ -5,6 +5,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #define HEADER_BYTES 7U
 #define MAX_PUBLIC_KEY_BYTES 64U
@@ -38,6 +39,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     const uint8_t *signature;
     const uint8_t *message;
     const uint8_t *context;
+    int result;
 
     if (data == NULL || size < HEADER_BYTES) {
         return 0;
@@ -73,7 +75,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     cursor += message_len;
     context = cursor;
 
-    (void)pqbtc_shrincs_verify(
+    result = pqbtc_shrincs_verify(
         public_key_len == 0U ? NULL : public_key,
         public_key_len,
         signature_len == 0U ? NULL : signature,
@@ -82,5 +84,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         message_len,
         context_len == 0U ? NULL : context,
         context_len);
+    if (result != 0 && result != 1) {
+        abort();
+    }
     return 0;
 }

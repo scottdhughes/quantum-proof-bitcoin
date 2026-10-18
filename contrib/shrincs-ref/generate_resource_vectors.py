@@ -30,8 +30,26 @@ def load_module(path: Path, name: str) -> ModuleType:
     require(spec is not None and spec.loader is not None, f"cannot load module from {path}")
     module = importlib.util.module_from_spec(spec)
     assert spec is not None and spec.loader is not None
-    spec.loader.exec_module(module)
+    exec(compile(path.read_bytes(), str(path), "exec", dont_inherit=True), module.__dict__)
     return module
+
+
+WOTSC_CHECKER = load_module(REPO_ROOT / "contrib" / "shrincs-ref" / "check_libshrincs_wotsc.py",
+                            "resource_provenance")
+
+
+def validate_inputs(manifest_path: Path, draft: Path, libshrincs: Path | None = None) -> dict[str, Any]:
+    try:
+        manifest = WOTSC_CHECKER.load_manifest(manifest_path)
+        if libshrincs is not None:
+            WOTSC_CHECKER.validate_paths(manifest, libshrincs, draft)
+        else:
+            expected = manifest["upstream"]["draft_specification"]["commit"]
+            require(WOTSC_CHECKER.git_head(draft) == expected, "draft checkout does not match manifest")
+            WOTSC_CHECKER.validate_checkout(draft)
+        return manifest
+    except (ValueError, OSError, subprocess.CalledProcessError) as exc:
+        raise ResourceVectorError(str(exc)) from exc
 
 
 def kdf(label: bytes, length: int) -> bytes:
@@ -41,15 +59,6 @@ def kdf(label: bytes, length: int) -> bytes:
         output.extend(hashlib.sha256(label + counter.to_bytes(4, "big")).digest())
         counter += 1
     return bytes(output[:length])
-
-
-def git_head(path: Path) -> str:
-    return subprocess.run(
-        ["git", "-C", str(path), "rev-parse", "HEAD"],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
 
 
 def encode_vector(
@@ -167,14 +176,22 @@ def create_stateless_maximum_message(reference: ModuleType) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--shrincs-bip", type=Path, required=True)
+    parser.add_argument("--libshrincs", type=Path)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--preflight-only", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
-    manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+    require(not args.preflight_only or args.libshrincs is not None, "preflight requires --libshrincs")
+    manifest = validate_inputs(args.manifest, args.shrincs_bip, args.libshrincs)
     expected_commit = manifest["upstream"]["draft_specification"]["commit"]
-    require(git_head(args.shrincs_bip) == expected_commit, "draft checkout does not match manifest")
+    if args.preflight_only:
+        print(json.dumps({"result": "PASS", "draft_commit": expected_commit,
+                          "libshrincs_commit": manifest["upstream"]["libshrincs_wotsc"]["commit"],
+                          "scope": "frozen policy, pins and pristine source bytes; no upstream execution"}, sort_keys=True))
+        return 0
+    require(args.output is not None, "--output is required for vector generation")
     reference = load_module(
         args.shrincs_bip / "impl" / "shrincs.py",
         "shrincs_resource_reference",

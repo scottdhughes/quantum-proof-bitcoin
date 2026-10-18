@@ -7,6 +7,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+REQUIRED_FUNCTIONS = {
+    "pqbtc_shrincs_verify", "pqbtc_shrincs_stateful_verify", "pqbtc_shrincs_stateless_verify",
+    "shrincs_sha256", "shrincs_sha256_real", "__wrap_malloc", "__wrap_free",
+}
 
 class StackUsageError(ValueError):
     """Raised when stack-usage evidence is malformed or exceeds the limit."""
@@ -19,7 +23,8 @@ def require(condition: bool, message: str) -> None:
 
 def parse_line(line: str, source: Path) -> dict[str, Any]:
     fields = line.rstrip("\n").split("\t")
-    require(len(fields) >= 3, f"malformed stack-usage line in {source}: {line!r}")
+    require(len(fields) == 3, f"malformed stack-usage line in {source}: {line!r}")
+    require(fields[2] == "static", f"non-static stack usage in {source}: {line!r}")
     location = fields[0]
     try:
         frame_bytes = int(fields[1])
@@ -43,6 +48,9 @@ def collect(directory: Path) -> list[dict[str, Any]]:
             if line.strip():
                 entries.append(parse_line(line, path))
     require(entries, "stack-usage files contained no function records")
+    functions = {entry["location"].rsplit(":", 1)[-1] for entry in entries}
+    require(REQUIRED_FUNCTIONS <= functions,
+            f"missing required stack records: {sorted(REQUIRED_FUNCTIONS - functions)}")
     return entries
 
 

@@ -18,6 +18,13 @@ EXPECTED_RESOURCE_NAMES = [
     "stateful_max_depth_message_context",
     "stateless_max_message_context",
 ]
+EXPECTED_CORPORA = {
+    "stateful": ("059549af4c74f6bd1898fc93add185ec0bffe08063b00cbff5b1eb4080ebc041",
+                 "pqbtc-shrincs-current-draft-stateful-kat-v0", 7, [554, 570, 586, 602]),
+    "stateless": ("67356b917284198f5a89bfbe727391dcde5e0f06c9f6799b0edd31197968eaae",
+                  "pqbtc-shrincs-current-draft-stateless-kat-v0", 2, [5776]),
+}
+EXPECTED_RESOURCE_SHA256 = "c79cd786bf3cefcce7586cfb018beb3da751ee949b42d3e8afad9e05ea40540a"
 
 
 class KatError(ValueError):
@@ -108,7 +115,13 @@ def load_lock(path: Path = DEFAULT_LOCK) -> dict[str, Any]:
     )
     for kind in ("stateful", "stateless"):
         validate_lock_entry(kind, corpora[kind])
+        digest, profile, count, lengths = EXPECTED_CORPORA[kind]
+        entry = corpora[kind]
+        require((entry["sha256"], entry["profile"], entry["vector_count"], entry["signature_lengths"])
+                == (digest, profile, count, lengths), f"{kind} immutable corpus lock drifted")
     validate_resource_lock(data.get("resource_vectors"))
+    require(data["resource_vectors"]["sha256"] == EXPECTED_RESOURCE_SHA256
+            and data["resource_vectors"]["vector_count"] == 2, "resource immutable corpus lock drifted")
     return data
 
 

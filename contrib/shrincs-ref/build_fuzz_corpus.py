@@ -81,9 +81,10 @@ def add_case(cases: dict[str, bytes], name: str, value: bytes) -> None:
     cases[f"{safe_name(name)}-{digest}"] = value
 
 
-def build(stateful: list[dict[str, Any]], stateless: list[dict[str, Any]]) -> dict[str, bytes]:
+def build(stateful: list[dict[str, Any]], stateless: list[dict[str, Any]],
+          resource: list[dict[str, Any]] | None = None) -> dict[str, bytes]:
     cases: dict[str, bytes] = {}
-    all_vectors = stateful + stateless
+    all_vectors = stateful + stateless + (resource or [])
     for vector in all_vectors:
         name, public_key, signature, message, context = unpack(vector)
         add_case(cases, f"valid-{name}", encode(public_key, signature, message, context))
@@ -117,17 +118,19 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--stateful", type=Path, required=True)
     parser.add_argument("--stateless", type=Path, required=True)
+    parser.add_argument("--resource", type=Path)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
-    cases = build(load_vectors(args.stateful), load_vectors(args.stateless))
+    cases = build(load_vectors(args.stateful), load_vectors(args.stateless),
+                  load_vectors(args.resource) if args.resource is not None else None)
+    require(not args.output_dir.is_symlink(), "output directory must not be a symlink")
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    for old in args.output_dir.iterdir():
-        if old.is_file():
-            old.unlink()
+    require(not any(args.output_dir.iterdir()), "output directory must be empty; existing data is preserved")
     for name, value in sorted(cases.items()):
-        (args.output_dir / name).write_bytes(value)
+        with (args.output_dir / name).open("xb") as handle:
+            handle.write(value)
 
     result = {
         "result": "PASS",

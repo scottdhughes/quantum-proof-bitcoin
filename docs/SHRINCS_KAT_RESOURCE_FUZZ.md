@@ -31,6 +31,12 @@ verifies all vectors before checking these locks. The full vector bytes remain
 generated artifacts rather than consensus fixtures; a later profile-freeze
 proposal must decide whether to commit a compact normative subset.
 
+Before compiling or importing upstream code, both workflow jobs validate the
+release-hold policy, exact upstream pins, and pristine tracked source bytes
+using the shared provenance checker. Resource measurement checks every frozen
+corpus before loading its native library. Custom lock paths do not authorize
+different digests or corpus coverage under this frozen profile.
+
 ## Exact portable SHA-256 model
 
 The resource model counts compression blocks in the pinned portable one-shot
@@ -98,14 +104,19 @@ bytes, and messages over 4,096 bytes must fail before SHA-256 work or allocation
 Static stack usage is collected from GCC `.su` files and must remain below a
 4,096-byte per-function research ceiling. That ceiling is a regression guard,
 not a final consensus limit.
+Dynamic or unknown qualifiers and missing verifier/hash/allocation entry-point
+records fail the evidence check. This is not an aggregate call-stack bound.
 
 ## Fuzzing
 
 `fuzz_full_verify.c` exposes the combined verifier to libFuzzer using a bounded,
-length-delimited input format. The seed corpus contains all regenerated valid
+length-delimited input format. The seed corpus contains all eleven regenerated valid
 vectors plus key/signature mutations, cross-mode lengths, parser boundaries,
 and deterministic noise. `shrincs_fuzz.dict` retains useful comparison
 constants discovered by completed campaigns.
+The seed builder requires an empty, non-symlink output directory and never
+deletes existing data. Native statuses other than `0` or `1` fail measurement
+and terminate the fuzz driver, rather than counting as ordinary rejection.
 
 Pull requests run a sanitizer-backed smoke campaign. Scheduled runs use a
 longer budget after the workflow reaches the protected default branch. Passing

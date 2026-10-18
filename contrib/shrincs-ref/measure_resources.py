@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import resource_model
+import check_kats
 
 
 class ResourceError(ValueError):
@@ -105,6 +106,7 @@ class InstrumentedVerifier:
             c_buffer(context),
             len(context),
         )
+        require(result in (0, 1), f"unexpected native verifier status: {result}")
         return {
             "valid": result == 1,
             "sha256_calls": int(self.sha_calls()),
@@ -244,10 +246,14 @@ def main() -> int:
     args = parser.parse_args()
     require(args.iterations >= 1, "iterations must be positive")
 
-    verifier = InstrumentedVerifier(args.library)
+    lock = check_kats.load_lock()
+    check_kats.validate_corpus("stateful", args.stateful_kats, lock)
+    check_kats.validate_corpus("stateless", args.stateless_kats, lock)
+    check_kats.validate_resource_corpus(args.resource_vectors, lock)
     stateful = load_vectors(args.stateful_kats)
     stateless = load_vectors(args.stateless_kats)
     resource = load_vectors(args.resource_vectors)
+    verifier = InstrumentedVerifier(args.library)
 
     observations = [
         validate_valid_vector(verifier, vector, args.iterations)

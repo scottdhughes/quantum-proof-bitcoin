@@ -29,6 +29,8 @@ jobs:
     name: immutable KAT locks and exact resource envelope
     runs-on: ubuntu-24.04
     timeout-minutes: 90
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - name: Check out PQBTC
         uses: actions/checkout@v5
@@ -52,6 +54,9 @@ jobs:
       - name: Validate lock and pure resource model
         run: |
           python3 contrib/shrincs/check_manifest.py --json
+          python3 contrib/shrincs-ref/generate_resource_vectors.py \
+            --shrincs-bip upstream/shrincs-bip --libshrincs upstream/libshrincs \
+            --preflight-only --json
           python3 contrib/shrincs-ref/check_kats.py --lock-only --json
           python3 contrib/shrincs-ref/resource_model.py --json
           python3 -m unittest discover -s ci/test -p 'test_shrincs_candidate.py'
@@ -90,6 +95,7 @@ jobs:
         run: |
           python3 contrib/shrincs-ref/generate_resource_vectors.py \
             --shrincs-bip upstream/shrincs-bip \
+            --libshrincs upstream/libshrincs \
             --output build/evidence/resource-vectors.json \
             --json
           python3 contrib/shrincs-ref/check_kats.py \
@@ -149,6 +155,7 @@ jobs:
             build/evidence/stateless-vectors.json \
             build/evidence/resource-vectors.json \
             build/evidence/resource-report.json \
+            build/evidence/resource-model.json \
             build/evidence/stack-usage.json \
             | tee build/evidence/evidence-sha256.txt
 
@@ -174,6 +181,7 @@ jobs:
     timeout-minutes: 45
     env:
       FUZZ_SECONDS: ${{ github.event_name == 'schedule' && '1800' || '120' }}
+      PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - name: Check out PQBTC
         uses: actions/checkout@v5
@@ -186,6 +194,20 @@ jobs:
           path: upstream/libshrincs
           persist-credentials: false
 
+      - name: Check out pinned SHRINCS draft
+        uses: actions/checkout@v5
+        with:
+          repository: SHRINCS/shrincs-bip
+          ref: acc6bda51dc3b94848d118967247ad0f3cd7a80e
+          path: upstream/shrincs-bip
+          persist-credentials: false
+
+      - name: Validate pristine source and frozen policy before compilation
+        run: |
+          python3 contrib/shrincs-ref/generate_resource_vectors.py \
+            --shrincs-bip upstream/shrincs-bip --libshrincs upstream/libshrincs \
+            --preflight-only --json
+
       - name: Download regenerated KAT evidence
         uses: actions/download-artifact@v4
         with:
@@ -197,6 +219,7 @@ jobs:
           python3 contrib/shrincs-ref/build_fuzz_corpus.py \
             --stateful build/evidence/stateful-vectors.json \
             --stateless build/evidence/stateless-vectors.json \
+            --resource build/evidence/resource-vectors.json \
             --output-dir build/fuzz/corpus \
             --json
 
