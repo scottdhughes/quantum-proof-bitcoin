@@ -6,6 +6,7 @@ on:
       - "contrib/shrincs/**"
       - "contrib/shrincs-ref/**"
       - "ci/test/test_shrincs_*.py"
+      - "ci/test/shrincs_v1_fxmss_fixture.c"
       - ".github/workflows/shrincs-full-verifier.yml"
   push:
     branches:
@@ -14,6 +15,7 @@ on:
       - "contrib/shrincs/**"
       - "contrib/shrincs-ref/**"
       - "ci/test/test_shrincs_*.py"
+      - "ci/test/shrincs_v1_fxmss_fixture.c"
       - ".github/workflows/shrincs-full-verifier.yml"
   workflow_dispatch:
 
@@ -33,7 +35,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: remix7531/libshrincs
-          ref: 53bedb2c4be6b0dcc0a16fee665339d4f7e4e5b5
+          ref: 911c583cc9c4e5e54a91695a1c6d2a114968715c
           path: upstream/libshrincs
           persist-credentials: false
 
@@ -41,7 +43,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: SHRINCS/shrincs-bip
-          ref: acc6bda51dc3b94848d118967247ad0f3cd7a80e
+          ref: a5891ec5b360a732c097e1d6af1ae59515a2560a
           path: upstream/shrincs-bip
           persist-credentials: false
 
@@ -91,6 +93,17 @@ jobs:
             --vectors-out build/shrincs-full/stateful-vectors.json \
             --json
 
+      - name: Build and exercise synthetic deep FXMSS recovery boundaries
+        run: |
+          cc -std=c99 -Wall -Wextra -Wpedantic -Werror -O2 -fPIC -shared \
+            -Iupstream/libshrincs/include ci/test/shrincs_v1_fxmss_fixture.c \
+            upstream/libshrincs/src/{wots,thash,sha256,util}.c \
+            -o build/shrincs-full/fxmss-boundaries.so
+          python3 contrib/shrincs-ref/check_v1_boundaries.py \
+            --libshrincs upstream/libshrincs --shrincs-bip upstream/shrincs-bip \
+            --library build/shrincs-full/fxmss-boundaries.so \
+            --output build/shrincs-full/v1-fxmss-boundaries.json
+
       - name: Generate deterministic stateless corpus
         run: |
           python3 contrib/shrincs-ref/check_stateless.py \
@@ -108,6 +121,7 @@ jobs:
             --stateless-vectors build/shrincs-full/stateless-vectors.json \
             --json
           sha256sum build/shrincs-full/stateful-vectors.json build/shrincs-full/stateless-vectors.json \
+            build/shrincs-full/v1-fxmss-boundaries.json \
             | tee build/shrincs-full/corpus-sha256.txt
 
       - name: Build sanitizer verifier
@@ -136,6 +150,23 @@ jobs:
             --stateless-vectors build/shrincs-full/stateless-vectors.json \
             --json
 
+      - name: Exercise synthetic FXMSS boundaries under ASan and UBSan
+        env:
+          ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          cc -std=c99 -Wall -Wextra -Wpedantic -Werror -O1 -g -fPIC -shared \
+            -fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all \
+            -Iupstream/libshrincs/include ci/test/shrincs_v1_fxmss_fixture.c \
+            upstream/libshrincs/src/{wots,thash,sha256,util}.c \
+            -o build/shrincs-full/fxmss-boundaries-sanitized.so
+          export LD_PRELOAD="$(cc -print-file-name=libasan.so)"
+          python3 contrib/shrincs-ref/check_v1_boundaries.py \
+            --libshrincs upstream/libshrincs --shrincs-bip upstream/shrincs-bip \
+            --library build/shrincs-full/fxmss-boundaries-sanitized.so \
+            --output build/shrincs-full/v1-fxmss-boundaries-sanitized.json
+          cmp build/shrincs-full/v1-fxmss-boundaries.json build/shrincs-full/v1-fxmss-boundaries-sanitized.json
+
       - name: Upload deterministic full-verifier evidence
         uses: actions/upload-artifact@v4
         with:
@@ -144,5 +175,6 @@ jobs:
             build/shrincs-full/stateful-vectors.json
             build/shrincs-full/stateless-vectors.json
             build/shrincs-full/corpus-sha256.txt
+            build/shrincs-full/v1-fxmss-boundaries.json
           if-no-files-found: error
           retention-days: 30

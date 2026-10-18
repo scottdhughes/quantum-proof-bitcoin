@@ -1,6 +1,6 @@
 {
-  "as_of": "2026-08-16",
-  "candidate_id": "pqbtc-shrincs-v0",
+  "as_of": "2026-10-18",
+  "candidate_id": "pqbtc-shrincs-v1",
   "component_evidence": {
     "stateful_fxmss": {
       "balanced_and_unbalanced_vectors": true,
@@ -10,7 +10,7 @@
       "public_key_bit_mutations_rejected": 2688,
       "qualifies_as_full_shrincs_verifier": false,
       "scope": "complete current-draft stateful verification path only",
-      "signature_bit_mutations_rejected": 32688,
+      "signature_bit_mutations_rejected": 32352,
       "status": "INDEPENDENT_DIFFERENTIAL_PROTOTYPE",
       "structural_negatives_rejected": 42,
       "uses_qualified_libshrincs_wotsc": true,
@@ -26,7 +26,7 @@
       "public_key_bit_mutations_rejected": 384,
       "qualifies_as_full_shrincs_verifier": false,
       "scope": "complete current-draft stateless recovery verification path only",
-      "signature_bit_mutations_rejected": 46304,
+      "signature_bit_mutations_rejected": 46312,
       "status": "INDEPENDENT_DIFFERENTIAL_PROTOTYPE",
       "structural_negatives_rejected": 12,
       "uses_pinned_libshrincs_sha256": true,
@@ -36,14 +36,17 @@
     },
     "wotsc": {
       "compiled_c_matches_committed_kats": true,
-      "current_draft_matches_committed_kats": true,
+      "current_draft_matches_committed_kats": false,
       "formal_proofs_reproduced_by_pqbtc": false,
       "kat_case_count": 8,
       "qualifies_as_full_shrincs_verifier": false,
-      "scope": "stateful WOTS+C leaf only",
-      "status": "COMPATIBLE_COMPONENT_ORACLE",
+      "scope": "current-profile stateful WOTS+C recovery only; historical keygen/sign self-test",
+      "status": "COMPATIBLE_RECOVERY_COMPONENT_ORACLE",
       "wots_public_key_bytes": 16,
-      "wots_signature_bytes": 514
+      "wots_signature_bytes": 514,
+      "current_keygen_sign_compatible": false,
+      "current_recovery_case_count": 8,
+      "current_recovery_matches_reference": true
     }
   },
   "consensus_contract": {
@@ -64,17 +67,17 @@
       "public_key_bytes": 48,
       "security_proof_complete": false,
       "stateful_signature_bytes": {
-        "maximum": 4618,
-        "minimum": 554
+        "maximum": 4619,
+        "minimum": 548
       },
       "stateful_verify_sha256_compressions": {
         "maximum": 509,
         "minimum": 255
       },
-      "stateless_signature_bytes": 5776,
+      "stateless_signature_bytes": 5777,
       "stateless_verify_sha256_compressions": {
-        "maximum": 2637,
-        "minimum": 462
+        "maximum": 2792,
+        "minimum": 467
       }
     },
     "historical_paper_profile": {
@@ -127,26 +130,26 @@
   "status": "RESEARCH_CANDIDATE",
   "upstream": {
     "draft_specification": {
-      "commit": "acc6bda51dc3b94848d118967247ad0f3cd7a80e",
+      "commit": "a5891ec5b360a732c097e1d6af1ae59515a2560a",
       "compatibility_with_pinned_draft": "AUTHORITATIVE_DRAFT",
       "repository": "SHRINCS/shrincs-bip",
       "role": "draft-specification-and-executable-model"
     },
     "libshrincs_wotsc": {
-      "commit": "53bedb2c4be6b0dcc0a16fee665339d4f7e4e5b5",
+      "commit": "911c583cc9c4e5e54a91695a1c6d2a114968715c",
       "compatible_scope": [
         "WOTS+C n=16, w=16, 32 chains, constant sum 240",
-        "16-bit grinding counter and 514-byte signature encoding",
-        "16-byte WOTS public key and 22-byte address layout",
-        "byte-for-byte key generation, signing, and public-key recovery vectors"
+        "16-bit grinding counter and 514-byte component signature",
+        "current-profile native public-key recovery from reference-generated signatures",
+        "historical eight-case keygen/sign KAT self-test in zero-structure legacy context only"
       ],
-      "compatibility_with_pinned_draft": "COMPATIBLE_COMPONENT",
+      "compatibility_with_pinned_draft": "COMPATIBLE_RECOVERY_COMPONENT",
       "kat_source_commit": "4795244c4208f5de69dc386f6e6a451b7aa0c4e2",
       "limitations": [
-        "implements only the stateful WOTS+C leaf, not full FXMSS or SHRINCS",
-        "the upstream C API and VST address contract are provisional",
-        "PQBTC does not reproduce the Rocq/VST/SSProve proof suite in this tranche",
-        "the libshrincs fxmss branch is not used because its theorem is not connected end-to-end to the C"
+        "native key generation and signing do not implement the current draft tree-bound PRF",
+        "only native leaf recovery and SHA-256 are used in the independent full verifier",
+        "PQBTC does not reproduce or admit the Rocq/VST/SSProve proof suite in this tranche",
+        "does not implement full FXMSS, SHRINCS serialization, wallet state or consensus"
       ],
       "repository": "remix7531/libshrincs",
       "role": "formally-verified-wotsc-component-oracle"

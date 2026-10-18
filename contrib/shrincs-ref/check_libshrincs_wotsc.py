@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 import hashlib
 import importlib.util
 import json
@@ -194,18 +195,20 @@ def recompute_cases(
         compare_field(name, "adrs", adrs, case["adrs"])
         compare_field(name, "msg", msg, case["msg"])
 
-        grinded = reference.wots_c_grind_to_constant_sum(pk_seed, msg, bytearray(adrs))
+        height, index = adrs[0], int.from_bytes(adrs[1:9], "big")
+        # Historical KATs use the legacy zero-structure PRF context. A depth-zero
+        # full key has no usable stateful leaf: this is NOT current signing parity.
+        grinded = reference.wots_c_grind_to_constant_sum(pk_seed, msg, height, index)
         require(grinded is not None, f"{name}: current draft failed to find a grinding counter")
         counter, indexes = grinded
         require(sum(indexes) == reference.WOTS_C_CONSTANT_SUM, f"{name}: non-constant-sum mapping")
 
-        grind_addr = bytearray(adrs)
-        grind_addr[9] = reference.SF_WOTS_C_GRIND
+        grind_addr = reference.WotsCGrind(height, index)
         h_grind = reference.H_grind(pk_seed, grind_addr, msg, counter)
-        signature = reference.wots_c_sign(msg, sk_seed, pk_seed, bytearray(adrs))
+        signature = reference.wots_c_sign(msg, sk_seed, pk_seed, height, index, False, 0)
         require(signature is not None, f"{name}: current draft signing failed")
-        public_key = reference.wots_c_pubkey_gen(sk_seed, pk_seed, bytearray(adrs))
-        recovered = reference.wots_c_pubkey_from_sig(signature, msg, pk_seed, bytearray(adrs))
+        public_key = reference.wots_c_pubkey_gen(sk_seed, pk_seed, height, index, False, 0)
+        recovered = reference.wots_c_pubkey_from_sig(signature, msg, pk_seed, height, index)
         require(recovered == public_key, f"{name}: current draft failed its own WOTS+C round trip")
 
         compare_field(name, "counter", counter, case["counter"])
@@ -216,6 +219,77 @@ def recompute_cases(
 
     require(seen == set(kat_cases), "committed KAT and generator case sets differ")
     return len(seen)
+
+
+def validate_reference_semantics(reference: ModuleType) -> int:
+    """Check the current model against independent byte-level expectations."""
+    randomizer, seed, root, message = b"B" * 16, b"$" * 16, bytes(16), b"v1-message"
+    leaf = bytes.fromhex("fe0000000000000001")
+    inner = hashlib.sha256(randomizer + seed + root + leaf + message).digest()
+    expected = hashlib.sha256(randomizer + seed + inner + leaf).digest()
+    require(reference.H_msg_sf(randomizer, seed, root, 254, 1, message) == expected,
+            "v1 stateful message-hash ordering drifted")
+    require((reference.SHRINCS_SF_SIGNATURE_SIZE_MIN, reference.SHRINCS_SF_SIGNATURE_SIZE_MAX,
+             reference.SHRINCS_SL_SIGNATURE_SIZE) == (548, 4619, 5777), "v1 envelope bounds drifted")
+    prefix = bytes.fromhex("070102030405060708")
+    h, index = 7, 0x0102030405060708
+    a, b, c = 0x11121314, 0x21222324, 0x31323334
+    word = lambda value: value.to_bytes(4, "big")
+    zero = bytes(4)
+    addresses = (
+        (reference.WotsTwHash(h, index, a, b, c), 0, word(a) + word(b) + word(c)),
+        (reference.WotsTwPrf(h, index, a, b), 5, word(a) + word(b) + zero),
+        (reference.WotsTwPk(h, index, a), 1, word(a) + zero + zero),
+        (reference.XmssTree(h, index, b, c), 2, zero + word(b) + word(c)),
+        (reference.ForsTree(h, index, a, b, c), 3, word(a) + word(b) + word(c)),
+        (reference.ForsRoots(h, index, a), 4, word(a) + zero + zero),
+        (reference.ForsPrf(h, index, a, c), 6, word(a) + zero + word(c)),
+        (reference.WotsCHash(h, index, b, c), 16, zero + word(b) + word(c)),
+        (reference.WotsCPrf(h, index, False, 0x92, b), 21, bytes.fromhex("00920000") + word(b) + zero),
+        (reference.WotsCPrf(h, index, True, 0x92, b), 21, bytes.fromhex("01920000") + word(b) + zero),
+        (reference.WotsCPk(h, index), 17, zero * 3),
+        (reference.WotsCGrind(h, index), 22, zero * 3),
+        (reference.FxmssTree(h, index), 18, zero * 3),
+    )
+    for address, kind, payload in addresses:
+        require(address.to_bytes() == prefix + bytes([kind]) + payload,
+                f"typed address serialization drifted: {type(address).__name__}")
+    for structure, state, expected_position in (
+        (bytes([0, 4]), 4, (0, 251)), (bytes([0, 4]), 5, None),
+        (bytes([1, 3]), 7, (7, 252)), (bytes([1, 3]), 8, None),
+        (bytes([0, 0]), 0, None), (bytes([1, 0]), 0, None),
+        (bytes([2, 3]), 0, None),
+    ):
+        require(reference.shrincs_sf_leaf_select(structure, state) == expected_position,
+                "state selection boundary drifted")
+    return 2 + len(addresses) + 7
+
+
+def current_recovery_cases(reference: ModuleType, generator: ModuleType, library: Path) -> int:
+    """Qualify recovery only; the native signer is not current-structure compatible."""
+    native = ctypes.CDLL(str(library.resolve()))
+    recover = native.shrincs_wots_pubkey_from_sig
+    recover.argtypes = [ctypes.c_void_p] * 5
+    recover.restype = ctypes.c_int
+    count = 0
+    for number, (name, sk_seed, pk_seed, _address, message) in enumerate(generator.cases()):
+        depth, balanced = 1 + number // 2, bool(number % 2)
+        height, index = 255 - depth, 1
+        signature = reference.wots_c_sign(message, sk_seed, pk_seed, height, index, balanced, depth)
+        require(signature is not None, f"{name}: current-profile signing failed")
+        expected = reference.wots_c_pubkey_gen(sk_seed, pk_seed, height, index, balanced, depth)
+        output = (ctypes.c_uint8 * 16)()
+        address = (ctypes.c_uint8 * 22).from_buffer_copy(
+            bytes([height]) + index.to_bytes(8, "big") + bytes(13))
+        require(recover(output, signature, message, pk_seed, address) == 0,
+                f"{name}: native recovery rejected current-profile signature")
+        require(bytes(output) == expected, f"{name}: current-profile recovery mismatch")
+        # Same prefix/seeds but different structure must not derive the same key.
+        other = reference.wots_c_pubkey_gen(sk_seed, pk_seed, height, index, not balanced, depth)
+        require(expected != other, f"{name}: tree shape was not bound to derivation")
+        count += 1
+    require(count == 8, "incomplete current-profile recovery campaign")
+    return count
 
 
 def validate_paths(manifest: dict[str, Any], libshrincs: Path, shrincs_bip: Path) -> tuple[str, str]:
@@ -242,6 +316,7 @@ def main() -> int:
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--libshrincs", type=Path, required=True)
     parser.add_argument("--shrincs-bip", type=Path, required=True)
+    parser.add_argument("--library", type=Path, required=True)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
@@ -264,6 +339,8 @@ def main() -> int:
     expected_kat_source = str(lib_entry.get("kat_source_commit", ""))
     require(expected_kat_source.startswith(kat_source), "committed KAT source marker differs from manifest")
     case_count = recompute_cases(reference, generator, kat_cases)
+    semantics = validate_reference_semantics(reference)
+    current_cases = current_recovery_cases(reference, generator, args.library)
 
     result = {
         "component": "WOTS+C",
@@ -271,6 +348,10 @@ def main() -> int:
         "libshrincs_commit": lib_commit,
         "kat_source_commit": expected_kat_source,
         "cases": case_count,
+        "historical_zero_structure_keygen_sign_cases": case_count,
+        "current_recovery_cases": current_cases,
+        "current_keygen_sign_compatible": False,
+        "reference_semantic_checks": semantics,
         "signature_bytes": 514,
         "public_key_bytes": 16,
         "result": "PASS",

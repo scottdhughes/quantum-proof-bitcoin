@@ -166,8 +166,8 @@ def create_vectors(reference: ModuleType) -> list[dict[str, Any]]:
                 0,
                 reference.FXMSS_HEIGHT,
                 pk_seed,
-                structure,
-                bytearray(22),
+                structure[0] == reference.FXMSS_SHAPE_BALANCED,
+                structure[1],
             )
             secret_key = sk_seed + sk_prf + pk_seed + stateless_root + structure + stateful_root
             public_key = pk_seed + stateless_root + stateful_root
@@ -237,7 +237,7 @@ def exercise_native_abi_cases(verify, vector: dict[str, Any]) -> int:
         (None, *args[1:]),
         (*args[:2], None, *args[3:]),
         *((args[0], size, *args[2:]) for size in (0, 47, 49)),
-        *((*args[:3], size, *args[4:]) for size in (0, 553, 555, 4619)),
+        *((*args[:3], size, *args[4:]) for size in (0, 547, 549, 4620)),
         (*args[:4], None, 1, *args[6:]),
         (*args[:6], None, 1),
         (*args[:4], c_buffer(bytes(4097)), 4097, *args[6:]),
@@ -367,7 +367,7 @@ def main() -> int:
         args.vectors_out.write_text(
             json.dumps(
                 {
-                    "profile": "pqbtc-shrincs-current-draft-stateful-kat-v0",
+                    "profile": "pqbtc-shrincs-current-draft-stateful-kat-v1",
                     "draft_commit": manifest["upstream"]["draft_specification"]["commit"],
                     "libshrincs_commit": manifest["upstream"]["libshrincs_wotsc"]["commit"],
                     "vectors": vectors,

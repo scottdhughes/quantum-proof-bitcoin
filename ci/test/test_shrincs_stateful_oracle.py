@@ -127,13 +127,13 @@ class StatefulResultTests(unittest.TestCase):
             return int(len(calls) == 1)
 
         vector = {"name": "fixture", "public_key": "00" * 48,
-                  "signature": "00" * 554, "message": "00" * 32, "context": ""}
+                  "signature": "00" * 548, "message": "00" * 32, "context": ""}
         self.assertEqual(exercise(verify, vector), 14)
         self.assertEqual(len(calls), 14)
         self.assertIsNone(calls[1][0])
         self.assertIsNone(calls[2][2])
         self.assertEqual([args[1] for args in calls[3:6]], [0, 47, 49])
-        self.assertEqual([args[3] for args in calls[6:10]], [0, 553, 555, 4619])
+        self.assertEqual([args[3] for args in calls[6:10]], [0, 547, 549, 4620])
         self.assertEqual(calls[10][4:6], (None, 1))
         self.assertEqual(calls[11][6:8], (None, 1))
         self.assertEqual(calls[12][5], 4097)
@@ -143,7 +143,7 @@ class StatefulResultTests(unittest.TestCase):
         exercise = getattr(CHECKER, "exercise_native_abi_cases", None)
         self.assertTrue(callable(exercise), "native ABI campaign must be retained in the harness")
         vector = {"name": "fixture", "public_key": "00" * 48,
-                  "signature": "00" * 554, "message": "00" * 32, "context": ""}
+                  "signature": "00" * 548, "message": "00" * 32, "context": ""}
         for invalid_result in (-1, 1, 2):
             with self.subTest(result=invalid_result):
                 statuses = iter((1, invalid_result))
@@ -151,7 +151,7 @@ class StatefulResultTests(unittest.TestCase):
                     exercise(lambda *args: next(statuses), vector)
 
     def test_missing_native_rejections_cannot_publish_pass_or_vectors(self) -> None:
-        lengths = (554, 570, 602, 602, 586, 586, 586)
+        lengths = (548, 564, 596, 596, 580, 580, 580)
         vectors = [{"name": f"fixture-{i}", "public_key": "00" * 48,
                     "signature": "00" * size, "message": "00" * 32, "context": ""}
                    for i, size in enumerate(lengths)]
@@ -200,8 +200,8 @@ class StatefulResultTests(unittest.TestCase):
             self.assertFalse(output.exists())
 
     def test_partial_mutation_campaign_cannot_publish_pass_or_vectors(self) -> None:
-        # Literal seven-case lengths sum to 32688 signature bits,2688 key bits,42 negatives.
-        lengths = (554, 570, 602, 602, 586, 586, 586)
+        # Literal seven-case lengths sum to 32352 signature bits,2688 key bits,42 negatives.
+        lengths = (548, 564, 596, 596, 580, 580, 580)
         vectors = [{"name": f"fixture-{i}", "public_key": "00" * 48,
                     "signature": "00" * size, "message": "00" * 32, "context": ""}
                    for i, size in enumerate(lengths)]

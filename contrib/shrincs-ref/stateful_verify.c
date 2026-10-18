@@ -15,22 +15,21 @@
 
 #define PQBTC_SHRINCS_PUBLIC_KEY_BYTES 48U
 #define PQBTC_SHRINCS_RANDOMIZER_BYTES 16U
-#define PQBTC_SHRINCS_LEAF_INDEX_BYTES 8U
-#define PQBTC_SHRINCS_HEADER_BYTES 24U
+#define PQBTC_SHRINCS_HEADER_BASE_BYTES 17U
 #define PQBTC_SHRINCS_FXMSS_HEIGHT 255U
 #define PQBTC_SHRINCS_NODE_BYTES 16U
 #define PQBTC_SHRINCS_MIN_LEAF_DEPTH 1U
 #define PQBTC_SHRINCS_MAX_LEAF_DEPTH 255U
-#define PQBTC_SHRINCS_MIN_STATEFUL_SIGNATURE_BYTES 554U
-#define PQBTC_SHRINCS_MAX_STATEFUL_SIGNATURE_BYTES 4618U
+#define PQBTC_SHRINCS_MIN_STATEFUL_SIGNATURE_BYTES 548U
+#define PQBTC_SHRINCS_MAX_STATEFUL_SIGNATURE_BYTES 4619U
 #define PQBTC_SHRINCS_MAX_MESSAGE_BYTES 4096U
 #define PQBTC_SHRINCS_SF_FXMSS_TREE 18U
 
-static uint64_t read_u64_be(const uint8_t in[8])
+static uint64_t read_u64_be(const uint8_t *in, size_t length)
 {
     uint64_t value = 0;
     size_t i;
-    for (i = 0; i < 8; ++i) {
+    for (i = 0; i < length; ++i) {
         value = (value << 8) | (uint64_t)in[i];
     }
     return value;
@@ -121,10 +120,10 @@ static int compute_stateful_message_digest(uint8_t out[32],
     offset += 16U;
     memcpy(outer_input + offset, pk_seed, 16U);
     offset += 16U;
-    memcpy(outer_input + offset, address_prefix, 9U);
-    offset += 9U;
     memcpy(outer_input + offset, inner_hash, 32U);
     offset += 32U;
+    memcpy(outer_input + offset, address_prefix, 9U);
+    offset += 9U;
     if (offset != sizeof(outer_input)) {
         return 0;
     }
@@ -155,8 +154,8 @@ int pqbtc_shrincs_stateful_verify(const uint8_t *public_key,
     uint8_t node[PQBTC_SHRINCS_NODE_BYTES];
     uint8_t hash_input[2U * PQBTC_SHRINCS_NODE_BYTES];
     uint64_t leaf_index;
-    size_t fxmss_len;
-    size_t authentication_len;
+    size_t leaf_index_bytes;
+    size_t header_bytes;
     size_t leaf_depth;
     size_t k;
 
@@ -171,25 +170,26 @@ int pqbtc_shrincs_stateful_verify(const uint8_t *public_key,
         return 0;
     }
 
-    fxmss_len = signature_len - PQBTC_SHRINCS_HEADER_BYTES;
-    if (fxmss_len < SHRINCS_WOTS_SIG_BYTES) {
+    if (signature[0] == PQBTC_SHRINCS_FXMSS_HEIGHT) {
         return 0;
     }
-    authentication_len = fxmss_len - SHRINCS_WOTS_SIG_BYTES;
-    if (authentication_len % PQBTC_SHRINCS_NODE_BYTES != 0U) {
-        return 0;
-    }
-    leaf_depth = authentication_len / PQBTC_SHRINCS_NODE_BYTES;
+    leaf_depth = PQBTC_SHRINCS_FXMSS_HEIGHT - signature[0];
     if (leaf_depth < PQBTC_SHRINCS_MIN_LEAF_DEPTH ||
         leaf_depth > PQBTC_SHRINCS_MAX_LEAF_DEPTH) {
+        return 0;
+    }
+    leaf_index_bytes = ((leaf_depth < 64U ? leaf_depth : 64U) + 7U) / 8U;
+    header_bytes = PQBTC_SHRINCS_HEADER_BASE_BYTES + leaf_index_bytes;
+    if (signature_len != header_bytes + SHRINCS_WOTS_SIG_BYTES +
+                         leaf_depth * PQBTC_SHRINCS_NODE_BYTES) {
         return 0;
     }
 
     pk_seed = public_key;
     stateless_root = public_key + 16U;
     stateful_root = public_key + 32U;
-    randomizer = signature;
-    leaf_index = read_u64_be(signature + PQBTC_SHRINCS_RANDOMIZER_BYTES);
+    randomizer = signature + 1U;
+    leaf_index = read_u64_be(signature + PQBTC_SHRINCS_HEADER_BASE_BYTES, leaf_index_bytes);
     if (leaf_depth < 64U && leaf_index >= (((uint64_t)1U) << leaf_depth)) {
         return 0;
     }
@@ -209,7 +209,7 @@ int pqbtc_shrincs_stateful_verify(const uint8_t *public_key,
         return 0;
     }
 
-    wots_signature = signature + PQBTC_SHRINCS_HEADER_BYTES;
+    wots_signature = signature + header_bytes;
     authentication_path = wots_signature + SHRINCS_WOTS_SIG_BYTES;
     if (shrincs_wots_pubkey_from_sig(node, wots_signature, digest, pk_seed, address) !=
         SHRINCS_WOTS_OK) {

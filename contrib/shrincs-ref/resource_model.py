@@ -12,10 +12,10 @@ from dataclasses import dataclass
 
 SHA256_BLOCK_BYTES = 64
 PUBLIC_KEY_BYTES = 48
-STATEFUL_SIGNATURE_BASE_BYTES = 538
+STATEFUL_SIGNATURE_BASE_BYTES = 531
 STATEFUL_MIN_DEPTH = 1
 STATEFUL_MAX_DEPTH = 255
-STATELESS_SIGNATURE_BYTES = 5776
+STATELESS_SIGNATURE_BYTES = 5777
 MAX_MESSAGE_BYTES = 4096
 MAX_CONTEXT_BYTES = 255
 
@@ -83,13 +83,10 @@ def wots_tw_step_envelope() -> CompressionEnvelope:
 
 
 def stateful_signature_depth(signature_bytes: int) -> int:
-    delta = signature_bytes - STATEFUL_SIGNATURE_BASE_BYTES
-    if delta < STATEFUL_MIN_DEPTH * 16 or delta % 16:
-        raise ValueError("non-canonical stateful signature length")
-    depth = delta // 16
-    if depth > STATEFUL_MAX_DEPTH:
-        raise ValueError("stateful depth exceeds pinned profile")
-    return depth
+    for depth in range(STATEFUL_MIN_DEPTH, STATEFUL_MAX_DEPTH + 1):
+        if signature_bytes == STATEFUL_SIGNATURE_BASE_BYTES + (min(depth, 64) + 7) // 8 + 16 * depth:
+            return depth
+    raise ValueError("non-canonical stateful signature length")
 
 
 def stateful_compressions(message_bytes: int, context_bytes: int, depth: int) -> int:
@@ -102,7 +99,7 @@ def stateful_compressions(message_bytes: int, context_bytes: int, depth: int) ->
 
     # H_msg_sf: SHA256(R || PK.seed || PK.sf_root || ADRS[0:9] ||
     #                  0 || len(ctx) || ctx || PK.sl_root || message),
-    # then SHA256(R || PK.seed || ADRS[0:9] || inner_hash).
+    # then SHA256(R || PK.seed || inner_hash || ADRS[0:9]).
     message_hash = sha256_compressions(75 + context_bytes + message_bytes)
     message_hash += sha256_compressions(73)
 

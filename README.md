@@ -16,6 +16,10 @@ integration.
 | Signature size | 4,480 bytes |
 | Public key size | 33 bytes (1-byte ALG_ID + 32-byte core) |
 | Production approval | None - release hold |
+
+The [SHRINCS v1 research profile](docs/SHRINCS_V1_PROFILE.md) records the current
+upstream reconciliation, source-bound evidence requirements and remaining
+production blockers. It does not change the production backend or release hold.
 | Claimed security/budget | Not established for the rc2 implementation |
 | Block weight | 16,000,000 WU |
 | PoW | SHA-256d (unchanged from Bitcoin) |

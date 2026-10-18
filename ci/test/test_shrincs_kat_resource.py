@@ -43,7 +43,7 @@ class ShrincsKatResourceTests(unittest.TestCase):
         self.assertEqual(lock["corpora"]["stateful"]["vector_count"], 7)
         self.assertEqual(lock["corpora"]["stateless"]["vector_count"], 2)
         self.assertEqual(lock["resource_vectors"]["vector_count"], 2)
-        self.assertEqual(lock["resource_vectors"]["signature_lengths"], [4618, 5776])
+        self.assertEqual(lock["resource_vectors"]["signature_lengths"], [4619, 5777])
 
     def test_kat_lock_digest_tamper_is_rejected(self) -> None:
         lock = copy.deepcopy(CHECK_KATS.load_lock())
@@ -97,8 +97,8 @@ class ShrincsKatResourceTests(unittest.TestCase):
         self.assertEqual(RESOURCE.stateless_global_maximum(), 5601)
 
     def test_stateful_length_depth_mapping(self) -> None:
-        self.assertEqual(RESOURCE.stateful_signature_depth(554), 1)
-        self.assertEqual(RESOURCE.stateful_signature_depth(4618), 255)
+        self.assertEqual(RESOURCE.stateful_signature_depth(548), 1)
+        self.assertEqual(RESOURCE.stateful_signature_depth(4619), 255)
         with self.assertRaisesRegex(ValueError, "non-canonical"):
             RESOURCE.stateful_signature_depth(555)
 

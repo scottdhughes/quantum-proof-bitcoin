@@ -39,7 +39,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: remix7531/libshrincs
-          ref: 53bedb2c4be6b0dcc0a16fee665339d4f7e4e5b5
+          ref: 911c583cc9c4e5e54a91695a1c6d2a114968715c
           path: upstream/libshrincs
           persist-credentials: false
 
@@ -47,7 +47,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: SHRINCS/shrincs-bip
-          ref: acc6bda51dc3b94848d118967247ad0f3cd7a80e
+          ref: a5891ec5b360a732c097e1d6af1ae59515a2560a
           path: upstream/shrincs-bip
           persist-credentials: false
 

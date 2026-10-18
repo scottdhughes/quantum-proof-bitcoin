@@ -33,7 +33,7 @@ def fixture_vectors() -> list[dict]:
          "6ca8be5ef96403aa67f22a49cf8d1fc9a2c4e72beb6efce6a99a91c7d078222ce9633b5996c7f7cb13b0e5e4ad7d13",
          b"PQBTC/SHRINCS/stateless-recovery-v0".hex(), "2b1aaa0472a7b3fcc5d613a0a7cde55c"),
     ):
-        key, signature = bytes.fromhex("11" * 48), bytes.fromhex("22" * 5776)
+        key, signature = bytes.fromhex("11" * 48), b"\xff" + bytes.fromhex("22" * 5776)
         vectors.append({"name": name, "mode": mode, "message": message, "context": context,
                         "opt_rand": randomizer, "public_key": key.hex(), "signature": signature.hex(),
                         "public_key_sha256": hashlib.sha256(key).hexdigest(),
@@ -58,7 +58,7 @@ class ShrincsStatelessOracleTests(unittest.TestCase):
             "message": "00" * 32,
             "context": "",
             "public_key": "11" * 48,
-            "signature": "22" * 5776,
+            "signature": "ff" + "22" * 5776,
             "public_key_sha256": "33" * 32,
             "signature_sha256": "44" * 32,
         }
@@ -77,10 +77,10 @@ class ShrincsStatelessOracleTests(unittest.TestCase):
         )
 
     def test_selected_offsets_cover_twelve_regions(self) -> None:
-        offsets = CHECKER.selected_signature_offsets(5776)
+        offsets = CHECKER.selected_signature_offsets(5777)
         self.assertEqual(len(offsets), 12)
         self.assertEqual(offsets[0], 0)
-        self.assertEqual(offsets[-1], 5775)
+        self.assertEqual(offsets[-1], 5776)
         self.assertIn(16, offsets)
         self.assertIn(2256, offsets)
 
@@ -313,7 +313,7 @@ class StatelessResultContractTests(unittest.TestCase):
         self.assertIsNone(calls[1][0])
         self.assertIsNone(calls[2][2])
         self.assertEqual([args[1] for args in calls[3:6]], [0,47,49])
-        self.assertEqual([args[3] for args in calls[6:10]], [0,554,5775,5777])
+        self.assertEqual([args[3] for args in calls[6:10]], [0,548,5776,5778])
         self.assertEqual(calls[10][4:6], (None,1))
         self.assertEqual(calls[11][6:8], (None,1))
         self.assertEqual(calls[12][5], 4097)

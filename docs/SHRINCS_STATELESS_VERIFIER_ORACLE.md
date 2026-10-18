@@ -1,3 +1,20 @@
+# Current SHRINCS research profile: v1
+
+The active source/serialization/evidence contract is [SHRINCS v1](SHRINCS_V1_PROFILE.md).
+It supersedes the v0 operational assumptions below. Stateful signatures use an
+indicator and variable-width index (548..4619 bytes); stateless signatures are
+0xff-prefixed (5777 bytes). Native signing/keygen KATs below are historical;
+current native compatibility is recovery-only. Independent C stateful/stateless
+and combined research verifiers exist; that is not production admission.
+
+Production backend NONE, consensus disabled, release hold true and all14 false
+admission gates remain controlling. See the v1 document for the current frozen
+pins, corpus hashes, reproduction workflow, limitations and production blockers.
+Do not execute the historical commands below as a v1 reproduction recipe or
+relabel old receipts/images as v1 evidence.
+
+## Historical v0 record (preserved, not current instructions)
+
 # Independent SHRINCS Stateless Recovery Verifier
 
 ## Status: INDEPENDENT DIFFERENTIAL PROTOTYPE - CONSENSUS DISABLED
