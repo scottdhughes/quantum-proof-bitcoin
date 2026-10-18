@@ -86,6 +86,26 @@ class ShrincsCandidateManifestTests(unittest.TestCase):
         data["component_evidence"]["stateful_fxmss"]["signature_bit_mutations_rejected"] -= 1
         self.assert_invalid(data, "component_evidence.stateful_fxmss drifted")
 
+    def test_stateless_prototype_cannot_be_promoted_to_full_verifier(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["component_evidence"]["stateless_hypertree"]["qualifies_as_full_shrincs_verifier"] = True
+        self.assert_invalid(data, "component_evidence.stateless_hypertree drifted")
+
+    def test_stateless_prototype_cannot_be_marked_consensus_ready(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["component_evidence"]["stateless_hypertree"]["consensus_ready"] = True
+        self.assert_invalid(data, "component_evidence.stateless_hypertree drifted")
+
+    def test_stateless_mutation_count_drift_is_rejected(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["component_evidence"]["stateless_hypertree"]["signature_bit_mutations_rejected"] -= 1
+        self.assert_invalid(data, "component_evidence.stateless_hypertree drifted")
+
+    def test_stateless_vectors_cannot_be_claimed_committed(self) -> None:
+        data = copy.deepcopy(self.manifest)
+        data["component_evidence"]["stateless_hypertree"]["vectors_committed"] = True
+        self.assert_invalid(data, "component_evidence.stateless_hypertree drifted")
+
     def test_signature_profile_drift_is_rejected(self) -> None:
         data = copy.deepcopy(self.manifest)
         data["observed_profiles"]["draft_specification"]["stateless_signature_bytes"] = 5775
