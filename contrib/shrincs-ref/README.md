@@ -32,7 +32,20 @@ The compatibility check is necessary because the committed KATs were generated f
 
 ## Reproduction
 
-With the two upstream repositories checked out at the pinned commits:
+Use fresh, dedicated source checkouts of the two upstream repositories at the
+pinned commits. The harness validates the shared manifest policy before loading
+upstream Python, requires each supplied path to be the repository root, and
+compares every tracked regular file with its pinned Git blob. Staged changes,
+symlink substitutions and all untracked files (including ignored build outputs)
+are rejected. Index flags and Git replacement refs cannot bypass the byte check.
+The loader reads source directly and does not create bytecode caches in these
+checkouts. Use a fresh checkout for a later run after generating build outputs;
+do not discard unrelated work to make a checkout pass.
+
+Run reviewed upstream code in a disposable environment without credentials or
+real node/wallet state. For example, mount clean sources read-only and copy only
+the C source checkout into disposable build storage. The commands below describe
+the evidence sequence, not permission to execute arbitrary supplied code:
 
 ```bash
 python3 contrib/shrincs-ref/check_libshrincs_wotsc.py \

@@ -61,6 +61,15 @@ libshrincs C pubkey_gen / sign / pubkey_from_sig outputs
 
 The workflow then runs the libshrincs ASan/UBSan test target.
 
+The compatibility harness checks the complete tracked source bytes against the
+pinned Git trees before importing the model or generator. It rejects staged,
+untracked/ignored inputs, nested-directory pin borrowing and symlink substitution,
+and disables Git replacement objects for these checks. Its custom manifest path
+is subject to the same consensus-disabled admission policy. This is source and
+evidence integrity, not independent cryptographic assurance; execute the reviewed
+upstream inputs in a disposable environment as described in the reproduction
+README.
+
 The KAT comparison includes each case's seeds, address, message, winning counter, chain digits, grinding hash, 514-byte signature, and 16-byte public key. Any byte drift fails the workflow.
 
 ## Formal-Evidence Boundary

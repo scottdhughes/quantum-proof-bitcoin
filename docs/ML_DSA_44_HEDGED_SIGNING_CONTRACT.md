@@ -2,7 +2,7 @@
 
 ## Status: ENGINEERING_CONTRACT - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-HEDGED-SIGNING-v1
-## Updated: 2026-07-20
+## Updated: 2026-08-21
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -222,6 +222,9 @@ They cover:
 - atomic concurrent callers and serialized backend use;
 - backend error, wrong-length output, verification rejection, and verification
   error;
+- a test-only post-signature candidate bit flip before the real self-verifier,
+  with zero output, observed candidate cleanup, and consumed-randomizer
+  semantics;
 - cleanup of the model's mutable randomizer buffer; and
 - invalid input rejection before entropy acquisition.
 
@@ -231,6 +234,8 @@ Linux/macOS OS-entropy signing, zero output on injected failures, the explicit
 zeroization hook, and atomic repeat rejection across concurrent callers. Test
 fault controls are absent from the production-shaped build. These are bounded
 prototype results, not supported-platform approval or physical fault evidence.
+The checkpoint scope and nonclaims are frozen in
+`ML_DSA_44_FAULT_MODEL.md`; issue `#186` remains open.
 
 ## Exit Criteria
 

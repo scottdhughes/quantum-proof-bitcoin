@@ -1,0 +1,298 @@
+{
+  "baseline_pointer": "1833f20ee66fe7cac9f8e41a98b07f9eab150ec7",
+  "baseline_pointer_file_sha256": "138fc32f54b0c7d1c06e980b8600ba0f639685f543b5b41c8a4dc665a62586b6",
+  "evidence_head": "6315f49bbde6347bf09e9518e0b4ccc31347b963",
+  "implementation_commit": "18db91c542b51f37c2dabf198979c33d793ecddf",
+  "observed_on": "2026-08-20",
+  "production_boundary": {
+    "external_cryptographic_review_satisfied": false,
+    "production_backend": "NONE",
+    "production_integration": false,
+    "production_support_claim": false,
+    "release_hold": true,
+    "release_hold_changed": false,
+    "simd256_admitted": false
+  },
+  "repository": "scottdhughes/quantum-proof-bitcoin",
+  "schema_version": 1,
+  "scope": {
+    "excluded_claims": [
+      "supported-platform or worst-case resource bound",
+      "consensus, block, transaction, mempool, or production limit",
+      "node, wallet, Script, or production-parser coverage",
+      "concurrent-verifier resource behavior",
+      "dynamic-loader or system-library allocation coverage",
+      "formal whole-call-chain stack bound",
+      "production fitness or release approval"
+    ],
+    "issue_181_state": "OPEN",
+    "issue_188_state": "OPEN",
+    "measurement_target": "isolated-production-shaped-direct-verifier",
+    "note": "This receipt records a policy-enforced Linux x86_64 resource-regression observation only. Each compiler artifact remains non-promotion-eligible and the pair must be interpreted with external GitHub Actions provenance."
+  },
+  "verification": {
+    "artifact_api_metadata_checked": true,
+    "archive_members_per_artifact": 25,
+    "archive_sha256_and_size_matched": true,
+    "archive_members_unique_flat_regular": true,
+    "guarded_baseline_diffs_empty": true,
+    "internal_checksum_entries_per_artifact": 24,
+    "internal_checksum_inventories_checked": true,
+    "report_validation_passed": true,
+    "unsafe_zip_members_found": false
+  },
+  "workflows": {
+    "resource_envelope": {
+      "artifacts": [
+        {
+          "archive_sha256": "dd949cf2eff6337191973e303e7544fb5758a96fffccf8638b70b835ecc18019",
+          "artifact_id": 9425610867,
+          "build": {
+            "assembly": false,
+            "compiler_path": "/usr/bin/x86_64-linux-gnu-gcc-13",
+            "compiler_target": "x86_64-linux-gnu",
+            "compiler_version": "x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+            "compiler_version_sha256": "ae487f55927d605284a32711e4ecf6bc3be2bcd5a9de414ace0936264b741f85",
+            "lto": false,
+            "optimization": "-O2",
+            "probe_sha256": "20169c28f8af8c9bb0dc685103a9c8e4cc4c1efcc18949e2572e56baa55fff25",
+            "production_library_sha256": "eaddc87a28f28aaef03c783b4cc562c3e7a3af8ead3b3311b4fc428427bb2ea1",
+            "sanitizers": false,
+            "testing_define_in_measured_objects": false
+          },
+          "compiler": "gcc",
+          "created_at": "2026-08-20T21:43:30Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-18T21:30:43Z",
+          "host": {
+            "affinity_cpu_count": 4,
+            "cpu_model": "AMD EPYC 7763 64-Core Processor",
+            "kernel_release": "6.17.0-1022-azure",
+            "logical_cpu_count": 4,
+            "machine": "x86_64",
+            "system": "Linux"
+          },
+          "internal_inventory": {
+            "entries_verified": 24,
+            "sha256sums_sha256": "7f5b042815e34eeeff6138f1df5a3ad05c30f41c6f6449b590c79226f7de7686"
+          },
+          "job_completed_at": "2026-08-20T21:43:32Z",
+          "job_id": 96589014091,
+          "job_started_at": "2026-08-20T21:43:02Z",
+          "name": "ml-dsa-44-resource-main-observation-6315f49bbde6347bf09e9518e0b4ccc31347b963-gcc-32419767106-1",
+          "numeric_checks_passed": 21,
+          "numeric_checks_total": 21,
+          "numeric_observation": {
+            "aggregate": {
+              "cpu_ns": 1692534302,
+              "wall_ns": 1692761746
+            },
+            "batches": [
+              {
+                "cpu_ns": 397343664,
+                "id": "mixed_rotating",
+                "max_sample_cpu_ns": 18739307,
+                "max_sample_wall_ns": 18740451,
+                "wall_ns": 397408514
+              },
+              {
+                "cpu_ns": 439410363,
+                "id": "valid_rotating",
+                "max_sample_cpu_ns": 14304380,
+                "max_sample_wall_ns": 14305143,
+                "wall_ns": 439435547
+              },
+              {
+                "cpu_ns": 423357094,
+                "id": "deep_reject_rotating",
+                "max_sample_cpu_ns": 13840183,
+                "max_sample_wall_ns": 13841070,
+                "wall_ns": 423456229
+              },
+              {
+                "cpu_ns": 432305671,
+                "id": "same_key_mixed",
+                "max_sample_cpu_ns": 14243616,
+                "max_sample_wall_ns": 14244570,
+                "wall_ns": 432342825
+              }
+            ],
+            "excluded_control": {
+              "cpu_ns": 26096,
+              "wall_ns": 44559
+            },
+            "first_call": {
+              "cpu_ns": 117510,
+              "wall_ns": 118631
+            },
+            "peak_rss_kib": 31780,
+            "status": "PASS"
+          },
+          "observation_sha256": "ae389e129d5973e3d694ddd39f1549653da49c4adfcbadebb1c883da304be38e",
+          "report_sha256": "9c758babb97e511b76416f7f5482ac06060a842154151506a754949b6b46b7f3",
+          "report_status": "PASS",
+          "size_in_bytes": 532611,
+          "stack_usage": {
+            "pqbtc_mldsa44_upstream_verify_bytes": 448,
+            "pqbtc_mldsa44_verify_strict_bytes": 16,
+            "upstream_mld_total_alloc_44_verify_bytes": 24448
+          }
+        },
+        {
+          "archive_sha256": "8d4c293fe8e334da4ad84ed745ed8f8bfcc2dc41b460d417c52cf7a842e09362",
+          "artifact_id": 9425628829,
+          "build": {
+            "assembly": false,
+            "compiler_path": "/usr/lib/llvm-18/bin/clang",
+            "compiler_target": "x86_64-pc-linux-gnu",
+            "compiler_version": "Ubuntu clang version 18.1.3 (1ubuntu1)",
+            "compiler_version_sha256": "d5488a2e583e2cbd3f61386073b6c38a24a2bf4d45f3b6b6ac048b541121d804",
+            "lto": false,
+            "optimization": "-O2",
+            "probe_sha256": "0d8795c234a96c0e9f3e6385666a729eaa7ca4df72557dfef9289f59ea6e4ba4",
+            "production_library_sha256": "9557ef778c4182cd7e91e78c9e3a12c941d9307dc73bdc295f622c9b68adf560",
+            "sanitizers": false,
+            "testing_define_in_measured_objects": false
+          },
+          "compiler": "clang",
+          "created_at": "2026-08-20T21:44:07Z",
+          "expired_when_checked": false,
+          "expires_at": "2026-11-18T21:30:43Z",
+          "host": {
+            "affinity_cpu_count": 4,
+            "cpu_model": "INTEL(R) XEON(R) PLATINUM 8573C",
+            "kernel_release": "6.17.0-1022-azure",
+            "logical_cpu_count": 4,
+            "machine": "x86_64",
+            "system": "Linux"
+          },
+          "internal_inventory": {
+            "entries_verified": 24,
+            "sha256sums_sha256": "13ccb4d47686b396481f9f729c0fe2c62b586e746433580b9464b5ebfa22b1a9"
+          },
+          "job_completed_at": "2026-08-20T21:44:09Z",
+          "job_id": 96589013980,
+          "job_started_at": "2026-08-20T21:43:23Z",
+          "name": "ml-dsa-44-resource-main-observation-6315f49bbde6347bf09e9518e0b4ccc31347b963-clang-32419767106-1",
+          "numeric_checks_passed": 21,
+          "numeric_checks_total": 21,
+          "numeric_observation": {
+            "aggregate": {
+              "cpu_ns": 1173297728,
+              "wall_ns": 1173472276
+            },
+            "batches": [
+              {
+                "cpu_ns": 210330650,
+                "id": "mixed_rotating",
+                "max_sample_cpu_ns": 9077323,
+                "max_sample_wall_ns": 9077729,
+                "wall_ns": 210339271
+              },
+              {
+                "cpu_ns": 321750181,
+                "id": "valid_rotating",
+                "max_sample_cpu_ns": 12244522,
+                "max_sample_wall_ns": 12244759,
+                "wall_ns": 321769546
+              },
+              {
+                "cpu_ns": 321770054,
+                "id": "deep_reject_rotating",
+                "max_sample_cpu_ns": 16096929,
+                "max_sample_wall_ns": 16097287,
+                "wall_ns": 321788052
+              },
+              {
+                "cpu_ns": 319351051,
+                "id": "same_key_mixed",
+                "max_sample_cpu_ns": 12260734,
+                "max_sample_wall_ns": 12264374,
+                "wall_ns": 319478562
+              }
+            ],
+            "excluded_control": {
+              "cpu_ns": 15208,
+              "wall_ns": 23313
+            },
+            "first_call": {
+              "cpu_ns": 95792,
+              "wall_ns": 96845
+            },
+            "peak_rss_kib": 31820,
+            "status": "PASS"
+          },
+          "observation_sha256": "adb6d936568996d279300d39bc8398eeed0efd743ba32ee96a461d93ae6c9f86",
+          "report_sha256": "a8d4acec8ec0766d028cd0daafabaf6cf7827ef85a81eb0e5f2506c82bba9d0a",
+          "report_status": "PASS",
+          "size_in_bytes": 539642,
+          "stack_usage": {
+            "pqbtc_mldsa44_upstream_verify_bytes": 25016,
+            "pqbtc_mldsa44_verify_strict_bytes": 8,
+            "upstream_mld_total_alloc_44_verify_bytes": 24448
+          }
+        }
+      ],
+      "event": "push",
+      "head_sha": "6315f49bbde6347bf09e9518e0b4ccc31347b963",
+      "measurement_contract": {
+        "acceptance_basis_sha256": "2a5acb1914b4623a9f7bc34c4ac2a2eebce25be700622ae3e5eb94f223354761",
+        "additional_protected_main_samples_recorded_by_this_receipt_per_compiler": 1,
+        "additional_protected_main_samples_remaining_before_tightening_per_compiler": 1,
+        "additional_protected_main_samples_required_after_acceptance_basis_per_compiler": 2,
+        "batch_calls": 4287,
+        "completed_calls": 17149,
+        "corpus_bundle_sha256": "bdddfa050f356d76e41e32e635b5c6c15e03da8f6f175ecf01a214a6c9f32ebc",
+        "current_run_threshold_calibration": false,
+        "heap_calls": {
+          "aligned_alloc": 0,
+          "calloc": 0,
+          "free": 0,
+          "malloc": 0,
+          "posix_memalign": 0,
+          "realloc": 0
+        },
+        "numeric_limits": {
+          "aggregate_cpu_ns": 8000000000,
+          "aggregate_wall_ns": 20000000000,
+          "aggregation": "first_call_plus_four_batches_control_excluded",
+          "batch_sample_cpu_ns": 75000000,
+          "batch_sample_wall_ns": 200000000,
+          "first_call_cpu_ns": 10000000,
+          "first_call_wall_ns": 25000000,
+          "peak_rss_kib": 65536,
+          "per_batch_cpu_ns": 2000000000,
+          "per_batch_wall_ns": 5000000000,
+          "status": "ENFORCED_TEST_ONLY_LINUX_X86_64_GROSS_REGRESSION_CEILING"
+        },
+        "policy_sha256": "0d0ebc2a99a8b7611ee9e2133c273bb6b6aa88d926b9b8bbb75b2e9363b73b10",
+        "record_count": 240,
+        "resource_plan_sha256": "ea866e831ad2d07ec02c9e60d69d9d079d9877fd6eb797d13ddc35bc0e9aff68",
+        "sample_count": 31,
+        "thread_guard_bytes": 4096,
+        "thread_stack_bytes": 131072,
+        "total_frame_bytes": 884767
+      },
+      "path": ".github/workflows/ml-dsa-44-resource-envelope.yml",
+      "ref": "refs/heads/main",
+      "run_attempt": 1,
+      "run_completed_at": "2026-08-20T21:44:10Z",
+      "run_conclusion": "success",
+      "run_id": 32419767106,
+      "run_number": 22,
+      "run_started_at": "2026-08-20T21:30:43Z",
+      "trust": {
+        "baseline_guard_matches": true,
+        "label": "TRUSTED_MAIN_OBSERVATION",
+        "promotion_eligible": false,
+        "ref_protected": true,
+        "requires_companion_compilers": [
+          "clang",
+          "gcc"
+        ],
+        "requires_separate_numeric_policy_change": false,
+        "trusted_observation": true
+      }
+    }
+  }
+}

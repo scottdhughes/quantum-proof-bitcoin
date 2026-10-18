@@ -53,6 +53,12 @@ The workflow requires the independent C verifier to accept all seven signatures 
 - all 2,688 one-bit public-key mutations;
 - 42 structural or binding negatives, including truncation, extension, wrong messages, and wrong contexts.
 
+Both normal and ASan/UBSan campaigns also run fourteen native ABI checks: a valid
+baseline plus thirteen rejections for null pointers with positive lengths, invalid
+key/signature lengths, messages over 4,096 bytes, and contexts over 255 bytes.
+Each negative must return exactly `0` before the harness can publish success.
+These checks are separate from the frozen seven-vector mutation totals.
+
 The vectors and their SHA-256 identifiers are retained as a GitHub Actions artifact. They are not yet committed as a repository KAT corpus, so the project-wide `independent_kats` gate remains false.
 
 ## Independence Boundary
@@ -92,6 +98,23 @@ The dedicated workflow:
 ```
 
 performs exact upstream checkouts, builds the C verifier, generates the deterministic vectors, runs exhaustive mutation tests, reruns under ASan/UBSan, and retains the vector artifact.
+
+The harness validates the shared frozen manifest policy before importing upstream code.
+Both upstream directories must be dedicated pristine checkout roots: tracked bytes
+must match their pinned Git objects even when index flags hide changes, and staged,
+untracked or ignored build/import inputs are rejected. Source imports do not read or
+write bytecode caches. These are the same source-integrity checks used by the WOTS+C
+harness; shared preflight code does not change the independent C verifier boundary.
+
+Run reviewed upstream code in a disposable environment without credentials or wallet
+data. Keep build products and vector output outside the pinned source checkouts.
+Source validation is not an execution sandbox and does not protect against concurrent
+modification after preflight or a compromised compiler/runtime.
+
+Only ABI status `0` is a signature rejection and `1` is acceptance; any other value
+fails the campaign. Observed valid-case and mutation counts must match the frozen
+manifest evidence record before a PASS or vector artifact is published. An empty or
+partial campaign therefore cannot replace the seven-case result.
 
 The repository-level safety controls remain:
 

@@ -7,7 +7,6 @@ import ctypes
 import hashlib
 import importlib.util
 import json
-import subprocess
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -15,6 +14,7 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MANIFEST = REPO_ROOT / "contrib" / "shrincs" / "manifest.json"
 VECTOR_PROFILE = "pqbtc-shrincs-current-draft-stateless-kat-v0"
+MAX_CORPUS_BYTES = 64 * 1024
 
 
 class StatelessOracleError(ValueError):
@@ -31,24 +31,19 @@ def load_module(path: Path, name: str) -> ModuleType:
     require(spec is not None and spec.loader is not None, f"cannot load module from {path}")
     module = importlib.util.module_from_spec(spec)
     assert spec is not None and spec.loader is not None
-    spec.loader.exec_module(module)
+    exec(compile(path.read_bytes(), str(path), "exec", dont_inherit=True), module.__dict__)
     return module
 
 
+WOTSC_CHECKER = load_module(Path(__file__).with_name("check_libshrincs_wotsc.py"),
+                            "pqbtc_stateless_source_checks")
+
+
 def load_manifest(path: Path) -> dict[str, Any]:
-    data = json.loads(path.read_text(encoding="utf-8"))
-    require(isinstance(data, dict), "manifest root must be an object")
-    return data
-
-
-def git_head(path: Path) -> str:
-    result = subprocess.run(
-        ["git", "-C", str(path), "rev-parse", "HEAD"],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout.strip()
+    try:
+        return WOTSC_CHECKER.load_manifest(path)
+    except WOTSC_CHECKER.CompatibilityError as exc:
+        raise StatelessOracleError(str(exc)) from exc
 
 
 def kdf(label: bytes, length: int) -> bytes:
@@ -88,8 +83,7 @@ def verify_with_c(verify, public_key: bytes, signature: bytes, message: bytes, c
     signature_buffer = c_buffer(signature)
     message_buffer = c_buffer(message)
     context_buffer = c_buffer(context)
-    return (
-        verify(
+    status = verify(
             public_key_buffer,
             len(public_key),
             signature_buffer,
@@ -99,8 +93,8 @@ def verify_with_c(verify, public_key: bytes, signature: bytes, message: bytes, c
             context_buffer,
             len(context),
         )
-        == 1
-    )
+    require(status in (0, 1), f"native verifier returned invalid ABI status: {status}")
+    return status == 1
 
 
 def create_vectors(reference: ModuleType) -> list[dict[str, Any]]:
@@ -171,7 +165,13 @@ def write_vectors(path: Path, manifest: dict[str, Any], vectors: list[dict[str, 
 
 
 def read_vectors(path: Path, manifest: dict[str, Any]) -> list[dict[str, Any]]:
-    data = json.loads(path.read_text(encoding="utf-8"))
+    with path.open("rb") as stream:
+        raw = stream.read(MAX_CORPUS_BYTES + 1)
+    require(len(raw) <= MAX_CORPUS_BYTES, "retained vector corpus exceeds size limit")
+    try:
+        data = json.loads(raw.decode("utf-8"))
+    except (ValueError, UnicodeError) as exc:
+        raise StatelessOracleError("invalid retained vector JSON") from exc
     require(isinstance(data, dict), "vector corpus root must be an object")
     require(data.get("profile") == VECTOR_PROFILE, "vector profile drifted")
     require(
@@ -183,7 +183,7 @@ def read_vectors(path: Path, manifest: dict[str, Any]) -> list[dict[str, Any]]:
         "vector libshrincs pin drifted",
     )
     vectors = data.get("vectors")
-    require(isinstance(vectors, list) and len(vectors) == 2, "stateless vector set drifted")
+    validate_vectors(vectors)
     return vectors
 
 
@@ -194,6 +194,75 @@ def bytes_from_vector(vector: dict[str, Any], field: str) -> bytes:
         return bytes.fromhex(value)
     except ValueError as exc:
         raise StatelessOracleError(f"{vector.get('name')}.{field} is invalid hex") from exc
+
+
+def validate_vectors(vectors: Any) -> None:
+    require(isinstance(vectors, list) and len(vectors) == 2, "stateless vector set drifted")
+    definitions = (
+        ("stateless_deterministic_empty_context", "deterministic",
+         kdf(b"pqbtc-shrincs-stateless/message/0", 32), b"", None),
+        ("stateless_fixed_randomizer_context", "fixed-randomizer",
+         kdf(b"pqbtc-shrincs-stateless/message/1", 47),
+         b"PQBTC/SHRINCS/stateless-recovery-v0",
+         kdf(b"pqbtc-shrincs-stateless/opt-rand/1", 16).hex()),
+    )
+    keys = []
+    for vector, (name, mode, message, context, randomizer) in zip(vectors, definitions):
+        require(isinstance(vector, dict), "stateless vector must be an object")
+        require(vector.get("name") == name, "stateless case identity/order drifted")
+        require(vector.get("mode") == mode, f"{name}: mode drifted")
+        require(vector.get("opt_rand") == randomizer, f"{name}: randomizer drifted")
+        require(bytes_from_vector(vector, "message") == message, f"{name}: message drifted")
+        require(bytes_from_vector(vector, "context") == context, f"{name}: context drifted")
+        for field, size in (("public_key", 48), ("signature", 5776)):
+            value = bytes_from_vector(vector, field)
+            require(len(value) == size, f"{name}: {field} size drifted")
+            require(vector.get(f"{field}_sha256") == hashlib.sha256(value).hexdigest(),
+                    f"{name}: {field} hash differs from retained bytes")
+        keys.append(bytes_from_vector(vector, "public_key"))
+    require(keys[0] == keys[1], "stateless vectors must share the generated public key")
+
+
+def exercise_native_abi_cases(verify, vector: dict[str, Any]) -> int:
+    """Exercise pointer/length guards through the real ABI, including under sanitizers."""
+    key = bytes_from_vector(vector, "public_key")
+    signature = bytes_from_vector(vector, "signature")
+    message = bytes_from_vector(vector, "message")
+    context = bytes_from_vector(vector, "context")
+    # Back even the deliberately oversized lengths with readable storage.
+    key_buffer = c_buffer(key + b"\0")
+    signature_buffer = c_buffer(signature + b"\0")
+    message_buffer = c_buffer(message)
+    context_buffer = c_buffer(context)
+    oversized_message = c_buffer(bytes(4097))
+    oversized_context = c_buffer(bytes(256))
+    valid = (key_buffer, len(key), signature_buffer, len(signature),
+             message_buffer, len(message), context_buffer, len(context))
+    require(verify(*valid) == 1, "native ABI valid baseline rejected")
+    cases = []
+    for pointer in (0, 2):
+        args = list(valid)
+        args[pointer] = None
+        cases.append(tuple(args))
+    for length in (0, 47, 49):
+        args = list(valid)
+        args[1] = length
+        cases.append(tuple(args))
+    for length in (0, 554, 5775, 5777):
+        args = list(valid)
+        args[3] = length
+        cases.append(tuple(args))
+    for pointer in (4, 6):
+        args = list(valid)
+        args[pointer:pointer + 2] = (None, 1)
+        cases.append(tuple(args))
+    for pointer, buffer, size in ((4, oversized_message, 4097), (6, oversized_context, 256)):
+        args = list(valid)
+        args[pointer:pointer + 2] = (buffer, size)
+        cases.append(tuple(args))
+    for index, args in enumerate(cases):
+        require(verify(*args) == 0, f"native ABI boundary case {index} did not reject with zero")
+    return 1 + len(cases)
 
 
 def require_rejects(verify, vector: dict[str, Any], public_key: bytes, signature: bytes, message: bytes, context: bytes, label: str) -> None:
@@ -278,14 +347,10 @@ def exercise_negative_cases(verify, vector: dict[str, Any], exhaustive: bool) ->
 
 
 def validate_pins(manifest: dict[str, Any], shrincs_bip: Path, libshrincs: Path) -> None:
-    upstream = manifest.get("upstream")
-    require(isinstance(upstream, dict), "manifest upstream object is missing")
-    draft = upstream.get("draft_specification")
-    lib = upstream.get("libshrincs_wotsc")
-    require(isinstance(draft, dict), "draft specification pin is missing")
-    require(isinstance(lib, dict), "libshrincs pin is missing")
-    require(git_head(shrincs_bip) == draft.get("commit"), "shrincs-bip checkout does not match manifest")
-    require(git_head(libshrincs) == lib.get("commit"), "libshrincs checkout does not match manifest")
+    try:
+        WOTSC_CHECKER.validate_paths(manifest, libshrincs, shrincs_bip)
+    except WOTSC_CHECKER.CompatibilityError as exc:
+        raise StatelessOracleError(str(exc)) from exc
 
 
 def main() -> int:
@@ -309,8 +374,7 @@ def main() -> int:
     else:
         reference = load_module(args.shrincs_bip / "impl" / "shrincs.py", "pqbtc_stateless_reference")
         vectors = create_vectors(reference)
-        if args.vectors_out is not None:
-            write_vectors(args.vectors_out, manifest, vectors)
+    validate_vectors(vectors)
 
     signature_mutations = 0
     public_key_mutations = 0
@@ -341,8 +405,20 @@ def main() -> int:
         "signature_bit_mutations_rejected": signature_mutations,
         "public_key_bit_mutations_rejected": public_key_mutations,
         "structural_negatives_rejected": structural_negatives,
-        "result": "PASS",
     }
+    expected = manifest["component_evidence"]["stateless_hypertree"]
+    for field, manifest_field in (("cases", "kat_case_count"),
+                                  ("valid_signatures", "valid_signatures_verified"),
+                                  ("signature_bit_mutations_rejected", "signature_bit_mutations_rejected"),
+                                  ("public_key_bit_mutations_rejected", "public_key_bit_mutations_rejected"),
+                                  ("structural_negatives_rejected", "structural_negatives_rejected")):
+        require(result[field] == expected[manifest_field],
+                f"incomplete stateless campaign: {field}={result[field]}")
+    result["native_abi_checks"] = exercise_native_abi_cases(verify, vectors[0])
+    require(result["native_abi_checks"] == 14, "incomplete native ABI campaign")
+    if args.vectors_out is not None:
+        write_vectors(args.vectors_out, manifest, vectors)
+    result["result"] = "PASS"
     if args.json:
         print(json.dumps(result, sort_keys=True))
     else:

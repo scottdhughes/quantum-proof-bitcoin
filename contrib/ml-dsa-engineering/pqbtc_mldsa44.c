@@ -69,9 +69,11 @@ static size_t g_test_entropy_size;
 static int g_test_backend_result;
 static int g_test_force_signature_length;
 static int g_test_force_verify_failure;
+static int g_test_corrupt_candidate_before_verify;
 static atomic_size_t g_test_zeroized_bytes;
 static atomic_size_t g_test_entropy_requests;
 static atomic_size_t g_test_entropy_requested_bytes;
+static atomic_int g_test_last_candidate_zeroized;
 #if !defined(_WIN32)
 static atomic_int g_test_fork_prepare_entered;
 static atomic_int g_test_signing_lock_held;
@@ -373,6 +375,9 @@ int pqbtc_mldsa44_sign_hedged(
         goto cleanup;
     }
 
+#ifdef PQBTC_MLDSA44_TESTING
+    if (g_test_corrupt_candidate_before_verify) candidate[0] ^= 1U;
+#endif
     backend_result = pqbtc_mldsa44_upstream_verify(
         candidate, candidate_size, message, message_size, context, context_size, public_key);
 #ifdef PQBTC_MLDSA44_TESTING
@@ -390,6 +395,12 @@ int pqbtc_mldsa44_sign_hedged(
 cleanup:
     g_entropy_active = 0;
     pqbtc_mldsa44_zeroize(candidate, sizeof(candidate));
+#ifdef PQBTC_MLDSA44_TESTING
+    atomic_store_explicit(
+        &g_test_last_candidate_zeroized,
+        ConstantTimeAllZero(candidate, sizeof(candidate)),
+        memory_order_relaxed);
+#endif
     UnlockSigningModule();
     return result;
 }
@@ -438,9 +449,11 @@ void pqbtc_mldsa44_test_reset(void)
     g_test_backend_result = 0;
     g_test_force_signature_length = 0;
     g_test_force_verify_failure = 0;
+    g_test_corrupt_candidate_before_verify = 0;
     atomic_store_explicit(&g_test_zeroized_bytes, 0, memory_order_relaxed);
     atomic_store_explicit(&g_test_entropy_requests, 0, memory_order_relaxed);
     atomic_store_explicit(&g_test_entropy_requested_bytes, 0, memory_order_relaxed);
+    atomic_store_explicit(&g_test_last_candidate_zeroized, 0, memory_order_relaxed);
 #if !defined(_WIN32)
     atomic_store_explicit(&g_test_fork_prepare_entered, 0, memory_order_relaxed);
     atomic_store_explicit(&g_test_signing_lock_held, 0, memory_order_relaxed);
@@ -523,6 +536,13 @@ void pqbtc_mldsa44_test_force_verify_failure(int enabled)
     UnlockSigningModule();
 }
 
+void pqbtc_mldsa44_test_corrupt_candidate_before_verify(int enabled)
+{
+    LockSigningModule();
+    g_test_corrupt_candidate_before_verify = enabled != 0;
+    UnlockSigningModule();
+}
+
 size_t pqbtc_mldsa44_test_zeroized_bytes(void)
 {
     return atomic_load_explicit(&g_test_zeroized_bytes, memory_order_relaxed);
@@ -536,6 +556,11 @@ size_t pqbtc_mldsa44_test_entropy_requests(void)
 size_t pqbtc_mldsa44_test_entropy_requested_bytes(void)
 {
     return atomic_load_explicit(&g_test_entropy_requested_bytes, memory_order_relaxed);
+}
+
+int pqbtc_mldsa44_test_last_candidate_zeroized(void)
+{
+    return atomic_load_explicit(&g_test_last_candidate_zeroized, memory_order_relaxed);
 }
 
 int pqbtc_mldsa44_test_keypair_from_seed(

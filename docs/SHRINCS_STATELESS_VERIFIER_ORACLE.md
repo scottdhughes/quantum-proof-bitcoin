@@ -2,7 +2,7 @@
 
 ## Status: INDEPENDENT DIFFERENTIAL PROTOTYPE - CONSENSUS DISABLED
 ## Spec-ID: SHRINCS-STATELESS-VERIFIER-ORACLE-v1
-## Evidence-Updated: 2026-08-16
+## Evidence-Updated: 2026-10-17
 ## Consensus-Relevant: NO
 
 ## Decision
@@ -50,6 +50,27 @@ The rejection contract requires:
 
 The same retained vectors are then verified under ASan/UBSan so the expensive Python key generation and signing are not repeated.
 
+Both runs additionally require fourteen native ABI checks: a valid baseline;
+null public-key and signature pointers; zero, short and long key lengths;
+zero, stateful-sized, short and long signature lengths; null message/context
+pointers with positive lengths; and oversized messages/contexts. Rejections
+must return exactly zero, and the ordinary verifier ABI must return only zero
+or one. These checks are part of the committed harness, not an external receipt.
+
+Before importing the draft model or invoking the native library, the harness
+validates the frozen manifest and both exact upstream checkout roots and pins.
+It compares tracked source bytes to the pinned Git blobs, including files hidden
+by index flags, and rejects staged, untracked and ignored source additions.
+The source loader neither consumes nor creates cached Python bytecode.
+
+Retained JSON is bounded to 64 KiB and must contain the exact two ordered cases,
+their fixed message/context/randomizer metadata, the shared public key, exact
+serialized lengths and matching per-vector byte hashes. These hashes detect
+corruption; they are not authentication or immutable committed KATs. Observed
+campaign totals must match the frozen manifest, and all native checks must pass,
+before a new corpus or a PASS result is published. Failed campaigns do not
+create or overwrite a corpus output.
+
 ## Independence Boundary
 
 The C verifier:
@@ -87,6 +108,14 @@ The dedicated workflow:
 ```
 
 performs exact upstream checkouts, builds the independent C verifier, generates deterministic recovery vectors, runs the differential and mutation corpus, repeats with sanitizers, and retains the vectors as an artifact.
+
+Local upstream execution uses disposable, network-disabled, nonprivileged tooling
+containers with read-only source/root mounts, temporary builds and one owned
+artifact-output mount. This containment is local test infrastructure, not a
+published node image or evidence of production isolation. The hosted workflow
+runs on its dedicated ephemeral runner; do not infer the local container's
+boundary from hosted CI alone. PR/synthetic-merge and trusted-main receipts
+remain separately bound to their actual runtime revisions.
 
 The repository-level safety controls remain:
 

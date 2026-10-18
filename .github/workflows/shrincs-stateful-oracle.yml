@@ -7,6 +7,7 @@ on:
       - "contrib/shrincs-ref/**"
       - "ci/test/test_shrincs_candidate.py"
       - "ci/test/test_shrincs_wotsc_oracle.py"
+      - "ci/test/test_shrincs_stateful_oracle.py"
       - ".github/workflows/shrincs-stateful-oracle.yml"
   push:
     branches:
@@ -16,6 +17,7 @@ on:
       - "contrib/shrincs-ref/**"
       - "ci/test/test_shrincs_candidate.py"
       - "ci/test/test_shrincs_wotsc_oracle.py"
+      - "ci/test/test_shrincs_stateful_oracle.py"
       - ".github/workflows/shrincs-stateful-oracle.yml"
   workflow_dispatch:
 
@@ -52,6 +54,7 @@ jobs:
           python3 contrib/shrincs/check_manifest.py --json
           python3 -m unittest discover -s ci/test -p 'test_shrincs_candidate.py'
           python3 -m unittest discover -s ci/test -p 'test_shrincs_wotsc_oracle.py'
+          python3 -m unittest discover -s ci/test -p 'test_shrincs_stateful_oracle.py'
 
       - name: Build independent stateful verifier
         run: |
