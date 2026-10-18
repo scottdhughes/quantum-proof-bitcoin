@@ -1,0 +1,40 @@
+{
+  "fuzz": {
+    "artifact_id": 9270501589,
+    "artifact_zip_sha256": "dc536e73f952d462b53a83fa0d2b1a7b61a89bc6086a84f3b6242d052a62640c",
+    "average_exec_per_sec": 658,
+    "coverage_edges": 129,
+    "executed_units": 79712,
+    "feature_count": 244,
+    "findings": 0,
+    "new_units_added": 76,
+    "peak_rss_mb": 387,
+    "seconds": 121,
+    "seed_corpus_bytes": 147216,
+    "seed_corpus_files": 85
+  },
+  "head_commit": "83c9236eb14380e56bef8cf038195df797684cf5",
+  "profile": "pqbtc-shrincs-kat-resource-fuzz-evidence-v0",
+  "pull_request": 234,
+  "resource": {
+    "artifact_id": 9270473445,
+    "artifact_zip_sha256": "9ce172f03ca5d235bd0346d433ac5ad5822c74d5e744b69e0d109ba0e31475f4",
+    "early_rejections_zero_work": 11,
+    "maximum_allocation_bytes": {
+      "stateful": 4426,
+      "stateless": 4417
+    },
+    "maximum_static_frame_bytes": 1024,
+    "maximum_static_frame_function": "pqbtc_shrincs_stateless_verify",
+    "resource_report_sha256": "55cb94f4de1a7effc65306427cacb18d458ae80884705770a453b40b48bab557",
+    "resource_vectors_sha256": "c79cd786bf3cefcce7586cfb018beb3da751ee949b42d3e8afad9e05ea40540a",
+    "stack_usage_sha256": "61ac57d2dbde70c1fbe4eafd4e5d21cddd54aca338f6589869169ec5dada762d",
+    "stateful_global_maximum_compressions": 1074,
+    "stateful_maximum_vector_measured_compressions": 1074,
+    "stateless_global_maximum_compressions": 5601,
+    "stateless_maximum_input_vector_measured_compressions": 3081,
+    "valid_vectors_measured": 11
+  },
+  "schema_version": 1,
+  "workflow_run": 31973634437
+}
