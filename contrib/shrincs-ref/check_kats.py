@@ -107,6 +107,22 @@ def load_lock(path: Path = DEFAULT_LOCK) -> dict[str, Any]:
         data.get("libshrincs_commit") == EXPECTED_LIBSHRINCS_COMMIT,
         "KAT libshrincs pin drifted",
     )
+    origin = data.get("evidence_source")
+    require(origin == {
+        "draft_commit": EXPECTED_DRAFT_COMMIT,
+        "libshrincs_commit": EXPECTED_LIBSHRINCS_COMMIT,
+        "method": "PINNED_MODEL_DIFFERENTIAL_NATIVE_RECOVERY_AND_DATA_AUDIT",
+        "profile": "pqbtc-shrincs-v1",
+        "qualified_remote_artifact": False,
+        "scope": "CONTAINED_LOCAL_GENERATION_NOT_REMOTE_QUALIFICATION",
+    } and origin["qualified_remote_artifact"] is False,
+        "KAT evidence source must be the local v1 generation, not historical or remote evidence")
+    historical = data.get("historical_evidence")
+    require(isinstance(historical, list) and historical
+            and all(isinstance(entry, dict)
+                    and entry.get("profile") == "pqbtc-shrincs-v0"
+                    and entry.get("scope") == "HISTORICAL_ONLY_NOT_V1_CORPUS_ORIGIN"
+                    for entry in historical), "KAT historical evidence scope drifted")
 
     corpora = data.get("corpora")
     require(

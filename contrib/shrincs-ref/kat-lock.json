@@ -22,12 +22,22 @@
   },
   "draft_commit": "a5891ec5b360a732c097e1d6af1ae59515a2560a",
   "evidence_source": {
+    "draft_commit": "a5891ec5b360a732c097e1d6af1ae59515a2560a",
+    "libshrincs_commit": "911c583cc9c4e5e54a91695a1c6d2a114968715c",
+    "method": "PINNED_MODEL_DIFFERENTIAL_NATIVE_RECOVERY_AND_DATA_AUDIT",
+    "profile": "pqbtc-shrincs-v1",
+    "qualified_remote_artifact": false,
+    "scope": "CONTAINED_LOCAL_GENERATION_NOT_REMOTE_QUALIFICATION"
+  },
+  "historical_evidence": [{
     "artifact_id": 9270125263,
     "artifact_zip_sha256": "abe674935f6c5903bf9e556824068487a31d60087b47e2a682334386dd30be77",
     "head_commit": "80df35097fdc1b9ecfd18bb4cf5f14083ac3dfac",
     "pull_request": 232,
+    "profile": "pqbtc-shrincs-v0",
+    "scope": "HISTORICAL_ONLY_NOT_V1_CORPUS_ORIGIN",
     "workflow_run": 31972304850
-  },
+  }],
   "libshrincs_commit": "911c583cc9c4e5e54a91695a1c6d2a114968715c",
   "profile": "pqbtc-shrincs-current-draft-kat-lock-v1",
   "resource_vectors": {

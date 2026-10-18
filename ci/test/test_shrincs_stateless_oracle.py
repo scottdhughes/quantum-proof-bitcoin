@@ -42,6 +42,15 @@ def fixture_vectors() -> list[dict]:
 
 
 class ShrincsStatelessOracleTests(unittest.TestCase):
+    def test_workflow_preflight_precedes_upstream_compilation(self) -> None:
+        workflow = (REPO_ROOT / ".github/workflows/shrincs-stateless-oracle.yml").read_text()
+        self.assertIn("--preflight-only", workflow)
+        self.assertLess(workflow.index("--preflight-only"), workflow.index("          cc "))
+        preflight = workflow[:workflow.index("          cc ")]
+        self.assertIn("contrib/shrincs-ref/generate_resource_vectors.py", preflight)
+        self.assertIn("--libshrincs upstream/libshrincs", preflight)
+        self.assertIn("--shrincs-bip upstream/shrincs-bip", preflight)
+
     def manifest(self) -> dict:
         return {
             "upstream": {

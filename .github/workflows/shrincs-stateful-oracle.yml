@@ -56,6 +56,13 @@ jobs:
           python3 -m unittest discover -s ci/test -p 'test_shrincs_wotsc_oracle.py'
           python3 -m unittest discover -s ci/test -p 'test_shrincs_stateful_oracle.py'
 
+      - name: Validate pristine sources before compilation
+        run: |
+          python3 contrib/shrincs-ref/generate_resource_vectors.py \
+            --libshrincs upstream/libshrincs \
+            --shrincs-bip upstream/shrincs-bip \
+            --preflight-only --json
+
       - name: Build independent stateful verifier
         run: |
           mkdir -p build/shrincs-stateful
@@ -99,7 +106,9 @@ jobs:
             --libshrincs upstream/libshrincs \
             --shrincs-bip upstream/shrincs-bip \
             --library build/shrincs-stateful/libpqbtc_shrincs_stateful_oracle_asan.so \
+            --vectors-out build/shrincs-stateful/stateful-vectors-sanitized.json \
             --json
+          cmp build/shrincs-stateful/stateful-vectors.json build/shrincs-stateful/stateful-vectors-sanitized.json
 
       - name: Upload deterministic stateful vectors
         uses: actions/upload-artifact@v4
