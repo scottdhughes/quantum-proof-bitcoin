@@ -63,6 +63,15 @@ def stateless_fixtures() -> list[dict]:
 
 
 class FullEvidenceContractTests(unittest.TestCase):
+    def setUp(self):
+        # Synthetic byte fixtures exercise validation/control flow, not crypto.
+        # The real unpatched frozen table is qualified by contained native replay.
+        hashes = {v["name"]: (v["public_key_sha256"], v["signature_sha256"])
+                  for v in stateful_fixtures() + stateless_fixtures()}
+        patch = mock.patch.object(CHECKER, "FROZEN_VECTOR_HASHES", hashes, create=True)
+        patch.start()
+        self.addCleanup(patch.stop)
+
     def valid_only_verifier(self, *args):
         if args[1] != 48 or args[3] not in (554, 570, 586, 602, 5776) or args[5] > 4096 or args[7] > 255:
             return 0
@@ -118,6 +127,20 @@ class FullEvidenceContractTests(unittest.TestCase):
                 data["vectors"][0][field] = value
                 with self.assertRaises(CHECKER.FullVerifierError):
                     self.read(data)
+
+    def test_self_rehashed_substitutions_cannot_replace_frozen_vectors(self):
+        for mode in ("stateful", "stateless"):
+            for field in ("public_key", "signature"):
+                with self.subTest(mode=mode, field=field):
+                    data = self.corpus(mode)
+                    # Rewrite every key to retain each group's shared-key invariant.
+                    for vector in data["vectors"]:
+                        value = bytes.fromhex(vector[field])
+                        value = bytes([value[0] ^ 1]) + value[1:]
+                        vector[field] = value.hex()
+                        vector[field + "_sha256"] = hashlib.sha256(value).hexdigest()
+                    with self.assertRaisesRegex(CHECKER.FullVerifierError, "frozen.*identity"):
+                        self.read(data)
 
     def test_native_errors_are_not_counted_as_invalid_signatures(self):
         for status in (-1, 2):

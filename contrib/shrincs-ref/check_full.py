@@ -18,6 +18,23 @@ STATELESS_BYTES = 5776
 MAX_CORPUS_BYTES = 64 * 1024
 DEFAULT_MANIFEST = Path(__file__).resolve().parents[2] / "contrib/shrincs/manifest.json"
 
+# Independently reproduced deterministic retained bytes at the frozen upstream pins.
+# These identity locks are evidence commitments, not a cryptographic-security claim.
+_UNBALANCED_KEY = "8280aff03f7871cb7730cfa263c7bfb9c5d37b4520fc67c2043b7343e5829433"
+_BALANCED_KEY = "b76c947077dcb9936da88efac9b3b0250a9d64a5bbf796417a36060f8c9a0f9d"
+_STATELESS_KEY = "9d12ad91a235b729e9246a7dc0a9b3b6b42d2178e987949e333f6a8c431eafa3"
+FROZEN_VECTOR_HASHES = {
+    "uxmss_depth4_state0": (_UNBALANCED_KEY, "ba6102dc63d3cb5a3e46416a96cf3bbf5658058e917a30252f18b6d8f1190f73"),
+    "uxmss_depth4_state1": (_UNBALANCED_KEY, "38e72efa1f408626dd7975226dde1a11f1815a905e2fc852dd652e62098a1ba2"),
+    "uxmss_depth4_state3": (_UNBALANCED_KEY, "1be2c5ba49ab46266ade1136e6a79ca1345ad4c2220b35c178b3c71240e7cce7"),
+    "uxmss_depth4_state4": (_UNBALANCED_KEY, "4103a0731fb927b0bf54fcd61bf55ab1f9ee617b2deb74eeb26699049fe6ed5b"),
+    "bxmss_depth3_state0": (_BALANCED_KEY, "bd4e4ded566ecf36055fa393616bb58be8ab449b15603c6523e6e3c0ad48f9c6"),
+    "bxmss_depth3_state3": (_BALANCED_KEY, "56572714dce4fec395a64744620b91132c1d53911dbf2af6d0b42bce7320544d"),
+    "bxmss_depth3_state7": (_BALANCED_KEY, "dce7d81ce385e8d87f90083367131bdcaee26925c9641940ce31808c753556ec"),
+    "stateless_deterministic_empty_context": (_STATELESS_KEY, "f9f6f4ee342d83a5cf858ef307c34d67fd8cc7db932aa561fdbb3df5b03b2819"),
+    "stateless_fixed_randomizer_context": (_STATELESS_KEY, "aef848f6daed79c84607e0a9489a2c0a4c2b4ff96f3a9293a4f6e9c4b6b622c0"),
+}
+
 
 def load_module(filename: str, name: str):
     path = Path(__file__).with_name(filename)
@@ -58,6 +75,7 @@ def validate_vectors(vectors: Any, mode: str) -> None:
             STATELESS_CHECKER.validate_vectors(vectors)
         except STATELESS_CHECKER.StatelessOracleError as exc:
             raise FullVerifierError(str(exc)) from exc
+        validate_frozen_identity(vectors)
         return
     require(mode == "stateful", "unknown corpus mode")
     require(len(vectors) == 7, "stateful vector set drifted")
@@ -84,6 +102,14 @@ def validate_vectors(vectors: Any, mode: str) -> None:
                     f"{name}: {field} hash differs from retained bytes")
         require(structure not in keys or keys[structure] == key, f"{name}: shared public key drifted")
         keys[structure] = key
+    validate_frozen_identity(vectors)
+
+
+def validate_frozen_identity(vectors: list[dict[str, Any]]) -> None:
+    for vector in vectors:
+        observed = (vector["public_key_sha256"], vector["signature_sha256"])
+        require(observed == FROZEN_VECTOR_HASHES.get(vector["name"]),
+                f"{vector['name']}: frozen retained-vector identity drifted")
 
 
 def load_manifest(path: Path) -> dict[str, Any]:
