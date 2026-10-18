@@ -26,9 +26,11 @@ PQBTC_MLDSA44_API int pqbtc_mldsa44_test_set_entropy(
 PQBTC_MLDSA44_API void pqbtc_mldsa44_test_force_backend_result(int result);
 PQBTC_MLDSA44_API void pqbtc_mldsa44_test_force_signature_length(int enabled);
 PQBTC_MLDSA44_API void pqbtc_mldsa44_test_force_verify_failure(int enabled);
+PQBTC_MLDSA44_API void pqbtc_mldsa44_test_corrupt_candidate_before_verify(int enabled);
 PQBTC_MLDSA44_API size_t pqbtc_mldsa44_test_zeroized_bytes(void);
 PQBTC_MLDSA44_API size_t pqbtc_mldsa44_test_entropy_requests(void);
 PQBTC_MLDSA44_API size_t pqbtc_mldsa44_test_entropy_requested_bytes(void);
+PQBTC_MLDSA44_API int pqbtc_mldsa44_test_last_candidate_zeroized(void);
 
 #if !defined(_WIN32)
 PQBTC_MLDSA44_API int pqbtc_mldsa44_test_hold_signing_lock_for_fork(void);

@@ -57,6 +57,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Verify toolchain
@@ -72,50 +73,253 @@ jobs:
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
-          ARTIFACT_NAME: ml-dsa-44-sustained-${{ matrix.artifact }}
+          ARTIFACT_VARIANT: ${{ matrix.artifact }}
+          ARTIFACT_PREFIX: ml-dsa-44-sustained-v2-${{ matrix.artifact }}
+          RETAINED_WORKFLOW_PATH: .github/workflows/ml-dsa-44-sustained-fuzz.yml
           PRIOR_DIR: ${{ runner.temp }}/ml-dsa-44-prior
+          SANITIZER: ${{ matrix.sanitizer }}
+          OUTPUT_DIR: ${{ runner.temp }}/ml-dsa-44-fuzz-output
         run: |
           set -euo pipefail
-          previous_run_and_attempt="$(
-            gh run list \
-              --repo "$GITHUB_REPOSITORY" \
-              --workflow ml-dsa-44-sustained-fuzz.yml \
-              --branch main \
-              --status success \
-              --limit 1 \
-              --json databaseId,attempt \
-              --jq '.[0] | select(.) | [.databaseId, .attempt] | @tsv'
-          )"
-          if [[ -z "$previous_run_and_attempt" ]]; then
-            echo "No prior successful sustained campaign is available"
-            exit 0
-          fi
-          read -r previous_run previous_attempt <<< "$previous_run_and_attempt"
-          artifact_name="$ARTIFACT_NAME-$previous_run-$previous_attempt"
+          record_restore_failure() {
+            status_code=$?
+            trap - EXIT
+            if (( status_code == 0 )); then
+              return
+            fi
+            set +e
+            mkdir -p "$OUTPUT_DIR"
+            python3 - "$OUTPUT_DIR/retained-preflight.json" "$status_code" <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import sys
+
+          report = {
+              "schema_version": 1,
+              "status": "fail",
+              "phase": "retained-corpus-preflight",
+              "return_code": int(sys.argv[2]),
+              "repository": os.environ["GITHUB_REPOSITORY"],
+              "repository_head": os.environ["GITHUB_SHA"],
+              "event": os.environ["GITHUB_EVENT_NAME"],
+              "run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
+              "sanitizer": os.environ["SANITIZER"],
+          }
+          Path(sys.argv[1]).write_text(
+              json.dumps(report, indent=2, sort_keys=True) + "\n",
+              encoding="utf8",
+          )
+          PY
+            (
+              cd "$OUTPUT_DIR"
+              sha256sum retained-preflight.json > SHA256SUMS
+            )
+            exit "$status_code"
+          }
+          trap record_restore_failure EXIT
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
           mkdir -p "$PRIOR_DIR"
-          if ! gh run download "$previous_run" \
-            --repo "$GITHUB_REPOSITORY" \
-            --name "$artifact_name" \
-            --dir "$PRIOR_DIR"; then
-            echo "::warning title=Corpus restore unavailable::Could not download $artifact_name"
-            exit 0
+          candidate_runs="$PRIOR_DIR/candidate-runs.tsv"
+          : > "$candidate_runs"
+          for source_event in schedule workflow_dispatch; do
+            gh api --paginate \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "/repos/$GITHUB_REPOSITORY/actions/workflows/ml-dsa-44-sustained-fuzz.yml/runs?branch=main&event=$source_event&status=success&per_page=100" \
+              --jq '.workflow_runs[] | [.created_at, (.id | tostring), (.run_attempt | tostring), .head_sha] | @tsv' \
+              >> "$candidate_runs"
+          done
+          LC_ALL=C sort -t $'\t' -k1,1r -k2,2nr \
+            "$candidate_runs" -o "$candidate_runs"
+
+          source_run=""
+          source_attempt=""
+          source_head=""
+          artifact_id=""
+          artifact_name=""
+          selected_v2=false
+          while IFS=$'\t' read -r _created_at candidate_run \
+            candidate_attempt candidate_head; do
+            if [[ -z "$candidate_run" ]]; then
+              continue
+            fi
+            [[ "$candidate_run" =~ ^[0-9]+$ ]]
+            [[ "$candidate_attempt" =~ ^[0-9]+$ ]]
+            [[ "$candidate_head" =~ ^[0-9a-f]{40}$ ]]
+            if [[ "$candidate_run" == "$GITHUB_RUN_ID" ]]; then
+              continue
+            fi
+            if ! git merge-base --is-ancestor "$candidate_head" "$GITHUB_SHA"; then
+              echo "Newest retained-source candidate is not ancestral: $candidate_head" >&2
+              exit 1
+            fi
+            candidate_workflow="$PRIOR_DIR/workflow-$candidate_head.yml"
+            git show "$candidate_head:$RETAINED_WORKFLOW_PATH" \
+              > "$candidate_workflow"
+            candidate_requires_v2=false
+            if grep -Fq \
+              'ARTIFACT_PREFIX: ml-dsa-44-sustained-v2-' \
+              "$candidate_workflow"; then
+              candidate_requires_v2=true
+            fi
+            candidate_name="$ARTIFACT_PREFIX-$candidate_run-$candidate_attempt"
+            candidate_artifacts="$PRIOR_DIR/artifacts-$candidate_run-$candidate_attempt.json"
+            gh api \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "/repos/$GITHUB_REPOSITORY/actions/runs/$candidate_run/artifacts?per_page=100" \
+              > "$candidate_artifacts"
+            matching_count="$(
+              jq --arg name "$candidate_name" \
+                '[.artifacts[] | select(.name == $name)] | length' \
+                "$candidate_artifacts"
+            )"
+            if (( matching_count == 0 )); then
+              if [[ "$candidate_requires_v2" == "true" ]]; then
+                echo "Required v2 artifact is missing from run $candidate_run: $candidate_name" >&2
+                exit 1
+              fi
+              continue
+            fi
+            if [[ "$candidate_requires_v2" != "true" ]]; then
+              echo "Unexpected v2 artifact predates the committed v2 contract: $candidate_name" >&2
+              exit 1
+            fi
+            if (( matching_count != 1 )); then
+              echo "Expected exactly one artifact named $candidate_name; found $matching_count" >&2
+              exit 1
+            fi
+            source_run="$candidate_run"
+            source_attempt="$candidate_attempt"
+            source_head="$candidate_head"
+            artifact_name="$candidate_name"
+            artifact_id="$(
+              jq -er --arg name "$candidate_name" \
+                '.artifacts[] | select(.name == $name) | .id' \
+                "$candidate_artifacts"
+            )"
+            [[ "$artifact_id" =~ ^[0-9]+$ ]]
+            selected_v2=true
+            break
+          done < "$candidate_runs"
+
+          legacy_digest=""
+          legacy_size=""
+          if [[ "$selected_v2" != "true" ]]; then
+            source_run=32924009052
+            source_attempt=1
+            source_head=0fa8f5fc4321f057fb758e4c2dc39b790023943c
+            case "$SANITIZER" in
+              address-undefined)
+                test "$ARTIFACT_VARIANT" = "asan-ubsan"
+                artifact_id=9591475482
+                legacy_digest=sha256:43d37b2281b341e60e3b54424993a504936f701cf1ff8a40d59d15351c3e1e15
+                legacy_size=2013751
+                ;;
+              memory)
+                test "$ARTIFACT_VARIANT" = "msan"
+                artifact_id=9591473287
+                legacy_digest=sha256:2352231292015cc43880a71cf9481c88f3e86624654f9227d9767391be516f51
+                legacy_size=1337936
+                ;;
+              *)
+                echo "Unsupported sanitizer for retained bootstrap: $SANITIZER" >&2
+                exit 1
+                ;;
+            esac
+            artifact_name="ml-dsa-44-sustained-$ARTIFACT_VARIANT-$source_run-$source_attempt"
           fi
-          seed_dir="$(find "$PRIOR_DIR" -type d -name minimized-corpus -print -quit)"
-          if [[ -n "$seed_dir" ]]; then
-            echo "seed_dir=$seed_dir" >> "$GITHUB_OUTPUT"
+
+          run_json="$PRIOR_DIR/run.json"
+          artifact_json="$PRIOR_DIR/artifact.json"
+          archive="$PRIOR_DIR/retained.zip"
+          extract_dir="$PRIOR_DIR/extracted"
+          receipt="$PRIOR_DIR/retained-source-receipt.json"
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/$GITHUB_REPOSITORY/actions/runs/$source_run" \
+            > "$run_json"
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id" \
+            > "$artifact_json"
+
+          jq -e \
+            --argjson run "$source_run" \
+            --argjson attempt "$source_attempt" \
+            --arg head "$source_head" \
+            '.id == $run and .run_attempt == $attempt and
+             .head_sha == $head and .head_branch == "main" and
+             (.event == "schedule" or .event == "workflow_dispatch") and
+             .conclusion == "success"' \
+            "$run_json" > /dev/null
+          jq -e \
+            --argjson id "$artifact_id" \
+            --arg name "$artifact_name" \
+            --argjson run "$source_run" \
+            --arg head "$source_head" \
+            '.id == $id and .name == $name and .expired == false and
+             .workflow_run.id == $run and .workflow_run.head_sha == $head' \
+            "$artifact_json" > /dev/null
+          artifact_digest="$(
+            jq -er '.digest | select(test("^sha256:[0-9a-f]{64}$"))' \
+              "$artifact_json"
+          )"
+          artifact_size="$(
+            jq -er '.size_in_bytes | select(type == "number" and . > 0)' \
+              "$artifact_json"
+          )"
+          if [[ "$selected_v2" != "true" ]]; then
+            test "$artifact_digest" = "$legacy_digest"
+            test "$artifact_size" = "$legacy_size"
           fi
+
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" \
+            > "$archive"
+          test "$(stat -c '%s' "$archive")" = "$artifact_size"
+          test "sha256:$(sha256sum "$archive" | cut -d ' ' -f 1)" = "$artifact_digest"
+
+          python3 contrib/ml-dsa-engineering/run_verifier_fuzz.py \
+            --validate-retained-archive "$archive" \
+            --retained-run-metadata "$run_json" \
+            --retained-artifact-metadata "$artifact_json" \
+            --extract-retained-to "$extract_dir" \
+            --expected-retained-sanitizer "$SANITIZER" \
+            --expected-current-head "$GITHUB_SHA" \
+            --write-retained-source-receipt "$receipt"
+          test -d "$extract_dir/minimized-corpus"
+          test -f "$receipt"
+          {
+            echo "seed_dir=$extract_dir/minimized-corpus"
+            echo "receipt_path=$receipt"
+          } >> "$GITHUB_OUTPUT"
+          trap - EXIT
 
       - name: Run bounded sustained campaign
         env:
           SANITIZER: ${{ matrix.sanitizer }}
           COVERAGE: ${{ matrix.coverage }}
           RETAINED_SEED_DIR: ${{ steps.retained.outputs.seed_dir }}
+          RETAINED_SOURCE_RECEIPT: ${{ steps.retained.outputs.receipt_path }}
           OUTPUT_DIR: ${{ runner.temp }}/ml-dsa-44-fuzz-output
         run: |
           set -euxo pipefail
           if [[ "$GITHUB_EVENT_NAME" == "schedule" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
             campaign_seconds=1800
             campaign_seed="$GITHUB_RUN_NUMBER"
+            test -n "$RETAINED_SEED_DIR"
+            test -d "$RETAINED_SEED_DIR"
+            test -n "$RETAINED_SOURCE_RECEIPT"
+            test -f "$RETAINED_SOURCE_RECEIPT"
           else
             campaign_seconds=60
             campaign_seed=188
@@ -127,8 +331,11 @@ jobs:
             --seed "$campaign_seed"
             --output-dir "$OUTPUT_DIR"
           )
-          if [[ -n "$RETAINED_SEED_DIR" ]]; then
-            args+=(--seed-corpus "$RETAINED_SEED_DIR")
+          if [[ "$GITHUB_EVENT_NAME" == "schedule" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            args+=(
+              --seed-corpus "$RETAINED_SEED_DIR"
+              --retained-source-receipt "$RETAINED_SOURCE_RECEIPT"
+            )
           fi
           if [[ "$COVERAGE" == "true" ]]; then
             args+=(--coverage)
@@ -140,20 +347,56 @@ jobs:
         env:
           EXPECTED_SANITIZER: ${{ matrix.sanitizer }}
           COVERAGE: ${{ matrix.coverage }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RETAINED_SOURCE_RECEIPT: ${{ steps.retained.outputs.receipt_path }}
           OUTPUT_DIR: ${{ runner.temp }}/ml-dsa-44-fuzz-output
         run: |
-          python3 - "$OUTPUT_DIR" "$EXPECTED_SANITIZER" "$COVERAGE" <<'PY'
+          set -euo pipefail
+          actual_head="$(git rev-parse HEAD)"
+          test "$actual_head" = "$EXPECTED_COMMIT"
+          python3 - "$OUTPUT_DIR" "$EXPECTED_SANITIZER" "$COVERAGE" \
+            "$EXPECTED_COMMIT" "$EVENT_NAME" "$RUN_NUMBER" \
+            "$RETAINED_SOURCE_RECEIPT" <<'PY'
           import hashlib
           import json
           from pathlib import Path
           import sys
 
+          def require(condition, message):
+              if not condition:
+                  raise RuntimeError(message)
+
           output = Path(sys.argv[1])
           report = json.loads((output / "campaign.json").read_text(encoding="utf8"))
-          assert report["schema_version"] == 1
-          assert report["status"] == "pass"
-          assert report["sanitizer"] == sys.argv[2]
-          assert report["coverage_enabled"] is (sys.argv[3] == "true")
+          long_run = sys.argv[5] in {"schedule", "workflow_dispatch"}
+          expected_seconds = 1800 if long_run else 60
+          expected_seed = int(sys.argv[6]) if long_run else 188
+          require(report["schema_version"] == 1, "unexpected campaign schema")
+          require(report["target"] == "strict-verifier", "unexpected fuzz target")
+          require(report["status"] == "pass", "campaign did not pass")
+          require(report["return_code"] == 0, "fuzzer returned nonzero")
+          require(report["processing_error"] is None, "campaign processing failed")
+          require(report["sanitizer"] == sys.argv[2], "sanitizer mismatch")
+          require(
+              report["coverage_enabled"] is (sys.argv[3] == "true"),
+              "coverage setting mismatch",
+          )
+          require(report["repository_commit"] == sys.argv[4], "commit mismatch")
+          require(report["repository_head"] == sys.argv[4], "HEAD mismatch")
+          require(report["repository_dirty"] is False, "repository is dirty")
+          require(
+              report["campaign_limit"] == {
+                  "runs": None,
+                  "seconds": expected_seconds,
+              },
+              "campaign limit mismatch",
+          )
+          require(
+              report["resource_limits"]["seed"] == expected_seed,
+              "campaign seed mismatch",
+          )
           engineering = Path("contrib/ml-dsa-engineering")
           sources = {
               "driver_sha256": engineering / "run_verifier_fuzz.py",
@@ -167,25 +410,71 @@ jobs:
               ),
           }
           for field, path in sources.items():
-              assert report["source_files"][field] == hashlib.sha256(
-                  path.read_bytes()
-              ).hexdigest()
-          assert report["minimized_corpus"]["file_count"] > 0
-          assert report["crash_artifacts"]["file_count"] == 0
-          assert (output / "SHA256SUMS").is_file()
+              require(
+                  report["source_files"][field]
+                  == hashlib.sha256(path.read_bytes()).hexdigest(),
+                  f"source digest mismatch for {field}",
+              )
+          require(
+              report["minimized_corpus"]["file_count"] > 0,
+              "minimized corpus is empty",
+          )
+          require(
+              report["crash_artifacts"]["file_count"] == 0,
+              "unexpected crash artifacts",
+          )
+          require((output / "SHA256SUMS").is_file(), "SHA256SUMS is missing")
+          if long_run:
+              receipt_path = Path(sys.argv[7])
+              require(receipt_path.is_file(), "retained-source receipt is missing")
+              receipt = json.loads(receipt_path.read_text(encoding="utf8"))
+              require(
+                  report["retained_corpus_source"] == receipt,
+                  "retained-source receipt mismatch",
+              )
+              retained_import = report["retained_corpus_import"]
+              require(
+                  isinstance(retained_import, dict),
+                  "retained-corpus import metadata is missing",
+              )
+              require(
+                  retained_import["source_summary"] == receipt["retained_corpus"],
+                  "retained source summary mismatch",
+              )
+              imported_count = retained_import["imported_summary"]["file_count"]
+              require(imported_count > 0, "no retained seeds were imported")
+              require(
+                  report["imported_retained_seeds"] == imported_count,
+                  "retained import count mismatch",
+              )
+          else:
+              require(
+                  report["retained_corpus_source"] is None,
+                  "short campaign recorded a retained source",
+              )
+              require(
+                  report["retained_corpus_import"] is None,
+                  "short campaign recorded a retained import",
+              )
+              require(
+                  report["imported_retained_seeds"] == 0,
+                  "short campaign imported retained seeds",
+              )
           if report["coverage_enabled"]:
-              assert (output / "coverage.txt").is_file()
-              assert (output / "coverage.json").is_file()
+              require((output / "coverage.txt").is_file(), "coverage.txt is missing")
+              require((output / "coverage.json").is_file(), "coverage.json is missing")
           print(json.dumps(report, indent=2, sort_keys=True))
           PY
+          cd "$OUTPUT_DIR"
+          sha256sum --check SHA256SUMS
 
       - name: Upload retained corpus and evidence
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: ml-dsa-44-sustained-${{ matrix.artifact }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ml-dsa-44-sustained-v2-${{ matrix.artifact }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/ml-dsa-44-fuzz-output
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 90
           compression-level: 9
 

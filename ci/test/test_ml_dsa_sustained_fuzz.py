@@ -4,15 +4,20 @@
 # file COPYING or https://opensource.org/license/mit.
 
 import base64
+import copy
+from datetime import datetime, timezone
 import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import stat
 import subprocess
 import sys
 import tempfile
 import unittest
 from unittest import mock
+import warnings
+import zipfile
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -29,6 +34,247 @@ assert SPEC is not None and SPEC.loader is not None
 verifier_fuzz = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = verifier_fuzz
 SPEC.loader.exec_module(verifier_fuzz)
+
+
+RETAINED_NOW = datetime(2026, 8, 27, 12, 0, tzinfo=timezone.utc)
+RETAINED_SOURCE_HEAD = "a" * 40
+RETAINED_CURRENT_HEAD = "b" * 40
+RETAINED_RUN_ID = 40000000001
+RETAINED_ARTIFACT_ID = 12000000001
+RETAINED_REPOSITORY_ID = 1136579990
+RETAINED_WORKFLOW_ID = 317034854
+RETAINED_WORKFLOW_PATH = ".github/workflows/ml-dsa-44-sustained-fuzz.yml"
+RETAINED_REPOSITORY = "scottdhughes/quantum-proof-bitcoin"
+RETAINED_SANITIZER = "address-undefined"
+
+
+def retained_named_summary(files):
+    digest = hashlib.sha256()
+    total_bytes = 0
+    for name, data in sorted(files.items()):
+        file_digest = hashlib.sha256(data).hexdigest()
+        digest.update(f"{name}\0{len(data)}\0{file_digest}\n".encode())
+        total_bytes += len(data)
+    return {
+        "file_count": len(files),
+        "total_bytes": total_bytes,
+        "aggregate_sha256": digest.hexdigest(),
+    }
+
+
+def retained_content_summary(contents):
+    unique = {hashlib.sha256(data).hexdigest(): data for data in contents}
+    digest = hashlib.sha256()
+    total_bytes = 0
+    for file_digest, data in sorted(unique.items()):
+        digest.update(f"{len(data)}\0{file_digest}\n".encode())
+        total_bytes += len(data)
+    return {
+        "file_count": len(unique),
+        "total_bytes": total_bytes,
+        "aggregate_sha256": digest.hexdigest(),
+    }
+
+
+def retained_json_bytes(value):
+    return (json.dumps(value, indent=2, sort_keys=True) + "\n").encode()
+
+
+def retained_manifest_bytes(members):
+    return "".join(
+        f"{hashlib.sha256(data).hexdigest()}  {name}\n"
+        for name, data, _mode in sorted(members)
+    ).encode()
+
+
+def retained_zip_info(name, mode):
+    info = zipfile.ZipInfo(name, date_time=(2026, 8, 27, 12, 0, 0))
+    info.create_system = 3
+    info.compress_type = zipfile.ZIP_STORED
+    info.external_attr = mode << 16
+    return info
+
+
+def write_retained_zip(path, members):
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        with zipfile.ZipFile(path, "w") as archive:
+            for name, data, mode in members:
+                archive.writestr(retained_zip_info(name, mode), data)
+
+
+def write_retained_metadata(fixture):
+    fixture["run_path"].write_text(
+        json.dumps(fixture["run"], indent=2, sort_keys=True) + "\n",
+        encoding="utf8",
+    )
+    fixture["artifact_path"].write_text(
+        json.dumps(fixture["artifact"], indent=2, sort_keys=True) + "\n",
+        encoding="utf8",
+    )
+
+
+def refresh_retained_archive(
+    fixture,
+    *,
+    extra_members=(),
+    manifest_members=None,
+):
+    regular_mode = stat.S_IFREG | 0o644
+    members = [
+        ("campaign.json", retained_json_bytes(fixture["campaign"]), regular_mode)
+    ]
+    members.extend(
+        (f"minimized-corpus/{name}", data, regular_mode)
+        for name, data in sorted(fixture["seed_files"].items())
+    )
+    checked_members = members if manifest_members is None else manifest_members
+    manifest = retained_manifest_bytes(checked_members)
+    archive_members = [*members, ("SHA256SUMS", manifest, regular_mode)]
+    archive_members.extend(extra_members)
+    write_retained_zip(fixture["archive_path"], archive_members)
+
+    archive_bytes = fixture["archive_path"].read_bytes()
+    archive_sha256 = hashlib.sha256(archive_bytes).hexdigest()
+    fixture["artifact"]["size_in_bytes"] = len(archive_bytes)
+    fixture["artifact"]["digest"] = f"sha256:{archive_sha256}"
+    write_retained_metadata(fixture)
+
+    source = {
+        "repository": RETAINED_REPOSITORY,
+        "repository_id": RETAINED_REPOSITORY_ID,
+        "workflow_path": RETAINED_WORKFLOW_PATH,
+        "workflow_id": RETAINED_WORKFLOW_ID,
+        "event": fixture["run"]["event"],
+        "sanitizer": RETAINED_SANITIZER,
+        "run_id": fixture["run"]["id"],
+        "run_attempt": fixture["run"]["run_attempt"],
+        "head_sha": fixture["run"]["head_sha"],
+        "artifact_id": fixture["artifact"]["id"],
+        "artifact_name": fixture["artifact"]["name"],
+        "artifact_size_bytes": fixture["artifact"]["size_in_bytes"],
+        "artifact_digest": fixture["artifact"]["digest"],
+        "artifact_created_at": fixture["artifact"]["created_at"],
+        "artifact_expires_at": fixture["artifact"]["expires_at"],
+        "legacy_bootstrap": False,
+    }
+    fixture["receipt"] = {
+        "schema_version": 1,
+        "source": source,
+        "archive": {
+            "size_bytes": len(archive_bytes),
+            "sha256": archive_sha256,
+            "sha256sums_sha256": hashlib.sha256(manifest).hexdigest(),
+        },
+        "retained_corpus": retained_named_summary(fixture["seed_files"]),
+    }
+
+
+def make_retained_fixture(root, *, source_head=RETAINED_SOURCE_HEAD):
+    seed_files = {"seed-a": b"retained verifier seed"}
+    corpus_summary = retained_named_summary(seed_files)
+    previous_source = {
+        "schema_version": 1,
+        "source": {
+            "repository": RETAINED_REPOSITORY,
+            "repository_id": RETAINED_REPOSITORY_ID,
+            "workflow_path": RETAINED_WORKFLOW_PATH,
+            "workflow_id": RETAINED_WORKFLOW_ID,
+            "event": "schedule",
+            "sanitizer": RETAINED_SANITIZER,
+            "run_id": RETAINED_RUN_ID - 1,
+            "run_attempt": 1,
+            "head_sha": "c" * 40,
+            "artifact_id": RETAINED_ARTIFACT_ID - 1,
+            "artifact_name": (
+                "ml-dsa-44-sustained-v2-asan-ubsan-40000000000-1"
+            ),
+            "artifact_size_bytes": 1,
+            "artifact_digest": f"sha256:{'d' * 64}",
+            "artifact_created_at": "2026-08-19T12:00:00Z",
+            "artifact_expires_at": "2099-11-17T12:00:00Z",
+            "legacy_bootstrap": False,
+        },
+        "archive": {
+            "size_bytes": 1,
+            "sha256": "d" * 64,
+            "sha256sums_sha256": "e" * 64,
+        },
+        "retained_corpus": corpus_summary,
+    }
+    retained_import = {
+        "source_summary": corpus_summary,
+        "unique_source_summary": retained_content_summary(seed_files.values()),
+        "imported_summary": retained_content_summary(seed_files.values()),
+    }
+    campaign = {
+        "schema_version": 1,
+        "target": "strict-verifier",
+        "status": "pass",
+        "return_code": 0,
+        "processing_error": None,
+        "repository_commit": source_head,
+        "repository_head": source_head,
+        "repository_dirty": False,
+        "sanitizer": RETAINED_SANITIZER,
+        "coverage_enabled": True,
+        "campaign_limit": {"runs": None, "seconds": 1800},
+        "duration_seconds": 1800.0,
+        "imported_retained_seeds": retained_import["imported_summary"][
+            "file_count"
+        ],
+        "minimized_corpus": corpus_summary,
+        "crash_artifacts": retained_named_summary({}),
+        "minimized_crash_artifacts": retained_named_summary({}),
+        "retained_corpus_source": previous_source,
+        "retained_corpus_import": retained_import,
+    }
+    artifact_name = (
+        "ml-dsa-44-sustained-v2-asan-ubsan-"
+        f"{RETAINED_RUN_ID}-1"
+    )
+    fixture = {
+        "archive_path": root / "artifact.zip",
+        "run_path": root / "run.json",
+        "artifact_path": root / "artifact.json",
+        "extract_path": root / "extracted",
+        "receipt_path": root / "retained-source.json",
+        "seed_files": seed_files,
+        "campaign": campaign,
+        "run": {
+            "id": RETAINED_RUN_ID,
+            "run_attempt": 1,
+            "event": "schedule",
+            "head_sha": source_head,
+            "head_branch": "main",
+            "status": "completed",
+            "conclusion": "success",
+            "path": RETAINED_WORKFLOW_PATH,
+            "workflow_id": RETAINED_WORKFLOW_ID,
+            "repository": {
+                "id": RETAINED_REPOSITORY_ID,
+                "full_name": RETAINED_REPOSITORY,
+            },
+        },
+        "artifact": {
+            "id": RETAINED_ARTIFACT_ID,
+            "name": artifact_name,
+            "size_in_bytes": 0,
+            "digest": "sha256:" + "0" * 64,
+            "expired": False,
+            "created_at": "2026-08-20T12:00:00Z",
+            "expires_at": "2099-11-18T12:00:00Z",
+            "workflow_run": {
+                "id": RETAINED_RUN_ID,
+                "repository_id": RETAINED_REPOSITORY_ID,
+                "head_repository_id": RETAINED_REPOSITORY_ID,
+                "head_branch": "main",
+                "head_sha": source_head,
+            },
+        },
+    }
+    refresh_retained_archive(fixture)
+    return fixture
 
 
 class MlDsaSustainedFuzzTest(unittest.TestCase):
@@ -324,11 +570,20 @@ class MlDsaSustainedFuzzTest(unittest.TestCase):
 
     def test_workflow_freezes_bounded_campaign_contract(self):
         workflow = WORKFLOW.read_text(encoding="utf8")
+        verifier_job = workflow.split("\n  verifier-fuzz:\n", 1)[1].split(
+            "\n  stateful-signer-fuzz:\n", 1
+        )[0]
         for required in (
             "schedule:",
             "cron: '17 4 * * 3'",
             "actions: read",
             "contents: read",
+            "group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}",
+            "cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
+        ):
+            self.assertIn(required, workflow)
+        for required in (
+            "Strict verifier (${{ matrix.label }})",
             "timeout-minutes: 45",
             "sanitizer: address-undefined",
             "sanitizer: memory",
@@ -336,27 +591,428 @@ class MlDsaSustainedFuzzTest(unittest.TestCase):
             "campaign_seconds=60",
             'campaign_seed="$GITHUB_RUN_NUMBER"',
             "campaign_seed=188",
-            "group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}",
-            "cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
+            "fetch-depth: 0",
+            "ARTIFACT_PREFIX: ml-dsa-44-sustained-v2-${{ matrix.artifact }}",
+            "RETAINED_WORKFLOW_PATH: .github/workflows/ml-dsa-44-sustained-fuzz.yml",
+            "git show \"$candidate_head:$RETAINED_WORKFLOW_PATH\"",
+            "Required v2 artifact is missing from run",
+            "/actions/artifacts/$artifact_id/zip",
+            "--validate-retained-archive",
+            "--retained-run-metadata",
+            "--retained-artifact-metadata",
+            "--extract-retained-to",
+            "--expected-retained-sanitizer",
+            "--expected-current-head",
+            "--write-retained-source-receipt",
+            "retained-preflight.json",
             "--seed-corpus",
+            "--retained-source-receipt",
             "--coverage",
-            "--json databaseId,attempt",
-            '--name "$artifact_name"',
             "if: always()",
+            "if-no-files-found: error",
             "retention-days: 90",
             "github.run_id",
             "github.run_attempt",
             "coverage.json",
+            'report["target"] == "strict-verifier"',
+            'report["retained_corpus_source"] == receipt',
+            'report["retained_corpus_source"] is None',
+            'report["retained_corpus_import"] is None',
+            "require(imported_count > 0",
+            "sha256sum --check SHA256SUMS",
         ):
-            self.assertIn(required, workflow)
+            self.assertIn(required, verifier_job)
         self.assertIn(
             "actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd",
-            workflow,
+            verifier_job,
         )
         self.assertIn(
             "actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f",
-            workflow,
+            verifier_job,
         )
+        self.assertIn(
+            "name: ml-dsa-44-sustained-v2-${{ matrix.artifact }}-${{ github.run_id }}-${{ github.run_attempt }}",
+            verifier_job,
+        )
+        self.assertNotIn("gh run download", verifier_job)
+
+    def test_retained_archive_validation_returns_exact_bound_receipt(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = make_retained_fixture(Path(temporary))
+            with (
+                mock.patch.object(
+                    verifier_fuzz,
+                    "repository_head",
+                    return_value=RETAINED_CURRENT_HEAD,
+                ),
+                mock.patch.object(verifier_fuzz, "ensure_ancestor") as ancestor,
+            ):
+                receipt = verifier_fuzz.validate_retained_archive(
+                    fixture["archive_path"],
+                    fixture["run_path"],
+                    fixture["artifact_path"],
+                    fixture["extract_path"],
+                    RETAINED_SANITIZER,
+                    RETAINED_CURRENT_HEAD,
+                    now=RETAINED_NOW,
+                )
+
+            self.assertEqual(receipt, fixture["receipt"])
+            self.assertEqual(
+                ancestor.call_args_list,
+                [
+                    mock.call(RETAINED_SOURCE_HEAD, RETAINED_CURRENT_HEAD),
+                    mock.call("c" * 40, RETAINED_SOURCE_HEAD),
+                ],
+            )
+            self.assertEqual(
+                (fixture["extract_path"] / "minimized-corpus" / "seed-a").read_bytes(),
+                fixture["seed_files"]["seed-a"],
+            )
+            fixture["receipt_path"].write_text(
+                json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+                encoding="utf8",
+            )
+            self.assertEqual(
+                verifier_fuzz.read_retained_source_receipt(
+                    fixture["receipt_path"]
+                ),
+                receipt,
+            )
+
+            incomplete = copy.deepcopy(receipt)
+            del incomplete["source"]["artifact_id"]
+            fixture["receipt_path"].write_text(
+                json.dumps(incomplete) + "\n",
+                encoding="utf8",
+            )
+            with self.assertRaisesRegex(
+                verifier_fuzz.FuzzHarnessError,
+                "receipt identity is malformed",
+            ):
+                verifier_fuzz.read_retained_source_receipt(
+                    fixture["receipt_path"]
+                )
+
+    def test_retained_archive_rejects_outer_digest_and_size_mismatch(self):
+        for label, mutate in (
+            (
+                "digest",
+                lambda fixture: fixture["artifact"].__setitem__(
+                    "digest", "sha256:" + "0" * 64
+                ),
+            ),
+            (
+                "size",
+                lambda fixture: fixture["artifact"].__setitem__(
+                    "size_in_bytes",
+                    fixture["artifact"]["size_in_bytes"] + 1,
+                ),
+            ),
+        ):
+            with self.subTest(label=label), tempfile.TemporaryDirectory() as temporary:
+                fixture = make_retained_fixture(Path(temporary))
+                mutate(fixture)
+                write_retained_metadata(fixture)
+                with (
+                    mock.patch.object(
+                        verifier_fuzz,
+                        "repository_head",
+                        return_value=RETAINED_CURRENT_HEAD,
+                    ),
+                    mock.patch.object(verifier_fuzz, "ensure_ancestor"),
+                    self.assertRaisesRegex(
+                        verifier_fuzz.FuzzHarnessError,
+                        "archive digest or size differs",
+                    ),
+                ):
+                    verifier_fuzz.validate_retained_archive(
+                        fixture["archive_path"],
+                        fixture["run_path"],
+                        fixture["artifact_path"],
+                        fixture["extract_path"],
+                        RETAINED_SANITIZER,
+                        RETAINED_CURRENT_HEAD,
+                        now=RETAINED_NOW,
+                    )
+
+    def test_retained_archive_rejects_non_ancestor_source(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = make_retained_fixture(Path(temporary))
+            with (
+                mock.patch.object(
+                    verifier_fuzz,
+                    "repository_head",
+                    return_value=RETAINED_CURRENT_HEAD,
+                ),
+                mock.patch.object(
+                    verifier_fuzz,
+                    "ensure_ancestor",
+                    side_effect=verifier_fuzz.FuzzHarnessError(
+                        "retained source ancestry check failed"
+                    ),
+                ),
+                self.assertRaisesRegex(
+                    verifier_fuzz.FuzzHarnessError,
+                    "ancestry check failed",
+                ),
+            ):
+                verifier_fuzz.validate_retained_archive(
+                    fixture["archive_path"],
+                    fixture["run_path"],
+                    fixture["artifact_path"],
+                    fixture["extract_path"],
+                    RETAINED_SANITIZER,
+                    RETAINED_CURRENT_HEAD,
+                    now=RETAINED_NOW,
+                )
+            self.assertFalse(fixture["extract_path"].exists())
+
+    def test_retained_archive_rejects_unsafe_zip_members(self):
+        regular_mode = stat.S_IFREG | 0o644
+        hostile_members = (
+            ("traversal", ("../escaped", b"escape", regular_mode)),
+            ("symlink", ("linked", b"seed-a", stat.S_IFLNK | 0o777)),
+            ("special", ("fifo", b"", stat.S_IFIFO | 0o644)),
+            ("duplicate", ("campaign.json", b"{}\n", regular_mode)),
+        )
+        for label, member in hostile_members:
+            with self.subTest(label=label), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                fixture = make_retained_fixture(root)
+                refresh_retained_archive(fixture, extra_members=(member,))
+                with (
+                    mock.patch.object(
+                        verifier_fuzz,
+                        "repository_head",
+                        return_value=RETAINED_CURRENT_HEAD,
+                    ),
+                    mock.patch.object(verifier_fuzz, "ensure_ancestor"),
+                    self.assertRaises(verifier_fuzz.FuzzHarnessError),
+                ):
+                    verifier_fuzz.validate_retained_archive(
+                        fixture["archive_path"],
+                        fixture["run_path"],
+                        fixture["artifact_path"],
+                        fixture["extract_path"],
+                        RETAINED_SANITIZER,
+                        RETAINED_CURRENT_HEAD,
+                        now=RETAINED_NOW,
+                    )
+                self.assertFalse((root / "escaped").exists())
+
+    def test_retained_archive_rejects_checksum_tamper_and_unchecked_member(self):
+        regular_mode = stat.S_IFREG | 0o644
+        for label in ("tampered", "unchecked"):
+            with self.subTest(label=label), tempfile.TemporaryDirectory() as temporary:
+                fixture = make_retained_fixture(Path(temporary))
+                if label == "tampered":
+                    checked_members = [
+                        (
+                            "campaign.json",
+                            retained_json_bytes(fixture["campaign"]),
+                            regular_mode,
+                        ),
+                        (
+                            "minimized-corpus/seed-a",
+                            fixture["seed_files"]["seed-a"],
+                            regular_mode,
+                        ),
+                    ]
+                    fixture["seed_files"]["seed-a"] = b"tampered seed"
+                    refresh_retained_archive(
+                        fixture,
+                        manifest_members=checked_members,
+                    )
+                else:
+                    refresh_retained_archive(
+                        fixture,
+                        extra_members=(("unchecked", b"unchecked", regular_mode),),
+                    )
+                with (
+                    mock.patch.object(
+                        verifier_fuzz,
+                        "repository_head",
+                        return_value=RETAINED_CURRENT_HEAD,
+                    ),
+                    mock.patch.object(verifier_fuzz, "ensure_ancestor"),
+                    self.assertRaisesRegex(
+                        verifier_fuzz.FuzzHarnessError,
+                        "checksum (differs|inventory differs)",
+                    ),
+                ):
+                    verifier_fuzz.validate_retained_archive(
+                        fixture["archive_path"],
+                        fixture["run_path"],
+                        fixture["artifact_path"],
+                        fixture["extract_path"],
+                        RETAINED_SANITIZER,
+                        RETAINED_CURRENT_HEAD,
+                        now=RETAINED_NOW,
+                    )
+
+    def test_retained_archive_rejects_wrong_metadata_and_campaign_provenance(self):
+        cases = (
+            (
+                "run",
+                lambda fixture: fixture["artifact"]["workflow_run"].__setitem__(
+                    "id", RETAINED_RUN_ID + 1
+                ),
+            ),
+            (
+                "artifact-name",
+                lambda fixture: fixture["artifact"].__setitem__(
+                    "name",
+                    f"ml-dsa-44-sustained-asan-ubsan-{RETAINED_RUN_ID}-1",
+                ),
+            ),
+            (
+                "head",
+                lambda fixture: fixture["campaign"].__setitem__(
+                    "repository_head", "c" * 40
+                ),
+            ),
+            (
+                "event",
+                lambda fixture: fixture["run"].__setitem__(
+                    "event", "pull_request"
+                ),
+            ),
+            (
+                "sanitizer",
+                lambda fixture: fixture["campaign"].__setitem__(
+                    "sanitizer", "memory"
+                ),
+            ),
+            (
+                "duration",
+                lambda fixture: fixture["campaign"].__setitem__(
+                    "campaign_limit", {"runs": None, "seconds": 60}
+                ),
+            ),
+            (
+                "dirty",
+                lambda fixture: fixture["campaign"].__setitem__(
+                    "repository_dirty", True
+                ),
+            ),
+            (
+                "failed",
+                lambda fixture: fixture["campaign"].__setitem__(
+                    "status", "fail"
+                ),
+            ),
+            (
+                "wrong-target",
+                lambda fixture: fixture["campaign"].__setitem__(
+                    "target", "stateful-signer"
+                ),
+            ),
+            (
+                "incomplete-source",
+                lambda fixture: fixture["campaign"][
+                    "retained_corpus_source"
+                ]["source"].pop("artifact_id"),
+            ),
+        )
+        for label, mutate in cases:
+            with self.subTest(label=label), tempfile.TemporaryDirectory() as temporary:
+                fixture = make_retained_fixture(Path(temporary))
+                mutate(fixture)
+                refresh_retained_archive(fixture)
+                with (
+                    mock.patch.object(
+                        verifier_fuzz,
+                        "repository_head",
+                        return_value=RETAINED_CURRENT_HEAD,
+                    ),
+                    mock.patch.object(verifier_fuzz, "ensure_ancestor"),
+                    self.assertRaises(verifier_fuzz.FuzzHarnessError),
+                ):
+                    verifier_fuzz.validate_retained_archive(
+                        fixture["archive_path"],
+                        fixture["run_path"],
+                        fixture["artifact_path"],
+                        fixture["extract_path"],
+                        RETAINED_SANITIZER,
+                        RETAINED_CURRENT_HEAD,
+                        now=RETAINED_NOW,
+                    )
+
+    def test_retained_archive_rejects_empty_minimized_corpus(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = make_retained_fixture(Path(temporary))
+            fixture["seed_files"].clear()
+            fixture["campaign"]["minimized_corpus"] = retained_named_summary({})
+            refresh_retained_archive(fixture)
+            with (
+                mock.patch.object(
+                    verifier_fuzz,
+                    "repository_head",
+                    return_value=RETAINED_CURRENT_HEAD,
+                ),
+                mock.patch.object(verifier_fuzz, "ensure_ancestor"),
+                self.assertRaisesRegex(
+                    verifier_fuzz.FuzzHarnessError,
+                    "minimized corpus (is empty|does not exist)",
+                ),
+            ):
+                verifier_fuzz.validate_retained_archive(
+                    fixture["archive_path"],
+                    fixture["run_path"],
+                    fixture["artifact_path"],
+                    fixture["extract_path"],
+                    RETAINED_SANITIZER,
+                    RETAINED_CURRENT_HEAD,
+                    now=RETAINED_NOW,
+                )
+
+    def test_retained_archive_validation_uses_exceptions_under_python_optimized(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = make_retained_fixture(Path(temporary))
+            fixture["artifact"]["size_in_bytes"] += 1
+            write_retained_metadata(fixture)
+            program = """
+from datetime import datetime, timezone
+from pathlib import Path
+import sys
+sys.path.insert(0, sys.argv[1])
+import run_verifier_fuzz as verifier_fuzz
+verifier_fuzz.repository_head = lambda: sys.argv[7]
+verifier_fuzz.ensure_ancestor = lambda source, current: None
+try:
+    verifier_fuzz.validate_retained_archive(
+        Path(sys.argv[2]), Path(sys.argv[3]), Path(sys.argv[4]), Path(sys.argv[5]),
+        sys.argv[6], sys.argv[7],
+        now=datetime(2026, 8, 27, 12, 0, tzinfo=timezone.utc),
+    )
+except verifier_fuzz.FuzzHarnessError as error:
+    if "archive digest or size differs" not in str(error):
+        raise
+else:
+    raise SystemExit("invalid retained archive was accepted")
+"""
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    "-O",
+                    "-c",
+                    program,
+                    str(ENGINEERING_DIR),
+                    str(fixture["archive_path"]),
+                    str(fixture["run_path"]),
+                    str(fixture["artifact_path"]),
+                    str(fixture["extract_path"]),
+                    RETAINED_SANITIZER,
+                    RETAINED_CURRENT_HEAD,
+                ],
+                cwd=REPO_ROOT,
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stderr)
 
     def test_retained_corpus_import_is_bounded_and_content_addressed(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -365,19 +1021,65 @@ class MlDsaSustainedFuzzTest(unittest.TestCase):
             destination = root / "destination"
             source.mkdir()
             destination.mkdir()
-            seed = b"retained seed"
-            (source / "seed.bin").write_bytes(seed)
-            (source / "ignored-directory").mkdir()
+            existing = b"existing seed"
+            novel = b"retained seed"
+            (destination / "project.bin").write_bytes(existing)
+            (source / "duplicate-existing").write_bytes(existing)
+            (source / "seed.bin").write_bytes(novel)
+            (source / "duplicate-novel").write_bytes(novel)
+            expected_source = retained_named_summary(
+                {
+                    "duplicate-existing": existing,
+                    "duplicate-novel": novel,
+                    "seed.bin": novel,
+                }
+            )
 
-            imported = verifier_fuzz.import_seed_corpus(source, destination)
+            receipt = verifier_fuzz.import_seed_corpus(
+                source,
+                destination,
+                expected_source_summary=expected_source,
+            )
 
-            digest = hashlib.sha256(seed).hexdigest()
-            self.assertEqual(imported, 1)
+            digest = hashlib.sha256(novel).hexdigest()
+            self.assertEqual(receipt["source_summary"], expected_source)
+            self.assertEqual(receipt["unique_source_summary"]["file_count"], 2)
+            self.assertEqual(receipt["imported_summary"]["file_count"], 1)
             self.assertEqual(
                 (destination / f"retained_{digest}.bin").read_bytes(),
-                seed,
+                novel,
             )
-            self.assertEqual(verifier_fuzz.import_seed_corpus(source, destination), 0)
+            with self.assertRaisesRegex(
+                verifier_fuzz.FuzzHarnessError,
+                "novel",
+            ):
+                verifier_fuzz.import_seed_corpus(
+                    source,
+                    destination,
+                    expected_source_summary=expected_source,
+                )
+
+            (source / "seed.bin").write_bytes(b"changed")
+            fresh_destination = root / "fresh-destination"
+            fresh_destination.mkdir()
+            with self.assertRaisesRegex(
+                verifier_fuzz.FuzzHarnessError,
+                "differs from validated",
+            ):
+                verifier_fuzz.import_seed_corpus(
+                    source,
+                    fresh_destination,
+                    expected_source_summary=expected_source,
+                )
+            (source / "seed.bin").write_bytes(novel)
+
+            (source / "nested").mkdir()
+            with self.assertRaisesRegex(
+                verifier_fuzz.FuzzHarnessError,
+                "regular file",
+            ):
+                verifier_fuzz.import_seed_corpus(source, destination)
+            (source / "nested").rmdir()
 
             (source / "oversized.bin").write_bytes(
                 bytes(verifier_fuzz.MAX_FRAME_BYTES + 1)
@@ -618,11 +1320,16 @@ class MlDsaSustainedFuzzTest(unittest.TestCase):
                 completed=completed,
                 processing_error="corpus minimization failed",
                 crash_minimization=[],
+                target=verifier_fuzz.TARGET_NAME,
             )
 
             report = json.loads(
                 (output / "campaign.json").read_text(encoding="utf8")
             )
+            self.assertEqual(report["target"], "strict-verifier")
+            self.assertEqual(report["repository_head"], verifier_fuzz.repository_head())
+            self.assertIsNone(report["retained_corpus_source"])
+            self.assertIsNone(report["retained_corpus_import"])
             self.assertEqual(report["status"], "fail")
             self.assertEqual(report["return_code"], 1)
             self.assertEqual(report["processing_error"], "corpus minimization failed")

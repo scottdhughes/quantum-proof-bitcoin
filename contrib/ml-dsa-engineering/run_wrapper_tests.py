@@ -21,6 +21,8 @@ SOURCE_DIR = HERE / "vendor" / "mldsa-native"
 SOURCE_MANIFEST = SOURCE_DIR / "SOURCE.json"
 WRAPPER_SOURCE = HERE / "pqbtc_mldsa44.c"
 SMOKE_SOURCE = HERE / "pqbtc_mldsa44_smoke.c"
+CONCURRENT_SMOKE_SOURCE = HERE / "pqbtc_mldsa44_concurrent_verify.c"
+THREAD_SANITIZER_POSITIVE_CONTROL_SOURCE = HERE / "pqbtc_tsan_positive_control.c"
 VECTORS = REPO_ROOT / "contrib" / "ml-dsa-ref" / "vectors.json"
 
 PUBLIC_KEY_BYTES = 1312
@@ -166,12 +168,117 @@ def compile_smoke(compiler: str, build_dir: Path, sanitizers: bool) -> Path:
     return output
 
 
+def compile_concurrency_smoke(
+    compiler: str, build_dir: Path, sanitizer: str
+) -> Path:
+    suffixes = {
+        "none": "",
+        "address-undefined": "_sanitized",
+        "thread": "_tsan",
+    }
+    if sanitizer not in suffixes:
+        raise HarnessError(f"unsupported concurrency sanitizer: {sanitizer}")
+
+    output = build_dir / f"pqbtc_mldsa44_concurrent_verify{suffixes[sanitizer]}"
+    command = common_flags(compiler)
+    command.append("-DPQBTC_MLDSA44_TESTING=1")
+    if sanitizer == "none":
+        command.append("-O2")
+    else:
+        command.extend(
+            [
+                "-O1",
+                "-g",
+                "-fno-omit-frame-pointer",
+                "-fno-sanitize-recover=all",
+            ]
+        )
+        if sanitizer == "address-undefined":
+            command.append("-fsanitize=address,undefined")
+        else:
+            command.append("-fsanitize=thread")
+    command.extend(
+        [str(WRAPPER_SOURCE), str(CONCURRENT_SMOKE_SOURCE), "-o", str(output)]
+    )
+    run(command)
+    return output
+
+
+def compile_thread_sanitizer_positive_control(
+    compiler: str, build_dir: Path
+) -> Path:
+    output = build_dir / "pqbtc_tsan_positive_control"
+    command = common_flags(compiler)
+    command.extend(
+        [
+            "-O1",
+            "-g",
+            "-fno-omit-frame-pointer",
+            "-fno-sanitize-recover=all",
+            "-fsanitize=thread",
+            str(THREAD_SANITIZER_POSITIVE_CONTROL_SOURCE),
+            "-o",
+            str(output),
+        ]
+    )
+    run(command)
+    return output
+
+
 def run_smoke(executable: Path, sanitizers: bool) -> None:
     env = os.environ.copy()
     if sanitizers:
         env["ASAN_OPTIONS"] = "detect_leaks=0" if sys.platform == "darwin" else "detect_leaks=1"
         env["UBSAN_OPTIONS"] = "halt_on_error=1:print_stacktrace=1"
     run([str(executable)], env=env)
+
+
+def run_concurrency_smoke(executable: Path, sanitizer: str) -> None:
+    if sanitizer not in {"none", "address-undefined", "thread"}:
+        raise HarnessError(f"unsupported concurrency sanitizer: {sanitizer}")
+
+    env = os.environ.copy()
+    if sanitizer == "address-undefined":
+        env["ASAN_OPTIONS"] = "detect_leaks=0" if sys.platform == "darwin" else "detect_leaks=1"
+        env["UBSAN_OPTIONS"] = "halt_on_error=1:print_stacktrace=1"
+    elif sanitizer == "thread":
+        env["TSAN_OPTIONS"] = "halt_on_error=1:second_deadlock_stack=1"
+    run([str(executable)], env=env)
+
+
+def run_thread_sanitizer_positive_control(executable: Path) -> None:
+    env = os.environ.copy()
+    env["TSAN_OPTIONS"] = "halt_on_error=1:second_deadlock_stack=1"
+    try:
+        completed = subprocess.run(
+            [str(executable)],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=env,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise HarnessError(
+            "ThreadSanitizer positive control exceeded its 30-second timeout"
+        ) from error
+
+    if completed.returncode == 0:
+        raise HarnessError(
+            "ThreadSanitizer positive control exited successfully instead of "
+            "detecting its deliberate data race"
+        )
+    output = completed.stdout + completed.stderr
+    if "ThreadSanitizer: data race" not in output:
+        raise HarnessError(
+            "ThreadSanitizer positive control failed without the canonical "
+            "data-race marker\n"
+            f"stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}"
+        )
+    print(
+        "ThreadSanitizer positive control passed: deliberate data race detected"
+    )
 
 
 def as_array(data: bytes):
@@ -307,7 +414,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Build and test the isolated ML-DSA-44 wrapper")
     parser.add_argument("--manifest-only", action="store_true")
     parser.add_argument("--sanitizers", action="store_true")
+    parser.add_argument("--concurrency-only", action="store_true")
+    parser.add_argument("--thread-sanitizer", action="store_true")
     args = parser.parse_args()
+
+    if args.thread_sanitizer and (
+        args.manifest_only or args.sanitizers or args.concurrency_only
+    ):
+        parser.error("--thread-sanitizer cannot be combined with another mode")
 
     manifest = validate_source_capsule()
     if args.manifest_only:
@@ -322,10 +436,46 @@ def main() -> int:
         raise HarnessError(f"C compiler not found: {compiler}")
     with tempfile.TemporaryDirectory(prefix="pqbtc-mldsa44-wrapper-") as temporary:
         build_dir = Path(temporary)
+        if args.thread_sanitizer:
+            positive_control = compile_thread_sanitizer_positive_control(
+                compiler, build_dir
+            )
+            run_thread_sanitizer_positive_control(positive_control)
+            concurrency_smoke = compile_concurrency_smoke(
+                compiler, build_dir, sanitizer="thread"
+            )
+            run_concurrency_smoke(concurrency_smoke, sanitizer="thread")
+            print(
+                "ML-DSA-44 isolated concurrent verifier tests passed "
+                f"(thread-sanitized, {compiler})"
+            )
+            return 0
+
+        concurrency_sanitizer = (
+            "address-undefined" if args.sanitizers else "none"
+        )
+        if args.concurrency_only:
+            concurrency_smoke = compile_concurrency_smoke(
+                compiler, build_dir, sanitizer=concurrency_sanitizer
+            )
+            run_concurrency_smoke(
+                concurrency_smoke, sanitizer=concurrency_sanitizer
+            )
+            mode = "sanitized" if args.sanitizers else "normal"
+            print(
+                "ML-DSA-44 isolated concurrent verifier tests passed "
+                f"({mode}, {compiler})"
+            )
+            return 0
+
         production_library = compile_shared(compiler, build_dir, testing=False)
         audit_production_symbols(production_library)
         smoke = compile_smoke(compiler, build_dir, sanitizers=args.sanitizers)
         run_smoke(smoke, sanitizers=args.sanitizers)
+        concurrency_smoke = compile_concurrency_smoke(
+            compiler, build_dir, sanitizer=concurrency_sanitizer
+        )
+        run_concurrency_smoke(concurrency_smoke, sanitizer=concurrency_sanitizer)
         if not args.sanitizers:
             test_library = compile_shared(compiler, build_dir, testing=True)
             validate_frozen_vectors(test_library, production_library)
