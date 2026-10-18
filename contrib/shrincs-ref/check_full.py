@@ -4,14 +4,34 @@ from __future__ import annotations
 
 import argparse
 import ctypes
+import hashlib
+import importlib.util
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 PUBLIC_KEY_BYTES = 48
 STATEFUL_MIN = 554
 STATEFUL_MAX = 4618
 STATELESS_BYTES = 5776
+MAX_CORPUS_BYTES = 64 * 1024
+DEFAULT_MANIFEST = Path(__file__).resolve().parents[2] / "contrib/shrincs/manifest.json"
+
+
+def load_module(filename: str, name: str):
+    path = Path(__file__).with_name(filename)
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise ValueError(f"cannot load project checker: {path}")
+    module = importlib.util.module_from_spec(spec)
+    exec(compile(path.read_bytes(), str(path), "exec", dont_inherit=True), module.__dict__)
+    return module
+
+
+# These are project-owned checkers, not upstream reference implementations.
+STATEFUL_CHECKER = load_module("check_stateful_fxmss.py", "pqbtc_full_stateful")
+STATELESS_CHECKER = load_module("check_stateless.py", "pqbtc_full_stateless")
 
 
 class FullVerifierError(ValueError):
@@ -31,14 +51,67 @@ def decode_hex(value: Any, field: str) -> bytes:
         raise FullVerifierError(f"{field} contains invalid hex") from exc
 
 
-def read_corpus(path: Path) -> list[dict[str, Any]]:
-    data = json.loads(path.read_text(encoding="utf-8"))
+def validate_vectors(vectors: Any, mode: str) -> None:
+    require(isinstance(vectors, list) and vectors, "corpus must contain vectors")
+    if mode == "stateless":
+        try:
+            STATELESS_CHECKER.validate_vectors(vectors)
+        except STATELESS_CHECKER.StatelessOracleError as exc:
+            raise FullVerifierError(str(exc)) from exc
+        return
+    require(mode == "stateful", "unknown corpus mode")
+    require(len(vectors) == 7, "stateful vector set drifted")
+    definitions = STATEFUL_CHECKER.vector_definitions(
+        SimpleNamespace(FXMSS_SHAPE_UNBALANCED=0, FXMSS_SHAPE_BALANCED=1))
+    keys: dict[str, bytes] = {}
+    for vector, definition, (index, depth) in zip(
+            vectors, definitions, ((1, 1), (1, 2), (1, 4), (0, 4), (0, 3), (3, 3), (7, 3))):
+        require(isinstance(vector, dict), "stateful vector must be an object")
+        name = definition["name"]
+        require(vector.get("name") == name, "stateful case identity/order drifted")
+        structure = definition["structure"].hex()
+        require(vector.get("structure") == structure, f"{name}: structure drifted")
+        for field, expected in (("state", definition["state"]), ("leaf_index", index), ("leaf_depth", depth)):
+            require(type(vector.get(field)) is int and vector[field] == expected, f"{name}: {field} drifted")
+        key, signature, message, context = unpack(vector)
+        require(message == STATEFUL_CHECKER.kdf(b"pqbtc-shrincs-stateful/message/" + name.encode(), 32),
+                f"{name}: message drifted")
+        require(context == definition["context"], f"{name}: context drifted")
+        require(len(signature) == 538 + 16 * depth, f"{name}: signature length drifted")
+        require(int.from_bytes(signature[16:24], "big") == index, f"{name}: serialized index drifted")
+        for field, value in (("public_key", key), ("signature", signature)):
+            require(vector.get(f"{field}_sha256") == hashlib.sha256(value).hexdigest(),
+                    f"{name}: {field} hash differs from retained bytes")
+        require(structure not in keys or keys[structure] == key, f"{name}: shared public key drifted")
+        keys[structure] = key
+
+
+def load_manifest(path: Path) -> dict[str, Any]:
+    try:
+        return STATELESS_CHECKER.load_manifest(path)
+    except STATELESS_CHECKER.StatelessOracleError as exc:
+        raise FullVerifierError(str(exc)) from exc
+
+
+def read_corpus(path: Path, mode: str | None = None,
+                manifest: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    manifest = load_manifest(DEFAULT_MANIFEST) if manifest is None else manifest
+    with path.open("rb") as stream:
+        raw = stream.read(MAX_CORPUS_BYTES + 1)
+    require(len(raw) <= MAX_CORPUS_BYTES, "retained corpus exceeds size limit")
+    try:
+        data = json.loads(raw.decode("utf-8"))
+    except (ValueError, UnicodeError) as exc:
+        raise FullVerifierError("invalid retained corpus JSON") from exc
     require(isinstance(data, dict), f"{path} root must be an object")
     vectors = data.get("vectors")
     require(isinstance(vectors, list) and vectors, f"{path} must contain vectors")
-    for vector in vectors:
-        require(isinstance(vector, dict), f"{path} vector must be an object")
-        require(isinstance(vector.get("name"), str), f"{path} vector name missing")
+    profiles = {f"pqbtc-shrincs-current-draft-{kind}-kat-v0": kind for kind in ("stateful", "stateless")}
+    kind = profiles.get(data.get("profile"))
+    require(kind is not None and (mode is None or kind == mode), "corpus profile/mode drifted")
+    for field, component in (("draft_commit", "draft_specification"), ("libshrincs_commit", "libshrincs_wotsc")):
+        require(data.get(field) == manifest["upstream"][component]["commit"], f"corpus {field} drifted")
+    validate_vectors(vectors, kind)
     return vectors
 
 
@@ -66,8 +139,7 @@ def c_buffer(data: bytes):
 
 
 def call_verify(verify, public_key: bytes, signature: bytes, message: bytes, context: bytes) -> bool:
-    return (
-        verify(
+    status = verify(
             c_buffer(public_key),
             len(public_key),
             c_buffer(signature),
@@ -77,8 +149,8 @@ def call_verify(verify, public_key: bytes, signature: bytes, message: bytes, con
             c_buffer(context),
             len(context),
         )
-        == 1
-    )
+    require(status in (0, 1), f"native verifier returned invalid ABI status: {status}")
+    return status == 1
 
 
 def unpack(vector: dict[str, Any]) -> tuple[bytes, bytes, bytes, bytes]:
@@ -91,6 +163,8 @@ def unpack(vector: dict[str, Any]) -> tuple[bytes, bytes, bytes, bytes]:
 
 
 def run(verify, stateful_vectors: list[dict[str, Any]], stateless_vectors: list[dict[str, Any]]) -> dict[str, int | str]:
+    validate_vectors(stateful_vectors, "stateful")
+    validate_vectors(stateless_vectors, "stateless")
     valid_stateful = 0
     valid_stateless = 0
     strict_negatives = 0
@@ -132,27 +206,49 @@ def run(verify, stateful_vectors: list[dict[str, Any]], stateless_vectors: list[
     require(not call_verify(verify, spk, ssig, bytes(4097), sctx), "oversize message accepted")
     strict_negatives += 1
 
+    for vector in stateful_vectors + stateless_vectors:
+        key, signature, message, context = unpack(vector)
+        for field, data in enumerate((key, signature, message, context)):
+            changed = bytes([data[0] ^ 1]) + data[1:] if data else b"\0"
+            args = [key, signature, message, context]
+            args[field] = changed
+            require(not call_verify(verify, *args), f"binding mutation accepted: {vector['name']} field={field}")
+            strict_negatives += 1
+
+    native_abi_checks = sum(exercise_native_abi_cases(verify, vectors[0])
+                            for vectors in (stateful_vectors, stateless_vectors))
+    require((valid_stateful, valid_stateless, strict_negatives, native_abi_checks) == (7, 2, 60, 28),
+            "incomplete full-verifier campaign")
     return {
         "valid_stateful": valid_stateful,
         "valid_stateless": valid_stateless,
         "strict_negatives": strict_negatives,
+        "native_abi_checks": native_abi_checks,
         "result": "PASS",
     }
 
 
+def exercise_native_abi_cases(verify, vector: dict[str, Any]) -> int:
+    checker = STATELESS_CHECKER if len(unpack(vector)[1]) == STATELESS_BYTES else STATEFUL_CHECKER
+    try:
+        return checker.exercise_native_abi_cases(verify, vector)
+    except (STATEFUL_CHECKER.StatefulOracleError, STATELESS_CHECKER.StatelessOracleError) as exc:
+        raise FullVerifierError(str(exc)) from exc
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--library", type=Path, required=True)
     parser.add_argument("--stateful-vectors", type=Path, required=True)
     parser.add_argument("--stateless-vectors", type=Path, required=True)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
-    result = run(
-        load_verifier(args.library),
-        read_corpus(args.stateful_vectors),
-        read_corpus(args.stateless_vectors),
-    )
+    manifest = load_manifest(args.manifest)
+    stateful = read_corpus(args.stateful_vectors, "stateful", manifest)
+    stateless = read_corpus(args.stateless_vectors, "stateless", manifest)
+    result = run(load_verifier(args.library), stateful, stateless)
     if args.json:
         print(json.dumps(result, sort_keys=True))
     else:
