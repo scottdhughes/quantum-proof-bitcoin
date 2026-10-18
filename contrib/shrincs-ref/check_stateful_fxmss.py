@@ -219,6 +219,35 @@ def require_rejects(verify, vector: dict[str, Any], public_key: bytes, signature
     )
 
 
+def exercise_native_abi_cases(verify, vector: dict[str, Any]) -> int:
+    public_key, signature, message, context = (
+        bytes_from_vector(vector, field)
+        for field in ("public_key", "signature", "message", "context")
+    )
+    require(verify_with_c(verify, public_key, signature, message, context),
+            "native ABI baseline rejected a valid signature")
+    public_key_buffer = c_buffer(public_key)
+    # Back every tested signature length with sufficient storage, even if a guard regresses.
+    signature_buffer = c_buffer(signature + bytes(5000))
+    message_buffer = c_buffer(message)
+    context_buffer = c_buffer(context)
+    args = (public_key_buffer, len(public_key), signature_buffer, len(signature),
+            message_buffer, len(message), context_buffer, len(context))
+    cases = [
+        (None, *args[1:]),
+        (*args[:2], None, *args[3:]),
+        *((args[0], size, *args[2:]) for size in (0, 47, 49)),
+        *((*args[:3], size, *args[4:]) for size in (0, 553, 555, 4619)),
+        (*args[:4], None, 1, *args[6:]),
+        (*args[:6], None, 1),
+        (*args[:4], c_buffer(bytes(4097)), 4097, *args[6:]),
+        (*args[:6], c_buffer(bytes(256)), 256),
+    ]
+    for index, case in enumerate(cases):
+        require(verify(*case) == 0, f"native ABI boundary case {index} did not return rejection")
+    return len(cases) + 1
+
+
 def exercise_negative_cases(verify, vector: dict[str, Any]) -> tuple[int, int, int]:
     public_key = bytes_from_vector(vector, "public_key")
     signature = bytes_from_vector(vector, "signature")
@@ -330,6 +359,8 @@ def main() -> int:
     ):
         require(result[observed] == expected[recorded],
                 f"incomplete stateful campaign: {observed} differs from frozen evidence contract")
+
+    result["native_abi_checks"] = exercise_native_abi_cases(verify, vectors[0])
 
     if args.vectors_out is not None:
         args.vectors_out.parent.mkdir(parents=True, exist_ok=True)

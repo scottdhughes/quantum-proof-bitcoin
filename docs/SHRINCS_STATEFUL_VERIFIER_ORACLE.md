@@ -53,6 +53,12 @@ The workflow requires the independent C verifier to accept all seven signatures 
 - all 2,688 one-bit public-key mutations;
 - 42 structural or binding negatives, including truncation, extension, wrong messages, and wrong contexts.
 
+Both normal and ASan/UBSan campaigns also run fourteen native ABI checks: a valid
+baseline plus thirteen rejections for null pointers with positive lengths, invalid
+key/signature lengths, messages over 4,096 bytes, and contexts over 255 bytes.
+Each negative must return exactly `0` before the harness can publish success.
+These checks are separate from the frozen seven-vector mutation totals.
+
 The vectors and their SHA-256 identifiers are retained as a GitHub Actions artifact. They are not yet committed as a repository KAT corpus, so the project-wide `independent_kats` gate remains false.
 
 ## Independence Boundary

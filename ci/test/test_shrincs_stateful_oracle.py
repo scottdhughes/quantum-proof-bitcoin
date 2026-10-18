@@ -117,6 +117,61 @@ class StatefulProvenanceTests(unittest.TestCase):
 
 
 class StatefulResultTests(unittest.TestCase):
+    def test_native_boundary_campaign_exercises_real_abi_arguments(self) -> None:
+        exercise = getattr(CHECKER, "exercise_native_abi_cases", None)
+        self.assertTrue(callable(exercise), "native ABI campaign must be retained in the harness")
+        calls = []
+
+        def verify(*args):
+            calls.append(args)
+            return int(len(calls) == 1)
+
+        vector = {"name": "fixture", "public_key": "00" * 48,
+                  "signature": "00" * 554, "message": "00" * 32, "context": ""}
+        self.assertEqual(exercise(verify, vector), 14)
+        self.assertEqual(len(calls), 14)
+        self.assertIsNone(calls[1][0])
+        self.assertIsNone(calls[2][2])
+        self.assertEqual([args[1] for args in calls[3:6]], [0, 47, 49])
+        self.assertEqual([args[3] for args in calls[6:10]], [0, 553, 555, 4619])
+        self.assertEqual(calls[10][4:6], (None, 1))
+        self.assertEqual(calls[11][6:8], (None, 1))
+        self.assertEqual(calls[12][5], 4097)
+        self.assertEqual(calls[13][7], 256)
+
+    def test_native_boundary_campaign_requires_exact_rejection_status(self) -> None:
+        exercise = getattr(CHECKER, "exercise_native_abi_cases", None)
+        self.assertTrue(callable(exercise), "native ABI campaign must be retained in the harness")
+        vector = {"name": "fixture", "public_key": "00" * 48,
+                  "signature": "00" * 554, "message": "00" * 32, "context": ""}
+        for invalid_result in (-1, 1, 2):
+            with self.subTest(result=invalid_result):
+                statuses = iter((1, invalid_result))
+                with self.assertRaises(CHECKER.StatefulOracleError):
+                    exercise(lambda *args: next(statuses), vector)
+
+    def test_missing_native_rejections_cannot_publish_pass_or_vectors(self) -> None:
+        lengths = (554, 570, 602, 602, 586, 586, 586)
+        vectors = [{"name": f"fixture-{i}", "public_key": "00" * 48,
+                    "signature": "00" * size, "message": "00" * 32, "context": ""}
+                   for i, size in enumerate(lengths)]
+        with tempfile.TemporaryDirectory(prefix="pqbtc-stateful-native-") as temp:
+            output = Path(temp) / "vectors.json"
+            argv = ["check_stateful_fxmss.py", "--shrincs-bip", temp, "--libshrincs", temp,
+                    "--library", str(Path(temp) / "unused.so"), "--vectors-out", str(output), "--json"]
+            with mock.patch("sys.argv", argv), \
+                    mock.patch.object(CHECKER, "validate_pins"), \
+                    mock.patch.object(CHECKER, "load_module", return_value=SimpleNamespace()), \
+                    mock.patch.object(CHECKER, "load_verifier", return_value=lambda *args: 1), \
+                    mock.patch.object(CHECKER, "create_vectors", return_value=vectors), \
+                    mock.patch.object(CHECKER, "exercise_negative_cases",
+                                      side_effect=[(size * 8, 384, 6) for size in lengths]), \
+                    contextlib.redirect_stdout(io.StringIO()) as stdout:
+                with self.assertRaises(CHECKER.StatefulOracleError):
+                    CHECKER.main()
+            self.assertEqual(stdout.getvalue(), "")
+            self.assertFalse(output.exists())
+
     def test_non_boolean_abi_result_is_an_error_not_a_rejection(self) -> None:
         for result in (-1, 2):
             with self.subTest(result=result):
