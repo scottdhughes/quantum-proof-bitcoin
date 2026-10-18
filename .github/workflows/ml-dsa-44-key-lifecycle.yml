@@ -1,0 +1,71 @@
+name: ML-DSA-44 key lifecycle
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ml-dsa-44-key-lifecycle.yml"
+      - "contrib/ml-dsa-key-lifecycle/**"
+      - "contrib/ml-dsa-engineering/**"
+      - "ci/test/test_ml_dsa_key_lifecycle.py"
+      - "docs/ML_DSA_44_KEY_LIFECYCLE.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ml-dsa-44-key-lifecycle.yml"
+      - "contrib/ml-dsa-key-lifecycle/**"
+      - "contrib/ml-dsa-engineering/**"
+      - "ci/test/test_ml_dsa_key_lifecycle.py"
+      - "docs/ML_DSA_44_KEY_LIFECYCLE.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  key-lifecycle:
+    name: Owned key lifecycle (${{ matrix.compiler }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      EVIDENCE_DIR: ${{ runner.temp }}/key-lifecycle-${{ matrix.compiler }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify clean runtime identity and frozen inputs before compilation
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          python3 contrib/ml-dsa-key-lifecycle/run_key_lifecycle_tests.py --preflight-only
+          python3 -m unittest ci.test.test_ml_dsa_key_lifecycle
+
+      - name: Prove key lifecycle, cleanup, normal exports and ACVP identity
+        run: |
+          set -euo pipefail
+          python3 contrib/ml-dsa-key-lifecycle/run_key_lifecycle_tests.py \
+            --cc "${{ matrix.compiler }}" \
+            --expect-commit "$EXPECTED_HEAD" \
+            --output-dir "$EVIDENCE_DIR"
+
+      - name: Verify unchanged runtime identity
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Upload complete key-lifecycle evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: pqbtc-mldsa-key-lifecycle-${{ matrix.compiler }}-${{ github.run_id }}
+          path: ${{ env.EVIDENCE_DIR }}/
+          if-no-files-found: error
+          retention-days: 90
