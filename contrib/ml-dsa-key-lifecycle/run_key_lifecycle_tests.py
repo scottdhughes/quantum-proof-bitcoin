@@ -127,6 +127,15 @@ def require_wipe_rejection(code, error):
         raise HarnessError("missing observed cleanup failure for omitted-wipe control")
 
 
+def require_alias_rejection(kind, code, error):
+    markers = {
+        "constructor": "pqbtc_mldsa44_key_import_seed(&alias.owner, alias.seed, sizeof(alias.seed)) == -1",
+        "allocation-tail": "pqbtc_mldsa44_key_public(key, (uint8_t*)key + public_offsets[i], 1312) == -1",
+    }
+    if kind not in markers or code != 1 or markers[kind] not in error:
+        raise HarnessError("missing observed alias-boundary failure: " + kind)
+
+
 def acvp_identity(library):
     # Published synthetic ACVP fixture only, never a wallet secret or key import.
     lib = ctypes.CDLL(str(library))
@@ -208,6 +217,26 @@ def prove(compiler, expected_commit):
              HERE / "key_lifecycle_smoke.c", "-o", mutant_exe])
         run([mutant_exe], expected_status=1)
         require_wipe_rejection(transcript[-1]["returncode"], transcript[-1]["stderr"])
+        # These compiled mutations calibrated the review repair: the old smoke
+        # accepted both. Expanded boundary tests must reject the corresponding
+        # unsafe behavior, not merely crash or fail an unrelated check.
+        constructor_guard = ("seed_size != PQBTC_MLDSA44_KEY_SEED_BYTES ||\n"
+            "        RangesOverlap((const uint8_t*)out, sizeof(*out), seed, seed_size)")
+        output_guard = "RangesOverlap(output, size, (const uint8_t*)key, sizeof(*key))"
+        mutants = {
+            "constructor": (constructor_guard, "seed_size != PQBTC_MLDSA44_KEY_SEED_BYTES"),
+            "allocation-tail": (output_guard, "RangesOverlap(output, size, (const uint8_t*)key, sizeof(key->seed))"),
+        }
+        for kind, (needle, replacement) in mutants.items():
+            if original.count(needle) != 1:
+                raise HarnessError("cannot construct scoped alias control: " + kind)
+            source = build / (kind + ".c")
+            source.write_text(original.replace(needle, replacement), encoding="utf8")
+            exe = build / kind
+            run([*flags, "-O2", "-DPQBTC_MLDSA44_TESTING=1", source,
+                 HERE / "key_lifecycle_smoke.c", "-o", exe])
+            run([exe], expected_status=1)
+            require_alias_rejection(kind, transcript[-1]["returncode"], transcript[-1]["stderr"])
         observations = {}
         for injected in (True, False):
             for sanitized in (False, True):
@@ -220,7 +249,7 @@ def prove(compiler, expected_commit):
                 env = os.environ.copy()
                 env["ASAN_OPTIONS"] = "detect_leaks=1:halt_on_error=1"
                 env["UBSAN_OPTIONS"] = "halt_on_error=1:print_stacktrace=1"
-                observations[mode] = smoke_result(run([exe], env), 78 if injected else 38)
+                observations[mode] = smoke_result(run([exe], env), 119 if injected else 52)
         if source_hashes() != frozen or validate_sources(ROOT) != preflight:
             raise HarnessError("source changed during native proof")
         if runtime_identity(expected_commit) != identity:
@@ -231,7 +260,8 @@ def prove(compiler, expected_commit):
                   "platform": {"sys": sys.platform, "machine": os.uname().machine, "compiler": version},
                   "normal_exports": sorted(exported), "unfiltered_exports_rejected": sorted(bad),
                   "acvp_public_sha256": official_hash, "observations": observations,
-                  "omitted_allocation_wipe_rejected": True}
+                  "omitted_allocation_wipe_rejected": True,
+                  "alias_mutants_rejected": sorted(mutants)}
         return report, transcript
 
 

@@ -5,6 +5,7 @@
 #include "key_lifecycle.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef PQBTC_MLDSA44_TESTING
@@ -26,6 +27,13 @@ static int IsZero(const uint8_t* data, size_t size)
 {
     size_t i;
     for (i = 0; i < size; ++i) if (data[i] != 0) return 0;
+    return 1;
+}
+
+static int IsSentinel(const uint8_t* data, size_t size)
+{
+    size_t i;
+    for (i = 0; i < size; ++i) if (data[i] != 0xa5) return 0;
     return 1;
 }
 
@@ -63,6 +71,44 @@ int main(void)
         ++failures;
     }
     if (key == NULL) return 1;
+#ifdef PQBTC_MLDSA44_TESTING
+    {
+        /* The union gives accessible, aligned owner storage overlapping all
+         * 32 seed bytes. A rejected call must not replace any input byte. */
+        union { struct pqbtc_mldsa44_key* owner; uint8_t seed[32]; } alias;
+        uint8_t before[32];
+        size_t allocation = pqbtc_mldsa44_key_test_allocation_size();
+        uint8_t* snapshot;
+        size_t i;
+        memset(alias.seed, 0, sizeof(alias.seed));
+        alias.owner = NULL;
+        memcpy(before, alias.seed, sizeof(before));
+        CHECK(pqbtc_mldsa44_key_import_seed(&alias.owner, alias.seed, sizeof(alias.seed)) == -1);
+        CHECK(memcmp(before, alias.seed, sizeof(before)) == 0);
+        pqbtc_mldsa44_key_destroy(&alias.owner);
+        CHECK(allocation >= 32 + 1312 + 2560);
+        if (allocation < 32 + 1312 + 2560) return 1;
+        snapshot = (uint8_t*)malloc(allocation);
+        if (snapshot == NULL) return 1;
+        memcpy(snapshot, key, allocation);
+        /* Offsets cover seed/public/secret regions and a tail-contained
+         * buffer. The full snapshot also catches secret-only corruption. */
+        for (i = 0; i < 4; ++i) {
+            const size_t public_offsets[] = {1, 32, 32 + 1312, allocation - 1312};
+            const size_t seed_offsets[] = {1, 32, 32 + 1312, allocation - 32};
+            const size_t sign_offsets[] = {1, 32, 32 + 1312, allocation - 2420};
+            CHECK(pqbtc_mldsa44_key_public(key, (uint8_t*)key + public_offsets[i], 1312) == -1);
+            CHECK(memcmp(snapshot, key, allocation) == 0);
+            CHECK(pqbtc_mldsa44_key_export_seed(key, (uint8_t*)key + seed_offsets[i], 32) == -1);
+            CHECK(memcmp(snapshot, key, allocation) == 0);
+            CHECK(pqbtc_mldsa44_key_sign_hedged(key, (uint8_t*)key + sign_offsets[i], 2420,
+                message, sizeof(message), context, sizeof(context) - 1) == -1);
+            CHECK(memcmp(snapshot, key, allocation) == 0);
+        }
+        memset(snapshot, 0, allocation);
+        free(snapshot);
+    }
+#endif
     original = key;
     CHECK(pqbtc_mldsa44_key_import_seed(&key, SEED, 32) == -1);
     CHECK(key == original);
@@ -76,6 +122,27 @@ int main(void)
     CHECK(pqbtc_mldsa44_key_import_seed(&restored, backup, sizeof(backup)) == 0);
     CHECK(pqbtc_mldsa44_key_public(restored, restored_public, sizeof(restored_public)) == 0);
     CHECK(memcmp(public_key, restored_public, sizeof(public_key)) == 0);
+
+    {
+        uint8_t public_sentinel[1313];
+        uint8_t seed_sentinel[33];
+        memset(public_sentinel, 0xa5, sizeof(public_sentinel));
+        memset(seed_sentinel, 0xa5, sizeof(seed_sentinel));
+        CHECK(pqbtc_mldsa44_key_public(key, NULL, 1312) == -1);
+        CHECK(pqbtc_mldsa44_key_export_seed(key, NULL, 32) == -1);
+        CHECK(pqbtc_mldsa44_key_public(NULL, public_sentinel, 1312) == -1);
+        CHECK(IsSentinel(public_sentinel, sizeof(public_sentinel)));
+        CHECK(pqbtc_mldsa44_key_export_seed(NULL, seed_sentinel, 32) == -1);
+        CHECK(IsSentinel(seed_sentinel, sizeof(seed_sentinel)));
+        CHECK(pqbtc_mldsa44_key_public(key, public_sentinel, 1311) == -1);
+        CHECK(IsSentinel(public_sentinel, sizeof(public_sentinel)));
+        CHECK(pqbtc_mldsa44_key_public(key, public_sentinel, 1313) == -1);
+        CHECK(IsSentinel(public_sentinel, sizeof(public_sentinel)));
+        CHECK(pqbtc_mldsa44_key_export_seed(key, seed_sentinel, 31) == -1);
+        CHECK(IsSentinel(seed_sentinel, sizeof(seed_sentinel)));
+        CHECK(pqbtc_mldsa44_key_export_seed(key, seed_sentinel, 33) == -1);
+        CHECK(IsSentinel(seed_sentinel, sizeof(seed_sentinel)));
+    }
 
     memset(backup, 0xa5, sizeof(backup));
     CHECK(pqbtc_mldsa44_key_export_seed(key, backup, 31) == -1);

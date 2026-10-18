@@ -189,6 +189,10 @@ size_t pqbtc_mldsa44_key_test_releases(void)
 {
     return atomic_load_explicit(&g_key_releases, memory_order_relaxed);
 }
+size_t pqbtc_mldsa44_key_test_allocation_size(void)
+{
+    return sizeof(struct pqbtc_mldsa44_key);
+}
 int pqbtc_mldsa44_key_test_release_zero(void)
 {
     return atomic_load_explicit(&g_key_release_zero, memory_order_relaxed);

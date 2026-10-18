@@ -92,6 +92,12 @@ temporary test mutant omits that wipe and must fail the observation gate. This
 calibrates the test; it is not shipped as a selectable library mode. No secret
 seed or expanded-key bytes are printed or saved.
 
+Constructor owner/seed overlap uses aligned accessible storage. Output aliases
+include nonzero offsets and tail-contained buffers across public/secret regions;
+test-only whole-allocation snapshots check every byte stayed unchanged. Separate
+compiled controls remove the constructor alias check or narrow output protection
+to only the seed prefix; both must fail the corresponding boundary assertion.
+
 CI runs GCC and Clang at the exact PR head and separately on actual main. Each
 artifact contains a source/runtime/compiler-bound report, complete native command
 transcript and internal SHA256 checksums. Local source-hash evidence without Git

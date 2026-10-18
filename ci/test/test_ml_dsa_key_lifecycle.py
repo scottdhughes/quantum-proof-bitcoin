@@ -99,6 +99,14 @@ class KeyLifecycleRunnerTests(unittest.TestCase):
                 module.require_wipe_rejection(code, error)
         module.require_wipe_rejection(1, "FAIL: pqbtc_mldsa44_key_test_release_zero() == 1")
 
+    def test_alias_controls_require_the_corresponding_boundary_failure(self):
+        module = self.runner()
+        self.assertTrue(hasattr(module, "require_alias_rejection"), "alias regression controls missing")
+        for kind in ("constructor", "allocation-tail"):
+            for code, output in ((0, ""), (1, "unrelated failure"), (139, "crash")):
+                with self.subTest(kind=kind, code=code), self.assertRaises(module.HarnessError):
+                    module.require_alias_rejection(kind, code, output)
+
     def test_symlink_input_rejected(self):
         module = self.runner()
         with tempfile.TemporaryDirectory() as tmp:

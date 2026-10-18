@@ -14,6 +14,7 @@ void pqbtc_mldsa44_key_test_reset(void);
 void pqbtc_mldsa44_key_test_fail_allocation(int enabled);
 void pqbtc_mldsa44_key_test_fail_keygen(int enabled);
 size_t pqbtc_mldsa44_key_test_releases(void);
+size_t pqbtc_mldsa44_key_test_allocation_size(void);
 int pqbtc_mldsa44_key_test_release_zero(void);
 int pqbtc_mldsa44_key_test_seed_zero(void);
 
