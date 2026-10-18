@@ -12,7 +12,7 @@
 #include <string.h>
 
 #define PQBTC_SHRINCS_PUBLIC_KEY_BYTES 48U
-#define PQBTC_SHRINCS_STATELESS_SIGNATURE_BYTES 5776U
+#define PQBTC_SHRINCS_STATELESS_SIGNATURE_BYTES 5777U
 #define PQBTC_SHRINCS_NODE_BYTES 16U
 #define PQBTC_SHRINCS_MAX_MESSAGE_BYTES 4096U
 
@@ -451,12 +451,15 @@ int pqbtc_shrincs_stateless_verify(const uint8_t *public_key,
         signature_len != PQBTC_SHRINCS_STATELESS_SIGNATURE_BYTES) {
         return 0;
     }
+    if (signature[0] != 255U) {
+        return 0;
+    }
 
     pk_seed = public_key;
     stateless_root = public_key + 16U;
     stateful_root = public_key + 32U;
-    randomizer = signature;
-    fors_signature = signature + 16U;
+    randomizer = signature + 1U;
+    fors_signature = randomizer + 16U;
     hypertree_signature = fors_signature + PQBTC_SPHX_FORS_SIGNATURE_BYTES;
 
     if (!compute_stateless_digest(digest,

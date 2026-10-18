@@ -43,7 +43,37 @@ class ShrincsKatResourceTests(unittest.TestCase):
         self.assertEqual(lock["corpora"]["stateful"]["vector_count"], 7)
         self.assertEqual(lock["corpora"]["stateless"]["vector_count"], 2)
         self.assertEqual(lock["resource_vectors"]["vector_count"], 2)
-        self.assertEqual(lock["resource_vectors"]["signature_lengths"], [4618, 5776])
+        self.assertEqual(lock["resource_vectors"]["signature_lengths"], [4619, 5777])
+
+    def test_v1_corpus_origin_is_local_and_separate_from_historical_v0(self) -> None:
+        lock = CHECK_KATS.load_lock()
+        origin = lock["evidence_source"]
+        self.assertEqual(origin.get("scope"), "CONTAINED_LOCAL_GENERATION_NOT_REMOTE_QUALIFICATION")
+        self.assertEqual(origin.get("profile"), "pqbtc-shrincs-v1")
+        self.assertEqual(origin.get("draft_commit"), lock["draft_commit"])
+        self.assertEqual(origin.get("libshrincs_commit"), lock["libshrincs_commit"])
+        self.assertIs(origin.get("qualified_remote_artifact"), False)
+        historical = lock["historical_evidence"]
+        self.assertEqual(len(historical), 1)
+        self.assertEqual(historical[0]["profile"], "pqbtc-shrincs-v0")
+        self.assertEqual(historical[0]["scope"], "HISTORICAL_ONLY_NOT_V1_CORPUS_ORIGIN")
+        self.assertEqual(historical[0]["artifact_id"], 9270125263)
+
+    def test_current_lock_rejects_historical_or_fabricated_remote_origin(self) -> None:
+        original = copy.deepcopy(CHECK_KATS.load_lock())
+        variants = [
+            {"artifact_id": 9270125263, "pull_request": 232, "workflow_run": 31972304850},
+            {**original["evidence_source"], "qualified_remote_artifact": True},
+            {**original["evidence_source"], "draft_commit": "acc6bda51dc3b94848d118967247ad0f3cd7a80e"},
+        ]
+        for origin in variants:
+            with self.subTest(origin=origin), tempfile.TemporaryDirectory() as directory:
+                lock = copy.deepcopy(original)
+                lock["evidence_source"] = origin
+                path = Path(directory) / "lock.json"
+                path.write_text(json.dumps(lock), encoding="utf-8")
+                with self.assertRaisesRegex(CHECK_KATS.KatError, "evidence source"):
+                    CHECK_KATS.load_lock(path)
 
     def test_kat_lock_digest_tamper_is_rejected(self) -> None:
         lock = copy.deepcopy(CHECK_KATS.load_lock())
@@ -97,8 +127,8 @@ class ShrincsKatResourceTests(unittest.TestCase):
         self.assertEqual(RESOURCE.stateless_global_maximum(), 5601)
 
     def test_stateful_length_depth_mapping(self) -> None:
-        self.assertEqual(RESOURCE.stateful_signature_depth(554), 1)
-        self.assertEqual(RESOURCE.stateful_signature_depth(4618), 255)
+        self.assertEqual(RESOURCE.stateful_signature_depth(548), 1)
+        self.assertEqual(RESOURCE.stateful_signature_depth(4619), 255)
         with self.assertRaisesRegex(ValueError, "non-canonical"):
             RESOURCE.stateful_signature_depth(555)
 

@@ -13,7 +13,7 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MANIFEST = REPO_ROOT / "contrib" / "shrincs" / "manifest.json"
-PROFILE = "pqbtc-shrincs-current-draft-resource-v0"
+PROFILE = "pqbtc-shrincs-current-draft-resource-v1"
 
 
 class ResourceVectorError(ValueError):
@@ -97,8 +97,8 @@ def create_stateful_maximum(reference: ModuleType) -> dict[str, Any]:
         0,
         reference.FXMSS_HEIGHT,
         pk_seed,
-        structure,
-        bytearray(22),
+        False,
+        structure[1],
     )
     secret_key = sk_seed + sk_prf + pk_seed + stateless_root + structure + stateful_root
     public_key = pk_seed + stateless_root + stateful_root
@@ -113,7 +113,7 @@ def create_stateful_maximum(reference: ModuleType) -> dict[str, Any]:
 
     signature = reference.shrincs_sign(message, context, secret_key, state, None)
     require(signature is not None, "maximum-depth stateful signing failed")
-    require(len(signature) == 4618, "maximum-depth stateful signature length drifted")
+    require(len(signature) == 4619, "maximum-depth stateful signature length drifted")
     require(
         reference.shrincs_verify(message, signature, context, public_key),
         "reference rejected maximum-depth stateful signature",
@@ -139,14 +139,13 @@ def create_stateless_maximum_message(reference: ModuleType) -> dict[str, Any]:
     pk_seed = seed[32:48]
     stateful_root = kdf(b"pqbtc-shrincs-resource/stateless-max-message/stateful-root", 16)
 
-    address = bytearray(22)
-    address[0] = reference.SPHX_LAYER_COUNT - 1
     stateless_root = reference.xmss_node(
         sk_seed,
         0,
         reference.SPHX_XMSS_HEIGHT,
         pk_seed,
-        address,
+        reference.SPHX_LAYER_COUNT - 1,
+        0,
     )
     structure = bytes([reference.FXMSS_SHAPE_UNBALANCED, 0])
     secret_key = sk_seed + sk_prf + pk_seed + stateless_root + structure + stateful_root
@@ -157,7 +156,7 @@ def create_stateless_maximum_message(reference: ModuleType) -> dict[str, Any]:
 
     signature = reference.shrincs_sign(message, context, secret_key, None, opt_rand)
     require(signature is not None, "maximum-message stateless signing failed")
-    require(len(signature) == 5776, "stateless signature length drifted")
+    require(len(signature) == 5777, "stateless signature length drifted")
     require(
         reference.shrincs_verify(message, signature, context, public_key),
         "reference rejected maximum-message stateless signature",

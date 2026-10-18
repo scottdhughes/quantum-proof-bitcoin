@@ -13,7 +13,7 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MANIFEST = REPO_ROOT / "contrib" / "shrincs" / "manifest.json"
-VECTOR_PROFILE = "pqbtc-shrincs-current-draft-stateless-kat-v0"
+VECTOR_PROFILE = "pqbtc-shrincs-current-draft-stateless-kat-v1"
 MAX_CORPUS_BYTES = 64 * 1024
 
 
@@ -125,7 +125,7 @@ def create_vectors(reference: ModuleType) -> list[dict[str, Any]]:
         opt_rand = definition["opt_rand"]
         signature = reference.shrincs_sign(message, context, secret_key, None, opt_rand)
         require(signature is not None, f"{name}: reference stateless signing failed")
-        require(len(signature) == reference.SPHX_SIGNATURE_SIZE, f"{name}: signature size drifted")
+        require(len(signature) == reference.SHRINCS_SL_SIGNATURE_SIZE, f"{name}: signature size drifted")
         require(
             reference.shrincs_verify(message, signature, context, public_key),
             f"{name}: reference rejected its own stateless signature",
@@ -214,9 +214,11 @@ def validate_vectors(vectors: Any) -> None:
         require(vector.get("opt_rand") == randomizer, f"{name}: randomizer drifted")
         require(bytes_from_vector(vector, "message") == message, f"{name}: message drifted")
         require(bytes_from_vector(vector, "context") == context, f"{name}: context drifted")
-        for field, size in (("public_key", 48), ("signature", 5776)):
+        for field, size in (("public_key", 48), ("signature", 5777)):
             value = bytes_from_vector(vector, field)
             require(len(value) == size, f"{name}: {field} size drifted")
+            if field == "signature":
+                require(value[0] == 255, f"{name}: stateless indicator drifted")
             require(vector.get(f"{field}_sha256") == hashlib.sha256(value).hexdigest(),
                     f"{name}: {field} hash differs from retained bytes")
         keys.append(bytes_from_vector(vector, "public_key"))
@@ -248,7 +250,7 @@ def exercise_native_abi_cases(verify, vector: dict[str, Any]) -> int:
         args = list(valid)
         args[1] = length
         cases.append(tuple(args))
-    for length in (0, 554, 5775, 5777):
+    for length in (0, 548, 5776, 5778):
         args = list(valid)
         args[3] = length
         cases.append(tuple(args))
@@ -385,7 +387,7 @@ def main() -> int:
         message = bytes_from_vector(vector, "message")
         context = bytes_from_vector(vector, "context")
         require(len(public_key) == 48, f"{vector['name']}: public-key size drifted")
-        require(len(signature) == 5776, f"{vector['name']}: signature size drifted")
+        require(len(signature) == 5777, f"{vector['name']}: signature size drifted")
         require(
             verify_with_c(verify, public_key, signature, message, context),
             f"{vector['name']}: independent C verifier rejected a valid reference signature",

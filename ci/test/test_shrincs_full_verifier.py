@@ -37,7 +37,7 @@ def stateful_fixtures() -> list[dict]:
     vectors = []
     for name, structure, state, index, depth, context, message in rows:
         key = bytes.fromhex(("11" if structure == "0004" else "33") * 48)
-        signature = bytes(16) + index.to_bytes(8, "big") + bytes(514 + 16 * depth)
+        signature = bytes([255 - depth]) + bytes(16) + index.to_bytes(1, "big") + bytes(514 + 16 * depth)
         vectors.append({"name": name, "structure": structure, "state": state,
                         "leaf_index": index, "leaf_depth": depth, "message": message,
                         "context": context.encode().hex(), "public_key": key.hex(),
@@ -54,7 +54,7 @@ def stateless_fixtures() -> list[dict]:
          "PQBTC/SHRINCS/stateless-recovery-v0",
          "6ca8be5ef96403aa67f22a49cf8d1fc9a2c4e72beb6efce6a99a91c7d078222ce9633b5996c7f7cb13b0e5e4ad7d13"),
     )
-    key, signature = bytes.fromhex("44" * 48), bytes.fromhex("55" * 5776)
+    key, signature = bytes.fromhex("44" * 48), b"\xff" + bytes.fromhex("55" * 5776)
     return [{"name": name, "mode": mode, "opt_rand": rand, "context": ctx.encode().hex(),
              "message": msg, "public_key": key.hex(), "signature": signature.hex(),
              "public_key_sha256": hashlib.sha256(key).hexdigest(),
@@ -73,7 +73,7 @@ class FullEvidenceContractTests(unittest.TestCase):
         self.addCleanup(patch.stop)
 
     def valid_only_verifier(self, *args):
-        if args[1] != 48 or args[3] not in (554, 570, 586, 602, 5776) or args[5] > 4096 or args[7] > 255:
+        if args[1] != 48 or args[3] not in (548, 564, 580, 596, 5777) or args[5] > 4096 or args[7] > 255:
             return 0
         values = tuple(ctypes.string_at(args[i], args[i + 1]) if args[i] is not None else b""
                        for i in range(0, 8, 2))
@@ -85,9 +85,9 @@ class FullEvidenceContractTests(unittest.TestCase):
         return int(values in valid)
 
     def corpus(self, mode="stateful") -> dict:
-        return {"profile": f"pqbtc-shrincs-current-draft-{mode}-kat-v0",
-                "draft_commit": "acc6bda51dc3b94848d118967247ad0f3cd7a80e",
-                "libshrincs_commit": "53bedb2c4be6b0dcc0a16fee665339d4f7e4e5b5",
+        return {"profile": f"pqbtc-shrincs-current-draft-{mode}-kat-v1",
+                "draft_commit": "a5891ec5b360a732c097e1d6af1ae59515a2560a",
+                "libshrincs_commit": "911c583cc9c4e5e54a91695a1c6d2a114968715c",
                 "vectors": stateful_fixtures() if mode == "stateful" else stateless_fixtures()}
 
     def read(self, data):
@@ -99,6 +99,14 @@ class FullEvidenceContractTests(unittest.TestCase):
     def test_complete_structural_corpora_load(self):
         self.assertEqual(len(self.read(self.corpus())), 7)
         self.assertEqual(len(self.read(self.corpus("stateless"))), 2)
+
+    def test_legacy_profile_label_cannot_authorize_v1_vectors(self):
+        for mode in ("stateful", "stateless"):
+            with self.subTest(mode=mode):
+                data = self.corpus(mode)
+                data["profile"] = f"pqbtc-shrincs-current-draft-{mode}-kat-v0"
+                with self.assertRaisesRegex(CHECKER.FullVerifierError, "profile/mode"):
+                    self.read(data)
 
     def test_corpus_metadata_and_coverage_cannot_be_reduced(self):
         mutations = (
@@ -136,7 +144,8 @@ class FullEvidenceContractTests(unittest.TestCase):
                     # Rewrite every key to retain each group's shared-key invariant.
                     for vector in data["vectors"]:
                         value = bytes.fromhex(vector[field])
-                        value = bytes([value[0] ^ 1]) + value[1:]
+                        offset = 0 if field == "public_key" else 32
+                        value = value[:offset] + bytes([value[offset] ^ 1]) + value[offset + 1:]
                         vector[field] = value.hex()
                         vector[field + "_sha256"] = hashlib.sha256(value).hexdigest()
                     with self.assertRaisesRegex(CHECKER.FullVerifierError, "frozen.*identity"):
@@ -256,17 +265,23 @@ int pqbtc_shrincs_stateless_verify(ARGS) { HIT(2); }
 
     def test_all_lengths_route_only_the_canonical_mode(self):
         key, signature = CHECKER.c_buffer(bytes(49)), CHECKER.c_buffer(bytes(6001))
-        for length in range(6001):
-            self.calls.value = self.mode.value = 0
-            expected = 2 if length == 5776 else (1 if length in range(554, 4619, 16) else 0)
-            status = self.verify(key, 48, signature, length, None, 0, None, 0)
-            self.assertEqual((status, self.calls.value, self.mode.value),
-                             (int(expected != 0), int(expected != 0), expected), length)
+        for indicator in range(256):
+            signature[0] = indicator
+            depth = 255 - indicator
+            canonical = 5777 if indicator == 255 else 531 + (min(depth, 64) + 7) // 8 + 16 * depth
+            lengths = range(6001) if indicator in (0, 255) else (0, canonical - 1, canonical, canonical + 1)
+            for length in lengths:
+                self.calls.value = self.mode.value = 0
+                expected = (2 if indicator == 255 else 1) if length == canonical else 0
+                status = self.verify(key, 48, signature, length, None, 0, None, 0)
+                self.assertEqual((status, self.calls.value, self.mode.value),
+                                 (int(expected != 0), int(expected != 0), expected), (indicator, length))
 
     def test_pointer_and_size_guards_precede_both_components(self):
         key, signature = CHECKER.c_buffer(bytes(49)), CHECKER.c_buffer(bytes(6001))
         message, context = CHECKER.c_buffer(bytes(4097)), CHECKER.c_buffer(bytes(256))
-        for length in (554, 4618, 5776):
+        for indicator, length in ((254, 548), (0, 4619), (255, 5777)):
+            signature[0] = indicator
             base = [key, 48, signature, length, None, 0, None, 0]
             cases = []
             for pointer in (0, 2):

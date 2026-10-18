@@ -19,11 +19,11 @@ EXPECTED_UPSTREAM = {
     ),
     "draft_specification": (
         "SHRINCS/shrincs-bip",
-        "acc6bda51dc3b94848d118967247ad0f3cd7a80e",
+        "a5891ec5b360a732c097e1d6af1ae59515a2560a",
     ),
     "libshrincs_wotsc": (
         "remix7531/libshrincs",
-        "53bedb2c4be6b0dcc0a16fee665339d4f7e4e5b5",
+        "911c583cc9c4e5e54a91695a1c6d2a114968715c",
     ),
     "research_cpp": (
         "BlockstreamResearch/shrincs-cpp",
@@ -38,7 +38,7 @@ EXPECTED_UPSTREAM = {
 EXPECTED_COMPATIBILITY = {
     "parameter_model": "PARAMETER_ONLY",
     "draft_specification": "AUTHORITATIVE_DRAFT",
-    "libshrincs_wotsc": "COMPATIBLE_COMPONENT",
+    "libshrincs_wotsc": "COMPATIBLE_RECOVERY_COMPONENT",
     "research_cpp": "INCOMPATIBLE",
     "simplicity_verifier": "INCOMPATIBLE",
 }
@@ -99,7 +99,7 @@ def load_manifest(path: Path = DEFAULT_MANIFEST) -> dict[str, Any]:
 
 def validate_manifest(data: dict[str, Any]) -> None:
     _require(data.get("schema_version") == 1, "schema_version must remain 1")
-    _require(data.get("candidate_id") == "pqbtc-shrincs-v0", "candidate_id drifted")
+    _require(data.get("candidate_id") == "pqbtc-shrincs-v1", "candidate_id drifted")
     _require(
         data.get("status") == "RESEARCH_CANDIDATE",
         "candidate status must remain RESEARCH_CANDIDATE",
@@ -129,7 +129,7 @@ def validate_manifest(data: dict[str, Any]) -> None:
                 item.get("compatibility_reasons"),
                 f"upstream.{name}.compatibility_reasons must retain concrete evidence",
             )
-        elif EXPECTED_COMPATIBILITY[name] == "COMPATIBLE_COMPONENT":
+        elif EXPECTED_COMPATIBILITY[name] == "COMPATIBLE_RECOVERY_COMPONENT":
             _require_string_list(
                 item.get("compatible_scope"),
                 f"upstream.{name}.compatible_scope must remain explicit",
@@ -161,12 +161,15 @@ def validate_manifest(data: dict[str, Any]) -> None:
     _require(isinstance(wotsc, dict), "component_evidence.wotsc must be an object")
     expected_wotsc = {
         "compiled_c_matches_committed_kats": True,
-        "current_draft_matches_committed_kats": True,
+        "current_draft_matches_committed_kats": False,
+        "current_keygen_sign_compatible": False,
+        "current_recovery_case_count": 8,
+        "current_recovery_matches_reference": True,
         "formal_proofs_reproduced_by_pqbtc": False,
         "kat_case_count": 8,
         "qualifies_as_full_shrincs_verifier": False,
-        "scope": "stateful WOTS+C leaf only",
-        "status": "COMPATIBLE_COMPONENT_ORACLE",
+        "scope": "current-profile stateful WOTS+C recovery only; historical keygen/sign self-test",
+        "status": "COMPATIBLE_RECOVERY_COMPONENT_ORACLE",
         "wots_public_key_bytes": 16,
         "wots_signature_bytes": 514,
     }
@@ -185,7 +188,7 @@ def validate_manifest(data: dict[str, Any]) -> None:
         "public_key_bit_mutations_rejected": 2688,
         "qualifies_as_full_shrincs_verifier": False,
         "scope": "complete current-draft stateful verification path only",
-        "signature_bit_mutations_rejected": 32688,
+        "signature_bit_mutations_rejected": 32352,
         "status": "INDEPENDENT_DIFFERENTIAL_PROTOTYPE",
         "structural_negatives_rejected": 42,
         "uses_qualified_libshrincs_wotsc": True,
@@ -211,7 +214,7 @@ def validate_manifest(data: dict[str, Any]) -> None:
         "public_key_bit_mutations_rejected": 384,
         "qualifies_as_full_shrincs_verifier": False,
         "scope": "complete current-draft stateless recovery verification path only",
-        "signature_bit_mutations_rejected": 46304,
+        "signature_bit_mutations_rejected": 46312,
         "status": "INDEPENDENT_DIFFERENTIAL_PROTOTYPE",
         "structural_negatives_rejected": 12,
         "uses_pinned_libshrincs_sha256": True,
@@ -231,16 +234,16 @@ def validate_manifest(data: dict[str, Any]) -> None:
     _require(isinstance(draft, dict), "draft_specification profile missing")
     _require(draft.get("public_key_bytes") == 48, "draft public-key size drifted")
     _require(
-        draft.get("stateful_signature_bytes") == {"minimum": 554, "maximum": 4618},
+        draft.get("stateful_signature_bytes") == {"minimum": 548, "maximum": 4619},
         "draft stateful signature range drifted",
     )
-    _require(draft.get("stateless_signature_bytes") == 5776, "draft stateless signature size drifted")
+    _require(draft.get("stateless_signature_bytes") == 5777, "draft stateless signature size drifted")
     _require(
         draft.get("stateful_verify_sha256_compressions") == {"minimum": 255, "maximum": 509},
         "draft stateful verifier cost drifted",
     )
     _require(
-        draft.get("stateless_verify_sha256_compressions") == {"minimum": 462, "maximum": 2637},
+        draft.get("stateless_verify_sha256_compressions") == {"minimum": 467, "maximum": 2792},
         "draft stateless verifier cost drifted",
     )
     _require(
@@ -348,7 +351,7 @@ def main() -> int:
         "release_hold": data["release_hold"],
         "upstream_pins": len(data["upstream"]),
         "compatible_components": sum(
-            item["compatibility_with_pinned_draft"] == "COMPATIBLE_COMPONENT"
+            item["compatibility_with_pinned_draft"] == "COMPATIBLE_RECOVERY_COMPONENT"
             for item in data["upstream"].values()
         ),
         "independent_stateful_prototypes": int(

@@ -10,21 +10,21 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_LOCK = REPO_ROOT / "contrib" / "shrincs-ref" / "kat-lock.json"
-EXPECTED_LOCK_PROFILE = "pqbtc-shrincs-current-draft-kat-lock-v0"
-EXPECTED_DRAFT_COMMIT = "acc6bda51dc3b94848d118967247ad0f3cd7a80e"
-EXPECTED_LIBSHRINCS_COMMIT = "53bedb2c4be6b0dcc0a16fee665339d4f7e4e5b5"
-EXPECTED_RESOURCE_PROFILE = "pqbtc-shrincs-current-draft-resource-v0"
+EXPECTED_LOCK_PROFILE = "pqbtc-shrincs-current-draft-kat-lock-v1"
+EXPECTED_DRAFT_COMMIT = "a5891ec5b360a732c097e1d6af1ae59515a2560a"
+EXPECTED_LIBSHRINCS_COMMIT = "911c583cc9c4e5e54a91695a1c6d2a114968715c"
+EXPECTED_RESOURCE_PROFILE = "pqbtc-shrincs-current-draft-resource-v1"
 EXPECTED_RESOURCE_NAMES = [
     "stateful_max_depth_message_context",
     "stateless_max_message_context",
 ]
 EXPECTED_CORPORA = {
-    "stateful": ("059549af4c74f6bd1898fc93add185ec0bffe08063b00cbff5b1eb4080ebc041",
-                 "pqbtc-shrincs-current-draft-stateful-kat-v0", 7, [554, 570, 586, 602]),
-    "stateless": ("67356b917284198f5a89bfbe727391dcde5e0f06c9f6799b0edd31197968eaae",
-                  "pqbtc-shrincs-current-draft-stateless-kat-v0", 2, [5776]),
+    "stateful": ("bbc5e7aaa56f95496a361e936a933091653fcd78ffaea8a1a26431a86ba35278",
+                 "pqbtc-shrincs-current-draft-stateful-kat-v1", 7, [548, 564, 580, 596]),
+    "stateless": ("cfca4a6624358fc2e3a9497dc06955c6981ca2bfe84d5cd92179d027bc5b4ad0",
+                  "pqbtc-shrincs-current-draft-stateless-kat-v1", 2, [5777]),
 }
-EXPECTED_RESOURCE_SHA256 = "c79cd786bf3cefcce7586cfb018beb3da751ee949b42d3e8afad9e05ea40540a"
+EXPECTED_RESOURCE_SHA256 = "95165cddca970a16f7c65b0870172b4dfb65b2b91dc5fcb9711956650e0f286d"
 
 
 class KatError(ValueError):
@@ -92,7 +92,7 @@ def validate_resource_lock(entry: object) -> None:
         "resource vector-name lock drifted",
     )
     require(
-        entry.get("signature_lengths") == [4618, 5776],
+        entry.get("signature_lengths") == [4619, 5777],
         "resource signature-length lock drifted",
     )
 
@@ -107,6 +107,22 @@ def load_lock(path: Path = DEFAULT_LOCK) -> dict[str, Any]:
         data.get("libshrincs_commit") == EXPECTED_LIBSHRINCS_COMMIT,
         "KAT libshrincs pin drifted",
     )
+    origin = data.get("evidence_source")
+    require(origin == {
+        "draft_commit": EXPECTED_DRAFT_COMMIT,
+        "libshrincs_commit": EXPECTED_LIBSHRINCS_COMMIT,
+        "method": "PINNED_MODEL_DIFFERENTIAL_NATIVE_RECOVERY_AND_DATA_AUDIT",
+        "profile": "pqbtc-shrincs-v1",
+        "qualified_remote_artifact": False,
+        "scope": "CONTAINED_LOCAL_GENERATION_NOT_REMOTE_QUALIFICATION",
+    } and origin["qualified_remote_artifact"] is False,
+        "KAT evidence source must be the local v1 generation, not historical or remote evidence")
+    historical = data.get("historical_evidence")
+    require(isinstance(historical, list) and historical
+            and all(isinstance(entry, dict)
+                    and entry.get("profile") == "pqbtc-shrincs-v0"
+                    and entry.get("scope") == "HISTORICAL_ONLY_NOT_V1_CORPUS_ORIGIN"
+                    for entry in historical), "KAT historical evidence scope drifted")
 
     corpora = data.get("corpora")
     require(

@@ -12,27 +12,24 @@ from types import SimpleNamespace
 from typing import Any
 
 PUBLIC_KEY_BYTES = 48
-STATEFUL_MIN = 554
-STATEFUL_MAX = 4618
-STATELESS_BYTES = 5776
+STATEFUL_MIN = 548
+STATEFUL_MAX = 4619
+STATELESS_BYTES = 5777
 MAX_CORPUS_BYTES = 64 * 1024
 DEFAULT_MANIFEST = Path(__file__).resolve().parents[2] / "contrib/shrincs/manifest.json"
 
 # Independently reproduced deterministic retained bytes at the frozen upstream pins.
 # These identity locks are evidence commitments, not a cryptographic-security claim.
-_UNBALANCED_KEY = "8280aff03f7871cb7730cfa263c7bfb9c5d37b4520fc67c2043b7343e5829433"
-_BALANCED_KEY = "b76c947077dcb9936da88efac9b3b0250a9d64a5bbf796417a36060f8c9a0f9d"
-_STATELESS_KEY = "9d12ad91a235b729e9246a7dc0a9b3b6b42d2178e987949e333f6a8c431eafa3"
 FROZEN_VECTOR_HASHES = {
-    "uxmss_depth4_state0": (_UNBALANCED_KEY, "ba6102dc63d3cb5a3e46416a96cf3bbf5658058e917a30252f18b6d8f1190f73"),
-    "uxmss_depth4_state1": (_UNBALANCED_KEY, "38e72efa1f408626dd7975226dde1a11f1815a905e2fc852dd652e62098a1ba2"),
-    "uxmss_depth4_state3": (_UNBALANCED_KEY, "1be2c5ba49ab46266ade1136e6a79ca1345ad4c2220b35c178b3c71240e7cce7"),
-    "uxmss_depth4_state4": (_UNBALANCED_KEY, "4103a0731fb927b0bf54fcd61bf55ab1f9ee617b2deb74eeb26699049fe6ed5b"),
-    "bxmss_depth3_state0": (_BALANCED_KEY, "bd4e4ded566ecf36055fa393616bb58be8ab449b15603c6523e6e3c0ad48f9c6"),
-    "bxmss_depth3_state3": (_BALANCED_KEY, "56572714dce4fec395a64744620b91132c1d53911dbf2af6d0b42bce7320544d"),
-    "bxmss_depth3_state7": (_BALANCED_KEY, "dce7d81ce385e8d87f90083367131bdcaee26925c9641940ce31808c753556ec"),
-    "stateless_deterministic_empty_context": (_STATELESS_KEY, "f9f6f4ee342d83a5cf858ef307c34d67fd8cc7db932aa561fdbb3df5b03b2819"),
-    "stateless_fixed_randomizer_context": (_STATELESS_KEY, "aef848f6daed79c84607e0a9489a2c0a4c2b4ff96f3a9293a4f6e9c4b6b622c0"),
+    "uxmss_depth4_state0": ("5f6c30fcdd0f1c336713af8d31f7a9e5a6ca091ec7ff0932cae295315f1f6227", "c163cd0e9b93fcb2bccfee9f2a92b34bb483870978c0a412fe955e168ea1453f"),
+    "uxmss_depth4_state1": ("5f6c30fcdd0f1c336713af8d31f7a9e5a6ca091ec7ff0932cae295315f1f6227", "0391bc6bcf9aa20e8f078d46ae5d7365fb82d7e57737257f8d755c69d0f5ffc3"),
+    "uxmss_depth4_state3": ("5f6c30fcdd0f1c336713af8d31f7a9e5a6ca091ec7ff0932cae295315f1f6227", "76cbdbf3b789b6157782307f771472be51a496304ea5bf0ae0b2c7a0b9276010"),
+    "uxmss_depth4_state4": ("5f6c30fcdd0f1c336713af8d31f7a9e5a6ca091ec7ff0932cae295315f1f6227", "f9a1073edbc7b56b26190ca2866ce3496604441577c2007fb4f65cdce95f010f"),
+    "bxmss_depth3_state0": ("a437fbdee373fd69c6cd030219b238958fcef745a7d26594ef7a446655aecc1c", "3d68b2acc35a5363c262e4f01fd3d4cf934513a990a8d9a2be745f397d122350"),
+    "bxmss_depth3_state3": ("a437fbdee373fd69c6cd030219b238958fcef745a7d26594ef7a446655aecc1c", "3e92f71501a455d67e81260b1cf48f74c455e4aa2e25a911849ce221654d3d77"),
+    "bxmss_depth3_state7": ("a437fbdee373fd69c6cd030219b238958fcef745a7d26594ef7a446655aecc1c", "f4c53552b1fccc24ca45d6c7949651479e2ade0f5dbe50b5c7a185ae6bad3fb5"),
+    "stateless_deterministic_empty_context": ("9d12ad91a235b729e9246a7dc0a9b3b6b42d2178e987949e333f6a8c431eafa3", "a2c71fb1a855fefe877bbaa028b9ea6dcde6dc2e76163faa9faa30873a582aef"),
+    "stateless_fixed_randomizer_context": ("9d12ad91a235b729e9246a7dc0a9b3b6b42d2178e987949e333f6a8c431eafa3", "7b4ebbd7ecd82bc2a103b2c7fa2789a0d077542b232b397e7125831e8c6209d7"),
 }
 
 
@@ -95,8 +92,11 @@ def validate_vectors(vectors: Any, mode: str) -> None:
         require(message == STATEFUL_CHECKER.kdf(b"pqbtc-shrincs-stateful/message/" + name.encode(), 32),
                 f"{name}: message drifted")
         require(context == definition["context"], f"{name}: context drifted")
-        require(len(signature) == 538 + 16 * depth, f"{name}: signature length drifted")
-        require(int.from_bytes(signature[16:24], "big") == index, f"{name}: serialized index drifted")
+        index_bytes = (min(depth, 64) + 7) // 8
+        require(len(signature) == 531 + index_bytes + 16 * depth, f"{name}: signature length drifted")
+        require(signature[0] == 255 - depth, f"{name}: serialized height drifted")
+        require(int.from_bytes(signature[17:17 + index_bytes], "big") == index,
+                f"{name}: serialized index drifted")
         for field, value in (("public_key", key), ("signature", signature)):
             require(vector.get(f"{field}_sha256") == hashlib.sha256(value).hexdigest(),
                     f"{name}: {field} hash differs from retained bytes")
@@ -132,7 +132,7 @@ def read_corpus(path: Path, mode: str | None = None,
     require(isinstance(data, dict), f"{path} root must be an object")
     vectors = data.get("vectors")
     require(isinstance(vectors, list) and vectors, f"{path} must contain vectors")
-    profiles = {f"pqbtc-shrincs-current-draft-{kind}-kat-v0": kind for kind in ("stateful", "stateless")}
+    profiles = {f"pqbtc-shrincs-current-draft-{kind}-kat-v1": kind for kind in ("stateful", "stateless")}
     kind = profiles.get(data.get("profile"))
     require(kind is not None and (mode is None or kind == mode), "corpus profile/mode drifted")
     for field, component in (("draft_commit", "draft_specification"), ("libshrincs_commit", "libshrincs_wotsc")):
