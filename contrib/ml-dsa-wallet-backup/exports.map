@@ -1,0 +1,16 @@
+{
+    global:
+        pqbtc_mldsa44_key_generate;
+        pqbtc_mldsa44_key_import_seed;
+        pqbtc_mldsa44_key_public;
+        pqbtc_mldsa44_key_export_seed;
+        pqbtc_mldsa44_key_sign_hedged;
+        pqbtc_mldsa44_key_verify_strict;
+        pqbtc_mldsa44_key_destroy;
+        pqbtc_backup_create;
+        pqbtc_backup_restore;
+        pqbtc_pilot_intent;
+        pqbtc_pilot_sign;
+        pqbtc_pilot_verify;
+    local: *;
+};
