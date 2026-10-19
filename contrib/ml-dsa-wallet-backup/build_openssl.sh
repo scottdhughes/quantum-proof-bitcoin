@@ -2,6 +2,7 @@
 # Copyright (c) 2026 The PQBTC Core developers
 # Distributed under the MIT software license, see the accompanying COPYING.
 # Contained Linux only. Build the exact approved archive, never system libcrypto.
+export LC_ALL=C
 set -euo pipefail
 archive=$1
 prefix=$2

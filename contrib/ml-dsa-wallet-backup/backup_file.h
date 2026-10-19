@@ -1,8 +1,8 @@
 // Copyright (c) 2026 The PQBTC Core developers
 // Distributed under the MIT software license, see the accompanying COPYING.
-#ifndef BITCOIN_ML_DSA_WALLET_BACKUP_FILE_H
-#define BITCOIN_ML_DSA_WALLET_BACKUP_FILE_H
-#include "backup.h"
+#ifndef BITCOIN_ML_DSA_WALLET_BACKUP_BACKUP_FILE_H
+#define BITCOIN_ML_DSA_WALLET_BACKUP_BACKUP_FILE_H
+#include <backup.h>
 /* Held directory FD must be owned0700. A basename, not a path. Store never
  * replaces an existing name. INDETERMINATE means publication happened but
  * durability/cleanup failed: do not retry as though nothing was written.
@@ -16,4 +16,4 @@ enum { FILE_INTERRUPT_WRITE=1, FILE_NOSPC, FILE_SYNC, FILE_LINK,
        FILE_CLOSE, FILE_WRONG_OWNER };
 void pqbtc_backup_file_test_stage(int);
 #endif
-#endif // BITCOIN_ML_DSA_WALLET_BACKUP_FILE_H
+#endif // BITCOIN_ML_DSA_WALLET_BACKUP_BACKUP_FILE_H

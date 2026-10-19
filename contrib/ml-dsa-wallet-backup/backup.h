@@ -1,8 +1,8 @@
 // Copyright (c) 2026 The PQBTC Core developers
 // Distributed under the MIT software license, see the accompanying COPYING.
-#ifndef BITCOIN_ML_DSA_WALLET_BACKUP_H
-#define BITCOIN_ML_DSA_WALLET_BACKUP_H
-#include "../ml-dsa-key-lifecycle/key_lifecycle.h"
+#ifndef BITCOIN_ML_DSA_WALLET_BACKUP_BACKUP_H
+#define BITCOIN_ML_DSA_WALLET_BACKUP_BACKUP_H
+#include <../ml-dsa-key-lifecycle/key_lifecycle.h>
 #define PQBTC_BACKUP_BYTES 176U
 #define PQBTC_PILOT_INTENT_BYTES 112U
 enum pqbtc_backup_result {
@@ -31,4 +31,4 @@ PQBTC_MLDSA44_KEY_API int pqbtc_pilot_sign(const struct pqbtc_mldsa44_key*,
     uint8_t*, size_t, const uint8_t*, size_t, const uint8_t challenge[32]);
 PQBTC_MLDSA44_KEY_API int pqbtc_pilot_verify(const uint8_t*, size_t,
     const uint8_t*, size_t, const uint8_t*, size_t, const uint8_t challenge[32]);
-#endif // BITCOIN_ML_DSA_WALLET_BACKUP_H
+#endif // BITCOIN_ML_DSA_WALLET_BACKUP_BACKUP_H
