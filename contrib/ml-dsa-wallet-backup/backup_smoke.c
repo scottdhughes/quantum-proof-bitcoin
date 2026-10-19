@@ -5,6 +5,7 @@
 #include "../ml-dsa-key-lifecycle/key_lifecycle_test.h"
 #include "../ml-dsa-engineering/pqbtc_mldsa44_test.h"
 #include <openssl/evp.h>
+#include <openssl/crypto.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -145,6 +146,7 @@ int main(int argc,char** argv)
     CHECK(pqbtc_pilot_intent(intent,111,public_key,1312,challenge)!=0);
     pqbtc_mldsa44_key_destroy(&other); pqbtc_mldsa44_key_destroy(&key);
     CHECK(key==NULL && other==NULL);
+    printf("backup crypto runtime: %s\n",OpenSSL_version(OPENSSL_VERSION));
     printf("backup smoke: PASS (%u checks)\n",checks);
     return 0;
 }
