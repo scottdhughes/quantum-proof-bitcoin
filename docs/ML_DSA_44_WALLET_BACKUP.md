@@ -97,11 +97,11 @@ compilation. Pinned archive-build identity, actual libcrypto digest and native
 runtime version are recorded; arbitrary library authenticity is still a trusted
 build obligation, not authenticated plugin support.
 
-GCC/Clang each run normal+ASan/UBSan codec808, file1034 and process16-check
+GCC/Clang each run normal+ASan/UBSan codec1368, file1034 and process16-check
 campaigns. The deterministic public fixture matches separate libgcrypt AES-GCM
 and hashlib.scrypt code, calibrated by primitive KATs. Its raw package SHA256 is
 `919274349faf698e32052f75e07e4f7e6fbb997f45ca9895902623fe40b46506`.
-Real compiled omitted-authentication/header-binding/wipe controls must fail the
+Real compiled omitted-authentication/header-binding/wipe/pilot-policy controls must fail the
 specific behavioral assertions. Normal exports and an actual unfiltered build
 calibrate symbol isolation. Tests observe owned staging cleanup and injected
 file/entropy/allocation/provider failures, not complete provider/OS/physical erasure.

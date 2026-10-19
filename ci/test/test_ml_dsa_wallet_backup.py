@@ -62,18 +62,25 @@ class WalletBackupRunnerTests(unittest.TestCase):
 
     def test_incomplete_or_wrong_runtime_native_reports_rejected(self):
         module=self.module()
-        for text in ("", "backup smoke: PASS (808 checks)\n", "backup crypto runtime: OpenSSL 3.0.22\nbackup smoke: PASS (808 checks)\n", "backup crypto runtime: OpenSSL 3.6.5 29 Sep 2026\nbackup smoke: PASS (807 checks)\n"):
+        for text in ("", "backup smoke: PASS (1368 checks)\n", "backup crypto runtime: OpenSSL 3.0.22\nbackup smoke: PASS (1368 checks)\n", "backup crypto runtime: OpenSSL 3.6.5 29 Sep 2026\nbackup smoke: PASS (1367 checks)\n", "backup crypto runtime: OpenSSL 3.6.5 29 Sep 2026\nbackup smoke: PASS (808 checks)\n"):
             with self.subTest(text=text),self.assertRaises(module.HarnessError): module.smoke_result(text,"codec")
         with self.assertRaises(module.HarnessError): module.smoke_result("backup file smoke: PASS (1033 checks)\n","file")
 
     def test_complete_report_accepted(self):
-        self.assertEqual(self.module().smoke_result("backup crypto runtime: OpenSSL 3.6.5 29 Sep 2026\nbackup smoke: PASS (808 checks)\n","codec"),{"result":"PASS","checks":808})
+        self.assertEqual(self.module().smoke_result("backup crypto runtime: OpenSSL 3.6.5 29 Sep 2026\nbackup smoke: PASS (1368 checks)\n","codec"),{"result":"PASS","checks":1368})
 
     def test_unrelated_failure_does_not_qualify_negative_control(self):
         module=self.module()
-        for kind in ("wipe","authentication","aad"):
+        for kind in ("wipe","authentication","aad","policy"):
             for code,error in ((0,""),(139,"crash"),(1,"unrelated failure")):
                 with self.subTest(kind=kind,code=code),self.assertRaises(module.HarnessError): module.require_control(kind,code,error)
+
+    def test_policy_control_requires_the_policy_rejection_assertion(self):
+        module=self.module()
+        marker="pqbtc_pilot_verify(policy_signature,2420,public_key,1312,intent,112,challenge)==PQBTC_BACKUP_AUTH"
+        module.require_control("policy",1,"FAIL: /tmp/smoke.c:123: "+marker+"\n")
+        for code,error in ((0,""),(139,"crash"),(1,"FAIL: /tmp/smoke.c:123: unrelated\n")):
+            with self.subTest(code=code),self.assertRaises(module.HarnessError): module.require_control("policy",code,error)
 
     def test_wrong_openssl_source_marker_rejected_before_native_execution(self):
         module=self.module()

@@ -110,14 +110,15 @@ def require_exports(actual):
 
 
 def smoke_result(text,kind):
-    expected={"codec":"backup crypto runtime: OpenSSL 3.6.5 29 Sep 2026\nbackup smoke: PASS (808 checks)\n",
+    expected={"codec":"backup crypto runtime: OpenSSL 3.6.5 29 Sep 2026\nbackup smoke: PASS (1368 checks)\n",
               "file":"backup file smoke: PASS (1034 checks)\n"}
     if kind not in expected or text!=expected[kind]: raise HarnessError("incomplete/wrong runtime native observations")
-    return {"result":"PASS","checks":808 if kind=="codec" else 1034}
+    return {"result":"PASS","checks":1368 if kind=="codec" else 1034}
 
 
 CONTROL_MARKERS={"wipe":"pqbtc_backup_test_clean()==1", "authentication":"restore(&restored,package)==PQBTC_BACKUP_AUTH && restored==NULL",
-                 "aad":"memcmp(hash,want_package_hash,32)==0"}
+                 "aad":"memcmp(hash,want_package_hash,32)==0",
+                 "policy":"pqbtc_pilot_verify(policy_signature,2420,public_key,1312,intent,112,challenge)==PQBTC_BACKUP_AUTH"}
 
 
 def require_control(kind,code,error):
@@ -212,7 +213,9 @@ def prove(compiler,prefix,expected,allow_source_only):
         mutations={
             "wipe":("    pqbtc_mldsa44_zeroize(scratch,sizeof(*scratch));","    (void)scratch;"),
             "authentication":("if(EVP_DecryptFinal_ex(ctx,scratch.plaintext+n,&tail)!=1 || tail!=0) goto done;","(void)tail;"),
-            "aad":("EVP_EncryptUpdate(ctx,NULL,&n,scratch.package,96)!=1 ||","0 ||")}
+            "aad":("EVP_EncryptUpdate(ctx,NULL,&n,scratch.package,96)!=1 ||","0 ||"),
+            "policy":("if(pk==NULL || pk_size!=1312 || !ValidIntent(intent,size,pk,challenge)) return PQBTC_BACKUP_AUTH;",
+                      "(void)challenge; if(pk==NULL || pk_size!=1312) return PQBTC_BACKUP_AUTH;")}
         for kind,(needle,replacement) in mutations.items():
             if original.count(needle)!=1: raise HarnessError("cannot build scoped negative control")
             source=original.replace(needle,replacement).replace('#include "../ml-dsa-key-lifecycle/key_lifecycle.c"','#include "'+str(ROOT/"contrib/ml-dsa-key-lifecycle/key_lifecycle.c")+'"')

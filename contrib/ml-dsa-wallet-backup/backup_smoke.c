@@ -26,7 +26,9 @@ int main(int argc,char** argv)
 {
     struct pqbtc_mldsa44_key *key=NULL,*restored=NULL,*other=NULL;
     uint8_t package[177], original[176], public_key[1312], recovered_pk[1312];
-    uint8_t intent[113], challenge[32]={1}, signature[2420], hash[32], exported[32], entropy[32];
+    uint8_t intent[113], challenge[32]={1}, signature[2420], rejected_signature[2420], policy_signature[2420];
+    uint8_t hash[32], exported[32], entropy[32];
+    static const uint8_t pilot_context[]="PQBTC-ZERO-VALUE-INTENT-v1";
     static const uint8_t want_hash[32]={0x45,0x1a,0x80,0x8c,0x52,0x22,0x18,0xfa,0xdb,0xda,0xb1,0x46,0xfc,0x12,0x00,0x4b,0x07,0x41,0xc7,0xd0,0x69,0xf2,0x38,0xf4,0x3a,0xd7,0x72,0x16,0x15,0x9f,0x6a,0x34};
     pqbtc_backup_test_reset();
     CHECK(pqbtc_mldsa44_key_import_seed(&key,seed,32)==0);
@@ -131,8 +133,15 @@ int main(int argc,char** argv)
     CHECK(pqbtc_pilot_verify(signature,2420,recovered_pk,1312,intent,112,challenge)!=0);
     for(size_t i=0;i<112;++i) {
         intent[i]^=1;
-        CHECK(pqbtc_pilot_sign(key,signature,2420,intent,112,challenge)!=0);
+        CHECK(pqbtc_pilot_sign(key,rejected_signature,2420,intent,112,challenge)!=0);
         CHECK(pqbtc_pilot_verify(signature,2420,public_key,1312,intent,112,challenge)!=0);
+        /* Even a valid generic-key signature must not bypass canonical policy. */
+        CHECK(EVP_Digest(intent,112,hash,NULL,EVP_sha256(),NULL)==1);
+        memset(entropy,(int)i+4,sizeof(entropy));
+        CHECK(pqbtc_mldsa44_test_set_entropy(1,entropy,32)==0);
+        CHECK(pqbtc_mldsa44_key_sign_hedged(key,policy_signature,2420,hash,32,pilot_context,sizeof(pilot_context)-1)==0);
+        CHECK(pqbtc_mldsa44_key_verify_strict(policy_signature,2420,public_key,1312,hash,32,pilot_context,sizeof(pilot_context)-1)==0);
+        CHECK(pqbtc_pilot_verify(policy_signature,2420,public_key,1312,intent,112,challenge)==PQBTC_BACKUP_AUTH);
         intent[i]^=1;
     }
     memset(entropy,0x43,sizeof(entropy));
