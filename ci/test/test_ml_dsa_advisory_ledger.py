@@ -771,6 +771,7 @@ class MlDsaAdvisoryLedgerTest(unittest.TestCase):
         self.assertIsNone(advisory.validate_ledger(self.ledger, self.vectors))
         self.assertEqual(self.ledger["schema_version"], 1)
         self.assertEqual(self.ledger["inventory_date"], "2026-07-21")
+        self.assertEqual(self.oracle_source("mldsa_native")["advisory_inventory"]["as_of"], "2026-10-20")
         openssl = self.oracle_source("openssl")
         openssl_inventory = openssl["advisory_inventory"]
         self.assertEqual(openssl["version"], "3.6.5")

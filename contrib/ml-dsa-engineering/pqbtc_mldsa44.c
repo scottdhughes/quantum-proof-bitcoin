@@ -349,7 +349,7 @@ int pqbtc_mldsa44_sign_hedged(
     g_entropy_active = 1;
     g_entropy_result = PQBTC_MLDSA44_ERR_ENTROPY_SOURCE;
     backend_result = pqbtc_mldsa44_upstream_signature(
-        candidate, &candidate_size, message, message_size, context, context_size, secret_key);
+        candidate, message, message_size, context, context_size, secret_key);
     g_entropy_active = 0;
 
 #ifdef PQBTC_MLDSA44_TESTING
@@ -367,6 +367,9 @@ int pqbtc_mldsa44_sign_hedged(
         goto cleanup;
     }
 
+    /* v2 returns a fixed-size signature, not an output length. Keep this
+     * project-boundary fault check distinct from upstream API evidence. */
+    candidate_size = sizeof(candidate);
 #ifdef PQBTC_MLDSA44_TESTING
     if (g_test_force_signature_length) --candidate_size;
 #endif
@@ -379,7 +382,7 @@ int pqbtc_mldsa44_sign_hedged(
     if (g_test_corrupt_candidate_before_verify) candidate[0] ^= 1U;
 #endif
     backend_result = pqbtc_mldsa44_upstream_verify(
-        candidate, candidate_size, message, message_size, context, context_size, public_key);
+        candidate, message, message_size, context, context_size, public_key);
 #ifdef PQBTC_MLDSA44_TESTING
     if (g_test_force_verify_failure) backend_result = -1;
 #endif
@@ -424,7 +427,6 @@ int pqbtc_mldsa44_verify_strict(
     }
     if (pqbtc_mldsa44_upstream_verify(
             signature,
-            signature_size,
             message,
             message_size,
             context,
@@ -593,7 +595,6 @@ int pqbtc_mldsa44_test_sign_fixed_randomizer(
 {
     uint8_t candidate[PQBTC_MLDSA44_SIGNATURE_BYTES] = {0};
     uint8_t prefix[2 + PQBTC_MLDSA44_MAX_CONTEXT_BYTES] = {0};
-    size_t candidate_size = 0;
     int backend_result;
     int result = PQBTC_MLDSA44_ERR_BACKEND;
 
@@ -626,7 +627,6 @@ int pqbtc_mldsa44_test_sign_fixed_randomizer(
     LockSigningModule();
     backend_result = pqbtc_mldsa44_upstream_signature_internal(
         candidate,
-        &candidate_size,
         message,
         message_size,
         prefix,
@@ -634,14 +634,12 @@ int pqbtc_mldsa44_test_sign_fixed_randomizer(
         randomizer,
         secret_key,
         0);
-    if (backend_result == 0 && candidate_size == PQBTC_MLDSA44_SIGNATURE_BYTES) {
+    if (backend_result == 0) {
         // NOLINTNEXTLINE(clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling)
         memcpy(signature, candidate, sizeof(candidate));
         result = PQBTC_MLDSA44_OK;
     } else if (backend_result == PQBTC_MLDSA44_UPSTREAM_ERR_SIGN_ATTEMPTS_EXHAUSTED) {
         result = PQBTC_MLDSA44_ERR_SIGN_ATTEMPTS_EXHAUSTED;
-    } else if (backend_result == 0) {
-        result = PQBTC_MLDSA44_ERR_SIGNATURE_LENGTH;
     }
     pqbtc_mldsa44_zeroize(prefix, sizeof(prefix));
     pqbtc_mldsa44_zeroize(candidate, sizeof(candidate));

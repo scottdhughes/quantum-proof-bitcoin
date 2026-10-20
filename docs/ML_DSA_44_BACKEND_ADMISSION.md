@@ -1,5 +1,16 @@
 # ML-DSA-44 Backend Admission
 
+## v2.0.0 reconciliation (2026-10-20)
+
+The current portable source is v2.0.0, commit
+`834a90d5e846ffa1e1611bd24e160bb2e9b86d35`. Fresh exact-source PR and
+protected-main qualification is required; historical beta campaigns and
+receipts below retain their original source identities and do not qualify v2.
+The source PR is followed by its related baseline-pointer PR; intermediate
+main is not final frozen-baseline evidence. Production backend `NONE`,
+consensus disabled, release hold and all admission gates remain unchanged.
+
+
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-BACKEND-ADMISSION-v1
 ## Decided: 2026-07-19
@@ -12,7 +23,7 @@ The explicit disposition is:
 
 > **`MLDSA_NATIVE_PORTABLE_C_ISOLATED_PROTOTYPE`**
 
-The pinned `mldsa-native` `v1.0.0-beta2` portable-C path may be used in a
+The pinned `mldsa-native` `v2.0.0` portable-C path may be used in a
 separate `contrib/` prototype to implement and test the project-owned
 hedged-signing wrapper. The production backend remains `NONE`, and
 `RELEASE_HOLD` remains in force.
@@ -28,9 +39,9 @@ The machine-readable disposition is
 pins match the frozen comparator and that no production backend or closed
 release gate is recorded.
 
-## Selection Boundary
+## Historical beta selection boundary
 
-Algorithm conformance is not the differentiator in this decision. The current
+Algorithm conformance is not the differentiator in this decision. The then-current beta
 three-oracle pin set, including OpenSSL 3.6.5, passed the frozen ML-DSA-44
 comparator in trusted-main run `38550795835` at
 `1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d`. The
@@ -166,22 +177,20 @@ fixed-randomizer operations for vector testing. CI inspects the
 production-shaped symbol table and fails if a deterministic, test, or upstream
 signing entry point is exported.
 
-The `821` bound incorporates NIST's July 31, 2026 potential correction to
-Appendix C (previously `814`). The vendored upstream capsule remains at its
-exact reviewed commit and still contains the older lower-bound guard; the
-project-owned configuration exceeds that guard without changing vendor bytes.
-Any production admission still requires an upstream repin and exact-commit
-review.
+The project signing-attempt bound remains `821`, matching the v2 compile-time
+minimum without modifying upstream bytes. A stable source tag is not
+production approval.
 
-## Implemented Prototype Evidence
+## Implemented Prototype Source
 
-`ML_DSA_44_WRAPPER_PROTOTYPE.md` records the completed bounded implementation.
-The checked-in source capsule contains the exact 34-file portable dependency
-closure and upstream license. Its aggregate SHA256 is
-`2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb`.
-The full pinned upstream Git archive SHA256 is
-`4fd08a772d0a142863593471f0c26e239bac8babc8e2a960e072f06ee89ff30b`.
-No native backend or assembly source is present.
+The current capsule is the exact 35-file v2.0.0 portable closure plus its
+source manifest (35 includes the upstream license). Aggregate SHA256:
+`e07f0f6a9bb46fd9afcbe7699f95f1ce43e6fcf48623d6de7b3e95ed405023cb`.
+Full upstream archive SHA256:
+`1bb12c7eac6a44ea96bc2043b8c8b5bb2f2b2a85a3a9b5926fa2eb5ed86e27b7`.
+No native backend or assembly source is present. Current-v2 conformance and
+binary analysis must be reproduced; the historical assessment is explicitly
+source-bound in `backend_admission.json`.
 
 The production-shaped shared object exports exactly
 `pqbtc_mldsa44_sign_hedged` and `pqbtc_mldsa44_verify_strict`. The test build is

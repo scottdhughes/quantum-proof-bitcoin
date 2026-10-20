@@ -7,6 +7,7 @@ import importlib.util
 import json
 from pathlib import Path
 import runpy
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -77,20 +78,61 @@ def load_wrapper_runner():
 
 
 class MlDsaWrapperPrototypeTest(unittest.TestCase):
+    def test_v2_compatibility_control_requires_exact_failure(self):
+        runner = load_wrapper_runner()
+        marker = "v2 compatibility failure: invalid input reached upstream verifier\n"
+        runner.require_api_compatibility_control(41, marker)
+        for code, stderr in ((0, marker), (-11, marker), (41, marker + "unrelated\n")):
+            with self.subTest(code=code, stderr=stderr):
+                with self.assertRaises(runner.HarnessError):
+                    runner.require_api_compatibility_control(code, stderr)
+
+    def test_v2_source_identity_and_portable_closure(self):
+        """A valid capsule cannot be presented with another admitted identity."""
+        runner = load_wrapper_runner()
+        for field in ("tag", "commit", "git_tree", "archive", "capsule"):
+            with self.subTest(field=field), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                source = root / "mldsa-native"
+                shutil.copytree(SOURCE_MANIFEST.parent, source)
+                manifest_path = source / "SOURCE.json"
+                manifest = json.loads(manifest_path.read_text(encoding="utf8"))
+                admission = json.loads(ADMISSION.read_text(encoding="utf8"))
+                if field in ("tag", "commit", "git_tree"):
+                    manifest[field] = "unreviewed" if field == "tag" else "0" * 40
+                elif field == "archive":
+                    manifest["upstream_git_archive_tar_sha256"] = "0" * 64
+                else:
+                    admission["admitted_prototype"]["implementation_evidence"][
+                        "source_capsule"
+                    ]["capsule_sha256"] = "0" * 64
+                manifest_path.write_text(json.dumps(manifest), encoding="utf8")
+                admission_path = root / "backend_admission.json"
+                admission_path.write_text(json.dumps(admission), encoding="utf8")
+                with (
+                    mock.patch.object(runner, "SOURCE_DIR", source),
+                    mock.patch.object(runner, "SOURCE_MANIFEST", manifest_path),
+                    mock.patch.object(
+                        runner, "ADMISSION_MANIFEST", admission_path, create=True
+                    ),
+                    self.assertRaisesRegex(runner.HarnessError, "source identity"),
+                ):
+                    runner.validate_source_capsule()
+
     def test_source_capsule_is_exact_portable_pin(self):
         manifest = json.loads(SOURCE_MANIFEST.read_text(encoding="utf8"))
-        self.assertEqual(manifest["tag"], "v1.0.0-beta2")
+        self.assertEqual(manifest["tag"], "v2.0.0")
         self.assertEqual(
-            manifest["commit"], "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b"
+            manifest["commit"], "834a90d5e846ffa1e1611bd24e160bb2e9b86d35"
         )
-        self.assertEqual(len(manifest["files"]), 34)
+        self.assertEqual(len(manifest["files"]), 35)
         self.assertEqual(
             manifest["capsule_hash"]["value"],
-            "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb",
+            "e07f0f6a9bb46fd9afcbe7699f95f1ce43e6fcf48623d6de7b3e95ed405023cb",
         )
         self.assertEqual(
             manifest["upstream_git_archive_tar_sha256"],
-            "4fd08a772d0a142863593471f0c26e239bac8babc8e2a960e072f06ee89ff30b",
+            "1bb12c7eac6a44ea96bc2043b8c8b5bb2f2b2a85a3a9b5926fa2eb5ed86e27b7",
         )
         self.assertFalse(any("/native/" in path for path in manifest["files"]))
         self.assertFalse(any(path.endswith(".S") for path in manifest["files"]))
@@ -103,7 +145,6 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
             "#define MLD_CONFIG_PARAMETER_SET 44",
             "#define MLD_CONFIG_EXTERNAL_API_QUALIFIER static",
             "#define MLD_CONFIG_INTERNAL_API_QUALIFIER static",
-            "#define MLD_CONFIG_NO_SUPERCOP",
             "#define MLD_CONFIG_NO_ASM",
             "#define MLD_CONFIG_MAX_SIGNING_ATTEMPTS 821",
             "#define MLD_CONFIG_CUSTOM_RANDOMBYTES",
@@ -113,8 +154,26 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         vendor_guard = (
             ENGINEERING_DIR / "vendor" / "mldsa-native" / "mldsa" / "src" / "sign.c"
         ).read_text(encoding="utf8")
-        self.assertIn("MLD_CONFIG_MAX_SIGNING_ATTEMPTS < 814", vendor_guard)
-        self.assertIn("must be >= 814 for FIPS 204 compliance", vendor_guard)
+        self.assertNotIn("#define MLD_CONFIG_NO_SUPERCOP", config)
+        self.assertIn("MLD_CONFIG_MAX_SIGNING_ATTEMPTS < 821", vendor_guard)
+        self.assertIn("must be >= 821 for FIPS 204 compliance", vendor_guard)
+
+    def test_v2_no_optional_api_exports(self):
+        # Existing behavior retained: configuration must not opt into a new
+        # signing state or optimized implementation. Native nm checks enforce
+        # the actual two-symbol normal build separately.
+        config = (ENGINEERING_DIR / "pqbtc_mldsa44_config.h").read_text(encoding="utf8")
+        for macro in (
+            "MLD_CONFIG_CONTEXT_PARAMETER",
+            "MLD_CONFIG_SIGN_HOOK_RESUME",
+            "MLD_CONFIG_SIGN_HOOK_ATTEMPT",
+            "MLD_CONFIG_SIGN_HOOK_FINISH",
+            "MLD_CONFIG_NO_RANDOMIZED_API",
+            "MLD_CONFIG_USE_NATIVE_BACKEND_ARITHMETIC",
+            "MLD_CONFIG_USE_NATIVE_BACKEND_FIPS202",
+        ):
+            with self.subTest(macro=macro):
+                self.assertNotRegex(config, r"(?m)^\s*#\s*define\s+" + macro + r"\b")
 
     def test_production_header_has_no_test_or_randomizer_control(self):
         header = (ENGINEERING_DIR / "pqbtc_mldsa44.h").read_text(encoding="utf8")
@@ -711,14 +770,14 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         plan = load_valgrind_ct_plan("valgrind-varlat_clang20", "clang")
         upstream = plan["upstream_environment"]
         self.assertEqual(
-            upstream["commit"], "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b"
+            upstream["commit"], "834a90d5e846ffa1e1611bd24e160bb2e9b86d35"
         )
         self.assertEqual(
-            upstream["git_tree"], "c73c7029182122fce2f2dd8ac544ae990abd74a2"
+            upstream["git_tree"], "e61bc2b09d705cbc378e3e8c6d556cae05750fd6"
         )
         self.assertEqual(
             upstream["git_archive_tar_sha256"],
-            "4fd08a772d0a142863593471f0c26e239bac8babc8e2a960e072f06ee89ff30b",
+            "1bb12c7eac6a44ea96bc2043b8c8b5bb2f2b2a85a3a9b5926fa2eb5ed86e27b7",
         )
         self.assertEqual(
             upstream["valgrind_patch_sha256"],
@@ -726,15 +785,15 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         )
         self.assertEqual(
             upstream["flake_lock_sha256"],
-            "cdc01dce87b0c9b8488baafb0e0ed5ec94064089f7b4d5b253aecfeef2ac1861",
+            "8f1762cc57561256465ef3b467f44b99b606c3b196870b81a329b8de0cebdd69",
         )
         self.assertEqual(
             upstream["nixpkgs_rev"],
-            "23d72dabcb3b12469f57b37170fcbc1789bd7457",
+            "6b316287bae2ee04c9b93c8c858d930fd07d7338",
         )
         self.assertEqual(
             upstream["nixpkgs_nar_hash"],
-            "sha256-z5NJPSBwsLf/OfD8WTmh79tlSU8XgIbwmk6qB1/TFzY=",
+            "sha256-bXMRa9VTsHSPXL4Cw8R6JJLQeY3Y/IP4+YJCYVmQ7FY=",
         )
         self.assertEqual(
             plan["tools"]["nix"]["expected_version"], "nix (Nix) 2.24.9"

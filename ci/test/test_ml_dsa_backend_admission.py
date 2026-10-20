@@ -63,9 +63,15 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
             {name: candidate["source_commit"] for name, candidate in assessments.items()},
             expected,
         )
-        for candidate in assessments.values():
+        for name, candidate in assessments.items():
             self.assertRegex(candidate["source_tree"], r"^[0-9a-f]{40}$")
-            self.assertEqual(candidate["conformance"], "PASS")
+            self.assertEqual(
+                candidate["conformance"],
+                "PENDING_V2_REPRODUCTION" if name == "mldsa_native_portable_c" else "PASS",
+            )
+        native = assessments["mldsa_native_portable_c"]
+        self.assertFalse(native["historical_beta_assessment"]["applies_to_v2"])
+        self.assertEqual(native["side_channel_posture"], "PENDING_V2_BINARY_REPRODUCTION")
         self.assertEqual(
             assessments["openssl_3_6_5"]["source_tree"],
             sources["openssl"]["git_tree"],
@@ -138,10 +144,10 @@ class MLDSABackendAdmissionTests(unittest.TestCase):
     def test_implemented_prototype_remains_isolated(self):
         evidence = self.admission["admitted_prototype"]["implementation_evidence"]
         self.assertEqual(evidence["status"], "ISOLATED_PROTOTYPE_IMPLEMENTED")
-        self.assertEqual(evidence["source_capsule"]["files"], 34)
+        self.assertEqual(evidence["source_capsule"]["files"], 35)
         self.assertEqual(
             evidence["source_capsule"]["capsule_sha256"],
-            "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb",
+            "e07f0f6a9bb46fd9afcbe7699f95f1ce43e6fcf48623d6de7b3e95ed405023cb",
         )
         self.assertEqual(evidence["source_capsule"]["native_backend_files"], 0)
         self.assertEqual(

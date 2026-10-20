@@ -81,7 +81,7 @@ class MLDSAReferenceTests(unittest.TestCase):
             sources["openssl"]["release_tarball_sha256"],
             "a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98",
         )
-        self.assertEqual(sources["mldsa_native"]["tag"], "v1.0.0-beta2")
+        self.assertEqual(sources["mldsa_native"]["tag"], "v2.0.0")
         self.assertEqual(sources["libcrux"]["version"], "0.0.10")
         self.assertEqual(
             sources["libcrux"]["tag"], "libcrux-ml-dsa-v0.0.10"
@@ -136,6 +136,18 @@ class MLDSAReferenceTests(unittest.TestCase):
         mutated["acvp_coverage"]["sigver"]["test_case_ids"].pop()
         with self.assertRaisesRegex(compare_oracles.ReferenceError, "ACVP coverage"):
             compare_oracles.validate_manifest(mutated)
+
+    def test_v2_manifest_rejects_stale_native_source_tuple(self):
+        for field, value in (
+            ("tag", "v1.0.0-beta2"),
+            ("commit", "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b"),
+            ("git_tree", "c73c7029182122fce2f2dd8ac544ae990abd74a2"),
+        ):
+            with self.subTest(field=field):
+                mutated = copy.deepcopy(self.manifest)
+                mutated["sources"]["mldsa_native"][field] = value
+                with self.assertRaisesRegex(compare_oracles.ReferenceError, "mldsa-native"):
+                    compare_oracles.validate_manifest(mutated)
 
     def test_manifest_rejects_missing_openssl_tree(self):
         mutated = copy.deepcopy(self.manifest)

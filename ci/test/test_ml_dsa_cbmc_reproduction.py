@@ -68,37 +68,37 @@ class MlDsaCbmcReproductionTest(unittest.TestCase):
         upstream = manifest["upstream"]
         self.assertEqual(
             upstream["commit"],
-            "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
+            "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
         )
         self.assertEqual(
             upstream["git_tree"],
-            "c73c7029182122fce2f2dd8ac544ae990abd74a2",
+            "e61bc2b09d705cbc378e3e8c6d556cae05750fd6",
         )
         self.assertEqual(
             upstream["git_archive_tar_sha256"],
-            "4fd08a772d0a142863593471f0c26e239bac8babc8e2a960e072f06ee89ff30b",
+            "1bb12c7eac6a44ea96bc2043b8c8b5bb2f2b2a85a3a9b5926fa2eb5ed86e27b7",
         )
         self.assertEqual(
             upstream["flake_lock_sha256"],
-            "cdc01dce87b0c9b8488baafb0e0ed5ec94064089f7b4d5b253aecfeef2ac1861",
+            "8f1762cc57561256465ef3b467f44b99b606c3b196870b81a329b8de0cebdd69",
         )
         self.assertEqual(len(upstream["critical_files"]), 10)
 
         inventory = manifest["proof_inventory"]
-        self.assertEqual(inventory["directory_count"], 200)
-        self.assertEqual(inventory["proof_uid_count"], 200)
+        self.assertEqual(inventory["directory_count"], 210)
+        self.assertEqual(inventory["proof_uid_count"], 210)
         self.assertEqual(
             inventory["sorted_directory_names_sha256"],
-            "f9a7db98384cd6a58eadcd41681bec8dae671ba4f2c65b5f39c6d4139d79693a",
+            "fd224096e52ce48b71f7f52bd0075efe81d9fce11f882e10a62345678dca94e4",
         )
         self.assertEqual(
             inventory["sorted_proof_uids_sha256"],
-            "125e1b273afb65a6a617080a66275dadca712bce7b38df688ccd11a5de2bec61",
+            "9a014b78cdea6d8e1ddb226f09e4c2776bcf74b964b170edb17af78421a5106e",
         )
-        self.assertEqual(manifest["tools"]["cbmc"], "6.9.0")
-        self.assertEqual(manifest["tools"]["ninja"], "1.13.1")
+        self.assertEqual(manifest["tools"]["cbmc"], "6.10.0")
+        self.assertEqual(manifest["tools"]["ninja"], "1.13.2")
         self.assertEqual(manifest["tools"]["z3"], "4.15.3")
-        self.assertEqual(manifest["source_capsule"]["file_count"], 34)
+        self.assertEqual(manifest["source_capsule"]["file_count"], 35)
 
     def test_plan_only_cli_is_machine_readable_and_bounded(self):
         completed = subprocess.run(
@@ -112,8 +112,8 @@ class MlDsaCbmcReproductionTest(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
         plan = json.loads(completed.stdout)
         self.assertEqual(plan["profile"], self.manifest["profile"])
-        self.assertEqual(plan["result_contract"]["total"], 200)
-        self.assertEqual(plan["result_contract"]["success"], 200)
+        self.assertEqual(plan["result_contract"]["total"], 210)
+        self.assertEqual(plan["result_contract"]["success"], 210)
         self.assertEqual(plan["result_contract"]["failed"], 0)
         self.assertEqual(plan["result_contract"]["timeout"], 0)
         self.assertEqual(
@@ -227,8 +227,8 @@ class MlDsaCbmcReproductionTest(unittest.TestCase):
             "workflow_dispatch:",
             "contents: read",
             "timeout-minutes: 180",
-            "Pinned upstream ML-DSA-44 (200 proofs)",
-            "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
+            "Pinned upstream ML-DSA-44 (210 proofs)",
+            "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
             "--no-update-lock-file --no-write-lock-file",
             "run_cbmc_reproduction.py",
             "--parallel-jobs 2",
@@ -267,7 +267,7 @@ class MlDsaCbmcReproductionTest(unittest.TestCase):
         )
         for text in (readme, wrapper_doc):
             self.assertIn("Pinned Upstream CBMC Reproduction", text)
-            self.assertIn("200", text)
+            self.assertIn("210", text)
             self.assertIn("does not", text)
             self.assertIn("release hold", text.lower())
         self.assertIn("independent human cryptographic review", wrapper_doc)

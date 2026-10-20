@@ -1,5 +1,16 @@
 # ML-DSA-44 External Cryptographic Review Package
 
+## v2.0.0 reconciliation (2026-10-20)
+
+The current portable source is v2.0.0, commit
+`834a90d5e846ffa1e1611bd24e160bb2e9b86d35`. Fresh exact-source PR and
+protected-main qualification is required; historical beta campaigns and
+receipts below retain their original source identities and do not qualify v2.
+The source PR is followed by its related baseline-pointer PR; intermediate
+main is not final frozen-baseline evidence. Production backend `NONE`,
+consensus disabled, release hold and all admission gates remain unchanged.
+
+
 ## Status: AWAITING_EXTERNAL_REVIEW - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-EXTERNAL-REVIEW-v1
 ## Prepared: 2026-07-19
@@ -105,8 +116,8 @@ validation.
 
 The July 31 potential correction raises the minimum internal-signing loop
 limit from `814` to `821`. The project-owned isolated wrapper uses `821`; the
-pinned upstream capsule remains byte-for-byte unchanged and must be repinned
-before any production proposal.
+current v2 capsule is byte-identical to its pinned upstream tree. The source
+repin and project limit do not themselves close a production obligation.
 
 ### Official ACVP Inputs
 
@@ -131,7 +142,7 @@ signature-verification cases, for 70 cases total.
 | Oracle | Frozen source | Role and limitation |
 | --- | --- | --- |
 | OpenSSL | Version 3.6.5, commit `c8bd5a57108599ac650bbae77fcabe3109dab2e8` | Separate provider oracle; trusted-main conformance reproduced in run `38550795835`; not a proposed node dependency; independent re-review remains open |
-| `mldsa-native` | Tag `v1.0.0-beta2`, commit `9b0ee84f4cf399043eca59eca4e5f8531ca1d61b` | Portable C; forked from PQ-Crystals, so not independent design |
+| `mldsa-native` | Tag `v2.0.0`, commit `834a90d5e846ffa1e1611bd24e160bb2e9b86d35` | Portable C; forked from PQ-Crystals, so not independent design |
 | libcrux | `libcrux-ml-dsa-v0.0.10`, commit `c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd` | Portable Rust with separate implementation history and disclosed reference influence |
 
 The

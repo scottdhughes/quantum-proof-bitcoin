@@ -42,10 +42,10 @@ FORBIDDEN_PROJECT_HEADER_SHADOWS = [
 ]
 
 UPSTREAM_REPOSITORY = "https://github.com/pq-code-package/mldsa-native"
-UPSTREAM_COMMIT = "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b"
-UPSTREAM_TREE = "c73c7029182122fce2f2dd8ac544ae990abd74a2"
+UPSTREAM_COMMIT = "834a90d5e846ffa1e1611bd24e160bb2e9b86d35"
+UPSTREAM_TREE = "e61bc2b09d705cbc378e3e8c6d556cae05750fd6"
 UPSTREAM_ARCHIVE_SHA256 = (
-    "4fd08a772d0a142863593471f0c26e239bac8babc8e2a960e072f06ee89ff30b"
+    "1bb12c7eac6a44ea96bc2043b8c8b5bb2f2b2a85a3a9b5926fa2eb5ed86e27b7"
 )
 UPSTREAM_VALGRIND_PATCH = "nix/valgrind/valgrind-varlat-patch-20240808.txt"
 UPSTREAM_VALGRIND_PATCH_SHA256 = (
@@ -53,10 +53,10 @@ UPSTREAM_VALGRIND_PATCH_SHA256 = (
 )
 UPSTREAM_FLAKE_LOCK = "flake.lock"
 UPSTREAM_FLAKE_LOCK_SHA256 = (
-    "cdc01dce87b0c9b8488baafb0e0ed5ec94064089f7b4d5b253aecfeef2ac1861"
+    "8f1762cc57561256465ef3b467f44b99b606c3b196870b81a329b8de0cebdd69"
 )
-UPSTREAM_NIXPKGS_REV = "23d72dabcb3b12469f57b37170fcbc1789bd7457"
-UPSTREAM_NIXPKGS_NAR_HASH = "sha256-z5NJPSBwsLf/OfD8WTmh79tlSU8XgIbwmk6qB1/TFzY="
+UPSTREAM_NIXPKGS_REV = "6b316287bae2ee04c9b93c8c858d930fd07d7338"
+UPSTREAM_NIXPKGS_NAR_HASH = "sha256-bXMRa9VTsHSPXL4Cw8R6JJLQeY3Y/IP4+YJCYVmQ7FY="
 EXPECTED_NIX_VERSION = "nix (Nix) 2.24.9"
 EXPECTED_VALGRIND_VERSION = "valgrind-3.26.0"
 EXPECTED_VALGRIND_XML_PROTOCOL = "6"
@@ -88,24 +88,24 @@ PROJECT_SECRET_MARKERS = ["generated_randomizer"]
 UPSTREAM_ACTIVE_DECLASSIFICATION_SITES = [
     f"{VENDOR_SOURCE_ROOT}/mldsa/src/poly_kl.c:242",
     f"{VENDOR_SOURCE_ROOT}/mldsa/src/poly_kl.c:249",
-    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:344",
-    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:377",
-    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:564",
-    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:722",
-    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:758",
-    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:773",
-    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:793",
-    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:794",
-    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:807",
-    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:873",
-    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:1200",
-    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:1615",
-    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:1626",
+    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:383",
+    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:413",
+    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:602",
+    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:783",
+    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:858",
+    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:875",
+    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:897",
+    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:898",
+    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:918",
+    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:998",
+    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:1307",
+    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:1681",
+    f"{VENDOR_SOURCE_ROOT}/mldsa/src/sign.c:1692",
 ]
 UPSTREAM_INACTIVE_DECLASSIFICATION_SITES = [
     f"{VENDOR_SOURCE_ROOT}/mldsa/src/poly_kl.c:257",
     f"{VENDOR_SOURCE_ROOT}/mldsa/src/poly_kl.c:263",
-    f"{VENDOR_SOURCE_ROOT}/mldsa/src/poly.c:991",
+    f"{VENDOR_SOURCE_ROOT}/mldsa/src/poly.c:998",
 ]
 
 COMMON_C_FLAGS = [

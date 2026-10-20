@@ -19,8 +19,10 @@ HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[1]
 SOURCE_DIR = HERE / "vendor" / "mldsa-native"
 SOURCE_MANIFEST = SOURCE_DIR / "SOURCE.json"
+ADMISSION_MANIFEST = HERE / "backend_admission.json"
 WRAPPER_SOURCE = HERE / "pqbtc_mldsa44.c"
 SMOKE_SOURCE = HERE / "pqbtc_mldsa44_smoke.c"
+V2_COMPATIBILITY_SOURCE = HERE / "pqbtc_mldsa44_v2_compatibility.c"
 CONCURRENT_SMOKE_SOURCE = HERE / "pqbtc_mldsa44_concurrent_verify.c"
 THREAD_SANITIZER_POSITIVE_CONTROL_SOURCE = HERE / "pqbtc_tsan_positive_control.c"
 VECTORS = REPO_ROOT / "contrib" / "ml-dsa-ref" / "vectors.json"
@@ -53,6 +55,30 @@ def run(command: list[str], env: dict[str, str] | None = None) -> str:
 
 def validate_source_capsule() -> dict:
     manifest = json.loads(SOURCE_MANIFEST.read_text(encoding="utf8"))
+    try:
+        admitted = json.loads(ADMISSION_MANIFEST.read_text(encoding="utf8"))[
+            "admitted_prototype"
+        ]
+        source = admitted["source"]
+        capsule = admitted["implementation_evidence"]["source_capsule"]
+        identity = {
+            "repository": source["repository"],
+            "tag": source["tag"],
+            "commit": source["commit"],
+            "git_tree": source["git_tree"],
+            "upstream_git_archive_tar_sha256": capsule[
+                "upstream_git_archive_tar_sha256"
+            ],
+        }
+        matches = all(manifest.get(key) == value for key, value in identity.items())
+        matches = matches and manifest["capsule_hash"]["value"] == capsule[
+            "capsule_sha256"
+        ]
+        matches = matches and len(manifest["files"]) == capsule["files"]
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise HarnessError("cannot validate admitted source identity") from exc
+    if not matches:
+        raise HarnessError("vendored source identity differs from backend admission")
     expected_files = manifest["files"]
     actual_files = sorted(
         path.relative_to(SOURCE_DIR).as_posix()
@@ -75,6 +101,57 @@ def validate_source_capsule() -> dict:
             f"expected {manifest['capsule_hash']['value']}, got {capsule_digest}"
         )
     return manifest
+
+
+def require_api_compatibility_control(returncode: int, stderr: str) -> None:
+    marker = "v2 compatibility failure: invalid input reached upstream verifier\n"
+    if returncode != 41 or stderr != marker:
+        raise HarnessError("v2 compatibility control did not fail at the intended boundary")
+
+
+def run_api_compatibility(compiler: str, build_dir: Path, sanitizers: bool) -> None:
+    def compile_probe(source: Path) -> Path:
+        output = build_dir / source.stem
+        command = common_flags(compiler)
+        command.extend([
+            "-DPQBTC_MLDSA44_TESTING=1", "-finstrument-functions", "-fno-inline",
+            "-O1" if sanitizers else "-O2",
+        ])
+        if sanitizers:
+            command.extend([
+                "-fsanitize=address,undefined", "-fno-sanitize-recover=all",
+                "-fno-omit-frame-pointer",
+            ])
+        command.extend([str(source), "-o", str(output)])
+        run(command)
+        return output
+
+    output = run([str(compile_probe(V2_COMPATIBILITY_SOURCE))])
+    expected = "v2 API compatibility PASS: checks=55, malformed verifier entries=0\n"
+    if output != expected:
+        raise HarnessError("v2 compatibility observations are incomplete")
+    print(output.rstrip())
+    original = WRAPPER_SOURCE.read_text(encoding="utf8")
+    guard = "signature == NULL || signature_size != PQBTC_MLDSA44_SIGNATURE_BYTES ||"
+    if original.count(guard) != 1:
+        raise HarnessError("v2 verifier length-control site changed")
+    control_wrapper = build_dir / "v2_omit_verify_length.c"
+    control_wrapper.write_text(
+        original.replace(guard, "signature == NULL || ((void)signature_size, 0) ||"),
+        encoding="utf8",
+    )
+    control_probe = build_dir / "v2_omit_verify_length_probe.c"
+    control_probe.write_text(
+        V2_COMPATIBILITY_SOURCE.read_text(encoding="utf8").replace(
+            '#include "pqbtc_mldsa44.c"', f'#include "{control_wrapper}"'
+        ), encoding="utf8",
+    )
+    control = subprocess.run(
+        [str(compile_probe(control_probe))], check=False, capture_output=True, text=True
+    )
+    if control.stdout:
+        raise HarnessError("v2 compatibility control emitted unrelated output")
+    require_api_compatibility_control(control.returncode, control.stderr)
 
 
 def common_flags(compiler: str) -> list[str]:
@@ -472,6 +549,7 @@ def main() -> int:
         audit_production_symbols(production_library)
         smoke = compile_smoke(compiler, build_dir, sanitizers=args.sanitizers)
         run_smoke(smoke, sanitizers=args.sanitizers)
+        run_api_compatibility(compiler, build_dir, sanitizers=args.sanitizers)
         concurrency_smoke = compile_concurrency_smoke(
             compiler, build_dir, sanitizer=concurrency_sanitizer
         )

@@ -1,5 +1,16 @@
 # ML-DSA-44 encrypted recovery and zero-value application pilot
 
+## v2.0.0 reconciliation (2026-10-20)
+
+The current portable source is v2.0.0, commit
+`834a90d5e846ffa1e1611bd24e160bb2e9b86d35`. Fresh exact-source PR and
+protected-main qualification is required; historical beta campaigns and
+receipts below retain their original source identities and do not qualify v2.
+The source PR is followed by its related baseline-pointer PR; intermediate
+main is not final frozen-baseline evidence. Production backend `NONE`,
+consensus disabled, release hold and all admission gates remain unchanged.
+
+
 This separate `contrib/ml-dsa-wallet-backup/` prototype exercises a real native
 encrypted seed backup and fresh-process recovery. It does **not** replace the
 node's old RC2 research wallet, create Bitcoin transactions, implement wallet

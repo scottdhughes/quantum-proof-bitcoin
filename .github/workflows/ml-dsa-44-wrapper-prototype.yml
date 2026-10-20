@@ -136,7 +136,7 @@ jobs:
           - valgrind-varlat_clang20
           - valgrind-varlat_gcc13
     env:
-      MLDSA_NATIVE_COMMIT: 9b0ee84f4cf399043eca59eca4e5f8531ca1d61b
+      MLDSA_NATIVE_COMMIT: 834a90d5e846ffa1e1611bd24e160bb2e9b86d35
       UPSTREAM_DIR: ${{ github.workspace }}/.audit/mldsa-native
       EVIDENCE_ROOT: /tmp/ml-dsa-44-wrapper-valgrind-ct-${{ matrix.nix_shell }}-${{ github.run_id }}-${{ github.run_attempt }}
       EVIDENCE_DIR: /tmp/ml-dsa-44-wrapper-valgrind-ct-${{ matrix.nix_shell }}-${{ github.run_id }}-${{ github.run_attempt }}/audit

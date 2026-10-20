@@ -1,5 +1,16 @@
 # ML-DSA-44 Portable Wrapper Prototype
 
+## v2.0.0 reconciliation (2026-10-20)
+
+The current portable source is v2.0.0, commit
+`834a90d5e846ffa1e1611bd24e160bb2e9b86d35`. Fresh exact-source PR and
+protected-main qualification is required; historical beta campaigns and
+receipts below retain their original source identities and do not qualify v2.
+The source PR is followed by its related baseline-pointer PR; intermediate
+main is not final frozen-baseline evidence. Production backend `NONE`,
+consensus disabled, release hold and all admission gates remain unchanged.
+
+
 ## Status: ISOLATED_PROTOTYPE_IMPLEMENTED - RELEASE_HOLD
 ## Spec-ID: ML-DSA-44-WRAPPER-PROTOTYPE-v1
 ## Updated: 2026-10-15
@@ -23,15 +34,15 @@ The portable dependency closure is stored in
 `contrib/ml-dsa-engineering/vendor/mldsa-native/` with its upstream license and
 `SOURCE.json`. The manifest records:
 
-- upstream tag `v1.0.0-beta2`;
-- commit `9b0ee84f4cf399043eca59eca4e5f8531ca1d61b`;
-- upstream tree `c73c7029182122fce2f2dd8ac544ae990abd74a2`;
+- upstream tag `v2.0.0`;
+- commit `834a90d5e846ffa1e1611bd24e160bb2e9b86d35`;
+- upstream tree `e61bc2b09d705cbc378e3e8c6d556cae05750fd6`;
 - full upstream `git archive --format=tar` SHA256
-  `4fd08a772d0a142863593471f0c26e239bac8babc8e2a960e072f06ee89ff30b`;
-- exactly 34 required files;
+  `1bb12c7eac6a44ea96bc2043b8c8b5bb2f2b2a85a3a9b5926fa2eb5ed86e27b7`;
+- exactly 35 required files;
 - no native backend or assembly files; and
 - capsule SHA256
-  `2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb`.
+  `e07f0f6a9bb46fd9afcbe7699f95f1ce43e6fcf48623d6de7b3e95ed405023cb`.
 
 The capsule hash is computed from sorted lines containing each relative path
 and file SHA256. Tests reject additions, removals, path changes, or byte
@@ -57,13 +68,15 @@ pqbtc_mldsa44_sign_hedged
 pqbtc_mldsa44_verify_strict
 ```
 
-The July 31, 2026 FIPS 204 potential-corrections sheet raised the minimum
-internal-signing loop limit from `814` to `821`. The frozen upstream capsule's
-compile-time guard still describes `814` as sufficient; those provenance-bound
-vendor bytes are intentionally unchanged, while the project-owned
-configuration supplies the corrected higher limit. A production proposal must
-repin and re-review upstream source rather than treating this override as an
-upstream correction.
+The project signing-attempt limit remains `821`. The v2 portable source now
+also enforces a minimum of `821`; vendor bytes are imported unchanged. The
+potential-corrections sheet is not treated as a newly issued standard.
+
+V2 signing returns a fixed-size signature and verification takes no length.
+The project still validates exact lengths before backend entry, self-verifies
+before release and maps all nonzero backend outcomes fail-closed. The retained
+wrong-length injection tests the project release boundary, not an upstream
+length output. Optional signing hooks/context APIs remain disabled and hidden.
 
 A separately compiled `PQBTC_MLDSA44_TESTING` build exposes fixed-randomizer,
 seeded-keygen, entropy-failure, backend-failure, wrong-length, and forced-
@@ -527,13 +540,13 @@ remain open. Issue `#181` also remains open, production remains `NONE`, and
 ## Pinned Upstream CBMC Reproduction
 
 The dedicated read-only workflow checks out exact `mldsa-native` commit
-`9b0ee84f4cf399043eca59eca4e5f8531ca1d61b` and verifies its Git tree, full
+`834a90d5e846ffa1e1611bd24e160bb2e9b86d35` and verifies its Git tree, full
 archive hash, locked Nix inputs, and critical proof infrastructure before
 running the complete normal ML-DSA-44 CBMC lane. Its frozen inventory contains
-200 proof directories and 200 unique proof UIDs. A successful reproduction
-requires 200 reported successes, zero failures and timeouts, and exact result
+210 proof directories and 210 unique proof UIDs. A successful reproduction
+requires 210 reported successes, zero failures and timeouts, and exact result
 name equality with that inventory. It also requires every file in the
-checked-in 34-file portable capsule to match the pinned upstream bytes.
+checked-in 35-file portable capsule to match the pinned upstream bytes.
 
 The retained report records the repository inputs, upstream and tool
 identities, proof and capsule inventories, raw result, full log, host details,

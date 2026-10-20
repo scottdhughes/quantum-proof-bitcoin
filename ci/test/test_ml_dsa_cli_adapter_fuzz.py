@@ -469,7 +469,7 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
             workflow,
         )
         self.assertIn(
-            '"feec9dabee7bbca2916768f31fbc4130a18cecf607fb827709262b877edd445b"',
+            '"64d069741c014c07852bbd3c798296b2ff6cae990161bec3763b983746d44dba"',
             vector_guard,
         )
         self.assertIn(
@@ -554,46 +554,21 @@ class MlDsaCliAdapterFuzzTest(unittest.TestCase):
         candidate_bytes = (REFERENCE_DIR / "vectors.json").read_bytes()
         self.assertEqual(
             hashlib.sha256(candidate_bytes).hexdigest(),
-            "9cad66d81b2185e8e4e1e377697c92ce5ee4e4e7b6c9d3d453c342b8288962c2",
+            "64d069741c014c07852bbd3c798296b2ff6cae990161bec3763b983746d44dba",
         )
-        current_openssl_commit = (
-            b"c8bd5a57108599ac650bbae77fcabe3109dab2e8"
-        )
-        baseline_openssl_commit = (
-            b"d3c1b1169b3569ff3069e5b399f47b2b28e03d79"
-        )
-        openssl_release_lines = (
-            b'      "git_tree": "96ac34688809c56b1afa117c75c0ef303ff19a75",\n',
-            b'      "tag": "openssl-3.6.5",\n',
-            b'      "tag_object": "f93be98fe7c796e92fc999dd1a21a5212d4e4f8e",\n',
-            b'      "release_tarball_url": "https://github.com/openssl/openssl/'
-            b'releases/download/openssl-3.6.5/openssl-3.6.5.tar.gz",\n',
-            b'      "release_tarball_sha256": "a2157c2830efdec3788939b00c9b063830'
-            b'6d3f0bbb76dc4832ee503bb397df98",\n',
-        )
-        self.assertEqual(candidate_bytes.count(current_openssl_commit), 1)
-        for release_line in openssl_release_lines:
-            self.assertEqual(candidate_bytes.count(release_line), 1)
-        self.assertEqual(candidate_bytes.count(b'"version": "3.6.5"'), 1)
+        # Only native source metadata changes; every vector and oracle pin
+        # outside this tuple remains byte-identical to the inherited baseline.
         baseline_bytes = candidate_bytes.replace(
-            current_openssl_commit,
-            baseline_openssl_commit,
-            1,
+            b"834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+            b"9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
         ).replace(
-            b"3.6.5", b"3.6.4"
+            b'"tag": "v2.0.0"', b'"tag": "v1.0.0-beta2"'
         ).replace(
-            b"96ac34688809c56b1afa117c75c0ef303ff19a75",
-            b"0f2db317fdf20b06193b96e79ac699b2d4e36d7d",
-        ).replace(
-            b"f93be98fe7c796e92fc999dd1a21a5212d4e4f8e",
-            b"360ffdb6d82f298d8d22c838dc2b7bf61ece056d",
-        ).replace(
-            b"a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98",
-            b"9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef",
+            b'      "git_tree": "e61bc2b09d705cbc378e3e8c6d556cae05750fd6",\n', b""
         )
         self.assertEqual(
             hashlib.sha256(baseline_bytes).hexdigest(),
-            "feec9dabee7bbca2916768f31fbc4130a18cecf607fb827709262b877edd445b",
+            "9cad66d81b2185e8e4e1e377697c92ce5ee4e4e7b6c9d3d453c342b8288962c2",
         )
 
         def run_guard(current_bytes, *, committed_baseline=baseline_bytes):

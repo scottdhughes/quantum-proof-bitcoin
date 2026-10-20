@@ -1,5 +1,16 @@
 # ML-DSA-44 Engineering Contracts
 
+## v2.0.0 reconciliation (2026-10-20)
+
+The current portable source is v2.0.0, commit
+`834a90d5e846ffa1e1611bd24e160bb2e9b86d35`. Fresh exact-source PR and
+protected-main qualification is required; historical beta campaigns and
+receipts below retain their original source identities and do not qualify v2.
+The source PR is followed by its related baseline-pointer PR; intermediate
+main is not final frozen-baseline evidence. Production backend `NONE`,
+consensus disabled, release hold and all admission gates remain unchanged.
+
+
 This directory contains executable design contracts and an isolated portable-C
 wrapper prototype for the selected `ML-DSA-44` engineering candidate. It is
 separate from the frozen comparator in `contrib/ml-dsa-ref/` and is not linked
@@ -33,7 +44,7 @@ single-translation-unit, static-symbol, portable-C build contract.
 
 `pqbtc_mldsa44.c` implements that contract as a production-shaped but
 research-only wrapper. The checked-in `vendor/mldsa-native/` capsule contains
-only the exact 34-file portable dependency closure and upstream license. The
+only the exact 35-file portable dependency closure and upstream license. The
 normal build exports only `pqbtc_mldsa44_sign_hedged` and
 `pqbtc_mldsa44_verify_strict`; deterministic, fixed-randomizer, seeded-keygen,
 and failure controls exist only in a separately compiled test build. The
@@ -181,7 +192,7 @@ and it does not alter the release hold.
 
 `run_valgrind_ct_analysis.py` defines a separate x86_64-Linux audit for the
 isolated portable wrapper. The workflow checks out exact `mldsa-native` commit
-`9b0ee84f4cf399043eca59eca4e5f8531ca1d61b` solely for its locked Nix
+`834a90d5e846ffa1e1611bd24e160bb2e9b86d35` solely for its locked Nix
 environment, then verifies the commit, Git tree, full `git archive`, and the
 KyberSlash-derived variable-latency Valgrind patch. It also requires a clean
 upstream worktree and verifies the complete `flake.lock`, its locked nixpkgs
@@ -223,16 +234,16 @@ physical leakage resistance, secret erasure, or production fitness. Issue
 
 `run_cbmc_reproduction.py` reproduces the complete normal ML-DSA-44 CBMC lane
 from exact `mldsa-native` commit
-`9b0ee84f4cf399043eca59eca4e5f8531ca1d61b`. The versioned manifest freezes
+`834a90d5e846ffa1e1611bd24e160bb2e9b86d35`. The versioned manifest freezes
 the commit, Git tree, full `git archive`, `flake.lock`, critical proof-runner
-files, locked Nix inputs, and a 200-directory/200-`PROOF_UID` inventory. The
+files, locked Nix inputs, and a 210-directory/210-`PROOF_UID` inventory. The
 workflow uses the upstream `#cbmc` Nix shell, two parallel jobs, a 1,800-second
 per-proof timeout, property checking without coverage, ML-DSA-44 only, and no
-reduced-RAM configuration. It requires exactly 200 successes, no failures or
+reduced-RAM configuration. It requires exactly 210 successes, no failures or
 timeouts, and exact equality between the result names and the frozen proof UID
 set.
 
-Before any proof runs, the audit verifies that the checked-in 34-file portable
+Before any proof runs, the audit verifies that the checked-in 35-file portable
 source capsule has the exact declared file set and is byte-for-byte equal to
 the corresponding files in the clean pinned upstream tree. Retained evidence
 includes the plan, repository and upstream identities, source and proof

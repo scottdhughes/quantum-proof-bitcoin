@@ -9,7 +9,7 @@
     "frame_bytes": 8096
   },
   "sources": {
-    "repo_vectors_sha256": "9cad66d81b2185e8e4e1e377697c92ce5ee4e4e7b6c9d3d453c342b8288962c2",
+    "repo_vectors_sha256": "64d069741c014c07852bbd3c798296b2ff6cae990161bec3763b983746d44dba",
     "wycheproof_vectors_sha256": "5ec04790c240c443ca8b662b8fc871834602c7cce87fcd36a193110745b2b9ea",
     "promoted_source_sha256": "458f8902fc50e240145a2dd6bfa717c3fca14d58e792ddbafe6f985b1c45ecc0"
   },

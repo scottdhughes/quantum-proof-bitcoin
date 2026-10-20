@@ -156,8 +156,13 @@ def validate_manifest(manifest: dict) -> None:
             raise ReferenceError(
                 f"OpenSSL {field} does not match the frozen 3.6.5 release"
             )
-    if sources["mldsa_native"].get("tag") != "v1.0.0-beta2":
-        raise ReferenceError("mldsa-native tag must be v1.0.0-beta2")
+    for field, expected in {
+        "tag": "v2.0.0",
+        "commit": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+        "git_tree": "e61bc2b09d705cbc378e3e8c6d556cae05750fd6",
+    }.items():
+        if sources["mldsa_native"].get(field) != expected:
+            raise ReferenceError(f"mldsa-native {field} does not match frozen v2.0.0")
     libcrux = sources["libcrux"]
     if libcrux.get("tag") != "libcrux-ml-dsa-v0.0.10":
         raise ReferenceError("libcrux tag must be libcrux-ml-dsa-v0.0.10")
