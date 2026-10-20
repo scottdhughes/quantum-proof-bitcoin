@@ -1,5 +1,6 @@
 // Copyright (c) 2026 The PQBTC Core developers
 // Distributed under the MIT software license, see the accompanying COPYING.
+#define _DEFAULT_SOURCE 1
 #include "backup.h"
 #include "backup_test.h"
 #include "../ml-dsa-key-lifecycle/key_lifecycle_test.h"
@@ -9,6 +10,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/prctl.h>
+#include <sys/resource.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 static unsigned checks;
 #define CHECK(x) do { ++checks; if (!(x)) { fprintf(stderr,"FAIL: %s:%d: %s\n",__FILE__,__LINE__,#x); exit(1); } } while (0)
@@ -22,17 +27,79 @@ static int create(const struct pqbtc_mldsa44_key* k,uint8_t* p)
 static int restore(struct pqbtc_mldsa44_key** k,const uint8_t* p)
 { return pqbtc_backup_restore(k,password,sizeof(password)-1,p,176); }
 
+static int RuntimeContract(int fork_only)
+{
+    struct pqbtc_mldsa44_key *key=NULL,*recovered=NULL;
+    uint8_t package[176]={0},before[176],pk[1312],intent[112],challenge[32]={1},sig[2420],sig_before[2420];
+    if(!fork_only) {
+        CHECK(create(NULL,package)==PQBTC_MLDSA44_KEY_ERR_RUNTIME_POLICY);
+        CHECK(restore(&recovered,package)==PQBTC_MLDSA44_KEY_ERR_RUNTIME_POLICY && recovered==NULL);
+        CHECK(pqbtc_pilot_sign(NULL,sig,2420,intent,112,challenge)==PQBTC_MLDSA44_KEY_ERR_RUNTIME_POLICY);
+    }
+    CHECK(pqbtc_mldsa44_key_runtime_init()==0);
+    struct rlimit core;
+    CHECK(getrlimit(RLIMIT_CORE,&core)==0 && core.rlim_cur==0 && core.rlim_max==0);
+    CHECK(prctl(PR_GET_DUMPABLE,0UL,0UL,0UL,0UL)==0);
+    CHECK(pqbtc_mldsa44_key_import_seed(&key,seed,32)==0);
+    CHECK(pqbtc_mldsa44_key_public(key,pk,1312)==0);
+    CHECK(pqbtc_pilot_intent(intent,112,pk,1312,challenge)==0);
+    CHECK(pqbtc_mldsa44_test_set_entropy(1,seed,32)==0);
+    CHECK(pqbtc_pilot_sign(key,sig,2420,intent,112,challenge)==0);
+    CHECK(create(key,package)==0);
+    memcpy(before,package,176); memcpy(sig_before,sig,2420);
+    int channel[2]; CHECK(pipe(channel)==0);
+    pid_t child=fork(); CHECK(child>=0);
+    if(child==0) {
+        close(channel[0]); unsigned child_start=checks;
+        /* No absent owned mapping may be dereferenced before origin rejection. */
+        CHECK(pqbtc_pilot_sign(key,sig,2420,intent,112,challenge)==PQBTC_MLDSA44_KEY_ERR_PROCESS_ORIGIN);
+        CHECK(create(key,package)==PQBTC_MLDSA44_KEY_ERR_PROCESS_ORIGIN);
+        CHECK(memcmp(package,before,176)==0);
+        CHECK(restore(&recovered,package)==PQBTC_MLDSA44_KEY_ERR_PROCESS_ORIGIN && recovered==NULL);
+        CHECK(memcmp(sig,sig_before,2420)==0);
+        CHECK(pqbtc_pilot_verify(sig,2420,pk,1312,intent,112,challenge)==0);
+        pqbtc_mldsa44_key_destroy(&key); CHECK(key==NULL);
+        unsigned child_checks=checks-child_start;
+        _exit(write(channel[1],&child_checks,sizeof(child_checks))==(ssize_t)sizeof(child_checks) ? 0 : 1);
+    }
+    close(channel[1]); unsigned child_checks=0;
+    CHECK(read(channel[0],&child_checks,sizeof(child_checks))==(ssize_t)sizeof(child_checks) && child_checks==7);
+    close(channel[0]);
+    int status=0;
+    CHECK(waitpid(child,&status,0)==child && WIFEXITED(status) && WEXITSTATUS(status)==0);
+    CHECK(pqbtc_mldsa44_key_public(key,pk,1312)==0);
+    CHECK(prctl(PR_SET_DUMPABLE,1UL,0UL,0UL,0UL)==0);
+    CHECK(create(key,package)==PQBTC_MLDSA44_KEY_ERR_RUNTIME_POLICY);
+    CHECK(memcmp(package,before,176)==0);
+    CHECK(restore(&recovered,package)==PQBTC_MLDSA44_KEY_ERR_RUNTIME_POLICY && recovered==NULL);
+    CHECK(pqbtc_pilot_sign(key,sig,2420,intent,112,challenge)==PQBTC_MLDSA44_KEY_ERR_RUNTIME_POLICY);
+    CHECK(memcmp(sig,sig_before,2420)==0);
+    pqbtc_mldsa44_key_destroy(&key); CHECK(key==NULL);
+    printf("{\"schema\":1,\"scenario\":\"backup-runtime\",\"checks\":%u,\"child_checks\":%u,\"core_zero\":true,\"dump_zero_before_drift\":true,\"origin_rejected\":true,\"public_verify_child\":true,\"drift_rejected\":true,\"parent_destroyed\":true,\"result\":\"PASS\"}\n",checks,child_checks);
+    return 0;
+}
+
 int main(int argc,char** argv)
 {
+    if(argc==2 && strcmp(argv[1],"--runtime-contract")==0) return RuntimeContract(0);
+    if(argc==2 && strcmp(argv[1],"--fork-contract")==0) return RuntimeContract(1);
     struct pqbtc_mldsa44_key *key=NULL,*restored=NULL,*other=NULL;
     uint8_t package[177], original[176], public_key[1312], recovered_pk[1312];
     uint8_t intent[113], challenge[32]={1}, signature[2420], rejected_signature[2420], policy_signature[2420];
     uint8_t hash[32], exported[32], entropy[32];
     static const uint8_t pilot_context[]="PQBTC-ZERO-VALUE-INTENT-v1";
     static const uint8_t want_hash[32]={0x45,0x1a,0x80,0x8c,0x52,0x22,0x18,0xfa,0xdb,0xda,0xb1,0x46,0xfc,0x12,0x00,0x4b,0x07,0x41,0xc7,0xd0,0x69,0xf2,0x38,0xf4,0x3a,0xd7,0x72,0x16,0x15,0x9f,0x6a,0x34};
+    CHECK(pqbtc_mldsa44_key_runtime_init()==0);
     pqbtc_backup_test_reset();
     CHECK(pqbtc_mldsa44_key_import_seed(&key,seed,32)==0);
     CHECK(pqbtc_mldsa44_key_public(key,public_key,1312)==0);
+    if(argc==2 && strcmp(argv[1],"--padding-contract")==0) {
+        size_t extent=pqbtc_mldsa44_key_test_allocation_size();
+        uint8_t* snapshot=malloc(extent); CHECK(snapshot!=NULL); memcpy(snapshot,key,extent);
+        CHECK(pqbtc_backup_create(key,(const uint8_t*)key+extent-32,32,package,176)==PQBTC_BACKUP_INVALID);
+        CHECK(memcmp(snapshot,key,extent)==0);
+        free(snapshot); pqbtc_mldsa44_key_destroy(&key); puts("backup padding: PASS"); return 0;
+    }
     CHECK(EVP_Digest(public_key,1312,hash,NULL,EVP_sha256(),NULL)==1);
     CHECK(memcmp(hash,want_hash,32)==0);
     pqbtc_backup_test_stage(TEST_RANDOM_FIXED);
@@ -58,6 +125,17 @@ int main(int argc,char** argv)
     CHECK(pqbtc_mldsa44_key_public(restored,recovered_pk,1312)==0 && memcmp(public_key,recovered_pk,1312)==0);
     CHECK(restore(&restored,original)==PQBTC_BACKUP_INVALID);
     pqbtc_mldsa44_key_destroy(&restored);
+    uint8_t pair[2][176];
+    CHECK(create(key,pair[0])==0);
+    CHECK(create(key,pair[1])==0);
+    int pairwise_distinct=memcmp(pair[0],pair[1],176)!=0, pairwise_identity=1;
+    CHECK(pairwise_distinct);
+    for(size_t i=0;i<2;++i) {
+        CHECK(restore(&restored,pair[i])==0);
+        int equal=pqbtc_mldsa44_key_public(restored,recovered_pk,1312)==0 && memcmp(public_key,recovered_pk,1312)==0;
+        CHECK(equal); pairwise_identity&=equal;
+        pqbtc_mldsa44_key_destroy(&restored);
+    }
     /* The normal password is a counted byte string, never strlen-normalized. */
     uint8_t nulpass[18]={1,2,3,[17]=4};
     CHECK(pqbtc_backup_create(key,nulpass,18,package,176)==0);
@@ -157,5 +235,6 @@ int main(int argc,char** argv)
     CHECK(key==NULL && other==NULL);
     printf("backup crypto runtime: %s\n",OpenSSL_version(OPENSSL_VERSION));
     printf("backup smoke: PASS (%u checks)\n",checks);
+    printf("{\"pairwise_random_distinct\":%s,\"pairwise_identity_equal\":%s}\n",pairwise_distinct?"true":"false",pairwise_identity?"true":"false");
     return 0;
 }

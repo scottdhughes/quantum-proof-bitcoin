@@ -1,5 +1,8 @@
 // Copyright (c) 2026 The PQBTC Core developers
 // Distributed under the MIT software license, see the accompanying COPYING.
+#ifndef _DEFAULT_SOURCE
+#define _DEFAULT_SOURCE 1
+#endif
 #include "backup.h"
 #include "../ml-dsa-key-lifecycle/key_lifecycle.c"
 #include <openssl/crypto.h>
@@ -79,12 +82,13 @@ int pqbtc_backup_create(const struct pqbtc_mldsa44_key* key,
 {
     struct BackupScratch scratch={0}; EVP_CIPHER_CTX* ctx=NULL;
     int n=0,tail=0,result=PQBTC_BACKUP_CRYPTO;
+    const int runtime=KeyRuntimeCheck(); if(runtime!=0) return runtime;
     if(package==NULL || size!=176 ||
        RangesOverlap(package,size,password,password_size) ||
-       (key!=NULL && RangesOverlap(package,size,(const uint8_t*)key,sizeof(*key)))) return -1;
+       (key!=NULL && RangesOverlap(package,size,(const uint8_t*)key,key->body_size))) return -1;
     memset(package,0,size);
     if(key==NULL || !Password(password,password_size) ||
-       RangesOverlap(password,password_size,(const uint8_t*)key,sizeof(*key))) return -1;
+       RangesOverlap(password,password_size,(const uint8_t*)key,key->body_size)) return -1;
     Header(scratch.package);
     if(pqbtc_mldsa44_key_export_seed(key,scratch.plaintext,32)!=0 ||
        !Hash(key->public_key,1312,scratch.plaintext+32)) goto done;
@@ -109,6 +113,7 @@ int pqbtc_backup_restore(struct pqbtc_mldsa44_key** owner,
     struct BackupScratch scratch={0}; EVP_CIPHER_CTX* ctx=NULL;
     struct pqbtc_mldsa44_key* candidate=NULL; uint8_t public_hash[32]={0};
     int n=0,tail=0,result=PQBTC_BACKUP_CRYPTO;
+    const int runtime=KeyRuntimeCheck(); if(runtime!=0) return runtime;
     if(owner==NULL || package==NULL || size!=176 || !Password(password,password_size) ||
        RangesOverlap((const uint8_t*)owner,sizeof(*owner),package,size) ||
        RangesOverlap((const uint8_t*)owner,sizeof(*owner),password,password_size)) return -1;
@@ -157,8 +162,9 @@ int pqbtc_pilot_sign(const struct pqbtc_mldsa44_key* key,uint8_t* sig,size_t sig
     const uint8_t* intent,size_t size,const uint8_t challenge[32])
 {
     uint8_t digest[32];
+    const int runtime=KeyRuntimeCheck(); if(runtime!=0) return runtime;
     if(key==NULL || sig==NULL || sig_size!=2420 ||
-       RangesOverlap(sig,sig_size,(const uint8_t*)key,sizeof(*key)) ||
+       RangesOverlap(sig,sig_size,(const uint8_t*)key,key->body_size) ||
        RangesOverlap(sig,sig_size,intent,size) || RangesOverlap(sig,sig_size,challenge,32)) return -1;
     memset(sig,0,sig_size);
     if(!ValidIntent(intent,size,key->public_key,challenge)) return PQBTC_BACKUP_AUTH;

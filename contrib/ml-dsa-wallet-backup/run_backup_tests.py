@@ -8,6 +8,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import platform
 from pathlib import Path
 import re
 import subprocess
@@ -59,6 +60,7 @@ METADATA_FILES = (
 EXPECTED_EXPORTS = {
     "pqbtc_mldsa44_key_" + name
     for name in (
+        "runtime_init",
         "generate",
         "import_seed",
         "public",
@@ -150,6 +152,7 @@ def source_hashes():
         "frozen_key_reader",
     )
     paths += [ROOT / reader.WRAPPER / name for name in reader.SOURCE_HASHES]
+    paths += [ROOT / name for name in reader.METADATA_FILES]
     return {
         path.relative_to(ROOT).as_posix(): digest(regular(path, ROOT)) for path in paths
     }
@@ -180,13 +183,61 @@ def require_exports(actual):
 
 
 def smoke_result(text, kind):
-    expected = {
-        "codec": "backup crypto runtime: OpenSSL 3.6.5 29 Sep 2026\nbackup smoke: PASS (1368 checks)\n",
-        "file": "backup file smoke: PASS (1034 checks)\n",
-    }
-    if kind not in expected or text != expected[kind]:
+    if kind == "file" and text == "backup file smoke: PASS (1034 checks)\n":
+        return {"result": "PASS", "checks": 1034}
+    prefix = "backup crypto runtime: OpenSSL 3.6.5 29 Sep 2026\nbackup smoke: PASS (1376 checks)\n"
+    if kind != "codec" or not text.startswith(prefix):
         raise HarnessError("incomplete/wrong runtime native observations")
-    return {"result": "PASS", "checks": 1368 if kind == "codec" else 1034}
+    pairwise = strict_json(text[len(prefix) :])
+    if (
+        not isinstance(pairwise, dict)
+        or set(pairwise) != {"pairwise_random_distinct", "pairwise_identity_equal"}
+        or any(value is not True for value in pairwise.values())
+    ):
+        raise HarnessError("missing/false pairwise real-random recovery observation")
+    return {"result": "PASS", "checks": 1376, **pairwise}
+
+
+def strict_json(text):
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            if key in result:
+                raise HarnessError("duplicate observation field")
+            result[key] = value
+        return result
+
+    try:
+        return json.loads(text, object_pairs_hook=pairs)
+    except (TypeError, ValueError) as error:
+        raise HarnessError("invalid observation JSON") from error
+
+
+def backup_runtime_result(text):
+    value = strict_json(text)
+    expected = {
+        "schema": 1,
+        "scenario": "backup-runtime",
+        "checks": 24,
+        "child_checks": 7,
+        "core_zero": True,
+        "dump_zero_before_drift": True,
+        "origin_rejected": True,
+        "public_verify_child": True,
+        "drift_rejected": True,
+        "parent_destroyed": True,
+        "result": "PASS",
+    }
+    if (
+        not isinstance(value, dict)
+        or set(value) != set(expected)
+        or any(
+            type(value[key]) is not type(want) or value[key] != want
+            for key, want in expected.items()
+        )
+    ):
+        raise HarnessError("incomplete/wrong composed runtime observations")
+    return value
 
 
 CONTROL_MARKERS = {
@@ -305,11 +356,12 @@ def prove(compiler, prefix, expected, allow_source_only):
     )
     records = []
 
-    def run(command, status=0):
+    def run(command, status=0, env=None):
         environment = dict(os.environ)
         environment["OPENSSL_CONF"] = "/dev/null"
         environment["ASAN_OPTIONS"] = "detect_leaks=1:abort_on_error=1"
         environment["UBSAN_OPTIONS"] = "halt_on_error=1:print_stacktrace=1"
+        environment.update(env or {})
         child = subprocess.run(
             [str(x) for x in command],
             text=True,
@@ -355,6 +407,20 @@ def prove(compiler, prefix, expected, allow_source_only):
     controls = {}
     with tempfile.TemporaryDirectory(prefix="pqbtc-backup-proof-") as tmp:
         tmp = Path(tmp)
+        runtime_reader = load(
+            ROOT / "contrib/ml-dsa-key-lifecycle/run_key_runtime_tests.py",
+            "owned_runtime_reader",
+        )
+
+        def runtime_run(command, env=None, expected_status=0):
+            run(command, expected_status, env)
+            return records[-1]
+
+        protected = runtime_reader.prove_runtime(compiler, tmp, runtime_run)
+        disassembly = protected.pop("disassembly")
+        protected["disassembly_sha256"] = {
+            name: digest(text.encode()) for name, text in disassembly.items()
+        }
         library = tmp / "backup.so"
         run(
             [
@@ -437,6 +503,11 @@ def prove(compiler, prefix, expected, allow_source_only):
             if observed != expected_package:
                 raise HarnessError("native fixture differs from independent oracle")
             observations[label + "_codec"] = smoke_result(run([smoke]), "codec")
+            observations[label + "_runtime"] = backup_runtime_result(
+                run([smoke, "--runtime-contract"])
+            )
+            if run([smoke, "--padding-contract"]) != "backup padding: PASS\n":
+                raise HarnessError("missing composed padding alias proof")
             run(
                 [
                     *flags,
@@ -530,13 +601,20 @@ def prove(compiler, prefix, expected, allow_source_only):
     if source_hashes() != hashes or runtime_identity(expected) != identity:
         raise HarnessError("source changed during native proof")
     report = {
-        "schema_version": 1,
+        "schema_version": 2,
         "result": "PASS",
         "runtime": identity,
         "trust": "exact clean checkout" if expected else "LOCAL_SOURCE_HASHES_ONLY",
         "source_hashes": hashes,
         "frozen": frozen,
         "compiler": version,
+        "platform": {
+            "sys": sys.platform,
+            "machine": platform.machine(),
+            "kernel": platform.release(),
+            "libc": platform.libc_ver(),
+        },
+        "protected_runtime": protected,
         "openssl": crypto,
         "exports": sorted(exports),
         "observations": observations,
@@ -549,7 +627,7 @@ def prove(compiler, prefix, expected, allow_source_only):
         },
         "limits": "zero-value contrib prototype; not wallet/node/consensus integration, cryptographic/whole-system erasure/platform or production qualification; backend/hold unchanged",
     }
-    return report, records
+    return report, records, disassembly
 
 
 def main():
@@ -573,7 +651,7 @@ def main():
             or args.openssl_prefix is None
         ):
             raise HarnessError("new --output-dir and pinned --openssl-prefix required")
-        report, records = prove(
+        report, records, disassembly = prove(
             args.cc, args.openssl_prefix, args.expect_commit, args.allow_source_only
         )
         args.output_dir.mkdir(mode=0o700)
@@ -584,9 +662,11 @@ def main():
             (args.output_dir / name).write_text(
                 json.dumps(value, indent=2, sort_keys=True) + "\n"
             )
+        for name, text in disassembly.items():
+            (args.output_dir / name).write_text(text, encoding="utf8")
         checksums = "".join(
-            digest((args.output_dir / name).read_bytes()) + "  " + name + "\n"
-            for name in ("backup-report.json", "native-transcript.json")
+            digest(path.read_bytes()) + "  " + path.name + "\n"
+            for path in sorted(args.output_dir.iterdir())
         )
         (args.output_dir / "evidence-sha256.txt").write_text(checksums)
         print("backup evidence: PASS " + str(args.output_dir), flush=True)

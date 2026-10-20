@@ -39,14 +39,33 @@ invalid or aliased outputs are rejected without writing. Existing live owners
 are never overwritten. Accessible-pointer, destruction synchronization and
 non-hostile concurrent-memory assumptions remain caller obligations.
 
-The new artifact includes the unchanged owned-key translation unit, permitting
-complete allocation alias guards without expanding its original API. Its normal
-exports are exactly the existing7 owned-key functions plus5 backup/pilot
+The artifact includes the protected Linux owned-key translation unit, permitting
+complete writable-body alias guards including metadata/padding. Its normal
+exports are exactly8 owned-key functions (including explicit runtime init) plus5 backup/pilot
 functions; raw/test/upstream symbols are hidden. Separately loaded signer
 artifacts have separate module entropy/lifecycle state, not one coordinated
 signing domain. OpenSSL3.6.5 is statically linked here only for backup cryptography;
 ML-DSA still uses the frozen portable mldsa-native capsule. Neither is linked
 into the node by this contribution.
+
+Call `pqbtc_mldsa44_key_runtime_init()` at dedicated Linux process startup before
+threads or secret use. It irreversibly sets soft/hard core limits0 and dumpable0;
+partial failure can leave stricter process-wide policy. No policy is silently
+applied at library load. Create/restore/sign check PID/runtime before owned-key
+access, output acceptance, entropy or provisional decryption. Runtime -12/-13/-14
+leaves output untouched; standard fork children must exec, never re-init/use an
+inherited owner. Public intent/verify remain initialization-free. Healthy init
+does not reset shared generation/sign entropy history; FAILED cannot revive.
+Destroy still wipes original-process owners after policy failure. Failed unmap
+may leave a zeroed residual mapping until exit and latches failure.
+
+Owned bodies require guarded mappings, actual kernel page locking and
+DONTDUMP/DONTFORK advice, with no heap fallback or memlock-limit increase.
+Non-Linux protected secret runtime is unsupported. Use one selected composed
+artifact per process; separately loaded libraries do not share one entropy
+history. Caller-serialized owner use/destroy and protection/erasure of exported
+seeds remain obligations. This does not lock all backup staging, passwords,
+OpenSSL/KDF/vendor stack/register copies, or establish whole-process erasure.
 
 ## Files and fresh processes
 
@@ -97,7 +116,7 @@ compilation. Pinned archive-build identity, actual libcrypto digest and native
 runtime version are recorded; arbitrary library authenticity is still a trusted
 build obligation, not authenticated plugin support.
 
-GCC/Clang each run normal+ASan/UBSan codec1368, file1034 and process16-check
+GCC/Clang each run normal+ASan/UBSan codec1376, file1034 and process16-check
 campaigns. The deterministic public fixture matches separate libgcrypt AES-GCM
 and hashlib.scrypt code, calibrated by primitive KATs. Its raw package SHA256 is
 `919274349faf698e32052f75e07e4f7e6fbb997f45ca9895902623fe40b46506`.
@@ -106,8 +125,21 @@ specific behavioral assertions. Normal exports and an actual unfiltered build
 calibrate symbol isolation. Tests observe owned staging cleanup and injected
 file/entropy/allocation/provider failures, not complete provider/OS/physical erasure.
 
-Each successful artifact has `backup-report.json`, `native-transcript.json` and
-`evidence-sha256.txt` (two internal checksums), with source/runtime/compiler,
+The codec now creates two real-random envelopes for one public synthetic key,
+observes inequality, restores both and compares public identity. Strict readers
+require both booleans, not a claim inferred from RAND_bytes. This addresses
+PR264's deferred M2 observation. A separate composed-runtime campaign measures24
+parent checks and7 actual child checks: uninitialized/fork/drift rejection before
+key access, child public-only verification and surviving-parent cleanup. O2/O3/
+bounded-LTO/ASan runtime profiles retain actual mapping/fork/failure/release
+observations, all5 compiled omission controls, complete raw commands and selected
+disassembly. Architecture/compiler-specific observations are not universal bounds.
+Both workflows now trigger on baseline-pointer and SHRINCS-manifest-only changes
+as well as their complete source/metadata dependencies, addressing PR264 M3.
+
+Each successful schema2 artifact has `backup-report.json`, `native-transcript.json`,
+`owned-release-O2.asm`, `owned-release-O3.asm`, `owned-release-LTO.asm` and
+`evidence-sha256.txt` (five internal checksums), with source/runtime/kernel/libc/compiler,
 commands and observed results. No generated secret seed or expanded key is
 retained. PR proof and actual-main proof must be qualified separately.
 
