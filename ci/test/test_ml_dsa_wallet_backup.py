@@ -4,8 +4,10 @@
 """Data-only policy tests: never build or load the new native prototype."""
 
 import importlib.util
+import fnmatch
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -44,7 +46,7 @@ class WalletBackupRunnerTests(unittest.TestCase):
             {
                 "result": "PASS",
                 "capsule_sha256": "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb",
-                "key_module_files": 6,
+                "key_module_files": 9,
                 "controls_frozen": True,
             },
         )
@@ -70,6 +72,17 @@ class WalletBackupRunnerTests(unittest.TestCase):
 
     def test_key_implementation_substitution_rejected(self):
         self.tamper("contrib/ml-dsa-key-lifecycle/key_lifecycle.c", "append")
+
+    def test_private_runtime_inputs_are_frozen(self):
+        module = self.module()
+        for name in (
+            "key_runtime.c",
+            "key_runtime_probe.c",
+            "run_key_runtime_tests.py",
+        ):
+            with self.subTest(name=name):
+                self.assertIn(name, module.KEY_HASHES)
+                self.tamper("contrib/ml-dsa-key-lifecycle/" + name, "append")
 
     def test_frozen_preflight_reader_substitution_rejected(self):
         self.tamper("contrib/ml-dsa-key-lifecycle/run_key_lifecycle_tests.py", "append")
@@ -111,6 +124,58 @@ class WalletBackupRunnerTests(unittest.TestCase):
         module = self.module()
         self.assertIsNone(module.require_exports(module.EXPECTED_EXPORTS))
 
+    def test_runtime_initializer_is_normal_export(self):
+        module = self.module()
+        self.assertIn("pqbtc_mldsa44_key_runtime_init", module.EXPECTED_EXPORTS)
+        self.assertEqual(len(module.EXPECTED_EXPORTS), 13)
+        with self.assertRaises(module.HarnessError):
+            module.require_exports(
+                module.EXPECTED_EXPORTS - {"pqbtc_mldsa44_key_runtime_init"}
+            )
+
+    def test_workflows_trigger_frozen_controls(self):
+        cases = {
+            "key-lifecycle": [
+                "contrib/ml-dsa-key-lifecycle/key_runtime.c",
+                "ci/test/test_ml_dsa_key_lifecycle.py",
+                "docs/ML_DSA_44_KEY_LIFECYCLE.md",
+            ],
+            "wallet-backup": [
+                "contrib/ml-dsa-wallet-backup/backup.c",
+                "contrib/ml-dsa-key-lifecycle/key_runtime.c",
+                "ci/test/test_ml_dsa_key_lifecycle.py",
+                ".github/workflows/ml-dsa-44-key-lifecycle.yml",
+                "docs/ML_DSA_44_KEY_LIFECYCLE.md",
+                "ci/test/test_ml_dsa_wallet_backup.py",
+                "docs/ML_DSA_44_WALLET_BACKUP.md",
+            ],
+        }
+        controls = [
+            "contrib/ml-dsa-ref/review_baseline_commit.txt",
+            "contrib/shrincs/manifest.json",
+            "contrib/ml-dsa-engineering/backend_admission.json",
+        ]
+        for workflow, sources in cases.items():
+            text = (
+                ROOT / (".github/workflows/ml-dsa-44-" + workflow + ".yml")
+            ).read_text()
+            for event in ("pull_request", "push"):
+                block = re.split(
+                    r"\n  (?=\S)", text.split("  " + event + ":\n", 1)[1], maxsplit=1
+                )[0]
+                # Only path-list entries in this event, not another event's union.
+                paths = [
+                    line.strip().removeprefix('- "').removesuffix('"')
+                    for line in block.splitlines()
+                    if line.strip().startswith('- "')
+                ]
+                for source in sources + controls:
+                    with self.subTest(workflow=workflow, event=event, source=source):
+                        self.assertTrue(
+                            any(fnmatch.fnmatchcase(source, path) for path in paths),
+                            "missing workflow dependency trigger: " + source,
+                        )
+
     def test_incomplete_or_wrong_runtime_native_reports_rejected(self):
         module = self.module()
         for text in (
@@ -128,11 +193,72 @@ class WalletBackupRunnerTests(unittest.TestCase):
     def test_complete_report_accepted(self):
         self.assertEqual(
             self.module().smoke_result(
-                "backup crypto runtime: OpenSSL 3.6.5 29 Sep 2026\nbackup smoke: PASS (1368 checks)\n",
+                'backup crypto runtime: OpenSSL 3.6.5 29 Sep 2026\nbackup smoke: PASS (1376 checks)\n{"pairwise_random_distinct":true,"pairwise_identity_equal":true}\n',
                 "codec",
             ),
-            {"result": "PASS", "checks": 1368},
+            {
+                "result": "PASS",
+                "checks": 1376,
+                "pairwise_random_distinct": True,
+                "pairwise_identity_equal": True,
+            },
         )
+
+    def test_pairwise_missing_false_or_numeric_observations_rejected(self):
+        module = self.module()
+        prefix = "backup crypto runtime: OpenSSL 3.6.5 29 Sep 2026\nbackup smoke: PASS (1376 checks)\n"
+        for tail in (
+            "",
+            "{}\n",
+            '{"pairwise_random_distinct":true,"pairwise_identity_equal":false}\n',
+            '{"pairwise_random_distinct":1,"pairwise_identity_equal":true}\n',
+            '{"pairwise_random_distinct":false,"pairwise_random_distinct":true,"pairwise_identity_equal":true}\n',
+        ):
+            with self.subTest(tail=tail), self.assertRaises(module.HarnessError):
+                module.smoke_result(prefix + tail, "codec")
+
+    def test_backup_runtime_contract_reader(self):
+        module = self.module()
+        value = {
+            "schema": 1,
+            "scenario": "backup-runtime",
+            "checks": 24,
+            "child_checks": 7,
+            "core_zero": True,
+            "dump_zero_before_drift": True,
+            "origin_rejected": True,
+            "public_verify_child": True,
+            "drift_rejected": True,
+            "parent_destroyed": True,
+            "result": "PASS",
+        }
+        self.assertEqual(module.backup_runtime_result(json.dumps(value)), value)
+        for name, replacement in (
+            ("child_checks", 6),
+            ("checks", 24.0),
+            ("origin_rejected", 1),
+            ("core_zero", False),
+            ("schema", True),
+        ):
+            damaged = dict(value)
+            damaged[name] = replacement
+            with self.subTest(name=name), self.assertRaises(module.HarnessError):
+                module.backup_runtime_result(json.dumps(damaged))
+        damaged = dict(value)
+        del damaged["public_verify_child"]
+        with self.assertRaises(module.HarnessError):
+            module.backup_runtime_result(json.dumps(damaged))
+
+    def test_proof_source_inventory_includes_key_metadata(self):
+        module = self.module()
+        hashes = module.source_hashes()
+        for name in (
+            "ci/test/test_ml_dsa_key_lifecycle.py",
+            ".github/workflows/ml-dsa-44-key-lifecycle.yml",
+            "docs/ML_DSA_44_KEY_LIFECYCLE.md",
+        ):
+            with self.subTest(name=name):
+                self.assertIn(name, hashes)
 
     def test_unrelated_failure_does_not_qualify_negative_control(self):
         module = self.module()
@@ -187,7 +313,9 @@ class WalletBackupRunnerTests(unittest.TestCase):
                     ["git", "-C", str(root), *args], check=True, capture_output=True
                 )
             head = subprocess.check_output(
-                ["git", "-C", str(root), "rev-parse", "HEAD"], text=True, encoding="utf8"
+                ["git", "-C", str(root), "rev-parse", "HEAD"],
+                text=True,
+                encoding="utf8",
             ).strip()
             self.assertEqual(
                 module.runtime_identity(head, root),

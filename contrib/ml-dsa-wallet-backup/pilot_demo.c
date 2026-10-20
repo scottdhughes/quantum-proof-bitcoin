@@ -65,6 +65,7 @@ static int Produce(int dir)
     uint8_t password[]="public synthetic backup password";
     uint8_t package[176],public_key[1312]; int ok=0;
     struct pqbtc_mldsa44_key* key=NULL;
+    if(pqbtc_mldsa44_key_runtime_init()!=0) goto done;
     if(pqbtc_mldsa44_key_generate(&key)!=0 || pqbtc_mldsa44_key_public(key,public_key,sizeof(public_key))!=0 ||
        pqbtc_backup_create(key,password,sizeof(password)-1,package,sizeof(package))!=0) goto done;
     if(pqbtc_backup_store_at(dir,"wallet.bak",package)!=0 || !PublicWrite(dir,"public.bin",public_key,sizeof(public_key))) goto done;
@@ -77,6 +78,7 @@ static int RestoreSign(int dir)
     uint8_t password[]="public synthetic backup password";
     uint8_t package[176],original[1312],recovered[1312],intent[112],signature[2420],challenge[32];
     int ok=0; struct pqbtc_mldsa44_key* key=NULL;
+    if(pqbtc_mldsa44_key_runtime_init()!=0) goto done;
     if(pqbtc_backup_load_at(dir,"wallet.bak",package)!=0 ||
        pqbtc_backup_restore(&key,password,sizeof(password)-1,package,sizeof(package))!=0 ||
        pqbtc_mldsa44_key_public(key,recovered,sizeof(recovered))!=0 ||

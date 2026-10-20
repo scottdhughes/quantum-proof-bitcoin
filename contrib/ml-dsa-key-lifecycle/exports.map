@@ -1,5 +1,6 @@
 {
     global:
+        pqbtc_mldsa44_key_runtime_init;
         pqbtc_mldsa44_key_generate;
         pqbtc_mldsa44_key_import_seed;
         pqbtc_mldsa44_key_public;

@@ -7,6 +7,11 @@ on:
       - "contrib/ml-dsa-wallet-backup/**"
       - "contrib/ml-dsa-key-lifecycle/**"
       - "contrib/ml-dsa-engineering/**"
+      - "contrib/ml-dsa-ref/review_baseline_commit.txt"
+      - "contrib/shrincs/manifest.json"
+      - ".github/workflows/ml-dsa-44-key-lifecycle.yml"
+      - "ci/test/test_ml_dsa_key_lifecycle.py"
+      - "docs/ML_DSA_44_KEY_LIFECYCLE.md"
       - "ci/test/test_ml_dsa_wallet_backup.py"
       - "docs/ML_DSA_44_WALLET_BACKUP*"
   push:
@@ -16,6 +21,11 @@ on:
       - "contrib/ml-dsa-wallet-backup/**"
       - "contrib/ml-dsa-key-lifecycle/**"
       - "contrib/ml-dsa-engineering/**"
+      - "contrib/ml-dsa-ref/review_baseline_commit.txt"
+      - "contrib/shrincs/manifest.json"
+      - ".github/workflows/ml-dsa-44-key-lifecycle.yml"
+      - "ci/test/test_ml_dsa_key_lifecycle.py"
+      - "docs/ML_DSA_44_KEY_LIFECYCLE.md"
       - "ci/test/test_ml_dsa_wallet_backup.py"
       - "docs/ML_DSA_44_WALLET_BACKUP*"
   workflow_dispatch:

@@ -20,7 +20,10 @@ enum pqbtc_backup_result {
  * Password is counted bytes16..1024 (no normalization); caller owns its wipe.
  * Create stages privately; accepted failure clears nonalias package output.
  * Aliased/invalid output is rejected without writing. Restore requires an
- * initiallyNULL owner; failures never publish a provisional/unverified key. */
+ * initiallyNULL owner; failures never publish a provisional/unverified key.
+ * Create/restore/sign require explicit key_runtime_init in the original Linux
+ * process. Runtime -12/-13/-14 precede output acceptance and leave it untouched;
+ * an inherited owner is never dereferenced. Public intent/verify need no init. */
 PQBTC_MLDSA44_KEY_API int pqbtc_backup_create(const struct pqbtc_mldsa44_key*,
     const uint8_t*, size_t, uint8_t*, size_t);
 PQBTC_MLDSA44_KEY_API int pqbtc_backup_restore(struct pqbtc_mldsa44_key**,

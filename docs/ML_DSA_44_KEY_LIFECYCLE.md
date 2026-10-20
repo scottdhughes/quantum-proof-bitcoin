@@ -8,7 +8,7 @@ production backend. `production_backend=NONE`, `consensus_enabled=false`,
 ## What this delivers
 
 `contrib/ml-dsa-key-lifecycle/key_lifecycle.h` exposes one opaque owned key and
-seven operations: generate, import a seed, reveal the public key, explicitly
+eight operations: initialize the dedicated runtime, generate, import a seed, reveal the public key, explicitly
 export the seed, hedged sign, strict verify, and destroy. The private allocation
 contains the 32-byte key-generation seed, 1,312-byte public key, and 2,560-byte
 expanded secret key. Signatures are 2,420 bytes. There is no expanded-key import,
@@ -29,7 +29,7 @@ coordinated entropy or lifecycle domain.
   exactly 32 seed bytes and rejects overlap with the owner storage.
 - Only one owner exists. Borrow it during operations, but never race destruction
   against any use. Copying the pointer does not create another owner. Destroy
-  wipes the entire allocation before freeing it and sets the owner to NULL;
+  wipes the entire writable mapping body before unmapping it and sets the owner to NULL;
   destroying that NULL owner again is safe.
 - Public-key and seed outputs require exact-size buffers and reject overlap
   with the entire owned allocation without writing. Signing rejects output
@@ -44,19 +44,52 @@ coordinated entropy or lifecycle domain.
   declared lengths. Arbitrary unreadable/stale pointers, hostile concurrent
   mutation and memory inspection are not authenticated by an opaque C pointer.
 
-Generation obtains exactly 32 bytes from the existing OS entropy adapter and
-fails on source failure, short output, all-zero output or an immediate repeated
-generation sample. It keeps only a SHAKE256 digest for repeat detection,
-independent of signing's randomizer state. An accepted generation sample is
-consumed even if subsequent allocation/key generation fails; deterministic
-recovery import is intentionally not treated as duplicate generation. Temporary
-generation seed/digest buffers and failed allocations are wiped. Sign and import
-honor the existing module lifecycle gate.
+## Explicit Linux runtime and protected owners
+
+Call `pqbtc_mldsa44_key_runtime_init()` explicitly at dedicated pilot-process
+startup, before threads or secret operations. It sets and verifies both soft and
+hard `RLIMIT_CORE=0` and `PR_SET_DUMPABLE=0`. This costs ordinary core/debugger
+diagnostics process-wide; partial failure may leave stricter policy and is not
+rolled back. Loading the artifact only records its origin PID; it does not apply
+the dump policy. Healthy repeated init rechecks policy without resetting entropy
+history. Failed state cannot be revived. Non-Linux secret runtime is unsupported.
+
+Each owner has inaccessible guard pages around a page-rounded writable body.
+Linux mmap/mprotect, kernel `SYS_mlock`, `MADV_DONTDUMP` and `MADV_DONTFORK` must
+all succeed before seed or bookkeeping writes; no heap fallback or memlock-limit
+escalation. The direct Linux locking syscall avoids ASan's no-op mlock interceptor
+in every build, not just sanitizer builds. Resource limits can legitimately make
+construction fail. Full-body alias checks include metadata and rounded padding.
+
+Secret operations check original PID and dump policy before key dereference or
+inherited locks. A standard fork child has no owned body and must exec before
+secret use; re-init cannot bypass this. Child destroy only clears its accessible
+owner pointer. Public-only strict verification needs no runtime initialization.
+Policy drift fails further secret use but original-process destruction still
+wipes. Failed unmap clears the owner, latches failure, and may leave only a zeroed
+residual mapping until exit; no retry through erased bookkeeping is attempted.
+
+Generation obtains exactly 32 fresh bytes from the held Linux getentropy adapter
+directly into the protected seed field, after policy/allocation protection. It
+fails on source error, short test-interface output, all-zero or immediately
+repeated samples. Generation and signing share the held module lock and one
+SHAKE256 last-sample digest in this selected artifact. Acceptance is consumed on
+later backend failure, but protection failure consumes no sample. Deterministic
+recovery import requests no entropy. Zero/repeat guards are misuse checks, not
+source certification; real getentropy is all-or-error and may block at early boot.
+No userspace entropy pool, custom DRBG, deterministic fallback or caller
+randomizer is added. Vendor stack/register, backup/OpenSSL scratch and caller
+password/seed/export copies are not all locked by the owned mapping. Caller
+serialization and erasure/protection of exported seeds remain mandatory.
 
 Result codes retain the wrapper taxonomy: 0 success; -1 argument; -2 entropy
 source; -3 short entropy; -4 all-zero entropy; -5 repeated entropy; -6 backend;
 -7 signing attempts; -8 signature length; -9 verification; -10 lifecycle.
-The owned-key module adds -11 allocation failure.
+The owned-key module adds -11 allocation failure, -12 runtime policy,
+-13 process origin and -14 unsupported platform. Runtime errors precede output
+acceptance and leave it untouched; accepted entropy/backend failures retain the
+held output-clearing contract. Use one selected key OR composed backup artifact
+per pilot process, not multiple independently loaded signer DSOs.
 
 ## Reproduction and bounded evidence
 
@@ -79,7 +112,7 @@ python3 contrib/ml-dsa-key-lifecycle/run_key_lifecycle_tests.py \
 The destination must not already exist. The runner checks fixed wrapper and
 manifest hashes, the complete portable capsule file set and aggregate digest
 before compilation. It rejects symlinks, substitutions and self-rehashed
-manifests. Normal dynamic exports must be exactly the seven owned-key functions;
+manifests and changed admission/baseline/SHRINCS controls. Normal dynamic exports must be exactly the eight owned-key functions;
 a real unfiltered build is rejected as a negative control. The public synthetic
 ACVP seed must yield public-key SHA256
 `451a808c522218fadbdab146fc12004b0741c7d069f238f43ad77216159f6a34`.
@@ -87,7 +120,7 @@ ACVP seed must yield public-key SHA256
 Injected-failure and real OS entropy builds run normally and with ASan/UBSan.
 Tests cover recovery identity, two hedged signatures, wrong key/message/context/
 signature, ownership/alias failures, entropy/allocation/key-generation/signing
-failures and observed all-zero allocation bytes immediately before free. A
+failures and observed all-zero body bytes immediately before unmap. A
 temporary test mutant omits that wipe and must fail the observation gate. This
 calibrates the test; it is not shipped as a selectable library mode. No secret
 seed or expanded-key bytes are printed or saved.
@@ -98,25 +131,38 @@ test-only whole-allocation snapshots check every byte stayed unchanged. Separate
 compiled controls remove the constructor alias check or narrow output protection
 to only the seed prefix; both must fail the corresponding boundary assertion.
 
-CI runs GCC and Clang at the exact PR head and separately on actual main. Each
-artifact contains a source/runtime/compiler-bound report, complete native command
-transcript and internal SHA256 checksums. Local source-hash evidence without Git
+Real kernel-backed mapping policy, standard fork/exec, acquisition/drift/unmap
+failures, full-body alias protection, shared generation/sign repeat and concurrent
+independent-owner tests run under O2, O3, bounded LTO and ASan/UBSan profiles.
+Instrumented builds separately count actual seeded-keypair and inner-sign entries
+after OS-adapter error/partial-write faults, with positive calibration. Signing's
+high-level randomized entry necessarily runs to request entropy; the claim is
+that failure stops before inner signature generation, not before all backend code.
+Compiled omission controls for lock, dump/fork advice, origin and body wipe must
+fail exact assertions. Unsupported fallback is a hash-bound synthetic branch
+fixture, not a foreign-OS build. Optimized symbols and selected release/zeroize
+disassembly are retained; they do not prove erasure of all compiler copies.
+
+CI runs GCC and Clang on Ubuntu24.04 x86_64 at the exact PR head and separately
+on actual main. Linux arm64 local results are supplemental. Schema2 artifacts
+contain a source/runtime/kernel/libc/compiler-bound report, complete native command
+transcript, three selected release disassemblies and five internal SHA256 checksums.
+Local source-hash evidence without Git
 metadata is labeled as such, never as trusted-main proof. Original guarded
 wrapper/capsule bytes remain unchanged.
 
 ## Remaining production finish line
 
-This partially advances secret ownership (issue #187) and seed representation
-(issue #190); neither issue is closed. It does not supply encrypted persistent
-backup, a wallet derivation tree, network/version encoding, descriptors/PSBT,
-transaction binding or consensus activation. It promises no memory locking,
-swap/hibernate/core-dump protection, general concurrency, fork/snapshot-safe
-application use, physical fault resistance or whole-system secret erasure.
-Compiler-output and supported-platform lifecycle assurance remain open.
+This partially advances entropy (#184), secret ownership (#187) and seed
+representation (#190); none is closed. The separate backup prototype exercises
+encrypted recovery and a zero-value process roundtrip, not a node wallet,
+derivation tree, network/version encoding, descriptors/PSBT, Bitcoin transaction
+binding or consensus activation. Owned-map locking/dump/fork restrictions are
+bounded observations, not swap/hibernate/VM-rollback, hostile-host/root/kernel,
+general race-destroy safety, physical fault or whole-system erasure guarantees.
+Compiler/platform assurance beyond the observed profiles remains open.
 
-The next concrete milestone is an explicitly versioned wallet/backup and
-transaction-binding contract, followed by zero-value application integration
-exercising generate → backup → restore → sign → verify → destroy. In parallel,
+In parallel,
 independent human cryptographic/security review must assess the assembled
 ML-DSA path (issue #181); automated code review and bounded tests do not replace
 it. Operational entropy policy (#184), resource/platform assurance, independent

@@ -6,6 +6,8 @@ on:
       - ".github/workflows/ml-dsa-44-key-lifecycle.yml"
       - "contrib/ml-dsa-key-lifecycle/**"
       - "contrib/ml-dsa-engineering/**"
+      - "contrib/ml-dsa-ref/review_baseline_commit.txt"
+      - "contrib/shrincs/manifest.json"
       - "ci/test/test_ml_dsa_key_lifecycle.py"
       - "docs/ML_DSA_44_KEY_LIFECYCLE.md"
   push:
@@ -14,6 +16,8 @@ on:
       - ".github/workflows/ml-dsa-44-key-lifecycle.yml"
       - "contrib/ml-dsa-key-lifecycle/**"
       - "contrib/ml-dsa-engineering/**"
+      - "contrib/ml-dsa-ref/review_baseline_commit.txt"
+      - "contrib/shrincs/manifest.json"
       - "ci/test/test_ml_dsa_key_lifecycle.py"
       - "docs/ML_DSA_44_KEY_LIFECYCLE.md"
   workflow_dispatch:
