@@ -23,13 +23,13 @@ import tempfile
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 WRAPPER = Path("contrib/ml-dsa-engineering")
-CAPSULE_HASH = "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb"
+CAPSULE_HASH = "e07f0f6a9bb46fd9afcbe7699f95f1ce43e6fcf48623d6de7b3e95ed405023cb"
 SOURCE_HASHES = {
-    "pqbtc_mldsa44.c": "53282d3eb0d29b45cd430236bc8a01ca15f1d91622c2adeeb74b3f823ac832e4",
+    "pqbtc_mldsa44.c": "61cdf459578277f737e3206049dfbc8e536a0c7e85760d85c78df3d3b2df3a70",
     "pqbtc_mldsa44.h": "9bb114b51bdc225605b99c92ed8b21ed5e08f9c8efb7ca7924214e1f679a8255",
-    "pqbtc_mldsa44_config.h": "50a5b8f09700a2e6b6237c119b5842236f4cd56029f802dbefddd5e724b0d624",
+    "pqbtc_mldsa44_config.h": "1794769a3a79d013fea68d8b58f667b5e0bec54810ed74a1bd785a867eba6c4d",
     "pqbtc_mldsa44_test.h": "4d76421c13ff2cd28f73c81c5784d5b34f2bf1aef1901cac841de08240e8402f",
-    "vendor/mldsa-native/SOURCE.json": "19d5cd67692758d1315312b7e27e7c57dab470971ec18ea92faa383dbb8e1165",
+    "vendor/mldsa-native/SOURCE.json": "c381f8abcbc0ecce1592563379d23d8ca2f9c9bbf10aaccb06ea9aea43ca42c7",
 }
 EXPECTED_EXPORTS = {
     "pqbtc_mldsa44_key_" + name
@@ -56,7 +56,7 @@ MODULE_FILES = (
     "run_key_runtime_tests.py",
 )
 CONTROL_HASHES = {
-    "contrib/ml-dsa-engineering/backend_admission.json": "8c786b4a33596323f05100b102d46963445c3c0f6f9430c6459f680cae91ed97",
+    "contrib/ml-dsa-engineering/backend_admission.json": "0a0a349ab822373484db4b08412660d142bd09bc0507038b257593e53d3411c0",
     "contrib/ml-dsa-ref/review_baseline_commit.txt": "05e72b9f3368e3c3c43c51efb97cc9a957733bdb405f9850899e85372281d5c6",
     "contrib/shrincs/manifest.json": "c7b492c46e99cda50f2cc6f3c69dba454ca2841fdc7a152141c071ba11e7e990",
 }

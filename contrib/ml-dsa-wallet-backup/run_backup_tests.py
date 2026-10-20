@@ -18,7 +18,7 @@ import tempfile
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 ARCHIVE_SHA = "a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98"
-CAPSULE_SHA = "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb"
+CAPSULE_SHA = "e07f0f6a9bb46fd9afcbe7699f95f1ce43e6fcf48623d6de7b3e95ed405023cb"
 FIXTURE_SHA = "919274349faf698e32052f75e07e4f7e6fbb997f45ca9895902623fe40b46506"
 KEY_HASHES = {
     "key_lifecycle.c": "0314cc2ac67b8646fdd7925092652770f016d0efab60922ce1ca57bc10a05c42",
@@ -26,13 +26,13 @@ KEY_HASHES = {
     "key_lifecycle_test.h": "05f6893a3f86e990804d7df4f05d0e397dbdd88be7a0fead56a83316855f03a6",
     "key_lifecycle_smoke.c": "eafa74db19a55eaa89494f4c46e5d9deaf0e89337ff5645c9adab315a5878099",
     "exports.map": "3696587b7350eaec149cf82e5785c1828e9201128d01ab0f93ac2ead8583666e",
-    "run_key_lifecycle_tests.py": "33adb5a30b8cb2dad1c3476489a7ec56ec46dd36ce9f2e3e2816695d0763dd68",
+    "run_key_lifecycle_tests.py": "c3283fe8340d9f860d0eba260924442b5c0091b8a4e17103adb761e03dfb2144",
     "key_runtime.c": "8baccccc889000bf9022f44bd0bd692f6570449c806e5b792041b025e97f9b86",
     "key_runtime_probe.c": "17c03a3c66b05257fed1def93dcccf34bf8aa4ae219d693c72f5379530b3203c",
     "run_key_runtime_tests.py": "9640534a315765d66894f620b0d923c66465e380899b9037ab11eefe2f79ae0d",
 }
 CONTROL_HASHES = {
-    "contrib/ml-dsa-engineering/backend_admission.json": "8c786b4a33596323f05100b102d46963445c3c0f6f9430c6459f680cae91ed97",
+    "contrib/ml-dsa-engineering/backend_admission.json": "0a0a349ab822373484db4b08412660d142bd09bc0507038b257593e53d3411c0",
     "contrib/ml-dsa-ref/review_baseline_commit.txt": "05e72b9f3368e3c3c43c51efb97cc9a957733bdb405f9850899e85372281d5c6",
     "contrib/shrincs/manifest.json": "c7b492c46e99cda50f2cc6f3c69dba454ca2841fdc7a152141c071ba11e7e990",
 }

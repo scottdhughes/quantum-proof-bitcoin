@@ -11,7 +11,7 @@
     "hedged_signing_calls_per_input_max": 4
   },
   "sources": {
-    "repo_vectors_sha256": "9cad66d81b2185e8e4e1e377697c92ce5ee4e4e7b6c9d3d453c342b8288962c2"
+    "repo_vectors_sha256": "64d069741c014c07852bbd3c798296b2ff6cae990161bec3763b983746d44dba"
   },
   "required_scenarios": [
     "fresh_a_then_fresh_b",

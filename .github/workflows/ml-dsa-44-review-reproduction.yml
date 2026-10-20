@@ -40,7 +40,7 @@ jobs:
       OPENSSL_RELEASE_TARBALL_URL: https://github.com/openssl/openssl/releases/download/openssl-3.6.5/openssl-3.6.5.tar.gz
       OPENSSL_RELEASE_TARBALL_SHA256: a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98
       OPENSSL_CVE_2026_63076_EQUIVALENT_FIX: 49de27169f4cc42619a096c38412e47a3f890803
-      MLDSA_NATIVE_COMMIT: 9b0ee84f4cf399043eca59eca4e5f8531ca1d61b
+      MLDSA_NATIVE_COMMIT: 834a90d5e846ffa1e1611bd24e160bb2e9b86d35
       LIBCRUX_COMMIT: c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd
       ACVP_COMMIT: 15c0f3deeefbfa8cb6cd32a99e1ca3b738c66bf0
       LIBCRUX_DISABLE_SIMD128: "1"
@@ -164,20 +164,12 @@ jobs:
           # steady state. PR-mode validation prevents rollback or skipping.
           allowed_sha256 = (
               {
-                  "baseline": (
-                      "feec9dabee7bbca2916768f31fbc4130a18cecf607fb827709262b877edd445b"
-                  ),
-                  "current": (
-                      "9cad66d81b2185e8e4e1e377697c92ce5ee4e4e7b6c9d3d453c342b8288962c2"
-                  ),
+                  "baseline": "9cad66d81b2185e8e4e1e377697c92ce5ee4e4e7b6c9d3d453c342b8288962c2",
+                  "current": "64d069741c014c07852bbd3c798296b2ff6cae990161bec3763b983746d44dba",
               },
               {
-                  "baseline": (
-                      "9cad66d81b2185e8e4e1e377697c92ce5ee4e4e7b6c9d3d453c342b8288962c2"
-                  ),
-                  "current": (
-                      "9cad66d81b2185e8e4e1e377697c92ce5ee4e4e7b6c9d3d453c342b8288962c2"
-                  ),
+                  "baseline": "64d069741c014c07852bbd3c798296b2ff6cae990161bec3763b983746d44dba",
+                  "current": "64d069741c014c07852bbd3c798296b2ff6cae990161bec3763b983746d44dba",
               },
           )
           if actual_sha256 not in allowed_sha256:

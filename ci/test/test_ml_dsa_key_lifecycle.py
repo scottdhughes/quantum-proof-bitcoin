@@ -82,7 +82,7 @@ class KeyLifecycleRunnerTests(unittest.TestCase):
         result = module.validate_sources(ROOT)
         self.assertEqual(
             result["capsule_sha256"],
-            "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb",
+            "e07f0f6a9bb46fd9afcbe7699f95f1ce43e6fcf48623d6de7b3e95ed405023cb",
         )
 
     def test_wrapper_substitution_rejected_before_native_work(self):

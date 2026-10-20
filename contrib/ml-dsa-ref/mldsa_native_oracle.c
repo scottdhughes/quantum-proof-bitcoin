@@ -139,13 +139,12 @@ static int RunSign(
         return result;
     }
 
-    size_t signature_size = 0;
+    const size_t signature_size = sizeof(signature);
     const uint64_t sign_started = MonotonicNs();
     int signed_result = 0;
     if (randomized) {
         signed_result = mldsa_signature(
             signature,
-            &signature_size,
             message,
             message_size,
             context_string,
@@ -159,7 +158,6 @@ static int RunSign(
             randomizer_pointer == NULL ? deterministic_randomizer : randomizer_pointer;
         signed_result = mldsa_signature_internal(
             signature,
-            &signature_size,
             message,
             message_size,
             prefix,
@@ -169,7 +167,7 @@ static int RunSign(
             0);
     }
     const uint64_t sign_ns = MonotonicNs() - sign_started;
-    if (signed_result != 0 || signature_size != SIGNATURE_SIZE) {
+    if (signed_result != 0) {
         fprintf(stderr, "mldsa_native_oracle: signing failed\n");
         return result;
     }
@@ -177,7 +175,6 @@ static int RunSign(
     const uint64_t verify_started = MonotonicNs();
     const int verified = mldsa_verify(
         signature,
-        signature_size,
         message,
         message_size,
         context_string,
@@ -230,7 +227,6 @@ static int RunVerify(
     const uint64_t verify_started = MonotonicNs();
     const int verified = mldsa_verify(
         signature,
-        signature_size,
         message,
         message_size,
         context_string,

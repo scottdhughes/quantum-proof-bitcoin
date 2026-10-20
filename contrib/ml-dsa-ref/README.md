@@ -1,5 +1,16 @@
 # ML-DSA-44 Reference Harness
 
+## v2.0.0 reconciliation (2026-10-20)
+
+The current portable source is v2.0.0, commit
+`834a90d5e846ffa1e1611bd24e160bb2e9b86d35`. Fresh exact-source PR and
+protected-main qualification is required; historical beta campaigns and
+receipts below retain their original source identities and do not qualify v2.
+The source PR is followed by its related baseline-pointer PR; intermediate
+main is not final frozen-baseline evidence. Production backend `NONE`,
+consensus disabled, release hold and all admission gates remain unchanged.
+
+
 This directory contains an isolated conformance and measurement harness for
 the FIPS 204 `ML-DSA-44` comparator. It is not linked into PQBTC, does not
 define consensus behavior, and does not allocate or activate an `ALG_ID`.
@@ -12,7 +23,7 @@ define consensus behavior, and does not allocate or activate an `ALG_ID`.
   commit and source-file hashes pinned in `vectors.json`
 - an OpenSSL 3.6.5 runtime plus a clean checkout at its pinned commit/tree,
   annotated release-tag object, and release-tarball digest
-- `pq-code-package/mldsa-native` `v1.0.0-beta2` at its pinned commit
+- `pq-code-package/mldsa-native` `v2.0.0` at its pinned commit
 - `libcrux-ml-dsa` `v0.0.10` at its pinned source commit and annotated tag,
   plus the exact crates.io archive pinned by SHA256
 

@@ -1569,14 +1569,14 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
     expected_source_values = {
         "openssl": ("3.6.5", vector_sources.get("openssl", {}).get("commit")),
         "mldsa_native": (
-            "v1.0.0-beta2",
+            "v2.0.0",
             vector_sources.get("mldsa_native", {}).get("commit"),
         ),
         "libcrux": ("0.0.10", vector_sources.get("libcrux", {}).get("commit")),
     }
     expected_inventory_dates = {
         "openssl": "2026-10-11",
-        "mldsa_native": ledger["inventory_date"],
+        "mldsa_native": "2026-10-20",
         "libcrux": ledger["inventory_date"],
     }
     for name, (version, commit) in expected_source_values.items():
@@ -1890,7 +1890,7 @@ def validate_ledger(ledger: dict[str, Any], vectors: dict[str, Any]) -> None:
         "api_version": "2022-11-28",
         "user_agent": "pqbtc-ml-dsa-advisory-ledger/1",
         "authenticated": False,
-        "reviewed_on": "2026-07-22",
+        "reviewed_on": "2026-10-20",
         "reviewed_published_ids": [],
     }
     if mldsa_feed != expected_mldsa_feed:

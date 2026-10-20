@@ -41,13 +41,13 @@
     "backend": "mldsa_native_portable_c",
     "source": {
       "repository": "https://github.com/pq-code-package/mldsa-native",
-      "tag": "v1.0.0-beta2",
-      "commit": "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
-      "git_tree": "c73c7029182122fce2f2dd8ac544ae990abd74a2",
+      "tag": "v2.0.0",
+      "commit": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+      "git_tree": "e61bc2b09d705cbc378e3e8c6d556cae05750fd6",
       "license_expression": "Apache-2.0 OR ISC OR MIT"
     },
     "upstream_status": {
-      "release_label": "second_beta",
+      "release_label": "first_stable",
       "latest_tag_found_on_refresh": true,
       "upstream_portable_c_assessment": "production_ready_with_documented_verification_limits",
       "pqbtc_assessment": "isolated_prototype_only",
@@ -72,9 +72,9 @@
       "status": "ISOLATED_PROTOTYPE_IMPLEMENTED",
       "source_capsule": {
         "manifest": "contrib/ml-dsa-engineering/vendor/mldsa-native/SOURCE.json",
-        "files": 34,
-        "upstream_git_archive_tar_sha256": "4fd08a772d0a142863593471f0c26e239bac8babc8e2a960e072f06ee89ff30b",
-        "capsule_sha256": "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb",
+        "files": 35,
+        "upstream_git_archive_tar_sha256": "1bb12c7eac6a44ea96bc2043b8c8b5bb2f2b2a85a3a9b5926fa2eb5ed86e27b7",
+        "capsule_sha256": "e07f0f6a9bb46fd9afcbe7699f95f1ce43e6fcf48623d6de7b3e95ed405023cb",
         "native_backend_files": 0
       },
       "translation_unit": "contrib/ml-dsa-engineering/pqbtc_mldsa44.c",
@@ -137,13 +137,20 @@
       "outcome": "ORACLE_ONLY"
     },
     "mldsa_native_portable_c": {
-      "source_commit": "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
-      "source_tree": "c73c7029182122fce2f2dd8ac544ae990abd74a2",
+      "source_commit": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+      "source_tree": "e61bc2b09d705cbc378e3e8c6d556cae05750fd6",
       "license_expression": "Apache-2.0 OR ISC OR MIT",
-      "conformance": "PASS",
+      "conformance": "PENDING_V2_REPRODUCTION",
       "entropy_boundary": "INTEGRATOR_HOOK_CALLED_BY_RANDOMIZED_ENTRY_POINT",
       "secret_erasure": "STRONG_INTERNAL_SOURCE_EVIDENCE_WITH_COMPILER_COPY_LIMIT",
-      "side_channel_posture": "BOUNDED_X86_64_VALGRIND_CT_EVIDENCE_BROADER_PLATFORMS_AND_LEAKAGE_MODELS_OPEN",
+      "side_channel_posture": "PENDING_V2_BINARY_REPRODUCTION",
+      "historical_beta_assessment": {
+        "source_commit": "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
+        "source_tree": "c73c7029182122fce2f2dd8ac544ae990abd74a2",
+        "conformance": "PASS",
+        "side_channel_posture": "BOUNDED_X86_64_VALGRIND_CT_EVIDENCE_BROADER_PLATFORMS_AND_LEAKAGE_MODELS_OPEN",
+        "applies_to_v2": false
+      },
       "build_fit": "PORTABLE_C_SINGLE_TRANSLATION_UNIT",
       "outcome": "ISOLATED_PROTOTYPE_ADMITTED"
     },
@@ -164,7 +171,10 @@
         "scheduled_refresh": true,
         "exact_commit_re_review": "PENDING",
         "simd256_advisory_regressions": {
-          "advisories": ["RUSTSEC-2026-0125", "RUSTSEC-2026-0126"],
+          "advisories": [
+            "RUSTSEC-2026-0125",
+            "RUSTSEC-2026-0126"
+          ],
           "status": "PASS",
           "repository_commit": "f301227089086dad6918a76814d7227e61e2d71b",
           "source_manifest": "docs/reviews/evidence/ml-dsa-44-simd256/f301227089086dad6918a76814d7227e61e2d71b/run-30242969373-attempt-1/SOURCE.json",

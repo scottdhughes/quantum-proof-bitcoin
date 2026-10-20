@@ -1,5 +1,16 @@
 # ML-DSA-44 Reference Comparator
 
+## v2.0.0 reconciliation (2026-10-20)
+
+The current portable source is v2.0.0, commit
+`834a90d5e846ffa1e1611bd24e160bb2e9b86d35`. Fresh exact-source PR and
+protected-main qualification is required; historical beta campaigns and
+receipts below retain their original source identities and do not qualify v2.
+The source PR is followed by its related baseline-pointer PR; intermediate
+main is not final frozen-baseline evidence. Production backend `NONE`,
+consensus disabled, release hold and all admission gates remain unchanged.
+
+
 ## Status: REFERENCE ONLY - NOT CONSENSUS
 ## Spec-ID: ML-DSA-44-REFERENCE-v2
 ## Updated: 2026-09-09
@@ -79,8 +90,8 @@ streaming design must specify and validate the `mu` trust boundary separately.
   `96ac34688809c56b1afa117c75c0ef303ff19a75`, annotated tag object
   `f93be98fe7c796e92fc999dd1a21a5212d4e4f8e`, and release-tarball SHA-256
   `a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98`
-- `mldsa-native` `v1.0.0-beta2` commit
-  `9b0ee84f4cf399043eca59eca4e5f8531ca1d61b`
+- `mldsa-native` `v2.0.0` commit
+  `834a90d5e846ffa1e1611bd24e160bb2e9b86d35`
 - `libcrux-ml-dsa` `v0.0.10` commit
   `c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd`, annotated tag object
   `255922337dee37aa32b21dbed27785f535de0336`, and ML-DSA subtree

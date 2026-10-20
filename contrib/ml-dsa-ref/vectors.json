@@ -97,8 +97,9 @@
     },
     "mldsa_native": {
       "repository": "https://github.com/pq-code-package/mldsa-native",
-      "commit": "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
-      "tag": "v1.0.0-beta2",
+      "commit": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+      "tag": "v2.0.0",
+      "git_tree": "e61bc2b09d705cbc378e3e8c6d556cae05750fd6",
       "license_expression": "Apache-2.0 OR ISC OR MIT",
       "role": "portable-C prototype oracle; not vendored or linked into the node",
       "lineage_limit": "mldsa-native is forked from the pq-crystals reference implementation; agreement with OpenSSL is strong differential evidence but not independent cryptographic review"

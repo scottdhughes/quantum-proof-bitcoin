@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
   "repository": "https://github.com/pq-code-package/mldsa-native",
-  "tag": "v1.0.0-beta2",
+  "tag": "v2.0.0",
   "tag_type": "lightweight",
-  "commit": "9b0ee84f4cf399043eca59eca4e5f8531ca1d61b",
-  "git_tree": "c73c7029182122fce2f2dd8ac544ae990abd74a2",
-  "upstream_git_archive_tar_sha256": "4fd08a772d0a142863593471f0c26e239bac8babc8e2a960e072f06ee89ff30b",
+  "commit": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+  "git_tree": "e61bc2b09d705cbc378e3e8c6d556cae05750fd6",
+  "upstream_git_archive_tar_sha256": "1bb12c7eac6a44ea96bc2043b8c8b5bb2f2b2a85a3a9b5926fa2eb5ed86e27b7",
   "license_expression": "Apache-2.0 OR ISC OR MIT",
   "scope": "portable ML-DSA-44 single-compilation-unit dependency closure",
   "capsule_hash": {
     "algorithm": "sha256",
     "construction": "SHA256 of '<file-sha256>  ./<relative-path>\\n' lines ordered by relative path",
-    "value": "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb"
+    "value": "e07f0f6a9bb46fd9afcbe7699f95f1ce43e6fcf48623d6de7b3e95ed405023cb"
   },
   "files": [
     "LICENSE",
@@ -19,6 +19,7 @@
     "mldsa/mldsa_native.h",
     "mldsa/src/cbmc.h",
     "mldsa/src/common.h",
+    "mldsa/src/context.h",
     "mldsa/src/ct.c",
     "mldsa/src/ct.h",
     "mldsa/src/debug.c",

@@ -1,5 +1,16 @@
 # ML-DSA-44 owned-key lifecycle readiness prototype
 
+## v2.0.0 reconciliation (2026-10-20)
+
+The current portable source is v2.0.0, commit
+`834a90d5e846ffa1e1611bd24e160bb2e9b86d35`. Fresh exact-source PR and
+protected-main qualification is required; historical beta campaigns and
+receipts below retain their original source identities and do not qualify v2.
+The source PR is followed by its related baseline-pointer PR; intermediate
+main is not final frozen-baseline evidence. Production backend `NONE`,
+consensus disabled, release hold and all admission gates remain unchanged.
+
+
 ML-DSA-44 is the production-readiness priority; SHRINCS remains a zero-value
 research pilot. This module supplies one missing integration primitive, not a
 production backend. `production_backend=NONE`, `consensus_enabled=false`,
@@ -15,10 +26,11 @@ expanded secret key. Signatures are 2,420 bytes. There is no expanded-key import
 export, clone, deterministic signer or caller-supplied signing randomizer in
 the normal export surface.
 
-This separate translation unit composes the unchanged held wrapper and frozen
-portable mldsa-native v1.0.0-beta2 capsule at
-`9b0ee84f4cf399043eca59eca4e5f8531ca1d61b`. It does not change the original
-two-symbol wrapper artifact or its review baseline. The new library has its own
+This separate translation unit composes the API-adapted wrapper and frozen
+portable mldsa-native v2.0.0 capsule at
+`834a90d5e846ffa1e1611bd24e160bb2e9b86d35`. Its public ownership contract
+and the wrapper's two-symbol export surface are unchanged; source review and
+the separately related baseline transition are mandatory. The new library has its own
 module state: do not treat separately loaded old/new signer libraries as one
 coordinated entropy or lifecycle domain.
 
