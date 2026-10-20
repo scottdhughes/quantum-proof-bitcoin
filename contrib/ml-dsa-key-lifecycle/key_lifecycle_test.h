@@ -16,6 +16,7 @@ void pqbtc_mldsa44_key_test_fail_keygen(int enabled);
 size_t pqbtc_mldsa44_key_test_releases(void);
 size_t pqbtc_mldsa44_key_test_allocation_size(void);
 int pqbtc_mldsa44_key_test_release_zero(void);
-int pqbtc_mldsa44_key_test_seed_zero(void);
+/* Only generation's digest scratch; durable seed erasure is a release check. */
+int pqbtc_mldsa44_key_test_generation_scratch_zero(void);
 
 #endif // BITCOIN_ML_DSA_KEY_LIFECYCLE_KEY_LIFECYCLE_TEST_H

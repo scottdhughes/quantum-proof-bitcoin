@@ -59,9 +59,14 @@ int main(void)
     uint8_t context[] = "PQBTC/tx-signature/v1";
 #ifdef PQBTC_MLDSA44_TESTING
     uint8_t randomizer[32];
+    size_t requests_before;
     memset(randomizer, 0x7a, sizeof(randomizer));
     pqbtc_mldsa44_test_reset();
 #endif
+    if (pqbtc_mldsa44_key_runtime_init() != 0) {
+        fprintf(stderr, "FAIL explicit protected runtime startup\n");
+        return 1;
+    }
     if (pqbtc_mldsa44_key_import_seed(NULL, SEED, sizeof(SEED)) != -1) {
         fprintf(stderr, "FAIL invalid owner must reject as invalid argument\n");
         ++failures;
@@ -91,8 +96,8 @@ int main(void)
         snapshot = (uint8_t*)malloc(allocation);
         if (snapshot == NULL) return 1;
         memcpy(snapshot, key, allocation);
-        /* Offsets cover seed/public/secret regions and a tail-contained
-         * buffer. The full snapshot also catches secret-only corruption. */
+        /* Offsets cover bookkeeping, key payload and rounded-page tails;
+         * these offsets do not promise the opaque structure's field ABI. */
         for (i = 0; i < 4; ++i) {
             const size_t public_offsets[] = {1, 32, 32 + 1312, allocation - 1312};
             const size_t seed_offsets[] = {1, 32, 32 + 1312, allocation - 32};
@@ -210,7 +215,7 @@ int main(void)
     pqbtc_mldsa44_key_test_fail_keygen(0);
     CHECK(pqbtc_mldsa44_key_generate(&key) == -2);
     CHECK(key == NULL);
-    CHECK(pqbtc_mldsa44_key_test_seed_zero() == 1);
+    CHECK(pqbtc_mldsa44_key_test_generation_scratch_zero() == 1);
     CHECK(pqbtc_mldsa44_test_set_entropy(1, randomizer, 31) == 0);
     CHECK(pqbtc_mldsa44_key_generate(&key) == -3);
     CHECK(key == NULL);
@@ -222,10 +227,10 @@ int main(void)
     CHECK(pqbtc_mldsa44_test_set_entropy(1, randomizer, 32) == 0);
     CHECK(pqbtc_mldsa44_key_generate(&key) == 0);
     CHECK(key != NULL);
-    CHECK(pqbtc_mldsa44_key_test_seed_zero() == 1);
-    /* Generation and signing must not share the same repeat-digest state. */
+    CHECK(pqbtc_mldsa44_key_test_generation_scratch_zero() == 1);
+    /* One immediately repeated sample cannot cross generation/signing. */
     CHECK(pqbtc_mldsa44_key_sign_hedged(key, signature, sizeof(signature),
-        message, sizeof(message), context, sizeof(context) - 1) == 0);
+        message, sizeof(message), context, sizeof(context) - 1) == -5);
     CHECK(pqbtc_mldsa44_key_generate(&restored) == -5);
     CHECK(restored == NULL);
     CHECK(pqbtc_mldsa44_key_export_seed(key, backup, 32) == 0);
@@ -236,16 +241,18 @@ int main(void)
     pqbtc_mldsa44_key_destroy(&key);
     pqbtc_mldsa44_key_destroy(&restored);
     CHECK(pqbtc_mldsa44_key_test_release_zero() == 1);
-    /* An accepted generation sample is consumed even when allocation fails. */
+    /* Protection failure happens before any sample is requested/consumed. */
     randomizer[0] ^= 1;
     CHECK(pqbtc_mldsa44_test_set_entropy(1, randomizer, 32) == 0);
+    requests_before = pqbtc_mldsa44_test_entropy_requests();
     pqbtc_mldsa44_key_test_fail_allocation(1);
     CHECK(pqbtc_mldsa44_key_generate(&key) == -11);
     CHECK(key == NULL);
-    CHECK(pqbtc_mldsa44_key_test_seed_zero() == 1);
+    CHECK(pqbtc_mldsa44_test_entropy_requests() == requests_before);
     pqbtc_mldsa44_key_test_fail_allocation(0);
-    CHECK(pqbtc_mldsa44_key_generate(&key) == -5);
-    CHECK(key == NULL);
+    CHECK(pqbtc_mldsa44_key_generate(&key) == 0);
+    CHECK(key != NULL);
+    pqbtc_mldsa44_key_destroy(&key);
     CHECK(pqbtc_mldsa44_key_import_seed(&key, SEED, 32) == 0);
     /* Failures after accepting a signature output must clear the entire output. */
     pqbtc_mldsa44_test_reset();

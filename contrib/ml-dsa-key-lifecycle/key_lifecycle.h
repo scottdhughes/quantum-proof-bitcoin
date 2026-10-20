@@ -27,12 +27,18 @@ struct pqbtc_mldsa44_key;
 enum pqbtc_mldsa44_key_result {
     PQBTC_MLDSA44_KEY_OK = 0,
     PQBTC_MLDSA44_KEY_ERR_INVALID_ARGUMENT = -1,
-    PQBTC_MLDSA44_KEY_ERR_ALLOCATION = -11
+    PQBTC_MLDSA44_KEY_ERR_ALLOCATION = -11,
+    PQBTC_MLDSA44_KEY_ERR_RUNTIME_POLICY = -12,
+    PQBTC_MLDSA44_KEY_ERR_PROCESS_ORIGIN = -13,
+    PQBTC_MLDSA44_KEY_ERR_UNSUPPORTED_PLATFORM = -14
 };
 
 /* Readiness prototype only. Other negative codes retain the held wrapper's
  * failure taxonomy. Constructors require a valid initially-NULL owner.
  * Do not copy ownership or race destruction with any borrowed use. */
+/* Dedicated Linux pilot process only, before threads/secret operations.
+ * Applies irreversible process-wide core/dump restrictions. No fallback. */
+PQBTC_MLDSA44_KEY_API int pqbtc_mldsa44_key_runtime_init(void);
 PQBTC_MLDSA44_KEY_API int pqbtc_mldsa44_key_generate(struct pqbtc_mldsa44_key** out);
 PQBTC_MLDSA44_KEY_API int pqbtc_mldsa44_key_import_seed(
     struct pqbtc_mldsa44_key** out, const uint8_t* seed, size_t seed_size);

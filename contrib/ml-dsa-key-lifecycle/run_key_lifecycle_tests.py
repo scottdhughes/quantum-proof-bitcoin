@@ -8,8 +8,10 @@
 import argparse
 import ctypes
 import hashlib
+import importlib.util
 import json
 import os
+import platform
 from pathlib import Path
 import re
 import shutil
@@ -30,12 +32,38 @@ SOURCE_HASHES = {
     "vendor/mldsa-native/SOURCE.json": "19d5cd67692758d1315312b7e27e7c57dab470971ec18ea92faa383dbb8e1165",
 }
 EXPECTED_EXPORTS = {
-    "pqbtc_mldsa44_key_" + name for name in
-    ("generate", "import_seed", "public", "export_seed", "sign_hedged", "verify_strict", "destroy")
+    "pqbtc_mldsa44_key_" + name
+    for name in (
+        "runtime_init",
+        "generate",
+        "import_seed",
+        "public",
+        "export_seed",
+        "sign_hedged",
+        "verify_strict",
+        "destroy",
+    )
 }
 MODULE_FILES = (
-    "key_lifecycle.c", "key_lifecycle.h", "key_lifecycle_test.h",
-    "key_lifecycle_smoke.c", "exports.map", "run_key_lifecycle_tests.py",
+    "key_lifecycle.c",
+    "key_lifecycle.h",
+    "key_lifecycle_test.h",
+    "key_lifecycle_smoke.c",
+    "exports.map",
+    "run_key_lifecycle_tests.py",
+    "key_runtime.c",
+    "key_runtime_probe.c",
+    "run_key_runtime_tests.py",
+)
+CONTROL_HASHES = {
+    "contrib/ml-dsa-engineering/backend_admission.json": "8c786b4a33596323f05100b102d46963445c3c0f6f9430c6459f680cae91ed97",
+    "contrib/ml-dsa-ref/review_baseline_commit.txt": "05e72b9f3368e3c3c43c51efb97cc9a957733bdb405f9850899e85372281d5c6",
+    "contrib/shrincs/manifest.json": "c7b492c46e99cda50f2cc6f3c69dba454ca2841fdc7a152141c071ba11e7e990",
+}
+METADATA_FILES = (
+    "ci/test/test_ml_dsa_key_lifecycle.py",
+    ".github/workflows/ml-dsa-44-key-lifecycle.yml",
+    "docs/ML_DSA_44_KEY_LIFECYCLE.md",
 )
 ACVP_PUBLIC_HASH = "451a808c522218fadbdab146fc12004b0741c7d069f238f43ad77216159f6a34"
 
@@ -82,8 +110,24 @@ def validate_sources(root):
     digest = sha256("".join(lines).encode())
     if digest != CAPSULE_HASH:
         raise HarnessError("frozen source capsule mismatch")
-    return {"result": "PASS", "capsule_sha256": digest,
-            "native_commit": manifest["commit"], "capsule_files": len(actual)}
+    for name, expected in CONTROL_HASHES.items():
+        if sha256(regular_bytes(root / name, root)) != expected:
+            raise HarnessError("frozen control mismatch: " + name)
+    owned = root / "contrib/ml-dsa-key-lifecycle"
+    actual_owned = []
+    for path in owned.rglob("*"):
+        if path.is_symlink():
+            raise HarnessError("symlink owned module input")
+        if path.is_file() and "__pycache__" not in path.parts:
+            actual_owned.append(path.relative_to(owned).as_posix())
+    if sorted(actual_owned) != sorted(MODULE_FILES):
+        raise HarnessError("owned module file inventory mismatch")
+    return {
+        "result": "PASS",
+        "capsule_sha256": digest,
+        "native_commit": manifest["commit"],
+        "capsule_files": len(actual),
+    }
 
 
 def require_exports(actual):
@@ -94,18 +138,26 @@ def require_exports(actual):
 def source_hashes():
     paths = [HERE / name for name in MODULE_FILES]
     paths += [ROOT / WRAPPER / name for name in SOURCE_HASHES]
-    return {p.relative_to(ROOT).as_posix(): sha256(regular_bytes(p, ROOT)) for p in paths}
+    paths += [ROOT / name for name in (*CONTROL_HASHES, *METADATA_FILES)]
+    return {
+        p.relative_to(ROOT).as_posix(): sha256(regular_bytes(p, ROOT)) for p in paths
+    }
 
 
 def runtime_identity(expected):
-    head = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "HEAD"],
-                          text=True, capture_output=True)
+    head = subprocess.run(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True, capture_output=True
+    )
     if head.returncode:
         if expected:
             raise HarnessError("cannot establish expected runtime checkout")
         return {"commit": None, "worktree": "unavailable; source hashes only"}
-    status = subprocess.run(["git", "-C", str(ROOT), "status", "--porcelain"],
-                            text=True, capture_output=True, check=True).stdout
+    status = subprocess.run(
+        ["git", "-C", str(ROOT), "status", "--porcelain"],
+        text=True,
+        capture_output=True,
+        check=True,
+    ).stdout
     commit = head.stdout.strip()
     if expected and (commit != expected or status):
         raise HarnessError("runtime checkout mismatch or dirty source")
@@ -122,9 +174,22 @@ def smoke_result(output, expected):
     return {"result": "PASS", "checks": expected}
 
 
+def runtime_reader():
+    path = HERE / "run_key_runtime_tests.py"
+    regular_bytes(path, ROOT)
+    spec = importlib.util.spec_from_file_location("owned_runtime_reader", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def require_wipe_rejection(code, error):
-    if code != 1 or "pqbtc_mldsa44_key_test_release_zero() == 1" not in error:
-        raise HarnessError("missing observed cleanup failure for omitted-wipe control")
+    try:
+        runtime_reader().require_runtime_control("wipe", code, error)
+    except RuntimeError as problem:
+        raise HarnessError(
+            "missing observed cleanup failure for omitted-wipe control"
+        ) from problem
 
 
 def require_alias_rejection(kind, code, error):
@@ -139,13 +204,28 @@ def require_alias_rejection(kind, code, error):
 def acvp_identity(library):
     # Published synthetic ACVP fixture only, never a wallet secret or key import.
     lib = ctypes.CDLL(str(library))
+    lib.pqbtc_mldsa44_key_runtime_init.argtypes = []
+    lib.pqbtc_mldsa44_key_runtime_init.restype = ctypes.c_int
+    if lib.pqbtc_mldsa44_key_runtime_init() != 0:
+        raise HarnessError("ACVP caller protected runtime initialization failed")
     owner = ctypes.c_void_p()
-    seed = (ctypes.c_ubyte * 32).from_buffer_copy(bytes.fromhex(
-        "d71361c000f9a7bc99dfb425bcb6bb27c32c36ab444ff3708b2d93b4e66d5b5b"))
+    seed = (ctypes.c_ubyte * 32).from_buffer_copy(
+        bytes.fromhex(
+            "d71361c000f9a7bc99dfb425bcb6bb27c32c36ab444ff3708b2d93b4e66d5b5b"
+        )
+    )
     public = (ctypes.c_ubyte * 1312)()
-    lib.pqbtc_mldsa44_key_import_seed.argtypes = [ctypes.POINTER(ctypes.c_void_p), ctypes.c_void_p, ctypes.c_size_t]
+    lib.pqbtc_mldsa44_key_import_seed.argtypes = [
+        ctypes.POINTER(ctypes.c_void_p),
+        ctypes.c_void_p,
+        ctypes.c_size_t,
+    ]
     lib.pqbtc_mldsa44_key_import_seed.restype = ctypes.c_int
-    lib.pqbtc_mldsa44_key_public.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t]
+    lib.pqbtc_mldsa44_key_public.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_void_p,
+        ctypes.c_size_t,
+    ]
     lib.pqbtc_mldsa44_key_public.restype = ctypes.c_int
     lib.pqbtc_mldsa44_key_destroy.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
     lib.pqbtc_mldsa44_key_destroy.restype = None
@@ -166,17 +246,33 @@ def prove(compiler, expected_commit):
     preflight = validate_sources(ROOT)
     identity = runtime_identity(expected_commit)
     frozen = source_hashes()
-    print("key-lifecycle-preflight: " + json.dumps({"runtime": identity, **preflight}, sort_keys=True), flush=True)
+    print(
+        "key-lifecycle-preflight: "
+        + json.dumps({"runtime": identity, **preflight}, sort_keys=True),
+        flush=True,
+    )
     transcript = []
 
     def run(command, env=None, expected_status=0):
-        completed = subprocess.run([str(s) for s in command], capture_output=True,
-                                   text=True, env=env, timeout=180)
-        transcript.append({"command": [str(s) for s in command],
-                           "returncode": completed.returncode,
-                           "stdout": completed.stdout, "stderr": completed.stderr})
+        completed = subprocess.run(
+            [str(s) for s in command],
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=180,
+        )
+        transcript.append(
+            {
+                "command": [str(s) for s in command],
+                "returncode": completed.returncode,
+                "stdout": completed.stdout,
+                "stderr": completed.stderr,
+            }
+        )
         if completed.returncode != expected_status:
-            raise HarnessError(f"native command failed: {command[0]}\n{completed.stdout}{completed.stderr}")
+            raise HarnessError(
+                f"native command failed: {command[0]}\n{completed.stdout}{completed.stderr}"
+            )
         return completed.stdout
 
     if not sys.platform.startswith("linux"):
@@ -184,8 +280,19 @@ def prove(compiler, expected_commit):
     if not shutil.which(compiler) or not shutil.which("nm"):
         raise HarnessError("compiler and nm are required")
     version = run([compiler, "--version"]).splitlines()[0]
-    flags = [compiler, "-std=c11", "-Wall", "-Wextra", "-Werror", "-Wno-unused-function",
-             "-Wno-unknown-pragmas", "-pthread", "-fvisibility=hidden", f"-I{ROOT / WRAPPER}", f"-I{HERE}"]
+    flags = [
+        compiler,
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-Wno-unused-function",
+        "-Wno-unknown-pragmas",
+        "-pthread",
+        "-fvisibility=hidden",
+        f"-I{ROOT / WRAPPER}",
+        f"-I{HERE}",
+    ]
     with tempfile.TemporaryDirectory(prefix="pqbtc-key-lifecycle-") as tmp:
         build = Path(tmp)
         library = build / "key.so"
@@ -204,28 +311,44 @@ def prove(compiler, expected_commit):
         else:
             raise HarnessError("unfiltered symbol negative control was accepted")
         official_hash = acvp_identity(library)
-        # Deliberately omit only the allocation wipe in a temporary synthetic-test
-        # build. The observer must reject real nonzero key material before free.
+
+        # The allocation is now a protected mapping. Its actual omitted-wipe
+        # control observes the normal product path at munmap, without a testing
+        # callback in that path, alongside all optimized release builds.
+        def capture(command, env=None, expected_status=0):
+            combined = os.environ.copy()
+            combined.update(env or {})
+            run(command, combined, expected_status)
+            return transcript[-1]
+
+        try:
+            protected = runtime_reader().prove_runtime(compiler, build, capture)
+        except RuntimeError as problem:
+            raise HarnessError(str(problem)) from problem
+        disassembly = protected.pop("disassembly")
+        protected["disassembly_sha256"] = {
+            name: sha256(text.encode()) for name, text in disassembly.items()
+        }
         original = (HERE / "key_lifecycle.c").read_text(encoding="utf8")
-        wipe = "    pqbtc_mldsa44_zeroize(key, sizeof(*key));"
-        if original.count(wipe) != 1:
-            raise HarnessError("cannot construct scoped omitted-wipe negative control")
-        mutant = build / "no-allocation-wipe.c"
-        mutant.write_text(original.replace(wipe, "    /* test mutant: omitted allocation wipe */"), encoding="utf8")
-        mutant_exe = build / "no-allocation-wipe"
-        run([*flags, "-O2", "-DPQBTC_MLDSA44_TESTING=1", mutant,
-             HERE / "key_lifecycle_smoke.c", "-o", mutant_exe])
-        run([mutant_exe], expected_status=1)
-        require_wipe_rejection(transcript[-1]["returncode"], transcript[-1]["stderr"])
         # These compiled mutations calibrated the review repair: the old smoke
         # accepted both. Expanded boundary tests must reject the corresponding
         # unsafe behavior, not merely crash or fail an unrelated check.
-        constructor_guard = ("seed_size != PQBTC_MLDSA44_KEY_SEED_BYTES ||\n"
-            "        RangesOverlap((const uint8_t*)out, sizeof(*out), seed, seed_size)")
-        output_guard = "RangesOverlap(output, size, (const uint8_t*)key, sizeof(*key))"
+        constructor_guard = (
+            "seed_size != PQBTC_MLDSA44_KEY_SEED_BYTES ||\n"
+            "        RangesOverlap((const uint8_t*)out, sizeof(*out), seed, seed_size)"
+        )
+        output_guard = (
+            "RangesOverlap(output, size, (const uint8_t*)key, key->body_size)"
+        )
         mutants = {
-            "constructor": (constructor_guard, "seed_size != PQBTC_MLDSA44_KEY_SEED_BYTES"),
-            "allocation-tail": (output_guard, "RangesOverlap(output, size, (const uint8_t*)key, sizeof(key->seed))"),
+            "constructor": (
+                constructor_guard,
+                "seed_size != PQBTC_MLDSA44_KEY_SEED_BYTES",
+            ),
+            "allocation-tail": (
+                output_guard,
+                "RangesOverlap(output, size, (const uint8_t*)key, sizeof(key->seed))",
+            ),
         }
         for kind, (needle, replacement) in mutants.items():
             if original.count(needle) != 1:
@@ -233,36 +356,88 @@ def prove(compiler, expected_commit):
             source = build / (kind + ".c")
             source.write_text(original.replace(needle, replacement), encoding="utf8")
             exe = build / kind
-            run([*flags, "-O2", "-DPQBTC_MLDSA44_TESTING=1", source,
-                 HERE / "key_lifecycle_smoke.c", "-o", exe])
+            run(
+                [
+                    *flags,
+                    "-O2",
+                    "-DPQBTC_MLDSA44_TESTING=1",
+                    source,
+                    HERE / "key_lifecycle_smoke.c",
+                    "-o",
+                    exe,
+                ]
+            )
             run([exe], expected_status=1)
-            require_alias_rejection(kind, transcript[-1]["returncode"], transcript[-1]["stderr"])
+            require_alias_rejection(
+                kind, transcript[-1]["returncode"], transcript[-1]["stderr"]
+            )
         observations = {}
         for injected in (True, False):
             for sanitized in (False, True):
-                mode = ("injected" if injected else "os-entropy") + ("-asan-ubsan" if sanitized else "-normal")
+                mode = ("injected" if injected else "os-entropy") + (
+                    "-asan-ubsan" if sanitized else "-normal"
+                )
                 exe = build / mode
                 options = ["-DPQBTC_MLDSA44_TESTING=1"] if injected else []
-                options += (["-O1", "-g", "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
-                             "-fno-sanitize-recover=all"] if sanitized else ["-O2"])
-                run([*flags, *options, HERE / "key_lifecycle.c", HERE / "key_lifecycle_smoke.c", "-o", exe])
+                options += (
+                    [
+                        "-O1",
+                        "-g",
+                        "-fsanitize=address,undefined",
+                        "-fno-omit-frame-pointer",
+                        "-fno-sanitize-recover=all",
+                    ]
+                    if sanitized
+                    else ["-O2"]
+                )
+                run(
+                    [
+                        *flags,
+                        *options,
+                        HERE / "key_lifecycle.c",
+                        HERE / "key_lifecycle_smoke.c",
+                        "-o",
+                        exe,
+                    ]
+                )
                 env = os.environ.copy()
                 env["ASAN_OPTIONS"] = "detect_leaks=1:halt_on_error=1"
                 env["UBSAN_OPTIONS"] = "halt_on_error=1:print_stacktrace=1"
-                observations[mode] = smoke_result(run([exe], env), 119 if injected else 52)
+                observations[mode] = smoke_result(
+                    run([exe], env), 119 if injected else 52
+                )
         if source_hashes() != frozen or validate_sources(ROOT) != preflight:
             raise HarnessError("source changed during native proof")
         if runtime_identity(expected_commit) != identity:
             raise HarnessError("runtime checkout changed during native proof")
-        report = {"schema": 1, "result": "PASS", "scope": "isolated ML-DSA-44 key-ownership readiness only",
-                  "production_backend": "NONE", "release_hold": True,
-                  "runtime": identity, "preflight": preflight, "source_sha256": frozen,
-                  "platform": {"sys": sys.platform, "machine": os.uname().machine, "compiler": version},
-                  "normal_exports": sorted(exported), "unfiltered_exports_rejected": sorted(bad),
-                  "acvp_public_sha256": official_hash, "observations": observations,
-                  "omitted_allocation_wipe_rejected": True,
-                  "alias_mutants_rejected": sorted(mutants)}
-        return report, transcript
+        report = {
+            "schema": 2,
+            "result": "PASS",
+            "scope": "isolated Linux ML-DSA-44 entropy/owned-key readiness only",
+            "production_backend": "NONE",
+            "release_hold": True,
+            "trust": "EXACT_CLEAN_CHECKOUT"
+            if expected_commit
+            else "LOCAL_SOURCE_HASHES_ONLY",
+            "runtime": identity,
+            "preflight": preflight,
+            "source_sha256": frozen,
+            "platform": {
+                "sys": sys.platform,
+                "machine": os.uname().machine,
+                "compiler": version,
+                "kernel": os.uname().release,
+                "libc": platform.libc_ver(),
+            },
+            "normal_exports": sorted(exported),
+            "unfiltered_exports_rejected": sorted(bad),
+            "acvp_public_sha256": official_hash,
+            "observations": observations,
+            "omitted_allocation_wipe_rejected": True,
+            "protected_runtime": protected,
+            "alias_mutants_rejected": sorted(mutants),
+        }
+        return report, transcript, disassembly
 
 
 def main():
@@ -278,13 +453,25 @@ def main():
             return 0
         if args.expect_commit and not re.fullmatch(r"[0-9a-f]{40}", args.expect_commit):
             raise HarnessError("expected commit must be a full lowercase SHA")
-        report, transcript = prove(args.cc, args.expect_commit)
+        report, transcript, disassembly = prove(args.cc, args.expect_commit)
         if args.output_dir:
             args.output_dir.mkdir(parents=True, exist_ok=False)
-            for name, data in (("key-lifecycle-report.json", report), ("native-transcript.json", transcript)):
-                (args.output_dir / name).write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf8")
-            lines = [f"{sha256(p.read_bytes())}  {p.name}\n" for p in sorted(args.output_dir.iterdir())]
-            (args.output_dir / "evidence-sha256.txt").write_text("".join(lines), encoding="utf8")
+            for name, data in (
+                ("key-lifecycle-report.json", report),
+                ("native-transcript.json", transcript),
+            ):
+                (args.output_dir / name).write_text(
+                    json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf8"
+                )
+            for name, text in disassembly.items():
+                (args.output_dir / name).write_text(text, encoding="utf8")
+            lines = [
+                f"{sha256(p.read_bytes())}  {p.name}\n"
+                for p in sorted(args.output_dir.iterdir())
+            ]
+            (args.output_dir / "evidence-sha256.txt").write_text(
+                "".join(lines), encoding="utf8"
+            )
         print(json.dumps(report, indent=2, sort_keys=True))
         return 0
     except (HarnessError, OSError, ValueError, subprocess.SubprocessError) as exc:

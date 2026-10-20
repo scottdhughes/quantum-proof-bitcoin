@@ -44,7 +44,7 @@ class WalletBackupRunnerTests(unittest.TestCase):
             {
                 "result": "PASS",
                 "capsule_sha256": "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb",
-                "key_module_files": 6,
+                "key_module_files": 9,
                 "controls_frozen": True,
             },
         )
@@ -70,6 +70,13 @@ class WalletBackupRunnerTests(unittest.TestCase):
 
     def test_key_implementation_substitution_rejected(self):
         self.tamper("contrib/ml-dsa-key-lifecycle/key_lifecycle.c", "append")
+
+    def test_private_runtime_inputs_are_frozen(self):
+        module = self.module()
+        for name in ("key_runtime.c", "key_runtime_probe.c", "run_key_runtime_tests.py"):
+            with self.subTest(name=name):
+                self.assertIn(name, module.KEY_HASHES)
+                self.tamper("contrib/ml-dsa-key-lifecycle/" + name, "append")
 
     def test_frozen_preflight_reader_substitution_rejected(self):
         self.tamper("contrib/ml-dsa-key-lifecycle/run_key_lifecycle_tests.py", "append")

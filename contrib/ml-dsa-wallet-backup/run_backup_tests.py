@@ -20,12 +20,15 @@ ARCHIVE_SHA = "a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98"
 CAPSULE_SHA = "2588da55bcd4443aea906bf16fe21402d8d5ee4b19be906e3f72c563b81601bb"
 FIXTURE_SHA = "919274349faf698e32052f75e07e4f7e6fbb997f45ca9895902623fe40b46506"
 KEY_HASHES = {
-    "key_lifecycle.c": "65c5476ce8da41dac85e088d66a967565a003c4d0ab6cb2f7b3b826b0685ab85",
-    "key_lifecycle.h": "4aadc88978dfe7eb796530feb152e02c2705942eac50efa6a9d9877730336157",
-    "key_lifecycle_test.h": "f9c00a4a69ea6e39c3cea11b6d8e959eb6de5dd7f51d27166bcdadd96ed8f2ae",
-    "key_lifecycle_smoke.c": "3ec8efb98c426f325de2a174ef98053be8d98812c292983ef59e6230bb25744e",
-    "exports.map": "1ef8a6cef8a37f14d4f33b05c6f3cd575a430549bda1e7970af05dc24acd5437",
-    "run_key_lifecycle_tests.py": "96051cdf66e158944cb25f3ab7a0451db388585c66d3774faeac88eae9563af0",
+    "key_lifecycle.c": "0314cc2ac67b8646fdd7925092652770f016d0efab60922ce1ca57bc10a05c42",
+    "key_lifecycle.h": "7ea8b8e5fcd6b389334b6b9a9d24c442ae3e9a79964bfce40aa7cdd2d5fc2b64",
+    "key_lifecycle_test.h": "05f6893a3f86e990804d7df4f05d0e397dbdd88be7a0fead56a83316855f03a6",
+    "key_lifecycle_smoke.c": "eafa74db19a55eaa89494f4c46e5d9deaf0e89337ff5645c9adab315a5878099",
+    "exports.map": "3696587b7350eaec149cf82e5785c1828e9201128d01ab0f93ac2ead8583666e",
+    "run_key_lifecycle_tests.py": "33adb5a30b8cb2dad1c3476489a7ec56ec46dd36ce9f2e3e2816695d0763dd68",
+    "key_runtime.c": "8baccccc889000bf9022f44bd0bd692f6570449c806e5b792041b025e97f9b86",
+    "key_runtime_probe.c": "17c03a3c66b05257fed1def93dcccf34bf8aa4ae219d693c72f5379530b3203c",
+    "run_key_runtime_tests.py": "9640534a315765d66894f620b0d923c66465e380899b9037ab11eefe2f79ae0d",
 }
 CONTROL_HASHES = {
     "contrib/ml-dsa-engineering/backend_admission.json": "8c786b4a33596323f05100b102d46963445c3c0f6f9430c6459f680cae91ed97",
@@ -123,7 +126,7 @@ def validate_sources(root):
     return {
         "result": "PASS",
         "capsule_sha256": CAPSULE_SHA,
-        "key_module_files": 6,
+        "key_module_files": 9,
         "controls_frozen": True,
     }
 
