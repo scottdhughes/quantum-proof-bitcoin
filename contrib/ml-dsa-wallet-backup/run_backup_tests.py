@@ -26,14 +26,14 @@ KEY_HASHES = {
     "key_lifecycle_test.h": "05f6893a3f86e990804d7df4f05d0e397dbdd88be7a0fead56a83316855f03a6",
     "key_lifecycle_smoke.c": "eafa74db19a55eaa89494f4c46e5d9deaf0e89337ff5645c9adab315a5878099",
     "exports.map": "3696587b7350eaec149cf82e5785c1828e9201128d01ab0f93ac2ead8583666e",
-    "run_key_lifecycle_tests.py": "c3283fe8340d9f860d0eba260924442b5c0091b8a4e17103adb761e03dfb2144",
+    "run_key_lifecycle_tests.py": "b6e833ef417f4b7d69e86c66ac39823e0c2ffe096d42be3f0f8b71a7f9c86a5d",
     "key_runtime.c": "8baccccc889000bf9022f44bd0bd692f6570449c806e5b792041b025e97f9b86",
     "key_runtime_probe.c": "17c03a3c66b05257fed1def93dcccf34bf8aa4ae219d693c72f5379530b3203c",
     "run_key_runtime_tests.py": "9640534a315765d66894f620b0d923c66465e380899b9037ab11eefe2f79ae0d",
 }
 CONTROL_HASHES = {
     "contrib/ml-dsa-engineering/backend_admission.json": "0a0a349ab822373484db4b08412660d142bd09bc0507038b257593e53d3411c0",
-    "contrib/ml-dsa-ref/review_baseline_commit.txt": "05e72b9f3368e3c3c43c51efb97cc9a957733bdb405f9850899e85372281d5c6",
+    "contrib/ml-dsa-ref/review_baseline_commit.txt": "2133fca644808b95c8e5d7f6b62c1fb11367ef3e46b0fdee79674452de8cba24",
     "contrib/shrincs/manifest.json": "c7b492c46e99cda50f2cc6f3c69dba454ca2841fdc7a152141c071ba11e7e990",
 }
 MODULE_FILES = (

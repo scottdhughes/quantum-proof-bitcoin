@@ -57,7 +57,7 @@ MODULE_FILES = (
 )
 CONTROL_HASHES = {
     "contrib/ml-dsa-engineering/backend_admission.json": "0a0a349ab822373484db4b08412660d142bd09bc0507038b257593e53d3411c0",
-    "contrib/ml-dsa-ref/review_baseline_commit.txt": "05e72b9f3368e3c3c43c51efb97cc9a957733bdb405f9850899e85372281d5c6",
+    "contrib/ml-dsa-ref/review_baseline_commit.txt": "2133fca644808b95c8e5d7f6b62c1fb11367ef3e46b0fdee79674452de8cba24",
     "contrib/shrincs/manifest.json": "c7b492c46e99cda50f2cc6f3c69dba454ca2841fdc7a152141c071ba11e7e990",
 }
 METADATA_FILES = (
