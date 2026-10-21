@@ -345,8 +345,14 @@ class KeyRuntimeEvidenceTests(unittest.TestCase):
         markers = {
             "lock": "FAIL runtime mapping: (flags & 9U) == 9U\n",
             "dontdump": "FAIL runtime mapping: (flags & 2U) == 2U\n",
-            "dontfork": "FAIL runtime fork-live: mincore(key, 1, vector) == -1 && errno == ENOMEM\n",
-            "origin": "FAIL runtime fork-live: pqbtc_mldsa44_key_runtime_init() == -13\n",
+            "dontfork": (
+                "FAIL runtime fork-live: mincore(key, 1, vector) == -1 && errno == ENOMEM\n"
+                "FAIL runtime fork-live: WIFEXITED(status) && WEXITSTATUS(status) == 0 && summary.failures == 0\n"
+            ),
+            "origin": (
+                "FAIL runtime fork-live: pqbtc_mldsa44_key_runtime_init() == -13\n"
+                "FAIL runtime fork-live: WIFEXITED(status) && WEXITSTATUS(status) == 0 && summary.failures == 0\n"
+            ),
             "wipe": "FAIL runtime mapping: zero_releases == 1 && nonzero_releases == 0\n",
         }
         for kind, marker in markers.items():
@@ -356,11 +362,31 @@ class KeyRuntimeEvidenceTests(unittest.TestCase):
                 (139, marker),
                 (1, "unrelated"),
                 (1, "echo '" + marker.strip() + "'\n"),
+                (1, marker + "FAIL unrelated native assertion\n"),
+                (1, "unrelated\n" + marker),
+                (1, marker + marker),
+                (1, marker.rstrip("\n")),
+                (1, marker.replace("\n", "\r\n")),
             ):
                 with self.subTest(kind=kind, code=code), self.assertRaises(
                     module.HarnessError
                 ):
                     module.require_runtime_control(kind, code, error)
+
+    def test_fork_controls_require_complete_ordered_diagnostics(self):
+        module = self.module()
+        parent = (
+            "FAIL runtime fork-live: WIFEXITED(status) && WEXITSTATUS(status) == 0 && summary.failures == 0\n"
+        )
+        for kind, child in (
+            ("dontfork", "FAIL runtime fork-live: mincore(key, 1, vector) == -1 && errno == ENOMEM\n"),
+            ("origin", "FAIL runtime fork-live: pqbtc_mldsa44_key_runtime_init() == -13\n"),
+        ):
+            module.require_runtime_control(kind, 1, child + parent)
+            for stderr in (child, parent, parent + child, child + parent + parent):
+                with self.subTest(kind=kind, stderr=stderr):
+                    with self.assertRaises(module.HarnessError):
+                        module.require_runtime_control(kind, 1, stderr)
 
     def test_missing_or_extra_required_scenarios_rejected(self):
         module = self.module()

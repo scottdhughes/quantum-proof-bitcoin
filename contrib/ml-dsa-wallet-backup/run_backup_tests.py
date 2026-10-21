@@ -29,7 +29,7 @@ KEY_HASHES = {
     "run_key_lifecycle_tests.py": "b6e833ef417f4b7d69e86c66ac39823e0c2ffe096d42be3f0f8b71a7f9c86a5d",
     "key_runtime.c": "8baccccc889000bf9022f44bd0bd692f6570449c806e5b792041b025e97f9b86",
     "key_runtime_probe.c": "17c03a3c66b05257fed1def93dcccf34bf8aa4ae219d693c72f5379530b3203c",
-    "run_key_runtime_tests.py": "9640534a315765d66894f620b0d923c66465e380899b9037ab11eefe2f79ae0d",
+    "run_key_runtime_tests.py": "1951350714a0c3586d2c4656d9ae5fed9f771ceec24f475ce089a3820798aff8",
 }
 CONTROL_HASHES = {
     "contrib/ml-dsa-engineering/backend_admission.json": "0a0a349ab822373484db4b08412660d142bd09bc0507038b257593e53d3411c0",
