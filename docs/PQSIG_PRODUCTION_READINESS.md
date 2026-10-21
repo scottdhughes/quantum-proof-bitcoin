@@ -196,10 +196,18 @@ selected for activation by this record.
    and separate test controls. Keep the production backend unset while the
    resulting binaries remain under the open issues and independent review.
 
-## Required Gates Before Consensus Integration
+## Required Gates Before Production Activation
 
-A candidate may enter a separate consensus-integration proposal only after all
-of these are satisfied:
+The [staged-admission contract](ML_DSA_44_STAGED_ADMISSION.md) separates draft
+design, reviewed valueless experimental integration, system qualification and
+production activation. Drafting a proposal is allowed before its review; it is
+not permission to implement or activate it. Consensus-code audit, full-block
+measurements and public testnet soak require an experimental implementation to
+assess. An explicit experimental-scope decision and independent candidate/design
+review are required before that implementation begins.
+
+All of the following remain required before production activation; moving an
+obligation to its executable stage does not waive or mark it complete:
 
 1. exact final standard, parameter set, security category, and usage limits
 2. frozen canonical public-key, signature, context, and sighash encodings
