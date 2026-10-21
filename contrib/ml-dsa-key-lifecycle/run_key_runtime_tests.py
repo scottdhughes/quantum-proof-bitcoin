@@ -164,10 +164,12 @@ def require_runtime_control(kind, returncode, stderr):
     if kind not in CONTROL_MARKERS:
         raise HarnessError("unknown runtime control")
     scenario, marker = CONTROL_MARKERS[kind]
-    line = "FAIL runtime " + scenario + ": " + marker
-    if returncode != 1 or not re.search(
-        r"^" + re.escape(line) + r"$", stderr, re.MULTILINE
-    ):
+    expected = "FAIL runtime " + scenario + ": " + marker + "\n"
+    if kind in {"dontfork", "origin"}:
+        expected += (
+            "FAIL runtime fork-live: WIFEXITED(status) && WEXITSTATUS(status) == 0 && summary.failures == 0\n"
+        )
+    if returncode != 1 or stderr != expected:
         raise HarnessError(
             "runtime control lacked its exact behavioral failure: " + kind
         )

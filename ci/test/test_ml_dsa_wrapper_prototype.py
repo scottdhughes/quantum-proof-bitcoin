@@ -163,17 +163,34 @@ class MlDsaWrapperPrototypeTest(unittest.TestCase):
         # signing state or optimized implementation. Native nm checks enforce
         # the actual two-symbol normal build separately.
         config = (ENGINEERING_DIR / "pqbtc_mldsa44_config.h").read_text(encoding="utf8")
+        self.assert_no_optional_config(config)
+
+    def assert_no_optional_config(self, config):
         for macro in (
             "MLD_CONFIG_CONTEXT_PARAMETER",
             "MLD_CONFIG_SIGN_HOOK_RESUME",
             "MLD_CONFIG_SIGN_HOOK_ATTEMPT",
             "MLD_CONFIG_SIGN_HOOK_FINISH",
             "MLD_CONFIG_NO_RANDOMIZED_API",
-            "MLD_CONFIG_USE_NATIVE_BACKEND_ARITHMETIC",
+            "MLD_CONFIG_USE_NATIVE_BACKEND_ARITH",
             "MLD_CONFIG_USE_NATIVE_BACKEND_FIPS202",
         ):
-            with self.subTest(macro=macro):
-                self.assertNotRegex(config, r"(?m)^\s*#\s*define\s+" + macro + r"\b")
+            self.assertNotRegex(config, r"(?m)^\s*#\s*define\s+" + macro + r"\b")
+
+    def test_optional_config_gate_rejects_injected_definitions(self):
+        for macro in (
+            "MLD_CONFIG_CONTEXT_PARAMETER",
+            "MLD_CONFIG_SIGN_HOOK_RESUME",
+            "MLD_CONFIG_SIGN_HOOK_ATTEMPT",
+            "MLD_CONFIG_SIGN_HOOK_FINISH",
+            "MLD_CONFIG_NO_RANDOMIZED_API",
+            "MLD_CONFIG_USE_NATIVE_BACKEND_ARITH",
+            "MLD_CONFIG_USE_NATIVE_BACKEND_FIPS202",
+        ):
+            for definition in ("#define ", " \t# define\t"):
+                with self.subTest(macro=macro, definition=definition):
+                    with self.assertRaises(AssertionError):
+                        self.assert_no_optional_config(definition + macro + " 1\n")
 
     def test_production_header_has_no_test_or_randomizer_control(self):
         header = (ENGINEERING_DIR / "pqbtc_mldsa44.h").read_text(encoding="utf8")
