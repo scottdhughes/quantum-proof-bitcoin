@@ -36,7 +36,7 @@ UNSIGNED = bytes.fromhex("0200000001" + "11" * 32 + "0300000000feffffff01"
 def reference_digest(tx, network, index):
     """Independent fixed-fixture transcription of the v1 component-hash contract."""
     # All scripts in this reference fixture are <253 bytes.
-    magic = {"main": "8592a7ad", "test": "a7e29cf7", "regtest": "96bd87e9"}[network]
+    magic = {"main": "8592a7ad", "test": "a7e29cf7", "regtest": "96bd879e"}[network]
     genesis = {"main": "2af71da20e6e03bfdfc2347edffbbb4087796678c8d57cacbccbd10eee7b31e4",
                "test": "2b6939c6a048aa840a962d19ee680879c0bcbbeeff6e258fd049b5a6a947a979",
                "regtest": "36cc1172b59a75d055126cfb7a1d3b5d37eebc57bec9791fccfa48af6bbd15e2"}[network]
@@ -54,6 +54,18 @@ def reference_digest(tx, network, index):
 
 
 class WireTests(unittest.TestCase):
+    def test_external_signer_handoff_binds_exact_context(self):
+        message, context = wire.signer_input("main", TX, 0)
+        self.assertEqual(message, reference_digest(TX, "main", 0))
+        self.assertEqual(context, b"PQBTC/MLDSA44/tx/v1")
+
+    def test_network_bindings_match_frozen_genesis_artifact(self):
+        artifact = json.loads((MODEL.parents[1] / "contrib/genesis/generated_constants.json").read_text())
+        for case in artifact["networks"]:
+            expected = bytes(case["message_start"]) + bytes.fromhex(case["genesis_hash"])[::-1]
+            self.assertEqual(wire.binding(case["name"]), expected)
+            self.assertTrue(wire.encode_address(case["name"], PROGRAM).startswith(case["bech32_hrp"] + "1"))
+
     def test_literal_public_v1_corpus(self):
         corpus = json.loads((MODEL / "vectors_v1.json").read_text())
         root = bytes.fromhex(corpus["fixture_root_hex"])
@@ -98,7 +110,7 @@ class WireTests(unittest.TestCase):
 
     def test_commitment_domain_and_address_program(self):
         tag = hashlib.sha256(b"PQBTC/MLDSA44/key/v1").digest()
-        binding = bytes.fromhex("96bd87e9e215bd6baf48facc1f79c9be57bcee375d3b1d7afb6c1255d0759ab57211cc36")
+        binding = bytes.fromhex("96bd879ee215bd6baf48facc1f79c9be57bcee375d3b1d7afb6c1255d0759ab57211cc36")
         self.assertEqual(wire.key_commitment("regtest", PK), hashlib.sha256(tag * 2 + binding + PK).digest())
         self.assertEqual(wire.script_pubkey(PROGRAM), bytes.fromhex(SCRIPT))
         with self.assertRaises(wire.ProtocolError):
@@ -120,7 +132,8 @@ class WireTests(unittest.TestCase):
                 wire.signing_message("regtest", TX, index)
 
     def test_bech32m_official_checksum_vectors(self):
-        for address in ["A1LQFN3A", "a1lqfn3a", "split1checkupstagehandshakeupstreamerranterredcaperredlc445v"]:
+        for address in ["A1LQFN3A", "a1lqfn3a", "split1checkupstagehandshakeupstreamerranterredcaperredlc445v",
+                        "an83characterlonghumanreadablepartthatcontainsthetheexcludedcharactersbioandnumber11sg7hg6"]:
             wire.bech32m_decode(address)
         for address in ["a1lqfn3q", "a1LQFN3A", "A1G7SGD8", " 1xj0phk"]:
             with self.assertRaises(wire.ProtocolError):
@@ -149,7 +162,7 @@ class WalletTests(unittest.TestCase):
 
     def test_private_hd_network_branch_index_and_domain(self):
         root = bytes(range(32))
-        salt = b"PQBTC/MLDSA44/wallet-root/v1" + bytes.fromhex("96bd87e9e215bd6baf48facc1f79c9be57bcee375d3b1d7afb6c1255d0759ab57211cc36")
+        salt = b"PQBTC/MLDSA44/wallet-root/v1" + bytes.fromhex("96bd879ee215bd6baf48facc1f79c9be57bcee375d3b1d7afb6c1255d0759ab57211cc36")
         prk = hmac.new(salt, root, hashlib.sha256).digest()
         info = b"PQBTC/MLDSA44/keygen-seed/v1" + bytes.fromhex("8000000080000000")
         self.assertEqual(wallet.derive_seed(root, "regtest", 0, 0), hmac.new(prk, info + b"\x01", hashlib.sha256).digest())
@@ -161,7 +174,7 @@ class WalletTests(unittest.TestCase):
 
     def test_wallet_id_network_and_counter_exhaustion(self):
         root = bytes(range(32))
-        binding = bytes.fromhex("96bd87e9e215bd6baf48facc1f79c9be57bcee375d3b1d7afb6c1255d0759ab57211cc36")
+        binding = bytes.fromhex("96bd879ee215bd6baf48facc1f79c9be57bcee375d3b1d7afb6c1255d0759ab57211cc36")
         self.assertEqual(wallet.wallet_id(root, "regtest"), hmac.new(root, b"PQBTC/MLDSA44/wallet-id/v1" + binding, hashlib.sha256).digest()[:16])
         self.assertEqual(wallet.reserve_index(2**31 - 1), (2**31 - 1, 2**31))
         for count in [2**31, -1, True]:
@@ -188,6 +201,25 @@ class WalletTests(unittest.TestCase):
 
 
 class IPCTests(unittest.TestCase):
+    def test_request_path_rejects_response_kinds(self):
+        identity = bytes(range(16))
+        for kind in range(1, 6):
+            request = ipc.encode_frame(kind, identity, b"")
+            self.assertEqual(ipc.decode_request_frame(request)[0], kind)
+            with self.assertRaises(wire.ProtocolError):
+                ipc.decode_request_frame(ipc.encode_frame(kind | 128, identity, b"\x00\x00"))
+
+    def test_response_path_checks_direction_correlation_and_status(self):
+        identity = bytes(range(16))
+        good = ipc.encode_frame(129, identity, b"\x00\x00ok")
+        self.assertEqual(ipc.decode_response_frame(good, 1, identity), (0, b"ok"))
+        bad = [ipc.encode_frame(1, identity, b"\x00\x00"), ipc.encode_frame(130, identity, b"\x00\x00"),
+               ipc.encode_frame(129, b"\x11" * 16, b"\x00\x00"), ipc.encode_frame(129, identity, b"\x05\x00secret"),
+               ipc.encode_frame(129, identity, b"\x0e\x00"), ipc.encode_frame(129, identity, b"\x00")]
+        for frame in bad:
+            with self.assertRaises(wire.ProtocolError):
+                ipc.decode_response_frame(frame, 1, identity)
+
     def test_frame_literal_and_roundtrip(self):
         frame = ipc.encode_frame(1, bytes(range(16)), b"hello")
         self.assertEqual(frame, b"PQMSIPC1\x01\x00\x01\x00" + bytes(range(16)) + b"\x05\x00\x00\x00hello")

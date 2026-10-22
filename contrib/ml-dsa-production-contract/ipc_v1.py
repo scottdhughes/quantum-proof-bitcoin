@@ -24,6 +24,7 @@ def encode_frame(kind, request_id, body):
 
 
 def decode_frame(frame):
+    """Direction-neutral primitive; never use directly as a service dispatcher."""
     octets(frame)
     if not 32 <= len(frame) <= MAX_BYTES + 32 or frame[:10] != b"PQMSIPC1\x01\x00" or frame[11] != 0:
         raise ProtocolError("IPC header")
@@ -32,6 +33,24 @@ def decode_frame(frame):
         raise ProtocolError("IPC length")
     encode_frame(kind, identity, body)
     return kind, identity, body
+
+
+def decode_request_frame(frame):
+    kind, identity, body = decode_frame(frame)
+    if kind not in (1, 2, 3, 4, 5):
+        raise ProtocolError("response on request path")
+    return kind, identity, body
+
+
+def decode_response_frame(frame, expected_kind, expected_id):
+    integer(expected_kind, 1, 5)
+    octets(expected_id, 16)
+    kind, identity, body = decode_frame(frame)
+    if kind != expected_kind | 128 or identity != expected_id or len(body) < 2:
+        raise ProtocolError("response direction/correlation")
+    status, payload = int.from_bytes(body[:2], "little"), body[2:]
+    response_body(status, payload)
+    return status, payload
 
 
 def hello(network, spec_hash):

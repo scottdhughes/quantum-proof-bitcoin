@@ -8,6 +8,11 @@ Historical draft-0 model/corpus retained unchanged. The subsequent
 wire/address, private-HD/persistence and IPC choices below; it is frozen for
 review, not active or approved for production. Its encodings are NOT draft-0.
 
+Erratum retained for historical draft0: its regtest message-start literal ends
+in `e9`; frozen GENESIS-v1 actually ends in `9e`. The old model/corpus remain
+byte-identical as historical evidence, NOT authoritative network vectors.
+Contract v1 corrects this and tests bindings against the genesis artifact.
+
 This is the first concrete design/vector slice under
 [staged admission](ML_DSA_44_STAGED_ADMISSION.md), not an approved production
 protocol. The executable model lives in `contrib/ml-dsa-production-contract/`.

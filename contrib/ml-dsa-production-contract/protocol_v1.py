@@ -15,7 +15,7 @@ CONTEXT = b"PQBTC/MLDSA44/tx/v1"
 NETWORKS = {
     "main": ("pq", "8592a7ad", "2af71da20e6e03bfdfc2347edffbbb4087796678c8d57cacbccbd10eee7b31e4"),
     "test": ("tq", "a7e29cf7", "2b6939c6a048aa840a962d19ee680879c0bcbbeeff6e258fd049b5a6a947a979"),
-    "regtest": ("rq", "96bd87e9", "36cc1172b59a75d055126cfb7a1d3b5d37eebc57bec9791fccfa48af6bbd15e2"),
+    "regtest": ("rq", "96bd879e", "36cc1172b59a75d055126cfb7a1d3b5d37eebc57bec9791fccfa48af6bbd15e2"),
 }
 CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 
@@ -213,6 +213,11 @@ def signing_message(network, tx, index):
     preimage = (binding(network) + struct.pack("<iIBII", tx["version"], tx["lock_time"], 1, len(ins), len(outs)) +
                 b"".join(hashlib.sha256(p).digest() for p in parts) + struct.pack("<I", index))
     return _tagged(b"PQBTC/MLDSA44/sighash/v1", preimage)
+
+
+def signer_input(network, tx, index):
+    """Exact (message, FIPS context) handoff; this function does NOT sign."""
+    return signing_message(network, tx, index), CONTEXT
 
 
 def _polymod(values):

@@ -30,13 +30,26 @@ Use **native witness version 2**, program length 32, scriptPubKey
 value in the existing PQSIG registry: rc2 `0x01` and future `0x02` are untouched.
 Nested P2SH wrapping is unsupported by this profile and cannot invoke its rules.
 
-Addresses use Bech32m (BIP350) and existing chain HRPs `pq`, `tq`, `rq` for main,
+These are disjoint namespaces: witness version is encoded by the output's OP_2;
+PQSIG ALG_ID is a discriminator in the existing PQSIG public-key representation
+(`pqsig.cpp` builds `pk_script33[0]=ALG_ID_RC2`). There is **no mapping** between
+them. The proposed v2 branch never calls registry dispatch; later allocation of
+ALG_ID0x02 grants no witness-v2 permission and vice versa. Any future mapping
+requires its own new reviewed contract/admission; numeric equality implies none.
+
+Addresses use Bech32m (BIP350) and frozen proposed PQBTC HRPs `pq`, `tq`, `rq` for main,
 test and regtest. Encoder emits lowercase; decoder accepts uniform upper/lower
 case, rejects mixed case, bad checksum/padding, wrong HRP, version !=2 and program
 length !=32. Valid address syntax is NOT evidence of active spend validation.
 
-Let `B = message_start[4] || genesis_hash[32, internal little-endian]` from the
-unchanged chain parameters. Let `TH(tag,x) = SHA256(SHA256(tag)||SHA256(tag)||x)`.
+Let `B = message_start[4] || genesis_hash[32, internal little-endian]` from
+`contrib/genesis/generated_constants.json` / frozen GENESIS-v1. These are the
+target PQBTC identities, NOT a claim that `src/kernel/chainparams.cpp` already
+uses them: that file still contains inherited Bitcoin identities. Integration
+must verify the node's effective parameters against this artifact, refuse a
+mismatch, and separately review any wiring changes; no source identity changes
+occur here. Regtest message bytes are exactly `96 bd 87 9e` (not draft0's `e9`).
+Let `TH(tag,x) = SHA256(SHA256(tag)||SHA256(tag)||x)`.
 Program is `TH("PQBTC/MLDSA44/key/v1", B || public_key[1312])`. No truncation,
 compressed public key, alternate parameter set or implicit network is allowed.
 
@@ -62,17 +75,33 @@ semantics. The Python model encodes signed wire but does not verify signatures.
 ### Activation and historical outputs
 
 Current `VerifyWitnessProgram` accepts unknown versions when the discourage flag
-is absent. Therefore **do not issue/fund these addresses before activation**.
-Proposed deployment is an explicit per-network height H, recorded in a later
-reviewed deployment manifest; at/after H, native v2/32 spends use this contract
-regardless of prevout creation height. Before H they have only historical
-unknown-witness semantics. Chain inventory and treatment of any existing v2/32
-UTXOs must be reviewed before approving H; zero such UTXOs is NOT assumed.
-No grandfather exception or automatic activation is allowed. Version2/other
-lengths retain unknown-version semantics. H, network rollout and chain-budget
-values are deployment decisions, not unfilled byte-format choices; absent that
-approved manifest a future implementation must refuse activation. No H is
-allocated here, and no existing accepted-rule set is changed by this proposal.
+is absent. Wallet GET_ADDRESS and SIGN_TX for this profile MUST refuse before
+approved activation; a byte-model address converter is not wallet issuance.
+**Never fund these addresses before activation.** The node's pre-H historical
+consensus remains unchanged, but new policy must refuse v2/32 funding/relay and
+wallet issuance before H; policy cannot prevent a miner creating such outputs.
+
+Choose the **absence-guarded, no-grandfather** deployment option. A later reviewed
+manifest must bind Spec-ID and exact spec hash, B, H, canonical H-1 block hash,
+the complete UTXO inventory hash and count of pre-H native-v2/32 UTXOs: **zero**.
+No such count or checkpoint is asserted here. If any exist, deployment is NO-GO
+under this contract: do not silently freeze them, grandfather them, relabel them
+or activate anyway. Changing that choice requires a revised reviewed contract.
+The checkpoint/inventory must be established and approved before the coordinated
+activation transition; a node must refuse startup/transition with a deployment
+error if the approved checkpoint, effective network or inventory does not match.
+It must not silently fall back to an alternate consensus rule set. This is an
+explicit deployment coordination/liveness obligation, not a claimed safe live
+rollout: pre-H adversarial funding can force a NO-GO and a new deployment decision.
+
+At/after an admitted H, ALL native-v2/32 spends use this contract regardless of
+creation height; the mandatory preceding inventory ensures none from pre-H
+survives that transition. Mempool activation invalidates/revalidates all cached
+v2 decisions under the new rules before relay/mining; wallet issuance additionally
+checks active manifest/network. Version2/other lengths retain unknown semantics.
+H and chain budgets are later deployment decisions, not byte-format defaults.
+Absent the admitted manifest, activation is forbidden. No H is allocated here,
+and no node, wallet, mempool policy or accepted-rule set is changed in this slice.
 
 ## 3. Signature message, mode and bounds
 
@@ -80,6 +109,8 @@ Only ALL (selector `01`) is supported. Pure ML-DSA-44 external signing receives
 message = `TH("PQBTC/MLDSA44/sighash/v1", preimage)` and exact FIPS context bytes
 `PQBTC/MLDSA44/tx/v1`. This is pure ML-DSA over a protocol-defined 32-byte message,
 NOT the distinct HashML-DSA mode. No caller-supplied arbitrary digest/context.
+`signer_input(network, tx, input_index)` returns the exact `(message, context)`
+pair for that external API call; SIGN_TX must use both, never an empty context.
 
 Preimage is `B || version:i32LE || lock_time:u32LE || 01 || nin:u32LE ||
 nout:u32LE || Hprevouts || Hamounts || Hscripts || Hsequences || Houtputs ||
@@ -190,6 +221,9 @@ connection. No JSON payload. One in-flight request per connection, global queue1
 one serial signer worker; at most64 completed requests/connection then reconnect.
 Reject any reused request ID during that connection; this is correlation and
 bounded replay rejection, NOT cross-connection/global anti-replay or intent auth.
+Service dispatch must use request-only decoding (kinds1..5); client decoding
+requires the expected response kind, request ID and valid status/error shape.
+The direction-neutral codec is only a low-level framing primitive.
 
 Requests (responses use kind|0x80, same ID, status:u16LE plus payload on success
 only; error status has no payload):
@@ -208,6 +242,12 @@ signer verifies each derived key/program and ownership, output policy, fee and
 lock/unlock state before constructing messages itself. All input results are
 self-verified before one response. Administrative unlock/import/export/recovery
 requires a separate local operator channel, not node RPC or these five requests.
+Prevout metadata is explicitly trusted from the authorized node in this initial
+TCB; it is not authenticated by a separate UTXO oracle or proof. Wrong metadata
+must fail actual node verification against its UTXO set; require an integration
+test for amount/script/outpoint mismatches and no valid spend release. If custody
+must distrust the authorized node, this design is insufficient and needs a
+separately authenticated UTXO/intent channel, not an undocumented trust assumption.
 
 Statuses1..13: INVALID_FRAME, VERSION, BINDING, AUTH, LOCKED, LIMIT, UNSUPPORTED,
 REPLAY, VALIDATION, ENTROPY, SELFVERIFY, STORAGE, INTERNAL (0=OK). Fixed codes,
