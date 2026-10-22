@@ -55,18 +55,18 @@ prevout's native-v2/32 program and immutable input witness, no caller program),
 `const CTransaction& Transaction() const`. Caller holds the node's Coin-view
 validation lock while constructing; no lazy references to mutable Coin entries.
 
-- [ ] Verify inherited node baseline builds pqbtcd,pqbtc-cli,test_pqbtc in offline
+- [x] Verify inherited node baseline builds pqbtcd,pqbtc-cli,test_pqbtc in offline
   Linux; run the complete unit executable and record actual result before edits.
-- [ ] Add RED unit tests: actual CTransaction+Coin view message matches fixed
+- [x] Add RED unit tests: actual CTransaction+Coin view message matches fixed
   independently encoded model; missing/spent/negative Coin rejected; changed
   amount/script/outpoint/output/index invalidates a literal public signature;
   old snapshot stable after Coin view changes; inherited RegTest B rejected.
-- [ ] Observe missing node bridge RED, then implement conversion/snapshot using
+- [x] Observe missing node bridge RED, then implement conversion/snapshot using
   PreparedTransaction directly, never SerializeUnsigned's signer-only limits.
-- [ ] Add ENABLE_EXPERIMENTAL_MLDSA44 defaultOFF; public verifier and node bridge
+- [x] Add ENABLE_EXPERIMENTAL_MLDSA44 defaultOFF; public verifier and node bridge
   optional targets, test file conditional. C enabled only as needed. No signer
   sources, key generation, entropy or OpenSSL link dependency in those targets.
-- [ ] Build/run targeted Boost tests with the optionON and test optionOFF default
+- [x] Build/run targeted Boost tests with the optionON and test optionOFF default
   remains unchanged; check actual link inputs/symbols. Commit only green source.
 
 ### Task 2: Review, evidence and continuation to accepted-spend integration
@@ -74,7 +74,7 @@ validation lock while constructing; no lazy references to mutable Coin entries.
 **Files:** new packet20261022-mldsa-node.r7Ij9C, plan-specific ledger and review;
 source fixes only if independently found/reproduced within this bridge scope.
 
-- [ ] Supply complete NEW bridge patch/context to one Claude tools-disabled
+- [x] Supply complete NEW bridge patch/context to one Claude tools-disabled
   review; this is new code, not an unchanged re-review of the signer.
 - [ ] Regrade by effect, one RED/GREEN required fix pass/full suite, disposition
   all declined items and costs. No cleanup of older work or sealed packets.

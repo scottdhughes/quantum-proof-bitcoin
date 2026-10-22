@@ -9,23 +9,53 @@
 #include <util/strencodings.h>
 #include <univalue.h>
 #include <boost/test/unit_test.hpp>
+#include <memory>
+#include <type_traits>
+
+static_assert(!std::is_copy_assignable_v<pqbtc::mldsa44::node::Snapshot> &&
+    !std::is_move_assignable_v<pqbtc::mldsa44::node::Snapshot> &&
+    !std::is_move_constructible_v<pqbtc::mldsa44::node::Snapshot>,
+    "a cached snapshot cannot be rebound or left with a moved-from transaction");
 
 using namespace pqbtc::mldsa44;
 namespace {
 // Explicit byte-model chain fixture, NOT registered/admitted network parameters.
-struct FrozenRegtest : CChainParams {
-    FrozenRegtest()
+struct FrozenParams : CChainParams {
+    static std::unique_ptr<const CChainParams> Inherited(Network network)
     {
-        pchMessageStart={0x96,0xbd,0x87,0x9e};
-        genesis.nVersion=1;genesis.nTime=1772086429;genesis.nBits=545259519;genesis.nNonce=17489643;
-        genesis.hashMerkleRoot=uint256::FromHex("eff22c74638125519d38bab3d58d460f93ff0d5ef57dfbabc9514353bdb458cb").value();
+        switch(network) {
+        case Network::MAIN:return CChainParams::Main();
+        case Network::TEST:return CChainParams::TestNet();
+        case Network::REGTEST:return CChainParams::RegTest({});
+        }
+        throw std::invalid_argument("unknown fixture network");
+    }
+    explicit FrozenParams(Network network=Network::REGTEST):CChainParams(*Inherited(network))
+    {
+        genesis=CBlock{};genesis.nVersion=1;genesis.nBits=545259519;
+        const char* merkle;
+        switch(network) {
+        case Network::MAIN:
+            pchMessageStart={0x85,0x92,0xa7,0xad};genesis.nTime=1772116563;genesis.nNonce=4185130280;
+            merkle="f586d6aae001c2f2fc69588582695650a8247bf628a2c21c40c334d527398838";break;
+        case Network::TEST:
+            pchMessageStart={0xa7,0xe2,0x9c,0xf7};genesis.nTime=1772119544;genesis.nNonce=2499947721;
+            merkle="d3bf22ef43098736f11406c5bff808e933df335705f4c8c022dcffaa0d26164a";break;
+        case Network::REGTEST:
+            pchMessageStart={0x96,0xbd,0x87,0x9e};genesis.nTime=1772086429;genesis.nNonce=17489643;
+            merkle="eff22c74638125519d38bab3d58d460f93ff0d5ef57dfbabc9514353bdb458cb";break;
+        default:throw std::invalid_argument("unknown fixture network");
+        }
+        genesis.hashMerkleRoot=uint256::FromHex(merkle).value();
         consensus.hashGenesisBlock=genesis.GetHash();
     }
     void ChangeHeader() { ++genesis.nNonce; }
     void ChangeCachedGenesis() { consensus.hashGenesisBlock=uint256::ONE; }
+    void Magic(MessageStartChars value) { pchMessageStart=value; }
+    void Header(const CBlock& value) { genesis=value;consensus.hashGenesisBlock=genesis.GetHash(); }
 };
 struct Fixture {
-    UniValue data;CMutableTransaction tx;CCoinsView base;CCoinsViewCache coins{&base,true};FrozenRegtest params;
+    UniValue data;CMutableTransaction tx;CCoinsView base;CCoinsViewCache coins{&base,true};FrozenParams params;
     Fixture()
     {
         BOOST_REQUIRE(data.read(json_tests::mldsa44_node));
@@ -63,11 +93,22 @@ BOOST_AUTO_TEST_CASE(actual_coins_and_transaction_verify_public_fixture)
 BOOST_AUTO_TEST_CASE(effective_network_not_just_cached_or_model_network)
 {
     Fixture f;BOOST_CHECK(node::ResolveNetwork(f.params)==Network::REGTEST);
+    alignas(FrozenParams) unsigned char storage[sizeof(FrozenParams)];
+    std::fill(std::begin(storage),std::end(storage),0xa5);
+    auto initialized=std::construct_at(reinterpret_cast<FrozenParams*>(storage));
+    BOOST_CHECK(initialized->GetChainType()==ChainType::REGTEST);
+    BOOST_CHECK(initialized->IsMockableChain());std::destroy_at(initialized);
     auto inherited=CChainParams::RegTest({});
     BOOST_CHECK_THROW(node::ResolveNetwork(*inherited),std::invalid_argument);
     BOOST_CHECK(!Verify(f.tx,f.coins,*inherited));
     auto wrong=f.params;wrong.ChangeHeader();BOOST_CHECK_THROW(node::ResolveNetwork(wrong),std::invalid_argument);
     wrong=f.params;wrong.ChangeCachedGenesis();BOOST_CHECK_THROW(node::ResolveNetwork(wrong),std::invalid_argument);
+    wrong=f.params;wrong.Magic({0x96,0xbd,0x87,0xe9});BOOST_CHECK_THROW(node::ResolveNetwork(wrong),std::invalid_argument);
+    wrong=f.params;wrong.Header(inherited->GenesisBlock());BOOST_CHECK_THROW(node::ResolveNetwork(wrong),std::invalid_argument);
+    FrozenParams main{Network::MAIN};main.Magic(f.params.MessageStart());BOOST_CHECK_THROW(node::ResolveNetwork(main),std::invalid_argument);
+    for(auto network:{Network::MAIN,Network::TEST,Network::REGTEST}) {
+        FrozenParams params{network};BOOST_CHECK(node::ResolveNetwork(params)==network);
+    }
 }
 BOOST_AUTO_TEST_CASE(transaction_version_sign_bit_is_wire_preserved)
 {
@@ -79,19 +120,35 @@ BOOST_AUTO_TEST_CASE(transaction_version_sign_bit_is_wire_preserved)
 }
 BOOST_AUTO_TEST_CASE(missing_spent_negative_and_changed_metadata_reject)
 {
-    for (int mutation=0;mutation<8;++mutation) {
+    for (int mutation=0;mutation<9;++mutation) {
         Fixture f;auto script=f.coins.AccessCoin(f.tx.vin[1].prevout).out.scriptPubKey;
         switch(mutation) {
         case 0: BOOST_REQUIRE(f.coins.SpendCoin(f.tx.vin[1].prevout));break;
         case 1: f.Replace(1,-2,script);break;
         case 2: f.Replace(1,51001,script);break;
         case 3: script[3]^=1;f.Replace(1,51000,script);break;
-        case 4: ++f.tx.vin[0].prevout.n;break;
+        case 4: {
+            auto moved=f.tx.vin[0].prevout;++moved.n;
+            f.coins.AddCoin(moved,Coin{f.coins.AccessCoin(f.tx.vin[0].prevout).out,1,false},false);
+            f.tx.vin[0].prevout=moved;break;
+        }
         case 5: --f.tx.vout[0].nValue;break;
         case 6: f.tx.vin[0].scriptSig<<OP_0;break;
         case 7: f.tx.vin[0].scriptWitness.stack.push_back({});break;
+        case 8: {
+            auto bytes=f.tx.vin[0].prevout.hash.ToUint256();std::reverse(bytes.begin(),bytes.end());
+            auto moved=COutPoint{Txid::FromUint256(bytes),f.tx.vin[0].prevout.n};
+            f.coins.AddCoin(moved,Coin{f.coins.AccessCoin(f.tx.vin[0].prevout).out,1,false},false);
+            f.tx.vin[0].prevout=moved;break;
         }
-        BOOST_CHECK_MESSAGE(!Verify(f.tx,f.coins,f.params),"mutation "<<mutation);
+        }
+        if(mutation<2) {
+            BOOST_CHECK_THROW((node::Snapshot{MakeTransactionRef(f.tx),f.coins}),std::invalid_argument);
+        } else {
+            std::unique_ptr<node::Snapshot> snapshot;
+            BOOST_REQUIRE_NO_THROW(snapshot=std::make_unique<node::Snapshot>(MakeTransactionRef(f.tx),f.coins));
+            BOOST_REQUIRE(snapshot);BOOST_CHECK_MESSAGE(!snapshot->VerifyInput(f.params,0),"mutation "<<mutation);
+        }
     }
 }
 BOOST_AUTO_TEST_CASE(snapshot_is_owned_and_signer_policy_is_not_consensus)
