@@ -45,8 +45,36 @@ The public IPC codec is a separate object from the secret-owning session. It
 enforces request/response direction, nonzero16-byte correlation IDs,32-byte
 headers,1MiB bodies, exact lengths, minimal CompactSize and fixed status shapes.
 The serial session requires exact network/spec HELLO, rejects reused IDs and
-allows at most64 completed operations. The future transport must authenticate
+allows at most64 completed operations. The AF_UNIX transport authenticates
 peer credentials before giving a session any request bytes.
+
+The explicit `--valueless-pilot` launcher runs as a non-root signer UID distinct
+from the configured non-root node UID. A signer-owned0750 socket directory and
+0660 socket use an operator-configured common primary group. Both ends check
+kernel SO_PEERCRED; this is not protection against root or process-lineage proof.
+The node-side client links public verification/framing only, not wallet/key-owner
+or libcrypto. The operator supplies the public-fixture password through a separate
+inherited descriptor (u16LE byte length, then exact bytes), never argv, environment
+or node IPC. Production operator UI/service-manager integration is not provided.
+
+One worker serializes custody operations behind a16-entry waiting queue and
+at most64 authenticated connections. Frames and writes have5s deadlines;
+operations have60s late-result discard without asynchronously killing secret
+work. LOCK prioritizes a wipe barrier, cancels queued address/sign work and
+discards older successful private outputs. Already delivered bytes cannot be
+retracted. Unlock after LOCK requires operator restart through the separate FD.
+
+Retain builds with `--build-dir /tmp/mldsa-service-UNIQUE` for the host-only
+orchestrator `run_service_tests.py --build-report REPORT --checkout CONTAINED_PATH`.
+It checks the approved container restrictions and runs all native binaries,
+socket fixtures and ciphertext operations inside that container under separate
+UIDs. Tests cover actual peer gates, malformed/slow frames, descriptor rejection,
+replay,64 completions, signing/lock, restart, restored-record high-water handling
+and node inability to read the record. A test-only translation unit exercises
+the actual private worker's queue bound, cancellation and deadline flags using a
+linker-wrapped pause before real signing; no test hook enters the pilot binary.
+This scheduler test does not itself prove real-time scheduling guarantees or
+all wire-level races. No claim of node UTXO/Script/RPC integration follows.
 
 SIGN_TX reconstructs messages internally, verifies all issued paths/prevout
 commitments and the operator fee cap, then releases one all-or-nothing set of

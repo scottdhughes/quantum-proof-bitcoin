@@ -83,12 +83,12 @@ only and self-verifies each result before one all-or-nothing response.
 
 ### Task 3: Isolated AF_UNIX service and executable restore/spend path
 
-**Files:** create src/crypto/mldsa44/signer/{service.h,service.cpp};
-create contrib/ml-dsa-signer/{signer_main.cpp,service_smoke.py} and owned workflow
+**Files:** create src/crypto/mldsa44/signer/{transport.h,transport.cpp,client.h,client.cpp,service.h,service.cpp};
+create contrib/ml-dsa-signer/{signer_main.cpp,client_smoke.cpp,service_smoke.py,run_service_tests.py} and owned workflow
 only after source/review bounds are explicit.
 
 **Interfaces:** operator-only startup imports/unlocks via inherited local FD;
-network node interface is solely the five CONTRACT-1 commands. Strict production
+network node interface is solely the five CONTRACT-1 commands. Strict pilot
 launcher requires separate configured signer/node UIDs and validates0750 parent/
 0660 socket. Client checks configured signer UID via SO_PEERCRED.
 

@@ -3,6 +3,7 @@
 # Distributed under the MIT software license, see the accompanying COPYING.
 """Contained native signer qualification. PUBLIC fixtures only; no host execution."""
 import argparse
+import contextlib
 import hashlib
 import importlib.util
 import json
@@ -37,6 +38,7 @@ def main():
     parser.add_argument("--openssl-prefix", type=Path, required=True)
     parser.add_argument("--sanitize", action="store_true")
     parser.add_argument("--expect-head")
+    parser.add_argument("--build-dir", type=Path, help="exclusive new retained build directory for different-UID service tests")
     args = parser.parse_args()
     if platform.system() != "Linux" or (args.cc, args.cxx) not in [("gcc", "g++"), ("clang", "clang++")]:
         raise RuntimeError("contained Linux matched compiler pair required")
@@ -55,15 +57,22 @@ def main():
     sources = ["src/crypto/mldsa44/verify.c", "contrib/ml-dsa-key-lifecycle/key_lifecycle.c", "src/crypto/sha256.cpp",
                "src/crypto/mldsa44/contract.cpp", "src/crypto/mldsa44/signer/wallet_crypto.cpp",
                "src/crypto/mldsa44/signer/wallet.cpp", "src/crypto/mldsa44/signer/ipc.cpp", "src/crypto/mldsa44/signer/session.cpp",
-               "contrib/ml-dsa-signer/wallet_smoke.cpp", "contrib/ml-dsa-signer/ipc_smoke.cpp"]
+               "src/crypto/mldsa44/signer/transport.cpp", "src/crypto/mldsa44/signer/client.cpp", "src/crypto/mldsa44/signer/service.cpp",
+               "contrib/ml-dsa-signer/wallet_smoke.cpp", "contrib/ml-dsa-signer/ipc_smoke.cpp",
+               "contrib/ml-dsa-signer/signer_main.cpp", "contrib/ml-dsa-signer/client_smoke.cpp", "contrib/ml-dsa-signer/schedule_smoke.cpp"]
     all_owned = [path for path in (ROOT / "src/crypto/mldsa44").rglob("*") if path.is_file()]
     all_owned += [path for path in (ROOT / "contrib/ml-dsa-signer").rglob("*") if path.is_file() and "__pycache__" not in path.parts]
     source_before = {str(path.relative_to(ROOT)): sha(path) for path in all_owned}
     flags = ["-O2", "-g", "-Wall", "-Wextra", "-Werror", "-Wno-unused-function", "-fno-lto", "-fvisibility=hidden"]
     if args.sanitize: flags += ["-fsanitize=address,undefined", "-fno-sanitize-recover=all", "-fno-omit-frame-pointer"]
     commands = []; dependencies = {}
-    with tempfile.TemporaryDirectory(prefix="mldsa-signer-native-") as temporary:
-        build = Path(temporary); objects = []
+    if args.build_dir:
+        args.build_dir.mkdir(mode=0o755)
+        workspace = contextlib.nullcontext(str(args.build_dir))
+    else:
+        workspace = tempfile.TemporaryDirectory(prefix="mldsa-signer-native-")
+    with workspace as temporary:
+        build = Path(temporary); objects = []; roles = {}
         for i, source in enumerate(sources):
             output = build / f"{i}.o"; depfile = build / f"{i}.d"; objects.append(output)
             extra = ["-DDISABLE_OPTIMIZED_SHA256", "-Wno-unused-parameter"] if source == "src/crypto/sha256.cpp" else []
@@ -71,14 +80,17 @@ def main():
                        "-I", ROOT / "src", "-I", ROOT / "src/crypto/mldsa44", "-I", ROOT / "contrib/ml-dsa-engineering", "-I", prefix / "include", *extra,
                        "-pthread", "-MMD", "-MF", depfile, "-c", ROOT / source, "-o", output]
             commands.append([str(x) for x in command]); run(command)
+            roles[Path(source).stem] = output
             for raw in shlex.split(depfile.read_text().partition(":")[2].replace("\\\n", " ")):
                 path = Path(raw).resolve()
                 name = str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else "openssl/" + str(path.relative_to(prefix))
                 dependencies[name] = sha(path)
         native = {}; executable_paths = []
-        for name, smoke_object in [("wallet", objects[-2]), ("ipc", objects[-1])]:
+        common_names = ["verify", "key_lifecycle", "sha256", "contract", "wallet_crypto", "wallet", "ipc", "session"]
+        for name in ("wallet", "ipc", "schedule"):
             binary = build / (name + "-smoke"); executable_paths.append(binary)
-            command = [cxx, *flags, "-pthread", *objects[:-2], smoke_object, prefix / "lib/libcrypto.a", "-ldl", "-Wl,--wrap=fsync", "-o", binary]
+            extra = [roles["transport"], "-Wl,--wrap=pqbtc_mldsa44_key_sign_hedged"] if name == "schedule" else ["-Wl,--wrap=fsync"]
+            command = [cxx, *flags, "-pthread", *[roles[x] for x in common_names], roles[name + "_smoke"], *extra, prefix / "lib/libcrypto.a", "-ldl", "-o", binary]
             commands.append([str(x) for x in command]); run(command)
             native[name] = json.loads(run([binary, build / (name + "-state")]))
             if native[name].get("result") != "PASS": raise RuntimeError("incomplete native observations: " + name)
@@ -94,6 +106,17 @@ def main():
         import re
         if re.search(r"Wallet|Secret|key_sign|key_import|OPENSSL|EVP_|runtime_init|RandomBytes", symbols):
             raise RuntimeError("private machinery in public IPC codec")
+        service_paths = {}
+        for name, names, libraries in [
+            ("pilot-signer", [*common_names, "transport", "service", "signer_main"], [prefix / "lib/libcrypto.a", "-ldl"]),
+            ("public-client", ["verify", "sha256", "contract", "ipc", "transport", "client", "client_smoke"], [])]:
+            binary = build / name; executable_paths.append(binary)
+            command = [cxx, *flags, "-pthread", *[roles[x] for x in names], *libraries, "-o", binary]
+            commands.append([str(x) for x in command]); run(command); service_paths[name] = str(binary)
+            if name == "public-client":
+                client_symbols = run(["nm", "-a", binary])
+                if re.search(r"Wallet|Secret|key_sign|key_import|OPENSSL|EVP_|runtime_init|RandomBytes", client_symbols):
+                    raise RuntimeError("private dependency in node-side client")
         dynamic = run(["readelf", "-d", binary])
         if "libcrypto.so" in dynamic or "libssl.so" in dynamic: raise RuntimeError("dynamic system crypto fallback")
         elf = run(["readelf", "-h", binary])
@@ -112,7 +135,8 @@ def main():
                     "library_instrumented_by_this_run": False, "build_origin": "reused pinned contained build; not independent binary attestation"},
         "source_hashes": source_before, "frozen_source_hashes": frozen_hashes, "capsule": frozen,
         "compiler_dependencies": dependencies, "binaries": binaries, "elf": elf, "dynamic": dynamic,
-        "commands": commands, "environment": ENV}, sort_keys=True))
+        "commands": commands, "environment": ENV, "service_binaries": service_paths,
+        "build_retained": bool(args.build_dir), "public_client_symbol_audit": "PASS"}, sort_keys=True))
 
 if __name__ == "__main__":
     try: main()
