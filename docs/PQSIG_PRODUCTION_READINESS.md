@@ -8,6 +8,13 @@
 
 ## Decision
 
+Owner continuation2026-10-22: [documented owner authority](ML_DSA_44_OWNER_CONTINUATION.md)
+permits engineering and valueless experimental integration without waiting for
+an unavailable external human reviewer. The external-human condition is NOT
+PERFORMED; it is a disclosed owner exception, not verified review. The historical
+review hold discussion below must not be used as a circular implementation ban.
+All technical qualification and explicit release-decision obligations remain.
+
 PQBTC has no signature profile approved for production use. Do not release a
 network that carries real value, represent `PQSig rc2` as cryptographically
 conformant, or rely on its claimed `2^40` signing bound or NIST Level 1 security.

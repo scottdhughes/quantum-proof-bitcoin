@@ -4,6 +4,17 @@
 ## Spec-ID: MLDSA44-STAGES-v0
 ## Scope decided: 2026-10-21
 
+## Owner continuation2026-10-22
+
+[The owner continuation decision](ML_DSA_44_OWNER_CONTINUATION.md) supersedes
+this v0 document's independent-human-review prerequisite to implementation.
+Engineering and valueless experimental integration are now authorized under the
+reviewed CONTRACT-1 proposal, test-first validation and separate automated review.
+External human review is NOT PERFORMED, not falsely satisfied. The original v0
+stage ordering below is retained as history; its human entry barrier no longer
+stops engineering. Production activation still requires technical qualification
+and a separate evidence-based go/no-go, not a metadata-only enablement.
+
 The approved initial signing scope is Linux x86_64 software custody, built with
 GCC and Clang. Hardware wallets are deferred, not implicitly supported. This
 records permission to correct the stage ordering, draft a production contract,
