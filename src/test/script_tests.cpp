@@ -132,4 +132,23 @@ BOOST_AUTO_TEST_CASE(inherited_taproot_rejection_guard_is_explicit)
     BOOST_CHECK_EQUAL(err, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
 }
 
+BOOST_AUTO_TEST_CASE(mldsa_explicit_flag_fails_closed_without_context_and_keeps_p2wsh_limit)
+{
+    constexpr unsigned flags=SCRIPT_VERIFY_P2SH|SCRIPT_VERIFY_WITNESS;
+    const auto native=CScript{}<<OP_2<<std::vector<unsigned char>(32,1);
+    CScriptWitness witness;witness.stack={std::vector<unsigned char>(2420,1),std::vector<unsigned char>(1312,1)};
+    BaseSignatureChecker checker;ScriptError error=SCRIPT_ERR_UNKNOWN_ERROR;
+    BOOST_CHECK(!VerifyScript({},native,&witness,flags|SCRIPT_VERIFY_MLDSA44,checker,&error));
+    BOOST_CHECK_EQUAL(error,SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+    BOOST_CHECK(VerifyScript({},native,&witness,flags,checker,&error));
+    BOOST_CHECK(!VerifyScript({},native,&witness,flags|SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM,checker,&error));
+    BOOST_CHECK_EQUAL(error,SCRIPT_ERR_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM);
+    const auto exec_script=CScript{}<<OP_DROP<<OP_TRUE;
+    std::vector<unsigned char> program(32);CSHA256{}.Write(exec_script.data(),exec_script.size()).Finalize(program.data());
+    const auto p2wsh=CScript{}<<OP_0<<program;
+    witness.stack={std::vector<unsigned char>(2420,1),std::vector<unsigned char>(exec_script.begin(),exec_script.end())};
+    BOOST_CHECK(!VerifyScript({},p2wsh,&witness,flags|SCRIPT_VERIFY_MLDSA44,checker,&error));
+    BOOST_CHECK_EQUAL(error,SCRIPT_ERR_PUSH_SIZE);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

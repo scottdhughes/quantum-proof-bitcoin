@@ -39,8 +39,9 @@ enum
 
 /** Script verification flags.
  *
- *  All flags are intended to be soft forks: the set of acceptable scripts under
- *  flags (A | B) is a subset of the acceptable scripts under flag (A).
+ *  Restrictive flags are intended to be soft forks: the set of acceptable scripts
+ *  under flags (A | B) is a subset of the acceptable scripts under flag (A).
+ *  Explicit deployment enablements can have policy exceptions documented below.
  */
 enum : uint32_t {
     SCRIPT_VERIFY_NONE      = 0,
@@ -151,6 +152,9 @@ enum : uint32_t {
     SCRIPT_VERIFY_PQ_REPLACEMENT_V1_SCRIPTHASH = (1U << 22),
 
     // Explicit native-v2/32 ML-DSA semantics. No network selects this flag yet.
+    // With DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM this is NOT flag-monotone:
+    // known valid v2 may pass only after enablement. Reduced-flags retries and
+    // mandatory/policy classification must account for this before node wiring.
     SCRIPT_VERIFY_MLDSA44 = (1U << 23),
 
     // Constants to point to the highest flag in use. Add new flags above this line.

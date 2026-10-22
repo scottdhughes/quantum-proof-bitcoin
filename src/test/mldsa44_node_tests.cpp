@@ -253,6 +253,25 @@ BOOST_AUTO_TEST_CASE(script_v2_shape_and_crypto_fail_closed_without_generic_limi
     BOOST_CHECK(!EvalScript(stack,CScript{}<<Bytes(521,1),0,checker,SigVersion::BASE,&error));
     BOOST_CHECK_EQUAL(error,SCRIPT_ERR_PUSH_SIZE);
 }
+BOOST_AUTO_TEST_CASE(script_checker_rejects_copied_witness_from_another_transaction)
+{
+    Fixture f;auto original=MakeTransactionRef(f.tx);node::Snapshot snapshot{original,f.coins};
+    --f.tx.vout[0].nValue;auto other=MakeTransactionRef(f.tx);
+    TransactionSignatureChecker inherited{other.get(),0,50000,MissingDataBehavior::FAIL};
+    node::ScriptChecker checker{snapshot,f.params,0,inherited};
+    const auto script=f.coins.AccessCoin(original->vin[0].prevout).out.scriptPubKey;
+    constexpr unsigned common=SCRIPT_VERIFY_P2SH|SCRIPT_VERIFY_WITNESS;
+    constexpr unsigned active=common|SCRIPT_VERIFY_MLDSA44|SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM;
+    ScriptError error=SCRIPT_ERR_UNKNOWN_ERROR;
+    BOOST_CHECK(VerifyScript({},script,&original->vin[0].scriptWitness,active,checker,&error));
+    BOOST_CHECK(!VerifyScript({},script,&other->vin[0].scriptWitness,active,checker,&error));
+    auto copied=original->vin[0].scriptWitness;
+    BOOST_CHECK(!VerifyScript({},script,&copied,active,checker,&error));
+    // The policy/activation pair is intentionally not flag-monotone.
+    BOOST_CHECK(!VerifyScript({},script,&original->vin[0].scriptWitness,
+        common|SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM,checker,&error));
+    BOOST_CHECK_EQUAL(error,SCRIPT_ERR_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM);
+}
 BOOST_AUTO_TEST_CASE(script_applicability_and_legacy_checker_delegation_are_separate)
 {
     Fixture f;f.Replace(1,51000,CScript{}<<OP_TRUE);

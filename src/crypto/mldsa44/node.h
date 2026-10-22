@@ -25,11 +25,15 @@ public:
     Snapshot(Snapshot&&)=delete;
     Snapshot& operator=(Snapshot&&)=delete;
     Hash Message(Network network,size_t index) const; // byte-model interoperability only
+    // Advisory prevout shape only; interpreter dispatch/verification is authoritative.
     bool IsApplicable(size_t index) const;
     // Signature correctness only, not current Coin liveness/maturity/activation.
     // Callers must discard acceptance results after Coin-state/context changes;
     // this owned snapshot is not a cross-chain or best-block-keyed result cache.
     bool VerifyInput(const CChainParams& params,size_t index) const;
+    // Requires the exact witness stack storage in Transaction().vin[index],
+    // not a copy. The validation caller must share this same CTransactionRef
+    // and construct from its actual Coin view while holding the validation lock.
     bool CheckWitness(const CChainParams& params,size_t index,
         std::span<const unsigned char> program,std::span<const Bytes> witness) const;
     const CTransaction& Transaction() const { return *m_transaction; }

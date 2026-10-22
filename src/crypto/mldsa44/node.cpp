@@ -61,6 +61,9 @@ bool Snapshot::CheckWitness(const CChainParams& params,size_t index,
 {
     if(!IsApplicable(index))return false;
     const auto& actual_witness=m_transaction->vin[index].scriptWitness.stack;
+    // The interpreter must be checking this exact held transaction/input, not
+    // copied witness bytes attached to a transaction with different outputs.
+    if(witness.data()!=actual_witness.data() || witness.size()!=actual_witness.size())return false;
     if(!std::equal(program.begin(),program.end(),m_programs[index].begin(),m_programs[index].end()) ||
         !std::equal(witness.begin(),witness.end(),actual_witness.begin(),actual_witness.end()))return false;
     return VerifyInput(params,index);
