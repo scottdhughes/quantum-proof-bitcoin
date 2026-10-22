@@ -3,6 +3,11 @@
 ## Status: DRAFT_FOR_REVIEW - NOT A CONSENSUS SPECIFICATION
 ## Spec-ID: PQBTC-MLDSA44-DRAFT-0
 
+Historical draft-0 model/corpus retained unchanged. The subsequent
+[contract v1 proposal](ML_DSA_44_PRODUCTION_CONTRACT_V1.md) resolves the
+wire/address, private-HD/persistence and IPC choices below; it is frozen for
+review, not active or approved for production. Its encodings are NOT draft-0.
+
 This is the first concrete design/vector slice under
 [staged admission](ML_DSA_44_STAGED_ADMISSION.md), not an approved production
 protocol. The executable model lives in `contrib/ml-dsa-production-contract/`.

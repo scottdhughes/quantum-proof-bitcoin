@@ -1,5 +1,28 @@
 # ML-DSA-44 production-contract draft vectors
 
+## Contract v1 review candidate
+
+[Contract v1](../../docs/ML_DSA_44_PRODUCTION_CONTRACT_V1.md) selects the proposed
+witness-v2/Bech32m profile, private-only HKDF derivation, encrypted-wallet record
+and local signer IPC. `protocol_v1.py`, `wallet_v1.py` and `ipc_v1.py` are public
+byte models only. `vectors_v1.json` contains independently generated literal
+address/commitment/HD fixtures; the test suite also carries literal wire/header/
+IPC vectors and an independent signature-message transcription. In the approved
+offline Linux environment run:
+
+```
+python3 -m unittest ci.test.test_ml_dsa_protocol_v1
+```
+
+The root `00..1f` and all derived fixture seeds are PUBLIC and unsafe for custody.
+There is no encryption, ML-DSA signing/verification, peer-authentication or wallet
+filesystem implementation here. Record parsing always returns
+`authenticated=false`; counter reservation models arithmetic, not durability.
+Never use these Python models to handle real secrets. New address syntax is
+unsafe to fund before a separately reviewed activation. No backend or hold change.
+
+## Historical draft-0 (unchanged model/corpus)
+
 This directory is an executable **design model**, not a node backend, signer,
 wallet, transaction implementation, consensus parser or admission tool.
 

@@ -1,0 +1,47 @@
+{
+  "schema": "PQBTC-MLDSA44-CONTRACT-1-PUBLIC-VECTORS",
+  "fixture_root_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "fixture_public_key": "bytes(range(256))*5 + bytes(range(32))",
+  "program_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "networks": [
+    {
+      "network": "main",
+      "binding_hex": "8592a7ade4317bee0ed1cbbcac7cd5c87866798740bbfbdf7e34c2dfbf036e0ea21df72a",
+      "program_address": "pq1zqqqsyqcyq5rqwzqfpg9scrgwpugpzysnzs23v9ccrydpk8qarc0sqq76s4",
+      "key_commitment_hex": "c674e8bf6859c720ee9868caf394a27c551b72485bcf6bf074acbda3a4f0badb",
+      "key_address": "pq1zce6w30mgt8rjpm5cdr90899z0323kujgt08khur54j768f8shtdshwv0a6",
+      "wallet_id_hex": "de76cfbb088247347713f4a4a8a845b6",
+      "children": [
+        {"branch": 0, "index": 0, "seed_hex": "0d7240271c633b7edd353feae5e61dd630b7331c105f1cf1ff384a1d1753f107"},
+        {"branch": 1, "index": 0, "seed_hex": "fbf9d39db3004e53b600410dc07ae60bf6fb3cfb04823f61b5002ec451f9de4e"},
+        {"branch": 0, "index": 2147483647, "seed_hex": "0ba096cb1f0c971558669571b09e4d24525b518a66306d20406199b93cf1ba01"}
+      ]
+    },
+    {
+      "network": "test",
+      "binding_hex": "a7e29cf779a947a9a6b549d08f256effeebbbcc0790868ee192d960a84aa48a0c639692b",
+      "program_address": "tq1zqqqsyqcyq5rqwzqfpg9scrgwpugpzysnzs23v9ccrydpk8qarc0syfr760",
+      "key_commitment_hex": "b2d30dd9b1c5f99f644df710a3f60adf87a7faa46f00e67bbea2786cd4006261",
+      "key_address": "tq1zktfsmkd3chue7ezd7ug28as2m7r6074yduqwv7a75fuxe4qqvfssw4hw30",
+      "wallet_id_hex": "9063ffd99c7d14b4df6e8796a2099ab4",
+      "children": [
+        {"branch": 0, "index": 0, "seed_hex": "457c791a0ab4314c1fdc87f11f9ce3b4b74c0d42de20bfb96093478f56df4e71"},
+        {"branch": 1, "index": 0, "seed_hex": "61826f92abe582c8689c15f49a673676a63e420bdbff12f34c205786d995fc14"},
+        {"branch": 0, "index": 2147483647, "seed_hex": "3a64bf7f8f4d45ee8cccfa5d55eafaf2bc48fa4e6b7e0fd70862b4fee2085eae"}
+      ]
+    },
+    {
+      "network": "regtest",
+      "binding_hex": "96bd87e9e215bd6baf48facc1f79c9be57bcee375d3b1d7afb6c1255d0759ab57211cc36",
+      "program_address": "rq1zqqqsyqcyq5rqwzqfpg9scrgwpugpzysnzs23v9ccrydpk8qarc0szsyc4c",
+      "key_commitment_hex": "1b92efddf9bf1545e81362b0141ca4c57425a53c07818a9ba8e407be9f1ccc02",
+      "key_address": "rq1zrwfwlh0ehu25t6qnv2cpg89yc46ztffuq7qc4xagusrma8cuespqrlctqx",
+      "wallet_id_hex": "08881adfec98604c7bfb975cd3ebcd00",
+      "children": [
+        {"branch": 0, "index": 0, "seed_hex": "dab65a14891ad7255dadae7d0fa6f50be1955632ece6a5ab09bd882ff1d979af"},
+        {"branch": 1, "index": 0, "seed_hex": "093eaecc36166d546909fcdf1ab91f9baf7b4f511efaeebeefef3bc4c8577bd2"},
+        {"branch": 0, "index": 2147483647, "seed_hex": "7e59eaabad4c79d1f22f024dd4a1dbe12478843f9a6f289d925e27fddbe337ff"}
+      ]
+    }
+  ]
+}
