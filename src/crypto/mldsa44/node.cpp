@@ -46,10 +46,28 @@ Network ResolveNetwork(const CChainParams& params)
 Snapshot::Snapshot(CTransactionRef tx,const CCoinsViewCache& coins):m_transaction(std::move(tx)),m_programs{},
     m_prepared(Prepare(m_transaction,coins,m_programs)) {}
 Hash Snapshot::Message(Network network,size_t index) const { return SigningMessage(network,m_prepared,index); }
+bool Snapshot::IsApplicable(size_t index) const
+{
+    return index<m_programs.size() && m_programs[index].size()==32;
+}
 bool Snapshot::VerifyInput(const CChainParams& params,size_t index) const
 {
-    if(index>=m_programs.size() || m_programs[index].size()!=32 || !m_transaction->vin[index].scriptSig.empty())return false;
+    if(!IsApplicable(index) || !m_transaction->vin[index].scriptSig.empty())return false;
     try { return VerifyWitness(ResolveNetwork(params),m_prepared,index,m_programs[index],m_transaction->vin[index].scriptWitness.stack); }
     catch(const std::invalid_argument&) { return false; }
+}
+bool Snapshot::CheckWitness(const CChainParams& params,size_t index,
+    std::span<const unsigned char> program,std::span<const Bytes> witness) const
+{
+    if(!IsApplicable(index))return false;
+    const auto& actual_witness=m_transaction->vin[index].scriptWitness.stack;
+    if(!std::equal(program.begin(),program.end(),m_programs[index].begin(),m_programs[index].end()) ||
+        !std::equal(witness.begin(),witness.end(),actual_witness.begin(),actual_witness.end()))return false;
+    return VerifyInput(params,index);
+}
+bool ScriptChecker::CheckMLDSA44Witness(std::span<const unsigned char> program,
+    std::span<const Bytes> witness) const
+{
+    return m_snapshot.CheckWitness(m_params,m_index,program,witness);
 }
 } // namespace pqbtc::mldsa44::node

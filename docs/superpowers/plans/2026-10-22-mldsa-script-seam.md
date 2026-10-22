@@ -36,18 +36,18 @@ Previous native/signer/bridge packets remain immutable and commit-scoped.
 **Files:** src/script/interpreter.h,interpreter.cpp; src/crypto/mldsa44/node.h,
 node.cpp; src/test/mldsa44_node_tests.cpp. Add public test fixture only if needed.
 
-- [ ] Read real interpreter/base/deferred checker and actual bridge; preserve
+- [x] Read real interpreter/base/deferred checker and actual bridge; preserve
   transaction/Coin ownership and new snapshot nonmovable invariant.
-- [ ] RED tests for flag-on native-v2 actual public fixture, malformed two-item
+- [x] RED tests for flag-on native-v2 actual public fixture, malformed two-item
   shapes, default-checker fail-closed, program/witness substitution, inherited
   wrong network; flag-off unknown behavior and other-length/nested behavior.
-- [ ] Implement internal SCRIPT_VERIFY_MLDSA44 flag and public virtual callback
+- [x] Implement internal SCRIPT_VERIFY_MLDSA44 flag and public virtual callback
   with defaultfalse/deferred forwarding. Dedicated interpreter branch before
   unknown handling; no generic stack-limit relaxation or network flag selection.
-- [ ] Add explicit Snapshot applicability and bound ScriptChecker; provided
+- [x] Add explicit Snapshot applicability and bound ScriptChecker; provided
   bytes must match the stored program and transaction witness before verification.
   Add checker context tests and legacy-method forwarding controls.
-- [ ] Narrow actual Script tests GREEN, full configured node+Python suites and
+- [x] Narrow actual Script tests GREEN, full configured node+Python suites and
   defaultOFF profile GREEN. Commit only the verified source; record actual counts.
 
 Expected: missing flag/checker RED initially; active branch actual valid fixture

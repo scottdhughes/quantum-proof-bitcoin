@@ -2,10 +2,13 @@
 // Distributed under the MIT software license, see the accompanying COPYING.
 // Public signatures only: no signer/key-owner/OpenSSL dependency in this target.
 #include <crypto/mldsa44/node.h>
+#include <addresstype.h>
 #include <coins.h>
 #include <core_io.h>
 #include <kernel/chainparams.h>
+#include <script/interpreter.h>
 #include <test/data/mldsa44_node.json.h>
+#include <test/data/mldsa44_script.json.h>
 #include <util/strencodings.h>
 #include <univalue.h>
 #include <boost/test/unit_test.hpp>
@@ -77,6 +80,35 @@ bool Verify(const CMutableTransaction& tx,const CCoinsViewCache& coins,const CCh
     try {return node::Snapshot{MakeTransactionRef(tx),coins}.VerifyInput(params,index);}
     catch(const std::invalid_argument&) {return false;}
 }
+class PermissiveShapeProbe final : public BaseSignatureChecker {
+public:
+    mutable size_t calls{0};
+    bool CheckMLDSA44Witness(std::span<const unsigned char>,std::span<const Bytes>) const override
+    {
+        ++calls;return true;
+    }
+};
+struct ScriptFixture {
+    UniValue data;CMutableTransaction tx;CCoinsView base;CCoinsViewCache coins{&base,true};FrozenParams params;
+    explicit ScriptFixture(size_t profile)
+    {
+        UniValue all;BOOST_REQUIRE(all.read(json_tests::mldsa44_script));data=all[profile];
+        BOOST_REQUIRE(DecodeHexTx(tx,data["unsigned"].get_str(),true,false));
+        for(size_t i=0;i<tx.vin.size();++i) {
+            auto script=ParseHex(data["scripts"][i].get_str());
+            coins.AddCoin(tx.vin[i].prevout,Coin{CTxOut{data["amounts"][i].getInt<int64_t>(),CScript(script.begin(),script.end())},1,false},false);
+            for(const auto& item:data["witnesses"][i].getValues())tx.vin[i].scriptWitness.stack.push_back(ParseHex(item.get_str()));
+        }
+    }
+};
+class LegacyProbe final : public BaseSignatureChecker {
+public:
+    bool CheckLockTime(const CScriptNum&) const override {return true;}
+    bool CheckSequence(const CScriptNum&) const override {return true;}
+    bool CheckECDSASignature(const Bytes&,const Bytes&,const CScript&,SigVersion) const override {return true;}
+    bool CheckSchnorrSignature(std::span<const unsigned char>,std::span<const unsigned char>,
+        SigVersion,ScriptExecutionData&,ScriptError*) const override {return true;}
+};
 } // namespace
 
 BOOST_AUTO_TEST_SUITE(mldsa44_node_tests)
@@ -159,5 +191,123 @@ BOOST_AUTO_TEST_CASE(snapshot_is_owned_and_signer_policy_is_not_consensus)
     BOOST_CHECK(!Verify(f.tx,f.coins,f.params));
     f.tx.vout.resize(101,CTxOut{0,CScript{}});f.tx.vout[1].scriptPubKey.resize(10001);
     BOOST_CHECK_NO_THROW((node::Snapshot{MakeTransactionRef(f.tx),f.coins}));
+}
+BOOST_AUTO_TEST_CASE(script_native_v2_is_explicit_and_bound_to_actual_input)
+{
+    Fixture f;auto tx=MakeTransactionRef(f.tx);node::Snapshot snapshot{tx,f.coins};
+    BaseSignatureChecker fallback;node::ScriptChecker checker{snapshot,f.params,0,fallback};
+    const auto script=f.coins.AccessCoin(tx->vin[0].prevout).out.scriptPubKey;
+    constexpr unsigned flags=SCRIPT_VERIFY_P2SH|SCRIPT_VERIFY_WITNESS|SCRIPT_VERIFY_CLEANSTACK;
+    ScriptError error=SCRIPT_ERR_UNKNOWN_ERROR;
+    BOOST_CHECK(snapshot.IsApplicable(0));BOOST_CHECK(!snapshot.IsApplicable(2));
+    BOOST_CHECK(VerifyScript({},script,&tx->vin[0].scriptWitness,flags|SCRIPT_VERIFY_MLDSA44,checker,&error));
+    BOOST_CHECK_EQUAL(error,SCRIPT_ERR_OK);
+    node::ScriptChecker second{snapshot,f.params,1,fallback};
+    BOOST_CHECK(VerifyScript({},script,&tx->vin[1].scriptWitness,flags|SCRIPT_VERIFY_MLDSA44,second,&error));
+    // Select the wrapping constructor, not a copy of the inherited deferrer.
+    const BaseSignatureChecker& underlying=checker;
+    DeferringSignatureChecker forwarded{underlying};
+    BOOST_CHECK(VerifyScript({},script,&tx->vin[0].scriptWitness,flags|SCRIPT_VERIFY_MLDSA44,forwarded,&error));
+    BOOST_CHECK(!VerifyScript({},script,&tx->vin[0].scriptWitness,flags|SCRIPT_VERIFY_MLDSA44,fallback,&error));
+    BOOST_CHECK_EQUAL(error,SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+    auto changed_script=script;changed_script[4]^=1;
+    BOOST_CHECK(!VerifyScript({},changed_script,&tx->vin[0].scriptWitness,flags|SCRIPT_VERIFY_MLDSA44,checker,&error));
+    auto changed_witness=tx->vin[0].scriptWitness;changed_witness.stack[0][100]^=1;
+    BOOST_CHECK(!VerifyScript({},script,&changed_witness,flags|SCRIPT_VERIFY_MLDSA44,checker,&error));
+    node::ScriptChecker wrong_input{snapshot,f.params,1,fallback};
+    BOOST_CHECK(!VerifyScript({},script,&tx->vin[0].scriptWitness,flags|SCRIPT_VERIFY_MLDSA44,wrong_input,&error));
+    auto inherited=CChainParams::RegTest({});node::ScriptChecker wrong_network{snapshot,*inherited,0,fallback};
+    BOOST_CHECK(!VerifyScript({},script,&tx->vin[0].scriptWitness,flags|SCRIPT_VERIFY_MLDSA44,wrong_network,&error));
+    BOOST_CHECK(VerifyScript({},script,&changed_witness,flags,checker,&error));
+    BOOST_CHECK(!VerifyScript({},script,&changed_witness,flags|SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM,checker,&error));
+    BOOST_CHECK_EQUAL(error,SCRIPT_ERR_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM);
+}
+BOOST_AUTO_TEST_CASE(script_v2_shape_and_crypto_fail_closed_without_generic_limit_change)
+{
+    constexpr unsigned flags=SCRIPT_VERIFY_P2SH|SCRIPT_VERIFY_WITNESS|SCRIPT_VERIFY_MLDSA44;
+    for(int mutation=0;mutation<8;++mutation) {
+        Fixture f;auto& stack=f.tx.vin[0].scriptWitness.stack;
+        switch(mutation) {
+        case 0:stack.clear();break;
+        case 1:stack.pop_back();break;
+        case 2:stack.push_back({});break;
+        case 3:stack[0].pop_back();break;
+        case 4:stack[0].push_back(1);break;
+        case 5:stack[1].pop_back();break;
+        case 6:stack[1].push_back(1);break;
+        case 7:stack[0][100]^=1;break;
+        }
+        auto tx=MakeTransactionRef(f.tx);node::Snapshot snapshot{tx,f.coins};
+        BaseSignatureChecker fallback;node::ScriptChecker checker{snapshot,f.params,0,fallback};
+        const auto script=f.coins.AccessCoin(tx->vin[0].prevout).out.scriptPubKey;
+        ScriptError error=SCRIPT_ERR_OK;
+        BOOST_CHECK_MESSAGE(!VerifyScript({},script,&tx->vin[0].scriptWitness,flags,checker,&error),"malformed v2 mutation "<<mutation);
+        BOOST_CHECK_EQUAL(error,SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+        if(mutation<7) {
+            PermissiveShapeProbe probe;
+            BOOST_CHECK(!VerifyScript({},script,&tx->vin[0].scriptWitness,flags,probe,&error));
+            BOOST_CHECK_EQUAL(probe.calls,0U);
+        }
+    }
+    BaseSignatureChecker checker;std::vector<Bytes> stack;ScriptError error=SCRIPT_ERR_OK;
+    BOOST_CHECK(!EvalScript(stack,CScript{}<<Bytes(521,1),0,checker,SigVersion::BASE,&error));
+    BOOST_CHECK_EQUAL(error,SCRIPT_ERR_PUSH_SIZE);
+}
+BOOST_AUTO_TEST_CASE(script_applicability_and_legacy_checker_delegation_are_separate)
+{
+    Fixture f;f.Replace(1,51000,CScript{}<<OP_TRUE);
+    auto tx=MakeTransactionRef(f.tx);node::Snapshot snapshot{tx,f.coins};
+    BOOST_CHECK(snapshot.IsApplicable(0));BOOST_CHECK(!snapshot.IsApplicable(1));
+    LegacyProbe inherited;node::ScriptChecker checker{snapshot,f.params,1,inherited};
+    BOOST_CHECK(checker.CheckLockTime(CScriptNum{1}));BOOST_CHECK(checker.CheckSequence(CScriptNum{1}));
+    BOOST_CHECK(checker.CheckECDSASignature({},{},{},SigVersion::BASE));
+    ScriptExecutionData data;
+    BOOST_CHECK(checker.CheckSchnorrSignature({},{},SigVersion::TAPROOT,data,nullptr));
+    BOOST_CHECK(!checker.CheckMLDSA44Witness({},{}));
+    // The old v2 signatures no longer authorize the changed mixed prevouts.
+    BOOST_CHECK(!snapshot.VerifyInput(f.params,0));
+}
+BOOST_AUTO_TEST_CASE(script_unrelated_and_nested_programs_keep_unknown_semantics)
+{
+    Fixture f;auto tx=MakeTransactionRef(f.tx);node::Snapshot snapshot{tx,f.coins};
+    BaseSignatureChecker fallback;node::ScriptChecker checker{snapshot,f.params,0,fallback};
+    constexpr unsigned flags=SCRIPT_VERIFY_P2SH|SCRIPT_VERIFY_WITNESS|SCRIPT_VERIFY_MLDSA44;
+    CScriptWitness witness;witness.stack={Bytes(700,1)};ScriptError error=SCRIPT_ERR_UNKNOWN_ERROR;
+    for(auto [version,size]:{std::pair{OP_2,31},std::pair{OP_3,32}}) {
+        CScript script;script<<version<<Bytes(size,1);
+        BOOST_CHECK(VerifyScript({},script,&witness,flags,checker,&error));
+        BOOST_CHECK(!VerifyScript({},script,&witness,flags|SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM,checker,&error));
+    }
+    const auto native=f.coins.AccessCoin(tx->vin[0].prevout).out.scriptPubKey;
+    const auto nested=GetScriptForDestination(ScriptHash{native});
+    const auto redeem=CScript{}<<Bytes(native.begin(),native.end());
+    BOOST_CHECK(VerifyScript(redeem,nested,&witness,flags,checker,&error));
+    BOOST_CHECK(!VerifyScript(redeem,nested,&witness,flags|SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM,checker,&error));
+}
+BOOST_AUTO_TEST_CASE(script_distinct_keys_and_valid_mixed_input_dispatch)
+{
+    constexpr unsigned flags=SCRIPT_VERIFY_P2SH|SCRIPT_VERIFY_WITNESS|SCRIPT_VERIFY_CLEANSTACK|
+        SCRIPT_VERIFY_MLDSA44|SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM;
+    for(size_t profile=0;profile<2;++profile) {
+        ScriptFixture f{profile};auto tx=MakeTransactionRef(f.tx);node::Snapshot snapshot{tx,f.coins};
+        for(size_t i=0;i<2;++i) {
+            BOOST_CHECK_EQUAL(HexStr(snapshot.Message(Network::REGTEST,i)),f.data["messages"][i].get_str());
+            BOOST_CHECK_EQUAL(snapshot.IsApplicable(i),!f.data["witnesses"][i].empty());
+            BaseSignatureChecker inherited;node::ScriptChecker checker{snapshot,f.params,i,inherited};
+            ScriptError error=SCRIPT_ERR_UNKNOWN_ERROR;
+            BOOST_CHECK(VerifyScript({},f.coins.AccessCoin(tx->vin[i].prevout).out.scriptPubKey,
+                &tx->vin[i].scriptWitness,flags,checker,&error));
+            BOOST_CHECK_EQUAL(error,SCRIPT_ERR_OK);
+        }
+        if(profile==0) {
+            std::swap(f.tx.vin[0].scriptWitness,f.tx.vin[1].scriptWitness);
+            auto swapped=MakeTransactionRef(f.tx);node::Snapshot bad{swapped,f.coins};
+            for(size_t i=0;i<2;++i) {
+                BaseSignatureChecker inherited;node::ScriptChecker checker{bad,f.params,i,inherited};ScriptError error;
+                BOOST_CHECK(!VerifyScript({},f.coins.AccessCoin(swapped->vin[i].prevout).out.scriptPubKey,
+                    &swapped->vin[i].scriptWitness,flags,checker,&error));
+            }
+        }
+    }
 }
 BOOST_AUTO_TEST_SUITE_END()

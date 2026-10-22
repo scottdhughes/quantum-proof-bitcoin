@@ -2058,6 +2058,16 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
             }
             return set_success(serror);
         }
+    } else if (witversion == 2 && program.size() == 32 && !is_p2sh && (flags & SCRIPT_VERIFY_MLDSA44)) {
+        // Dedicated native-v2 path: large ML-DSA items never pass through
+        // ExecuteWitnessScript and do not relax generic/rc2/Taproot limits.
+        if (stack.size() != 2 || stack[0].size() != 2420 || stack[1].size() != 1312) {
+            return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+        }
+        if (!checker.CheckMLDSA44Witness(program, stack)) {
+            return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+        }
+        return set_success(serror);
     } else if (!is_p2sh && CScript::IsPayToAnchor(witversion, program)) {
         return true;
     } else {

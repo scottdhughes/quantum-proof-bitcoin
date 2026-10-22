@@ -4,6 +4,7 @@
 #define BITCOIN_CRYPTO_MLDSA44_NODE_H
 #include <crypto/mldsa44/contract.h>
 #include <primitives/transaction.h>
+#include <script/interpreter.h>
 class CChainParams;
 class CCoinsViewCache;
 namespace pqbtc::mldsa44::node {
@@ -24,11 +25,27 @@ public:
     Snapshot(Snapshot&&)=delete;
     Snapshot& operator=(Snapshot&&)=delete;
     Hash Message(Network network,size_t index) const; // byte-model interoperability only
+    bool IsApplicable(size_t index) const;
     // Signature correctness only, not current Coin liveness/maturity/activation.
     // Callers must discard acceptance results after Coin-state/context changes;
     // this owned snapshot is not a cross-chain or best-block-keyed result cache.
     bool VerifyInput(const CChainParams& params,size_t index) const;
+    bool CheckWitness(const CChainParams& params,size_t index,
+        std::span<const unsigned char> program,std::span<const Bytes> witness) const;
     const CTransaction& Transaction() const { return *m_transaction; }
+};
+// Snapshot, params and inherited checker must outlive this scoped checker.
+// No caching or network admission is granted by constructing it.
+class ScriptChecker final : public DeferringSignatureChecker {
+    const Snapshot& m_snapshot;
+    const CChainParams& m_params;
+    size_t m_index;
+public:
+    ScriptChecker(const Snapshot& snapshot,const CChainParams& params,size_t index,
+        const BaseSignatureChecker& inherited):DeferringSignatureChecker(inherited),
+        m_snapshot(snapshot),m_params(params),m_index(index) {}
+    bool CheckMLDSA44Witness(std::span<const unsigned char> program,
+        std::span<const Bytes> witness) const override;
 };
 } // namespace pqbtc::mldsa44::node
 #endif
