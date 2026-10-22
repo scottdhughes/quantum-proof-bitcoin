@@ -3,6 +3,7 @@
 #ifndef BITCOIN_CRYPTO_MLDSA44_SIGNER_WALLET_H
 #define BITCOIN_CRYPTO_MLDSA44_SIGNER_WALLET_H
 #include <crypto/mldsa44/signer/wallet_crypto.h>
+#include <crypto/mldsa44/signer/ipc.h>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -41,6 +42,8 @@ public:
     void Lock();
     Address Reserve(uint8_t branch);
     Address Public(uint8_t branch, uint32_t index);
+    Witnesses SignTransaction(const Transaction& tx, std::span<const Output> prevouts,
+        std::span<const Derivation> paths, uint64_t fee_cap);
     WalletStatus Status() const;
 };
 } // namespace pqbtc::mldsa44::signer

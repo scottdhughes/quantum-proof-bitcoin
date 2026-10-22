@@ -54,7 +54,8 @@ def main():
     frozen = reader.validate_sources(ROOT); frozen_hashes = reader.source_hashes()
     sources = ["src/crypto/mldsa44/verify.c", "contrib/ml-dsa-key-lifecycle/key_lifecycle.c", "src/crypto/sha256.cpp",
                "src/crypto/mldsa44/contract.cpp", "src/crypto/mldsa44/signer/wallet_crypto.cpp",
-               "src/crypto/mldsa44/signer/wallet.cpp", "contrib/ml-dsa-signer/wallet_smoke.cpp"]
+               "src/crypto/mldsa44/signer/wallet.cpp", "src/crypto/mldsa44/signer/ipc.cpp", "src/crypto/mldsa44/signer/session.cpp",
+               "contrib/ml-dsa-signer/wallet_smoke.cpp", "contrib/ml-dsa-signer/ipc_smoke.cpp"]
     all_owned = [path for path in (ROOT / "src/crypto/mldsa44").rglob("*") if path.is_file()]
     all_owned += [path for path in (ROOT / "contrib/ml-dsa-signer").rglob("*") if path.is_file() and "__pycache__" not in path.parts]
     source_before = {str(path.relative_to(ROOT)): sha(path) for path in all_owned}
@@ -74,16 +75,29 @@ def main():
                 path = Path(raw).resolve()
                 name = str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else "openssl/" + str(path.relative_to(prefix))
                 dependencies[name] = sha(path)
-        binary = build / "wallet-smoke"
-        command = [cxx, *flags, "-pthread", *objects, prefix / "lib/libcrypto.a", "-ldl", "-Wl,--wrap=fsync", "-o", binary]
-        commands.append([str(x) for x in command]); run(command)
-        native = json.loads(run([binary, build / "wallet-state"]))
-        if native.get("result") != "PASS" or native.get("record_bytes") != 167:
-            raise RuntimeError("incomplete wallet observations")
+        native = {}; executable_paths = []
+        for name, smoke_object in [("wallet", objects[-2]), ("ipc", objects[-1])]:
+            binary = build / (name + "-smoke"); executable_paths.append(binary)
+            command = [cxx, *flags, "-pthread", *objects[:-2], smoke_object, prefix / "lib/libcrypto.a", "-ldl", "-Wl,--wrap=fsync", "-o", binary]
+            commands.append([str(x) for x in command]); run(command)
+            native[name] = json.loads(run([binary, build / (name + "-state")]))
+            if native[name].get("result") != "PASS": raise RuntimeError("incomplete native observations: " + name)
+        if native["wallet"].get("record_bytes") != 167 or native["ipc"].get("signatures_verified") != 2:
+            raise RuntimeError("incomplete wallet/IPC observations")
+        sys.path.insert(0, str(ROOT / "contrib/ml-dsa-production-contract"))
+        import ipc_v1
+        wire = bytes.fromhex(native["ipc"]["sign_request_hex"])
+        identity, transaction, paths = ipc_v1.decode_sign_request(wire)
+        if ipc_v1.encode_sign_request(identity, transaction, paths) != wire:
+            raise RuntimeError("native/Python IPC body join mismatch")
+        symbols = run(["nm", "-a", objects[6]])
+        import re
+        if re.search(r"Wallet|Secret|key_sign|key_import|OPENSSL|EVP_|runtime_init|RandomBytes", symbols):
+            raise RuntimeError("private machinery in public IPC codec")
         dynamic = run(["readelf", "-d", binary])
         if "libcrypto.so" in dynamic or "libssl.so" in dynamic: raise RuntimeError("dynamic system crypto fallback")
         elf = run(["readelf", "-h", binary])
-        binaries = {path.name: sha(path) for path in [*objects, binary]}
+        binaries = {path.name: sha(path) for path in [*objects, *executable_paths]}
     after = reader.runtime_identity(args.expect_head)
     if before != after or frozen != reader.validate_sources(ROOT) or frozen_hashes != reader.source_hashes():
         raise RuntimeError("frozen inputs/runtime changed")
@@ -91,9 +105,9 @@ def main():
         raise RuntimeError("owned inputs changed")
     if crypto_before != {"static_libcrypto": sha(prefix / "lib/libcrypto.a"), "cli": sha(prefix / "bin/openssl")}:
         raise RuntimeError("dependency changed")
-    print(json.dumps({"result": "PASS", "scope": "EXPERIMENTAL_NATIVE_WALLET_ONLY", "node_linked": False,
+    print(json.dumps({"result": "PASS", "scope": "EXPERIMENTAL_NATIVE_WALLET_AND_IPC_CODEC", "node_linked": False,
         "production_admitted": False, "architecture": platform.machine(), "compiler": run([cc, "--version"]).splitlines()[0],
-        "sanitized": args.sanitize, "native": native, "runtime_before": before, "runtime_after": after,
+        "sanitized": args.sanitize, "native": native, "python_ipc_join": "PASS", "public_codec_symbol_audit": "PASS", "runtime_before": before, "runtime_after": after,
         "openssl": {**crypto_before, "version": version, "source_archive_sha256": ARCHIVE_SHA,
                     "library_instrumented_by_this_run": False, "build_origin": "reused pinned contained build; not independent binary attestation"},
         "source_hashes": source_before, "frozen_source_hashes": frozen_hashes, "capsule": frozen,

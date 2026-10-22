@@ -64,7 +64,9 @@ Recovery requires expected wallet ID and explicit minimum receive/change counter
 
 ### Task 2: Wallet signing and exact public IPC codec
 
-**Files:** create src/crypto/mldsa44/signer/{ipc.h,ipc.cpp}; extend wallet and smoke.
+**Files:** create src/crypto/mldsa44/signer/{error.h,ipc.h,ipc.cpp,session.h,session.cpp};
+extend wallet and add ipc_smoke.cpp. Public codec stays separate from the secret-
+owning Session so a node client never inherits wallet/private-key link dependencies.
 
 **Interfaces:** DecodeRequest(header/body)->Frame, EncodeResponse(Frame,status,payload),
 DecodeSignRequest->Transaction/prevouts/branch-index paths. Session binds HELLO,

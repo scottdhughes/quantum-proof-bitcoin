@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying COPYING.
 #ifndef BITCOIN_CRYPTO_MLDSA44_SIGNER_SECRET_H
 #define BITCOIN_CRYPTO_MLDSA44_SIGNER_SECRET_H
+#include <crypto/mldsa44/signer/error.h>
 #include <cstdint>
 #include <cstdlib>
 #include <span>
@@ -12,13 +13,6 @@
 
 extern "C" int pqbtc_mldsa44_key_runtime_init(void);
 namespace pqbtc::mldsa44::signer {
-enum class Code : uint16_t { INVALID_FRAME=1, VERSION, BINDING, AUTH, LOCKED, LIMIT,
-    UNSUPPORTED, REPLAY, VALIDATION, ENTROPY, SELFVERIFY, STORAGE, INTERNAL };
-struct Error : std::runtime_error {
-    Code code;
-    explicit Error(Code value) : std::runtime_error("ML-DSA signer operation refused"), code(value) {}
-};
-inline void Require(bool value, Code code = Code::VALIDATION) { if (!value) throw Error(code); }
 inline void Zero(std::span<unsigned char> data)
 {
     volatile unsigned char* p = data.data();

@@ -41,6 +41,21 @@ operator wallet. Compiler controls are strict and actual stderr must be empty.
 Fault injection lives only in the test executable's linker-wrapped fsync, not in
 production classes. A simulated filesystem error is not a physical power-cut test.
 
+The public IPC codec is a separate object from the secret-owning session. It
+enforces request/response direction, nonzero16-byte correlation IDs,32-byte
+headers,1MiB bodies, exact lengths, minimal CompactSize and fixed status shapes.
+The serial session requires exact network/spec HELLO, rejects reused IDs and
+allows at most64 completed operations. The future transport must authenticate
+peer credentials before giving a session any request bytes.
+
+SIGN_TX reconstructs messages internally, verifies all issued paths/prevout
+commitments and the operator fee cap, then releases one all-or-nothing set of
+self-verified signatures. It exposes no arbitrary-digest signing function. Output
+policy allows v2/32 or zero-value OP_RETURN with one direct length-minimal push:
+length0..75 directly,76..80 via PUSHDATA1. This is local signer policy, not a new
+global Script/MINIMALDATA or consensus rule. Metadata comes from the authorized
+node; the eventual node must verify against its real UTXO set independently.
+
 Protocol background: [CONTRACT-1](../../docs/ML_DSA_44_PRODUCTION_CONTRACT_V1.md).
 Implementation references: [OpenSSL3.6 AEAD API](https://docs.openssl.org/3.6/man3/EVP_EncryptInit/),
 [OpenSSL3.6 scrypt](https://docs.openssl.org/3.6/man7/EVP_KDF-SCRYPT/).

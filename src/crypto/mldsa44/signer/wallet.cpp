@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying COPYING.
 #include <crypto/mldsa44/signer/wallet.h>
 #include "../../../../contrib/ml-dsa-key-lifecycle/key_lifecycle.h"
+#include "../../../../contrib/ml-dsa-engineering/pqbtc_mldsa44.h"
 
 #include <algorithm>
 #include <cerrno>
@@ -191,5 +192,48 @@ WalletStatus Wallet::Status() const
 {
     std::lock_guard guard{m_mutex}; Require(getpid() == m_origin, Code::STORAGE);
     return {!m_secret, m_info.id, m_info.next, m_info.generation};
+}
+Witnesses Wallet::SignTransaction(const Transaction& tx, std::span<const Output> prevouts,
+    std::span<const Derivation> paths, uint64_t fee_cap)
+{
+    std::lock_guard guard{m_mutex}; CheckLive();
+    try { (void)SerializeUnsigned(tx,prevouts); } catch (const std::invalid_argument&) { throw Error(Code::VALIDATION); }
+    Require(paths.size()==tx.inputs.size() && fee_cap<=2100000000000000ULL);
+    uint64_t incoming{0},outgoing{0};
+    for (const auto& p:prevouts) incoming+=p.amount;
+    for (const auto& output:tx.outputs) {
+        outgoing+=output.amount; const auto& script=output.script;
+        bool v2=script.size()==34 && script[0]==0x52 && script[1]==0x20;
+        bool data=false;
+        if (output.amount==0 && script.size()>=2 && script[0]==0x6a) {
+            size_t size=script[1];
+            if (size<=75) data=script.size()==size+2;
+            else if (size==0x4c && script.size()>=3) data=script[2]>=76 && script[2]<=80 && script.size()==size_t{script[2]}+3;
+        }
+        Require(v2 || data);
+    }
+    Require(incoming>=outgoing && incoming-outgoing<=fee_cap);
+    std::vector<Address> addresses;
+    for (size_t i=0;i<paths.size();++i) {
+        const auto& path=paths[i]; Require(path.branch<=1 && path.index<(path.branch==0?m_info.next.receive:m_info.next.change));
+        auto address=PublicUnchecked(path.branch,path.index);
+        const auto& script=prevouts[i].script;
+        Require(script.size()==34 && script[0]==0x52 && script[1]==0x20 && std::equal(address.program.begin(),address.program.end(),script.begin()+2));
+        addresses.push_back(address);
+    }
+    PreparedTransaction prepared{tx,prevouts}; Witnesses result;
+    constexpr unsigned char context[]{"PQBTC/MLDSA44/tx/v1"};
+    for (size_t i=0;i<paths.size();++i) {
+        Secret<32> seed; DeriveSeed(m_secret->Root(),m_network,paths[i].branch,paths[i].index,seed.span());
+        Key key; Require(pqbtc_mldsa44_key_import_seed(&key.owner,seed.data(),32)==0,Code::INTERNAL); Zero(seed.span());
+        auto message=SigningMessage(m_network,prepared,i);
+        std::array<Bytes,2> witness{Bytes(2420),Bytes(addresses[i].public_key.begin(),addresses[i].public_key.end())};
+        auto code=pqbtc_mldsa44_key_sign_hedged(key.owner,witness[0].data(),witness[0].size(),message.data(),32,context,sizeof(context)-1);
+        if (code<=PQBTC_MLDSA44_ERR_ENTROPY_SOURCE && code>=PQBTC_MLDSA44_ERR_ENTROPY_REPEAT) throw Error(Code::ENTROPY);
+        Require(code==0,Code::INTERNAL);
+        Require(VerifyWitness(m_network,prepared,i,addresses[i].program,witness),Code::SELFVERIFY);
+        result.push_back(std::move(witness));
+    }
+    return result;
 }
 } // namespace pqbtc::mldsa44::signer
