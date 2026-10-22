@@ -1,6 +1,6 @@
 # PQBTC Signature Production Readiness
 
-## Status: RELEASE_HOLD - AWAITING_EXTERNAL_REVIEW
+## Status: RELEASE_HOLD - TECHNICAL_QUALIFICATION_IN_PROGRESS
 ## Spec-ID: PQSIG-PRODUCTION-READINESS-v1
 ## Decided: 2026-07-18
 ## Evidence-Updated: 2026-10-15
@@ -14,6 +14,10 @@ an unavailable external human reviewer. The external-human condition is NOT
 PERFORMED; it is a disclosed owner exception, not verified review. The historical
 review hold discussion below must not be used as a circular implementation ban.
 All technical qualification and explicit release-decision obligations remain.
+Historical `AWAITING_EXTERNAL_REVIEW` and prototype-only authorization statements
+below describe prior decisions. They do not override this owner exception or
+prohibit the now-authorized implementation. They also do not establish production
+admission. No independent human review is represented as performed.
 
 PQBTC has no signature profile approved for production use. Do not release a
 network that carries real value, represent `PQSig rc2` as cryptographically
@@ -30,8 +34,10 @@ PR `#183` reproduced the comparator evidence and concluded
 `REMEDIATE_AND_REREVIEW`: no Critical or High finding was identified, and seven
 Medium findings are tracked by issues `#184` through `#190`. That assessment is
 supporting evidence, not the signed review of an independent human
-cryptographer required by issue `#181`. The project remains
-`AWAITING_EXTERNAL_REVIEW`, and this release hold remains in force.
+cryptographer required by issue `#181`. At that historical checkpoint the project
+was `AWAITING_EXTERNAL_REVIEW`. External human review is still NOT PERFORMED; the
+owner exception now permits implementation. The release hold remains in force
+pending technical qualification and a separate release decision.
 
 `ML_DSA_44_BACKEND_ADMISSION.md` now records the first backend decision:
 `MLDSA_NATIVE_PORTABLE_C_ISOLATED_PROTOTYPE`. The pinned `mldsa-native`

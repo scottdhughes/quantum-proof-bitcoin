@@ -64,24 +64,31 @@ Bytes Binding(Network network)
 }
 void Outpoint(Bytes& out, const Input& input) { Append(out, input.hash); Put(out, input.index, 4); }
 void TxOutput(Bytes& out, const Output& output) { Put(out, output.amount, 8); Blob(out, output.script); }
-void Validate(const Transaction& tx, std::span<const Output> prevouts)
+void ValidateStructure(const Transaction& tx, std::span<const Output> prevouts)
 {
-    Require(!tx.inputs.empty() && tx.inputs.size() <= MAX_ITEMS && prevouts.size() == tx.inputs.size());
-    Require(!tx.outputs.empty() && tx.outputs.size() <= MAX_ITEMS);
+    Require(!tx.inputs.empty() && tx.inputs.size() <= 0xffffffffULL && prevouts.size() == tx.inputs.size());
+    Require(!tx.outputs.empty() && tx.outputs.size() <= 0xffffffffULL);
     std::set<std::pair<Hash, uint32_t>> seen;
     uint64_t incoming{0}, outgoing{0};
     for (size_t i = 0; i < tx.inputs.size(); ++i) {
         const auto& input = tx.inputs[i]; const auto& previous = prevouts[i];
         Require(!(input.hash == Hash{} && input.index == 0xffffffffU));
         Require(seen.emplace(input.hash, input.index).second);
-        Require(previous.amount <= MAX_MONEY && incoming <= MAX_MONEY - previous.amount && previous.script.size() <= MAX_SCRIPT);
+        Require(previous.amount <= MAX_MONEY && incoming <= MAX_MONEY - previous.amount);
         incoming += previous.amount;
     }
     for (const auto& output : tx.outputs) {
-        Require(output.amount <= MAX_MONEY && outgoing <= MAX_MONEY - output.amount && output.script.size() <= MAX_SCRIPT);
+        Require(output.amount <= MAX_MONEY && outgoing <= MAX_MONEY - output.amount);
         outgoing += output.amount;
     }
     Require(outgoing <= incoming);
+}
+void ValidateSignerPolicy(const Transaction& tx, std::span<const Output> prevouts)
+{
+    ValidateStructure(tx, prevouts);
+    Require(tx.inputs.size() <= MAX_ITEMS && tx.outputs.size() <= MAX_ITEMS);
+    for (const auto& output : prevouts) Require(output.script.size() <= MAX_SCRIPT);
+    for (const auto& output : tx.outputs) Require(output.script.size() <= MAX_SCRIPT);
 }
 class Reader {
     std::span<const unsigned char> m_data;
@@ -116,7 +123,7 @@ public:
 
 Bytes SerializeUnsigned(const Transaction& tx, std::span<const Output> prevouts)
 {
-    Validate(tx, prevouts);
+    ValidateSignerPolicy(tx, prevouts);
     Bytes out; Put(out, std::bit_cast<uint32_t>(tx.version), 4); Compact(out, tx.inputs.size());
     for (const auto& input : tx.inputs) { Outpoint(out, input); out.push_back(0); Put(out, input.sequence, 4); }
     Compact(out, tx.outputs.size()); for (const auto& output : tx.outputs) TxOutput(out, output);
@@ -138,22 +145,30 @@ Transaction ParseUnsigned(std::span<const unsigned char> wire, std::span<const O
         Output output{}; output.amount = reader.Number(8); output.script = reader.Blob();
         tx.outputs.push_back(std::move(output));
     }
-    tx.lock_time = reader.Number(4); reader.End(); Validate(tx, prevouts); return tx;
+    tx.lock_time = reader.Number(4); reader.End(); ValidateSignerPolicy(tx, prevouts); return tx;
 }
 
-Hash SigningMessage(Network network, const Transaction& tx, std::span<const Output> prevouts, size_t index)
+PreparedTransaction::PreparedTransaction(const Transaction& tx, std::span<const Output> prevouts)
 {
-    (void)SerializeUnsigned(tx, prevouts); Require(index < tx.inputs.size());
+    ValidateStructure(tx, prevouts);
     std::array<Bytes, 5> parts;
     for (size_t i = 0; i < tx.inputs.size(); ++i) {
         Outpoint(parts[0], tx.inputs[i]); Put(parts[1], prevouts[i].amount, 8);
         Blob(parts[2], prevouts[i].script); Put(parts[3], tx.inputs[i].sequence, 4);
+        m_scripts.push_back(prevouts[i].script);
     }
     for (const auto& output : tx.outputs) TxOutput(parts[4], output);
-    Bytes preimage = Binding(network);
-    Put(preimage, std::bit_cast<uint32_t>(tx.version), 4); Put(preimage, tx.lock_time, 4);
-    preimage.push_back(1); Put(preimage, tx.inputs.size(), 4); Put(preimage, tx.outputs.size(), 4);
-    for (const auto& part : parts) Append(preimage, Digest(part));
+    Put(m_body, std::bit_cast<uint32_t>(tx.version), 4); Put(m_body, tx.lock_time, 4);
+    m_body.push_back(1); Put(m_body, tx.inputs.size(), 4); Put(m_body, tx.outputs.size(), 4);
+    for (const auto& part : parts) Append(m_body, Digest(part));
+}
+
+Bytes NetworkBinding(Network network) { return Binding(network); }
+
+Hash SigningMessage(Network network, const PreparedTransaction& tx, size_t index)
+{
+    Require(index < tx.m_scripts.size());
+    Bytes preimage = Binding(network); Append(preimage, tx.m_body);
     Put(preimage, index, 4); return Tagged("PQBTC/MLDSA44/sighash/v1", preimage);
 }
 
@@ -163,18 +178,18 @@ Hash KeyCommitment(Network network, std::span<const unsigned char> pk)
     return Tagged("PQBTC/MLDSA44/key/v1", data);
 }
 
-bool VerifyWitness(Network network, const Transaction& tx, std::span<const Output> prevouts,
+bool VerifyWitness(Network network, const PreparedTransaction& tx,
     size_t index, std::span<const unsigned char> program, std::span<const Bytes> witness)
 {
     try {
-        Require(index < prevouts.size() && program.size() == 32 && witness.size() == 2);
+        Require(index < tx.m_scripts.size() && program.size() == 32 && witness.size() == 2);
         Require(witness[0].size() == 2420 && witness[1].size() == 1312);
         const auto commitment = KeyCommitment(network, witness[1]);
         Require(std::equal(commitment.begin(), commitment.end(), program.begin()));
-        const auto& script = prevouts[index].script;
+        const auto& script = tx.m_scripts[index];
         Require(script.size() == 34 && script[0] == 0x52 && script[1] == 0x20 &&
                 std::equal(program.begin(), program.end(), script.begin() + 2));
-        const auto message = SigningMessage(network, tx, prevouts, index);
+        const auto message = SigningMessage(network, tx, index);
         return pqbtc_mldsa44_node_verify(witness[0].data(), witness[0].size(),
             witness[1].data(), witness[1].size(), message.data(), message.size()) == 1;
     } catch (const std::invalid_argument&) { return false; }

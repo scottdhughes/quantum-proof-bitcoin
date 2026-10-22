@@ -5,7 +5,11 @@ This supersedes draft-0's open format choices, not its retained vector corpus.
 The admission JSON, `production_backend=NONE`, `consensus_enabled=false` and
 `release_hold=true` are unchanged. Neither this document nor its executable byte
 models implement an integrated node backend, wallet, signer, encryption service
-or production spend. The staged admission document still governs implementation.
+or production spend. The staged admission document and its
+[owner continuation amendment](ML_DSA_44_OWNER_CONTINUATION.md) govern
+implementation. This amendment supersedes the human-review entry prerequisite,
+not the byte grammar or technical qualification. External human review remains
+NOT PERFORMED; implementation is authorized under the disclosed owner exception.
 
 ## 1. Scope and trust
 
@@ -20,8 +24,9 @@ under a different UID, initializes core/dump/memory/fork policy before creating
 threads, and performs bounded serial signing. An authorized compromised node can
 request spends: the node and operator are in the authorization TCB. This is not
 a hardware-wallet confirmation boundary, root compromise defense, or proof of
-erasure on all platforms. Human review #181 remains required; automated reviews
-do not close it. All #184–190 binary/system qualifications remain open.
+erasure on all platforms. The original human-review #181 entry requirement is
+superseded by the owner continuation, not fulfilled by automated reviews.
+All #184–190 binary/system qualifications remain open.
 
 ## 2. Wire and address decision
 
@@ -268,10 +273,12 @@ The fixture root `00..1f` is PUBLIC and permanently unsafe for custody.
 No ML-DSA signature KAT, encryption KAT, human cryptographic review, constant-time,
 fault/erasure proof, aggregate budget or operational soak is claimed.
 
-Review this exact contract and executable corpus first. Resolve required findings,
-obtain #181 human acceptance of the production design, then authorize a reviewed
-testnet backend/wallet/restore implementation; qualify actual production binaries
-and system behavior, perform the dedicated soak and separately approve activation.
+The original sequence required #181 human acceptance before implementation. The
+owner continuation replaces that entry condition with a disclosed owner exception:
+resolve required findings, implement and separately review the testnet
+backend/wallet/restore path, qualify actual production binaries and system
+behavior, perform the dedicated soak and separately approve activation. Do not
+label the absent external human review as completed.
 Resource observations retain `PENDING_BASELINE_OBSERVATION`, trusted=false,
 promotion=false; there is no pointer advance or admission shortcut here.
 

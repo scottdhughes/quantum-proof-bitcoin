@@ -15,6 +15,14 @@ stage ordering below is retained as history; its human entry barrier no longer
 stops engineering. Production activation still requires technical qualification
 and a separate evidence-based go/no-go, not a metadata-only enablement.
 
+## Historical STAGES-v0 entry rules (superseded where noted)
+
+The following original scope paragraph and stage table describe the earlier
+design-only authorization. Their prohibition on experimental integration and
+their human-review entry requirement are superseded by the owner continuation
+above. They remain recorded, not current implementation blockers. Technical
+production exit criteria remain applicable.
+
 The approved initial signing scope is Linux x86_64 software custody, built with
 GCC and Clang. Hardware wallets are deferred, not implicitly supported. This
 records permission to correct the stage ordering, draft a production contract,
@@ -41,8 +49,9 @@ audit follows reviewed experimental implementation; full-block measurements and
 public soak follow a working testnet; hold removal follows qualification. None
 is a prerequisite to creating the artifact it must assess.
 
-Human review under issue181 is required before authorizing experimental
-integration. No unresolved Critical/High finding may pass; every Medium needs
+The original v0 rule required human review under issue181 before experimental
+integration; that entry rule is superseded, not fulfilled. No unresolved
+Critical/High finding may pass; every Medium needs
 verified remediation or explicit justified acceptance under the review contract.
 The author or an automated model cannot manufacture human independence. A
 stage document, vector PASS, JSON flag, or green CI is not an advancement decision.
@@ -65,5 +74,6 @@ stage document, vector PASS, JSON flag, or green CI is not an advancement decisi
   their own reviewed scope decisions. No current test constitutes general
   platform, constant-time, FIPS, whole-system erasure or operational approval.
 
-The initial byte model and its unresolved integration choices are in
-[the draft production contract](ML_DSA_44_PRODUCTION_CONTRACT.md).
+The retained initial byte model is in
+[the draft production contract](ML_DSA_44_PRODUCTION_CONTRACT.md). The current
+byte proposal is [CONTRACT-1](ML_DSA_44_PRODUCTION_CONTRACT_V1.md).
