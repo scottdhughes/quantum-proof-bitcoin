@@ -31,7 +31,7 @@ class Wallet {
     mutable std::mutex m_mutex;
     void CheckLive() const;
     Address PublicUnchecked(uint8_t branch, uint32_t index);
-    void Save(Counters next, bool create = false);
+    void Save(RecordInfo& info, Counters next, bool create = false);
 public:
     Wallet(const std::string& directory, Network network);
     ~Wallet();

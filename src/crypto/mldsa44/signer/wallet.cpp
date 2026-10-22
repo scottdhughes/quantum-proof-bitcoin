@@ -124,14 +124,14 @@ void Wallet::CheckLive() const
     Require(bool(m_secret), Code::LOCKED);
     Require(pqbtc_mldsa44_key_runtime_init() == 0, Code::INTERNAL);
 }
-void Wallet::Save(Counters next, bool create)
+void Wallet::Save(RecordInfo& info, Counters next, bool create)
 {
     CheckLive();
     try {
-        Require(m_info.generation < std::numeric_limits<uint64_t>::max(), Code::LIMIT);
-        auto record = SealRecord(m_secret->Root(), m_network, next, m_secret->Pass(), m_info.generation + 1);
+        Require(info.generation < std::numeric_limits<uint64_t>::max(), Code::LIMIT);
+        auto record = SealRecord(m_secret->Root(), m_network, next, m_secret->Pass(), info.generation + 1);
         Publish(m_directory, record, create);
-        ++m_info.generation; m_info.next = next;
+        ++info.generation; info.next = next;
     } catch (...) { m_secret.reset(); m_poisoned = true; throw; }
 }
 void Wallet::Create(std::span<const unsigned char> passphrase)
@@ -140,7 +140,7 @@ void Wallet::Create(std::span<const unsigned char> passphrase)
     Require(!m_secret, Code::VALIDATION);
     auto candidate = std::make_unique<State>(passphrase); RandomBytes(candidate->Root());
     auto id = WalletId(candidate->Root(), m_network);
-    m_info = {id, 0, {0, 0}}; m_secret = std::move(candidate); Save({0, 0}, true);
+    m_info = {id, 0, {0, 0}}; m_secret = std::move(candidate); Save(m_info, {0, 0}, true);
 }
 Address Wallet::PublicUnchecked(uint8_t branch, uint32_t index)
 {
@@ -160,7 +160,7 @@ void Wallet::Unlock(std::span<const unsigned char> passphrase, const Recovery& r
     Require(info.id == recovery.expected_id, Code::AUTH);
     auto candidate = std::make_unique<State>(passphrase);
     std::copy_n(plaintext.data(), 32, candidate->Root().begin()); Zero(plaintext.span());
-    m_info = info; m_secret = std::move(candidate);
+    m_secret = std::move(candidate);
     try {
         for (const auto& entry : recovery.public_entries) {
             Require(entry.branch <= 1 && entry.index < (entry.branch == 0 ? recovery.minimum.receive : recovery.minimum.change));
@@ -168,7 +168,12 @@ void Wallet::Unlock(std::span<const unsigned char> passphrase, const Recovery& r
             Require(observed.public_key == entry.public_key && observed.program == entry.program, Code::AUTH);
         }
         Counters floor{std::max(info.next.receive, recovery.minimum.receive), std::max(info.next.change, recovery.minimum.change)};
-        if (floor != info.next) Save(floor);
+        if (m_info.generation && m_info.id == info.id) {
+            floor.receive = std::max(floor.receive, m_info.next.receive);
+            floor.change = std::max(floor.change, m_info.next.change);
+        }
+        if (floor != info.next) Save(info, floor);
+        m_info = info;
     } catch (...) { m_secret.reset(); throw; }
 }
 void Wallet::Lock()
@@ -180,7 +185,7 @@ Address Wallet::Reserve(uint8_t branch)
     std::lock_guard guard{m_mutex}; CheckLive(); Require(branch <= 1);
     auto next = m_info.next; auto& index = branch == 0 ? next.receive : next.change;
     Require(index < 0x80000000U, Code::LIMIT);
-    auto address = PublicUnchecked(branch, index++); Save(next); return address;
+    auto address = PublicUnchecked(branch, index++); Save(m_info, next); return address;
 }
 Address Wallet::Public(uint8_t branch, uint32_t index)
 {

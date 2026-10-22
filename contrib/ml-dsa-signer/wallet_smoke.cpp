@@ -94,6 +94,14 @@ int main(int argc, char** argv)
             old_record = Read(directory / "wallet.dat"); Check(old_record.size() == 167);
             auto second = wallet.Reserve(0); Check(second.index == 1 && second.public_key != first.public_key);
             Check(Read(directory / "wallet.dat") != old_record);
+            // An older valid record cannot lower counters already known in this process.
+            wallet.Lock(); Write(directory / "wallet.dat", old_record);
+            wallet.Unlock(password, {wallet_id, {0, 0}, {}});
+            Check(wallet.Status().next == Counters{2, 0});
+            auto wrong_entry = first; wrong_entry.program[0] ^= 1;
+            wallet.Lock(); Write(directory / "wallet.dat", old_record);
+            Reject(Code::AUTH, [&] { wallet.Unlock(password, {wallet_id, {2, 0}, {wrong_entry}}); });
+            Check(wallet.Status().locked && wallet.Status().next == Counters{2, 0});
             wallet.Lock(); Check(wallet.Status().locked);
             Reject(Code::LOCKED, [&] { wallet.Reserve(0); });
             auto wrong_id = wallet_id; wrong_id[0] ^= 1;

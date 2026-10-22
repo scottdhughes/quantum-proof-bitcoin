@@ -21,7 +21,11 @@ Unlock requires the expected public wallet ID and explicit public high-water
 counters, plus optional public branch/index/key/program entries to regenerate
 and compare. The operator supplies a retained manifest or an explicitly approved
 scan range. There is no seed-only/gap-limit recovery guarantee and no detection
-of replacement with an older valid encrypted record or host/VM rollback.
+of replacement with an older valid encrypted record or host/VM rollback. A live
+Wallet object also preserves counters it already knew for that wallet ID, even
+across Lock/Unlock; a failed Unlock does not publish lower record counters.
+Optional public-entry comparison is a library API; the pilot CLI accepts only
+the explicit expected ID and counter floors, not a manifest-entry import.
 
 Run only in the approved bounded offline Linux environment:
 
@@ -55,11 +59,26 @@ kernel SO_PEERCRED; this is not protection against root or process-lineage proof
 The node-side client links public verification/framing only, not wallet/key-owner
 or libcrypto. The operator supplies the public-fixture password through a separate
 inherited descriptor (u16LE byte length, then exact bytes), never argv, environment
-or node IPC. Production operator UI/service-manager integration is not provided.
+or node IPC. Input and output descriptors must be distinct, already open and
+numbered at least3. `--operator-out-fd` emits this public checkpoint after
+Create/Unlock and after clean shutdown (never root/passphrase/private seeds):
+
+```
+MLDSA_WALLET_STATUS_V1 <wallet_id_hex32> <generation> <next_receive> <next_change>
+```
+
+The operator must retain these public records independently/off-host and approve
+the recovery scan range. They are not a per-reservation journal: an abrupt crash
+can leave the last off-host checkpoint behind the durable file and issued
+addresses, so retained address records or an explicit scan range are still
+required. Every restart uses `--restore`, not `--create`. Production operator
+UI/service-manager integration is not provided.
 
 One worker serializes custody operations behind a16-entry waiting queue and
-at most64 authenticated connections. Frames and writes have5s deadlines;
-operations have60s late-result discard without asynchronously killing secret
+at most64 authenticated connections. Frames, idle connections and writes have5s
+deadlines; clients must reconnect after idle closure. Private results are checked
+again for expiry before delivery and every write, not only when signing finishes.
+Operations have60s late-result discard without asynchronously killing secret
 work. LOCK prioritizes a wipe barrier, cancels queued address/sign work and
 discards older successful private outputs. Already delivered bytes cannot be
 retracted. Unlock after LOCK requires operator restart through the separate FD.
@@ -75,6 +94,18 @@ the actual private worker's queue bound, cancellation and deadline flags using a
 linker-wrapped pause before real signing; no test hook enters the pilot binary.
 This scheduler test does not itself prove real-time scheduling guarantees or
 all wire-level races. No claim of node UTXO/Script/RPC integration follows.
+Reports inspect every executable's ELF/dependencies and the pilot's own crypto
+version; the service runner checks executable hashes before and after execution
+and refuses optimized Python rather than allowing stripped checks to print PASS.
+
+Remaining experimental limitations: already-queued private work may still finish
+after disconnect (no output delivered; a committed index is not rolled back).
+Crash leftovers, a hard-link create interruption or a stale socket can require
+explicit offline operator recovery. Preserve the directory and inspect exact
+ownership/inodes/links before any manual repair; no automatic cleanup is supplied.
+Supported x86_64 release hardening flags, power-cut/fault/load coverage and service
+manager recovery remain qualification work, not supplied by this pilot's green
+tests. Client backlog error classification/reconnect ergonomics are also pending.
 
 SIGN_TX reconstructs messages internally, verifies all issued paths/prevout
 commitments and the operator fee cap, then releases one all-or-nothing set of

@@ -4,24 +4,34 @@
 // adding test controls to the production service API or pilot executable.
 #include <crypto/mldsa44/signer/service.cpp>
 #include "../ml-dsa-key-lifecycle/key_lifecycle.h"
+#include "../ml-dsa-engineering/pqbtc_mldsa44.h"
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
+#include <atomic>
+#include <type_traits>
 
 using namespace pqbtc::mldsa44;
 using namespace pqbtc::mldsa44::signer;
+static_assert(std::is_invocable_v<decltype(RunService),Wallet&,const ServiceOptions&,const std::atomic<bool>&>,
+    "service stop signal must be lock-free atomic across its threads");
 static unsigned checks{0};
 static void Check(bool ok) { if (!ok) throw std::runtime_error("scheduler fixture assertion"); ++checks; }
 static std::mutex gate_mutex;
 static std::condition_variable gate_wake;
 static bool block_sign{false}, entered{false};
+static int forced_code{0};static bool corrupt{false};static unsigned fault_call{0};
 extern "C" int __real_pqbtc_mldsa44_key_sign_hedged(const pqbtc_mldsa44_key*,uint8_t*,size_t,const uint8_t*,size_t,const uint8_t*,size_t);
 extern "C" int __wrap_pqbtc_mldsa44_key_sign_hedged(const pqbtc_mldsa44_key* key,uint8_t* signature,size_t size,
     const uint8_t* message,size_t message_size,const uint8_t* context,size_t context_size)
 {
     { std::unique_lock lock{gate_mutex}; entered=true; gate_wake.notify_all();
       gate_wake.wait(lock,[]{return !block_sign;}); }
-    return __real_pqbtc_mldsa44_key_sign_hedged(key,signature,size,message,message_size,context,context_size);
+    bool inject=fault_call && --fault_call==0;
+    if (inject && forced_code) return forced_code;
+    auto code=__real_pqbtc_mldsa44_key_sign_hedged(key,signature,size,message,message_size,context,context_size);
+    if (inject && corrupt && code==0) signature[0]^=1;
+    return code;
 }
 static void Block() { std::lock_guard lock{gate_mutex}; block_sign=true; entered=false; }
 static void Entered()
@@ -56,8 +66,38 @@ int main(int argc,char** argv)
         auto encoded=EncodeSignRequest({wallet.Status().id,tx,{{50000,script}},{{0,0}}});
         ServiceOptions options{"",1001,Network::REGTEST,{},1000};
         auto connection=std::make_shared<Connection>(-1,wallet,options);
+        auto now=Clock::now();
+        Result result{{connection,Request(2,30,{0}),0,now+std::chrono::seconds{60}},{0,{}},false};
+        Check(DiscardResult(result,1,now));result.job.frame.kind=3;Check(DiscardResult(result,1,now));
+        Check(!DiscardResult(result,0,now));Check(DiscardResult(result,0,result.job.deadline));
+        result.response.status=5;Check(!DiscardResult(result,1,now));
+        result.close=true;Check(DiscardResult(result,0,now));
+        for (uint8_t kind:{uint8_t{2},uint8_t{3}}) {
+            Reply(*connection,Request(kind,31),{0,Bytes{1}},now+std::chrono::seconds{60});
+            Check(DiscardPending(*connection,true,now));Check(!DiscardPending(*connection,false,now));
+            Check(DiscardPending(*connection,false,now+std::chrono::seconds{60}));
+            Reply(*connection,Request(kind,31),{5,{}},now-std::chrono::seconds{1});
+            Check(!DiscardPending(*connection,true,now));
+        }
+        connection->output.clear();
+        int peers[2];Check(socketpair(AF_UNIX,SOCK_STREAM|SOCK_CLOEXEC,0,peers)==0);
+        detail::Fd peer_a{peers[0]},peer_b{peers[1]};
+        Check(detail::Peer(peer_a.value,geteuid()));Check(!detail::Peer(peer_a.value,geteuid()+1));
         auto hello=NetworkBinding(Network::REGTEST);hello.resize(68,0);
         Check(connection->session.Handle(Request(1,1,hello)).status==0);
+        // Fail the second real input after the first succeeded: never return a partial set.
+        auto two=tx;auto second=input;second.hash[0]=2;two.inputs.push_back(second);two.outputs[0].amount=99000;
+        auto multi=EncodeSignRequest({wallet.Status().id,two,{{50000,script},{50000,script}},{{0,0},{0,0}}});
+        unsigned control_id=40;
+        for (int code:{PQBTC_MLDSA44_ERR_ENTROPY_SOURCE,PQBTC_MLDSA44_ERR_ENTROPY_LENGTH,
+                       PQBTC_MLDSA44_ERR_ENTROPY_ALL_ZERO,PQBTC_MLDSA44_ERR_ENTROPY_REPEAT}) {
+            forced_code=code;fault_call=2;
+            auto failed=connection->session.Handle(Request(3,control_id++,multi));
+            Check(failed.status==10 && failed.payload.empty() && fault_call==0);
+        }
+        forced_code=0;corrupt=true;fault_call=2;
+        auto invalid=connection->session.Handle(Request(3,control_id,multi));
+        Check(invalid.status==11 && invalid.payload.empty() && fault_call==0);corrupt=false;
         Worker worker; ReleaseOnFailure release;
         auto push=[&](Frame frame,bool barrier=false,Clock::time_point deadline=Clock::now()+std::chrono::seconds{60}) {
             return worker.Push({connection,std::move(frame),0,deadline},barrier);

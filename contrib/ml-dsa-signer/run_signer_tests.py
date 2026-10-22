@@ -117,9 +117,16 @@ def main():
                 client_symbols = run(["nm", "-a", binary])
                 if re.search(r"Wallet|Secret|key_sign|key_import|OPENSSL|EVP_|runtime_init|RandomBytes", client_symbols):
                     raise RuntimeError("private dependency in node-side client")
-        dynamic = run(["readelf", "-d", binary])
-        if "libcrypto.so" in dynamic or "libssl.so" in dynamic: raise RuntimeError("dynamic system crypto fallback")
-        elf = run(["readelf", "-h", binary])
+        executables = {}
+        for executable in executable_paths:
+            dynamic = run(["readelf", "-d", executable])
+            if "libcrypto.so" in dynamic or "libssl.so" in dynamic: raise RuntimeError("dynamic system crypto fallback: " + executable.name)
+            elf = run(["readelf", "-h", executable])
+            if "ELF64" not in elf: raise RuntimeError("unexpected ELF class: " + executable.name)
+            executables[executable.name] = {"sha256":sha(executable),"elf":elf,"dynamic":dynamic}
+        pilot_version = run([service_paths["pilot-signer"],"--valueless-pilot","--crypto-version"]).strip()
+        if pilot_version != native["wallet"]["runtime"] or not pilot_version.startswith("OpenSSL 3.6.5 "):
+            raise RuntimeError("actual signer crypto version mismatch")
         binaries = {path.name: sha(path) for path in [*objects, *executable_paths]}
     after = reader.runtime_identity(args.expect_head)
     if before != after or frozen != reader.validate_sources(ROOT) or frozen_hashes != reader.source_hashes():
@@ -134,7 +141,7 @@ def main():
         "openssl": {**crypto_before, "version": version, "source_archive_sha256": ARCHIVE_SHA,
                     "library_instrumented_by_this_run": False, "build_origin": "reused pinned contained build; not independent binary attestation"},
         "source_hashes": source_before, "frozen_source_hashes": frozen_hashes, "capsule": frozen,
-        "compiler_dependencies": dependencies, "binaries": binaries, "elf": elf, "dynamic": dynamic,
+        "compiler_dependencies": dependencies, "binaries": binaries, "executables": executables,"pilot_crypto_version":pilot_version,
         "commands": commands, "environment": ENV, "service_binaries": service_paths,
         "build_retained": bool(args.build_dir), "public_client_symbol_audit": "PASS"}, sort_keys=True))
 

@@ -25,6 +25,7 @@ struct Connection {
     unsigned count{0}; std::set<RequestId> seen;
     uint8_t output_kind{0}; uint16_t output_status{0};
     Clock::time_point deadline=Clock::now()+std::chrono::seconds{5};
+    Clock::time_point private_deadline=Clock::time_point::max();
     Connection(int fd,Wallet& wallet,const ServiceOptions& options):socket(fd),session(wallet,options.network,options.spec,options.fee_cap) {}
 };
 struct Job { std::shared_ptr<Connection> connection; Frame frame; uint64_t epoch; Clock::time_point deadline; };
@@ -70,15 +71,26 @@ struct SocketCleanup {
     ~SocketCleanup() { struct stat info{}; if (inode && fstatat(directory,name.c_str(),&info,AT_SYMLINK_NOFOLLOW)==0 &&
         S_ISSOCK(info.st_mode) && info.st_uid==geteuid() && info.st_ino==inode) (void)unlinkat(directory,name.c_str(),0); }
 };
-void Reply(Connection& connection,const Frame& frame,Response response)
+bool DiscardResult(const Result& result,uint64_t epoch,Clock::time_point now)
+{
+    return result.close || (result.response.status==0 && (result.job.frame.kind==2 || result.job.frame.kind==3) &&
+        (result.job.epoch!=epoch || now>=result.job.deadline));
+}
+bool DiscardPending(const Connection& connection,bool barrier,Clock::time_point now)
+{
+    return !connection.output.empty() && connection.output_status==0 &&
+        (connection.output_kind==2 || connection.output_kind==3) && (barrier || now>=connection.private_deadline);
+}
+void Reply(Connection& connection,const Frame& frame,Response response,Clock::time_point private_deadline=Clock::time_point::max())
 {
     connection.output_kind=frame.kind; connection.output_status=response.status;
     connection.output=EncodeResponse(frame,response); connection.written=0;
     connection.deadline=Clock::now()+std::chrono::seconds{5};
+    connection.private_deadline=private_deadline;
 }
 } // namespace
 
-void RunService(Wallet& wallet,const ServiceOptions& options,volatile std::sig_atomic_t& stop)
+void RunService(Wallet& wallet,const ServiceOptions& options,const std::atomic<bool>& stop)
 {
     Require(geteuid()!=0 && options.node_uid!=0 && options.node_uid!=geteuid(),Code::AUTH);
     Require(options.network==Network::REGTEST,Code::UNSUPPORTED);
@@ -99,19 +111,19 @@ void RunService(Wallet& wallet,const ServiceOptions& options,volatile std::sig_a
     Require(listen(listener.value,64)==0,Code::INTERNAL);
     uint64_t epoch{0}; bool locked_barrier{false};
     Worker worker; std::map<int,std::shared_ptr<Connection>> connections;
-    while (!stop) {
+    while (!stop.load(std::memory_order_relaxed)) {
         for (auto& result:worker.Drain()) {
             auto& c=*result.job.connection; if (c.socket.value<0) continue;
-            if (result.close || (result.response.status==0 && (result.job.frame.kind==2 || result.job.frame.kind==3) && result.job.epoch!=epoch)) {
+            if (DiscardResult(result,epoch,Clock::now())) {
                 c.socket=detail::Fd{}; continue;
             }
             if (result.job.frame.kind==1 && result.response.status==0) c.bound=true;
-            Reply(c,result.job.frame,std::move(result.response));
+            Reply(c,result.job.frame,std::move(result.response),result.job.deadline);
         }
         std::vector<pollfd> polls{{listener.value,POLLIN,0}};
         for (auto it=connections.begin();it!=connections.end();) {
             auto& c=*it->second;
-            if (c.socket.value<0 || ((!c.inflight || !c.output.empty()) && Clock::now()>=c.deadline)) { c.socket=detail::Fd{};it=connections.erase(it); }
+            if (c.socket.value<0 || DiscardPending(c,false,Clock::now()) || ((!c.inflight || !c.output.empty()) && Clock::now()>=c.deadline)) { c.socket=detail::Fd{};it=connections.erase(it); }
             else { polls.push_back({it->first,static_cast<short>(!c.output.empty()?POLLOUT:c.inflight?0:POLLIN),0});++it; }
         }
         auto polled=poll(polls.data(),polls.size(),50);
@@ -133,6 +145,7 @@ void RunService(Wallet& wallet,const ServiceOptions& options,volatile std::sig_a
             try {
                 if (polls[i].revents&(POLLHUP|POLLERR|POLLNVAL)) { c.socket=detail::Fd{}; continue; }
                 if (!c.output.empty() && (polls[i].revents&POLLOUT)) {
+                    if (DiscardPending(c,false,Clock::now())) { c.socket=detail::Fd{};continue; }
                     auto sent=send(c.socket.value,c.output.data()+c.written,c.output.size()-c.written,MSG_DONTWAIT|MSG_NOSIGNAL);
                     if (sent<0 && (errno==EINTR || errno==EAGAIN || errno==EWOULDBLOCK)) continue;
                     Require(sent>0,Code::INVALID_FRAME); c.written+=sent;
@@ -155,7 +168,7 @@ void RunService(Wallet& wallet,const ServiceOptions& options,volatile std::sig_a
                         locked_barrier=true;++epoch;
                         for (auto& [fd,pending]:connections) {
                             (void)fd;
-                            if (!pending->output.empty() && pending->output_status==0 && (pending->output_kind==2 || pending->output_kind==3)) pending->socket=detail::Fd{};
+                            if (DiscardPending(*pending,true,Clock::now())) pending->socket=detail::Fd{};
                         }
                     }
                     Job job{connection,std::move(frame),epoch,Clock::now()+std::chrono::seconds{60}};

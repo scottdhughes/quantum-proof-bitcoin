@@ -6,8 +6,10 @@
 #include <crypto/sha256.h>
 #include <algorithm>
 #include <cerrno>
+#include <atomic>
 #include <csignal>
 #include <fstream>
+#include <fcntl.h>
 #include <iostream>
 #include <limits>
 #include <map>
@@ -18,8 +20,9 @@
 
 using namespace pqbtc::mldsa44;
 using namespace pqbtc::mldsa44::signer;
-static volatile std::sig_atomic_t stopped{0};
-static void Stop(int) { stopped=1; }
+static std::atomic<bool> stopped{false};
+static_assert(decltype(stopped)::is_always_lock_free);
+static void Stop(int) { stopped.store(true,std::memory_order_relaxed); }
 static uint64_t Number(const std::string& text)
 {
     Require(!text.empty() && std::all_of(text.begin(),text.end(),[](char c){return c>='0'&&c<='9';}));
@@ -48,22 +51,44 @@ static void ReadOperator(int fd,std::span<unsigned char> output,detail::Clock::t
         Require(count>0); offset+=count;
     }
 }
+static void Checkpoint(int fd,const WalletStatus& status)
+{
+    constexpr char digits[]{"0123456789abcdef"}; std::string id;
+    for (auto byte:status.id) { id.push_back(digits[byte>>4]); id.push_back(digits[byte&15]); }
+    auto line="MLDSA_WALLET_STATUS_V1 "+id+" "+std::to_string(status.generation)+" "+
+        std::to_string(status.next.receive)+" "+std::to_string(status.next.change)+"\n";
+    auto deadline=detail::Clock::now()+std::chrono::seconds{5};size_t offset{0};
+    while (offset<line.size()) {
+        detail::Wait(fd,POLLOUT,deadline);auto count=write(fd,line.data()+offset,line.size()-offset);
+        if (count<0 && (errno==EINTR || errno==EAGAIN || errno==EWOULDBLOCK)) continue;
+        Require(count>0,Code::STORAGE);offset+=count;
+    }
+}
 int main(int argc,char** argv)
 {
     try {
-        const std::set<std::string> flags{"--valueless-pilot","--create","--restore","--acknowledge-restore-scan-range"};
+        const std::set<std::string> flags{"--valueless-pilot","--create","--restore","--acknowledge-restore-scan-range","--crypto-version"};
         const std::set<std::string> values{"--socket","--wallet-dir","--node-uid","--fee-cap","--spec-file","--operator-fd",
-            "--expected-wallet-id","--min-receive","--min-change"};
+            "--expected-wallet-id","--min-receive","--min-change","--operator-out-fd"};
         std::map<std::string,std::string> options;
         for (int i=1;i<argc;++i) {
             std::string name{argv[i]}; Require(!options.contains(name));
             if (flags.contains(name)) options[name]="yes";
             else { Require(values.contains(name) && i+1<argc); options[name]=argv[++i]; }
         }
+        if (options.contains("--crypto-version")) {
+            Require(options.size()==2 && options.contains("--valueless-pilot"));std::cout<<CryptoVersion()<<'\n';return 0;
+        }
         Require(options.contains("--valueless-pilot") && (options.contains("--create")!=options.contains("--restore")));
-        for (auto name:{"--socket","--wallet-dir","--node-uid","--fee-cap","--spec-file","--operator-fd"}) Require(options.contains(name));
+        for (auto name:{"--socket","--wallet-dir","--node-uid","--fee-cap","--spec-file","--operator-fd","--operator-out-fd"}) Require(options.contains(name));
         auto uid=Number(options.at("--node-uid")),fee=Number(options.at("--fee-cap")),fd=Number(options.at("--operator-fd"));
-        Require(uid>0 && uid<std::numeric_limits<uid_t>::max() && uid!=geteuid() && geteuid()!=0 && fd<=std::numeric_limits<int>::max(),Code::AUTH);
+        auto out_fd=Number(options.at("--operator-out-fd"));
+        Require(uid>0 && uid<std::numeric_limits<uid_t>::max() && uid!=geteuid() && geteuid()!=0 && fd>=3 &&
+            fd<=std::numeric_limits<int>::max() && out_fd>=3 && out_fd<=std::numeric_limits<int>::max() && out_fd!=fd,Code::AUTH);
+        struct stat input_info{},output_info{};
+        Require(fstat(fd,&input_info)==0 && fstat(out_fd,&output_info)==0,Code::AUTH);
+        auto output_flags=fcntl(out_fd,F_GETFL);Require(output_flags>=0 && (output_flags&O_ACCMODE)!=O_RDONLY &&
+            fcntl(out_fd,F_SETFL,output_flags|O_NONBLOCK)==0,Code::AUTH);
         Recovery recovery{};
         if (options.contains("--restore")) {
             for (auto name:{"--expected-wallet-id","--min-receive","--min-change","--acknowledge-restore-scan-range"}) Require(options.contains(name));
@@ -80,10 +105,11 @@ int main(int argc,char** argv)
         if (options.contains("--create")) wallet.Create(password.span().first(length));
         else wallet.Unlock(password.span().first(length),recovery);
         Zero(password.span());
+        Checkpoint(out_fd,wallet.Status());
         struct sigaction action{}; action.sa_handler=Stop; sigemptyset(&action.sa_mask);
         Require(sigaction(SIGTERM,&action,nullptr)==0 && sigaction(SIGINT,&action,nullptr)==0,Code::INTERNAL);
         RunService(wallet,{options.at("--socket"),static_cast<uid_t>(uid),Network::REGTEST,spec,fee},stopped);
-        wallet.Lock(); return 0;
+        wallet.Lock();Checkpoint(out_fd,wallet.Status());return 0;
     } catch (const Error& error) { std::cerr<<"MLDSA_PILOT_ERROR "<<static_cast<uint16_t>(error.code)<<'\n';return 1; }
     catch (const std::exception&) { std::cerr<<"MLDSA_PILOT_ERROR 13\n";return 1; }
 }
