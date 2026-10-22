@@ -1,0 +1,26 @@
+// Copyright (c) 2026 The PQBTC Core developers
+// Distributed under the MIT software license, see the accompanying COPYING.
+#ifndef BITCOIN_CRYPTO_MLDSA44_NODE_H
+#define BITCOIN_CRYPTO_MLDSA44_NODE_H
+#include <crypto/mldsa44/contract.h>
+#include <primitives/transaction.h>
+class CChainParams;
+class CCoinsViewCache;
+namespace pqbtc::mldsa44::node {
+// Effective C++ genesis/header and message start must match frozen CONTRACT-1 B.
+// This is an identity check, NOT an activation/absence-guard admission decision.
+Network ResolveNetwork(const CChainParams& params);
+class Snapshot {
+    CTransactionRef m_transaction;
+    std::vector<Bytes> m_programs;
+    PreparedTransaction m_prepared;
+public:
+    // Caller holds the node Coin-view validation lock throughout construction.
+    // All metadata is copied now; no references to mutable Coin entries escape.
+    Snapshot(CTransactionRef tx,const CCoinsViewCache& coins);
+    Hash Message(Network network,size_t index) const; // byte-model interoperability only
+    bool VerifyInput(const CChainParams& params,size_t index) const;
+    const CTransaction& Transaction() const { return *m_transaction; }
+};
+} // namespace pqbtc::mldsa44::node
+#endif

@@ -151,6 +151,11 @@ endif()
 add_executable(test_pqbtc ${TEST_PQBTC_SOURCES})
 
 include(TargetDataSources)
+if(ENABLE_EXPERIMENTAL_MLDSA44)
+  target_sources(test_pqbtc PRIVATE mldsa44_node_tests.cpp)
+  target_json_data_sources(test_pqbtc data/mldsa44_node.json)
+  target_link_libraries(test_pqbtc bitcoin_mldsa44_node)
+endif()
 if(PQBTC_ENABLE_LEGACY_UNIT_TESTS)
   target_json_data_sources(test_pqbtc
     data/base58_encode_decode.json

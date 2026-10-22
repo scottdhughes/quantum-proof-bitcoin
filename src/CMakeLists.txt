@@ -53,6 +53,20 @@ target_link_libraries(bitcoin_clientversion
 add_dependencies(bitcoin_clientversion generate_build_info)
 
 add_subdirectory(crypto)
+if(ENABLE_EXPERIMENTAL_MLDSA44)
+  # Public verifier/byte contract only: no key owner, signer, RNG or libcrypto.
+  add_library(bitcoin_mldsa44_verify STATIC EXCLUDE_FROM_ALL
+    crypto/mldsa44/verify.c
+    crypto/mldsa44/contract.cpp
+  )
+  target_include_directories(bitcoin_mldsa44_verify PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/crypto/mldsa44)
+  # The pinned portable capsule intentionally keeps unused internal helpers static.
+  target_compile_options(bitcoin_mldsa44_verify PRIVATE -Werror $<$<COMPILE_LANGUAGE:C>:-Wno-unused-function>)
+  target_link_libraries(bitcoin_mldsa44_verify PRIVATE core_interface bitcoin_crypto)
+  add_library(bitcoin_mldsa44_node STATIC EXCLUDE_FROM_ALL crypto/mldsa44/node.cpp)
+  target_compile_options(bitcoin_mldsa44_node PRIVATE -Werror)
+  target_link_libraries(bitcoin_mldsa44_node PUBLIC bitcoin_mldsa44_verify PRIVATE core_interface bitcoin_common)
+endif()
 add_subdirectory(util)
 if(ENABLE_IPC)
   add_subdirectory(ipc)

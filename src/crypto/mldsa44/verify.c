@@ -5,7 +5,6 @@
 static void pqbtc_mldsa44_node_zeroize(void* ptr, size_t size);
 
 #define MLD_CONFIG_FILE "verify_config.h"
-#include "../../../contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/mldsa_native.h"
 #include "../../../contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/mldsa_native.c"
 
 static void pqbtc_mldsa44_node_zeroize(void* ptr, size_t size)
