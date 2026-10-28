@@ -201,6 +201,20 @@ std::unique_ptr<CCoinsViewCursor> CCoinsViewDB::Cursor() const
     return i;
 }
 
+bool CCoinsViewDB::ForEachUnspentCoin(const std::function<bool(const COutPoint&, const Coin&)>& visitor) const
+{
+    std::unique_ptr<CDBIterator> cursor{m_db->NewIterator()};
+    for(cursor->Seek(DB_COIN);cursor->Valid();cursor->Next()) {
+        COutPoint out;CoinEntry entry(&out);Coin coin;
+        if(!cursor->GetKey(entry))throw std::runtime_error("Coin inventory key read failure");
+        if(entry.key!=DB_COIN)break;
+        if(!cursor->GetValue(coin))throw std::runtime_error("Coin inventory value read failure");
+        if(!coin.IsSpent() && !visitor(out,coin))return false;
+    }
+    cursor->CheckStatus();
+    return true;
+}
+
 bool CCoinsViewDBCursor::GetKey(COutPoint &key) const
 {
     // Return cached key

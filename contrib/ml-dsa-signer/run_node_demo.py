@@ -9,7 +9,9 @@ All temporary directories and ciphertext backups are retained, not cleaned up.
 if not __debug__:
     raise RuntimeError("optimized Python is not permitted for demo evidence")
 import argparse
+import hashlib
 import json
+from pathlib import Path
 import select
 import struct
 import subprocess
@@ -21,6 +23,7 @@ def main():
     parser.add_argument("--container", default="pqbtc-mldsa-demo-exec-20261028")
     parser.add_argument("--source", default="/tmp/mldsa-demo-source")
     parser.add_argument("--build", default="/tmp/mldsa-demo-build")
+    parser.add_argument("--expect-head", help="exact clean contained source commit; defaults to this runner's checkout")
     args = parser.parse_args()
     for path in (args.source, args.build):
         assert path.startswith("/tmp/mldsa-") and ".." not in path and "\n" not in path
@@ -43,8 +46,10 @@ def main():
         return ["docker", "exec", "-i", "--user", user, "--env", "PYTHONDONTWRITEBYTECODE=1",
                 "--env", "OPENSSL_CONF=/dev/null", "--env", "OPENSSL_MODULES=/nonexistent", args.container, *map(str, parts)]
 
+    timeout_factor = 1
+
     def invoke(user, *parts):
-        result = subprocess.run(command(user, *parts), capture_output=True, timeout=120)
+        result = subprocess.run(command(user, *parts), capture_output=True, timeout=120 * timeout_factor)
         if result.returncode or result.stderr:
             raise RuntimeError(f"contained demo helper failed: {result.returncode} {result.stderr!r}")
         return result.stdout
@@ -52,14 +57,39 @@ def main():
     architecture = invoke("1001:1000", "uname", "-m").decode().strip()
     vm_architecture = subprocess.check_output(["docker", "info", "--format", "{{.Architecture}}"], text=True, encoding="utf8").strip()
     emulated_x86 = architecture == "x86_64" and vm_architecture != "x86_64"
+    timeout_factor = 4 if emulated_x86 else 1
+    qualified_head = args.expect_head or subprocess.check_output(
+        ["git", "-C", str(Path(__file__).resolve().parents[2]), "rev-parse", "HEAD"], text=True, encoding="utf8").strip()
+    assert len(qualified_head) == 40 and all(c in "0123456789abcdef" for c in qualified_head)
+    server = "/tmp/demo-signer-bin/pilot-signer"
+
+    def identity():
+        # DATA reads/Git only, inside Linux; never inspect the wallet directory.
+        script = ('import hashlib,json,pathlib,subprocess,sys;source=pathlib.Path(sys.argv[1]);'
+            'git=["git","-c","safe.directory="+str(source),"-C",source];'
+            'head=subprocess.check_output(git+["rev-parse","HEAD"],text=True,encoding="utf8").strip();'
+            'assert head==sys.argv[2];assert not subprocess.check_output(git+["status","--porcelain"]);'
+            'paths=[pathlib.Path(p) for p in sys.argv[3:]];'
+            'print(json.dumps({"source_head":head,"worktree":"clean","sha256":{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}}))')
+        return json.loads(invoke("1001:1000", "python3", "-c", script, args.source, qualified_head,
+            args.build + "/bin/pqbtcd", args.build + "/bin/pqbtc-mldsa-client", server,
+            args.source + "/contrib/ml-dsa-signer/run_node_demo.py", args.source + "/contrib/ml-dsa-signer/node_wallet.py",
+            args.source + "/test/functional/feature_mldsa44_demo.py", args.source + "/docs/ML_DSA_44_PRODUCTION_CONTRACT_V1.md"))
+
+    before = identity()
+    assert before["sha256"][args.source + "/contrib/ml-dsa-signer/run_node_demo.py"] == hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    print(json.dumps({"binary_source_binding_before": before}), flush=True)
+    validation = invoke("1001:1000", "python3", args.source + "/test/functional/feature_mldsa44_demo.py",
+        "--binary", args.build + "/bin/pqbtcd", "--validation-only", "--timeout-factor", timeout_factor)
+    assert b'MLDSA_DEMO_VALIDATION_TERMINAL_EXIT_0\n' in validation
+    print(validation.decode("utf8"), end="", flush=True)
     base = invoke("1000:1000", "python3", "-c",
         'import os,pathlib,tempfile;p=pathlib.Path(tempfile.mkdtemp(prefix="mldsa-node-svc-"));os.chmod(p,0o750);'
         '[(p/n).mkdir(mode=m) for n,m in (("wallet",0o700),("backup",0o700),("ipc",0o750))];print(p)').decode().strip()
     assert base.startswith("/tmp/mldsa-node-svc-") and "/" not in base[5:]
-    server = "/tmp/demo-signer-bin/pilot-signer"
     socket = base + "/ipc/signer.sock"
     print(json.dumps({"runtime": runtime, "architecture": architecture, "docker_vm_architecture": vm_architecture,
-                      "x86_cpu_emulated": emulated_x86, "retained_signer_directory": base}), flush=True)
+                      "x86_cpu_emulated": emulated_x86, "timeout_factor": timeout_factor, "retained_signer_directory": base}), flush=True)
 
     def checkpoint(raw):
         fields = raw.decode("ascii").strip().split(" ")
@@ -85,14 +115,14 @@ def main():
             password = b"public-two-node-demo-fixture"
             self.process.stdin.write(struct.pack("<H", len(password)) + password)
             self.process.stdin.close(); self.process.stdin = None
-            assert select.select([self.process.stdout], [], [], 15)[0], "signer PID deadline"
+            assert select.select([self.process.stdout], [], [], 15 * timeout_factor)[0], "signer PID deadline"
             self.pid = int(self.process.stdout.readline())
-            assert select.select([self.process.stdout], [], [], 15)[0], "signer checkpoint deadline"
+            assert select.select([self.process.stdout], [], [], 15 * timeout_factor)[0], "signer checkpoint deadline"
             line = self.process.stdout.readline()
             if not line:
                 raise RuntimeError("signer startup: " + repr(self.process.stderr.read()))
             self.initial = checkpoint(line)
-            deadline = time.monotonic() + 15
+            deadline = time.monotonic() + 15 * timeout_factor
             while subprocess.run(command("1000:1000", "test", "-S", socket), capture_output=True).returncode:
                 assert self.process.poll() is None and time.monotonic() < deadline, "signer socket deadline"
                 time.sleep(0.02)
@@ -121,8 +151,8 @@ def main():
         print(isolation.decode("ascii").strip(), flush=True)
         demo = subprocess.Popen(command("1001:1000", "python3", args.source + "/test/functional/feature_mldsa44_demo.py",
             "--binary", args.build + "/bin/pqbtcd", "--spend-restore", "--client", args.build + "/bin/pqbtc-mldsa-client",
-            "--socket", socket, "--signer-uid", "1000"), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
-        deadline = time.monotonic() + 180
+            "--socket", socket, "--signer-uid", "1000", "--timeout-factor", timeout_factor), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
+        deadline = time.monotonic() + 180 * timeout_factor
         while True:
             assert time.monotonic() < deadline, "two-node demo deadline"
             if not select.select([demo.stdout], [], [], 1)[0]:
@@ -166,6 +196,9 @@ def main():
             demo.terminate(); demo.wait(timeout=20)
         if signer and signer.process.poll() is None:
             signer.stop()
+    after = identity()
+    assert after == before, "source or executable changed during actual demo"
+    print(json.dumps({"binary_source_binding_after": after}), flush=True)
     print("MLDSA_TWO_NODE_SPEND_RESTORE_HOST_TERMINAL_EXIT_0", flush=True)
 
 

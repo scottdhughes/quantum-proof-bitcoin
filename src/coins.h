@@ -525,6 +525,10 @@ public:
 
     std::optional<Coin> GetCoin(const COutPoint& outpoint) const override;
     bool HaveCoin(const COutPoint &outpoint) const override;
+    bool ForEachUnspentCoin(const std::function<bool(const COutPoint&, const Coin&)>& visitor) const override
+    {
+        return base->ForEachUnspentCoin(visitor);
+    }
 
 private:
     /** A list of callbacks to execute upon leveldb read error. */

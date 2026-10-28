@@ -1289,7 +1289,6 @@ bool MemPoolAccept::ConsensusScriptChecks(const ATMPArgs& args, Workspace& ws)
 {
     AssertLockHeld(cs_main);
     AssertLockHeld(m_pool.cs);
-    const CTransaction& tx = *ws.m_ptx;
     const Txid& hash = ws.m_hash;
     TxValidationState& state = ws.m_state;
 

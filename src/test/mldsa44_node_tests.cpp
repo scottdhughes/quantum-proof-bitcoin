@@ -4,6 +4,8 @@
 #include <crypto/mldsa44/node.h>
 #include <addresstype.h>
 #include <coins.h>
+#include <dbwrapper.h>
+#include <txdb.h>
 #include <chainparams.h>
 #include <chainparamsbase.h>
 #include <common/args.h>
@@ -18,6 +20,7 @@
 #include <test/util/setup_common.h>
 #include <boost/test/unit_test.hpp>
 #include <memory>
+#include <sstream>
 #include <type_traits>
 
 static_assert(!std::is_copy_assignable_v<pqbtc::mldsa44::node::Snapshot> &&
@@ -135,6 +138,32 @@ public:
 } // namespace
 
 BOOST_AUTO_TEST_SUITE(mldsa44_node_tests)
+BOOST_AUTO_TEST_CASE(demo_configuration_cannot_select_a_different_namespace)
+{
+    struct ConfigArgs : ArgsManager { using ArgsManager::ReadConfigStream; };
+    for(const auto& config:{"mldsa44demo=1\n", "[regtest]\nmldsa44demo=1\n", "mldsa44demo=1\n[regtest]\nmldsa44demo=0\n", "[main]\nmldsa44demo=0\n"}) {
+        ConfigArgs args;SetupChainParamsBaseOptions(args);std::istringstream input(config);std::string error;
+        BOOST_REQUIRE(args.ReadConfigStream(input,"public-test.conf",error));
+        BOOST_CHECK_THROW(IsMLDSA44Demo(args,ChainType::REGTEST),std::invalid_argument);
+        args.SelectConfigNetwork("regtest");
+        BOOST_CHECK_THROW(IsMLDSA44Demo(args,ChainType::REGTEST),std::invalid_argument);
+    }
+}
+BOOST_FIXTURE_TEST_CASE(demo_inventory_refuses_malformed_db_keys_and_unsupported_overlays,BasicTestingSetup)
+{
+    const auto path=m_args.GetDataDirBase()/"demo-malformed-coins";
+    {
+        CDBWrapper db{{.path=path,.cache_bytes=1<<20,.wipe_data=true}};
+        // A real malformed key in the Coin namespace, not a simulated EOF.
+        BOOST_REQUIRE(db.Write(uint8_t{'C'},Coin{CTxOut{1000,CScript{}<<OP_TRUE},0,false}));
+    }
+    CCoinsViewDB disk{{.path=path,.cache_bytes=1<<20},{}};
+    BOOST_CHECK_THROW(disk.ForEachUnspentCoin([](const auto&,const auto&){return true;}),std::runtime_error);
+    InventoryView empty;CCoinsViewBacked unsupported{&empty};
+    BOOST_CHECK_THROW(unsupported.ForEachUnspentCoin([](const auto&,const auto&){return true;}),std::runtime_error);
+    CCoinsView bare;
+    BOOST_CHECK_THROW(bare.ForEachUnspentCoin([](const auto&,const auto&){return true;}),std::runtime_error);
+}
 BOOST_AUTO_TEST_CASE(explicit_demo_selects_complete_frozen_network)
 {
     ArgsManager args;SetupChainParamsBaseOptions(args);

@@ -42,6 +42,9 @@ const CBaseChainParams& BaseParams()
  */
 bool IsMLDSA44Demo(const ArgsManager& args, ChainType chain)
 {
+    // The namespace is selected before SelectConfigNetwork. Never let a later
+    // section-specific value select a different consensus identity.
+    if (args.IsArgSetInConfig("-mldsa44demo")) throw std::invalid_argument("-mldsa44demo is command-line only; not permitted in config/settings");
     if (!args.GetBoolArg("-mldsa44demo", false)) return false;
     if (chain != ChainType::REGTEST) throw std::invalid_argument("-mldsa44demo requires -regtest");
 #ifndef ENABLE_EXPERIMENTAL_MLDSA44

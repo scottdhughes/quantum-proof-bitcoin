@@ -408,6 +408,9 @@ protected:
      */
     common::SettingsValue GetPersistentSetting(const std::string& name) const;
 
+    //! Whether any config section or read/write settings file sets this option.
+    bool IsArgSetInConfig(const std::string& arg) const;
+
     /**
      * Access settings with lock held.
      */

@@ -143,4 +143,7 @@ void SelectParams(const ChainType chain)
 {
     SelectBaseParams(chain);
     globalChainParams = CreateChainParams(gArgs, chain);
+    if ((BaseParams().DataDir()=="mldsa44-regtest-v1") != globalChainParams->IsMLDSA44Demo()) {
+        throw std::invalid_argument("ML-DSA demo namespace/consensus identity mismatch");
+    }
 }

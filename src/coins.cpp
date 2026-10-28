@@ -49,7 +49,9 @@ std::unique_ptr<CCoinsViewCursor> CCoinsViewBacked::Cursor() const { return base
 size_t CCoinsViewBacked::EstimateSize() const { return base->EstimateSize(); }
 bool CCoinsViewBacked::ForEachUnspentCoin(const std::function<bool(const COutPoint&, const Coin&)>& visitor) const
 {
-    return base->ForEachUnspentCoin(visitor);
+    // An arbitrary backed view may add/spend Coins (e.g. the mempool). Only
+    // explicitly supported logical views may claim a complete inventory.
+    throw std::runtime_error("Coin inventory unsupported for this overlay");
 }
 
 bool CCoinsViewCache::ForEachUnspentCoin(const std::function<bool(const COutPoint&, const Coin&)>& visitor) const

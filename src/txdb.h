@@ -49,6 +49,7 @@ public:
     std::vector<uint256> GetHeadBlocks() const override;
     bool BatchWrite(CoinsViewCacheCursor& cursor, const uint256 &hashBlock) override;
     std::unique_ptr<CCoinsViewCursor> Cursor() const override;
+    bool ForEachUnspentCoin(const std::function<bool(const COutPoint&, const Coin&)>& visitor) const override;
 
     //! Whether an unsupported database format is used.
     bool NeedsUpgrade();
