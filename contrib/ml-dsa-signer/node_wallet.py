@@ -258,10 +258,10 @@ class NativeSigner:
             response = json.loads(result.stdout, object_pairs_hook=strict_object)
             require(type(response) is dict and set(response) == {"status", "payload"}, "client response shape")
             status, payload = number(response["status"], 13), unhex(response["payload"])
-            require(status == 0, "signer refused status " + str(status))
-            return payload
         except (ValueError, RecursionError) as error:
             raise WalletError("signer response refused") from error
+        require(status == 0, "signer refused status " + str(status))
+        return payload
 
 
 def satoshis(value):

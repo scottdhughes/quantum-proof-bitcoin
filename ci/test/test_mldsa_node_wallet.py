@@ -146,6 +146,21 @@ class PublicWalletTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("optimized Python", result.stderr)
 
+    def test_native_client_preserves_fixed_refusal_status_not_parse_error(self):
+        # Only the external process result is a fixture. This tests response
+        # parsing, NOT the real peer-credential/transport boundary.
+        client = object.__new__(self.module.NativeSigner)
+        client.binary, client.socket, client.uid = "/public-fixture-client", "/public-fixture.sock", 1000
+        for status in range(1, 14):
+            response = subprocess.CompletedProcess([], 0, json.dumps({"status": status, "payload": ""}).encode(), b"")
+            with self.subTest(status=status), patch.object(self.module.subprocess, "run", return_value=response):
+                with self.assertRaisesRegex(self.module.WalletError, "^signer refused status " + str(status) + "$"):
+                    client.call(5)
+        bad = subprocess.CompletedProcess([], 0, b"{bad-json", b"")
+        with patch.object(self.module.subprocess, "run", return_value=bad):
+            with self.assertRaisesRegex(self.module.WalletError, "^signer response refused$"):
+                client.call(5)
+
 
 if __name__ == "__main__":
     unittest.main()
