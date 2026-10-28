@@ -20,3 +20,11 @@ target_link_libraries(bitcoin_mldsa44_verify PRIVATE core_interface bitcoin_cryp
 add_library(bitcoin_mldsa44_node STATIC EXCLUDE_FROM_ALL node.cpp)
 target_compile_options(bitcoin_mldsa44_node PRIVATE -Werror)
 target_link_libraries(bitcoin_mldsa44_node PUBLIC bitcoin_mldsa44_verify PRIVATE core_interface bitcoin_common)
+
+# Separate public wallet companion client. No signer/key-owner/OpenSSL objects
+# enter this target or the daemon. The daemon validates its own actual UTXOs.
+add_executable(pqbtc-mldsa-client EXCLUDE_FROM_ALL
+  ${PROJECT_SOURCE_DIR}/contrib/ml-dsa-signer/node_client.cpp
+  signer/ipc.cpp signer/transport.cpp signer/client.cpp)
+target_compile_options(pqbtc-mldsa-client PRIVATE -Werror)
+target_link_libraries(pqbtc-mldsa-client PRIVATE core_interface bitcoin_mldsa44_verify bitcoin_crypto)
