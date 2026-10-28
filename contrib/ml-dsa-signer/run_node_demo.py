@@ -30,7 +30,8 @@ def main():
         '"security":{{json .HostConfig.SecurityOpt}},"mounts":{{json .Mounts}},"tmpfs":{{json .HostConfig.Tmpfs}}}', args.container], text=True, encoding="utf8"))
     assert runtime["image"] in ("sha256:767891744587d93faf96d0f9d8ce2c66ebe3a73695b2a7389f82b62735b8ad3a",
                                 "sha256:3939a3a2a1d639a8aa7bf3e4b3e69eb1e20d0a742577dd141e4b5605fac2dca3",
-                                "sha256:b8a64ec79ce0dc4f73939c36ea0ce0b01f35cd9119b45f7e356971dad142d43b")
+                                "sha256:b8a64ec79ce0dc4f73939c36ea0ce0b01f35cd9119b45f7e356971dad142d43b",
+                                "sha256:684b999ddc135f1b052cef57d4682980e4067547f49b0555778da51c704310c1")
     assert runtime["ro"] is True and runtime["network"] == "none" and runtime["memory"] == 4294967296
     assert runtime["cpus"] == 4000000000 and runtime["drop"] == ["ALL"] and runtime["security"] == ["no-new-privileges"]
     assert runtime["tmpfs"] == {"/tmp": "rw,exec,nosuid,nodev,size=3221225472"}
