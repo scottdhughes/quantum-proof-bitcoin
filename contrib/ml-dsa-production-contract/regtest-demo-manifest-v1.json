@@ -1,0 +1,18 @@
+{
+  "schema": "PQBTC-MLDSA44-REGTEST-DEMO-1",
+  "scope": "VALUELESS_EXPERIMENTAL_REGTEST_ONLY",
+  "spec_id": "PQBTC-MLDSA44-CONTRACT-1",
+  "spec_sha256": "c7993d7f2ae72623cf3b9e2f45c021885f610ef3169dbf176e0c2dd1a619d126",
+  "message_start_hex": "96bd879e",
+  "genesis_display_hash": "36cc1172b59a75d055126cfb7a1d3b5d37eebc57bec9791fccfa48af6bbd15e2",
+  "activation_height": 1,
+  "preceding_height": 0,
+  "preceding_display_hash": "36cc1172b59a75d055126cfb7a1d3b5d37eebc57bec9791fccfa48af6bbd15e2",
+  "utxo_inventory_encoding": "Empty byte stream; any unspent Coin is a deployment error. Complete logical cache overlays and database are visited.",
+  "utxo_inventory_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "utxo_count": 0,
+  "native_v2_32_utxo_count": 0,
+  "production_activation": false,
+  "grandfathering": false,
+  "external_human_review": "NOT_PERFORMED_OWNER_EXCEPTION"
+}

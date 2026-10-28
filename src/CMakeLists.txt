@@ -289,6 +289,9 @@ target_link_libraries(bitcoin_node
     $<TARGET_NAME_IF_EXISTS:libevent::pthreads>
     $<TARGET_NAME_IF_EXISTS:USDT::headers>
 )
+if(ENABLE_EXPERIMENTAL_MLDSA44)
+  target_link_libraries(bitcoin_node PRIVATE bitcoin_mldsa44_node)
+endif()
 
 # PQBTC wrapper executable that can call other executables.
 if(BUILD_BITCOIN_BIN)

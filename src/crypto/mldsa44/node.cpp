@@ -45,6 +45,24 @@ Network ResolveNetwork(const CChainParams& params)
 }
 Snapshot::Snapshot(CTransactionRef tx,const CCoinsViewCache& coins):m_transaction(std::move(tx)),m_programs{},
     m_prepared(Prepare(m_transaction,coins,m_programs)) {}
+void CheckDemoActivation(const CChainParams& params,const uint256& previous,const CCoinsViewCache& coins)
+{
+    Require(params.IsMLDSA44Demo() && ResolveNetwork(params)==Network::REGTEST);
+    Require(previous==params.GenesisBlock().GetHash() && coins.GetBestBlock()==previous);
+    // Fixed H=1 has only the unspendable genesis before activation. A complete
+    // empty inventory has SHA256(empty)=e3b0c442... and zero native-v2 entries.
+    // Check the actual logical view, including all cache additions/tombstones,
+    // not just the database or just one cache. Any live Coin is a deployment error.
+    Require(coins.ForEachUnspentCoin([](const COutPoint&,const Coin&){return false;}));
+}
+void CheckDemoStartup(const CChainParams& params,const CCoinsViewCache& coins)
+{
+    Require(params.IsMLDSA44Demo() && ResolveNetwork(params)==Network::REGTEST);
+    const auto best=coins.GetBestBlock();
+    if(best.IsNull() || best==params.GenesisBlock().GetHash()) {
+        Require(coins.ForEachUnspentCoin([](const COutPoint&,const Coin&){return false;}));
+    }
+}
 Hash Snapshot::Message(Network network,size_t index) const { return SigningMessage(network,m_prepared,index); }
 bool Snapshot::IsApplicable(size_t index) const
 {

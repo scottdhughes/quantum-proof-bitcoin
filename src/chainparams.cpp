@@ -116,6 +116,7 @@ const CChainParams &Params() {
 
 std::unique_ptr<const CChainParams> CreateChainParams(const ArgsManager& args, const ChainType chain)
 {
+    const bool mldsa44_demo = IsMLDSA44Demo(args, chain);
     switch (chain) {
     case ChainType::MAIN:
         return CChainParams::Main();
@@ -130,6 +131,7 @@ std::unique_ptr<const CChainParams> CreateChainParams(const ArgsManager& args, c
     }
     case ChainType::REGTEST: {
         auto opts = CChainParams::RegTestOptions{};
+        opts.mldsa44_demo = mldsa44_demo;
         ReadRegTestArgs(args, opts);
         return CChainParams::RegTest(opts);
     }

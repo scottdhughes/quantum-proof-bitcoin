@@ -241,7 +241,7 @@ static bool CheckSigopsBIP54(const CTransaction& tx, const CCoinsViewCache& inpu
  *
  * We also check the total number of non-witness sigops across the whole transaction, as per BIP54.
  */
-bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
+bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs, bool allow_mldsa44_demo)
 {
     if (tx.IsCoinBase()) {
         return true; // Coinbases don't use vin normally
@@ -256,6 +256,10 @@ bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
 
         std::vector<std::vector<unsigned char> > vSolutions;
         TxoutType whichType = Solver(prev.scriptPubKey, vSolutions);
+        if (allow_mldsa44_demo && whichType == TxoutType::WITNESS_UNKNOWN &&
+            prev.scriptPubKey.size() == 34 && prev.scriptPubKey[0] == OP_2 && prev.scriptPubKey[1] == 32) {
+            continue;
+        }
         if (whichType == TxoutType::NONSTANDARD || whichType == TxoutType::WITNESS_UNKNOWN) {
             // WITNESS_UNKNOWN failures are typically also caught with a policy
             // flag in the script interpreter, but it can be helpful to catch

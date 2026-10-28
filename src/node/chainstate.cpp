@@ -4,6 +4,11 @@
 
 #include <node/chainstate.h>
 
+#include <bitcoin-build-config.h>
+#ifdef ENABLE_EXPERIMENTAL_MLDSA44
+#include <crypto/mldsa44/node.h>
+#endif
+
 #include <arith_uint256.h>
 #include <chain.h>
 #include <coins.h>
@@ -124,6 +129,15 @@ static ChainstateLoadResult CompleteChainstateInitialization(
             }
             assert(chainstate->m_chain.Tip() != nullptr);
         }
+#ifdef ENABLE_EXPERIMENTAL_MLDSA44
+        if (chainman.GetParams().IsMLDSA44Demo()) {
+            try {
+                pqbtc::mldsa44::node::CheckDemoStartup(chainman.GetParams(), chainstate->CoinsTip());
+            } catch (const std::exception&) {
+                return {ChainstateLoadStatus::FAILURE_INCOMPATIBLE_DB, Untranslated("ML-DSA demo startup manifest or pre-activation UTXO inventory mismatch")};
+            }
+        }
+#endif
     }
 
     auto chainstates{chainman.GetAll()};

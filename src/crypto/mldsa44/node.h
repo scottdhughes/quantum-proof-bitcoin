@@ -7,10 +7,16 @@
 #include <script/interpreter.h>
 class CChainParams;
 class CCoinsViewCache;
+class uint256;
 namespace pqbtc::mldsa44::node {
 // Effective C++ genesis/header and message start must match frozen CONTRACT-1 B.
 // This is an identity check, NOT an activation/absence-guard admission decision.
 Network ResolveNetwork(const CChainParams& params);
+// Only for the fixed demo H=1: require the complete effective pre-H UTXO set
+// to be empty. This is not a nonempty-chain production inventory algorithm.
+void CheckDemoActivation(const CChainParams& params,const uint256& previous,
+    const CCoinsViewCache& coins);
+void CheckDemoStartup(const CChainParams& params,const CCoinsViewCache& coins);
 class Snapshot {
     // Declaration order is required: Prepare fills programs from the held tx.
     CTransactionRef m_transaction;

@@ -24,6 +24,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstring>
+#include <stdexcept>
 #include <type_traits>
 
 using namespace util::hex_literals;
@@ -625,6 +626,31 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
         bech32_hrp = "bcrt";
+
+        if (opts.mldsa44_demo) {
+            if (!opts.activation_heights.empty() || !opts.version_bits_parameters.empty() || opts.enforce_bip94) {
+                throw std::invalid_argument("ML-DSA demo does not allow deployment overrides");
+            }
+            m_mldsa44_demo = true;
+            pchMessageStart = {0x96, 0xbd, 0x87, 0x9e};
+            nDefaultPort = 24833;
+            const CScript output = CScript() << "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f"_hex << OP_CHECKSIG;
+            genesis = CreateGenesisBlock("The Times 22/Feb/2026 PQBTC regtest genesis", output,
+                1772086429, 17489643, 0x207fffff, 1, 50 * COIN);
+            consensus.hashGenesisBlock = genesis.GetHash();
+            if (consensus.hashGenesisBlock != uint256{"36cc1172b59a75d055126cfb7a1d3b5d37eebc57bec9791fccfa48af6bbd15e2"} ||
+                genesis.hashMerkleRoot != uint256{"eff22c74638125519d38bab3d58d460f93ff0d5ef57dfbabc9514353bdb458cb"}) {
+                throw std::invalid_argument("ML-DSA demo genesis does not match admitted manifest");
+            }
+            vSeeds.clear();
+            m_assumeutxo_data.clear();
+            base58Prefixes[PUBKEY_ADDRESS] = {121};
+            base58Prefixes[SCRIPT_ADDRESS] = {197};
+            base58Prefixes[SECRET_KEY] = {115};
+            base58Prefixes[EXT_PUBLIC_KEY] = {153, 13, 180, 18};
+            base58Prefixes[EXT_SECRET_KEY] = {61, 100, 33, 230};
+            bech32_hrp = "rq";
+        }
 
     }
 };
