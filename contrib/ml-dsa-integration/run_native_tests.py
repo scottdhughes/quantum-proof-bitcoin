@@ -54,6 +54,43 @@ def validate_networks(native, model, pk, tx, artifact):
             raise RuntimeError("native/model/genesis join: " + name)
 
 
+def validate_verifier_imports(nm_output, *, compiler, sanitized, elf_symbols=""):
+    if (type(nm_output) is not str or type(elf_symbols) is not str
+            or compiler not in ("gcc", "clang") or type(sanitized) is not bool):
+        raise RuntimeError("invalid verifier import audit input")
+    rows = [line.split() for line in nm_output.splitlines()]
+    if any(len(row) != 2 or row[0] not in ("U", "w", "v") for row in rows):
+        raise RuntimeError("malformed verifier import")
+    imports = [row[1] for row in rows]
+    if len(imports) != len(set(imports)):
+        raise RuntimeError("duplicate verifier import")
+    anchors = {"__start_asan_globals", "__stop_asan_globals"}
+    present = anchors.intersection(imports)
+    if present:
+        if (compiler != "clang" or not sanitized or present != anchors
+                or any(row[0] != "w" for row in rows if row[1] in anchors)):
+            raise RuntimeError("unqualified sanitizer global anchor pair")
+        # Clang's ELF ASan globals registration uses paired weak hidden
+        # undefined section anchors, not private verifier dependencies.
+        for name in anchors:
+            symbols = [line.split() for line in elf_symbols.splitlines()
+                       if line.split() and line.split()[-1] == name]
+            if len(symbols) != 1:
+                raise RuntimeError("missing or duplicate sanitizer global anchor: " + name)
+            row = symbols[0]
+            if (len(row) != 8 or re.fullmatch(r"[1-9][0-9]*:", row[0]) is None
+                    or re.fullmatch(r"[0-9a-fA-F]+", row[1]) is None
+                    or int(row[1], 16) != 0 or row[2] != "0"
+                    or row[3:7] != ["NOTYPE", "WEAK", "HIDDEN", "UND"]):
+                raise RuntimeError("unqualified sanitizer global anchor metadata: " + name)
+    allowed = {"memcpy", "memmove", "memset", "__stack_chk_fail", "_GLOBAL_OFFSET_TABLE_"}
+    for name in imports:
+        if (name not in allowed and name not in present
+                and not (sanitized and name.startswith(("__asan_", "__ubsan_")))):
+            raise RuntimeError("unexpected verifier import: " + name)
+    return imports
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cc", choices=("gcc", "clang"), required=True)
@@ -102,11 +139,9 @@ def main():
         symbols = run([nm, "-a", build / "verify.o"])
         if re.search(r"(?i)(signature_internal|keypair|randombytes|getentropy|getrandom|pthread|fork|mlock|prctl|syscall|madvise|unpack_sk|polyeta|sign_signature)", symbols):
             raise RuntimeError("private/entropy/lifecycle machinery found in verifier object")
-        imports = [line.split()[-1] for line in run([nm, "-u", build / "verify.o"]).splitlines()]
-        allowed = {"memcpy", "memmove", "memset", "__stack_chk_fail", "_GLOBAL_OFFSET_TABLE_"}
-        for name in imports:
-            if name not in allowed and not (args.sanitize and name.startswith(("__asan_", "__ubsan_"))):
-                raise RuntimeError("unexpected verifier import: " + name)
+        imports = validate_verifier_imports(run([nm, "-u", build / "verify.o"]),
+                                           compiler=args.cc, sanitized=args.sanitize,
+                                           elf_symbols=run(["readelf", "-sW", build / "verify.o"]))
         api_probes = {}
         header = ROOT / "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/mldsa_native.h"
         for suffix in ("signature", "keypair", "signature_extmu"):

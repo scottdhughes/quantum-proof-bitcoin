@@ -64,6 +64,122 @@ class NativeIntegrationTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             runner.run([sys.executable, "-c", "import sys; print('runtime diagnostic', file=sys.stderr)"])
 
+    def test_verifier_import_audit_allows_only_typed_clang_asan_anchor_pair(self):
+        spec = importlib.util.spec_from_file_location("native_import_audit_runner", RUNNER)
+        runner = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runner)
+        audit = getattr(runner, "validate_verifier_imports", None)
+        self.assertTrue(callable(audit), "pure verifier import audit is absent")
+        ordinary = "                 U memcpy\n                 U memset\n"
+        sanitized = ordinary + "                 U __asan_init\n                 U __ubsan_handle_add_overflow_abort\n"
+        anchors = "                 w __start_asan_globals\n                 w __stop_asan_globals\n"
+        elf = ("    74: 0000000000000000     0 NOTYPE  WEAK   HIDDEN   UND __start_asan_globals\n"
+               "    75: 0000000000000000     0 NOTYPE  WEAK   HIDDEN   UND __stop_asan_globals\n")
+        for compiler in ("gcc", "clang"):
+            for sanitize in (False, True):
+                with self.subTest(ordinary=compiler, sanitized=sanitize):
+                    self.assertEqual(audit(ordinary, compiler=compiler, sanitized=sanitize),
+                                     ["memcpy", "memset"])
+            self.assertEqual(audit(sanitized, compiler=compiler, sanitized=True),
+                             ["memcpy", "memset", "__asan_init", "__ubsan_handle_add_overflow_abort"])
+        self.assertEqual(audit(sanitized + anchors, compiler="clang", sanitized=True, elf_symbols=elf),
+                         ["memcpy", "memset", "__asan_init", "__ubsan_handle_add_overflow_abort",
+                          "__start_asan_globals", "__stop_asan_globals"])
+        # Public Clang 20 diagnostic fixture, independent of an evidence packet.
+        actual_nm = (
+            "                 U __asan_init\n"
+            "                 U __asan_memcpy\n"
+            "                 U __asan_memset\n"
+            "                 U __asan_option_detect_stack_use_after_return\n"
+            "                 U __asan_register_elf_globals\n"
+            "                 U __asan_report_load1\n"
+            "                 U __asan_report_load4\n"
+            "                 U __asan_report_load8\n"
+            "                 U __asan_report_store1\n"
+            "                 U __asan_report_store4\n"
+            "                 U __asan_report_store8\n"
+            "                 U __asan_set_shadow_00\n"
+            "                 U __asan_set_shadow_f5\n"
+            "                 U __asan_set_shadow_f8\n"
+            "                 U __asan_stack_free_9\n"
+            "                 U __asan_stack_malloc_3\n"
+            "                 U __asan_stack_malloc_9\n"
+            "                 U __asan_unregister_elf_globals\n"
+            "                 U __asan_version_mismatch_check_v8\n"
+            "                 w __start_asan_globals\n"
+            "                 w __stop_asan_globals\n"
+            "                 U __ubsan_handle_add_overflow_abort\n"
+            "                 U __ubsan_handle_mul_overflow_abort\n"
+            "                 U __ubsan_handle_negate_overflow_abort\n"
+            "                 U __ubsan_handle_out_of_bounds_abort\n"
+            "                 U __ubsan_handle_pointer_overflow_abort\n"
+            "                 U __ubsan_handle_shift_out_of_bounds_abort\n"
+            "                 U __ubsan_handle_sub_overflow_abort\n"
+            "                 U __ubsan_handle_type_mismatch_v1_abort\n")
+        self.assertEqual(audit(actual_nm, compiler="clang", sanitized=True, elf_symbols=elf), [
+            "__asan_init", "__asan_memcpy", "__asan_memset", "__asan_option_detect_stack_use_after_return",
+            "__asan_register_elf_globals", "__asan_report_load1", "__asan_report_load4", "__asan_report_load8",
+            "__asan_report_store1", "__asan_report_store4", "__asan_report_store8", "__asan_set_shadow_00",
+            "__asan_set_shadow_f5", "__asan_set_shadow_f8", "__asan_stack_free_9", "__asan_stack_malloc_3",
+            "__asan_stack_malloc_9", "__asan_unregister_elf_globals", "__asan_version_mismatch_check_v8",
+            "__start_asan_globals", "__stop_asan_globals", "__ubsan_handle_add_overflow_abort",
+            "__ubsan_handle_mul_overflow_abort", "__ubsan_handle_negate_overflow_abort",
+            "__ubsan_handle_out_of_bounds_abort", "__ubsan_handle_pointer_overflow_abort",
+            "__ubsan_handle_shift_out_of_bounds_abort", "__ubsan_handle_sub_overflow_abort",
+            "__ubsan_handle_type_mismatch_v1_abort"])
+        adverse = [
+            ("normal mode", ordinary + anchors, elf, "clang", False),
+            ("GCC normal", ordinary + anchors, elf, "gcc", False),
+            ("GCC sanitized", sanitized + anchors, elf, "gcc", True),
+            ("one-sided pair", sanitized + anchors.splitlines(keepends=True)[0], elf, "clang", True),
+            ("strong import", sanitized + anchors.replace("w __start_", "U __start_"), elf, "clang", True),
+            ("weak object import", sanitized + anchors.replace("w __stop_", "v __stop_"), elf, "clang", True),
+            ("defined import", sanitized + anchors.replace("w __stop_", "T __stop_"), elf, "clang", True),
+            ("duplicate import", sanitized + anchors + anchors.splitlines(keepends=True)[0], elf, "clang", True),
+            ("malformed import", sanitized + anchors + "malformed\n", elf, "clang", True),
+            ("extra import fields", sanitized + anchors + " U unexpected extra\n", elf, "clang", True),
+            ("suffixed anchor", sanitized + anchors.replace("__start_asan_globals", "__start_asan_globals_extra"), elf, "clang", True),
+            ("arbitrary start", sanitized + " U __start_private\n", elf, "clang", True),
+            ("arbitrary stop", sanitized + " U __stop_private\n", elf, "clang", True),
+            ("paired plus arbitrary start", sanitized + anchors + " U __start_private\n", elf, "clang", True),
+            ("paired plus arbitrary stop", sanitized + anchors + " U __stop_private\n", elf, "clang", True),
+            ("missing ELF", sanitized + anchors, "", "clang", True),
+            ("missing ELF pair", sanitized + anchors, elf.splitlines(keepends=True)[0], "clang", True),
+            ("duplicate ELF", sanitized + anchors, elf + elf.splitlines(keepends=True)[0], "clang", True),
+            ("strong ELF", sanitized + anchors, elf.replace("WEAK", "GLOBAL"), "clang", True),
+            ("non-hidden ELF", sanitized + anchors, elf.replace("HIDDEN", "DEFAULT"), "clang", True),
+            ("defined ELF", sanitized + anchors, elf.replace("UND", "24"), "clang", True),
+            ("wrong ELF type", sanitized + anchors, elf.replace("NOTYPE", "OBJECT"), "clang", True),
+            ("nonzero ELF value", sanitized + anchors, elf.replace("0000000000000000", "0000000000000001"), "clang", True),
+            ("nonzero ELF size", sanitized + anchors, elf.replace("     0 NOTYPE", "     8 NOTYPE"), "clang", True),
+            ("malformed ELF", sanitized + anchors, elf.replace("74:", "not-an-index"), "clang", True),
+            ("non-string nm", None, elf, "clang", True),
+            ("bytes nm", b" U memcpy\n", elf, "clang", True),
+            ("non-string ELF", sanitized + anchors, None, "clang", True),
+            ("non-boolean sanitizer integer", sanitized + anchors, elf, "clang", 1),
+            ("non-boolean sanitizer string", sanitized + anchors, elf, "clang", "true"),
+            ("unknown compiler", sanitized + anchors, elf, "cc", True),
+        ]
+        start_row, stop_row = elf.splitlines(keepends=True)
+        for label, old, changed in (
+                ("value", "0000000000000000", "0000000000000001"),
+                ("size", "     0 NOTYPE", "     8 NOTYPE"),
+                ("type", "NOTYPE", "OBJECT"),
+                ("binding", "WEAK", "GLOBAL"),
+                ("visibility", "HIDDEN", "DEFAULT"),
+                ("definition", "UND", "24")):
+            adverse.append(("stop-only " + label, sanitized + anchors,
+                            start_row + stop_row.replace(old, changed), "clang", True))
+        for compiler in ("gcc", "clang"):
+            for name in ("__asan_init", "__ubsan_handle_add_overflow_abort"):
+                adverse.append(("normal runtime " + compiler + " " + name,
+                                ordinary + " U " + name + "\n", elf, compiler, False))
+        for name in ("getrandom", "pthread_create", "pqbtc_mldsa44_key_sign", "keypair"):
+            adverse.append((name, sanitized + " U " + name + "\n", elf, "clang", True))
+        for label, imports, metadata, compiler, sanitize in adverse:
+            with self.subTest(rejected=label), self.assertRaises(RuntimeError):
+                audit(imports, compiler=compiler, sanitized=sanitize, elf_symbols=metadata)
+
     def test_real_guarded_signer_and_public_transaction_verifier(self):
         for cc, cxx in [("gcc", "g++"), ("clang", "clang++")]:
             for sanitized in (False, True):
