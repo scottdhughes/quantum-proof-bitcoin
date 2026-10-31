@@ -91,6 +91,119 @@ def validate_verifier_imports(nm_output, *, compiler, sanitized, elf_symbols="")
     return imports
 
 
+def validate_verifier_exports(nm_output, *, compiler, sanitized, elf_dynamic_symbols, elf_sections):
+    """Join complete ELF tables to nm; only the verifier is a public export."""
+    if (type(nm_output) is not str or type(elf_dynamic_symbols) is not str
+            or type(elf_sections) is not str or type(compiler) is not str
+            or compiler not in ("gcc", "clang") or type(sanitized) is not bool):
+        raise RuntimeError("invalid verifier export audit input")
+    hex_value = r"[0-9a-fA-F]{1,16}"
+    nm_symbols = {}
+    for line in nm_output.splitlines():
+        row = line.split()
+        if (len(row) != 3 or re.fullmatch(hex_value, row[0]) is None
+                or row[1] not in ("T", "D") or row[2] in nm_symbols):
+            raise RuntimeError("malformed or duplicate verifier export")
+        nm_symbols[row[2]] = (int(row[0], 16), row[1])
+
+    lines = [line.strip() for line in elf_dynamic_symbols.splitlines() if line.strip()]
+    header = re.fullmatch(r"Symbol table '\.dynsym' contains ([1-9][0-9]*) entries:", lines[0]) if lines else None
+    if (header is None or len(lines) < 2
+            or lines[1].split() != ["Num:", "Value", "Size", "Type", "Bind", "Vis", "Ndx", "Name"]
+            or len(lines) != int(header[1]) + 2):
+        raise RuntimeError("complete single verifier .dynsym table required")
+    symbols = {}
+    defined = {}
+    for index, line in enumerate(lines[2:]):
+        row = line.split()
+        if (len(row) not in (7, 8, 9) or row[0] != str(index) + ":"
+                or re.fullmatch(hex_value, row[1]) is None
+                or re.fullmatch(r"[0-9]+", row[2]) is None
+                or row[3] not in ("NOTYPE", "OBJECT", "FUNC", "SECTION", "FILE", "COMMON", "TLS", "IFUNC")
+                or row[4] not in ("LOCAL", "GLOBAL", "WEAK", "UNIQUE")
+                or row[5] not in ("DEFAULT", "INTERNAL", "HIDDEN", "PROTECTED")
+                or re.fullmatch(r"(?:UND|ABS|COM|[1-9][0-9]*)", row[6]) is None):
+            raise RuntimeError("malformed verifier dynamic symbol")
+        if index == 0:
+            if (len(row) != 7 or int(row[1], 16) != 0 or int(row[2]) != 0
+                    or row[3:] != ["NOTYPE", "LOCAL", "DEFAULT", "UND"]):
+                raise RuntimeError("invalid verifier null dynamic symbol")
+            continue
+        if (len(row) < 8 or row[7] in symbols
+                or (len(row) == 9 and (row[6] != "UND" or "@" not in row[7]
+                                       or re.fullmatch(r"\([1-9][0-9]*\)", row[8]) is None))):
+            raise RuntimeError("missing or duplicate verifier dynamic name")
+        symbols[row[7]] = (int(row[1], 16), int(row[2]), *row[3:7])
+        if row[6] != "UND":
+            defined[row[7]] = symbols[row[7]]
+    if set(nm_symbols) != set(defined):
+        raise RuntimeError("verifier nm/dynsym definition mismatch")
+
+    lines = [line.strip() for line in elf_sections.splitlines() if line.strip()]
+    header = re.fullmatch(r"There are ([1-9][0-9]*) section headers, starting at offset 0x[0-9a-fA-F]+:", lines[0]) if lines else None
+    if (header is None or len(lines) < 4 or lines[1] != "Section Headers:"
+            or lines[2].split() != ["[Nr]", "Name", "Type", "Address", "Off", "Size", "ES", "Flg", "Lk", "Inf", "Al"]
+            or lines.count("Key to Flags:") != 1):
+        raise RuntimeError("complete verifier section table required")
+    section_rows = lines[3:lines.index("Key to Flags:")]
+    flag_lines = lines[lines.index("Key to Flags:") + 1:]
+    if (len(section_rows) != int(header[1]) or not flag_lines
+            or any(re.fullmatch(r"(?:[A-Za-z] \([^()]+\),?\s*)+", line) is None for line in flag_lines)):
+        raise RuntimeError("incomplete verifier section table")
+    sections = {}
+    section_names = set()
+    for index, line in enumerate(section_rows):
+        match = re.fullmatch(r"\[\s*([0-9]+)\]\s+(.*)", line)
+        if match is None or match[1] != str(index):
+            raise RuntimeError("malformed or duplicate verifier section index")
+        row = match[2].split()
+        if index == 0 and len(row) == 8 and row[0] == "NULL":
+            row.insert(0, "")
+        if len(row) == 9:
+            row.insert(6, "")
+        if (len(row) != 10 or row[0] in section_names
+                or any(re.fullmatch(hex_value, value) is None for value in row[2:6])
+                or re.fullmatch(r"[A-Za-z]*", row[6]) is None
+                or any(re.fullmatch(r"[0-9]+", value) is None for value in row[7:])
+                or int(row[7]) >= int(header[1])):
+            raise RuntimeError("malformed verifier section")
+        if index == 0 and (row[:2] != ["", "NULL"] or any(int(value, 16) for value in row[2:6])
+                           or row[6] or any(int(value) for value in row[7:])):
+            raise RuntimeError("invalid verifier null section")
+        section_names.add(row[0])
+        sections[str(index)] = (row[0], row[1], int(row[2], 16), int(row[4], 16), row[6], int(row[9]))
+    api = "pqbtc_mldsa44_node_verify"
+    anchors = {"__start_asan_globals", "__stop_asan_globals"}
+    present = anchors.intersection(defined)
+    if set(defined) != {api} | present:
+        raise RuntimeError("unexpected verifier dynamic definition")
+    if api not in defined:
+        raise RuntimeError("missing public verifier export")
+    value, size, kind, binding, visibility, section = defined[api]
+    text = sections.get(section)
+    if ((kind, binding, visibility) != ("FUNC", "GLOBAL", "DEFAULT")
+            or nm_symbols[api] != (value, "T") or size <= 0 or text is None
+            or text[0:2] != (".text", "PROGBITS") or text[4] != "AX"
+            or not (text[2] <= value < value + size <= text[2] + text[3])):
+        raise RuntimeError("unqualified public verifier export")
+    if present:
+        if compiler != "clang" or not sanitized or present != anchors:
+            raise RuntimeError("unqualified linked sanitizer anchor pair")
+        start, stop = (defined[name] for name in ("__start_asan_globals", "__stop_asan_globals"))
+        for name in anchors:
+            value, size, kind, binding, visibility, section = defined[name]
+            if ((size, kind, binding, visibility) != (0, "NOTYPE", "GLOBAL", "HIDDEN")
+                    or nm_symbols[name] != (value, "D")):
+                raise RuntimeError("unqualified linked sanitizer anchor metadata: " + name)
+        data = sections.get(start[5])
+        if (start[5] != stop[5] or data is None or data[0:2] != ("asan_globals", "PROGBITS")
+                or data[3] <= 0 or data[4] not in ("WA", "WAL") or data[5] != 16
+                or data[2] % data[5] or data[3] % data[5]
+                or start[0] != data[2] or stop[0] != data[2] + data[3]):
+            raise RuntimeError("unqualified sanitizer globals section bounds")
+    return [api]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cc", choices=("gcc", "clang"), required=True)
@@ -160,9 +273,12 @@ def main():
         command = [cc, *common, *shared_runtime, "-shared", "-Wl,--no-undefined", build / "verify.o", "-o", build / "verify.so"]
         commands.append([str(x) for x in command])
         run(command)
-        exports = [line.split()[-1] for line in run([nm, "-D", "--defined-only", build / "verify.so"]).splitlines()]
-        if exports != ["pqbtc_mldsa44_node_verify"]:
-            raise RuntimeError("unexpected verifier exports: " + repr(exports))
+        export_audit = {"nm_defined": run([nm, "-D", "--defined-only", build / "verify.so"]),
+                        "elf_dynamic_symbols": run(["readelf", "--dyn-syms", "-W", build / "verify.so"]),
+                        "elf_sections": run(["readelf", "-SW", build / "verify.so"])}
+        exports = validate_verifier_exports(export_audit["nm_defined"], compiler=args.cc, sanitized=args.sanitize,
+                                            elf_dynamic_symbols=export_audit["elf_dynamic_symbols"],
+                                            elf_sections=export_audit["elf_sections"])
         compile_file(cc, "-std=c11", "contrib/ml-dsa-key-lifecycle/key_lifecycle.c", "signer.o", ("-pthread",))
         compile_file(cxx, "-std=c++20", "src/crypto/sha256.cpp", "sha.o",
                      ("-DDISABLE_OPTIMIZED_SHA256", "-Wno-unused-parameter"))
@@ -219,7 +335,8 @@ def main():
                       "cxx": run([cxx, "--version"]).splitlines()[0], "sanitized": args.sanitize,
                       "negative_checks": native["negative_checks"], "verifier_exports": exports,
                       "verifier_symbol_audit": "PASS", "python_contract_join": "PASS", "network_artifact_join": "PASS",
-                      "verifier_imports": imports, "private_api_absence_probes": api_probes,
+                      "verifier_imports": imports, "verifier_export_audit": export_audit,
+                      "private_api_absence_probes": api_probes,
                       "sanitizer_environment": RUN_ENV, "sanitizer_positive_controls": sanitizer_controls,
                       "runtime_before": before, "runtime_after": after, "elf": elf,
                       "binary_hashes": binary_hashes, "frozen_source_hashes": frozen_sources,
