@@ -257,7 +257,7 @@ def main():
         commands = []
         dependency_paths = set()
         def compile_file(compiler, standard, source, output, extra=()):
-            command = [compiler, standard, *common, "-I", ROOT / "src", "-I", ROOT / "src/crypto/mldsa44",
+            command = [compiler, standard, *common, "-I", ROOT, "-I", ROOT / "src", "-I", ROOT / "src/crypto/mldsa44",
                        "-I", ROOT / "contrib/ml-dsa-engineering", *extra,
                        "-MMD", "-MF", build / (output + ".d"),
                        "-c", ROOT / source, "-o", build / output]

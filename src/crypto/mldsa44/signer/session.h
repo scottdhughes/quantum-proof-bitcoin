@@ -16,4 +16,4 @@ public:
     bool Done() const { return m_completed>=64; }
 };
 } // namespace pqbtc::mldsa44::signer
-#endif
+#endif // BITCOIN_CRYPTO_MLDSA44_SIGNER_SESSION_H

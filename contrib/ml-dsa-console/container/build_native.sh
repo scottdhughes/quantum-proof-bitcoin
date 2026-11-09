@@ -1,6 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright (c) 2026 The PQBTC Core developers
 # Distributed under the MIT software license, see the accompanying COPYING.
+export LC_ALL=C
 set -euo pipefail
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export OPENSSL_CONF=/dev/null OPENSSL_MODULES=/nonexistent PYTHONDONTWRITEBYTECODE=1
@@ -14,7 +15,15 @@ build_dir=/tmp/mldsa-demo-build
 evidence=/opt/pqbtc-runtime/evidence
 mkdir -p "$evidence"
 step_log="$evidence/openssl-build.log"
-trap 'code=$?; echo "Source build failed; last step log: $step_log" >&2; if test -f "$step_log"; then tail -n 80 "$step_log" >&2; fi; exit "$code"' ERR
+report_build_failure() {
+  local exit_code=$?
+  echo "Source build failed; last step log: $step_log" >&2
+  if test -f "$step_log"; then
+    tail -n 80 "$step_log" >&2
+  fi
+  exit "$exit_code"
+}
+trap report_build_failure ERR
 test "$(git -c safe.directory="$source_dir" -C "$source_dir" rev-parse HEAD)" = "$EXPECTED_HEAD"
 test "$(git -c safe.directory="$source_dir" -C "$source_dir" rev-parse 'HEAD^{tree}')" = "$EXPECTED_TREE"
 test -z "$(git -c safe.directory="$source_dir" -C "$source_dir" status --porcelain)"

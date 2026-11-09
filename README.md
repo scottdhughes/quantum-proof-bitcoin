@@ -8,7 +8,7 @@ The [local ML-DSA wallet console](contrib/ml-dsa-console/README.md) provides
 browser controls for the prepared two-node prototype: status, receive, send,
 test funding/mining, lock/unlock, and encrypted backup/recovery. Launch it with
 `./contrib/ml-dsa-console/launch.command`, or double-click
-**Launch Local Wallet.command**. The launcher starts Docker Desktop when needed
+**Launch-Local-Wallet.command**. The launcher starts Docker Desktop when needed
 and builds the runtime from a clean checkout on first install, then resumes the
 durable offline Linux runtime and disposable test wallet. Git, Python 3.11+ and
 Docker are required. No prepared project container or binary is needed.

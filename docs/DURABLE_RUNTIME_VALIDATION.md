@@ -5,7 +5,7 @@ disposable ML-DSA wallet, and opens the local browser console. The native runtim
 and wallet/chain state are stored in Docker volume
 `pqbtc-mldsa-local-data-v1`; signer IPC remains ephemeral.
 
-Double-click **Launch Local Wallet.command** in the repository root, or run:
+Double-click **Launch-Local-Wallet.command** in the repository root, or run:
 
 ```sh
 ./contrib/ml-dsa-console/launch.command
@@ -72,7 +72,7 @@ python3 contrib/ml-dsa-console/test_restart_end_to_end.py \
   --allow-docker-restart \
   --output /Users/scott/quantum-proof-bitcoin-evidence/20261109-durable-restart-and-missing-wallet-flow.json
 node --check contrib/ml-dsa-console/web/app.js
-sh -n 'Launch Local Wallet.command' contrib/ml-dsa-console/launch.command
+sh -n 'Launch-Local-Wallet.command' contrib/ml-dsa-console/launch.command
 git diff --check
 ```
 

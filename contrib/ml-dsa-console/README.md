@@ -16,7 +16,7 @@ Clone this repository and enter the checkout. Fresh source installation requires
 a clean Git checkout, including untracked files; build output and wallet state
 are stored outside it.
 
-Double-click **Launch Local Wallet.command** in the repository root, or from
+Double-click **Launch-Local-Wallet.command** in the repository root, or from
 Terminal:
 
 ```sh

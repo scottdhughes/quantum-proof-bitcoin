@@ -120,7 +120,7 @@ def main():
              next_receive=value["wallet"]["next_receive"], nodes=nodes)
 
     def exclusive_engine():
-        running = subprocess.check_output(["docker", "ps", "--format", "{{.Names}}"], text=True).splitlines()
+        running = subprocess.check_output(["docker", "ps", "--format", "{{.Names}}"], text=True,encoding="utf8").splitlines()
         assert set(running) <= {args.container, "pqbtc-mldsa-demo-20261109"}, "Unrelated running containers; engine restart refused"
 
     try:
@@ -150,11 +150,11 @@ def main():
         assert after_engine["index"] > destination["index"], "Engine restart reused an address"
         step("actual_docker_desktop_restart_pass")
 
-        old_id = subprocess.check_output(["docker", "inspect", "--format", "{{.Id}}", args.container], text=True).strip()
+        old_id = subprocess.check_output(["docker", "inspect", "--format", "{{.Id}}", args.container], text=True,encoding="utf8").strip()
         command("docker", "kill", args.container)
         command("docker", "rm", args.container)
         agree(reopen(), balance, identity)
-        new_id = subprocess.check_output(["docker", "inspect", "--format", "{{.Id}}", args.container], text=True).strip()
+        new_id = subprocess.check_output(["docker", "inspect", "--format", "{{.Id}}", args.container], text=True,encoding="utf8").strip()
         assert old_id != new_id, "Container was not recreated"
         after_recreate = action("receive")["result"]
         assert after_recreate["index"] > after_engine["index"], "Container recreation reused an address"

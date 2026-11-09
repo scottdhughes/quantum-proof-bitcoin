@@ -96,7 +96,7 @@ def descendant_probe(directory, mode):
             time.sleep(0.01)
         raise RuntimeError("fixture process cleanup not confirmed")
 
-    def requested_cleanup(signum, frame):
+    def requested_cleanup(_signum, _frame):
         try:
             cleanup()
         finally:

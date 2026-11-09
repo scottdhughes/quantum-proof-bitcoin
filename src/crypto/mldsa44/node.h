@@ -58,4 +58,4 @@ public:
         std::span<const Bytes> witness) const override;
 };
 } // namespace pqbtc::mldsa44::node
-#endif
+#endif // BITCOIN_CRYPTO_MLDSA44_NODE_H

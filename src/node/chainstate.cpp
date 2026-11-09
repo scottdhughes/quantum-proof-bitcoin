@@ -4,7 +4,7 @@
 
 #include <node/chainstate.h>
 
-#include <bitcoin-build-config.h>
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 #ifdef ENABLE_EXPERIMENTAL_MLDSA44
 #include <crypto/mldsa44/node.h>
 #endif

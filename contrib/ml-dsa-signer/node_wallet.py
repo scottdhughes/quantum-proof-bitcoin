@@ -82,7 +82,8 @@ def validate_manifest(value):
         key, program = unhex(entry["public_key"], 1312), unhex(entry["program"], 32)
         require(program == protocol.key_commitment("regtest", key), "public key/program mismatch")
         require(index < floors[branch] and (branch, index) not in paths and program not in programs, "public path/high-water mismatch")
-        paths.add((branch, index)); programs.add(program)
+        paths.add((branch, index))
+        programs.add(program)
     return copy.deepcopy(value)
 
 
@@ -161,7 +162,8 @@ class PublicStore:
                 require(count > 0, "public file write failed")
                 offset += count
             os.fsync(fd)
-            os.close(fd); fd = None
+            os.close(fd)
+            fd = None
             os.replace("public-wallet.tmp", "public-wallet.json", src_dir_fd=self._directory, dst_dir_fd=self._directory)
             os.fsync(self._directory)
         except (OSError, WalletError) as error:
@@ -226,7 +228,8 @@ class PublicStore:
         for field in ("_lock", "_directory"):
             value = getattr(self, field, None)
             if value is not None:
-                os.close(value); setattr(self, field, None)
+                os.close(value)
+                setattr(self, field, None)
 
     def __enter__(self):
         return self
@@ -278,7 +281,8 @@ def attach_witnesses(model, paths, manifest, payload):
     entries = {(entry["branch"], entry["index"]): entry for entry in validate_manifest(manifest)["entries"]}
     witnesses = []
     for i, path in enumerate(paths):
-        entry = entries.get(tuple(path)); require(entry is not None, "signer path is absent from public recovery record")
+        entry = entries.get(tuple(path))
+        require(entry is not None, "signer path is absent from public recovery record")
         offset = 1 + i * 3732
         signature, key = payload[offset:offset + 2420], payload[offset + 2420:offset + 3732]
         require(key.hex() == entry["public_key"] and protocol.key_commitment("regtest", key).hex() == entry["program"], "signer key/path substitution")
@@ -337,7 +341,8 @@ class NodeWallet:
             require("coinbase" not in entry and not entry.get("txinwitness") and entry["scriptSig"]["hex"] == "", "wallet requires unsigned native inputs")
             txid, index = entry["txid"], entry["vout"]
             amount, script, coinbase = self._coin(txid, index)
-            owner = owned.get(script); require(owner is not None, "Coin not in retained public wallet manifest")
+            owner = owned.get(script)
+            require(owner is not None, "Coin not in retained public wallet manifest")
             paths.append((owner["branch"], owner["index"]))
             observed.append((amount, script, coinbase))
             model["inputs"].append({"prev_txid": txid, "prev_index": index, "sequence": entry["sequence"],
@@ -374,7 +379,8 @@ class NodeWallet:
         require(result.get("success") is True, "explicit public wallet scan incomplete")
         found = []
         for item in result["unspents"]:
-            entry = owned.get(item["scriptPubKey"]); require(entry is not None, "scan returned an unrequested script")
+            entry = owned.get(item["scriptPubKey"])
+            require(entry is not None, "scan returned an unrequested script")
             found.append({**item, "branch": entry["branch"], "index": entry["index"],
                           "address": protocol.encode_address("regtest", unhex(entry["program"], 32))})
         return found

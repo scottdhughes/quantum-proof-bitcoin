@@ -20,4 +20,4 @@ Response DecodeResponse(std::span<const unsigned char> frame, const Frame& expec
 Bytes EncodeSignRequest(const SignRequest& request);
 SignRequest DecodeSignRequest(std::span<const unsigned char> body);
 } // namespace pqbtc::mldsa44::signer
-#endif
+#endif // BITCOIN_CRYPTO_MLDSA44_SIGNER_IPC_H

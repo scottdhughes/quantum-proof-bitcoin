@@ -1,8 +1,8 @@
 // Copyright (c) 2026 The PQBTC Core developers
 // Distributed under the MIT software license, see the accompanying COPYING.
 #include <crypto/mldsa44/signer/wallet.h>
-#include "../../../../contrib/ml-dsa-key-lifecycle/key_lifecycle.h"
-#include "../../../../contrib/ml-dsa-engineering/pqbtc_mldsa44.h"
+#include <contrib/ml-dsa-key-lifecycle/key_lifecycle.h>
+#include <contrib/ml-dsa-engineering/pqbtc_mldsa44.h>
 
 #include <algorithm>
 #include <cerrno>

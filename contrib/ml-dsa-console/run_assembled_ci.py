@@ -57,8 +57,8 @@ def require_fresh_namespace(container):
 
 
 def checkout_identity(repo, expected_head=None):
-    head = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
-    tree = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD^{tree}"], text=True).strip()
+    head = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True,encoding="utf8").strip()
+    tree = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD^{tree}"], text=True,encoding="utf8").strip()
     dirty = subprocess.check_output(["git", "-C", str(repo), "status", "--porcelain=v1", "--untracked-files=all"])
     require(not dirty, "Assembled CI requires a clean checkout, including untracked files")
     require(expected_head is None or head == expected_head, "Checkout HEAD does not match the requested source")
@@ -274,13 +274,13 @@ def main(argv=None):
         console.action("stop")
         stop_host()
         command(["docker", "stop", "--timeout", "30", container], timeout=60)
-        old_container = subprocess.check_output(["docker", "inspect", "--format", "{{.Id}}", container], text=True).strip()
+        old_container = subprocess.check_output(["docker", "inspect", "--format", "{{.Id}}", container], text=True,encoding="utf8").strip()
         command(["docker", "rm", container], timeout=60)
         process = launch()
         console.wait(process)
         resumed = console.action("start")["status"]
         require_state(resumed, baseline)
-        new_container = subprocess.check_output(["docker", "inspect", "--format", "{{.Id}}", container], text=True).strip()
+        new_container = subprocess.check_output(["docker", "inspect", "--format", "{{.Id}}", container], text=True,encoding="utf8").strip()
         require(old_container != new_container, "Container recreation was not exercised")
         event("host_and_container_recreation_pass", old_container_id=old_container, new_container_id=new_container)
         command(["docker", "kill", container], timeout=60)

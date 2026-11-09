@@ -3,8 +3,8 @@
 // Test-only translation unit: exercise the actual private scheduler without
 // adding test controls to the production service API or pilot executable.
 #include <crypto/mldsa44/signer/service.cpp>
-#include "../ml-dsa-key-lifecycle/key_lifecycle.h"
-#include "../ml-dsa-engineering/pqbtc_mldsa44.h"
+#include <contrib/ml-dsa-key-lifecycle/key_lifecycle.h>
+#include <contrib/ml-dsa-engineering/pqbtc_mldsa44.h>
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>

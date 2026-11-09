@@ -289,11 +289,11 @@ class Controller:
             self._prepared_storage = self._storage_config(config)
             script = ('import hashlib,json,pathlib,subprocess,sys; source=pathlib.Path(sys.argv[1]);'
                       'git=["git","-c","safe.directory="+str(source),"-C",str(source)];'
-                      'head=subprocess.check_output(git+["rev-parse","HEAD"],text=True).strip();'
+                      'head=subprocess.check_output(git+["rev-parse","HEAD"],text=True,encoding="utf8").strip();'
                       'assert head==sys.argv[2] and not subprocess.check_output(git+["status","--porcelain"]);'
                       'paths=sys.argv[3:];report={"source_head":head,"worktree":"clean","sha256":{p:hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths}};')
             if descriptor:
-                script += 'report["source_tree"]=subprocess.check_output(git+["rev-parse","HEAD^{tree}"],text=True).strip();'
+                script += 'report["source_tree"]=subprocess.check_output(git+["rev-parse","HEAD^{tree}"],text=True,encoding="utf8").strip();'
                 paths = list(descriptor["manifest"]["sha256"])
             else:
                 paths = [self.build + "/bin/pqbtcd", self.build + "/bin/pqbtc-mldsa-client", SERVER,

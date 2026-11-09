@@ -426,6 +426,7 @@ Key to Flags:
                 audit(nm, compiler=compiler, sanitized=sanitized,
                       elf_dynamic_symbols=symbols, elf_sections=sections)
 
+    @unittest.skipUnless(sys.platform.startswith("linux"), "Native compiler matrix requires contained Linux")
     def test_real_guarded_signer_and_public_transaction_verifier(self):
         for cc, cxx in [("gcc", "g++"), ("clang", "clang++")]:
             for sanitized in (False, True):

@@ -6,6 +6,7 @@
 #include <crypto/sha256.h>
 #include <algorithm>
 #include <cerrno>
+#include <charconv>
 #include <atomic>
 #include <csignal>
 #include <fstream>
@@ -26,7 +27,18 @@ static void Stop(int) { stopped.store(true,std::memory_order_relaxed); }
 static uint64_t Number(const std::string& text)
 {
     Require(!text.empty() && std::all_of(text.begin(),text.end(),[](char c){return c>='0'&&c<='9';}));
-    return std::stoull(text);
+    uint64_t value{};
+    const auto parsed=std::from_chars(text.data(),text.data()+text.size(),value);
+    // Decimal overflow previously reached the generic INTERNAL refusal path.
+    Require(parsed.ec==std::errc{} && parsed.ptr==text.data()+text.size(),Code::INTERNAL);
+    return value;
+}
+static std::string Decimal(uint64_t value)
+{
+    char buffer[20];
+    const auto encoded=std::to_chars(buffer,buffer+sizeof(buffer),value);
+    Require(encoded.ec==std::errc{},Code::INTERNAL);
+    return {buffer,encoded.ptr};
 }
 static Identity Id(const std::string& text)
 {
@@ -55,8 +67,8 @@ static void Checkpoint(int fd,const WalletStatus& status)
 {
     constexpr char digits[]{"0123456789abcdef"}; std::string id;
     for (auto byte:status.id) { id.push_back(digits[byte>>4]); id.push_back(digits[byte&15]); }
-    auto line="MLDSA_WALLET_STATUS_V1 "+id+" "+std::to_string(status.generation)+" "+
-        std::to_string(status.next.receive)+" "+std::to_string(status.next.change)+"\n";
+    auto line="MLDSA_WALLET_STATUS_V1 "+id+" "+Decimal(status.generation)+" "+
+        Decimal(status.next.receive)+" "+Decimal(status.next.change)+"\n";
     auto deadline=detail::Clock::now()+std::chrono::seconds{5};size_t offset{0};
     while (offset<line.size()) {
         detail::Wait(fd,POLLOUT,deadline);auto count=write(fd,line.data()+offset,line.size()-offset);

@@ -9,7 +9,6 @@ from pathlib import Path
 import select
 import struct
 import subprocess
-import sys
 import time
 
 if not __debug__:
@@ -57,30 +56,37 @@ base = invoke('1000:1000','python3','-c',
     'import tempfile,pathlib,os; p=pathlib.Path(tempfile.mkdtemp(prefix="mldsa-svc-"));os.chmod(p,0o750);(p/"wallet").mkdir(mode=0o700);(p/"ipc").mkdir(mode=0o750);print(p)').decode().strip()
 assert base.startswith('/tmp/mldsa-svc-') and '/' not in base[len('/tmp/'):]
 socket_path = base + '/ipc/signer.sock'
-observations = []; processes = []; operator_checkpoints = []
+observations = []
+processes = []
+operator_checkpoints = []
 def checkpoint(line):
     fields = line.decode('ascii').strip().split(' ')
     assert len(fields) == 5 and fields[0] == 'MLDSA_WALLET_STATUS_V1', 'missing operator checkpoint'
     assert len(fields[1]) == 32 and all(c in '0123456789abcdef' for c in fields[1])
     value = {'wallet_id':fields[1],'generation':int(fields[2]),'next_receive':int(fields[3]),'next_change':int(fields[4])}
-    operator_checkpoints.append(value); return value
+    operator_checkpoints.append(value)
+    return value
 def native(scene, *tail, user='1001:1000'):
     result = json.loads(invoke(user,client,socket_path,1000,spec,scene,*tail))
     assert result['result'] == 'PASS'
-    observations.append({'scene':scene,**result}); return result
+    observations.append({'scene':scene,**result})
+    return result
 
 class Running:
     def __init__(self, restore=None):
         flags = ['--valueless-pilot','--socket',socket_path,'--wallet-dir',base+'/wallet','--node-uid','1001',
                  '--fee-cap','1000','--spec-file',spec_file,'--operator-fd','3','--operator-out-fd','4']
-        if restore is None: flags += ['--create']
+        if restore is None:
+            flags += ['--create']
         else:
             identity, receive, change = restore
             flags += ['--restore','--expected-wallet-id',identity,'--min-receive',str(receive),'--min-change',str(change),'--acknowledge-restore-scan-range']
         launcher = 'import os,sys;os.write(1,str(os.getpid()).encode()+bytes([10]));os.dup2(0,3);os.dup2(1,4);os.execv(sys.argv[1],sys.argv[1:])'
         self.process = subprocess.Popen(command('1000:1000','python3','-c',launcher,server,*flags),stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,bufsize=0)
         password = b'public-service-fixture' # PUBLIC test phrase, never a user credential.
-        self.process.stdin.write(struct.pack('<H',len(password))+password); self.process.stdin.close(); self.process.stdin = None
+        self.process.stdin.write(struct.pack('<H',len(password))+password)
+        self.process.stdin.close()
+        self.process.stdin = None
         assert select.select([self.process.stdout],[],[],15)[0], 'launcher PID deadline'
         self.pid = int(self.process.stdout.readline())
         assert select.select([self.process.stdout],[],[],15)[0], 'operator checkpoint deadline'
@@ -88,8 +94,10 @@ class Running:
         deadline = time.monotonic()+15
         while True:
             probe = subprocess.run(command('1000:1000','test','-S',socket_path),capture_output=True)
-            if probe.returncode == 0: break
-            if self.process.poll() is not None: raise RuntimeError(f'service startup failed: {self.process.stderr.read()!r}')
+            if probe.returncode == 0:
+                break
+            if self.process.poll() is not None:
+                raise RuntimeError(f'service startup failed: {self.process.stderr.read()!r}')
             assert time.monotonic()<deadline, 'service startup deadline'
             time.sleep(0.02)
         processes.append(self)
@@ -107,22 +115,28 @@ try:
     invoke('1000:1000','python3','-c','import pathlib,shutil,sys;p=pathlib.Path(sys.argv[1]);shutil.copyfile(p/"wallet.dat",p/"retained-before-reservations.dat")',base+'/wallet')
     for role,user in [('unauthorized','1002:1000'),('controls','1001:1000')]:
         result = json.loads(invoke(user,'python3',args.checkout+'/contrib/ml-dsa-signer/service_smoke.py',socket_path,1000,spec,role))
-        assert result['result'] == 'PASS'; observations.append(result)
-    native('wrong-peer'); native('wrong-spec')
-    spent = native('spend'); assert spent['locked']==1 and (spent['next_receive'],spent['next_change'])==(1,1)
+        assert result['result'] == 'PASS'
+        observations.append(result)
+    native('wrong-peer')
+    native('wrong-spec')
+    spent = native('spend')
+    assert spent['locked']==1 and (spent['next_receive'],spent['next_change'])==(1,1)
     unreadable = subprocess.run(command('1001:1000','test','-r',base+'/wallet/wallet.dat'),capture_output=True)
     assert unreadable.returncode != 0
     retained = running.stop()
     assert spent['wallet_id'] == retained['wallet_id'] and (retained['next_receive'],retained['next_change']) == (1,1)
     running = Running((retained['wallet_id'],retained['next_receive'],retained['next_change']))
-    resumed = native('reserve',1); assert resumed['next_receive']==2
+    resumed = native('reserve',1)
+    assert resumed['next_receive']==2
     retained = running.stop()
     invoke('1000:1000','python3','-c','import pathlib,shutil,sys;p=pathlib.Path(sys.argv[1]);shutil.copyfile(p/"retained-before-reservations.dat",p/"wallet.dat")',base+'/wallet')
     running = Running((retained['wallet_id'],retained['next_receive'],retained['next_change']))
-    restored = native('reserve',2); assert restored['next_receive']==3
+    restored = native('reserve',2)
+    assert restored['next_receive']==3
     running.stop()
 finally:
-    for running in list(processes): running.stop()
+    for running in list(processes):
+        running.stop()
 
 assert verify_binaries() == binary_hashes
 print(json.dumps({'result':'PASS','scope':'ISOLATED_REGTEST_SIGNER_SERVICE_NOT_NODE_INTEGRATION',

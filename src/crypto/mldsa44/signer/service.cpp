@@ -4,10 +4,12 @@
 #include <crypto/mldsa44/signer/transport.h>
 #include <algorithm>
 #include <cerrno>
+#include <charconv>
 #include <condition_variable>
 #include <deque>
 #include <fcntl.h>
 #include <map>
+#include <limits>
 #include <memory>
 #include <poll.h>
 #include <sys/socket.h>
@@ -100,7 +102,10 @@ void RunService(Wallet& wallet,const ServiceOptions& options,const std::atomic<b
     detail::Fd listener{socket(AF_UNIX,SOCK_STREAM|SOCK_CLOEXEC|SOCK_NONBLOCK,0)};
     Require(listener.value>=0,Code::INTERNAL);
     sockaddr_un address{};address.sun_family=AF_UNIX;
-    std::string stable="/proc/self/fd/"+std::to_string(parent.directory.value)+"/"+parent.name;
+    char descriptor[std::numeric_limits<int>::digits10+2];
+    const auto encoded=std::to_chars(descriptor,descriptor+sizeof(descriptor),parent.directory.value);
+    Require(encoded.ec==std::errc{},Code::INTERNAL);
+    std::string stable="/proc/self/fd/"+std::string(descriptor,encoded.ptr)+"/"+parent.name;
     Require(stable.size()<sizeof(address.sun_path) && options.socket.size()<sizeof(address.sun_path),Code::STORAGE);
     std::copy(stable.begin(),stable.end(),address.sun_path);
     Require(bind(listener.value,reinterpret_cast<sockaddr*>(&address),sizeof(address))==0,Code::STORAGE);

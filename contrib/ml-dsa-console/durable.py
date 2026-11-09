@@ -262,7 +262,7 @@ class RuntimeManager:
             script = ('import hashlib,json,os,pathlib,stat,subprocess,sys;'
                       'native=json.loads(sys.argv[1]); selected=json.loads(sys.argv[2]); marker=json.loads(sys.argv[3]);'
                       'git=["git","-c","safe.directory=/tmp/mldsa-demo-source","-C","/tmp/mldsa-demo-source"];'
-                      'assert subprocess.check_output(git+["rev-parse","HEAD"],text=True).strip()==marker["source_head"];'
+                      'assert subprocess.check_output(git+["rev-parse","HEAD"],text=True,encoding="utf8").strip()==marker["source_head"];'
                       'assert not subprocess.check_output(git+["status","--porcelain"]);'
                       'assert all(hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()==digest for p,digest in native.items());'
                       'migration=None;'

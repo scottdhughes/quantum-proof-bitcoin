@@ -13,4 +13,4 @@ struct Error : std::runtime_error {
 };
 inline void Require(bool value, Code code = Code::VALIDATION) { if (!value) throw Error(code); }
 } // namespace pqbtc::mldsa44::signer
-#endif
+#endif // BITCOIN_CRYPTO_MLDSA44_SIGNER_ERROR_H

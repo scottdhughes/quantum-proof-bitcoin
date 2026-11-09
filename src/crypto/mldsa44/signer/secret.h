@@ -61,4 +61,4 @@ public:
     std::span<unsigned char, N> span() { return std::span<unsigned char, N>{data(), N}; }
 };
 } // namespace pqbtc::mldsa44::signer
-#endif
+#endif // BITCOIN_CRYPTO_MLDSA44_SIGNER_SECRET_H

@@ -24,4 +24,4 @@ ssize_t Receive(int fd,std::span<unsigned char> bytes);
 using Clock=std::chrono::steady_clock;
 void Wait(int fd,short events,Clock::time_point deadline);
 } // namespace pqbtc::mldsa44::signer::detail
-#endif
+#endif // BITCOIN_CRYPTO_MLDSA44_SIGNER_TRANSPORT_H

@@ -47,4 +47,4 @@ public:
     WalletStatus Status() const;
 };
 } // namespace pqbtc::mldsa44::signer
-#endif
+#endif // BITCOIN_CRYPTO_MLDSA44_SIGNER_WALLET_H

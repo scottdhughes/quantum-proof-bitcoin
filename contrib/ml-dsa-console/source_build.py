@@ -119,7 +119,7 @@ def build_image(repo, compiler="gcc", image_tag=None, no_cache=False, progress=p
         except (OSError, subprocess.TimeoutExpired) as error:
             raise BuildError("Contained source build failed or exceeded one hour") from error
         require(result.returncode == 0, "Contained source build failed; inspect the Docker build output")
-    image = subprocess.check_output(["docker", "image", "inspect", "--format", "{{.Id}}", tag], text=True, timeout=30).strip()
+    image = subprocess.check_output(["docker", "image", "inspect", "--format", "{{.Id}}", tag], text=True,encoding="utf8", timeout=30).strip()
     require(re.fullmatch(r"sha256:[0-9a-f]{64}", image), "Docker returned an invalid image identity")
     raw = subprocess.check_output(["docker", "run", "--rm", "--network", "none", "--read-only", "--cap-drop", "ALL",
                                    "--security-opt", "no-new-privileges", image, "cat", "/opt/pqbtc-runtime/manifest.json"], timeout=30)

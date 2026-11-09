@@ -98,8 +98,10 @@ def synchronize(nodes):
 
 def configuration_refusals(binary, root):
     for index, config in enumerate(("[regtest]\nmldsa44demo=1\n", "mldsa44demo=1\n[regtest]\nmldsa44demo=0\n", "mldsa44demo=1\n")):
-        directory = root / ("refused-config-" + str(index)); directory.mkdir(mode=0o700)
-        config_file = directory / "public-test.conf"; config_file.write_text(config, encoding="utf8")
+        directory = root / ("refused-config-" + str(index))
+        directory.mkdir(mode=0o700)
+        config_file = directory / "public-test.conf"
+        config_file.write_text(config, encoding="utf8")
         result = subprocess.run([str(binary), "-regtest", "-nosettings", "-conf=" + str(config_file),
             "-datadir=" + str(directory), "-printtoconsole=1"], capture_output=True, text=True, timeout=20 * TIMEOUT_FACTOR)
         assert result.returncode != 0 and "command-line only" in result.stderr, (result.stdout, result.stderr)
@@ -156,12 +158,14 @@ def validation_demo(nodes):
 
 def spend_restore_demo(nodes, root, args):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "contrib/ml-dsa-signer"))
-    import node_wallet as wallet
+    # Loaded from the explicit companion directory above, outside mypy's roots.
+    import node_wallet as wallet  # type: ignore[import]
     a, b = nodes
     a.rpc().addnode("127.0.0.1:" + str(b.port), "onetry")
     wait_until(lambda: bool(a.rpc().getpeerinfo()) and bool(b.rpc().getpeerinfo()))
     signer = wallet.NativeSigner(args.client, args.socket, args.signer_uid)
-    first_public = root / "public-first"; first_public.mkdir(mode=0o700)
+    first_public = root / "public-first"
+    first_public.mkdir(mode=0o700)
     # No address or signing request is allowed while still at genesis.
     with wallet.PublicStore(first_public) as store:
         first = wallet.NodeWallet(a.rpc(), signer, store)
@@ -182,25 +186,30 @@ def spend_restore_demo(nodes, root, args):
         receive, destination, change = first.reserve(0), first.reserve(0), first.reserve(1)
         assert (receive["index"], destination["index"], change["index"]) == (0, 1, 0)
         coinbase = a.rpc().getblock(blocks[0], 2)["tx"][0]["txid"]
-        funding = CTransaction(); funding.vin = [CTxIn(COutPoint(int(coinbase, 16), 0))]
+        funding = CTransaction()
+        funding.vin = [CTxIn(COutPoint(int(coinbase, 16), 0))]
         funding.vout = [CTxOut(1000000, bytes.fromhex(receive["script_pubkey"])),
                         CTxOut(1000000, bytes.fromhex(receive["script_pubkey"])), CTxOut(4997990000, b"\x51")]
         a.rpc().generateblock("raw(51)", [funding.serialize().hex()])
         synchronize(nodes)
         assert a.rpc().gettxout(funding.txid_hex, 0)["scriptPubKey"]["address"] == receive["address"]
         assert {item["txid"] for item in first.scan()} == {funding.txid_hex}
-        spend = CTransaction(); spend.vin = [CTxIn(COutPoint(funding.txid_int, index)) for index in (0, 1)]
+        spend = CTransaction()
+        spend.vin = [CTxIn(COutPoint(funding.txid_int, index)) for index in (0, 1)]
         spend.vout = [CTxOut(1000000, bytes.fromhex(destination["script_pubkey"])), CTxOut(990000, bytes.fromhex(change["script_pubkey"]))]
         signed = first.sign(spend.serialize().hex())
         # A still-valid signature cannot authorize changed outputs or witnesses.
-        mutated = CTransaction(); mutated.deserialize(io.BytesIO(bytes.fromhex(signed["hex"])))
+        mutated = CTransaction()
+        mutated.deserialize(io.BytesIO(bytes.fromhex(signed["hex"])))
         mutated.vout[0].nValue -= 1
         negatives = reject_actual_spend(nodes, mutated.serialize().hex(), "changed-output")
-        mutated = CTransaction(); mutated.deserialize(io.BytesIO(bytes.fromhex(signed["hex"])))
+        mutated = CTransaction()
+        mutated.deserialize(io.BytesIO(bytes.fromhex(signed["hex"])))
         original = mutated.wit.vtxinwit[0].scriptWitness.stack[0]
         mutated.wit.vtxinwit[0].scriptWitness.stack[0] = bytes([original[0] ^ 1]) + original[1:]
         negatives += reject_actual_spend(nodes, mutated.serialize().hex(), "altered-signature")
-        mutated = CTransaction(); mutated.deserialize(io.BytesIO(bytes.fromhex(signed["hex"])))
+        mutated = CTransaction()
+        mutated.deserialize(io.BytesIO(bytes.fromhex(signed["hex"])))
         # Both Coins really exist with equal amounts/scripts. Swapping just the
         # outpoints must fail signature binding, NOT duplicate/missing-input checks.
         mutated.vin[0].prevout, mutated.vin[1].prevout = mutated.vin[1].prevout, mutated.vin[0].prevout
@@ -223,7 +232,8 @@ def spend_restore_demo(nodes, root, args):
             raise AssertionError("signer accepted a path/script mismatch")
         # Now give the signer a consistent B path for the false B script. Its
         # self-verified B signature still cannot spend the actual A Coin.
-        wrong_paths = list(paths); wrong_paths[0] = (0, destination["index"])
+        wrong_paths = list(paths)
+        wrong_paths[0] = (0, destination["index"])
         payload = signer.call(3, wallet.ipc_v1.encode_sign_request(bytes.fromhex(store.export()["wallet_id"]), wrong_script, wrong_paths))
         false_script_wire = wallet.attach_witnesses(wrong_script, wrong_paths, store.export(), payload)
         negatives += reject_actual_spend(nodes, false_script_wire.hex(), "false-prevout-script")
@@ -246,7 +256,8 @@ def spend_restore_demo(nodes, root, args):
     print(json.dumps({"event": "RESTORE_REQUIRED", "public_manifest": public_backup, "first_spend": txid}), flush=True)
     assert select.select([sys.stdin], [], [], 60 * TIMEOUT_FACTOR)[0], "operator restore deadline"
     assert sys.stdin.readline() == "RESTORED\n", "operator restore acknowledgement"
-    restored_public = root / "public-restored"; restored_public.mkdir(mode=0o700)
+    restored_public = root / "public-restored"
+    restored_public.mkdir(mode=0o700)
     with wallet.PublicStore(restored_public) as store:
         second = wallet.NodeWallet(b.rpc(), signer, store)
         second.import_manifest(public_backup)
@@ -278,10 +289,13 @@ def spend_restore_demo(nodes, root, args):
         else:
             raise AssertionError("native signer accepted GET_ADDRESS after LOCK")
         final_manifest = store.export()
-    b.stop(); b.start(["-reindex=1"])
+    b.stop()
+    b.start(["-reindex=1"])
     wait_until(lambda: b.rpc().getbestblockhash() == final_block)
     assert b.rpc().gettxout(second_txid, 0) is not None
-    a.start(); a.rpc().addnode("127.0.0.1:" + str(b.port), "onetry"); synchronize(nodes)
+    a.start()
+    a.rpc().addnode("127.0.0.1:" + str(b.port), "onetry")
+    synchronize(nodes)
     assert a.rpc().gettxout(second_txid, 0) == b.rpc().gettxout(second_txid, 0)
     inventories = [node.rpc().gettxoutsetinfo() for node in nodes]
     assert inventories[0]["bestblock"] == inventories[1]["bestblock"] == final_block

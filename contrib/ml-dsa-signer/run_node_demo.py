@@ -114,7 +114,8 @@ def main():
                                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
             password = b"public-two-node-demo-fixture"
             self.process.stdin.write(struct.pack("<H", len(password)) + password)
-            self.process.stdin.close(); self.process.stdin = None
+            self.process.stdin.close()
+            self.process.stdin = None
             assert select.select([self.process.stdout], [], [], 15 * timeout_factor)[0], "signer PID deadline"
             self.pid = int(self.process.stdout.readline())
             assert select.select([self.process.stdout], [], [], 15 * timeout_factor)[0], "signer checkpoint deadline"
@@ -183,7 +184,8 @@ def main():
                         'shutil.copyfile(p/"backup/old-wallet.dat",p/"wallet-restored/wallet.dat");os.chmod(p/"wallet-restored/wallet.dat",0o600)', base)
                     signer = Signer(manifest)
                     assert signer.initial["wallet_id"] == manifest["wallet_id"]
-                    demo.stdin.write(b"RESTORED\n"); demo.stdin.flush()
+                    demo.stdin.write(b"RESTORED\n")
+                    demo.stdin.flush()
                     restored = True
         output, error = demo.communicate(timeout=20)
         if output:
@@ -193,7 +195,8 @@ def main():
         assert restored and result_seen and terminal_seen, "encrypted restore result/terminal marker incomplete"
     finally:
         if demo and demo.poll() is None:
-            demo.terminate(); demo.wait(timeout=20)
+            demo.terminate()
+            demo.wait(timeout=20)
         if signer and signer.process.poll() is None:
             signer.stop()
     after = identity()

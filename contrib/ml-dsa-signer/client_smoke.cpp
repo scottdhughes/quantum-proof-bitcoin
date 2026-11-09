@@ -3,6 +3,7 @@
 // Public node-side client fixture: MUST NOT link wallet/key-owner/libcrypto.
 #include <crypto/mldsa44/signer/client.h>
 #include <algorithm>
+#include <charconv>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -11,10 +12,17 @@ using namespace pqbtc::mldsa44;
 using namespace pqbtc::mldsa44::signer;
 static unsigned checks{0};
 static void Check(bool ok) { if (!ok) throw std::runtime_error("client fixture assertion"); ++checks; }
+static unsigned long Unsigned(const std::string& text, int base=10)
+{
+    unsigned long value{};
+    const auto parsed=std::from_chars(text.data(),text.data()+text.size(),value,base);
+    Check(parsed.ec==std::errc{} && parsed.ptr==text.data()+text.size());
+    return value;
+}
 static Hash HashHex(const char* text)
 {
     Check(std::string(text).size()==64); Hash out{};
-    for (size_t i=0;i<32;++i) out[i]=std::stoi(std::string(text+i*2,2),nullptr,16);
+    for (size_t i=0;i<32;++i) out[i]=Unsigned(std::string(text+i*2,2),16);
     return out;
 }
 static std::string Hex(std::span<const unsigned char> data)
@@ -39,7 +47,7 @@ static PublicAddress Address(Client& client,uint8_t branch)
 int main(int argc,char** argv)
 {
     try {
-        Check(argc>=5); auto uid=std::stoul(argv[2]); Check(uid<1000000);
+        Check(argc>=5); auto uid=Unsigned(argv[2]); Check(uid<1000000);
         auto spec=HashHex(argv[3]); std::string scene{argv[4]};
         if (scene=="wrong-peer") {
             try { Client client{argv[1],static_cast<uid_t>(uid+7),Network::REGTEST,spec}; }
@@ -81,7 +89,7 @@ int main(int argc,char** argv)
             Check(client.Call(2,{0}).status==static_cast<uint16_t>(Code::LOCKED));
         } else if (scene=="reserve") {
             Check(argc==6 && status.payload[0]==0); auto address=Address(client,0);
-            Check(address.index==std::stoul(argv[5]));
+            Check(address.index==Unsigned(argv[5]));
         } else { Check(scene=="status"); }
         status=client.Call(5,{}); Check(status.status==0 && status.payload.size()==25);
         std::cout<<"{\"result\":\"PASS\",\"checks\":"<<checks<<",\"wallet_id\":\""<<Hex(wallet_id)

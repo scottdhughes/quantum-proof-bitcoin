@@ -22,4 +22,4 @@ RecordInfo OpenRecord(std::span<const unsigned char> record, Network network,
     std::span<const unsigned char> password, std::span<unsigned char, 40> output);
 const char* CryptoVersion();
 } // namespace pqbtc::mldsa44::signer
-#endif
+#endif // BITCOIN_CRYPTO_MLDSA44_SIGNER_WALLET_CRYPTO_H

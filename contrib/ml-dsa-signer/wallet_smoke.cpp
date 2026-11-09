@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cerrno>
+#include <charconv>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -30,8 +31,14 @@ template<typename F> static void Reject(Code code, F action)
 }
 static Bytes Hex(const char* value)
 {
+    const std::string input{value}; Check(input.size()%2==0);
     Bytes out;
-    for (size_t i = 0; value[i]; i += 2) out.push_back(std::stoi(std::string(value + i, 2), nullptr, 16));
+    for (size_t i=0;i<input.size();i+=2) {
+        unsigned byte{};
+        const auto parsed=std::from_chars(input.data()+i,input.data()+i+2,byte,16);
+        Check(parsed.ec==std::errc{} && parsed.ptr==input.data()+i+2);
+        out.push_back(byte);
+    }
     return out;
 }
 static Bytes Read(const std::filesystem::path& path)

@@ -3,7 +3,7 @@
 // PUBLIC fixture only: this is not a wallet, IPC server or production node.
 #include <crypto/mldsa44/contract.h>
 #include <crypto/mldsa44/verify.h>
-#include "../ml-dsa-key-lifecycle/key_lifecycle.h"
+#include <contrib/ml-dsa-key-lifecycle/key_lifecycle.h>
 
 #include <algorithm>
 #include <iostream>

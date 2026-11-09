@@ -36,7 +36,7 @@ jobs:
           python3 -m unittest discover -s ci/test -p 'test_ml_dsa_console_*.py'
           python3 -m unittest ci.test.test_ml_dsa_protocol_v1 ci.test.test_mldsa_node_wallet ci.test.test_ml_dsa_native_symbols
           node --check contrib/ml-dsa-console/web/app.js
-          sh -n 'Launch Local Wallet.command' contrib/ml-dsa-console/launch.command
+          sh -n 'Launch-Local-Wallet.command' contrib/ml-dsa-console/launch.command
 
       - name: Build native source without cache and test the assembled app
         run: |

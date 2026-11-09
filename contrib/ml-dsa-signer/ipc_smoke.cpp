@@ -4,6 +4,7 @@
 #include <crypto/mldsa44/signer/ipc.h>
 #include <crypto/mldsa44/signer/session.h>
 #include <algorithm>
+#include <charconv>
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
@@ -22,7 +23,15 @@ template<typename F> static void Reject(Code code, F action)
 }
 static Bytes Hex(const char* text)
 {
-    Bytes result; for (size_t i = 0; text[i]; i += 2) result.push_back(std::stoi(std::string(text+i, 2), nullptr, 16)); return result;
+    const std::string input{text}; Check(input.size()%2==0);
+    Bytes result;
+    for (size_t i=0;i<input.size();i+=2) {
+        unsigned byte{};
+        const auto parsed=std::from_chars(input.data()+i,input.data()+i+2,byte,16);
+        Check(parsed.ec==std::errc{} && parsed.ptr==input.data()+i+2);
+        result.push_back(byte);
+    }
+    return result;
 }
 static Frame Request(uint8_t kind, unsigned id, Bytes body = {})
 {

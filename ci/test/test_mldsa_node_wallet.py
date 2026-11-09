@@ -59,7 +59,8 @@ class PublicWalletTests(unittest.TestCase):
     def test_wrong_program_branch_replay_and_oversized_address_refused(self):
         store = self.store()
         store.observe_status(self.status())
-        wrong = bytearray(self.address()); wrong[-1] ^= 1
+        wrong = bytearray(self.address())
+        wrong[-1] ^= 1
         for payload in (bytes(wrong), self.address(1), self.address() + b"x", self.address()[:-1]):
             with self.subTest(size=len(payload)), self.assertRaises(self.module.WalletError):
                 store.accept_address(payload, 0)
@@ -81,45 +82,65 @@ class PublicWalletTests(unittest.TestCase):
         self.assertEqual(len(store.export()["entries"]), 1)
 
     def test_import_binds_network_spec_key_counter_and_server_floor(self):
-        store = self.store(); store.observe_status(self.status()); store.accept_address(self.address(), 0)
-        manifest = store.export(); store.close()
-        second = self.directory / "restored"; second.mkdir(mode=0o700)
+        store = self.store()
+        store.observe_status(self.status())
+        store.accept_address(self.address(), 0)
+        manifest = store.export()
+        store.close()
+        second = self.directory / "restored"
+        second.mkdir(mode=0o700)
         with self.module.PublicStore(second) as target:
             for field, value in (("network_binding", "00" * 36), ("spec_sha256", "00" * 32),
                                  ("next_receive", 0), ("next_change", True)):
-                bad = copy.deepcopy(manifest); bad[field] = value
+                bad = copy.deepcopy(manifest)
+                bad[field] = value
                 with self.subTest(field=field), self.assertRaises(self.module.WalletError):
                     target.import_manifest(bad, self.status(1))
-            bad = copy.deepcopy(manifest); bad["entries"][0]["public_key"] = "00" * 1312
-            with self.assertRaises(self.module.WalletError): target.import_manifest(bad, self.status(1))
-            with self.assertRaises(self.module.WalletError): target.import_manifest(manifest, self.status(0))
+            bad = copy.deepcopy(manifest)
+            bad["entries"][0]["public_key"] = "00" * 1312
+            with self.assertRaises(self.module.WalletError):
+                target.import_manifest(bad, self.status(1))
+            with self.assertRaises(self.module.WalletError):
+                target.import_manifest(manifest, self.status(0))
             target.import_manifest(manifest, self.status(1))
             self.assertEqual(target.export(), manifest)
-            with self.assertRaises(self.module.WalletError): target.import_manifest(manifest, self.status(1))
+            with self.assertRaises(self.module.WalletError):
+                target.import_manifest(manifest, self.status(1))
 
     def test_single_writer_and_insecure_public_files_refused(self):
-        store = self.store(); store.observe_status(self.status())
-        with self.assertRaises(self.module.WalletError): self.module.PublicStore(self.directory)
+        store = self.store()
+        store.observe_status(self.status())
+        with self.assertRaises(self.module.WalletError):
+            self.module.PublicStore(self.directory)
         store.close()
-        state = self.directory / "public-wallet.json"; state.chmod(0o644)
-        with self.assertRaises(self.module.WalletError): self.module.PublicStore(self.directory)
+        state = self.directory / "public-wallet.json"
+        state.chmod(0o644)
+        with self.assertRaises(self.module.WalletError):
+            self.module.PublicStore(self.directory)
         state.chmod(0o600)
         os.link(state, self.directory / "alias")
-        with self.assertRaises(self.module.WalletError): self.module.PublicStore(self.directory)
+        with self.assertRaises(self.module.WalletError):
+            self.module.PublicStore(self.directory)
 
     def test_duplicate_json_members_and_symlink_refused(self):
         state = self.directory / "public-wallet.json"
-        state.write_text('{"schema":"a","schema":"b"}', encoding="utf8"); state.chmod(0o600)
-        with self.assertRaises(self.module.WalletError): self.module.PublicStore(self.directory)
+        state.write_text('{"schema":"a","schema":"b"}', encoding="utf8")
+        state.chmod(0o600)
+        with self.assertRaises(self.module.WalletError):
+            self.module.PublicStore(self.directory)
         state.rename(self.directory / "retained-bad-json")
         state.symlink_to(self.directory / "retained-bad-json")
-        with self.assertRaises(self.module.WalletError): self.module.PublicStore(self.directory)
+        with self.assertRaises(self.module.WalletError):
+            self.module.PublicStore(self.directory)
 
     def test_failed_durable_write_returns_no_address_and_poisons_instance(self):
-        store = self.store(); store.observe_status(self.status())
+        store = self.store()
+        store.observe_status(self.status())
         with patch.object(self.module.os, "fsync", side_effect=OSError("fixture fsync failure")):
-            with self.assertRaises(self.module.WalletError): store.accept_address(self.address(), 0)
-        with self.assertRaises(self.module.WalletError): store.export()
+            with self.assertRaises(self.module.WalletError):
+                store.accept_address(self.address(), 0)
+        with self.assertRaises(self.module.WalletError):
+            store.export()
         self.assertTrue((self.directory / "public-wallet.tmp").exists())
         data = json.loads((self.directory / "public-wallet.json").read_text(encoding="utf8"))
         self.assertEqual(data["next_receive"], 0)
@@ -132,11 +153,13 @@ class PublicWalletTests(unittest.TestCase):
         self.module.validate_deployment(info)
         for field, value in (("active", False), ("active", 1), ("activation_height", 2),
                              ("network_binding", "00" * 36), ("spec_sha256", "00" * 32)):
-            bad = copy.deepcopy(info); bad["valueless_mldsa44_demo"][field] = value
+            bad = copy.deepcopy(info)
+            bad["valueless_mldsa44_demo"][field] = value
             with self.subTest(field=field), self.assertRaises(self.module.WalletError):
                 self.module.validate_deployment(bad)
         for bad in ({"chain": "regtest", "blocks": 1}, {**info, "blocks": 0}, {**info, "chain": "main"}):
-            with self.assertRaises(self.module.WalletError): self.module.validate_deployment(bad)
+            with self.assertRaises(self.module.WalletError):
+                self.module.validate_deployment(bad)
 
     def test_demo_evidence_tools_refuse_optimized_python(self):
         for relative in ("contrib/ml-dsa-signer/run_node_demo.py", "contrib/ml-dsa-signer/test_node_client.py",
