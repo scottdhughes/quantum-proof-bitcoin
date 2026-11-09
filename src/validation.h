@@ -342,7 +342,8 @@ private:
     PrecomputedTransactionData *txdata;
     SignatureCache* m_signature_cache;
     std::shared_ptr<const pqbtc::mldsa44::node::Snapshot> m_mldsa_snapshot;
-    const CChainParams* m_mldsa_params;
+    // Only consumed when the experimental ML-DSA implementation is compiled in.
+    [[maybe_unused]] const CChainParams* m_mldsa_params;
 
 public:
     CScriptCheck(const CTxOut& outIn, const CTransaction& txToIn, SignatureCache& signature_cache, unsigned int nInIn, unsigned int nFlagsIn, bool cacheIn, PrecomputedTransactionData* txdataIn,

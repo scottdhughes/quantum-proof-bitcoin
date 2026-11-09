@@ -403,6 +403,14 @@ NON_SCRIPTS = [
     "test_runner.py",
 ]
 
+STANDALONE_SCRIPTS = [
+    # This driver does not accept BitcoinTestFramework runner arguments. It needs
+    # ENABLE_EXPERIMENTAL_MLDSA44=ON and explicit valueless -mldsa44demo=1 nodes.
+    # The assembled-system GCC/Clang workflow invokes it directly through
+    # contrib/ml-dsa-console/container/build_native.sh with --validation-only.
+    "feature_mldsa44_demo.py",
+]
+
 def main():
     # Parse arguments and pass through unrecognised args
     parser = argparse.ArgumentParser(add_help=False,
@@ -853,10 +861,10 @@ def check_script_list(*, src_dir, fail_on_warn):
     """Check scripts directory.
 
     Check that all python files in this directory are categorized
-    as a test script or meta script."""
+    as a framework test, meta script, or explicitly listed standalone driver."""
     script_dir = src_dir + '/test/functional/'
     python_files = set([test_file for test_file in os.listdir(script_dir) if test_file.endswith(".py")])
-    missed_tests = list(python_files - set(map(lambda x: x.split()[0], ALL_SCRIPTS + NON_SCRIPTS)))
+    missed_tests = list(python_files - set(map(lambda x: x.split()[0], ALL_SCRIPTS + NON_SCRIPTS + STANDALONE_SCRIPTS)))
     if len(missed_tests) != 0:
         print("%sWARNING!%s The following scripts are not being run: %s. Check the test lists in test_runner.py." % (BOLD[1], BOLD[0], str(missed_tests)))
         if fail_on_warn:

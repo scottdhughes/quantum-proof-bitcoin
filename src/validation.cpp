@@ -2176,7 +2176,7 @@ static bool CheckInputScriptsImpl(const CTransaction& tx, TxValidationState& sta
                        ValidationCache& validation_cache,
                        std::vector<CScriptCheck>* pvChecks,
                        std::shared_ptr<const pqbtc::mldsa44::node::Snapshot> snapshot,
-                       const CChainParams* params)
+                       const CChainParams* params) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     if (tx.IsCoinBase()) return true;
     if ((flags & SCRIPT_VERIFY_MLDSA44) && (!snapshot || !params)) {
