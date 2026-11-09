@@ -33,3 +33,15 @@ Effective C++ chain identity is an integration obligation: GENESIS-v1 artifacts
 are target identities, not evidence that the inherited node already uses them.
 The v1 absence-guarded/no-grandfather activation choice remains mandatory unless
 the owner explicitly approves a separately reviewed protocol change.
+
+## Public testing direction — 2026-11-09
+
+The owner stated that they will not pay for external review. Their chosen path
+is public open-source GitHub publication so anyone can test the implementation.
+Continue building toward the executable milestones in
+[the current completion roadmap](PROJECT_COMPLETION_ROADMAP.md). Do not request
+a paid reviewer, budget, or engagement as the next engineering step, and do not
+wait for an outside response before implementing or publishing an accurately
+described experimental candidate. Independent human review remains not performed;
+public availability must not be represented as a completed audit. Technical
+qualification and an explicit final release decision remain necessary.

@@ -114,6 +114,7 @@ def validate_verifier_exports(nm_output, *, compiler, sanitized, elf_dynamic_sym
         raise RuntimeError("complete single verifier .dynsym table required")
     symbols = {}
     defined = {}
+    local_sections = {}
     for index, line in enumerate(lines[2:]):
         row = line.split()
         if (len(row) not in (7, 8, 9) or row[0] != str(index) + ":"
@@ -135,7 +136,17 @@ def validate_verifier_exports(nm_output, *, compiler, sanitized, elf_dynamic_sym
             raise RuntimeError("missing or duplicate verifier dynamic name")
         symbols[row[7]] = (int(row[1], 16), int(row[2]), *row[3:7])
         if row[6] != "UND":
-            defined[row[7]] = symbols[row[7]]
+            if row[3:5] == ["SECTION", "LOCAL"]:
+                # GNU binutils 2.40 on aarch64 retains these two local ELF
+                # section descriptors in .dynsym. They are not nm -D exports.
+                # Join their exact metadata to the complete section table below
+                # rather than broadening the public function/object allowlist.
+                if (row[7] not in (".init", ".data") or row[5] != "DEFAULT"
+                        or int(row[2]) != 0 or not row[6].isdigit()):
+                    raise RuntimeError("unqualified local verifier section symbol")
+                local_sections[row[7]] = symbols[row[7]]
+            else:
+                defined[row[7]] = symbols[row[7]]
     if set(nm_symbols) != set(defined):
         raise RuntimeError("verifier nm/dynsym definition mismatch")
 
@@ -172,6 +183,13 @@ def validate_verifier_exports(nm_output, *, compiler, sanitized, elf_dynamic_sym
             raise RuntimeError("invalid verifier null section")
         section_names.add(row[0])
         sections[str(index)] = (row[0], row[1], int(row[2], 16), int(row[4], 16), row[6], int(row[9]))
+    for name, symbol in local_sections.items():
+        value, size, kind, binding, visibility, section = symbol
+        expected_flags = "AX" if name == ".init" else "WA"
+        observed = sections.get(section)
+        if (observed is None or observed[0:2] != (name, "PROGBITS")
+                or observed[2] != value or observed[3] <= 0 or observed[4] != expected_flags):
+            raise RuntimeError("local verifier section symbol does not match ELF section")
     api = "pqbtc_mldsa44_node_verify"
     anchors = {"__start_asan_globals", "__stop_asan_globals"}
     present = anchors.intersection(defined)
@@ -293,9 +311,11 @@ def main():
             controls = [("address", "#include <stdlib.h>\nint main(int argc,char**argv){(void)argv;volatile int i=argc;volatile int*a=(volatile int*)malloc(sizeof(int));a[0]=1;a[i]=2;free((void*)a);return 0;}\n", "heap-buffer-overflow", "undefined"),
                         ("undefined", "#include <limits.h>\nint main(void){volatile int x=INT_MAX;return x+1;}\n", "signed integer overflow", "address")]
             for name, text, expected, disable in controls:
-                source = build / (name + "-control.c"); source.write_text(text)
+                source = build / (name + "-control.c")
+                source.write_text(text)
                 command = [cc, "-std=c11", *common, "-fno-sanitize=" + disable, source, "-o", build / (name + "-control")]
-                commands.append([str(x) for x in command]); run(command)
+                commands.append([str(x) for x in command])
+                run(command)
                 observed = subprocess.run([str(build / (name + "-control"))], env=RUN_ENV, capture_output=True, text=True, timeout=30)
                 if observed.returncode == 0 or observed.stdout or expected not in observed.stderr or "WARNING" in observed.stderr:
                     raise RuntimeError(f"sanitizer positive control not qualified: {name}, exit={observed.returncode}\n{observed.stdout}\n{observed.stderr}")

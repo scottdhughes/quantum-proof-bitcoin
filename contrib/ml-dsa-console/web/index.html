@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="console-token" content="__CONSOLE_TOKEN__">
+    <meta name="color-scheme" content="light">
+    <title>Local ML-DSA wallet</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23182c43'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-size='29' font-family='Optima,serif' fill='%23f3f6fa'%3Eq%3C/text%3E%3C/svg%3E">
+    <link rel="stylesheet" href="/style.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#wallet">Skip to wallet</a>
+    <div class="page-shell">
+      <header class="masthead">
+        <div class="brand">
+          <span class="brand-symbol" aria-hidden="true">q</span>
+          <div>
+            <h1>Local wallet</h1>
+            <p>ML-DSA · Test coins on your computer</p>
+          </div>
+        </div>
+        <div class="session-controls">
+          <span class="phase-badge" id="phase-badge" data-phase="unknown"><span class="status-dot" aria-hidden="true"></span><span id="phase-label">Connecting</span></span>
+          <button type="button" class="button button-primary" id="start-button" data-action="start" data-mutation data-testid="start-network">Start network</button>
+          <button type="button" class="button button-quiet" id="stop-button" data-action="stop" data-mutation data-testid="stop-network" hidden>Stop network</button>
+        </div>
+      </header>
+
+      <div id="feedback" class="feedback" role="status" aria-live="polite" aria-atomic="true" data-testid="feedback" hidden></div>
+
+      <section class="startup-note" id="startup-note" aria-labelledby="startup-title">
+        <div>
+          <h2 id="startup-title">A small network, ready when you are.</h2>
+          <p id="startup-message">Connecting to your local console…</p>
+        </div>
+        <span class="startup-rule" aria-hidden="true"></span>
+        <p class="test-note">These test coins have no monetary value.</p>
+      </section>
+
+      <main class="console-grid" id="console-main">
+        <div class="wallet-column">
+          <section class="wallet-folio" id="wallet" aria-labelledby="wallet-heading" tabindex="-1">
+            <div class="wallet-summary">
+              <div class="section-heading">
+                <h2 id="wallet-heading">Your wallet</h2>
+                <button type="button" class="button button-on-ink" id="lock-button" data-action="lock" data-mutation data-testid="lock-wallet" disabled>Lock wallet</button>
+              </div>
+              <p class="balance-label">Total test coins</p>
+              <p class="balance"><span id="balance" data-testid="balance">—</span><span class="balance-unit">testBTC</span></p>
+              <dl class="balance-breakdown">
+                <div><dt>Confirmed</dt><dd id="confirmed-balance" data-testid="confirmed-balance">—</dd></div>
+                <div><dt>Spendable</dt><dd id="spendable-balance" data-testid="spendable-balance">—</dd></div>
+                <div><dt>Pending</dt><dd id="pending-balance" data-testid="pending-balance">—</dd></div>
+              </dl>
+              <p class="wallet-note" id="wallet-note">Start the network to open your wallet.</p>
+            </div>
+
+            <div class="wallet-workspace">
+              <div class="workspace-tabs" role="tablist" aria-label="Wallet actions">
+                <button type="button" id="receive-tab" role="tab" aria-selected="true" aria-controls="receive-panel" tabindex="0" data-testid="receive-tab">Receive</button>
+                <button type="button" id="send-tab" role="tab" aria-selected="false" aria-controls="send-panel" tabindex="-1" data-testid="send-tab">Send</button>
+              </div>
+
+              <section class="workspace-panel" id="receive-panel" role="tabpanel" aria-labelledby="receive-tab">
+                <div class="panel-heading"><h3>A fresh place to receive.</h3><p>Create an address, then share it with another local test wallet.</p></div>
+                <div class="address-box" id="receive-address-box">
+                  <span class="field-caption">Receive address</span>
+                  <code id="receive-address" tabindex="0" data-testid="receive-address">No receive address yet</code>
+                  <button type="button" class="button button-small button-quiet" id="copy-address-button" data-testid="copy-address" disabled>Copy address</button>
+                </div>
+                <button type="button" class="button button-primary" id="receive-button" data-action="receive" data-mutation data-testid="new-address" disabled>Create receive address</button>
+              </section>
+
+              <section class="workspace-panel" id="send-panel" role="tabpanel" aria-labelledby="send-tab" hidden>
+                <div class="panel-heading"><h3>Send test coins.</h3><p>Enter the recipient’s local test address and an exact amount.</p></div>
+                <form id="send-form" novalidate>
+                  <div class="field">
+                    <label for="send-address">Recipient address</label>
+                    <input id="send-address" name="address" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" required data-mutation data-testid="send-address" disabled>
+                  </div>
+                  <div class="amount-fields">
+                    <div class="field"><label for="send-amount">Amount <span class="label-unit">testBTC</span></label><input id="send-amount" name="amount" type="text" inputmode="decimal" autocomplete="off" placeholder="0.01000000" aria-describedby="amount-help" required data-mutation data-testid="send-amount" disabled><p class="field-help" id="amount-help">Up to 8 decimal places.</p></div>
+                    <div class="field"><label for="send-fee">Fee <span class="label-unit">sats</span></label><input id="send-fee" name="fee" type="text" inputmode="numeric" autocomplete="off" value="1000" required data-mutation data-testid="send-fee" disabled><p class="field-help">1 testBTC = 100,000,000 sats.</p></div>
+                  </div>
+                  <div class="send-total"><span>Total with fee</span><strong id="send-total">—</strong></div>
+                  <p class="form-error" id="send-error" role="alert" hidden></p>
+                  <button type="submit" class="button button-primary" id="send-button" data-mutation data-testid="send-coins" disabled>Send test coins</button>
+                </form>
+                <div class="transaction-receipt" id="transaction-receipt" data-testid="transaction-receipt" hidden>
+                  <h4>Transaction sent</h4><p>Mine a block to confirm it.</p><span class="field-caption">Transaction ID</span><code id="sent-txid" data-testid="sent-txid"></code>
+                </div>
+              </section>
+
+              <div class="test-tools">
+                <div><h3>Try a transaction</h3><p>Add confirmed test coins. Mine a block after you send them.</p></div>
+                <div class="test-tool-buttons"><button type="button" class="button button-quiet" id="fund-button" data-action="fund" data-mutation data-testid="fund-wallet" disabled>Add confirmed test coins</button><button type="button" class="button button-quiet" id="mine-button" data-action="mine" data-mutation data-testid="mine-block" disabled>Mine a block</button></div>
+              </div>
+            </div>
+          </section>
+
+          <details class="recovery-drawer" id="recovery-drawer">
+            <summary><span>Backup &amp; recovery</span><span class="summary-detail" id="backup-count">Saved locally</span><span class="drawer-chevron" aria-hidden="true"></span></summary>
+            <div class="recovery-content">
+              <div class="backup-intro"><div><h3>Keep a recovery point.</h3><p>Save your local test wallet and chain for a later recovery.</p></div><button type="button" class="button button-quiet" id="backup-button" data-action="backup" data-mutation data-testid="create-backup" disabled>Create backup</button></div>
+              <div class="field"><label for="backup-select">Saved backup</label><select id="backup-select" data-testid="backup-select" disabled><option value="">No backups yet</option></select></div>
+              <p class="backup-description" id="backup-description">Create a backup after the network starts.</p>
+              <button type="button" class="button button-quiet" id="recover-button" data-mutation data-testid="recover-backup" disabled>Recover selected backup</button>
+              <div class="recovery-confirmation" id="recovery-confirmation" data-testid="recovery-confirmation" hidden>
+                <h3>Recover this backup?</h3><p id="recovery-confirmation-description"></p><code id="recovery-backup-id"></code><p>Recovery opens this saved wallet and checks its saved chain. Keep the console open until it finishes.</p>
+                <div class="confirmation-buttons"><button type="button" class="button button-primary" id="confirm-recover-button" data-mutation data-testid="confirm-recovery">Recover this backup</button><button type="button" class="button button-quiet" id="cancel-recover-button">Cancel</button></div>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <aside class="status-column" aria-label="Network and activity">
+          <section class="network-section" aria-labelledby="network-heading">
+            <div class="section-heading"><h2 id="network-heading">Local network</h2><button type="button" class="text-button" id="refresh-button" data-testid="refresh-status">Refresh</button></div>
+            <div class="network-state"><span class="network-icon" aria-hidden="true"><i></i><i></i></span><div><strong id="sync-label" data-testid="sync-status">Connecting</strong><p id="sync-description">Checking your two local nodes.</p></div></div>
+            <ul class="node-list" id="node-list" data-testid="node-list"><li class="empty-note">Your nodes will appear here.</li></ul>
+          </section>
+          <section class="activity-section" aria-labelledby="activity-heading"><h2 id="activity-heading">Activity</h2><ol class="activity-list" id="activity-list" data-testid="activity-list"><li class="empty-note">Your wallet activity will appear here.</li></ol></section>
+          <p class="rail-note">A local test environment.<br>Only use disposable test wallets.</p>
+        </aside>
+      </main>
+      <footer class="page-footer"><span>ML-DSA local console</span><span>Test coins only</span></footer>
+    </div>
+  </body>
+</html>

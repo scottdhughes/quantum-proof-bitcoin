@@ -8,6 +8,13 @@
 
 ## Decision
 
+Current execution order and the owner's 2026-11-09 no-paid-review/public-GitHub
+direction are recorded in the [completion roadmap](PROJECT_COMPLETION_ROADMAP.md)
+and [owner continuation](ML_DSA_44_OWNER_CONTINUATION.md). Historical external
+review requirements below must not be treated as a reason to stop engineering
+or to withhold an accurately described experimental source release. This note
+does not mark an audit performed or change production-admission flags.
+
 Owner continuation2026-10-22: [documented owner authority](ML_DSA_44_OWNER_CONTINUATION.md)
 permits engineering and valueless experimental integration without waiting for
 an unavailable external human reviewer. The external-human condition is NOT

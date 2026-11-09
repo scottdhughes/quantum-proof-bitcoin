@@ -1,0 +1,64 @@
+name: ML-DSA-44 clean-checkout assembled system
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  assembled:
+    name: Source build, wallet and restart (${{ matrix.compiler }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      EVIDENCE_DIR: /tmp/pqbtc-assembled-${{ matrix.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Checkout exact source without persisted credentials
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify pristine checkout and host-only console checks
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          python3 -m unittest discover -s ci/test -p 'test_ml_dsa_console_*.py'
+          python3 -m unittest ci.test.test_ml_dsa_protocol_v1 ci.test.test_mldsa_node_wallet ci.test.test_ml_dsa_native_symbols
+          node --check contrib/ml-dsa-console/web/app.js
+          sh -n 'Launch Local Wallet.command' contrib/ml-dsa-console/launch.command
+
+      - name: Build native source without cache and test the assembled app
+        run: |
+          set -euo pipefail
+          python3 contrib/ml-dsa-console/run_assembled_ci.py \
+            --compiler "${{ matrix.compiler }}" --no-cache \
+            --expect-head "$EXPECTED_HEAD" \
+            --container "pqbtc-ci-${{ matrix.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}" \
+            --output-dir "$EVIDENCE_DIR"
+
+      - name: Verify source stayed unchanged
+        if: always()
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Upload source, native and end-to-end evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: pqbtc-assembled-${{ matrix.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE_DIR }}/
+          if-no-files-found: error
+          retention-days: 90
