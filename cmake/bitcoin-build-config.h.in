@@ -32,6 +32,12 @@
 /* Define if external signer support is enabled */
 #cmakedefine ENABLE_EXTERNAL_SIGNER 1
 
+/* Explicit valueless ML-DSA regtest demo support; no production activation. */
+#cmakedefine ENABLE_EXPERIMENTAL_MLDSA44 1
+#ifdef ENABLE_EXPERIMENTAL_MLDSA44
+#define MLDSA44_CONTRACT_SHA256 "@mldsa44_contract_sha@"
+#endif
+
 /* Define to 1 to enable tracepoints for Userspace, Statically Defined Tracing
    */
 #cmakedefine ENABLE_TRACING 1

@@ -4,15 +4,18 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chainparamsbase.h>
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <common/args.h>
 #include <tinyformat.h>
 #include <util/chaintype.h>
 
 #include <cassert>
+#include <stdexcept>
 
 void SetupChainParamsBaseOptions(ArgsManager& argsman)
 {
+    argsman.AddArg("-mldsa44demo", "Use the isolated valueless CONTRACT-1 regtest (requires explicit experimental build and -regtest; never production)", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::CHAINPARAMS);
     argsman.AddArg("-chain=<chain>", "Use the chain <chain> (default: main). Allowed values: " LIST_CHAIN_NAMES, ArgsManager::ALLOW_ANY, OptionsCategory::CHAINPARAMS);
     argsman.AddArg("-regtest", "Enter regression test mode, which uses a special chain in which blocks can be solved instantly. "
                  "This is intended for regression testing tools and app development. Equivalent to -chain=regtest.", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::CHAINPARAMS);
@@ -37,8 +40,26 @@ const CBaseChainParams& BaseParams()
  * Port numbers for incoming Tor connections (8334, 18334, 38334, 48334, 18445) have
  * been chosen arbitrarily to keep ranges of used ports tight.
  */
-std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const ChainType chain)
+bool IsMLDSA44Demo(const ArgsManager& args, ChainType chain)
 {
+    // The namespace is selected before SelectConfigNetwork. Never let a later
+    // section-specific value select a different consensus identity.
+    if (args.IsArgSetInConfig("-mldsa44demo")) throw std::invalid_argument("-mldsa44demo is command-line only; not permitted in config/settings");
+    if (!args.GetBoolArg("-mldsa44demo", false)) return false;
+    if (chain != ChainType::REGTEST) throw std::invalid_argument("-mldsa44demo requires -regtest");
+#ifndef ENABLE_EXPERIMENTAL_MLDSA44
+    throw std::invalid_argument("-mldsa44demo requires ENABLE_EXPERIMENTAL_MLDSA44");
+#else
+    return true;
+#endif
+}
+
+std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const ChainType chain, bool mldsa44_demo)
+{
+    if (mldsa44_demo) {
+        if (chain != ChainType::REGTEST) throw std::invalid_argument("ML-DSA demo requires regtest");
+        return std::make_unique<CBaseChainParams>("mldsa44-regtest-v1", 24832);
+    }
     switch (chain) {
     case ChainType::MAIN:
         return std::make_unique<CBaseChainParams>("", 8332);
@@ -56,6 +77,6 @@ std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const ChainType chain)
 
 void SelectBaseParams(const ChainType chain)
 {
-    globalChainBaseParams = CreateBaseChainParams(chain);
+    globalChainBaseParams = CreateBaseChainParams(chain, IsMLDSA44Demo(gArgs, chain));
     gArgs.SelectConfigNetwork(ChainTypeToString(chain));
 }

@@ -1,12 +1,30 @@
 # PQBTC Signature Production Readiness
 
-## Status: RELEASE_HOLD - AWAITING_EXTERNAL_REVIEW
+## Status: RELEASE_HOLD - TECHNICAL_QUALIFICATION_IN_PROGRESS
 ## Spec-ID: PQSIG-PRODUCTION-READINESS-v1
 ## Decided: 2026-07-18
 ## Evidence-Updated: 2026-10-15
 ## Consensus-Relevant: NO
 
 ## Decision
+
+Current execution order and the owner's 2026-11-09 no-paid-review/public-GitHub
+direction are recorded in the [completion roadmap](PROJECT_COMPLETION_ROADMAP.md)
+and [owner continuation](ML_DSA_44_OWNER_CONTINUATION.md). Historical external
+review requirements below must not be treated as a reason to stop engineering
+or to withhold an accurately described experimental source release. This note
+does not mark an audit performed or change production-admission flags.
+
+Owner continuation2026-10-22: [documented owner authority](ML_DSA_44_OWNER_CONTINUATION.md)
+permits engineering and valueless experimental integration without waiting for
+an unavailable external human reviewer. The external-human condition is NOT
+PERFORMED; it is a disclosed owner exception, not verified review. The historical
+review hold discussion below must not be used as a circular implementation ban.
+All technical qualification and explicit release-decision obligations remain.
+Historical `AWAITING_EXTERNAL_REVIEW` and prototype-only authorization statements
+below describe prior decisions. They do not override this owner exception or
+prohibit the now-authorized implementation. They also do not establish production
+admission. No independent human review is represented as performed.
 
 PQBTC has no signature profile approved for production use. Do not release a
 network that carries real value, represent `PQSig rc2` as cryptographically
@@ -23,8 +41,10 @@ PR `#183` reproduced the comparator evidence and concluded
 `REMEDIATE_AND_REREVIEW`: no Critical or High finding was identified, and seven
 Medium findings are tracked by issues `#184` through `#190`. That assessment is
 supporting evidence, not the signed review of an independent human
-cryptographer required by issue `#181`. The project remains
-`AWAITING_EXTERNAL_REVIEW`, and this release hold remains in force.
+cryptographer required by issue `#181`. At that historical checkpoint the project
+was `AWAITING_EXTERNAL_REVIEW`. External human review is still NOT PERFORMED; the
+owner exception now permits implementation. The release hold remains in force
+pending technical qualification and a separate release decision.
 
 `ML_DSA_44_BACKEND_ADMISSION.md` now records the first backend decision:
 `MLDSA_NATIVE_PORTABLE_C_ISOLATED_PROTOTYPE`. The pinned `mldsa-native`
@@ -196,10 +216,18 @@ selected for activation by this record.
    and separate test controls. Keep the production backend unset while the
    resulting binaries remain under the open issues and independent review.
 
-## Required Gates Before Consensus Integration
+## Required Gates Before Production Activation
 
-A candidate may enter a separate consensus-integration proposal only after all
-of these are satisfied:
+The [staged-admission contract](ML_DSA_44_STAGED_ADMISSION.md) separates draft
+design, reviewed valueless experimental integration, system qualification and
+production activation. Drafting a proposal is allowed before its review; it is
+not permission to implement or activate it. Consensus-code audit, full-block
+measurements and public testnet soak require an experimental implementation to
+assess. An explicit experimental-scope decision and independent candidate/design
+review are required before that implementation begins.
+
+All of the following remain required before production activation; moving an
+obligation to its executable stage does not waive or mark it complete:
 
 1. exact final standard, parameter set, security category, and usage limits
 2. frozen canonical public-key, signature, context, and sighash encodings

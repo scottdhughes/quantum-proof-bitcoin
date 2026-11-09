@@ -7,6 +7,10 @@
 
 #include <validation.h>
 
+#ifdef ENABLE_EXPERIMENTAL_MLDSA44
+#include <crypto/mldsa44/node.h>
+#endif
+
 #include <arith_uint256.h>
 #include <chain.h>
 #include <checkqueue.h>
@@ -348,6 +352,10 @@ void Chainstate::MaybeUpdateMempoolForReorg(
         AssertLockHeld(::cs_main);
         const CTransaction& tx = it->GetTx();
 
+        // Fixed demo H=1 has no spendable pre-H inventory. On a rewind to
+        // genesis, remove every mempool decision made under the active epoch.
+        if (m_chainman.GetParams().IsMLDSA44Demo() && m_chain.Height() < 1) return true;
+
         // The transaction must be final.
         if (!CheckFinalTxAtTip(*Assert(m_chain.Tip()), tx)) return true;
 
@@ -396,14 +404,16 @@ void Chainstate::MaybeUpdateMempoolForReorg(
 * signature and script validity results will be reused if we validate this
 * transaction again during block validation.
 * */
-static bool CheckInputsFromMempoolAndCache(const CTransaction& tx, TxValidationState& state,
+static bool CheckInputsFromMempoolAndCache(const CTransactionRef& ptx, TxValidationState& state,
                 const CCoinsViewCache& view, const CTxMemPool& pool,
                 unsigned int flags, PrecomputedTransactionData& txdata, CCoinsViewCache& coins_tip,
-                ValidationCache& validation_cache)
+                ValidationCache& validation_cache, const CChainParams& params)
                 EXCLUSIVE_LOCKS_REQUIRED(cs_main, pool.cs)
 {
     AssertLockHeld(cs_main);
     AssertLockHeld(pool.cs);
+
+    const CTransaction& tx = *ptx;
 
     assert(!tx.IsCoinBase());
     for (const CTxIn& txin : tx.vin) {
@@ -431,7 +441,7 @@ static bool CheckInputsFromMempoolAndCache(const CTransaction& tx, TxValidationS
     }
 
     // Call CheckInputScripts() to cache signature and script validity against current tip consensus rules.
-    return CheckInputScripts(tx, state, view, flags, /* cacheSigStore= */ true, /* cacheFullScriptStore= */ true, txdata, validation_cache);
+    return CheckInputScripts(ptx, state, view, flags, /* cacheSigStore= */ true, /* cacheFullScriptStore= */ true, txdata, validation_cache, params);
 }
 
 namespace {
@@ -809,6 +819,13 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
 
     // Rather not work on nonstandard transactions (unless -testnet/-regtest)
     std::string reason;
+    if (m_active_chainstate.m_chainman.GetParams().IsMLDSA44Demo() && m_active_chainstate.m_chain.Height() < 1) {
+        for (const auto& output : tx.vout) {
+            if (output.scriptPubKey.size() == 34 && output.scriptPubKey[0] == OP_2 && output.scriptPubKey[1] == 32) {
+                return state.Invalid(TxValidationResult::TX_NOT_STANDARD, "mldsa44-not-yet-active");
+            }
+        }
+    }
     if (m_pool.m_opts.require_standard && !IsStandardTx(tx, m_pool.m_opts.max_datacarrier_bytes, m_pool.m_opts.permit_bare_multisig, m_pool.m_opts.dust_relay_feerate, reason)) {
         return state.Invalid(TxValidationResult::TX_NOT_STANDARD, reason);
     }
@@ -897,7 +914,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return false; // state filled in by CheckTxInputs
     }
 
-    if (m_pool.m_opts.require_standard && !AreInputsStandard(tx, m_view)) {
+    if (m_pool.m_opts.require_standard && !AreInputsStandard(tx, m_view, m_active_chainstate.m_chainman.GetParams().IsMLDSA44Demo())) {
         return state.Invalid(TxValidationResult::TX_INPUTS_NOT_STANDARD, "bad-txns-nonstandard-inputs");
     }
 
@@ -1251,11 +1268,12 @@ bool MemPoolAccept::PolicyScriptChecks(const ATMPArgs& args, Workspace& ws)
     const CTransaction& tx = *ws.m_ptx;
     TxValidationState& state = ws.m_state;
 
-    constexpr unsigned int scriptVerifyFlags = STANDARD_SCRIPT_VERIFY_FLAGS;
+    unsigned int scriptVerifyFlags = STANDARD_SCRIPT_VERIFY_FLAGS;
+    if (m_active_chainstate.m_chainman.GetParams().IsMLDSA44Demo()) scriptVerifyFlags |= SCRIPT_VERIFY_MLDSA44;
 
     // Check input scripts and signatures.
     // This is done last to help prevent CPU exhaustion denial-of-service attacks.
-    if (!CheckInputScripts(tx, state, m_view, scriptVerifyFlags, true, false, ws.m_precomputed_txdata, GetValidationCache())) {
+    if (!CheckInputScripts(ws.m_ptx, state, m_view, scriptVerifyFlags, true, false, ws.m_precomputed_txdata, GetValidationCache(), m_active_chainstate.m_chainman.GetParams())) {
         // Detect a failure due to a missing witness so that p2p code can handle rejection caching appropriately.
         if (!tx.HasWitness() && SpendsNonAnchorWitnessProg(tx, m_view)) {
             state.Invalid(TxValidationResult::TX_WITNESS_STRIPPED,
@@ -1271,7 +1289,6 @@ bool MemPoolAccept::ConsensusScriptChecks(const ATMPArgs& args, Workspace& ws)
 {
     AssertLockHeld(cs_main);
     AssertLockHeld(m_pool.cs);
-    const CTransaction& tx = *ws.m_ptx;
     const Txid& hash = ws.m_hash;
     TxValidationState& state = ws.m_state;
 
@@ -1291,8 +1308,8 @@ bool MemPoolAccept::ConsensusScriptChecks(const ATMPArgs& args, Workspace& ws)
     // invalid blocks (using TestBlockValidity), however allowing such
     // transactions into the mempool can be exploited as a DoS attack.
     unsigned int currentBlockScriptVerifyFlags{GetBlockScriptFlags(*m_active_chainstate.m_chain.Tip(), m_active_chainstate.m_chainman)};
-    if (!CheckInputsFromMempoolAndCache(tx, state, m_view, m_pool, currentBlockScriptVerifyFlags,
-                                        ws.m_precomputed_txdata, m_active_chainstate.CoinsTip(), GetValidationCache())) {
+    if (!CheckInputsFromMempoolAndCache(ws.m_ptx, state, m_view, m_pool, currentBlockScriptVerifyFlags,
+                                        ws.m_precomputed_txdata, m_active_chainstate.CoinsTip(), GetValidationCache(), m_active_chainstate.m_chainman.GetParams())) {
         LogPrintf("BUG! PLEASE REPORT THIS! CheckInputScripts failed against latest-block but not STANDARD flags %s, %s\n", hash.ToString(), state.ToString());
         return Assume(false);
     }
@@ -2098,7 +2115,19 @@ std::optional<std::pair<ScriptError, std::string>> CScriptCheck::operator()() {
     const CScript &scriptSig = ptxTo->vin[nIn].scriptSig;
     const CScriptWitness *witness = &ptxTo->vin[nIn].scriptWitness;
     ScriptError error{SCRIPT_ERR_UNKNOWN_ERROR};
-    if (VerifyScript(scriptSig, m_tx_out.scriptPubKey, witness, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, m_tx_out.nValue, cacheStore, *m_signature_cache, *txdata), &error)) {
+    const CachingTransactionSignatureChecker inherited{ptxTo, nIn, m_tx_out.nValue, cacheStore, *m_signature_cache, *txdata};
+    bool success{false};
+    if (nFlags & SCRIPT_VERIFY_MLDSA44) {
+#ifdef ENABLE_EXPERIMENTAL_MLDSA44
+        if (m_mldsa_snapshot && m_mldsa_params && &m_mldsa_snapshot->Transaction() == ptxTo) {
+            const pqbtc::mldsa44::node::ScriptChecker checker{*m_mldsa_snapshot, *m_mldsa_params, nIn, inherited};
+            success = VerifyScript(scriptSig, m_tx_out.scriptPubKey, witness, nFlags, checker, &error);
+        }
+#endif
+    } else {
+        success = VerifyScript(scriptSig, m_tx_out.scriptPubKey, witness, nFlags, inherited, &error);
+    }
+    if (success) {
         return std::nullopt;
     } else {
         auto debug_str = strprintf("input %i of %s (wtxid %s), spending %s:%i", nIn, ptxTo->GetHash().ToString(), ptxTo->GetWitnessHash().ToString(), ptxTo->vin[nIn].prevout.hash.ToString(), ptxTo->vin[nIn].prevout.n);
@@ -2141,13 +2170,18 @@ ValidationCache::ValidationCache(const size_t script_execution_cache_bytes, cons
  *
  * Non-static (and redeclared) in src/test/txvalidationcache_tests.cpp
  */
-bool CheckInputScripts(const CTransaction& tx, TxValidationState& state,
+static bool CheckInputScriptsImpl(const CTransaction& tx, TxValidationState& state,
                        const CCoinsViewCache& inputs, unsigned int flags, bool cacheSigStore,
                        bool cacheFullScriptStore, PrecomputedTransactionData& txdata,
                        ValidationCache& validation_cache,
-                       std::vector<CScriptCheck>* pvChecks)
+                       std::vector<CScriptCheck>* pvChecks,
+                       std::shared_ptr<const pqbtc::mldsa44::node::Snapshot> snapshot,
+                       const CChainParams* params) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     if (tx.IsCoinBase()) return true;
+    if ((flags & SCRIPT_VERIFY_MLDSA44) && (!snapshot || !params)) {
+        return state.Invalid(TxValidationResult::TX_CONSENSUS, "mldsa44-context-missing");
+    }
 
     if (pvChecks) {
         pvChecks->reserve(tx.vin.size());
@@ -2160,7 +2194,13 @@ bool CheckInputScripts(const CTransaction& tx, TxValidationState& state,
     // transaction).
     uint256 hashCacheEntry;
     CSHA256 hasher = validation_cache.ScriptExecutionCacheHasher();
-    hasher.Write(UCharCast(tx.GetWitnessHash().begin()), 32).Write((unsigned char*)&flags, sizeof(flags)).Finalize(hashCacheEntry.begin());
+    hasher.Write(UCharCast(tx.GetWitnessHash().begin()), 32).Write((unsigned char*)&flags, sizeof(flags));
+    if (flags & SCRIPT_VERIFY_MLDSA44) {
+        const auto& magic = params->MessageStart();
+        const auto genesis = params->GenesisBlock().GetHash();
+        hasher.Write(magic.data(), magic.size()).Write(genesis.begin(), 32);
+    }
+    hasher.Finalize(hashCacheEntry.begin());
     AssertLockHeld(cs_main); //TODO: Remove this requirement by making CuckooCache not require external locks
     if (validation_cache.m_script_execution_cache.contains(hashCacheEntry, !cacheFullScriptStore)) {
         return true;
@@ -2189,7 +2229,7 @@ bool CheckInputScripts(const CTransaction& tx, TxValidationState& state,
         // spent being checked as a part of CScriptCheck.
 
         // Verify signature
-        CScriptCheck check(txdata.m_spent_outputs[i], tx, validation_cache.m_signature_cache, i, flags, cacheSigStore, &txdata);
+        CScriptCheck check(txdata.m_spent_outputs[i], tx, validation_cache.m_signature_cache, i, flags, cacheSigStore, &txdata, snapshot, params);
         if (pvChecks) {
             pvChecks->emplace_back(std::move(check));
         } else if (auto result = check(); result.has_value()) {
@@ -2200,6 +2240,15 @@ bool CheckInputScripts(const CTransaction& tx, TxValidationState& state,
             // arguments) or due to new consensus rules introduced in
             // soft forks.
             if (flags & STANDARD_NOT_MANDATORY_VERIFY_FLAGS) {
+                // Keep known-v2 mandatory even when removing policy-only flags.
+                // ML-DSA enablement plus DISCOURAGE is not flag-monotone.
+                if (flags & SCRIPT_VERIFY_MLDSA44) {
+                    CScriptCheck mandatory{txdata.m_spent_outputs[i], tx, validation_cache.m_signature_cache, i,
+                        flags & ~STANDARD_NOT_MANDATORY_VERIFY_FLAGS, cacheSigStore, &txdata, snapshot, params};
+                    if (auto consensus_error = mandatory()) {
+                        return state.Invalid(TxValidationResult::TX_CONSENSUS, strprintf("block-script-verify-flag-failed (%s)", ScriptErrorString(consensus_error->first)), consensus_error->second);
+                    }
+                }
                 return state.Invalid(TxValidationResult::TX_NOT_STANDARD, strprintf("mempool-script-verify-flag-failed (%s)", ScriptErrorString(result->first)), result->second);
             } else {
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, strprintf("block-script-verify-flag-failed (%s)", ScriptErrorString(result->first)), result->second);
@@ -2214,6 +2263,38 @@ bool CheckInputScripts(const CTransaction& tx, TxValidationState& state,
     }
 
     return true;
+}
+
+bool CheckInputScripts(const CTransaction& tx, TxValidationState& state,
+    const CCoinsViewCache& inputs, unsigned int flags, bool cacheSigStore,
+    bool cacheFullScriptStore, PrecomputedTransactionData& txdata,
+    ValidationCache& validation_cache, std::vector<CScriptCheck>* checks)
+{
+    return CheckInputScriptsImpl(tx, state, inputs, flags, cacheSigStore, cacheFullScriptStore,
+        txdata, validation_cache, checks, {}, nullptr);
+}
+
+bool CheckInputScripts(const CTransactionRef& tx, TxValidationState& state,
+    const CCoinsViewCache& inputs, unsigned int flags, bool cacheSigStore,
+    bool cacheFullScriptStore, PrecomputedTransactionData& txdata,
+    ValidationCache& validation_cache, const CChainParams& params, std::vector<CScriptCheck>* checks)
+{
+    if (!tx) return state.Invalid(TxValidationResult::TX_CONSENSUS, "mldsa44-transaction-missing");
+    std::shared_ptr<const pqbtc::mldsa44::node::Snapshot> snapshot;
+#ifdef ENABLE_EXPERIMENTAL_MLDSA44
+    if ((flags & SCRIPT_VERIFY_MLDSA44) && !tx->IsCoinBase()) {
+        try {
+            if (!params.IsMLDSA44Demo() || pqbtc::mldsa44::node::ResolveNetwork(params) != pqbtc::mldsa44::Network::REGTEST) {
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "mldsa44-network-not-admitted");
+            }
+            snapshot = std::make_shared<const pqbtc::mldsa44::node::Snapshot>(tx, inputs);
+        } catch (const std::invalid_argument&) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "mldsa44-context-invalid");
+        }
+    }
+#endif
+    return CheckInputScriptsImpl(*tx, state, inputs, flags, cacheSigStore, cacheFullScriptStore,
+        txdata, validation_cache, checks, std::move(snapshot), &params);
 }
 
 bool FatalError(Notifications& notifications, BlockValidationState& state, const bilingual_str& message)
@@ -2372,6 +2453,8 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Ch
         flags |= SCRIPT_VERIFY_PQ_REPLACEMENT_V1_SCRIPTHASH;
     }
 
+    if (chainman.GetParams().IsMLDSA44Demo() && block_index.nHeight >= 1) flags |= SCRIPT_VERIFY_MLDSA44;
+
     return flags;
 }
 
@@ -2429,8 +2512,18 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         return true;
     }
 
+#ifdef ENABLE_EXPERIMENTAL_MLDSA44
+    if (params.IsMLDSA44Demo() && pindex->nHeight == 1) {
+        try {
+            pqbtc::mldsa44::node::CheckDemoActivation(params, hashPrevBlock, view);
+        } catch (const std::exception&) {
+            return FatalError(m_chainman.GetNotifications(), state, Untranslated("ML-DSA demo deployment manifest or pre-activation UTXO inventory mismatch"));
+        }
+    }
+#endif
+
     bool fScriptChecks = true;
-    if (!m_chainman.AssumedValidBlock().IsNull()) {
+    if (!params.IsMLDSA44Demo() && !m_chainman.AssumedValidBlock().IsNull()) {
         // We've been configured with the hash of a block which has been externally verified to have a valid history.
         // A suitable default value is included with the software and updated from time to time.  Because validity
         //  relative to a piece of software is an objective fact these defaults can be easily reviewed.
@@ -2651,10 +2744,10 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             // they need to be added to control which runs them asynchronously. Otherwise, CheckInputScripts runs the checks before returning.
             if (control) {
                 std::vector<CScriptCheck> vChecks;
-                tx_ok = CheckInputScripts(tx, tx_state, view, flags, fCacheResults, fCacheResults, txsdata[i], m_chainman.m_validation_cache, &vChecks);
+                tx_ok = CheckInputScripts(block.vtx[i], tx_state, view, flags, fCacheResults, fCacheResults, txsdata[i], m_chainman.m_validation_cache, params, &vChecks);
                 if (tx_ok) control->Add(std::move(vChecks));
             } else {
-                tx_ok = CheckInputScripts(tx, tx_state, view, flags, fCacheResults, fCacheResults, txsdata[i], m_chainman.m_validation_cache);
+                tx_ok = CheckInputScripts(block.vtx[i], tx_state, view, flags, fCacheResults, fCacheResults, txsdata[i], m_chainman.m_validation_cache, params);
             }
             if (!tx_ok) {
                 // Any transaction validation failure in ConnectBlock is a block consensus failure

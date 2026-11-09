@@ -2,6 +2,17 @@
 
 A Bitcoin Core fork with post-quantum signatures from genesis.
 
+## Local prototype
+
+The [local ML-DSA wallet console](contrib/ml-dsa-console/README.md) provides
+browser controls for the prepared two-node prototype: status, receive, send,
+test funding/mining, lock/unlock, and encrypted backup/recovery. Launch it with
+`./contrib/ml-dsa-console/launch.command`, or double-click
+**Launch-Local-Wallet.command**. The launcher starts Docker Desktop when needed
+and builds the runtime from a clean checkout on first install, then resumes the
+durable offline Linux runtime and disposable test wallet. Git, Python 3.11+ and
+Docker are required. No prepared project container or binary is needed.
+
 ## Overview
 
 This project is a Bitcoin Core-derived research chain for evaluating
@@ -26,6 +37,8 @@ production blockers. It does not change the production backend or release hold.
 
 ## Documentation
 
+- [Current completion roadmap](docs/PROJECT_COMPLETION_ROADMAP.md) - Executable milestones toward a public release and open GitHub testing
+- [Clean-checkout validation](docs/CLEAN_CHECKOUT_VALIDATION.md) - Fresh source builds, assembled CI, restart/recovery results and provenance
 - [Protocol Specification](docs/Spec.md) - Normative spec with MUST/SHOULD language
 - [Signature Production Readiness](docs/PQSIG_PRODUCTION_READINESS.md) - Controlling cryptographic evidence, release hold, and replacement gates
 - [SLH-DSA-SHA2-128s Reference](docs/SLH_DSA_SHA2_128S_REFERENCE.md) - Isolated FIPS 205 vector, interoperability, and measurement baseline

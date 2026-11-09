@@ -14,7 +14,15 @@ FUNCTIONAL_DIR = REPO_ROOT / "test" / "functional"
 PQ_TESTS_PATH = REPO_ROOT / "ci" / "test" / "pq_functional_tests.txt"
 INVENTORY_PATH = REPO_ROOT / "ci" / "test" / "functional_suite_inventory.json"
 HELPERS = {"combine_logs.py", "create_cache.py", "test_runner.py"}
-VALID_POLICY_CLASSES = {"pq_required", "pq_backlog", "dual_profile", "legacy_only"}
+VALID_POLICY_CLASSES = {"pq_required", "pq_backlog", "dual_profile", "legacy_only", "experimental_only"}
+# Adding an experimental test requires an explicit coverage decision here. This
+# class must not become a generic way to exempt tests from the default PQ gate.
+REQUIRED_EXPERIMENTAL_COVERAGE = {
+    "feature_mldsa44_demo.py": {
+        "build_option": "ENABLE_EXPERIMENTAL_MLDSA44=ON",
+        "workflow": ".github/workflows/ml-dsa-44-assembled-system.yml",
+    },
+}
 VALID_TAPROOT_MATRIX_BUCKETS = {"legacy_only", "replacement_migration", "deferred"}
 REQUIRED_TAPROOT_MATRIX_BUCKETS = {
     "feature_taproot.py": "legacy_only",
@@ -76,6 +84,7 @@ def main() -> int:
         policy_class = entry.get("policy_class")
         owner = entry.get("owner")
         taproot_matrix_bucket = entry.get("taproot_matrix_bucket")
+        experimental_coverage = entry.get("experimental_coverage")
 
         if not isinstance(name, str) or not name:
             fail("inventory entries must contain a non-empty string 'name'")
@@ -89,6 +98,15 @@ def main() -> int:
             fail(f"{name} has unknown policy_class {policy_class!r}")
         if not isinstance(owner, str) or not owner.strip():
             fail(f"{name} has an empty owner")
+        if name in REQUIRED_EXPERIMENTAL_COVERAGE:
+            if policy_class != "experimental_only":
+                fail(f"{name} must use the experimental_only policy_class")
+            if experimental_coverage != REQUIRED_EXPERIMENTAL_COVERAGE[name]:
+                fail(f"{name} must declare its required experimental CI coverage")
+            if not isinstance(entry.get("notes"), str) or not entry["notes"].strip():
+                fail(f"{name} must explain its experimental-only scope in notes")
+        elif policy_class == "experimental_only" or experimental_coverage is not None:
+            fail(f"{name} has no approved experimental-only coverage decision")
         if name in REQUIRED_TAPROOT_MATRIX_BUCKETS:
             expected_bucket = REQUIRED_TAPROOT_MATRIX_BUCKETS[name]
             if taproot_matrix_bucket != expected_bucket:

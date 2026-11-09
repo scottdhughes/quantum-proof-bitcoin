@@ -139,6 +139,8 @@ public:
     ~CDBIterator();
 
     bool Valid() const;
+    //! Throw on a LevelDB iterator error, including one disguised as EOF.
+    void CheckStatus() const;
 
     void SeekToFirst();
 

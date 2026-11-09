@@ -8,6 +8,7 @@
 #include <logging.h>
 #include <random.h>
 #include <util/trace.h>
+#include <stdexcept>
 
 TRACEPOINT_SEMAPHORE(utxocache, add);
 TRACEPOINT_SEMAPHORE(utxocache, spent);
@@ -18,6 +19,19 @@ uint256 CCoinsView::GetBestBlock() const { return uint256(); }
 std::vector<uint256> CCoinsView::GetHeadBlocks() const { return std::vector<uint256>(); }
 bool CCoinsView::BatchWrite(CoinsViewCacheCursor& cursor, const uint256 &hashBlock) { return false; }
 std::unique_ptr<CCoinsViewCursor> CCoinsView::Cursor() const { return nullptr; }
+
+bool CCoinsView::ForEachUnspentCoin(const std::function<bool(const COutPoint&, const Coin&)>& visitor) const
+{
+    auto cursor = Cursor();
+    if (!cursor) throw std::runtime_error("Coin inventory cursor unavailable");
+    while (cursor->Valid()) {
+        COutPoint out; Coin coin;
+        if (!cursor->GetKey(out) || !cursor->GetValue(coin)) throw std::runtime_error("Coin inventory read failure");
+        if (!coin.IsSpent() && !visitor(out, coin)) return false;
+        cursor->Next();
+    }
+    return true;
+}
 
 bool CCoinsView::HaveCoin(const COutPoint &outpoint) const
 {
@@ -33,6 +47,23 @@ void CCoinsViewBacked::SetBackend(CCoinsView &viewIn) { base = &viewIn; }
 bool CCoinsViewBacked::BatchWrite(CoinsViewCacheCursor& cursor, const uint256 &hashBlock) { return base->BatchWrite(cursor, hashBlock); }
 std::unique_ptr<CCoinsViewCursor> CCoinsViewBacked::Cursor() const { return base->Cursor(); }
 size_t CCoinsViewBacked::EstimateSize() const { return base->EstimateSize(); }
+bool CCoinsViewBacked::ForEachUnspentCoin(const std::function<bool(const COutPoint&, const Coin&)>& visitor) const
+{
+    // An arbitrary backed view may add/spend Coins (e.g. the mempool). Only
+    // explicitly supported logical views may claim a complete inventory.
+    throw std::runtime_error("Coin inventory unsupported for this overlay");
+}
+
+bool CCoinsViewCache::ForEachUnspentCoin(const std::function<bool(const COutPoint&, const Coin&)>& visitor) const
+{
+    for (const auto& [out, entry] : cacheCoins) {
+        if (!entry.coin.IsSpent() && !visitor(out, entry.coin)) return false;
+    }
+    return base->ForEachUnspentCoin([&](const COutPoint& out, const Coin& coin) {
+        // Both live replacements and spent tombstones shadow every lower layer.
+        return cacheCoins.contains(out) || visitor(out, coin);
+    });
+}
 
 CCoinsViewCache::CCoinsViewCache(CCoinsView* baseIn, bool deterministic) :
     CCoinsViewBacked(baseIn), m_deterministic(deterministic),

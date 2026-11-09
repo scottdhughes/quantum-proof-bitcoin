@@ -35,7 +35,10 @@ private:
 /**
  * Creates and returns a std::unique_ptr<CBaseChainParams> of the chosen chain.
  */
-std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const ChainType chain);
+std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const ChainType chain, bool mldsa44_demo = false);
+
+/** Validate explicit experimental mode and build support before selecting data. */
+bool IsMLDSA44Demo(const ArgsManager& args, ChainType chain);
 
 /**
  *Set the arguments for chainparams

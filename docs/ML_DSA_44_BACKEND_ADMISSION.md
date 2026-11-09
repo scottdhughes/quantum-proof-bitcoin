@@ -39,6 +39,18 @@ The machine-readable disposition is
 pins match the frozen comparator and that no production backend or closed
 release gate is recorded.
 
+## Additional design scope (2026-10-21)
+
+[Staged admission](ML_DSA_44_STAGED_ADMISSION.md) now permits production-contract
+drafting and executable non-consensus design vectors for Linux x86_64 software
+signing, GCC/Clang, with hardware wallets deferred. That additive design scope
+does not alter the isolated prototype's machine-readable disposition or close
+any of its open gates. Experimental node/wallet/Script integration requires its
+own reviewed contract and explicit stage decision. Qualification and the final
+production decision follow the working experimental implementation; production
+backend enablement and hold removal are the intended final stage, not a claim
+made by a design-vector PASS.
+
 ## Historical beta selection boundary
 
 Algorithm conformance is not the differentiator in this decision. The then-current beta

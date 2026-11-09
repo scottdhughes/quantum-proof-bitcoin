@@ -129,7 +129,7 @@ def check_file_requirement(
             if not is_frozen_doc(content):
                 return False, (
                     f"File '{file_path}' on {where} branch must contain a proper "
-                    f"'## Status: FROZEN' heading in the first 30 lines"
+                    "approved frozen-status heading in the first 30 lines"
                 )
             for violation in check_frozen_doc_contract(content, file_path, frozen_contract):
                 return False, violation
@@ -159,15 +159,21 @@ def check_directory_requirement(
 
 def is_frozen_doc(content: str) -> bool:
     """
-    Check if a document is marked as frozen.
-    The FROZEN header must appear as a proper heading in the first 30 lines,
-    not just mentioned in passing (e.g., as an example).
+    Recognize the exact compatibility-frozen statuses used by project specs.
+    A release hold preserves the implementation freeze without granting
+    production approval. Arbitrary suffixes do not establish a freeze.
+    The status must be a proper heading in the first 30 lines, not just
+    mentioned in passing (e.g., as an example).
     """
+    frozen_headings = {
+        "## Status: FROZEN",
+        "## Status: FROZEN IMPLEMENTATION - RELEASE HOLD",
+    }
     lines = content.split('\n')[:30]
     for line in lines:
         stripped = line.strip()
         # Must be a proper markdown heading, not inline text
-        if stripped == "## Status: FROZEN":
+        if stripped in frozen_headings:
             return True
     return False
 
@@ -299,7 +305,7 @@ def run_gatekeeper(rules_path: str, base_ref: str, head_ref: str) -> int:
         print("=" * 60)
         print(f"\n{len(all_violations)} violation(s) detected.\n")
         print("Required artifacts must exist on the base branch (origin/main)")
-        print("with '## Status: FROZEN' header BEFORE code changes can land.")
+        print("with an approved frozen-status heading BEFORE code changes can land.")
         print("\nTo fix: Land the required spec/doc PR first, then rebase this PR.")
         return 1
 

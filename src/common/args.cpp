@@ -837,6 +837,15 @@ bool ArgsManager::UseDefaultSection(const std::string& arg) const
     return m_network == ChainTypeToString(ChainType::MAIN) || m_network_only_args.count(arg) == 0;
 }
 
+bool ArgsManager::IsArgSetInConfig(const std::string& arg) const
+{
+    LOCK(cs_args);
+    const auto name=SettingName(arg);
+    if(m_settings.rw_settings.contains(name))return true;
+    return std::any_of(m_settings.ro_config.begin(),m_settings.ro_config.end(),
+        [&](const auto& section){return section.second.contains(name);});
+}
+
 common::SettingsValue ArgsManager::GetSetting(const std::string& arg) const
 {
     LOCK(cs_args);

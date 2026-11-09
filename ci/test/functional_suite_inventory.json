@@ -266,6 +266,17 @@
     "notes": "Retained under the current non-gating dual-profile contract."
   },
   {
+    "name": "feature_mldsa44_demo.py",
+    "policy_class": "experimental_only",
+    "owner": "@scottdhughes",
+    "tracking_issue": null,
+    "experimental_coverage": {
+      "build_option": "ENABLE_EXPERIMENTAL_MLDSA44=ON",
+      "workflow": ".github/workflows/ml-dsa-44-assembled-system.yml"
+    },
+    "notes": "Explicit valueless ML-DSA regtest coverage requires the experimental build option and command-line -mldsa44demo=1 opt-in; ordinary builds keep that option OFF. The assembled-system GCC and Clang jobs run this test directly with --validation-only, then test the source-built wallet spend, restart, and recovery flow through the app. This inventory classification records that separate CI coverage and does not admit a production backend or add the test to the default PQ functional gate."
+  },
+  {
     "name": "feature_notifications.py",
     "policy_class": "dual_profile",
     "owner": "@scottdhughes",

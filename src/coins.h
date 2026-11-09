@@ -331,6 +331,10 @@ public:
     //! Get a cursor to iterate over the whole state
     virtual std::unique_ptr<CCoinsViewCursor> Cursor() const;
 
+    //! Read effective unspent entries, stopping if visitor returns false.
+    //! Read/unsupported-cursor failures throw; no silent empty inventory.
+    virtual bool ForEachUnspentCoin(const std::function<bool(const COutPoint&, const Coin&)>& visitor) const;
+
     //! As we use CCoinsViews polymorphically, have a virtual destructor
     virtual ~CCoinsView() = default;
 
@@ -354,6 +358,7 @@ public:
     void SetBackend(CCoinsView &viewIn);
     bool BatchWrite(CoinsViewCacheCursor& cursor, const uint256 &hashBlock) override;
     std::unique_ptr<CCoinsViewCursor> Cursor() const override;
+    bool ForEachUnspentCoin(const std::function<bool(const COutPoint&, const Coin&)>& visitor) const override;
     size_t EstimateSize() const override;
 };
 
@@ -379,6 +384,7 @@ protected:
     mutable size_t cachedCoinsUsage{0};
 
 public:
+    bool ForEachUnspentCoin(const std::function<bool(const COutPoint&, const Coin&)>& visitor) const override;
     CCoinsViewCache(CCoinsView *baseIn, bool deterministic = false);
 
     /**
@@ -519,6 +525,10 @@ public:
 
     std::optional<Coin> GetCoin(const COutPoint& outpoint) const override;
     bool HaveCoin(const COutPoint &outpoint) const override;
+    bool ForEachUnspentCoin(const std::function<bool(const COutPoint&, const Coin&)>& visitor) const override
+    {
+        return base->ForEachUnspentCoin(visitor);
+    }
 
 private:
     /** A list of callbacks to execute upon leveldb read error. */

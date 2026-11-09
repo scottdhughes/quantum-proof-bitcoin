@@ -437,7 +437,7 @@ from it.
 | --- | --- |
 | Critical | Credible forgery, key recovery, consensus divergence, or fundamental candidate invalidation with practical or broad exploitation |
 | High | Plausible key compromise, signature-security failure, memory-safety failure, or consensus denial of service under realistic but narrower preconditions |
-| Medium | Bounded correctness, side-channel, fault, parser, entropy, erasure, or availability gap that must be resolved or explicitly accepted before consensus design |
+| Medium | Bounded correctness, side-channel, fault, parser, entropy, erasure, or availability gap that must be resolved or explicitly accepted before authorizing experimental implementation |
 | Low | Defense-in-depth, maintainability, test, or documentation weakness with no direct security failure shown |
 | Informational | Observation or future-design advice with no finding |
 
@@ -447,9 +447,13 @@ acceptance for every Medium finding. A Critical or High finding yields
 `REMEDIATE_AND_REREVIEW` unless it invalidates the candidate, in which case use
 `REJECT_ENGINEERING_CANDIDATE`.
 
-Passing this gate authorizes only the separate supported-platform and worst-case
-block-validation measurement slice. It does not authorize production code,
-consensus design, or removal of `RELEASE_HOLD`.
+Passing this gate is required, but not sufficient, for a separate experimental
+integration decision under [staged admission](ML_DSA_44_STAGED_ADMISSION.md).
+Production-contract drafts and executable non-consensus vectors may be prepared
+for review beforehand. Isolated measurements inform that design; actual
+worst-case block-validation measurements and consensus-code audit follow a
+reviewed experimental implementation. No review result alone authorizes node
+integration, production activation or removal of `RELEASE_HOLD`.
 
 ## Known Limitations And Non-Goals
 
@@ -483,9 +487,14 @@ After review intake:
 1. remediate and obtain re-review for any blocking finding
 2. record the accepted report, checksum, findings, and residual risks in the
    repository
-3. run a separate supported-platform and worst-case block-validation benchmark
-   slice
-4. write a consensus-design specification only if both gates pass
+3. review the versioned production-contract draft and isolated supported-platform
+   measurements; require explicit approval of an isolated, valueless experimental
+   integration scope before implementing it
+4. audit the resulting integration, measure actual worst-case block-validation
+   cost and qualify the supported binaries and dedicated ML-DSA public testnet
+   under the staged-admission contract
 
-Production remains on `RELEASE_HOLD`. No `ALG_ID`, Script, wallet, node, or
-inventory-policy change belongs in this review package.
+Production remains on `RELEASE_HOLD` until the separate final production decision.
+The current approved slice is Linux x86_64 software-signing contract/design
+vectors with GCC/Clang; hardware wallets are deferred. No `ALG_ID`, Script,
+wallet, node, or inventory-policy implementation belongs in this review package.

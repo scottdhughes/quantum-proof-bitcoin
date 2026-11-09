@@ -106,7 +106,7 @@ The CI completeness foundation is split into two checked-in sources of truth:
 - `ci/test/pq_functional_tests.txt`
   - canonical ordered list of the required PQ-first functional tests
 - `ci/test/functional_suite_inventory.json`
-  - exhaustive classification of the functional test corpus into `pq_required`, `pq_backlog`, `dual_profile`, and `legacy_only`
+  - exhaustive classification of the functional test corpus into `pq_required`, `pq_backlog`, `dual_profile`, `legacy_only`, and the explicitly allowed `experimental_only` subset
 
 Inventory validation command:
 
@@ -121,6 +121,7 @@ The validator is required in the normal PR path and fails if:
 3. an entry uses an unknown `policy_class`
 4. an owner is empty
 5. the `pq_required` entries drift from `ci/test/pq_functional_tests.txt`
+6. an experimental-only entry lacks its explicit test/build-option/workflow coverage decision
 
 ## Bench and Determinism Checks
 

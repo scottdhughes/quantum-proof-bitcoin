@@ -39,8 +39,9 @@ enum
 
 /** Script verification flags.
  *
- *  All flags are intended to be soft forks: the set of acceptable scripts under
- *  flags (A | B) is a subset of the acceptable scripts under flag (A).
+ *  Restrictive flags are intended to be soft forks: the set of acceptable scripts
+ *  under flags (A | B) is a subset of the acceptable scripts under flag (A).
+ *  Explicit deployment enablements can have policy exceptions documented below.
  */
 enum : uint32_t {
     SCRIPT_VERIFY_NONE      = 0,
@@ -149,6 +150,12 @@ enum : uint32_t {
     // Internal replacement-path enablement for the first positive PQ-native
     // witness-v1 replacement-script-hash seam.
     SCRIPT_VERIFY_PQ_REPLACEMENT_V1_SCRIPTHASH = (1U << 22),
+
+    // Explicit native-v2/32 ML-DSA semantics. No network selects this flag yet.
+    // With DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM this is NOT flag-monotone:
+    // known valid v2 may pass only after enablement. Reduced-flags retries and
+    // mandatory/policy classification must account for this before node wiring.
+    SCRIPT_VERIFY_MLDSA44 = (1U << 23),
 
     // Constants to point to the highest flag in use. Add new flags above this line.
     //
@@ -286,6 +293,14 @@ public:
          return false;
     }
 
+    // Public-only extension; a checker without the bound transaction context
+    // must not accept a native ML-DSA witness under the explicit flag.
+    virtual bool CheckMLDSA44Witness(std::span<const unsigned char> program,
+        std::span<const std::vector<unsigned char>> witness) const
+    {
+        return false;
+    }
+
     virtual bool CheckSequence(const CScriptNum& nSequence) const
     {
          return false;
@@ -340,6 +355,12 @@ protected:
 
 public:
     DeferringSignatureChecker(const BaseSignatureChecker& checker) : m_checker(checker) {}
+
+    bool CheckMLDSA44Witness(std::span<const unsigned char> program,
+        std::span<const std::vector<unsigned char>> witness) const override
+    {
+        return m_checker.CheckMLDSA44Witness(program, witness);
+    }
 
     bool CheckECDSASignature(const std::vector<unsigned char>& scriptSig, const std::vector<unsigned char>& vchPubKey, const CScript& scriptCode, SigVersion sigversion) const override
     {

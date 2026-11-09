@@ -54,6 +54,7 @@ class CTxMemPool;
 class ChainstateManager;
 struct ChainTxData;
 class DisconnectedBlockTransactions;
+namespace pqbtc::mldsa44::node { class Snapshot; }
 struct PrecomputedTransactionData;
 struct LockPoints;
 struct AssumeutxoData;
@@ -340,10 +341,15 @@ private:
     bool cacheStore;
     PrecomputedTransactionData *txdata;
     SignatureCache* m_signature_cache;
+    std::shared_ptr<const pqbtc::mldsa44::node::Snapshot> m_mldsa_snapshot;
+    // Only consumed when the experimental ML-DSA implementation is compiled in.
+    [[maybe_unused]] const CChainParams* m_mldsa_params;
 
 public:
-    CScriptCheck(const CTxOut& outIn, const CTransaction& txToIn, SignatureCache& signature_cache, unsigned int nInIn, unsigned int nFlagsIn, bool cacheIn, PrecomputedTransactionData* txdataIn) :
-        m_tx_out(outIn), ptxTo(&txToIn), nIn(nInIn), nFlags(nFlagsIn), cacheStore(cacheIn), txdata(txdataIn), m_signature_cache(&signature_cache) { }
+    CScriptCheck(const CTxOut& outIn, const CTransaction& txToIn, SignatureCache& signature_cache, unsigned int nInIn, unsigned int nFlagsIn, bool cacheIn, PrecomputedTransactionData* txdataIn,
+        std::shared_ptr<const pqbtc::mldsa44::node::Snapshot> snapshot = {}, const CChainParams* params = nullptr) :
+        m_tx_out(outIn), ptxTo(&txToIn), nIn(nInIn), nFlags(nFlagsIn), cacheStore(cacheIn), txdata(txdataIn), m_signature_cache(&signature_cache),
+        m_mldsa_snapshot(std::move(snapshot)), m_mldsa_params(params) { }
 
     CScriptCheck(const CScriptCheck&) = delete;
     CScriptCheck& operator=(const CScriptCheck&) = delete;
@@ -382,6 +388,13 @@ public:
 };
 
 /** Functions for validating blocks and updating the block tree */
+
+/** Actual owning transaction/Coin context for explicitly admitted demo rules. */
+bool CheckInputScripts(const CTransactionRef& tx, TxValidationState& state,
+    const CCoinsViewCache& inputs, unsigned int flags, bool cacheSigStore,
+    bool cacheFullScriptStore, PrecomputedTransactionData& txdata,
+    ValidationCache& validation_cache, const CChainParams& params,
+    std::vector<CScriptCheck>* checks = nullptr) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 /** Context-independent validity checks */
 bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true, bool fCheckMerkleRoot = true);

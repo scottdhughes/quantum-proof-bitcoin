@@ -4,6 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <rpc/blockchain.h>
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <blockfilter.h>
 #include <chain.h>
@@ -1342,6 +1343,15 @@ RPCHelpMan getblockchaininfo()
             RPCResult::Type::OBJ, "", "",
             {
                 {RPCResult::Type::STR, "chain", "current network name (" LIST_CHAIN_NAMES ")"},
+#ifdef ENABLE_EXPERIMENTAL_MLDSA44
+                {RPCResult::Type::OBJ, "valueless_mldsa44_demo", /*optional=*/true, "Explicit demo identity; never production admission", {
+                    {RPCResult::Type::STR, "scope", "Valueless experimental regtest only"},
+                    {RPCResult::Type::BOOL, "active", "Wallet issuance enabled after the fixed demo activation"},
+                    {RPCResult::Type::NUM, "activation_height", "Fixed demo activation height"},
+                    {RPCResult::Type::STR_HEX, "network_binding", "Effective message-start and internal genesis bytes"},
+                    {RPCResult::Type::STR_HEX, "spec_sha256", "Exact admitted demo contract bytes"},
+                }},
+#endif
                 {RPCResult::Type::NUM, "blocks", "the height of the most-work fully-validated chain. The genesis block has height 0"},
                 {RPCResult::Type::NUM, "headers", "the current number of headers we have validated"},
                 {RPCResult::Type::STR, "bestblockhash", "the hash of the currently best block"},
@@ -1382,6 +1392,18 @@ RPCHelpMan getblockchaininfo()
     const int height{tip.nHeight};
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("chain", chainman.GetParams().GetChainTypeString());
+#ifdef ENABLE_EXPERIMENTAL_MLDSA44
+    if (chainman.GetParams().IsMLDSA44Demo()) {
+        const auto& params = chainman.GetParams();
+        UniValue demo{UniValue::VOBJ};
+        demo.pushKV("scope", "VALUELESS_EXPERIMENTAL_REGTEST_ONLY");
+        demo.pushKV("active", height >= 1);
+        demo.pushKV("activation_height", 1);
+        demo.pushKV("network_binding", HexStr(params.MessageStart()) + HexStr(params.GenesisBlock().GetHash()));
+        demo.pushKV("spec_sha256", MLDSA44_CONTRACT_SHA256);
+        obj.pushKV("valueless_mldsa44_demo", std::move(demo));
+    }
+#endif
     obj.pushKV("blocks", height);
     obj.pushKV("headers", chainman.m_best_header ? chainman.m_best_header->nHeight : -1);
     obj.pushKV("bestblockhash", tip.GetBlockHash().GetHex());

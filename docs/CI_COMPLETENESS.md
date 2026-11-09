@@ -29,10 +29,11 @@ This tranche does not migrate legacy suites to PQ semantics and does not optimiz
 | `pq_backlog` | Candidate suites for later explicit PQ migration or PQ gating decisions. |
 | `dual_profile` | Retained under the current non-gating dual-profile contract. |
 | `legacy_only` | Explicit legacy/retired behavior that is not on the PQ migration path. |
+| `experimental_only` | Explicitly allowed opt-in experimental tests with a required build option and a separate CI workflow recorded in the inventory. |
 
 ## Current Inventory Summary
 
-The current functional corpus has `276` tracked test files, classified as:
+The current functional corpus has `277` tracked test files, classified as:
 
 | Class | Count |
 |---|---|
@@ -40,6 +41,16 @@ The current functional corpus has `276` tracked test files, classified as:
 | `pq_backlog` | `0` |
 | `dual_profile` | `141` |
 | `legacy_only` | `14` |
+| `experimental_only` | `1` |
+
+`feature_mldsa44_demo.py` is the sole `experimental_only` entry. It requires
+`ENABLE_EXPERIMENTAL_MLDSA44=ON` and command-line `-mldsa44demo=1`; the build option
+remains OFF by default. The `ml-dsa-44-assembled-system.yml` GCC and Clang jobs run
+its two-node validation controls directly with `--validation-only`, then exercise
+the source-built app's valid spend, restart, and recovery flow. The validator
+allows this classification only for that named test with that exact build option
+and workflow. This records experimental coverage without changing the required
+PQ gate list, production backend admission, or release hold.
 
 Current required PQ-first gates:
 

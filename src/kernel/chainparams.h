@@ -143,6 +143,7 @@ public:
         std::unordered_map<Consensus::BuriedDeployment, int> activation_heights{};
         bool fastprune{false};
         bool enforce_bip94{false};
+        bool mldsa44_demo{false};
     };
 
     static std::unique_ptr<const CChainParams> RegTest(const RegTestOptions& options);
@@ -151,7 +152,10 @@ public:
     static std::unique_ptr<const CChainParams> TestNet();
     static std::unique_ptr<const CChainParams> TestNet4();
 
+    bool IsMLDSA44Demo() const { return m_mldsa44_demo; }
+
 protected:
+    bool m_mldsa44_demo{false};
     CChainParams() = default;
 
     Consensus::Params consensus;

@@ -73,7 +73,14 @@ def find_included_cpps():
         if e.returncode > 1:
             raise e
 
-    return included_cpps
+    # This fixture deliberately compiles the actual private scheduler in its
+    # translation unit, keeping fault-injection controls out of the service API.
+    # Match the complete line so other implementation-file includes still fail.
+    scheduler_fixture = (
+        "contrib/ml-dsa-signer/schedule_smoke.cpp:"
+        "#include <crypto/mldsa44/signer/service.cpp>"
+    )
+    return [line for line in included_cpps if line != scheduler_fixture]
 
 
 def find_extra_boosts():
