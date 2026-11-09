@@ -150,9 +150,9 @@ jobs:
 
   macos-native-arm64:
     name: ${{ matrix.job-name }}
-    # Use any image to support the xcode-select below, but hardcode version to avoid silent upgrades (and breaks).
+    # Pin the supported ARM64 runner image to avoid silent OS upgrades.
     # See: https://github.com/actions/runner-images#available-images.
-    runs-on: macos-14
+    runs-on: macos-15
 
     # When a contributor maintains a fork of the repo, any pull request they make
     # to their own fork, or to the main repository, will trigger two CI runs:
@@ -168,10 +168,10 @@ jobs:
         include:
           - job-type: standard
             file-env: './ci/test/00_setup_env_mac_native.sh'
-            job-name: 'macOS 14 native, arm64, no depends, sqlite only, gui'
+            job-name: 'macOS 15 native, arm64, no depends, sqlite only, gui'
           - job-type: fuzz
             file-env: './ci/test/00_setup_env_mac_native_fuzz.sh'
-            job-name: 'macOS 14 native, arm64, fuzz'
+            job-name: 'macOS 15 native, arm64, fuzz'
 
     env:
       DANGER_RUN_CI_ON_HOST: 1
@@ -187,11 +187,10 @@ jobs:
 
       - name: Clang version
         run: |
-          # Use the earliest Xcode supported by the version of macOS denoted in
-          # doc/release-notes-empty-template.md and providing at least the
-          # minimum clang version denoted in doc/dependencies.md.
-          # See: https://developer.apple.com/documentation/xcode-release-notes/xcode-15-release-notes
-          sudo xcode-select --switch /Applications/Xcode_15.0.app
+          # Exercise the earliest Xcode listed for the pinned runner image.
+          # See doc/dependencies.md for the minimum compiler requirements.
+          # See: https://github.com/actions/runner-images/blob/main/images/macos/macos-15-arm64-Readme.md#xcode
+          sudo xcode-select --switch /Applications/Xcode_16.app
           clang --version
 
       - name: Install Homebrew packages
@@ -216,12 +215,26 @@ jobs:
 
           # A workaround for "The `brew link` step did not complete successfully" error.
           retry_brew_install python@3 || brew link --overwrite python@3
-          retry_brew_install coreutils ninja pkgconf gnu-getopt ccache boost libevent zeromq qt@6 qrencode capnp
+          retry_brew_install coreutils ninja pkgconf gnu-getopt ccache boost libevent zeromq qt@6 qrencode capnp openssl@3
+
+      - name: Set up Python for pycapnp
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+          architecture: arm64
 
       - name: Install Python packages
         run: |
           git clone -b v2.1.0 https://github.com/capnproto/pycapnp
-          pip3 install ./pycapnp -C force-bundled-libcapnp=True --break-system-packages
+          # Bundled Cap'n Proto 1.0.1 TLS is incompatible with OpenSSL 4's const APIs.
+          pycapnp_openssl_prefix="$(brew --prefix openssl@3)"
+          OPENSSL_ROOT_DIR="${pycapnp_openssl_prefix}" \
+            PKG_CONFIG_PATH="${pycapnp_openssl_prefix}/lib/pkgconfig${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}" \
+            python3 -m pip install ./pycapnp -C force-bundled-libcapnp=True --break-system-packages
+          if test -f pycapnp/bundled/capnproto-c++/build64/CMakeCache.txt; then
+            grep -E '^OPENSSL_(INCLUDE_DIR|CRYPTO_LIBRARY|SSL_LIBRARY):' \
+              pycapnp/bundled/capnproto-c++/build64/CMakeCache.txt || true
+          fi
 
       - name: Set Ccache directory
         run: echo "CCACHE_DIR=${RUNNER_TEMP}/ccache_dir" >> "$GITHUB_ENV"
