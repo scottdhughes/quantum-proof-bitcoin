@@ -342,14 +342,16 @@ private:
     PrecomputedTransactionData *txdata;
     SignatureCache* m_signature_cache;
     std::shared_ptr<const pqbtc::mldsa44::node::Snapshot> m_mldsa_snapshot;
-    // Only consumed when the experimental ML-DSA implementation is compiled in.
-    [[maybe_unused]] const CChainParams* m_mldsa_params;
+    const CChainParams* m_mldsa_params;
 
 public:
     CScriptCheck(const CTxOut& outIn, const CTransaction& txToIn, SignatureCache& signature_cache, unsigned int nInIn, unsigned int nFlagsIn, bool cacheIn, PrecomputedTransactionData* txdataIn,
         std::shared_ptr<const pqbtc::mldsa44::node::Snapshot> snapshot = {}, const CChainParams* params = nullptr) :
         m_tx_out(outIn), ptxTo(&txToIn), nIn(nInIn), nFlags(nFlagsIn), cacheStore(cacheIn), txdata(txdataIn), m_signature_cache(&signature_cache),
-        m_mldsa_snapshot(std::move(snapshot)), m_mldsa_params(params) { }
+        m_mldsa_snapshot(std::move(snapshot)), m_mldsa_params(params) {
+        // Used only by experimental builds; GCC 11 rejects maybe_unused on data members.
+        (void)m_mldsa_params;
+    }
 
     CScriptCheck(const CScriptCheck&) = delete;
     CScriptCheck& operator=(const CScriptCheck&) = delete;
