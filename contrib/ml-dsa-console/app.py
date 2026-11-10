@@ -54,15 +54,17 @@ def start_network(controller, server):
         return False
 
 
-def read_local(url, *, data=None, token=None):
+def read_local(url, *, data=None, token=None, max_bytes=128 * 1024):
+    if type(max_bytes) is not int or not 1 <= max_bytes <= 4 * 1024 * 1024:
+        raise LaunchError("Invalid local response byte bound")
     headers = {"Origin": url.split("/api/", 1)[0]}
     if data is not None:
         headers.update({"Content-Type": "application/json", "X-Console-Token": token})
     request = Request(url, data=None if data is None else json.dumps(data).encode(), headers=headers)
     try:
         with urlopen(request, timeout=240 if data else 30) as response:
-            raw = response.read(128 * 1024 + 1)
-            if len(raw) > 128 * 1024 or response.headers.get("X-PQBTC-Console") != "1":
+            raw = response.read(max_bytes + 1)
+            if len(raw) > max_bytes or response.headers.get("X-PQBTC-Console") != "1":
                 raise LaunchError("The local port belongs to another application")
             return raw
     except HTTPError as error:
@@ -75,9 +77,9 @@ def read_local(url, *, data=None, token=None):
         raise LaunchError(str(message)) from error
 
 
-def reopen_existing(url, identity, autostart=True):
+def reopen_existing(url, identity, autostart=True, *, max_bytes=128 * 1024):
     try:
-        found = json.loads(read_local(url + "/api/identity"))
+        found = json.loads(read_local(url + "/api/identity", max_bytes=max_bytes))
     except URLError as error:
         if isinstance(error.reason, ConnectionRefusedError):
             return False
@@ -89,17 +91,17 @@ def reopen_existing(url, identity, autostart=True):
     if found != identity:
         raise LaunchError("This port is serving another wallet or runtime; use its original launcher or a different port")
     if autostart:
-        status = json.loads(read_local(url + "/api/status"))
+        status = json.loads(read_local(url + "/api/status", max_bytes=max_bytes))
         if status.get("ok") is not True:
             raise LaunchError("The existing console could not read its wallet status")
         if status["data"]["phase"] != "running":
-            html = read_local(url + "/").decode()
+            html = read_local(url + "/", max_bytes=max_bytes).decode()
             match = re.search(r'name="console-token"\s+content="([A-Za-z0-9_-]+)"', html)
             if match is None:
                 raise LaunchError("Refresh the existing console before resuming")
             try:
                 result = json.loads(read_local(url + "/api/action", data={"action": "start", "params": {},
-                                              "request_id": secrets.token_urlsafe(24)}, token=match[1]))
+                                              "request_id": secrets.token_urlsafe(24)}, token=match[1], max_bytes=max_bytes))
             except LaunchError as error:
                 print("Wallet needs attention; opening its recovery controls. " + str(error), flush=True)
                 return True
@@ -155,7 +157,8 @@ def validate_action(value):
     return action, params, identity
 
 
-def make_server(controller, host="127.0.0.1", port=8844, token=None, identity=None):
+def make_server(controller, host="127.0.0.1", port=8844, token=None, identity=None, *,
+                action_validator=validate_action, assets_dir=None):
     if host != "127.0.0.1":
         raise ValueError("The console binds only to local loopback")
     launch_token = token or secrets.token_urlsafe(32)
@@ -225,7 +228,7 @@ def make_server(controller, host="127.0.0.1", port=8844, token=None, identity=No
                 self.error(404, "Page not found")
                 return
             try:
-                contents = (HERE / "web" / asset[0]).read_text(encoding="utf8")
+                contents = ((Path(assets_dir) if assets_dir is not None else HERE / "web") / asset[0]).read_text(encoding="utf8")
                 if asset[0] == "index.html":
                     contents = contents.replace("__CONSOLE_TOKEN__", launch_token)
                 self.send_data(200, contents, asset[1])
@@ -254,11 +257,12 @@ def make_server(controller, host="127.0.0.1", port=8844, token=None, identity=No
                 if len(raw) != length:
                     raise ValueError("Incomplete request")
                 value = json.loads(raw, object_pairs_hook=strict_object)
-                action, params, identity = validate_action(value)
+                action, params, identity = action_validator(value)
             except (ValueError, UnicodeError, RecursionError) as error:
                 self.error(400, str(error)[:800])
                 return
-            fingerprint = json.dumps([action, params], sort_keys=True, separators=(",", ":"))
+            fingerprint = hashlib.sha256(json.dumps([action, params], sort_keys=True,
+                                                   separators=(",", ":")).encode("utf8")).hexdigest()
             if not operation.acquire(blocking=False):
                 self.error(409, "Another action is running; wait for it to finish")
                 return
@@ -266,30 +270,32 @@ def make_server(controller, host="127.0.0.1", port=8844, token=None, identity=No
                 if identity in cache:
                     old_fingerprint, code, response = cache[identity]
                     if old_fingerprint != fingerprint:
-                        self.error(409, "Request ID already belongs to another operation")
-                        return
-                    self.send_data(code, response)
-                    return
-                if identity in seen:
-                    self.error(409, "Earlier request result expired; refresh status before using a new request")
-                    return
-                seen.add(identity)
-                try:
-                    response = {"ok": True, "data": controller.action(action, params)}
-                    if response["data"].get("status", {}).get("phase") == "running":
-                        self.server.startup_error = ""
-                    code = 200
-                except Exception as error:
-                    response = {"ok": False, "error": str(error)[:800]}
-                    if action == "start":
-                        self.server.startup_error = response["error"]
-                    code = 409
-                cache[identity] = (fingerprint, code, response)
-                while len(cache) > 128:
-                    cache.popitem(last=False)
-                self.send_data(code, response)
+                        code, response = 409, {"ok": False, "error": "Request ID already belongs to another operation"}
+                elif identity in seen:
+                    code, response = 409, {"ok": False, "error": "Earlier request result expired; refresh status before using a new request"}
+                else:
+                    seen.add(identity)
+                    try:
+                        response = {"ok": True, "data": controller.action(action, params)}
+                        if response["data"].get("status", {}).get("phase") == "running":
+                            self.server.startup_error = ""
+                        code = 200
+                    except Exception as error:
+                        response = {"ok": False, "error": str(error)[:800]}
+                        if action == "start":
+                            self.server.startup_error = response["error"]
+                        code = 409
+                    # Cache an immutable response before another operation can
+                    # mutate controller state referenced by the result object.
+                    response = json.dumps(response, default=str).encode("utf8")
+                    cache[identity] = (fingerprint, code, response)
+                    while len(cache) > 128:
+                        cache.popitem(last=False)
+                if not isinstance(response, bytes):
+                    response = json.dumps(response, default=str).encode("utf8")
             finally:
                 operation.release()
+            self.send_data(code, response)
 
     server = ThreadingHTTPServer((host, port), Handler)
     server.daemon_threads = True

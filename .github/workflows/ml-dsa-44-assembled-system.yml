@@ -11,9 +11,9 @@ permissions:
 
 jobs:
   assembled:
-    name: Source build, wallet and restart (${{ matrix.compiler }})
+    name: Source build, wallet recovery and native qualification (${{ matrix.compiler }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -34,9 +34,10 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
           python3 -m unittest discover -s ci/test -p 'test_ml_dsa_console_*.py'
-          python3 -m unittest ci.test.test_ml_dsa_protocol_v1 ci.test.test_mldsa_node_wallet ci.test.test_ml_dsa_native_symbols
+          python3 -m unittest ci.test.test_ml_dsa_protocol_v1 ci.test.test_mldsa_node_wallet ci.test.test_ml_dsa_native_symbols ci.test.test_mldsa_native_qualification ci.test.test_mldsa_public_wallet ci.test.test_mldsa_public_transport ci.test.test_mldsa_public_consensus_controls ci.test.test_mldsa_public_soak_agent ci.test.test_ml_dsa_public_console
           node --check contrib/ml-dsa-console/web/app.js
-          sh -n 'Launch-Local-Wallet.command' contrib/ml-dsa-console/launch.command
+          node --check contrib/ml-dsa-console/web-public/app.js
+          sh -n 'Launch-Local-Wallet.command' contrib/ml-dsa-console/launch.command contrib/ml-dsa-console/launch-public.command
 
       - name: Build native source without cache and test the assembled app
         run: |
@@ -46,6 +47,24 @@ jobs:
             --expect-head "$EXPECTED_HEAD" \
             --container "pqbtc-ci-${{ matrix.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}" \
             --output-dir "$EVIDENCE_DIR"
+
+      - name: Qualify native components, actual spend/restore and node resource bounds
+        run: |
+          set -euo pipefail
+          python3 contrib/ml-dsa-qualification/run_native_qualification.py \
+            --compiler "${{ matrix.compiler }}" \
+            --descriptor "$EVIDENCE_DIR/runtime-descriptor.json" \
+            --expect-head "$EXPECTED_HEAD" --expect-architecture x86_64 \
+            --container "pqbtc-native-${{ matrix.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}" \
+            --output-dir "$EVIDENCE_DIR/native-qualification"
+
+      - name: Test public-profile HTTP wallet and recovery on private test transport
+        run: |
+          set -euo pipefail
+          python3 contrib/ml-dsa-qualification/run_public_app_ci.py \
+            --descriptor "$EVIDENCE_DIR/runtime-descriptor.json" \
+            --expect-head "$EXPECTED_HEAD" \
+            --output-dir "$EVIDENCE_DIR/public-profile-app"
 
       - name: Verify source stayed unchanged
         if: always()

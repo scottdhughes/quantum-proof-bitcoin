@@ -282,6 +282,55 @@ public:
     }
 };
 
+/** Explicit valueless CONTRACT-1 TEST profile; inherited testnet is unchanged. */
+class CMLDSA44TestParams final : public CTestNetParams {
+public:
+    CMLDSA44TestParams()
+    {
+        m_mldsa44_test = true;
+        consensus.script_flag_exceptions.clear();
+        consensus.BIP34Height = 1;
+        consensus.BIP34Hash.SetNull();
+        consensus.BIP65Height = 1;
+        consensus.BIP66Height = 1;
+        consensus.CSVHeight = 1;
+        consensus.SegwitHeight = 0;
+        consensus.MinBIP9WarningHeight = 0;
+        consensus.powLimit = uint256{"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
+        consensus.nPowTargetSpacing = 60;
+        consensus.fPowNoRetargeting = true;
+        consensus.nMinimumChainWork.SetNull();
+        consensus.defaultAssumeValid.SetNull();
+        for (auto& deployment : consensus.vDeployments) {
+            deployment.nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
+            deployment.nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+            deployment.min_activation_height = 0;
+        }
+        pchMessageStart = {0xa7, 0xe2, 0x9c, 0xf7};
+        nDefaultPort = 23833;
+        const CScript output = CScript() << "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f"_hex << OP_CHECKSIG;
+        genesis = CreateGenesisBlock("The Times 22/Feb/2026 PQBTC test genesis", output,
+            1772119544, 2499947721, 0x207fffff, 1, 50 * COIN);
+        consensus.hashGenesisBlock = genesis.GetHash();
+        if (consensus.hashGenesisBlock != uint256{"2b6939c6a048aa840a962d19ee680879c0bcbbeeff6e258fd049b5a6a947a979"} ||
+            genesis.hashMerkleRoot != uint256{"d3bf22ef43098736f11406c5bff808e933df335705f4c8c022dcffaa0d26164a"}) {
+            throw std::invalid_argument("ML-DSA public test genesis does not match frozen manifest");
+        }
+        vSeeds.clear();
+        vFixedSeeds.clear();
+        m_assumeutxo_data.clear();
+        m_assumed_blockchain_size = 0;
+        m_assumed_chain_state_size = 0;
+        chainTxData = {0, 0, 0};
+        base58Prefixes[PUBKEY_ADDRESS] = {191};
+        base58Prefixes[SCRIPT_ADDRESS] = {187};
+        base58Prefixes[SECRET_KEY] = {64};
+        base58Prefixes[EXT_PUBLIC_KEY] = {149, 138, 123, 144};
+        base58Prefixes[EXT_SECRET_KEY] = {146, 100, 134, 147};
+        bech32_hrp = "tq";
+    }
+};
+
 /**
  * Testnet (v4): public test network which is reset from time to time.
  */
@@ -673,6 +722,11 @@ std::unique_ptr<const CChainParams> CChainParams::Main()
 std::unique_ptr<const CChainParams> CChainParams::TestNet()
 {
     return std::make_unique<const CTestNetParams>();
+}
+
+std::unique_ptr<const CChainParams> CChainParams::MLDSA44Test()
+{
+    return std::make_unique<const CMLDSA44TestParams>();
 }
 
 std::unique_ptr<const CChainParams> CChainParams::TestNet4()

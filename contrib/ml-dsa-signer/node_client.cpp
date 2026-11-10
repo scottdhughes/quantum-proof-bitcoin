@@ -2,12 +2,14 @@
 // Distributed under the MIT software license, see the accompanying COPYING.
 // PUBLIC valueless-demo bridge. Never link the private wallet or libcrypto.
 #include <crypto/mldsa44/signer/client.h>
+#include <crypto/mldsa44/signer/identity.h>
 #include <algorithm>
 #include <charconv>
 #include <iostream>
 #include <limits>
 #include <string>
 #include <string_view>
+#include <vector>
 #include <unistd.h>
 
 using namespace pqbtc::mldsa44;
@@ -36,16 +38,25 @@ std::string Hex(std::span<const unsigned char> bytes)
 int main(int argc,char** argv)
 {
     try {
-        Require(argc==6 && std::string_view(argv[1])=="--valueless-demo");
-        const auto uid=Number(argv[3]),kind=Number(argv[5]);
+        Network network{Network::REGTEST};bool selected{false};std::vector<std::string> positional;
+        for(int i=1;i<argc;++i) {
+            if(std::string_view(argv[i])=="--network") {
+                Require(!selected && i+1<argc);selected=true;std::string_view name{argv[++i]};
+                Require(name=="test" || name=="regtest",Code::UNSUPPORTED);
+                network=name=="test"?Network::TEST:Network::REGTEST;
+            } else positional.emplace_back(argv[i]);
+        }
+        Require(positional.size()==5 && positional[0]=="--valueless-demo");
+        const auto uid=Number(positional[2]),kind=Number(positional[4]);
         Require(uid>0 && uid<std::numeric_limits<uid_t>::max() && geteuid()!=0,Code::AUTH);
         Require(kind>=2 && kind<=5);
-        const auto digest=Unhex(argv[4]);Require(digest.size()==32);Hash spec{};std::copy(digest.begin(),digest.end(),spec.begin());
+        const auto digest=Unhex(positional[3]);Require(digest.size()==32);Hash spec{};std::copy(digest.begin(),digest.end(),spec.begin());
+        Require(network!=Network::TEST || spec==CONTRACT_SPEC_SHA256,Code::BINDING);
         std::string input;char c;
         while(std::cin.get(c)){Require(input.size()<2097153);input.push_back(c);}
         Require(std::cin.eof());if(!input.empty() && input.back()=='\n')input.pop_back();
         const auto body=Unhex(input);
-        Client client{argv[2],static_cast<uid_t>(uid),Network::REGTEST,spec};
+        Client client{positional[1],static_cast<uid_t>(uid),network,spec};
         const auto response=client.Call(static_cast<uint8_t>(kind),body);
         std::cout<<"{\"status\":"<<response.status<<",\"payload\":\""<<Hex(response.payload)<<"\"}\n";
         return 0;

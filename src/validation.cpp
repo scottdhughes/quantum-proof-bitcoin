@@ -354,7 +354,7 @@ void Chainstate::MaybeUpdateMempoolForReorg(
 
         // Fixed demo H=1 has no spendable pre-H inventory. On a rewind to
         // genesis, remove every mempool decision made under the active epoch.
-        if (m_chainman.GetParams().IsMLDSA44Demo() && m_chain.Height() < 1) return true;
+        if (m_chainman.GetParams().IsMLDSA44Enabled() && m_chain.Height() < 1) return true;
 
         // The transaction must be final.
         if (!CheckFinalTxAtTip(*Assert(m_chain.Tip()), tx)) return true;
@@ -819,14 +819,19 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
 
     // Rather not work on nonstandard transactions (unless -testnet/-regtest)
     std::string reason;
-    if (m_active_chainstate.m_chainman.GetParams().IsMLDSA44Demo() && m_active_chainstate.m_chain.Height() < 1) {
+    if (m_active_chainstate.m_chainman.GetParams().IsMLDSA44Enabled() && m_active_chainstate.m_chain.Height() < 1) {
         for (const auto& output : tx.vout) {
             if (output.scriptPubKey.size() == 34 && output.scriptPubKey[0] == OP_2 && output.scriptPubKey[1] == 32) {
                 return state.Invalid(TxValidationResult::TX_NOT_STANDARD, "mldsa44-not-yet-active");
             }
         }
     }
-    if (m_pool.m_opts.require_standard && !IsStandardTx(tx, m_pool.m_opts.max_datacarrier_bytes, m_pool.m_opts.permit_bare_multisig, m_pool.m_opts.dust_relay_feerate, reason)) {
+#ifdef ENABLE_EXPERIMENTAL_MLDSA44
+    if (m_active_chainstate.m_chainman.GetParams().IsMLDSA44Test() && !pqbtc::mldsa44::node::CheckPublicOutputs(tx)) {
+        return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-mldsa44-output");
+    }
+#endif
+    if (m_pool.m_opts.require_standard && !IsStandardTx(tx, m_pool.m_opts.max_datacarrier_bytes, m_pool.m_opts.permit_bare_multisig, m_pool.m_opts.dust_relay_feerate, reason, m_active_chainstate.m_chainman.GetParams().IsMLDSA44Test())) {
         return state.Invalid(TxValidationResult::TX_NOT_STANDARD, reason);
     }
 
@@ -914,7 +919,12 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return false; // state filled in by CheckTxInputs
     }
 
-    if (m_pool.m_opts.require_standard && !AreInputsStandard(tx, m_view, m_active_chainstate.m_chainman.GetParams().IsMLDSA44Demo())) {
+#ifdef ENABLE_EXPERIMENTAL_MLDSA44
+    if (m_active_chainstate.m_chainman.GetParams().IsMLDSA44Test() && !pqbtc::mldsa44::node::CheckPublicInputs(tx, m_view)) {
+        return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-mldsa44-prevout");
+    }
+#endif
+    if (m_pool.m_opts.require_standard && !AreInputsStandard(tx, m_view, m_active_chainstate.m_chainman.GetParams().IsMLDSA44Enabled())) {
         return state.Invalid(TxValidationResult::TX_INPUTS_NOT_STANDARD, "bad-txns-nonstandard-inputs");
     }
 
@@ -923,7 +933,10 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return state.Invalid(TxValidationResult::TX_WITNESS_MUTATED, "bad-witness-nonstandard");
     }
 
-    int64_t nSigOpsCost = GetTransactionSigOpCost(tx, m_view, STANDARD_SCRIPT_VERIFY_FLAGS);
+    // Store the same active cost consumed by miner selection and ConnectBlock.
+    unsigned int sigop_flags = STANDARD_SCRIPT_VERIFY_FLAGS;
+    if (m_active_chainstate.m_chainman.GetParams().IsMLDSA44Enabled()) sigop_flags |= SCRIPT_VERIFY_MLDSA44;
+    int64_t nSigOpsCost = GetTransactionSigOpCost(tx, m_view, sigop_flags);
 
     // Keep track of transactions that spend a coinbase, which we re-scan
     // during reorgs to ensure COINBASE_MATURITY is still met.
@@ -1269,7 +1282,7 @@ bool MemPoolAccept::PolicyScriptChecks(const ATMPArgs& args, Workspace& ws)
     TxValidationState& state = ws.m_state;
 
     unsigned int scriptVerifyFlags = STANDARD_SCRIPT_VERIFY_FLAGS;
-    if (m_active_chainstate.m_chainman.GetParams().IsMLDSA44Demo()) scriptVerifyFlags |= SCRIPT_VERIFY_MLDSA44;
+    if (m_active_chainstate.m_chainman.GetParams().IsMLDSA44Enabled()) scriptVerifyFlags |= SCRIPT_VERIFY_MLDSA44;
 
     // Check input scripts and signatures.
     // This is done last to help prevent CPU exhaustion denial-of-service attacks.
@@ -2284,8 +2297,15 @@ bool CheckInputScripts(const CTransactionRef& tx, TxValidationState& state,
 #ifdef ENABLE_EXPERIMENTAL_MLDSA44
     if ((flags & SCRIPT_VERIFY_MLDSA44) && !tx->IsCoinBase()) {
         try {
-            if (!params.IsMLDSA44Demo() || pqbtc::mldsa44::node::ResolveNetwork(params) != pqbtc::mldsa44::Network::REGTEST) {
+            if (!params.IsMLDSA44Enabled()) {
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "mldsa44-network-not-admitted");
+            }
+            const auto expected = params.IsMLDSA44Test() ? pqbtc::mldsa44::Network::TEST : pqbtc::mldsa44::Network::REGTEST;
+            if (pqbtc::mldsa44::node::ResolveNetwork(params) != expected) {
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "mldsa44-network-not-admitted");
+            }
+            if (params.IsMLDSA44Test() && (!pqbtc::mldsa44::node::CheckPublicOutputs(*tx) || !pqbtc::mldsa44::node::CheckPublicInputs(*tx, inputs))) {
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "mldsa44-profile-shape");
             }
             snapshot = std::make_shared<const pqbtc::mldsa44::node::Snapshot>(tx, inputs);
         } catch (const std::invalid_argument&) {
@@ -2453,7 +2473,7 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Ch
         flags |= SCRIPT_VERIFY_PQ_REPLACEMENT_V1_SCRIPTHASH;
     }
 
-    if (chainman.GetParams().IsMLDSA44Demo() && block_index.nHeight >= 1) flags |= SCRIPT_VERIFY_MLDSA44;
+    if (chainman.GetParams().IsMLDSA44Enabled() && block_index.nHeight >= 1) flags |= SCRIPT_VERIFY_MLDSA44;
 
     return flags;
 }
@@ -2513,9 +2533,18 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     }
 
 #ifdef ENABLE_EXPERIMENTAL_MLDSA44
-    if (params.IsMLDSA44Demo() && pindex->nHeight == 1) {
+    // This path is also used by reindex-chainstate; contextual checks alone
+    // cannot enforce the dedicated public accepted set.
+    if (params.IsMLDSA44Test()) {
+        for (const auto& transaction : block.vtx) {
+            if (!pqbtc::mldsa44::node::CheckPublicOutputs(*transaction)) {
+                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-mldsa44-output");
+            }
+        }
+    }
+    if (params.IsMLDSA44Enabled() && pindex->nHeight == 1) {
         try {
-            pqbtc::mldsa44::node::CheckDemoActivation(params, hashPrevBlock, view);
+            pqbtc::mldsa44::node::CheckActivation(params, hashPrevBlock, view);
         } catch (const std::exception&) {
             return FatalError(m_chainman.GetNotifications(), state, Untranslated("ML-DSA demo deployment manifest or pre-activation UTXO inventory mismatch"));
         }
@@ -2523,7 +2552,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 #endif
 
     bool fScriptChecks = true;
-    if (!params.IsMLDSA44Demo() && !m_chainman.AssumedValidBlock().IsNull()) {
+    if (!params.IsMLDSA44Enabled() && !m_chainman.AssumedValidBlock().IsNull()) {
         // We've been configured with the hash of a block which has been externally verified to have a valid history.
         // A suitable default value is included with the software and updated from time to time.  Because validity
         //  relative to a piece of software is an objective fact these defaults can be easily reviewed.
@@ -2702,6 +2731,12 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                               tx_state.GetDebugMessage() + " in transaction " + tx.GetHash().ToString());
                 break;
             }
+#ifdef ENABLE_EXPERIMENTAL_MLDSA44
+            if (params.IsMLDSA44Test() && !pqbtc::mldsa44::node::CheckPublicInputs(tx, view)) {
+                state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-mldsa44-prevout");
+                break;
+            }
+#endif
             nFees += txfee;
             if (!MoneyRange(nFees)) {
                 state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-accumulated-fee-outofrange",

@@ -12,8 +12,15 @@ namespace pqbtc::mldsa44::node {
 // Effective C++ genesis/header and message start must match frozen CONTRACT-1 B.
 // This is an identity check, NOT an activation/absence-guard admission decision.
 Network ResolveNetwork(const CChainParams& params);
-// Only for the fixed demo H=1: require the complete effective pre-H UTXO set
+// Only for the fixed experimental H=1: require the complete effective pre-H UTXO set
 // to be empty. This is not a nonempty-chain production inventory algorithm.
+void CheckActivation(const CChainParams& params,const uint256& previous,
+    const CCoinsViewCache& coins);
+void CheckStartup(const CChainParams& params,const CCoinsViewCache& coins);
+// Public-profile accepted set; callers apply only to the explicit TEST profile.
+bool CheckPublicOutputs(const CTransaction& tx);
+bool CheckPublicInputs(const CTransaction& tx,const CCoinsViewCache& coins);
+// Compatibility wrappers deliberately remain demo-only.
 void CheckDemoActivation(const CChainParams& params,const uint256& previous,
     const CCoinsViewCache& coins);
 void CheckDemoStartup(const CChainParams& params,const CCoinsViewCache& coins);

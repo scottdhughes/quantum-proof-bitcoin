@@ -111,7 +111,9 @@ void BlockAssembler::resetBlock()
 
     // Reserve space for fixed-size block header, txs count, and coinbase tx.
     nBlockWeight = m_options.block_reserved_weight;
-    nBlockSigOpsCost = m_options.coinbase_output_max_additional_sigops;
+    // The public profile permits only native v2 and zero-valued data outputs,
+    // neither of which can add coinbase signature operations.
+    nBlockSigOpsCost = chainparams.IsMLDSA44Test() ? 0 : m_options.coinbase_output_max_additional_sigops;
 
     // These counters do not include coinbase tx
     nBlockTx = 0;
@@ -212,7 +214,9 @@ bool BlockAssembler::TestPackage(uint64_t packageSize, int64_t packageSigOpsCost
     if (nBlockWeight + WITNESS_SCALE_FACTOR * packageSize >= m_options.nBlockMaxWeight) {
         return false;
     }
-    if (nBlockSigOpsCost + packageSigOpsCost >= MAX_BLOCK_SIGOPS_COST) {
+    const auto sigops_cost{nBlockSigOpsCost + packageSigOpsCost};
+    if (sigops_cost > MAX_BLOCK_SIGOPS_COST ||
+        (!chainparams.IsMLDSA44Test() && sigops_cost == MAX_BLOCK_SIGOPS_COST)) {
         return false;
     }
     return true;

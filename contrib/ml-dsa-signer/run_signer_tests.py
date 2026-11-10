@@ -141,7 +141,8 @@ def main():
                "src/crypto/mldsa44/signer/wallet.cpp", "src/crypto/mldsa44/signer/ipc.cpp", "src/crypto/mldsa44/signer/session.cpp",
                "src/crypto/mldsa44/signer/transport.cpp", "src/crypto/mldsa44/signer/client.cpp", "src/crypto/mldsa44/signer/service.cpp",
                "contrib/ml-dsa-signer/wallet_smoke.cpp", "contrib/ml-dsa-signer/ipc_smoke.cpp",
-               "contrib/ml-dsa-signer/signer_main.cpp", "contrib/ml-dsa-signer/client_smoke.cpp", "contrib/ml-dsa-signer/schedule_smoke.cpp"]
+               "contrib/ml-dsa-signer/signer_main.cpp", "contrib/ml-dsa-signer/client_smoke.cpp", "contrib/ml-dsa-signer/schedule_smoke.cpp",
+               "contrib/ml-dsa-signer/public_network_smoke.cpp"]
     all_owned = [path for path in (ROOT / "src/crypto/mldsa44").rglob("*") if path.is_file()]
     all_owned += [path for path in (ROOT / "contrib/ml-dsa-signer").rglob("*") if path.is_file() and "__pycache__" not in path.parts]
     source_before = {str(path.relative_to(ROOT)): sha(path) for path in all_owned}
@@ -177,17 +178,19 @@ def main():
         native = {}
         executable_paths = []
         common_names = ["verify", "key_lifecycle", "sha256", "contract", "wallet_crypto", "wallet", "ipc", "session"]
-        for name in ("wallet", "ipc", "schedule"):
+        for name in ("wallet", "ipc", "schedule", "public_network"):
             binary = build / (name + "-smoke")
             executable_paths.append(binary)
-            extra = [roles["transport"], "-Wl,--wrap=pqbtc_mldsa44_key_sign_hedged"] if name == "schedule" else ["-Wl,--wrap=fsync"]
+            extra = ([roles["transport"], "-Wl,--wrap=pqbtc_mldsa44_key_sign_hedged"] if name == "schedule" else
+                     ["-Wl,--wrap=fsync"] if name in ("wallet", "ipc") else [roles["transport"],roles["service"]])
             command = [cxx, *flags, "-pthread", *[roles[x] for x in common_names], roles[name + "_smoke"], *extra, prefix / "lib/libcrypto.a", "-ldl", "-o", binary]
             commands.append([str(x) for x in command])
             run(command)
             native[name] = json.loads(run([binary, build / (name + "-state")]))
             if native[name].get("result") != "PASS":
                 raise RuntimeError("incomplete native observations: " + name)
-        if native["wallet"].get("record_bytes") != 167 or native["ipc"].get("signatures_verified") != 2:
+        if (native["wallet"].get("record_bytes") != 167 or native["ipc"].get("signatures_verified") != 2 or
+                native["public_network"].get("test_signatures_verified") != 1):
             raise RuntimeError("incomplete wallet/IPC observations")
         sys.path.insert(0, str(ROOT / "contrib/ml-dsa-production-contract"))
         import ipc_v1

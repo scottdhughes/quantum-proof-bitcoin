@@ -92,6 +92,31 @@ class ConsoleHTTPTests(unittest.TestCase):
         self.assertEqual(self.request(payload)[0], 409)
         self.assertEqual(sum(action == "send" for action, _ in self.controller.actions), 1)
 
+    def test_completed_action_releases_lock_before_slow_response_finishes(self):
+        # The browser can receive a complete body before its handler finishes
+        # network cleanup. Its next action must see the committed operation.
+        delivered, release = threading.Event(), threading.Event()
+        handler = self.server.RequestHandlerClass
+        original = handler.send_data
+
+        def slow_send(instance, status, body, *args):
+            original(instance, status, body, *args)
+            value = json.loads(body) if isinstance(body, bytes) else body
+            if instance.command == "POST" and value.get("data", {}).get("result", {}).get("action") == "receive":
+                delivered.set()
+                release.wait(timeout=5)
+
+        handler.send_data = slow_send
+        try:
+            self.assertEqual(self.request({"action": "receive", "params": {},
+                                           "request_id": "first-slow-response"})[0], 200)
+            self.assertTrue(delivered.wait(timeout=2))
+            self.assertEqual(self.request({"action": "start", "params": {},
+                                           "request_id": "next-sequential-action"})[0], 200)
+            self.assertEqual(self.controller.actions, [("receive", {}), ("start", {})])
+        finally:
+            release.set()
+
     def test_cross_origin_request_cannot_mutate_the_lab(self):
         code, body, _ = self.request(
             {"action": "start", "params": {}, "request_id": "request-1234567890"},

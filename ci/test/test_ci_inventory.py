@@ -82,11 +82,11 @@ class CIInventoryTests(unittest.TestCase):
         self.assert_rejected(entry, "no approved experimental-only coverage decision")
 
     def test_standalone_driver_is_acknowledged_outside_default_gate(self):
-        name = "feature_mldsa44_demo.py"
-        self.assertEqual(self.runner["STANDALONE_SCRIPTS"], [name])
+        names = {"feature_mldsa44_demo.py", "feature_mldsa44_resources.py"}
+        self.assertEqual(set(self.runner["STANDALONE_SCRIPTS"]), names)
         framework_tests = {script.split()[0] for script in self.runner["ALL_SCRIPTS"]}
-        self.assertNotIn(name, framework_tests)
-        self.assertNotIn(name, check_ci_inventory.load_pq_gate_list())
+        self.assertTrue(names.isdisjoint(framework_tests))
+        self.assertTrue(names.isdisjoint(check_ci_inventory.load_pq_gate_list()))
         with contextlib.redirect_stdout(io.StringIO()) as output:
             self.runner["check_script_list"](
                 src_dir=str(check_ci_inventory.REPO_ROOT), fail_on_warn=True
@@ -133,6 +133,18 @@ class CIInventoryTests(unittest.TestCase):
         ).read_text(encoding="utf8")
         self.assertIn("compiler: [gcc, clang]", workflow)
         self.assertIn("python3 contrib/ml-dsa-console/run_assembled_ci.py", workflow)
+
+    def test_resource_driver_is_executed_by_the_exact_source_qualification_stage(self):
+        workflow = (check_ci_inventory.REPO_ROOT /
+                    check_ci_inventory.REQUIRED_EXPERIMENTAL_COVERAGE[
+                        "feature_mldsa44_resources.py"]["workflow"]).read_text(encoding="utf8")
+        self.assertIn("python3 contrib/ml-dsa-qualification/run_native_qualification.py", workflow)
+        self.assertIn('--descriptor "$EVIDENCE_DIR/runtime-descriptor.json"', workflow)
+        runner = (check_ci_inventory.REPO_ROOT /
+                  "contrib/ml-dsa-qualification/run_native_qualification.py").read_text(encoding="utf8")
+        self.assertIn('/test/functional/feature_mldsa44_resources.py', runner)
+        self.assertIn('"--samples", "30", "--timing-class", "release"', runner)
+        self.assertNotIn('"--skip-pressure"', runner)
 
 
 class FunctionalGateSelectionTests(unittest.TestCase):
