@@ -11,8 +11,8 @@ import webbrowser
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import app
-from public_controller import PublicController, PublicManager, PROFILE, source
+import app  # noqa: E402
+from public_controller import PublicController, PROFILE, source  # noqa: E402
 
 
 def validate_action(value):

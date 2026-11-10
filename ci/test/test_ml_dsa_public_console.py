@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
 """Public-test custody, floor durability and local HTTP boundary controls."""
 import copy
 import hashlib
 import importlib.util
 import io
 import json
-import os
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace

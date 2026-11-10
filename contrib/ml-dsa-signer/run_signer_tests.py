@@ -7,17 +7,12 @@ import contextlib
 import hashlib
 import importlib.util
 import json
-import os
 from pathlib import Path
 import platform
-import selectors
 import shlex
 import shutil
-import signal
-import subprocess
 import sys
 import tempfile
-import time
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.dont_write_bytecode = True
@@ -27,84 +22,16 @@ ENV = {"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "
 ARCHIVE_SHA = "a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98"
 OUTPUT_LIMIT = 2 * 1024 * 1024
 
+PROCESS_HELPER = ROOT / "contrib/ml-dsa-qualification/native_process.py"
+_process_spec = importlib.util.spec_from_file_location("signer_native_process", PROCESS_HELPER)
+native_process = importlib.util.module_from_spec(_process_spec)
+_process_spec.loader.exec_module(native_process)
+
+
 def run(command, timeout=180):
-    """Bound one command's output and lifetime; stderr is always failure."""
-    argv = [str(x) for x in command]
-    deadline = time.monotonic() + timeout
-    output = {"stdout": bytearray(), "stderr": bytearray()}
-    process = None
-    owned = True
-    failure = None
-    with selectors.DefaultSelector() as selector:
-        try:
-            process = subprocess.Popen(argv, env=ENV, cwd=ROOT, stdin=subprocess.DEVNULL,
-                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                       start_new_session=True)
-            for name in output:
-                stream = getattr(process, name)
-                os.set_blocking(stream.fileno(), False)
-                selector.register(stream, selectors.EVENT_READ, name)
-            while selector.get_map() and failure is None:
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    failure = "timeout"
-                    break
-                for key, _ in selector.select(min(remaining, 0.1)):
-                    try:
-                        block = os.read(key.fd, 65536)
-                    except BlockingIOError:
-                        continue
-                    if not block:
-                        selector.unregister(key.fileobj)
-                        key.fileobj.close()
-                        continue
-                    buffer = output[key.data]
-                    buffer.extend(block[:OUTPUT_LIMIT - len(buffer)])
-                    if len(buffer) >= OUTPUT_LIMIT:
-                        failure = key.data + " output limit"
-                    elif key.data == "stderr":
-                        failure = "stderr"
-                    if failure is not None:
-                        break
-            # WNOWAIT retains the direct child's PID/session ownership until
-            # cleanup. Do not poll/reap it before signalling its process group.
-            while failure is None:
-                try:
-                    exited = os.waitid(os.P_PID, process.pid,
-                                       os.WEXITED | os.WNOHANG | os.WNOWAIT)
-                except ChildProcessError:
-                    owned = False
-                    failure = "command ownership lost"
-                    break
-                if exited is not None:
-                    break
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    failure = "timeout"
-                    break
-                time.sleep(min(remaining, 0.01))
-        finally:
-            if process is not None:
-                try:
-                    if owned:
-                        # start_new_session made this unreaped child the group
-                        # leader. Stop same-group heirs even on normal exit.
-                        try:
-                            os.killpg(process.pid, signal.SIGKILL)
-                        except ProcessLookupError:
-                            pass
-                    process.wait(timeout=5)
-                finally:
-                    for name in output:
-                        stream = getattr(process, name)
-                        if stream is not None and not stream.closed:
-                            stream.close()
-    if failure is not None or process.returncode:
-        stdout = output["stdout"].decode("utf-8", "replace")
-        stderr = output["stderr"].decode("utf-8", "replace")
-        raise RuntimeError(f"command failed ({failure or 'nonzero exit'}) exit={process.returncode}: {command}\n{stdout}\n{stderr}")
-    # Preserve subprocess text=True's strict UTF8 and universal-newline behavior.
-    return output["stdout"].decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    """Bound one owned command; stderr and nonzero exits remain failures."""
+    return native_process.checked(command, env=ENV, cwd=ROOT, timeout=timeout, output_limit=OUTPUT_LIMIT)
+
 
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -145,10 +72,12 @@ def main():
                "contrib/ml-dsa-signer/public_network_smoke.cpp"]
     all_owned = [path for path in (ROOT / "src/crypto/mldsa44").rglob("*") if path.is_file()]
     all_owned += [path for path in (ROOT / "contrib/ml-dsa-signer").rglob("*") if path.is_file() and "__pycache__" not in path.parts]
+    all_owned.append(PROCESS_HELPER)
     source_before = {str(path.relative_to(ROOT)): sha(path) for path in all_owned}
     flags = ["-O2", "-g", "-Wall", "-Wextra", "-Werror", "-Wno-unused-function", "-fno-lto", "-fvisibility=hidden"]
     if args.sanitize:
         flags += ["-fsanitize=address,undefined", "-fno-sanitize-recover=all", "-fno-omit-frame-pointer"]
+    executable_link_flags = native_process.sanitizer_executable_link_flags(args.cc, args.sanitize)
     commands = []
     dependencies = {}
     if args.build_dir:
@@ -183,7 +112,7 @@ def main():
             executable_paths.append(binary)
             extra = ([roles["transport"], "-Wl,--wrap=pqbtc_mldsa44_key_sign_hedged"] if name == "schedule" else
                      ["-Wl,--wrap=fsync"] if name in ("wallet", "ipc") else [roles["transport"],roles["service"]])
-            command = [cxx, *flags, "-pthread", *[roles[x] for x in common_names], roles[name + "_smoke"], *extra, prefix / "lib/libcrypto.a", "-ldl", "-o", binary]
+            command = [cxx, *flags, *executable_link_flags, "-pthread", *[roles[x] for x in common_names], roles[name + "_smoke"], *extra, prefix / "lib/libcrypto.a", "-ldl", "-o", binary]
             commands.append([str(x) for x in command])
             run(command)
             native[name] = json.loads(run([binary, build / (name + "-state")]))
@@ -208,7 +137,7 @@ def main():
             ("public-client", ["verify", "sha256", "contract", "ipc", "transport", "client", "client_smoke"], [])]:
             binary = build / name
             executable_paths.append(binary)
-            command = [cxx, *flags, "-pthread", *[roles[x] for x in names], *libraries, "-o", binary]
+            command = [cxx, *flags, *executable_link_flags, "-pthread", *[roles[x] for x in names], *libraries, "-o", binary]
             commands.append([str(x) for x in command])
             run(command)
             service_paths[name] = str(binary)
@@ -224,7 +153,8 @@ def main():
             elf = run(["readelf", "-h", executable])
             if "ELF64" not in elf:
                 raise RuntimeError("unexpected ELF class: " + executable.name)
-            executables[executable.name] = {"sha256":sha(executable),"elf":elf,"dynamic":dynamic}
+            executables[executable.name] = {"sha256":sha(executable),"elf":elf,"dynamic":dynamic,
+                "executable_layout":native_process.executable_layout(elf, executable_link_flags)}
         pilot_version = run([service_paths["pilot-signer"],"--valueless-pilot","--crypto-version"]).strip()
         if pilot_version != native["wallet"]["runtime"] or not pilot_version.startswith("OpenSSL 3.6.5 "):
             raise RuntimeError("actual signer crypto version mismatch")

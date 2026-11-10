@@ -18,8 +18,8 @@ import time
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "contrib/ml-dsa-production-contract"))
-import ipc_v1
-import protocol_v1 as protocol
+import ipc_v1  # noqa: E402
+import protocol_v1 as protocol  # noqa: E402
 
 
 def check(value, message):

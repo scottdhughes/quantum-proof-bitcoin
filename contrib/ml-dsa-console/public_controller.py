@@ -11,7 +11,6 @@ import json
 import os
 from pathlib import Path
 import re
-import stat
 import struct
 import subprocess
 import threading

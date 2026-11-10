@@ -5,20 +5,24 @@ on:
     paths:
       - ".github/workflows/ml-dsa-44-key-lifecycle.yml"
       - "contrib/ml-dsa-key-lifecycle/**"
+      - "contrib/ml-dsa-qualification/native_process.py"
       - "contrib/ml-dsa-engineering/**"
       - "contrib/ml-dsa-ref/review_baseline_commit.txt"
       - "contrib/shrincs/manifest.json"
       - "ci/test/test_ml_dsa_key_lifecycle.py"
+      - "ci/test/test_ml_dsa_native_process.py"
       - "docs/ML_DSA_44_KEY_LIFECYCLE.md"
   push:
     branches: [main]
     paths:
       - ".github/workflows/ml-dsa-44-key-lifecycle.yml"
       - "contrib/ml-dsa-key-lifecycle/**"
+      - "contrib/ml-dsa-qualification/native_process.py"
       - "contrib/ml-dsa-engineering/**"
       - "contrib/ml-dsa-ref/review_baseline_commit.txt"
       - "contrib/shrincs/manifest.json"
       - "ci/test/test_ml_dsa_key_lifecycle.py"
+      - "ci/test/test_ml_dsa_native_process.py"
       - "docs/ML_DSA_44_KEY_LIFECYCLE.md"
   workflow_dispatch:
 
@@ -50,7 +54,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
           python3 contrib/ml-dsa-key-lifecycle/run_key_lifecycle_tests.py --preflight-only
-          python3 -m unittest ci.test.test_ml_dsa_key_lifecycle
+          python3 -m unittest ci.test.test_ml_dsa_key_lifecycle ci.test.test_ml_dsa_native_process
 
       - name: Prove key lifecycle, cleanup, normal exports and ACVP identity
         run: |

@@ -25,7 +25,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "contrib/ml-dsa-qualification"))
-from resource_workloads import (  # noqa: E402
+from resource_workloads import (  # type: ignore[import]  # noqa: E402
     FixtureSigner, SCOPE, block_for, coin, compile_fixture_library,
 )
 from test_framework.authproxy import AuthServiceProxy, JSONRPCException  # noqa: E402

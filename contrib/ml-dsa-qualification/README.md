@@ -57,3 +57,23 @@ by this run. Whole-node sanitizer builds are also outside this runner's stated
 instrumentation scope. These exclusions are recorded in the result. Successful
 platform qualification does not remove production RELEASE_HOLD, claim a human
 cryptographic review, or count any time toward the separate public 24-hour soak.
+
+On Linux x86_64, GCC sanitizer **test executables** link with `-no-pie`.
+The ordinary executable builds, shared verifier, ARM and Clang configurations
+retain their existing link flags. Optimization and ASan/UBSan/LSan settings do
+not change, and sanitizer positive controls remain mandatory. Reports retain
+the selected executable link flags and observed ELF type. This addresses the
+observed GCC 12 ASan PIE startup failure with `mmap_rnd_bits=32`: both project
+and trivial `int main` PIE controls emitted repeated `DEADLYSIGNAL`, while
+their non-PIE controls completed 30 observations without that failure. Those
+finite diagnostic controls alone are not platform qualification. See the
+[sanitizer issue](https://github.com/google/sanitizers/issues/1614) and
+[GCC upstream report](https://gcc.gnu.org/pipermail/gcc-bugs/2025-July/922093.html).
+No host ASLR settings are changed.
+
+Native test commands have a finite deadline and a 2 MiB capture limit per
+stream. Reaching either bound refuses the command and stops its owned process
+group. Unexpected stderr remains a failure for normal commands; explicit
+negative controls inspect their bounded nonzero result and required markers.
+Failure diagnostics retain observed byte counts, hashes and the first 64 KiB
+of each stream. A bounded harness failure never becomes a passing test result.

@@ -5,7 +5,6 @@
 import argparse
 import copy
 import hashlib
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -21,10 +20,10 @@ import uuid
 ROOT = Path(__file__).resolve().parents[2]
 CONSOLE = ROOT / "contrib/ml-dsa-console"
 sys.path.insert(0, str(CONSOLE))
-import app
-import public_app
-import public_controller as controls
-from run_assembled_ci import checkout_identity
+import app  # noqa: E402
+import public_app  # noqa: E402
+import public_controller as controls  # noqa: E402
+from run_assembled_ci import checkout_identity  # noqa: E402
 
 
 def require(value, message):

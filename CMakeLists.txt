@@ -102,6 +102,8 @@ option(BUILD_CLI "Build bitcoin-cli executable." ON)
 option(BUILD_TESTS "Build test_bitcoin and other unit test executables." ON)
 option(ENABLE_EXPERIMENTAL_MLDSA44 "Build explicit valueless ML-DSA demo/public-test support; no production activation." OFF)
 if(ENABLE_EXPERIMENTAL_MLDSA44)
+  # Keep the source commit in version diagnostics for experimental binaries.
+  set(CLIENT_VERSION_IS_RELEASE "false")
   if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
     message(FATAL_ERROR "Experimental ML-DSA node bridge currently supports Linux only.")
   endif()

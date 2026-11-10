@@ -222,8 +222,8 @@ def main(argv=None):
     def source_identity():
         script = ("import hashlib,json,pathlib,subprocess,sys; p=pathlib.Path(sys.argv[1]);"
                   "g=['git','-c','safe.directory='+str(p),'-C',str(p)];"
-                  "head=subprocess.check_output(g+['rev-parse','HEAD'],text=True).strip();"
-                  "tree=subprocess.check_output(g+['rev-parse','HEAD^{tree}'],text=True).strip();"
+                  "head=subprocess.check_output(g+['rev-parse','HEAD'],text=True,encoding='utf8').strip();"
+                  "tree=subprocess.check_output(g+['rev-parse','HEAD^{tree}'],text=True,encoding='utf8').strip();"
                   "dirty=subprocess.check_output(g+['status','--porcelain=v1','--untracked-files=all']);"
                   "assert not dirty; paths=[pathlib.Path(x) for x in sys.argv[2:]];"
                   "print(json.dumps({'head':head,'tree':tree,'sha256':{str(x):hashlib.sha256(x.read_bytes()).hexdigest() for x in paths}}))")

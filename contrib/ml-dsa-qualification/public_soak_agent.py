@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 import re
 import select
+import stat
 import subprocess
 import sys
 import time
@@ -103,22 +104,88 @@ def write_control_response(fd, data, wall_deadline, monotonic_deadline):
 
 def stop_owned_public(manager):
     """Deadline path bypasses a blocked controller mutex, not ownership checks."""
-    result = manager.run(["inspect", "--format", "{{json .}}", manager.container], check=False, timeout=10)
+    from public_controller import COMPATIBILITY
+    require(type(manager.container) is str and
+            re.fullmatch(r"pqbtc-mldsa-public[a-zA-Z0-9_.-]{0,64}", manager.container),
+            "Deadline public container ownership namespace refused")
+    volume = manager.container + "-data-v1"
+    require(manager.volume == volume, "Deadline public volume ownership namespace refused")
+    directory_fd = record_fd = None
+    try:
+        try:
+            directory_fd = os.open(manager.state_dir, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        except FileNotFoundError:
+            return  # An uninitialized state directory conveys no ownership.
+        info = os.fstat(directory_fd)
+        require(stat.S_ISDIR(info.st_mode) and info.st_uid == os.getuid() and stat.S_IMODE(info.st_mode) == 0o700,
+                "Deadline runtime ownership directory is unsafe")
+        try:
+            record_fd = os.open("public-runtime.json", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC,
+                                dir_fd=directory_fd)
+        except FileNotFoundError:
+            return  # Matching labels cannot adopt another attempt's old node.
+        info = os.fstat(record_fd)
+        require(stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid() and info.st_nlink == 1 and
+                stat.S_IMODE(info.st_mode) == 0o600 and info.st_size <= 4 * 1024 * 1024,
+                "Deadline runtime ownership record is unsafe")
+        with os.fdopen(record_fd, "rb", closefd=False) as handle:
+            raw = handle.read(4 * 1024 * 1024 + 1)
+        require(len(raw) <= 4 * 1024 * 1024, "Deadline runtime ownership record bound")
+        retained = json.loads(raw.decode("utf8"), object_pairs_hook=strict_pairs)
+    except OSError as error:
+        raise ValueError("Deadline runtime ownership record could not be safely read") from error
+    finally:
+        for fd in (record_fd, directory_fd):
+            if fd is not None:
+                os.close(fd)
+    require(type(retained) is dict and retained.get("schema") == "PQBTC-MLDSA44-PUBLIC-RUNTIME-1" and
+            retained.get("compatibility") == COMPATIBILITY and retained.get("container") == manager.container and
+            retained.get("volume") == volume, "Deadline retained runtime ownership check failed")
+    volume_id = retained.get("volume_id")
+    require(type(volume_id) is str and re.fullmatch(r"[0-9a-f]{32}", volume_id) and volume_id != "00" * 16,
+            "Deadline retained volume identity is missing")
+    result = manager.run(["inspect", "--format", "{{json .}}", manager.container], check=False, timeout=5)
     if result.returncode:
         detail = result.stderr.decode("utf8", "replace")
         require("No such object:" in detail or "No such container:" in detail,
                 "Deadline could not determine owned container liveness")
         return
     require(len(result.stdout) <= 1024 * 1024, "Deadline ownership response bound")
-    value = json.loads(result.stdout)
+    value = json.loads(result.stdout, object_pairs_hook=strict_pairs)
+    require(type(value) is dict, "Deadline container ownership object required")
     labels = value.get("Config", {}).get("Labels", {}) or {}
     require(value.get("Name") == "/" + manager.container and
             labels.get("org.pqbtc.console.schema") == "public-test-1" and
             labels.get("org.pqbtc.console.profile") == PROFILE and
             labels.get("org.pqbtc.console.build") == "source-1", "Deadline container ownership check failed")
+    mounts = value.get("Mounts")
+    require(value.get("HostConfig", {}).get("ReadonlyRootfs") is True and type(mounts) is list and len(mounts) == 1 and
+            mounts[0].get("Type") == "volume" and mounts[0].get("Name") == volume and
+            mounts[0].get("Destination") == "/var/lib/pqbtc" and mounts[0].get("RW") is True,
+            "Deadline owned volume mount check failed")
     identity = value.get("Id")
     require(type(identity) is str and re.fullmatch(r"[0-9a-f]{64}", identity), "Deadline immutable container identity missing")
-    if value.get("State", {}).get("Running"):
+    running = value.get("State", {}).get("Running")
+    require(type(running) is bool, "Deadline owned container liveness missing")
+    if running:
+        # Bind this public read to the immutable instance too: the name can be
+        # reused during an upgrade after the initial inspect has returned.
+        script = ('import os,stat,sys;fd=os.open("/var/lib/pqbtc/identity.json",os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK);'
+                  's=os.fstat(fd);assert stat.S_ISREG(s.st_mode) and s.st_uid==0 and s.st_nlink==1 and '
+                  'stat.S_IMODE(s.st_mode)==0o644 and s.st_size<=1024;data=os.read(fd,1025);'
+                  'assert len(data)<=1024;os.close(fd);sys.stdout.buffer.write(data)')
+        result = manager.run(["exec", "--user", "1001:1000", identity, "python3", "-c", script], check=False, timeout=5)
+        if result.returncode:
+            detail = result.stderr.decode("utf8", "replace")
+            if "No such object:" in detail or "No such container:" in detail:
+                return  # This exact instance disappeared; do not stop its replacement.
+            raise ValueError("Deadline could not verify the owned public volume marker")
+        require(len(result.stdout) <= 1024, "Deadline public volume marker bound")
+        marker = json.loads(result.stdout, object_pairs_hook=strict_pairs)
+        require(type(marker) is dict and marker == {"volume_id": volume_id, "profile_sha256": PROFILE},
+                "Deadline public volume identity ownership check failed")
+        # Image equality is deliberately not an ownership condition: a
+        # compatible replacement keeps the same owned volume throughout.
         # An intentional stop suppresses the container's unless-stopped policy.
         # This is the terminal watchdog path; ordinary exit stops cleanly first.
         manager.run(["stop", "--time", "1", identity], timeout=15)
@@ -181,9 +248,11 @@ def public_result(value):
         if type(item) is dict:
             require(not {"password", "passphrase", "secret", "ciphertext", "operator_input"} & set(item),
                     "Private field refused in public agent response")
-            for nested in item.values(): inspect(nested)
+            for nested in item.values():
+                inspect(nested)
         elif type(item) is list:
-            for nested in item: inspect(nested)
+            for nested in item:
+                inspect(nested)
     inspect(result)
     return result
 
@@ -356,7 +425,8 @@ print(json.dumps(rows[0],sort_keys=True))'''
             require(set(params) == {"hostname", "public_ips", "port"}, "Hostile endpoint parameter members")
             endpoint = PublicEndpoint(params["hostname"], params["port"], tuple(params["public_ips"]))
             return probe(endpoint, owned_oversize_control=True)
-        if action == "bridge_start": return self.bridge_start(params)
+        if action == "bridge_start":
+            return self.bridge_start(params)
         if action == "bridge_stop":
             require(not params, "Bridge stop takes no parameters")
             return self.bridge_stop()

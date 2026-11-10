@@ -11,7 +11,6 @@ import argparse
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
-import io
 import ipaddress
 import json
 import re
@@ -110,8 +109,34 @@ def read_frame(connection, deadline):
     return command, payload
 
 
+@dataclass(frozen=True)
+class RemoteVersion:
+    """Lossless modern version; addrv1's two 26-byte addresses stay opaque.
+
+    The functional framework deliberately decodes only IPv4 addrv1 addresses;
+    it cannot round-trip a node's canonical unspecified or other IPv6 address.
+    These advertised bytes are never used as public connection destinations.
+    """
+    nVersion: int
+    nServices: int
+    nTime: int
+    addrTo: bytes
+    addrFrom: bytes
+    nNonce: int
+    strSubVer: str
+    nStartingHeight: int
+    relay: int
+
+    def serialize(self):
+        subversion = self.strSubVer.encode("ascii")
+        size = len(subversion)
+        prefix = bytes([size]) if size < 253 else b"\xfd" + struct.pack("<H", size)
+        return (struct.pack("<iQq", self.nVersion, self.nServices, self.nTime) + self.addrTo + self.addrFrom +
+                struct.pack("<Q", self.nNonce) + prefix + subversion + struct.pack("<iB", self.nStartingHeight, self.relay))
+
+
 def parse_remote_version(payload):
-    """Strict modern version grammar; the test-framework decoder is permissive."""
+    """Strict canonical modern version grammar with complete address bytes."""
     require(type(payload) is bytes and 86 <= len(payload) <= 344, "Incomplete or oversized peer version")
     protocol = struct.unpack("<i", payload[:4])[0]
     require(protocol >= 70001, "Unsupported peer protocol version")
@@ -123,10 +148,9 @@ def parse_remote_version(payload):
     end = 80 + prefix + size
     require(len(payload) == end + 5 and payload[-1] in (0, 1), "Truncated, extended or malformed peer version")
     require(all(32 <= byte <= 126 for byte in payload[80 + prefix:end]), "Peer subversion must be printable ASCII")
-    sys.path.insert(0, str(ROOT / "test/functional"))
-    from test_framework.messages import msg_version
-    version = msg_version()
-    version.deserialize(io.BytesIO(payload))
+    version = RemoteVersion(protocol, struct.unpack_from("<Q", payload, 4)[0], struct.unpack_from("<q", payload, 12)[0],
+                            payload[20:46], payload[46:72], struct.unpack_from("<Q", payload, 72)[0],
+                            payload[80 + prefix:end].decode("ascii"), struct.unpack_from("<i", payload, end)[0], payload[-1])
     require(version.serialize() == payload, "Peer version is not an exact canonical wire round-trip")
     return version
 

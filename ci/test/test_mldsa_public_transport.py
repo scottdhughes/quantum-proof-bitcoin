@@ -3,6 +3,7 @@ import importlib.util
 from pathlib import Path
 import socket
 import struct
+import sys
 import threading
 import time
 import unittest
@@ -11,12 +12,33 @@ from unittest import mock
 PATH = Path(__file__).resolve().parents[2] / "contrib/ml-dsa-qualification/public_transport.py"
 SPEC = importlib.util.spec_from_file_location("mldsa_public_transport", PATH)
 transport = importlib.util.module_from_spec(SPEC)
-import sys
 sys.modules[SPEC.name] = transport
 SPEC.loader.exec_module(transport)
 
 
 class PublicTransportTests(unittest.TestCase):
+    def test_canonical_native_ipv6_version_addresses_round_trip_losslessly(self):
+        sys.path.insert(0, str(PATH.parents[2] / "test/functional"))
+        from test_framework.messages import msg_version
+        version = msg_version()
+        version.nVersion = 70016
+        version.strSubVer = "/PQBTC-native-version-control/"
+        original = version.serialize()
+        for address in (bytes(16), bytes(range(16))):
+            raw = original[:28] + address + original[44:54] + address[::-1] + original[70:]
+            with self.subTest(address=address.hex()):
+                parsed = transport.parse_remote_version(raw)
+                self.assertEqual(parsed.serialize(), raw)
+                self.assertEqual(parsed.addrTo, raw[20:46])
+                self.assertEqual(parsed.addrFrom, raw[46:72])
+                self.assertEqual(parsed.nVersion, version.nVersion)
+                self.assertEqual(parsed.nServices, version.nServices)
+                self.assertEqual(parsed.nTime, version.nTime)
+                self.assertEqual(parsed.nNonce, version.nNonce)
+                self.assertEqual(parsed.strSubVer, version.strSubVer)
+                self.assertEqual(parsed.nStartingHeight, version.nStartingHeight)
+                self.assertEqual(parsed.relay, version.relay)
+
     def test_probe_refuses_unsupported_truncated_or_noncanonical_version(self):
         sys.path.insert(0, str(PATH.parents[2] / "test/functional"))
         from test_framework.messages import msg_version
@@ -30,6 +52,37 @@ class PublicTransportTests(unittest.TestCase):
                raw[:80] + b'\xfd' + bytes([raw[80], 0]) + raw[81:]]
         for payload in bad:
             with self.subTest(size=len(payload)), self.assertRaises(ValueError):
+                transport.parse_remote_version(payload)
+
+    def test_version_compact_size_boundaries_and_relay_are_strict(self):
+        sys.path.insert(0, str(PATH.parents[2] / "test/functional"))
+        from test_framework.messages import msg_version
+        version = msg_version()
+        version.nVersion = 70001
+        for size in (0, 1, 252, 253, 256):
+            version.strSubVer = "x" * size
+            for relay in (0, 1):
+                version.relay = relay
+                raw = version.serialize()
+                with self.subTest(size=size, relay=relay):
+                    parsed = transport.parse_remote_version(raw)
+                    self.assertEqual(parsed.serialize(), raw)
+                    self.assertEqual(parsed.strSubVer, "x" * size)
+                    self.assertEqual(parsed.relay, relay)
+        version.strSubVer = "abc"
+        raw = version.serialize()
+        bad = [raw[:-1], raw + b"\0", raw[:-1] + b"\x02", raw[:84],
+               raw[:80] + b"\xfd" + struct.pack("<H", 3) + raw[81:],
+               raw[:80] + b"\xfe" + struct.pack("<I", 3) + raw[81:],
+               raw[:80] + b"\xff" + struct.pack("<Q", 3) + raw[81:]]
+        for subversion in ("x" * 257, "control\n", "nul\0", "nonascii\u00e9"):
+            version.strSubVer = subversion
+            bad.append(version.serialize())
+        version.nVersion = 70000
+        version.strSubVer = "abc"
+        bad.append(version.serialize())
+        for payload in bad:
+            with self.subTest(payload=payload.hex()), self.assertRaises(ValueError):
                 transport.parse_remote_version(payload)
 
     def probe_exchange(self, hostile=False):
@@ -60,7 +113,11 @@ class PublicTransportTests(unittest.TestCase):
                 version.nVersion = 70016
                 version.strSubVer = "/PQBTC-native-unit-peer/"
                 version.nStartingHeight = 123
-                peer.sendall(transport.frame(b"version", version.serialize()) + transport.frame(b"verack"))
+                wire = version.serialize()
+                # Actual nodes send unspecified IPv6 addrv1 addresses here;
+                # the framework serializer only constructs IPv4-mapped ones.
+                wire = wire[:28] + bytes(16) + wire[44:54] + bytes(16) + wire[70:]
+                peer.sendall(transport.frame(b"version", wire) + transport.frame(b"verack"))
                 self.assertEqual(transport.read_frame(peer, time.monotonic() + 2), (b"verack", b""))
                 if hostile:
                     header = transport.read_exact(peer, 24, time.monotonic() + 2)

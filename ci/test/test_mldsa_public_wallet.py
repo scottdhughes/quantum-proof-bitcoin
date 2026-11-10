@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright (c) 2026 The PQBTC Core developers
 # Distributed under the MIT software license, see the accompanying COPYING.
 """Explicit TEST binding through real public metadata and transaction codecs."""
