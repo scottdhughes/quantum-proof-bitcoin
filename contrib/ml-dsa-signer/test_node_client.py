@@ -22,7 +22,14 @@ def main():
              (base[:3] + ["0"] + base[4:], b"", 4),
              (base[:3] + ["1000junk"] + base[4:], b"", 9),
              (base[:4] + ["AA" * 32] + base[5:], b"", 9),
-             (base, b"00" * (1048576 + 1), 9), (base, b"", 4)]
+             (base, b"00" * (1048576 + 1), 9), (base, b"", 4),
+             (base + ["--network", "test"], b"", 4),
+             (base + ["--network", "regtest"], b"", 4),
+             (base + ["--network", "main"], b"", 7),
+             (base + ["--network", "unknown"], b"", 7),
+             (base + ["--network", "test", "--network", "regtest"], b"", 9),
+             (base[:4] + ["00" * 32] + base[5:] + ["--network", "test"], b"", 3),
+             (base[:4] + ["00" * 32] + base[5:], b"", 4)]
     for command, body, code in cases:
         result = subprocess.run(command, input=body, capture_output=True, timeout=10)
         assert result.returncode == 1 and result.stdout == b"", (command, result.returncode)

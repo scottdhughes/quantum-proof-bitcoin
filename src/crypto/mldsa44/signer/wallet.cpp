@@ -106,8 +106,8 @@ struct Wallet::State {
 
 Wallet::Wallet(const std::string& directory, Network network) : m_network(network)
 {
-    // This phase can run only as a valueless regtest pilot, never issue main/test funds.
-    Require(network == Network::REGTEST, Code::UNSUPPORTED);
+    // Only explicitly selected valueless TEST/regtest profiles may own keys.
+    Require(network == Network::REGTEST || network == Network::TEST, Code::UNSUPPORTED);
     Require(pqbtc_mldsa44_key_runtime_init() == 0, Code::INTERNAL);
     Fd dir{OpenDirectory(directory)};
     Fd lock{openat(dir.value, "wallet.lock", O_RDWR | O_CREAT | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK, 0600)};

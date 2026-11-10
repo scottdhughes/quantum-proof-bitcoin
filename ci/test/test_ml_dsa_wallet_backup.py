@@ -6,13 +6,17 @@
 import importlib.util
 import fnmatch
 import json
+import os
 from pathlib import Path
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
+from types import SimpleNamespace
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNNER = ROOT / "contrib/ml-dsa-wallet-backup/run_backup_tests.py"
@@ -35,6 +39,7 @@ class WalletBackupRunnerTests(unittest.TestCase):
         for name in (
             "contrib/ml-dsa-ref/review_baseline_commit.txt",
             "contrib/shrincs/manifest.json",
+            "contrib/ml-dsa-qualification/native_process.py",
         ):
             dest = root / name
             dest.parent.mkdir(parents=True, exist_ok=True)
@@ -86,6 +91,192 @@ class WalletBackupRunnerTests(unittest.TestCase):
 
     def test_frozen_preflight_reader_substitution_rejected(self):
         self.tamper("contrib/ml-dsa-key-lifecycle/run_key_lifecycle_tests.py", "append")
+
+    def test_process_helper_checked_before_import(self):
+        module = self.module()
+        name = "contrib/ml-dsa-qualification/native_process.py"
+        self.assertIn(name, module.CONTROL_HASHES)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.fixture(root)
+            path = root / name
+            path.write_bytes(path.read_bytes() + b"\nraise RuntimeError('unverified helper executed')\n")
+            with mock.patch.object(module, "load", side_effect=AssertionError("import preceded source validation")):
+                with self.assertRaisesRegex(module.HarnessError, "frozen control mismatch"):
+                    module.validate_sources(root)
+
+    def test_process_helper_tampering_rejected(self):
+        for mode in ("append", "remove", "symlink"):
+            with self.subTest(mode=mode):
+                self.tamper("contrib/ml-dsa-qualification/native_process.py", mode)
+
+    def test_source_hash_reader_checks_helper_before_import(self):
+        module = self.module()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.fixture(root)
+            path = root / "contrib/ml-dsa-qualification/native_process.py"
+            path.write_bytes(path.read_bytes() + b"\nraise RuntimeError('unverified')\n")
+            with mock.patch.object(module, "ROOT", root), mock.patch.object(
+                module, "load", side_effect=AssertionError("unverified import")
+            ):
+                with self.assertRaisesRegex(module.HarnessError, "frozen control mismatch"):
+                    module.source_hashes()
+
+    def test_bounded_native_commands_keep_failure_details(self):
+        module = self.module()
+        process = module.process_helper()
+        runner = module.NativeCommands(process)
+        failure = process.CaptureError({"failure": "stderr output limit", "stderr": {"prefix_utf8": "AddressSanitizer failure"}})
+        with mock.patch.object(process, "capture", side_effect=failure) as capture:
+            with self.assertRaisesRegex(module.HarnessError, "AddressSanitizer failure"):
+                runner.run(["/tmp/owned-test"])
+        self.assertIs(capture.call_args.kwargs["fail_on_stderr"], True)
+        self.assertEqual(capture.call_args.kwargs["timeout"], 600)
+        self.assertEqual(runner.records[-1]["capture_failure"], failure.details)
+
+    def test_bounded_native_commands_preserve_exact_negative_outcomes(self):
+        module = self.module()
+        process = module.process_helper()
+        runner = module.NativeCommands(process)
+        result = SimpleNamespace(returncode=1, stdout="", stderr="expected rejection\n", capture_details={"bounded": True})
+        with mock.patch.object(process, "capture", return_value=result) as capture:
+            self.assertEqual(runner.run(["/tmp/owned-test"], status=1), "")
+            self.assertIs(capture.call_args.kwargs["fail_on_stderr"], False)
+            self.assertEqual(runner.records[-1]["stderr"], "expected rejection\n")
+            self.assertEqual(runner.records[-1]["capture"], {"bounded": True})
+            with self.assertRaises(module.HarnessError):
+                runner.run(["/tmp/owned-test"], status=0)
+
+    def process_demo_module(self):
+        spec = importlib.util.spec_from_file_location("backup_process_demo", RUNNER.with_name("process_demo_test.py"))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_nested_process_capture_is_bounded_and_diagnostic_strict(self):
+        module = self.process_demo_module()
+        process = self.module().process_helper()
+        result = SimpleNamespace(returncode=0, stdout="{}", stderr="unexpected sanitizer diagnostic\n", capture_details={})
+        with mock.patch.object(process, "capture", return_value=result) as capture:
+            with self.assertRaisesRegex(RuntimeError, "unexpected native phase"):
+                module.run_phase(process, ["/tmp/demo", "verify", "/tmp/public"], True)
+        options = capture.call_args.kwargs
+        self.assertEqual(set(options), {"env", "timeout", "fail_on_stderr"})
+        self.assertEqual(options["timeout"], 90)
+        self.assertIs(options["fail_on_stderr"], True)
+        self.assertEqual(options["env"]["OPENSSL_CONF"], "/dev/null")
+        self.assertEqual(options["env"]["ASAN_OPTIONS"], "detect_leaks=1:abort_on_error=1")
+        self.assertEqual(options["env"]["UBSAN_OPTIONS"], "halt_on_error=1:print_stacktrace=1")
+        result.returncode, result.stdout, result.stderr = 1, "", "zero-value pilot phase rejected\n"
+        with mock.patch.object(process, "capture", return_value=result):
+            self.assertEqual(module.run_phase(process, ["/tmp/demo", "verify", "/tmp/public"], False)[1]["stderr"], result.stderr)
+            result.stderr += "AddressSanitizer: failure\n"
+            with self.assertRaisesRegex(RuntimeError, "unexpected native phase"):
+                module.run_phase(process, ["/tmp/demo", "verify", "/tmp/public"], False)
+
+    def test_phase_forces_sanitizer_and_openssl_environment(self):
+        module = self.process_demo_module()
+        process = self.module().process_helper()
+        hostile = {"OPENSSL_CONF": "/tmp/hostile.cnf",
+                   "ASAN_OPTIONS": "detect_leaks=0:abort_on_error=0",
+                   "UBSAN_OPTIONS": "halt_on_error=0:print_stacktrace=0",
+                   "PUBLIC_TEST_SENTINEL": "preserved"}
+        for success in (True, False):
+            result = SimpleNamespace(returncode=0 if success else 1, stdout="",
+                                     stderr="" if success else "zero-value pilot phase rejected\n",
+                                     capture_details={})
+            with self.subTest(success=success), mock.patch.dict(os.environ, hostile, clear=True), mock.patch.object(
+                process, "capture", return_value=result
+            ) as capture:
+                module.run_phase(process, ["/tmp/demo", "verify", "/tmp/public"], success)
+            self.assertEqual(capture.call_args.kwargs["env"], {
+                "OPENSSL_CONF": "/dev/null",
+                "ASAN_OPTIONS": "detect_leaks=1:abort_on_error=1",
+                "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1",
+                "PUBLIC_TEST_SENTINEL": "preserved"})
+
+    def test_phase_aggregate_deadline_kills_delayed_child(self):
+        module = self.process_demo_module()
+        process = self.module().process_helper()
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / "escaped-phase"
+            command = [sys.executable, "-c",
+                       "import pathlib,sys,time; time.sleep(0.5); pathlib.Path(sys.argv[1]).write_text('escaped')",
+                       str(marker)]
+            with self.assertRaises(process.CaptureError) as caught:
+                module.run_phase(process, command, True, deadline=time.monotonic() + 0.15)
+            self.assertEqual(caught.exception.details["failure"], "timeout")
+            time.sleep(0.6)
+            self.assertFalse(marker.exists(), "timed-out phase survived the harness boundary")
+
+    def test_expired_aggregate_deadline_refuses_before_launch(self):
+        module = self.process_demo_module()
+        process = self.module().process_helper()
+        with mock.patch.object(process, "capture", side_effect=AssertionError("expired phase launched")):
+            with self.assertRaisesRegex(RuntimeError, "aggregate.*deadline"):
+                module.run_phase(process, ["/tmp/demo"], True, deadline=time.monotonic() - 1)
+
+    def test_exercise_passes_one_aggregate_deadline_to_all_phases(self):
+        module = self.process_demo_module()
+        with mock.patch.object(module, "run_phase", side_effect=RuntimeError("first phase reached")) as phase:
+            with self.assertRaisesRegex(RuntimeError, "first phase reached"):
+                module.exercise(Path("/tmp/demo"), Path("/tmp/verifier"), deadline=123.0)
+        self.assertEqual(phase.call_args.kwargs, {"deadline": 123.0})
+
+    def test_process_campaign_calls_validated_driver_in_process(self):
+        module = self.module()
+        driver = mock.Mock()
+        phases = [{"phase": name, "pid": number + 100, "zero_value_only": True}
+                  for number, name in enumerate(("challenge", "produce", "restore-sign", "verify"))]
+        actions = ["challenge", "produce", "produce", "restore-sign", "verify"] + ["verify"] * 9 + ["restore-sign", "produce"]
+        phase_index, commands = 0, []
+        for index, action in enumerate(actions):
+            success = index in (0, 1, 3, 4)
+            commands.append({"command": ["/tmp/demo", action, "/tmp/public"],
+                             "returncode": 0 if success else 1,
+                             "stdout": json.dumps(phases[phase_index]) if success else "",
+                             "stderr": "" if success else "zero-value pilot phase rejected\n",
+                             "capture": {"bounded": True}})
+            phase_index += success
+        driver.exercise.return_value = {"result": "PASS", "checks": 16, "phases": phases, "commands": commands}
+        expected = module.digest(RUNNER.with_name("process_demo_test.py").read_bytes())
+        records = []
+        with mock.patch.object(module, "load", return_value=driver) as load:
+            result = module.process_campaign(Path("/tmp/demo"), Path("/tmp/verifier"), expected, records)
+        driver.exercise.assert_called_once_with(Path("/tmp/demo"), Path("/tmp/verifier"))
+        self.assertEqual(load.call_args.args[0], RUNNER.with_name("process_demo_test.py"))
+        self.assertEqual(result, {"result": "PASS", "checks": 16, "phases": phases})
+        self.assertEqual(records, commands)
+        with mock.patch.object(module, "load", side_effect=AssertionError("unvalidated phase driver imported")):
+            with self.assertRaisesRegex(module.HarnessError, "process driver changed"):
+                module.process_campaign(Path("/tmp/demo"), Path("/tmp/verifier"), "0" * 64, [])
+
+    def test_nested_helper_is_verified_before_loading(self):
+        module = self.process_demo_module()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.fixture(root)
+            path = root / "contrib/ml-dsa-qualification/native_process.py"
+            for mode in ("append", "remove", "symlink"):
+                with self.subTest(mode=mode):
+                    path.unlink(missing_ok=True)
+                    shutil.copyfile(ROOT / "contrib/ml-dsa-qualification/native_process.py", path)
+                    if mode == "append":
+                        path.write_bytes(path.read_bytes() + b"\nraise RuntimeError('unverified')\n")
+                    elif mode == "remove":
+                        path.unlink()
+                    else:
+                        original = path.read_bytes()
+                        path.unlink()
+                        target = root / "outside"
+                        target.write_bytes(original)
+                        path.symlink_to(target)
+                    with mock.patch.object(module, "PROCESS_HELPER", path), mock.patch.object(
+                        module.importlib.util, "spec_from_file_location", side_effect=AssertionError("unverified import")
+                    ):
+                        with self.assertRaisesRegex(RuntimeError, "process helper"):
+                            module.process_helper()
 
     def test_missing_key_input_rejected(self):
         self.tamper("contrib/ml-dsa-key-lifecycle/key_lifecycle.h", "remove")
@@ -148,6 +339,8 @@ class WalletBackupRunnerTests(unittest.TestCase):
                 "docs/ML_DSA_44_KEY_LIFECYCLE.md",
                 "ci/test/test_ml_dsa_wallet_backup.py",
                 "docs/ML_DSA_44_WALLET_BACKUP.md",
+                "contrib/ml-dsa-qualification/native_process.py",
+                "ci/test/test_ml_dsa_native_process.py",
             ],
         }
         controls = [

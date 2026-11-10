@@ -64,7 +64,8 @@ runuser -u node -- env GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.directory \
   > "$evidence/node-build.log" 2>&1
 step_log="$evidence/node-unit.log"
 echo "Running actual-node ML-DSA unit tests"
-runuser -u node -- "$build_dir/bin/test_pqbtc" --run_test=mldsa44_node_tests --report_level=short \
+runuser -u node -- "$build_dir/bin/test_pqbtc" \
+  --run_test=mldsa44_node_tests,mldsa44_public_tests,mldsa44_resource_tests --report_level=short \
   > "$evidence/node-unit.log" 2>&1
 step_log="$evidence/node-functional.log"
 echo "Running two real nodes with malformed-witness and activation controls"
@@ -77,6 +78,11 @@ mkdir -p /opt/pqbtc-runtime/seed/mldsa-demo-build /opt/pqbtc-runtime/seed/demo-s
 cp -a "$source_dir" /opt/pqbtc-runtime/seed/mldsa-demo-source
 cp -a "$build_dir/bin" /opt/pqbtc-runtime/seed/mldsa-demo-build/bin
 cp -a /tmp/demo-signer-bin/pilot-signer /opt/pqbtc-runtime/seed/demo-signer-bin/pilot-signer
+# Preserve only the pinned dependency installation, not its source/build/test
+# workspaces. Qualification recompiles instrumented signer code against this
+# read-only installation rather than silently finding a system libcrypto.
+mkdir -p /opt/pqbtc-runtime/dependencies
+cp -a /tmp/mldsa-openssl /opt/pqbtc-runtime/dependencies/openssl
 echo "Recording source, binary, compiler and dependency identities"
 python3 - <<'PY'
 import hashlib,json,os,pathlib,platform,subprocess
@@ -86,7 +92,18 @@ paths=[
  '/tmp/mldsa-demo-build/bin/pqbtc-mldsa-client','/tmp/mldsa-demo-build/bin/test_pqbtc',
  '/tmp/demo-signer-bin/pilot-signer',
  '/tmp/mldsa-demo-source/docs/ML_DSA_44_PRODUCTION_CONTRACT_V1.md',
- '/tmp/mldsa-demo-source/contrib/ml-dsa-signer/node_wallet.py']
+ '/tmp/mldsa-demo-source/contrib/ml-dsa-signer/node_wallet.py',
+ '/tmp/mldsa-demo-source/docs/ML_DSA_44_PUBLIC_TEST_PROFILE.md',
+ '/tmp/mldsa-demo-source/contrib/ml-dsa-production-contract/public-test-manifest-v1.json',
+ '/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_runtime.py',
+ '/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_controller.py',
+ '/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_app.py',
+ '/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_public_app_ci.py',
+ '/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_transport.py',
+ '/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_soak_agent.py',
+ '/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_consensus_controls.py',
+ '/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_native_qualification.py',
+ '/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_spend_restore.py']
 native=json.loads((base/'evidence/native-integration.json').read_text())
 signer=json.loads((base/'evidence/signer.json').read_text())
 if native.get('result')!='PASS' or signer.get('result')!='PASS':
@@ -100,7 +117,10 @@ manifest={'schema':'PQBTC-MLDSA44-SOURCE-BUILD-1','source_head':os.environ['EXPE
  'toolchain':toolchain,'base_image':'debian:bookworm-slim@sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc',
  'source_date_epoch':int(os.environ['SOURCE_DATE_EPOCH']),
  'openssl_source_sha256':'a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98',
- 'checks':{'native_integration':'PASS','signer':'PASS','mldsa44_node_tests':'PASS','node_functional_validation':'PASS'},
+ 'checks':{'native_integration':'PASS','signer':'PASS','mldsa44_node_tests':'PASS',
+           'mldsa44_public_tests':'PASS','mldsa44_resource_tests':'PASS','node_functional_validation':'PASS'},
+ 'qualification_dependencies_sha256':{str(p.relative_to(base)):hashlib.sha256(p.read_bytes()).hexdigest()
+ for p in sorted((base/'dependencies').rglob('*')) if p.is_file()},
  'evidence_sha256':{str(p.relative_to(base/'evidence')):hashlib.sha256(p.read_bytes()).hexdigest()
  for p in sorted((base/'evidence').iterdir()) if p.is_file()},
  'packages':subprocess.check_output(['dpkg-query','-W','-f=${Package}\t${Version}\n'],text=True).splitlines(),

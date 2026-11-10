@@ -12,6 +12,7 @@
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
 #include <crypto/pqsig/pqsig.h>
+#include <crypto/mldsa44/public_profile.h>
 #include <policy/feerate.h>
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
@@ -127,7 +128,7 @@ bool IsStandard(const CScript& scriptPubKey, TxoutType& whichType)
     return true;
 }
 
-bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_datacarrier_bytes, bool permit_bare_multisig, const CFeeRate& dust_relay_fee, std::string& reason)
+bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_datacarrier_bytes, bool permit_bare_multisig, const CFeeRate& dust_relay_fee, std::string& reason, bool allow_mldsa44_test)
 {
     if (tx.version > TX_MAX_STANDARD_VERSION || tx.version < TX_MIN_STANDARD_VERSION) {
         reason = "version";
@@ -167,6 +168,10 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
     unsigned int datacarrier_bytes_left = max_datacarrier_bytes.value_or(0);
     TxoutType whichType;
     for (const CTxOut& txout : tx.vout) {
+        if (allow_mldsa44_test && !pqbtc::mldsa44::node::IsPublicOutput(txout)) {
+            reason = "mldsa44-test-output";
+            return false;
+        }
         if (!::IsStandard(txout.scriptPubKey, whichType)) {
             reason = "scriptpubkey";
             return false;
@@ -241,7 +246,7 @@ static bool CheckSigopsBIP54(const CTransaction& tx, const CCoinsViewCache& inpu
  *
  * We also check the total number of non-witness sigops across the whole transaction, as per BIP54.
  */
-bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs, bool allow_mldsa44_demo)
+bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs, bool allow_mldsa44)
 {
     if (tx.IsCoinBase()) {
         return true; // Coinbases don't use vin normally
@@ -256,7 +261,7 @@ bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs,
 
         std::vector<std::vector<unsigned char> > vSolutions;
         TxoutType whichType = Solver(prev.scriptPubKey, vSolutions);
-        if (allow_mldsa44_demo && whichType == TxoutType::WITNESS_UNKNOWN &&
+        if (allow_mldsa44 && whichType == TxoutType::WITNESS_UNKNOWN &&
             prev.scriptPubKey.size() == 34 && prev.scriptPubKey[0] == OP_2 && prev.scriptPubKey[1] == 32) {
             continue;
         }

@@ -1,0 +1,22 @@
+{
+  "activation_height": 1,
+  "bootstrap_program": "0000000000000000000000000000000000000000000000000000000000000000",
+  "contract_sha256": "c7993d7f2ae72623cf3b9e2f45c021885f610ef3169dbf176e0c2dd1a619d126",
+  "h_minus_1_hash": "2b6939c6a048aa840a962d19ee680879c0bcbbeeff6e258fd049b5a6a947a979",
+  "max_block_verifications": 128,
+  "max_block_weight": 4000000,
+  "max_standard_tx_verifications": 25,
+  "namespace": "mldsa44-test-v1",
+  "network": "test",
+  "network_binding": "a7e29cf779a947a9a6b549d08f256effeebbbcc0790868ee192d960a84aa48a0c639692b",
+  "pre_h_inventory_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "pre_h_native_v2_count": 0,
+  "pre_h_utxo_count": 0,
+  "production_admitted": false,
+  "profile_spec_id": "MLDSA44-PUBLIC-TEST-v1",
+  "profile_spec_sha256": "78f5f1024d8276a49acbf54c5026f3e4c7e1c9ba3b901c102a0ac4e1311fa933",
+  "release_hold": true,
+  "schema": "PQBTC-MLDSA44-PUBLIC-TEST-1",
+  "scope": "VALUELESS_EXPERIMENTAL_PUBLIC_TEST_ONLY",
+  "verification_cost": 625
+}

@@ -1,6 +1,7 @@
 // Copyright (c) 2026 The PQBTC Core developers
 // Distributed under the MIT software license, see the accompanying COPYING.
 #include <crypto/mldsa44/signer/service.h>
+#include <crypto/mldsa44/signer/identity.h>
 #include <crypto/mldsa44/signer/transport.h>
 #include <algorithm>
 #include <cerrno>
@@ -95,7 +96,8 @@ void Reply(Connection& connection,const Frame& frame,Response response,Clock::ti
 void RunService(Wallet& wallet,const ServiceOptions& options,const std::atomic<bool>& stop)
 {
     Require(geteuid()!=0 && options.node_uid!=0 && options.node_uid!=geteuid(),Code::AUTH);
-    Require(options.network==Network::REGTEST,Code::UNSUPPORTED);
+    Require(options.network==Network::REGTEST || options.network==Network::TEST,Code::UNSUPPORTED);
+    Require(options.network!=Network::TEST || options.spec==CONTRACT_SPEC_SHA256,Code::BINDING);
     Require(options.fee_cap<=2100000000000000ULL);
     auto parent=detail::SocketParent(options.socket,geteuid()); struct stat old{};
     Require(fstatat(parent.directory.value,parent.name.c_str(),&old,AT_SYMLINK_NOFOLLOW)!=0 && errno==ENOENT,Code::STORAGE);

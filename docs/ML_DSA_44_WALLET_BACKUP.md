@@ -127,6 +127,33 @@ compilation. Pinned archive-build identity, actual libcrypto digest and native
 runtime version are recorded; arbitrary library authenticity is still a trusted
 build obligation, not authenticated plugin support.
 
+The frozen closure includes the reviewed lifecycle/runtime Python readers and
+their shared `native_process.py` dependency. Every reader entry point checks the
+helper's pinned digest and rejects missing or symlink inputs before importing it.
+The process-demo CLI independently verifies the same helper. The backup harness
+checks the phase driver's source receipt and calls it in the harness process,
+so each native phase has direct process-group supervision. All 16 phases share
+one monotonic 600-second deadline; each launch uses at most the smaller of 90
+seconds and the remaining campaign time, and an expired deadline refuses launch.
+Compiler, native-test and phase output has byte and time bounds; diagnostics retain
+bounded prefixes, observed byte counts and hashes. Unexpected stderr, excessive
+output and timeouts fail the run and terminate its owned process group. Expected
+negative phases must still return the exact rejection status and diagnostic;
+there is no successful retry after a sanitizer failure.
+Every direct phase capture, including standalone CLI use, overrides inherited
+settings with `OPENSSL_CONF=/dev/null`,
+`ASAN_OPTIONS=detect_leaks=1:abort_on_error=1` and
+`UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1`.
+
+Only ASan/UBSan test **executables** built with GCC on Linux x86_64 use `-no-pie`,
+matching the shared native harness policy. The four backup executable kinds
+(codec, file, producer/restorer and public verifier) record their actual `readelf`
+type and link flags in `executable_layouts`; requested non-PIE builds must be
+ELF `EXEC`. Normal builds, shared libraries, Clang and other architectures retain
+their existing link flags. Sanitizer instrumentation, leak checks and `-O1`
+remain enabled. This test layout adjustment does not change cryptography or
+establish platform qualification beyond the observed run.
+
 GCC/Clang each run normal+ASan/UBSan codec1376, file1034 and process16-check
 campaigns. The deterministic public fixture matches separate libgcrypt AES-GCM
 and hashlib.scrypt code, calibrated by primitive KATs. Its raw package SHA256 is

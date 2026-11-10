@@ -150,12 +150,16 @@ public:
     static std::unique_ptr<const CChainParams> SigNet(const SigNetOptions& options);
     static std::unique_ptr<const CChainParams> Main();
     static std::unique_ptr<const CChainParams> TestNet();
+    static std::unique_ptr<const CChainParams> MLDSA44Test();
     static std::unique_ptr<const CChainParams> TestNet4();
 
     bool IsMLDSA44Demo() const { return m_mldsa44_demo; }
+    bool IsMLDSA44Test() const { return m_mldsa44_test; }
+    bool IsMLDSA44Enabled() const { return m_mldsa44_demo || m_mldsa44_test; }
 
 protected:
     bool m_mldsa44_demo{false};
+    bool m_mldsa44_test{false};
     CChainParams() = default;
 
     Consensus::Params consensus;

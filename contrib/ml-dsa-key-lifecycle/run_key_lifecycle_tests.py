@@ -22,6 +22,10 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
+PROCESS_HELPER = ROOT / "contrib/ml-dsa-qualification/native_process.py"
+_process_spec = importlib.util.spec_from_file_location("lifecycle_native_process", PROCESS_HELPER)
+native_process = importlib.util.module_from_spec(_process_spec)
+_process_spec.loader.exec_module(native_process)
 WRAPPER = Path("contrib/ml-dsa-engineering")
 CAPSULE_HASH = "e07f0f6a9bb46fd9afcbe7699f95f1ce43e6fcf48623d6de7b3e95ed405023cb"
 SOURCE_HASHES = {
@@ -64,6 +68,8 @@ METADATA_FILES = (
     "ci/test/test_ml_dsa_key_lifecycle.py",
     ".github/workflows/ml-dsa-44-key-lifecycle.yml",
     "docs/ML_DSA_44_KEY_LIFECYCLE.md",
+    "contrib/ml-dsa-qualification/native_process.py",
+    "ci/test/test_ml_dsa_native_process.py",
 )
 ACVP_PUBLIC_HASH = "451a808c522218fadbdab146fc12004b0741c7d069f238f43ad77216159f6a34"
 
@@ -145,19 +151,12 @@ def source_hashes():
 
 
 def runtime_identity(expected):
-    head = subprocess.run(
-        ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True, capture_output=True
-    )
+    head = native_process.capture(["git", "-C", str(ROOT), "rev-parse", "HEAD"], timeout=30)
     if head.returncode:
         if expected:
             raise HarnessError("cannot establish expected runtime checkout")
         return {"commit": None, "worktree": "unavailable; source hashes only"}
-    status = subprocess.run(
-        ["git", "-C", str(ROOT), "status", "--porcelain"],
-        text=True,
-        capture_output=True,
-        check=True,
-    ).stdout
+    status = native_process.checked(["git", "-C", str(ROOT), "status", "--porcelain"], timeout=30)
     commit = head.stdout.strip()
     if expected and (commit != expected or status):
         raise HarnessError("runtime checkout mismatch or dirty source")
@@ -254,19 +253,19 @@ def prove(compiler, expected_commit):
     transcript = []
 
     def run(command, env=None, expected_status=0):
-        completed = subprocess.run(
-            [str(s) for s in command],
-            capture_output=True,
-            text=True,
-            env=env,
-            timeout=180,
-        )
+        try:
+            completed = native_process.capture(command, env=env, timeout=180,
+                                               fail_on_stderr=expected_status == 0)
+        except native_process.CaptureError as error:
+            transcript.append({"command": list(map(str, command)), "capture_failure": error.details})
+            raise HarnessError(str(error)) from error
         transcript.append(
             {
                 "command": [str(s) for s in command],
                 "returncode": completed.returncode,
                 "stdout": completed.stdout,
                 "stderr": completed.stderr,
+                "capture": completed.capture_details,
             }
         )
         if completed.returncode != expected_status:
@@ -390,10 +389,12 @@ def prove(compiler, expected_commit):
                     if sanitized
                     else ["-O2"]
                 )
+                link_flags = native_process.sanitizer_executable_link_flags(compiler, sanitized)
                 run(
                     [
                         *flags,
                         *options,
+                        *link_flags,
                         HERE / "key_lifecycle.c",
                         HERE / "key_lifecycle_smoke.c",
                         "-o",
@@ -406,6 +407,8 @@ def prove(compiler, expected_commit):
                 observations[mode] = smoke_result(
                     run([exe], env), 119 if injected else 52
                 )
+                observations[mode]["executable_layout"] = native_process.executable_layout(
+                    run(["readelf", "-h", exe]), link_flags)
         if source_hashes() != frozen or validate_sources(ROOT) != preflight:
             raise HarnessError("source changed during native proof")
         if runtime_identity(expected_commit) != identity:

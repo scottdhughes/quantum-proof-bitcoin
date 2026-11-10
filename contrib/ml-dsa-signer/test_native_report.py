@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 
 report = json.loads(Path(sys.argv[1]).read_text(encoding='utf8'))
-names = {'wallet-smoke','ipc-smoke','schedule-smoke','pilot-signer','public-client'}
+names = {'wallet-smoke','ipc-smoke','schedule-smoke','public_network-smoke','pilot-signer','public-client'}
 assert set(report['executables']) == names, 'missing per-executable ELF evidence'
 for name in names:
     item = report['executables'][name]

@@ -12,7 +12,6 @@ import platform
 import re
 import shlex
 import shutil
-import subprocess
 import sys
 import tempfile
 
@@ -28,10 +27,7 @@ RUN_ENV = {"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 
 def run(command):
-    result = subprocess.run([str(x) for x in command], cwd=ROOT, env=RUN_ENV, capture_output=True, text=True, timeout=120)
-    if result.returncode or result.stderr:
-        raise RuntimeError(f"command failed: {command}\n{result.stdout}\n{result.stderr}")
-    return result.stdout
+    return native_process.checked(command, cwd=ROOT, env=RUN_ENV, timeout=120)
 
 
 def load(path, name):
@@ -39,6 +35,10 @@ def load(path, name):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+PROCESS_HELPER = ROOT / "contrib/ml-dsa-qualification/native_process.py"
+native_process = load(PROCESS_HELPER, "integration_native_process")
 
 
 def validate_networks(native, model, pk, tx, artifact):
@@ -243,6 +243,7 @@ def main():
     common = ["-O2", "-g", "-Wall", "-Wextra", "-Werror", "-Wno-unused-function", "-fno-lto", "-fvisibility=hidden", "-fPIC"]
     if args.sanitize:
         common += ["-fsanitize=address,undefined", "-fno-omit-frame-pointer", "-fno-sanitize-recover=all"]
+    executable_link_flags = native_process.sanitizer_executable_link_flags(args.cc, args.sanitize)
     source_paths = [
         "src/crypto/mldsa44/verify.h", "src/crypto/mldsa44/verify_config.h", "src/crypto/mldsa44/verify.c",
         "src/crypto/mldsa44/contract.h", "src/crypto/mldsa44/contract.cpp", "src/crypto/sha256.cpp",
@@ -250,7 +251,7 @@ def main():
         "contrib/ml-dsa-integration/native_smoke.cpp",
         "contrib/ml-dsa-integration/run_native_tests.py", "contrib/ml-dsa-key-lifecycle/key_lifecycle.c",
         "contrib/ml-dsa-production-contract/protocol_v1.py", "contrib/genesis/generated_constants.json",
-        "ci/test/test_ml_dsa_native_integration.py"]
+        "ci/test/test_ml_dsa_native_integration.py", "contrib/ml-dsa-qualification/native_process.py"]
     source_hashes = {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in source_paths}
     with tempfile.TemporaryDirectory(prefix="mldsa-native-integration-") as directory:
         build = Path(directory)
@@ -280,7 +281,7 @@ def main():
             source = build / (suffix + "-absent.c")
             source.write_text('#define MLD_CONFIG_FILE "verify_config.h"\n#include "' + str(header) + '"\nvoid* probe=(void*)&' + name + ';\n')
             command = [cc, "-std=c11", "-Werror", "-I", ROOT / "src/crypto/mldsa44", "-c", source, "-o", build / (suffix + ".o")]
-            observed = subprocess.run([str(x) for x in command], env=RUN_ENV, cwd=ROOT, capture_output=True, text=True, timeout=120)
+            observed = native_process.capture(command, env=RUN_ENV, cwd=ROOT, timeout=120)
             if observed.returncode == 0 or observed.stdout or not re.search(r"(" + name + r".*undeclared|undeclared.*" + name + r")", observed.stderr):
                 raise RuntimeError("private API absence probe not qualified: " + name + observed.stderr)
             api_probes[name] = {"returncode": observed.returncode, "diagnostic": observed.stderr,
@@ -302,7 +303,7 @@ def main():
                      ("-DDISABLE_OPTIMIZED_SHA256", "-Wno-unused-parameter"))
         compile_file(cxx, "-std=c++20", "src/crypto/mldsa44/contract.cpp", "contract.o")
         compile_file(cxx, "-std=c++20", "contrib/ml-dsa-integration/native_smoke.cpp", "smoke.o")
-        command = [cxx, *common, "-pthread", *[build / f for f in ("verify.o", "signer.o", "sha.o", "contract.o", "smoke.o")], "-o", build / "native-smoke"]
+        command = [cxx, *common, *executable_link_flags, "-pthread", *[build / f for f in ("verify.o", "signer.o", "sha.o", "contract.o", "smoke.o")], "-o", build / "native-smoke"]
         commands.append([str(x) for x in command])
         run(command)
         native = json.loads(run([build / "native-smoke"]))
@@ -313,18 +314,22 @@ def main():
             for name, text, expected, disable in controls:
                 source = build / (name + "-control.c")
                 source.write_text(text)
-                command = [cc, "-std=c11", *common, "-fno-sanitize=" + disable, source, "-o", build / (name + "-control")]
+                command = [cc, "-std=c11", *common, *executable_link_flags, "-fno-sanitize=" + disable, source, "-o", build / (name + "-control")]
                 commands.append([str(x) for x in command])
                 run(command)
-                observed = subprocess.run([str(build / (name + "-control"))], env=RUN_ENV, capture_output=True, text=True, timeout=30)
+                control_elf = run(["readelf", "-h", build / (name + "-control")])
+                control_layout = native_process.executable_layout(control_elf, executable_link_flags)
+                observed = native_process.capture([build / (name + "-control")], env=RUN_ENV, timeout=30)
                 if observed.returncode == 0 or observed.stdout or expected not in observed.stderr or "WARNING" in observed.stderr:
                     raise RuntimeError(f"sanitizer positive control not qualified: {name}, exit={observed.returncode}\n{observed.stdout}\n{observed.stderr}")
-                sanitizer_controls[name] = {"returncode": observed.returncode, "diagnostic": observed.stderr}
+                sanitizer_controls[name] = {"returncode": observed.returncode, "diagnostic": observed.stderr,
+                                            "executable_layout": control_layout}
         binary_hashes = {name: hashlib.sha256((build / name).read_bytes()).hexdigest()
                          for name in ("verify.o", "verify.so", "signer.o", "sha.o", "contract.o", "smoke.o", "native-smoke")}
         dependency_hashes = {str(path): hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
                              for path in sorted(dependency_paths)}
         elf = run(["readelf", "-h", build / "native-smoke"])
+        layout = native_process.executable_layout(elf, executable_link_flags)
     pk = bytes.fromhex(native["public_key"])
     program = model.key_commitment("regtest", pk)
     script = (b"\x52\x20" + program).hex()
@@ -358,7 +363,7 @@ def main():
                       "verifier_imports": imports, "verifier_export_audit": export_audit,
                       "private_api_absence_probes": api_probes,
                       "sanitizer_environment": RUN_ENV, "sanitizer_positive_controls": sanitizer_controls,
-                      "runtime_before": before, "runtime_after": after, "elf": elf,
+                      "runtime_before": before, "runtime_after": after, "elf": elf, "executable_layout": layout,
                       "binary_hashes": binary_hashes, "frozen_source_hashes": frozen_sources,
                       "frozen_source_input_hashes": frozen_source_inputs,
                       "compiler_dependency_hashes": dependency_hashes,

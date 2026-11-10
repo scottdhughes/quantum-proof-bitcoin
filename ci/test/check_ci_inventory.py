@@ -22,6 +22,10 @@ REQUIRED_EXPERIMENTAL_COVERAGE = {
         "build_option": "ENABLE_EXPERIMENTAL_MLDSA44=ON",
         "workflow": ".github/workflows/ml-dsa-44-assembled-system.yml",
     },
+    "feature_mldsa44_resources.py": {
+        "build_option": "ENABLE_EXPERIMENTAL_MLDSA44=ON",
+        "workflow": ".github/workflows/ml-dsa-44-assembled-system.yml",
+    },
 }
 VALID_TAPROOT_MATRIX_BUCKETS = {"legacy_only", "replacement_migration", "deferred"}
 REQUIRED_TAPROOT_MATRIX_BUCKETS = {

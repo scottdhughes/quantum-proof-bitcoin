@@ -3,7 +3,7 @@
 FROM debian:bookworm-slim@sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    build-essential clang-16 cmake ninja-build pkgconf python3 git binutils perl \
+    build-essential clang-16 libclang-rt-16-dev cmake ninja-build pkgconf python3 git binutils perl \
     ca-certificates curl libevent-dev libboost-dev util-linux passwd \
     && rm -rf /var/lib/apt/lists/* \
     && ln -s /usr/bin/clang-16 /usr/local/bin/clang \

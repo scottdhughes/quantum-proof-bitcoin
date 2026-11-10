@@ -17,6 +17,13 @@ RUNNER = ROOT / "contrib/ml-dsa-integration/run_native_tests.py"
 
 
 class NativeIntegrationTests(unittest.TestCase):
+    def test_finite_output_flood_cannot_be_a_success(self):
+        spec = importlib.util.spec_from_file_location("native_bounded_runner", RUNNER)
+        runner = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runner)
+        with self.assertRaises(RuntimeError):
+            runner.run([sys.executable, "-c", "import os; os.write(1, b'x' * (3 * 1024 * 1024))"])
+
     def test_all_network_binding_joins_reject_tampered_data(self):
         spec = importlib.util.spec_from_file_location("native_network_runner", RUNNER)
         runner = importlib.util.module_from_spec(spec)
