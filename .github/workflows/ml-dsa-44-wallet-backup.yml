@@ -6,6 +6,8 @@ on:
       - ".github/workflows/ml-dsa-44-wallet-backup.yml"
       - "contrib/ml-dsa-wallet-backup/**"
       - "contrib/ml-dsa-key-lifecycle/**"
+      - "contrib/ml-dsa-qualification/native_process.py"
+      - "ci/test/test_ml_dsa_native_process.py"
       - "contrib/ml-dsa-engineering/**"
       - "contrib/ml-dsa-ref/review_baseline_commit.txt"
       - "contrib/shrincs/manifest.json"
@@ -20,6 +22,8 @@ on:
       - ".github/workflows/ml-dsa-44-wallet-backup.yml"
       - "contrib/ml-dsa-wallet-backup/**"
       - "contrib/ml-dsa-key-lifecycle/**"
+      - "contrib/ml-dsa-qualification/native_process.py"
+      - "ci/test/test_ml_dsa_native_process.py"
       - "contrib/ml-dsa-engineering/**"
       - "contrib/ml-dsa-ref/review_baseline_commit.txt"
       - "contrib/shrincs/manifest.json"
@@ -59,7 +63,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
           python3 contrib/ml-dsa-wallet-backup/run_backup_tests.py --preflight-only
-          python3 -m unittest ci.test.test_ml_dsa_wallet_backup
+          python3 -m unittest ci.test.test_ml_dsa_wallet_backup ci.test.test_ml_dsa_native_process
 
       - name: Build checksum-pinned isolated OpenSSL 3.6.5
         run: |
