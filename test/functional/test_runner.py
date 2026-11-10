@@ -411,6 +411,23 @@ STANDALONE_SCRIPTS = [
     "feature_mldsa44_demo.py",
 ]
 
+
+def select_explicit_tests(tests, *, fail_on_warn):
+    """Expand requested scripts, rejecting incomplete explicit selections in CI."""
+    test_list = []
+    for test in tests:
+        script = test.split("/")[-1]
+        script = script + ".py" if ".py" not in script else script
+        matching_scripts = [s for s in ALL_SCRIPTS if s.startswith(script)]
+        if matching_scripts:
+            test_list.extend(matching_scripts)
+        else:
+            print("{}WARNING!{} Test '{}' not found in full test list.".format(BOLD[1], BOLD[0], test))
+            if fail_on_warn:
+                sys.exit(1)
+    return test_list
+
+
 def main():
     # Parse arguments and pass through unrecognised args
     parser = argparse.ArgumentParser(add_help=False,
@@ -496,14 +513,7 @@ def main():
         #   `test/functional/test_runner.py wallet*`
         # Multiple wildcards can be passed:
         #   `test_runner.py tool* mempool*`
-        for test in tests:
-            script = test.split("/")[-1]
-            script = script + ".py" if ".py" not in script else script
-            matching_scripts = [s for s in ALL_SCRIPTS if s.startswith(script)]
-            if matching_scripts:
-                test_list.extend(matching_scripts)
-            else:
-                print("{}WARNING!{} Test '{}' not found in full test list.".format(BOLD[1], BOLD[0], test))
+        test_list = select_explicit_tests(tests, fail_on_warn=fail_on_warn)
     elif args.extended:
         # Include extended tests
         test_list += ALL_SCRIPTS
