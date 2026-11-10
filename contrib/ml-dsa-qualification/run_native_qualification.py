@@ -188,8 +188,12 @@ def main(argv=None):
                                          "openssl": "pinned static library; not instrumented by this run"}}
     started, candidate_pass = False, False
     transcript = (output / "commands.jsonl").open("x", encoding="utf8")
+    command_serial = 0
 
     def command(values, *, user=None, timeout=120, data=None, name=None):
+        nonlocal command_serial
+        command_serial += 1
+        diagnostic_name = name or f"command-{command_serial:03d}"
         values = list(map(str, values))
         if user is not None:
             values = ["docker", "exec", "-i", "--user", user,
@@ -210,10 +214,9 @@ def main(argv=None):
                       "stderr_sha256": hashlib.sha256(result.stderr).hexdigest()})
         transcript.write(json.dumps(entry) + "\n")
         transcript.flush()
-        if name is not None:
-            (output / (name + ".stdout")).write_bytes(result.stdout)
-            (output / (name + ".stderr")).write_bytes(result.stderr)
-        require(result.returncode == 0, "Qualification command failed; inspect " + str(output / (name or "commands.jsonl")))
+        (output / (diagnostic_name + ".stdout")).write_bytes(result.stdout)
+        (output / (diagnostic_name + ".stderr")).write_bytes(result.stderr)
+        require(result.returncode == 0, "Qualification command failed; inspect " + str(output / diagnostic_name))
         return result.stdout
 
     def source_identity():
@@ -280,7 +283,10 @@ def main(argv=None):
         runtime = inspect_runtime(args.container)
         validate_runtime(runtime, image)
         report["runtime"] = runtime
-        command(["cp", "-a", "/opt/pqbtc-runtime/seed/.", "/tmp/"], user="0:0", timeout=180)
+        # These public source/binary copies need their bytes and modes, not the
+        # build UIDs. CAP_CHOWN stays absent throughout qualification.
+        command(["cp", "-a", "--no-preserve=ownership", "/opt/pqbtc-runtime/seed/.", "/tmp/"],
+                user="0:0", timeout=180, name="hydrate-public-seed")
         command(["chmod", "1777", "/tmp"], user="0:0")
         container_arch = command(["uname", "-m"], user="1001:1000").decode().strip()
         vm_arch = command(["docker", "info", "--format", "{{.Architecture}}"]).decode().strip()
