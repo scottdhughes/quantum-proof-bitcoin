@@ -5,10 +5,12 @@
 import copy
 import hashlib
 import importlib.util
+import json
 import os
 from pathlib import Path
 import tempfile
 import signal
+import subprocess
 from types import SimpleNamespace
 import unittest
 from unittest import mock
@@ -329,6 +331,94 @@ class CommandBindingTests(unittest.TestCase):
         self.assertNotIn("FD-ONLY-LAUNCHER", signer)
         with self.assertRaises(Exception):
             value._command("0:0", "python3")
+
+
+class RoleOwnedDirectoryTests(unittest.TestCase):
+    """DATA tests of exclusive initialization and permission-window closure."""
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        root = Path(self.temporary.name)
+        self.manager = backend.NativeManager(root / "control", data_root=root / "data")
+        self.manager.data_root.mkdir(mode=0o755)
+
+    def tearDown(self):
+        self.temporary.cleanup()
+
+    def test_owners_create_exclusive_leaves_before_parent_is_frozen(self):
+        calls = []
+        def create(name, uid):
+            self.assertEqual(self.manager.data_root.stat().st_mode & 0o7777, 0o1777)
+            (self.manager.data_root / name).mkdir(mode=0o700)
+            calls.append((name, uid))
+        def verify():
+            self.assertEqual(self.manager.data_root.stat().st_mode & 0o7777, 0o755)
+        with mock.patch.object(self.manager, "_create_role_directory", side_effect=create), \
+             mock.patch.object(self.manager, "_verify_role_directories", side_effect=verify), \
+             mock.patch.object(os, "chown", side_effect=AssertionError("root chown must not be used")):
+            self.manager._create_role_directories()
+        self.assertEqual(calls, [("signer", 1000), ("node", 1001)])
+        self.assertEqual(self.manager.data_root.stat().st_mode & 0o7777, 0o755)
+
+    def test_preexisting_role_directory_is_preserved_without_opening_parent(self):
+        role = self.manager.data_root / "signer"
+        role.mkdir(mode=0o700)
+        sentinel = role / "existing-test-state"
+        sentinel.write_bytes(b"EXISTING DATA MUST REMAIN")
+        with mock.patch.object(self.manager, "_create_role_directory") as create:
+            with self.assertRaisesRegex(backend.public.legacy.ConsoleError, "Native role path already exists; preserved"):
+                self.manager._create_role_directories()
+            create.assert_not_called()
+        self.assertEqual(sentinel.read_bytes(), b"EXISTING DATA MUST REMAIN")
+        self.assertEqual(self.manager.data_root.stat().st_mode & 0o7777, 0o755)
+
+    def test_preexisting_symlink_is_not_followed_or_adopted(self):
+        target = self.manager.data_root.parent / "other"
+        target.mkdir()
+        link = self.manager.data_root / "signer"
+        link.symlink_to(target, target_is_directory=True)
+        with mock.patch.object(self.manager, "_create_role_directory") as create:
+            with self.assertRaisesRegex(backend.public.legacy.ConsoleError, "Native role path already exists; preserved"):
+                self.manager._create_role_directories()
+            create.assert_not_called()
+        self.assertTrue(link.is_symlink())
+        self.assertFalse(any(target.iterdir()))
+        self.assertEqual(self.manager.data_root.stat().st_mode & 0o7777, 0o755)
+
+    def test_racing_role_creation_refuses_and_always_closes_parent(self):
+        def collide(name, _uid):
+            path = self.manager.data_root / name
+            path.mkdir(mode=0o700)
+            raise FileExistsError("simulated competing exclusive mkdir")
+        with mock.patch.object(self.manager, "_create_role_directory", side_effect=collide):
+            with self.assertRaises(FileExistsError):
+                self.manager._create_role_directories()
+        self.assertTrue((self.manager.data_root / "signer").is_dir())
+        self.assertFalse((self.manager.data_root / "node").exists())
+        self.assertFalse((self.manager.data_root / ".runpod-volume.json").exists())
+        self.assertEqual(self.manager.data_root.stat().st_mode & 0o7777, 0o755)
+
+    def test_unexpected_racing_path_is_preserved_and_refused(self):
+        def create(name, _uid):
+            (self.manager.data_root / name).mkdir(mode=0o700)
+            if name == "node":
+                (self.manager.data_root / "unexpected").write_bytes(b"PRESERVE")
+        with mock.patch.object(self.manager, "_create_role_directory", side_effect=create):
+            with self.assertRaisesRegex(backend.public.legacy.ConsoleError, "Unexpected path appeared during native role initialization; preserved"):
+                self.manager._create_role_directories()
+        self.assertEqual((self.manager.data_root / "unexpected").read_bytes(), b"PRESERVE")
+        self.assertEqual(self.manager.data_root.stat().st_mode & 0o7777, 0o755)
+
+    def test_owner_helper_must_report_the_exact_private_uid_mode(self):
+        for receipt in ({"uid": 1001, "gid": 1000, "mode": 0o700},
+                        {"uid": 1000, "gid": 1000, "mode": 0o777}):
+            result = subprocess.CompletedProcess([], 0, json.dumps(receipt).encode(), b"")
+            with self.subTest(receipt=receipt), mock.patch.object(backend.subprocess, "run", return_value=result) as run:
+                with self.assertRaisesRegex(backend.public.legacy.ConsoleError, "Native role directory ownership/mode mismatch"):
+                    self.manager._create_role_directory("signer", 1000)
+                command = run.call_args.args[0]
+                self.assertIn("--uid", command)
+                self.assertEqual(command[command.index("--uid") + 1], "1000")
+                self.assertNotIn("chown", command)
 
 
 class ImmutableSignerTests(unittest.TestCase):

@@ -77,18 +77,29 @@ def verify_posix_isolation(parent):
     """Prove real cross-UID denial; a filesystem may synthesize mode bits."""
     with tempfile.TemporaryDirectory(prefix=".pqbtc-posix-probe-", dir=parent) as temporary:
         root = Path(temporary)
-        root.chmod(0o755)
+        # Root-squashed NFS permits each role to create its own private files,
+        # but refuses root chown. The disposable parent is sticky and contains
+        # public probe bytes only; custody directories are never relaxed.
+        root.chmod(0o1777)
         signer = root / "signer"
-        signer.mkdir(mode=0o700)
-        os.chown(signer, 1000, 1000)
         path = signer / "public-probe"
-        writer = ('import os,stat,sys;p=sys.argv[1];fd=os.open(p,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600);'
+        control = root / "control"
+        control.mkdir(mode=0o700)
+        private_control = control / "public-control-probe"
+        fd = os.open(private_control, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        try:
+            os.write(fd, b"PUBLIC CONTROL PERMISSION PROBE")
+            os.fsync(fd)
+            info = os.fstat(fd)
+            need(info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o600,
+                 "Provider storage does not preserve private control modes")
+        finally:
+            os.close(fd)
+        writer = ('import os,pathlib,stat,sys;p=pathlib.Path(sys.argv[1]);os.mkdir(p.parent,0o700);d=p.parent.lstat();'
+                  'assert d.st_uid==1000 and stat.S_IMODE(d.st_mode)==0o700;'
+                  'fd=os.open(p,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600);'
                   'os.write(fd,b"PUBLIC PERMISSION PROBE");os.fsync(fd);s=os.fstat(fd);os.close(fd);'
                   'assert s.st_uid==1000 and stat.S_IMODE(s.st_mode)==0o600')
-        result = subprocess.run([sys.executable, "-B", "-I", "-c", writer, str(path)],
-                                user=1000, group=1000, extra_groups=[], capture_output=True, timeout=10)
-        need(result.returncode == 0 and not result.stdout and not result.stderr,
-             "Provider storage does not preserve owner-only file modes")
         reader = '''import errno,os,sys
 for flags in (os.O_RDONLY,os.O_WRONLY|os.O_APPEND):
  try:fd=os.open(sys.argv[1],flags)
@@ -97,10 +108,28 @@ for flags in (os.O_RDONLY,os.O_WRONLY|os.O_APPEND):
  else:
   os.close(fd);raise SystemExit(1)
 '''
-        result = subprocess.run([sys.executable, "-B", "-I", "-c", reader, str(path)],
-                                user=1001, group=1000, extra_groups=[], capture_output=True, timeout=10)
-        need(result.returncode == 0 and not result.stdout and not result.stderr,
-             "Provider storage permits cross-UID wallet access")
+        cleanup = '''import os,pathlib,stat,sys
+p=pathlib.Path(sys.argv[1])
+try:s=p.parent.lstat()
+except FileNotFoundError:pass
+else:
+ assert stat.S_ISDIR(s.st_mode) and s.st_uid==1000
+ p.unlink(missing_ok=True);p.parent.rmdir()
+'''
+        try:
+            result = subprocess.run([sys.executable, "-B", "-I", "-c", writer, str(path)],
+                                    user=1000, group=1000, extra_groups=[], capture_output=True, timeout=10)
+            need(result.returncode == 0 and not result.stdout and not result.stderr,
+                 "Provider storage does not preserve owner-only file modes")
+            for uid, protected in ((1001, path), (1001, private_control), (1000, private_control)):
+                result = subprocess.run([sys.executable, "-B", "-I", "-c", reader, str(protected)],
+                                        user=uid, group=1000, extra_groups=[], capture_output=True, timeout=10)
+                need(result.returncode == 0 and not result.stdout and not result.stderr,
+                     "Provider storage permits cross-UID wallet/control access")
+        finally:
+            result = subprocess.run([sys.executable, "-B", "-I", "-c", cleanup, str(path)],
+                                    user=1000, group=1000, extra_groups=[], capture_output=True, timeout=10)
+            need(result.returncode == 0 and not result.stdout and not result.stderr, "Permission probe owner cleanup failed")
 
 
 def write_provider_binding(path, value, *, owner=0):

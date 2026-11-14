@@ -18,6 +18,7 @@ import platform
 import re
 import signal
 import stat
+import subprocess
 import sys
 import uuid
 
@@ -189,12 +190,51 @@ class NativeManager(public.Files):
         owned_directory(self.data_root)
         identity = {"schema": "PQBTC-RUNPOD-NATIVE-VOLUME-1", "namespace": self.namespace,
                     "volume_id": uuid.uuid4().hex, "profile_sha256": public.PROFILE}
-        for name, uid in (("signer", 1000), ("node", 1001)):
-            path = self.data_root / name
-            path.mkdir(mode=0o700)
-            os.chown(path, uid, 1000)
+        self._create_role_directories()
         native.write_json(self.data_root / ".runpod-volume.json", identity)
         return identity
+
+    def _create_role_directory(self, name, uid):
+        require((name, uid) in (("signer", 1000), ("node", 1001)), "Unsupported native data role")
+        # A root-squashed NFS mount can enforce UID isolation while refusing a
+        # root chown to another UID. Create exclusively as that actual owner.
+        script = ('import json,os,pathlib,stat,sys;p=pathlib.Path(sys.argv[1]);s=p.parent.lstat();'
+                  'assert stat.S_ISDIR(s.st_mode) and s.st_uid==0 and stat.S_IMODE(s.st_mode)==0o1777;'
+                  'p.mkdir(mode=0o700);s=p.lstat();'
+                  'assert stat.S_ISDIR(s.st_mode) and s.st_uid==os.geteuid() and s.st_gid==1000 and '
+                  'stat.S_IMODE(s.st_mode)==0o700;'
+                  'print(json.dumps({"uid":s.st_uid,"gid":s.st_gid,"mode":stat.S_IMODE(s.st_mode)}))')
+        result = subprocess.run([sys.executable, str(HERE / "native_exec.py"), "--uid", str(uid), "--",
+                                 "python3", "-B", "-c", script, str(self.data_root / name)],
+                                capture_output=True, timeout=30, env=native.SAFE_ENV)
+        require(result.returncode == 0 and len(result.stdout) <= 512 and not result.stderr,
+                "Native role directory could not be created exclusively; existing paths preserved")
+        require(json.loads(result.stdout) == {"uid": uid, "gid": 1000, "mode": 0o700},
+                "Native role directory ownership/mode mismatch")
+
+    def _verify_role_directories(self):
+        for name, uid in (("signer", 1000), ("node", 1001)):
+            info = (self.data_root / name).lstat()
+            require(stat.S_ISDIR(info.st_mode) and info.st_uid == uid and info.st_gid == 1000 and
+                    stat.S_IMODE(info.st_mode) == 0o700, "Native persistent data layout changed")
+
+    def _create_role_directories(self):
+        roles = {self.data_root / "signer", self.data_root / "node"}
+        require(not any(path.exists() or path.is_symlink() for path in roles),
+                "Native role path already exists; preserved")
+        before = set(self.data_root.iterdir())
+        try:
+            # No application or custody record exists during this short window.
+            # The sticky parent permits owner-created leaves but not adoption,
+            # and every leaf is created by an exclusive mkdir.
+            os.chmod(self.data_root, 0o1777)
+            self._create_role_directory("signer", 1000)
+            self._create_role_directory("node", 1001)
+        finally:
+            os.chmod(self.data_root, 0o755)
+        require(set(self.data_root.iterdir()) == before | roles,
+                "Unexpected path appeared during native role initialization; preserved")
+        self._verify_role_directories()
 
     def _ensure_ipc(self):
         parent = self.socket.parent.parent
@@ -214,10 +254,7 @@ class NativeManager(public.Files):
         require(marker == {"schema": "PQBTC-RUNPOD-NATIVE-VOLUME-1", "namespace": self.namespace,
                            "volume_id": prior["volume_id"], "profile_sha256": public.PROFILE},
                 "Native persistent-volume identity mismatch")
-        for name, uid in (("signer", 1000), ("node", 1001)):
-            info = (self.data_root / name).lstat()
-            require(stat.S_ISDIR(info.st_mode) and info.st_uid == uid and info.st_gid == 1000 and
-                    stat.S_IMODE(info.st_mode) == 0o700, "Native persistent data layout changed")
+        self._verify_role_directories()
 
     def ensure(self, descriptor=None):
         path = self.state_dir / "native-runtime.json"
