@@ -5,10 +5,14 @@ on:
     branches: ['codex/mldsa-runpod-*']
     paths:
       - 'contrib/ml-dsa-runpod/**'
+      - 'contrib/ml-dsa-qualification/**'
+      - 'contrib/ml-dsa-console/**'
       - '.github/workflows/ml-dsa-44-runpod-controls.yml'
   pull_request:
     paths:
       - 'contrib/ml-dsa-runpod/**'
+      - 'contrib/ml-dsa-qualification/**'
+      - 'contrib/ml-dsa-console/**'
       - '.github/workflows/ml-dsa-44-runpod-controls.yml'
   workflow_dispatch:
 

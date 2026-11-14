@@ -264,7 +264,7 @@ class FloorGuard:
 class SlotLedger:
     def __init__(self, mode):
         self.mode, self.rows = mode, []
-        self.interval = 60 if mode == "soak" else 5
+        self.interval = 60
 
     def success(self, index, settle_seconds, *, started_elapsed=None):
         require(index == len(self.rows) and finite(settle_seconds) and 0 <= settle_seconds <= 60,
@@ -1214,7 +1214,7 @@ def declaration(config, mode, source, config_sha256, initial, *, prelaunch, volu
         hosts.append({"name": host["name"], "role": host["role"], "container": host["container"],
                       "transport": host["transport"]["kind"], "p2p_port": host["p2p_port"], "versions": versions})
     return {"schema": DECLARATION_SCHEMA, "scope": SCOPE, "profile_sha256": PROFILE, "mode": mode,
-            "duration_seconds": duration, "normal_slot_seconds": 60 if mode == "soak" else 5,
+            "duration_seconds": duration, "normal_slot_seconds": SlotLedger(mode).interval,
             "amount_sats": 100_000, "fee_sats": 5000, "configuration_sha256": config_sha256,
             "host_runner_source": source, "hosts": hosts, "public_endpoint": config["public_endpoint"],
             "initial_status": initial, "host_execution_audit": prelaunch, "original_volume_identities": volumes,

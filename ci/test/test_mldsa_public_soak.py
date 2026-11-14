@@ -39,6 +39,38 @@ class PublicSoakTests(unittest.TestCase):
         self.assertEqual(runner.require_elapsed("preflight", 900, 900), "PREFLIGHT_PASS")
         self.assertEqual(runner.require_elapsed("soak", 86400, 86400), "PASS")
 
+    def test_valid_relay_latency_does_not_exhaust_later_preflight_slots(self):
+        runner = self.runner()
+        class Log:
+            def append(self, *_args): pass
+        config = {"hosts": [{"name": "one", "role": "bootstrap"}, {"name": "two", "role": "follower"}]}
+        run = runner.Soak(config, "preflight", Log(), {}, "future")
+        clock = [0.0]
+        run.started_mono = run.started_wall = run.last_sample = 0.0
+        run.sample = lambda: setattr(run, "last_sample", clock[0])
+        run.probe = lambda: clock.__setitem__(0, clock[0] + 1.717224)
+        run.action = lambda *_args: {"baseline_accepted": True, "invalid_signature_allowed": False,
+                                     "wrong_network_refused": True, "broadcast": False,
+                                     "reject_reason": "mandatory-script-verify-flag"}
+        def payment(_sender, _receiver):
+            # Actual public preflight observed this valid relay/settlement time.
+            clock[0] += 13.546316
+            return {"settle_seconds": 13.546316}
+        run.payment = payment
+        with patch.object(runner, "FAULTS", ()), \
+             patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
+             patch.object(runner.time, "time", side_effect=lambda: clock[0]), \
+             patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            try:
+                elapsed = run.workload()
+            except ValueError as error:
+                self.fail("A valid payment exhausted later preflight slots: " + str(error))
+        self.assertEqual(len(run.ledger.rows), 15)
+        self.assertTrue(all(row["success"] for row in run.ledger.rows))
+        self.assertGreaterEqual(elapsed["monotonic_seconds"], 900)
+        self.assertGreaterEqual(elapsed["wall_seconds"], 900)
+        self.assertLess(elapsed["monotonic_seconds"], 901)
+
     def test_ssh_arguments_are_quoted_as_data_without_a_committed_host_route(self):
         runner = self.runner()
         host = {"transport": {"kind": "ssh", "argv": ["ssh", "-T", "unit@example.invalid"]},
