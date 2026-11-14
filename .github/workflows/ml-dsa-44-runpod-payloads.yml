@@ -59,7 +59,7 @@ jobs:
           python3 "$SOURCE_DIR/contrib/ml-dsa-qualification/run_native_qualification.py" \
             --descriptor "$EVIDENCE_DIR/build-descriptor.json" --compiler gcc \
             --expect-head "$EXPECTED_HEAD" --expect-architecture x86_64 \
-            --container "pqbtc-runpod-build-${{ matrix.version }}-${{ github.run_id }}-${{ github.run_attempt }}" \
+            --container "pqbtc-native-runpod-${{ matrix.version }}-${{ github.run_id }}-${{ github.run_attempt }}" \
             --output-dir "$EVIDENCE_DIR/native-qualification"
 
       - name: Package immutable payload and build provenance

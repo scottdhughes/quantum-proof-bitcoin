@@ -71,6 +71,17 @@ class PayloadTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 pack.package("c", runtime, root / "build.json", root / "report.json", root / "changed")
 
+    def test_local_arm_rehearsal_requires_explicit_architecture(self):
+        with tempfile.TemporaryDirectory() as directory:
+            _, descriptor, report, _ = self.fixture(Path(directory))
+            descriptor["manifest"]["architecture"] = "aarch64"
+            raw = (json.dumps(descriptor["manifest"], sort_keys=True) + "\n").encode()
+            descriptor["manifest_sha256"] = hashlib.sha256(raw).hexdigest()
+            report.update(architecture="aarch64", manifest_sha256=descriptor["manifest_sha256"])
+            with self.assertRaises(ValueError):
+                pack.validate_provenance("c", descriptor, report, raw)
+            pack.validate_provenance("c", descriptor, report, raw, expected_architecture="aarch64")
+
     def test_archive_rejects_escape_duplicate_link_and_special(self):
         cases = [("../escape", None), ("/absolute", None), ("seed/link", tarfile.SYMTYPE),
                  ("seed/hard", tarfile.LNKTYPE), ("seed/fifo", tarfile.FIFOTYPE)]

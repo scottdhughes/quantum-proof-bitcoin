@@ -43,7 +43,7 @@ def write_json(path, value):
         stream.write("\n")
 
 
-def validate_provenance(version, descriptor, report, manifest_bytes):
+def validate_provenance(version, descriptor, report, manifest_bytes, *, expected_architecture="x86_64"):
     require(version in VERSIONS, "Unknown pinned payload version")
     head, tree = VERSIONS[version]
     require(type(descriptor) is dict and descriptor.get("schema") == "PQBTC-MLDSA44-SOURCE-RUNTIME-1",
@@ -54,8 +54,10 @@ def validate_provenance(version, descriptor, report, manifest_bytes):
             hashlib.sha256(manifest_bytes).hexdigest(), "Build manifest differs")
     require(manifest.get("source_head") == head and manifest.get("source_tree") == tree,
             "Payload source differs from frozen version")
-    require(manifest.get("architecture") in ("x86_64", "amd64") and manifest.get("compiler") == "gcc",
-            "Runpod payload requires native Linux x86_64 GCC provenance")
+    require(expected_architecture in ("x86_64", "aarch64"), "Unsupported native architecture")
+    normalize = {"amd64": "x86_64", "arm64": "aarch64"}
+    require(normalize.get(manifest.get("architecture"), manifest.get("architecture")) == expected_architecture and
+            manifest.get("compiler") == "gcc", "Payload native architecture or compiler differs")
     require(type(report) is dict and report.get("schema") == "PQBTC-MLDSA44-NATIVE-QUALIFICATION-1" and
             report.get("result") == "PASS" and
             report.get("checks") == dict.fromkeys(GATES, "PASS"), "All nine native gates must pass")
@@ -63,7 +65,7 @@ def validate_provenance(version, descriptor, report, manifest_bytes):
     require(report.get("source") == {"head": head, "tree": tree} and
             report.get("image") == descriptor["image"], "Qualification source or image differs")
     before = report.get("identity_before")
-    require(report.get("architecture") == "x86_64" and report.get("emulated") is False and
+    require(report.get("architecture") == expected_architecture and report.get("emulated") is False and
             type(before) is dict and before.get("head") == head and before.get("tree") == tree and
             type(before.get("sha256")) is dict and before["sha256"] and
             before == report.get("identity_after"),
@@ -101,13 +103,13 @@ def extract_regular(archive, destination):
                 os.chmod(target, 0o555 if member.mode & 0o111 else 0o444)
 
 
-def package(version, runtime, build_descriptor, report_path, output):
+def package(version, runtime, build_descriptor, report_path, output, *, expected_architecture="x86_64"):
     runtime, output = Path(runtime), Path(output)
     require(not output.exists() and not output.is_symlink(), "Output already exists")
     descriptor = json.loads(Path(build_descriptor).read_text())
     report = json.loads(Path(report_path).read_text())
     raw = (runtime / "manifest.json").read_bytes()
-    manifest = validate_provenance(version, descriptor, report, raw)
+    manifest = validate_provenance(version, descriptor, report, raw, expected_architecture=expected_architecture)
     seed = runtime / "seed"
     require(seed.is_dir() and not seed.is_symlink(), "Payload seed is missing")
     files = {}
