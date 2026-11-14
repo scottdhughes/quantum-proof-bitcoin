@@ -901,7 +901,10 @@ class Soak:
         raise ValueError("Two-host tip/full-UTXO/peer agreement deadline")
 
     def bridge(self):
-        self.action(self.follower, "bridge_start", {**self.config["public_endpoint"], "until_utc": self.until})
+        # A partition drops peer connections, not the contained listener.
+        # Replacing a surviving bridge can fail to rebind its occupied port.
+        if self.action(self.follower, "sample").get("bridge_alive") is not True:
+            self.action(self.follower, "bridge_start", {**self.config["public_endpoint"], "until_utc": self.until})
         self.action(self.follower, "peer", {"endpoint": "127.0.0.1:23834"})
         return self.agree()
 

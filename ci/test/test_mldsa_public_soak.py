@@ -83,6 +83,42 @@ class PublicSoakTests(unittest.TestCase):
         self.assertIn(host["repo"] + "/contrib/ml-dsa-qualification/public_soak_agent.py", remote)
         self.assertEqual(remote[remote.index("--state-dir") + 1], host["state_dir"])
 
+    def test_reconnect_reuses_surviving_bridge_and_starts_a_missing_bridge(self):
+        runner = self.runner()
+        class Log:
+            def append(self, *_args): pass
+        for surviving in (True, False):
+            with self.subTest(surviving_bridge=surviving):
+                class Agent:
+                    alive = surviving
+                    connected = False
+                    def call(self, action, _params, **_kwargs):
+                        if action == "sample":
+                            return {"bridge_alive": self.alive}
+                        if action == "bridge_start":
+                            if self.alive:
+                                raise ValueError("Live bridge replacement cannot rebind its occupied port")
+                            self.alive = True
+                            return {"bridge_process_started": True}
+                        if action == "peer":
+                            if not self.alive:
+                                raise ValueError("No bridge accepts the peer connection")
+                            self.connected = True
+                            return {"peer": "127.0.0.1:23834"}
+                        if action == "status":
+                            return {"nodes": [{"height": 211, "tip": "ab" * 32, "utxo_hash": "cd" * 32,
+                                               "utxo_count": 215, "peers": int(self.connected)}]}
+                        raise AssertionError(action)
+                config = {"hosts": [{"name": "one", "role": "bootstrap"}, {"name": "two", "role": "follower"}],
+                          "public_endpoint": {"hostname": "public.example.org", "port": 443, "public_ips": ["1.1.1.1"]}}
+                run = runner.Soak(config, "preflight", Log(), {}, "future")
+                endpoint = Agent()
+                run.agents = {"one": endpoint, "two": endpoint}
+                agreed = run.bridge()
+                self.assertEqual(agreed["tip"], "ab" * 32)
+                self.assertEqual(agreed["utxo_hash"], "cd" * 32)
+                self.assertGreaterEqual(agreed["peers"], 1)
+
     def test_floor_or_identity_rollback_and_reissued_address_are_terminal(self):
         runner = self.runner()
         guard = runner.FloorGuard()
