@@ -1,0 +1,84 @@
+name: ML-DSA-44 qualified Runpod payloads
+
+on:
+  push:
+    branches: ['codex/mldsa-runpod-*']
+    paths:
+      - '.github/workflows/ml-dsa-44-runpod-payloads.yml'
+      - 'contrib/ml-dsa-runpod/package_payload.py'
+      - 'contrib/ml-dsa-runpod/test_package_payload.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  payload:
+    name: Native x86_64 GCC payload (${{ matrix.version }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: a3
+            head: a4777f3beabc0f1d67e4c340dff1bca522446d3f
+          - version: c
+            head: 872da133db255e2188f74ebc5164ecbca620ee6e
+    env:
+      EVIDENCE_DIR: /tmp/pqbtc-runpod-${{ matrix.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+      SOURCE_DIR: /tmp/pqbtc-runpod-source-${{ matrix.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+      PAYLOAD_VERSION: ${{ matrix.version }}
+      EXPECTED_HEAD: ${{ matrix.head }}
+    steps:
+      - name: Checkout packaging source without persisted credentials
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check packaging controls and prepare frozen source
+        run: |
+          set -euo pipefail
+          python3 -B -m unittest discover -s contrib/ml-dsa-runpod -p test_package_payload.py
+          mkdir -m 700 "$EVIDENCE_DIR"
+          git worktree add --detach "$SOURCE_DIR" "$EXPECTED_HEAD"
+          test "$(git -C "$SOURCE_DIR" rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git -C "$SOURCE_DIR" status --porcelain=v1 --untracked-files=all)"
+
+      - name: Build exact frozen native Linux payload without cache
+        run: |
+          set -euo pipefail
+          python3 "$SOURCE_DIR/contrib/ml-dsa-console/source_build.py" \
+            --repo "$SOURCE_DIR" --compiler gcc --no-cache \
+            --output "$EVIDENCE_DIR/build-descriptor.json"
+
+      - name: Run all nine native qualification gates
+        run: |
+          set -euo pipefail
+          python3 "$SOURCE_DIR/contrib/ml-dsa-qualification/run_native_qualification.py" \
+            --descriptor "$EVIDENCE_DIR/build-descriptor.json" --compiler gcc \
+            --expect-head "$EXPECTED_HEAD" --expect-architecture x86_64 \
+            --container "pqbtc-runpod-build-${{ matrix.version }}-${{ github.run_id }}-${{ github.run_attempt }}" \
+            --output-dir "$EVIDENCE_DIR/native-qualification"
+
+      - name: Package immutable payload and build provenance
+        run: |
+          set -euo pipefail
+          python3 contrib/ml-dsa-runpod/package_payload.py \
+            --version "$PAYLOAD_VERSION" --build-descriptor "$EVIDENCE_DIR/build-descriptor.json" \
+            --qualification-report "$EVIDENCE_DIR/native-qualification/report.json" \
+            --output "$EVIDENCE_DIR/export"
+
+      - name: Preserve build, qualification and payload evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: pqbtc-runpod-payload-${{ matrix.version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.EVIDENCE_DIR }}/build-descriptor.json
+            ${{ env.EVIDENCE_DIR }}/native-qualification/
+            ${{ env.EVIDENCE_DIR }}/export/*-payload.tar.gz
+            ${{ env.EVIDENCE_DIR }}/export/payload-receipt.json
+          if-no-files-found: error
+          retention-days: 30
