@@ -331,19 +331,38 @@ class Agent:
         deadline = time.monotonic() + 15
         while time.monotonic() < deadline:
             with path.open("rb") as log:
-                first = log.readline(1024)
-            if first.endswith(b"\n"):
-                identity = json.loads(first)
-                require(identity.get("instance_id") == self.bridge_id and type(identity.get("bridge_pid")) is int and
-                        identity["bridge_pid"] > 1, "Contained bridge process identity missing")
-                self.bridge_pid = identity["bridge_pid"]
-                break
-            require(self.bridge.poll() is None, "Contained bridge failed before launch")
+                first = log.readline(1025)
+                require(len(first) <= 1024, "Contained bridge identity line bound exceeded")
+                if first.endswith(b"\n"):
+                    identity = json.loads(first, object_pairs_hook=strict_pairs)
+                    require(type(identity) is dict and set(identity) == {"instance_id", "bridge_pid"} and
+                            identity["instance_id"] == self.bridge_id and type(identity["bridge_pid"]) is int and
+                            identity["bridge_pid"] > 1 and self.bridge_pid in (None, identity["bridge_pid"]),
+                            "Contained bridge process identity missing or changed")
+                    # Retain the exact PID before any readiness check so that
+                    # a failed bind or malformed event can still be cleaned up.
+                    self.bridge_pid = identity["bridge_pid"]
+                    remaining = 8192 - len(first)
+                    rest = log.read(remaining + 1)
+                    require(len(rest) <= remaining, "Contained bridge readiness log bound exceeded")
+                    ready_line, separator, _tail = rest.partition(b"\n")
+                    require(len(ready_line) <= 4096, "Contained bridge readiness line bound exceeded")
+                    if separator:
+                        ready = json.loads(ready_line, object_pairs_hook=strict_pairs)
+                        require(type(ready) is dict and
+                                set(ready) == {"event", "hostname", "loopback_port", "public_ips", "until_utc"} and
+                                ready["event"] == "bridge_started" and ready["hostname"] == endpoint.hostname and
+                                type(ready["loopback_port"]) is int and ready["loopback_port"] == 23834 and
+                                ready["public_ips"] == list(endpoint.addresses) and
+                                ready["until_utc"] == end.isoformat(), "Contained bridge readiness event mismatch")
+                        require(self.bridge.poll() is None, "Contained bridge failed before readiness")
+                        break
+            require(self.bridge.poll() is None, "Contained bridge failed before readiness")
             time.sleep(0.02)
         else:
-            raise ValueError("Contained bridge identity deadline")
-        # Readiness is observed by an actual peer action; a live exec alone
-        # cannot establish an authenticated TLS/public P2P route.
+            raise ValueError("Contained bridge readiness deadline")
+        # The listener is bound; TLS and native P2P readiness still require an
+        # actual peer action rather than this local launch acknowledgement.
         return {"bridge_process_started": True, "log": path.name, "loopback_endpoint": "127.0.0.1:23834"}
 
     def sample(self):

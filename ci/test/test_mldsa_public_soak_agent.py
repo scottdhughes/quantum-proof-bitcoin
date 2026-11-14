@@ -7,7 +7,11 @@ import time
 import threading
 import json
 import tempfile
+import subprocess
+import sys
+from datetime import datetime, timezone
 from types import SimpleNamespace
+from unittest.mock import patch
 
 PATH = Path(__file__).resolve().parents[2] / "contrib/ml-dsa-qualification/public_soak_agent.py"
 SPEC = importlib.util.spec_from_file_location("public_soak_agent_tests", PATH)
@@ -16,6 +20,121 @@ SPEC.loader.exec_module(agent)
 
 
 class PublicSoakAgentTests(unittest.TestCase):
+    def bridge_fixture(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        state = Path(temporary.name)
+        manager = SimpleNamespace(docker=["unit-docker-must-not-run"], container="pqbtc-mldsa-public-unit",
+                                  inspect=lambda: {"Id": "ab" * 32, "State": {"Running": True, "StartedAt": "unit-generation"}})
+        value = agent.Agent(SimpleNamespace(manager=manager), state, time.time() + 120)
+        params = {"hostname": "public.example.org", "public_ips": ["1.1.1.1"], "port": 443,
+                  "until_utc": datetime.fromtimestamp(time.time() + 60, timezone.utc).isoformat()}
+        processes = []
+        original_popen, real_clock, real_sleep = subprocess.Popen, time.monotonic, time.sleep
+
+        def cleanup():
+            for child in processes:
+                if child.poll() is None:
+                    child.terminate()
+                child.wait(timeout=3)
+            if value.bridge_log is not None:
+                value.bridge_log.close()
+        self.addCleanup(cleanup)
+
+        def spawn(mode, command, **kwargs):
+            ready = {"event": "bridge_started", "hostname": params["hostname"], "loopback_port": 23834,
+                     "public_ips": params["public_ips"], "until_utc": params["until_utc"]}
+            if mode == "wrong_host": ready["hostname"] = "foreign.example.org"
+            if mode == "wrong_port": ready["loopback_port"] = 23835
+            if mode == "float_port": ready["loopback_port"] = 23834.0
+            if mode == "wrong_ips": ready["public_ips"] = ["8.8.8.8"]
+            if mode == "wrong_deadline": ready["until_utc"] = "2000-01-01T00:00:00+00:00"
+            script = '''import json,os,pathlib,sys,time
+print(json.dumps({'bridge_pid':os.getpid(),'instance_id':sys.argv[1]}),flush=True)
+mode=sys.argv[2]
+if mode=='exit': sys.exit(7)
+if mode=='gated':
+ while not pathlib.Path(sys.argv[4]).exists(): time.sleep(.01)
+if mode=='no_ready': time.sleep(30)
+elif mode=='malformed': print('{not-json',flush=True)
+elif mode=='oversize': print('x'*4097,flush=True)
+elif mode=='log_flood': print('x'*9000,flush=True)
+elif mode=='duplicate': print('{"event":"bridge_started","event":"bridge_started"}',flush=True)
+else: print(sys.argv[3],flush=True)
+if mode=='ready_exit': sys.exit(7)
+time.sleep(30)
+'''
+            child = original_popen([sys.executable, "-u", "-c", script,
+                                    command[command.index("--instance-id") + 1], mode, json.dumps(ready), str(state / "ready-gate")],
+                                   **kwargs)
+            processes.append(child)
+            # Ensure the real child has published its PID before a controlled
+            # test clock can consume the whole readiness deadline.
+            deadline = real_clock() + 2
+            while real_clock() < deadline:
+                with next(state.glob("public-transport-*.jsonl")).open("rb") as log:
+                    if log.readline().endswith(b"\n"):
+                        break
+                real_sleep(.005)
+            else:
+                self.fail("Unit bridge child did not publish its PID")
+            if mode == "ready_exit":
+                child.wait(timeout=2)
+            return child
+
+        # A real script launch adds this directory to sys.path automatically.
+        self.enterContext(patch.object(sys, "path", [str(PATH.parent), *sys.path]))
+        return value, params, state, processes, spawn
+
+    def test_bridge_does_not_acknowledge_pid_until_matching_listener_readiness(self):
+        value, params, state, processes, spawn = self.bridge_fixture()
+        result, errors = [], []
+
+        def start():
+            try:
+                result.append(value.bridge_start(params))
+            except BaseException as error:
+                errors.append(error)
+
+        worker = threading.Thread(target=start, daemon=True)
+        with patch.object(agent.subprocess, "Popen", side_effect=lambda command, **kwargs: spawn("gated", command, **kwargs)):
+            worker.start()
+            deadline = time.monotonic() + 2
+            while value.bridge_pid is None and worker.is_alive() and time.monotonic() < deadline:
+                time.sleep(.01)
+            try:
+                self.assertEqual(value.bridge_pid, processes[0].pid)
+                self.assertTrue(worker.is_alive(), "The PID marker was acknowledged before listener readiness")
+            finally:
+                (state / "ready-gate").touch()
+                worker.join(2)
+        self.assertFalse(worker.is_alive())
+        if errors:
+            raise errors[0]
+        self.assertTrue(result[0]["bridge_process_started"])
+
+    def test_bridge_refuses_early_exit_or_invalid_readiness_and_retains_cleanup_pid(self):
+        for mode in ("exit", "ready_exit", "malformed", "oversize", "log_flood", "duplicate",
+                     "wrong_host", "wrong_port", "float_port", "wrong_ips", "wrong_deadline"):
+            with self.subTest(mode=mode):
+                value, params, _state, processes, spawn = self.bridge_fixture()
+                with patch.object(agent.subprocess, "Popen", side_effect=lambda command, **kwargs: spawn(mode, command, **kwargs)):
+                    with self.assertRaises(ValueError):
+                        value.bridge_start(params)
+                self.assertEqual(value.bridge_pid, processes[0].pid)
+
+    def test_bridge_readiness_deadline_is_bounded_after_the_pid_marker(self):
+        value, params, _state, processes, spawn = self.bridge_fixture()
+        clock = [0.0]
+        with patch.object(agent.subprocess, "Popen", side_effect=lambda command, **kwargs: spawn("no_ready", command, **kwargs)), \
+             patch.object(agent.time, "monotonic", side_effect=lambda: clock[0]), \
+             patch.object(agent.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            with self.assertRaisesRegex(ValueError, "readiness deadline"):
+                value.bridge_start(params)
+        self.assertGreaterEqual(clock[0], 15)
+        self.assertLess(clock[0], 15.1)
+        self.assertEqual(value.bridge_pid, processes[0].pid)
+
     def owned_manager(self, initialized=True):
         from public_controller import COMPATIBILITY
         temporary = tempfile.TemporaryDirectory()

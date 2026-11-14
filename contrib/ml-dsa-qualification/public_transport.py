@@ -251,7 +251,9 @@ def relay(left, right, deadline, *, byte_limit=MAX_CONNECTION_BYTES, idle_second
 
 
 class Bridge(socketserver.ThreadingTCPServer):
-    allow_reuse_address = False
+    # Permit an owned listener to restart while its closed connections remain
+    # in TIME_WAIT. This does not permit replacing another live TCP listener.
+    allow_reuse_address = True
     daemon_threads = True
     block_on_close = False
 

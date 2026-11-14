@@ -1,5 +1,6 @@
 """Bounds and actual byte forwarding for the explicit public P2P adapter."""
 import importlib.util
+import errno
 from pathlib import Path
 import socket
 import struct
@@ -17,6 +18,45 @@ SPEC.loader.exec_module(transport)
 
 
 class PublicTransportTests(unittest.TestCase):
+    def bridge_port(self):
+        with socket.socket() as reserved:
+            reserved.bind(("127.0.0.1", 0))
+            return reserved.getsockname()[1]
+
+    def test_bridge_restarts_after_an_owned_connection_actively_closes(self):
+        endpoint = transport.PublicEndpoint("public.example.org", 443, ("1.1.1.1",))
+        port = self.bridge_port()
+        with transport.Bridge(port, endpoint, time.monotonic() + 5) as first:
+            first.socket.settimeout(1)
+            with socket.create_connection(("127.0.0.1", port), timeout=1) as client:
+                accepted, _ = first.socket.accept()
+                # The accepted side closes first, leaving this local server
+                # port in TIME_WAIT after the client completes its close.
+                accepted.close()
+                self.assertEqual(client.recv(1), b"")
+        with transport.Bridge(port, endpoint, time.monotonic() + 5) as restarted:
+            with socket.create_connection(("127.0.0.1", port), timeout=1) as client:
+                restarted.socket.settimeout(1)
+                accepted, address = restarted.socket.accept()
+                accepted.close()
+                self.assertEqual(address[0], "127.0.0.1")
+
+    def test_bridge_restart_never_replaces_a_live_foreign_listener(self):
+        endpoint = transport.PublicEndpoint("public.example.org", 443, ("1.1.1.1",))
+        with socket.socket() as foreign:
+            foreign.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            foreign.bind(("127.0.0.1", 0))
+            foreign.listen(1)
+            port = foreign.getsockname()[1]
+            with self.assertRaises(OSError) as refused:
+                transport.Bridge(port, endpoint, time.monotonic() + 5)
+            self.assertEqual(refused.exception.errno, errno.EADDRINUSE)
+            # The attempted replacement did not disturb the original owner.
+            with socket.create_connection(("127.0.0.1", port), timeout=1):
+                foreign.settimeout(1)
+                accepted, _ = foreign.accept()
+                accepted.close()
+
     def test_canonical_native_ipv6_version_addresses_round_trip_losslessly(self):
         sys.path.insert(0, str(PATH.parents[2] / "test/functional"))
         from test_framework.messages import msg_version

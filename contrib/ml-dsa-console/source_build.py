@@ -14,6 +14,7 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import shutil
+import stat
 import subprocess
 import tempfile
 
@@ -46,6 +47,65 @@ def allowed_source(name):
                     for part in parts), "Refusing sensitive named path in source export")
 
 
+def bounded_source_symlinks(links):
+    """Resolve tracked link chains logically, without consulting outside files."""
+    for name in links:
+        pending, resolved, hops = list(PurePosixPath(name).parts), [], 0
+        while pending:
+            part, pending = pending[0], pending[1:]
+            if part == ".":
+                continue
+            if part == "..":
+                require(resolved, "Escaping source symlink refused")
+                resolved.pop()
+                continue
+            candidate = "/".join([*resolved, part])
+            if candidate in links:
+                hops += 1
+                target = links[candidate]
+                require(hops <= 40 and len(target.encode("utf8")) <= 4096 and "\0" not in target and
+                        not PurePosixPath(target).is_absolute(), "External or cyclic source symlink refused")
+                pending = [*PurePosixPath(target).parts, *pending]
+            else:
+                resolved.append(part)
+
+
+def normalize_export_permissions(destination, modes):
+    """Make only the new public checkout readable; never follow source links."""
+    def walk(directory, relative):
+        os.fchmod(directory, 0o755)
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                name = relative / entry.name
+                info = entry.stat(follow_symlinks=False)
+                if stat.S_ISLNK(info.st_mode):
+                    require(modes.get(name.as_posix()) == "120000", "Unexpected source export symlink")
+                    continue
+                flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+                if stat.S_ISDIR(info.st_mode):
+                    flags |= os.O_DIRECTORY
+                else:
+                    require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1, "Unexpected source export file type")
+                fd = os.open(entry.name, flags, dir_fd=directory)
+                try:
+                    actual = os.fstat(fd)
+                    require((actual.st_dev, actual.st_ino, actual.st_mode) == (info.st_dev, info.st_ino, info.st_mode),
+                            "Source export entry changed during permission normalization")
+                    if stat.S_ISDIR(actual.st_mode):
+                        walk(fd, name)
+                    else:
+                        tracked = modes.get(name.as_posix())
+                        require(name.parts[0] == ".git" or tracked in ("100644", "100755"), "Unexpected source export member")
+                        os.fchmod(fd, 0o755 if tracked == "100755" else 0o644)
+                finally:
+                    os.close(fd)
+    directory = os.open(destination, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        walk(directory, PurePosixPath())
+    finally:
+        os.close(directory)
+
+
 def stage_source(repo, destination):
     """Export HEAD and only its reachable tree into a new self-contained checkout."""
     repo, destination = Path(repo).resolve(), Path(destination)
@@ -56,6 +116,7 @@ def stage_source(repo, destination):
     tree = git(repo, "rev-parse", "HEAD^{tree}").decode().strip()
     require(re.fullmatch(r"[0-9a-f]{40}", head) and re.fullmatch(r"[0-9a-f]{40}", tree), "Unsupported source object identity")
     entries = git(repo, "ls-tree", "-rz", "--full-tree", "HEAD").split(b"\0")
+    modes, links = {}, {}
     for entry in entries:
         if not entry:
             continue
@@ -65,11 +126,11 @@ def stage_source(repo, destination):
         allowed_source(name)
         require(kind == "blob" and mode in ("100644", "100755", "120000"),
                 "Submodules or unsupported source modes must be materialized explicitly")
+        modes[name] = mode
         if mode == "120000":
             target = git(repo, "cat-file", "blob", object_id).decode("utf8")
-            require(not PurePosixPath(target).is_absolute(), "External source symlink refused")
-            resolved = (destination / name).parent.joinpath(target).resolve()
-            require(resolved.is_relative_to(destination.resolve()), "Escaping source symlink refused")
+            links[name] = target
+    bounded_source_symlinks(links)
     destination.mkdir(mode=0o755, parents=True)
     # checkout-index copies only tracked objects and does not read unrelated
     # ignored files. The cleanliness check above establishes index == HEAD.
@@ -87,6 +148,10 @@ def stage_source(repo, destination):
     git(destination, "index-pack", "--stdin", data=pack)
     git(destination, "reset", "--mixed", "HEAD")
     require(not git(destination, "status", "--porcelain=v1", "--untracked-files=all"), "Source export is not an exact clean checkout")
+    # Apply explicit Git executable modes after the last generated-index write.
+    # The surrounding Docker context stays private and the caller's umask is
+    # untouched; ignored files were never exported or visited.
+    normalize_export_permissions(destination, modes)
     return {"source_head": head, "source_tree": tree,
             "source_epoch": int(git(repo, "show", "-s", "--format=%ct", "HEAD"))}
 

@@ -58,7 +58,7 @@ operator material belongs in a committed configuration.
     {
       "name": "research",
       "role": "follower",
-      "transport": {"kind": "ssh", "argv": ["ssh", "-T", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", "-o", "StrictHostKeyChecking=yes", "-o", "ClearAllForwardings=yes", "-o", "ForwardAgent=no", "-o", "ForwardX11=no", "agent@existing-owned-host.example"]},
+      "transport": {"kind": "ssh", "argv": ["ssh", "-T", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", "-o", "ServerAliveInterval=15", "-o", "ServerAliveCountMax=3", "-o", "StrictHostKeyChecking=yes", "-o", "ClearAllForwardings=yes", "-o", "ForwardAgent=no", "-o", "ForwardX11=no", "agent@existing-owned-host.example"]},
       "repo": "/absolute/path/to/clean/agent-checkout",
       "state_dir": "/absolute/path/to/new/research-soak-attempt-state",
       "container": "pqbtc-mldsa-public-soak-attempt-001",
@@ -78,7 +78,9 @@ operator material belongs in a committed configuration.
 `remote_descriptor` is the path read by that host's agent at startup. The full
 qualified candidate descriptor is sent over stdin during upgrade/rollback.
 SSH command arguments are quoted as data; no shell interpolation of paths is
-needed. Existing noninteractive SSH and Docker access must already work.
+needed. Existing noninteractive SSH and Docker access must already work. SSH
+keepalives keep the control route active while the other host replaces a binary;
+they do not extend action deadlines or retry an ambiguous operation.
 
 Use new dedicated state/container **and volume** names and a new output directory
 for every attempt. Both hosts must have absent container and named-volume

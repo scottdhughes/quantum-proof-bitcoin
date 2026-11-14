@@ -2,7 +2,9 @@
 import importlib.util
 import hashlib
 import json
+import os
 from pathlib import Path
+import stat
 import subprocess
 import tempfile
 import unittest
@@ -56,6 +58,61 @@ class SourceExportTests(unittest.TestCase):
         (self.repo / "untracked").write_text("not part of a source commit\n")
         with self.assertRaisesRegex(source_build.BuildError, "clean"):
             source_build.stage_source(self.repo, self.destination)
+
+    def test_private_umask_exports_readable_tracked_modes_without_touching_source(self):
+        scripts = self.repo / "scripts"
+        scripts.mkdir()
+        executable = scripts / "build.sh"
+        executable.write_text("#!/bin/sh\nexit 0\n")
+        executable.chmod(0o755)
+        (self.repo / "script-link").symlink_to("scripts/build.sh")
+        (self.repo / "directory-link").symlink_to("scripts")
+        self.git("add", ".")
+        self.git("commit", "-qm", "Public executable and internal links")
+        executable.chmod(0o700)
+        original = self.repo / "hello.txt"
+        original.chmod(0o600)
+        ignored = self.repo / "ignored-file"
+        ignored.write_text("ignored public fixture remains private\n")
+        ignored.chmod(0o600)
+        outer = Path(self.temp.name)
+        outer_mode = stat.S_IMODE(outer.stat().st_mode)
+        previous = os.umask(0o077)
+        try:
+            identity = source_build.stage_source(self.repo, self.destination)
+            self.assertEqual(os.umask(0o077), 0o077)
+            expected_executable = self.destination / "scripts/build.sh"
+            for path in [self.destination, *self.destination.rglob("*")]:
+                info = path.lstat()
+                if stat.S_ISLNK(info.st_mode):
+                    continue
+                expected = 0o755 if stat.S_ISDIR(info.st_mode) or path == expected_executable else 0o644
+                self.assertEqual(stat.S_IMODE(info.st_mode), expected, str(path.relative_to(self.destination)))
+        finally:
+            os.umask(previous)
+        self.assertEqual(identity["source_head"], self.git("rev-parse", "HEAD"))
+        self.assertEqual(identity["source_tree"], self.git("rev-parse", "HEAD^{tree}"))
+        self.assertEqual(subprocess.check_output(["git", "-C", str(self.destination), "status", "--porcelain"]), b"")
+        self.assertEqual(stat.S_IMODE(outer.stat().st_mode), outer_mode)
+        self.assertEqual(stat.S_IMODE(original.stat().st_mode), 0o600)
+        self.assertEqual(stat.S_IMODE(executable.stat().st_mode), 0o700)
+        self.assertEqual(stat.S_IMODE(ignored.stat().st_mode), 0o600)
+        self.assertFalse((self.destination / "ignored-file").exists())
+        self.assertEqual(os.readlink(self.destination / "script-link"), "scripts/build.sh")
+        self.assertEqual(os.readlink(self.destination / "directory-link"), "scripts")
+
+    def test_symlink_chain_cannot_escape_via_an_internal_directory_alias(self):
+        (self.repo / "alias").symlink_to(".")
+        (self.repo / "directory").mkdir()
+        (self.repo / "directory/link").symlink_to("../alias/..")
+        self.git("add", ".")
+        self.git("commit", "-qm", "Bounded source link-chain refusal fixture")
+        outside = Path(self.temp.name) / "outside"
+        outside.write_text("unrelated public fixture\n")
+        outside.chmod(0o600)
+        with self.assertRaisesRegex(source_build.BuildError, "symlink"):
+            source_build.stage_source(self.repo, self.destination)
+        self.assertEqual(stat.S_IMODE(outside.stat().st_mode), 0o600)
 
     def test_tracked_credential_named_path_is_refused(self):
         (self.repo / "credentials").write_text("public refusal fixture\n")
