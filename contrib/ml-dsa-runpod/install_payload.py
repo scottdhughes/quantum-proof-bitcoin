@@ -55,6 +55,22 @@ def owned(path):
          "Installation directory ownership differs")
 
 
+def prepare_layout(runtime_root=Path("/opt/pqbtc-runtime"), data_mount=Path("/var/lib/pqbtc"), *, owner=0, group=0):
+    """Protect the provider volume parent and recreate the ephemeral runtime root."""
+    info = data_mount.lstat()
+    need(stat.S_ISDIR(info.st_mode) and os.path.ismount(data_mount), "Persistent data mount missing")
+    # A newly allocated Runpod network volume can arrive as uid 655360/mode
+    # 0777. Only the fixed mount root is changed; existing wallet files retain
+    # their distinct signer/node ownership and restrictive permissions.
+    os.chown(data_mount, owner, group, follow_symlinks=False)
+    data_mount.chmod(0o755)
+    runtime_root.mkdir(mode=0o755, exist_ok=True)
+    for path in (data_mount, runtime_root):
+        info = path.lstat()
+        need(stat.S_ISDIR(info.st_mode) and info.st_uid == owner and
+             stat.S_IMODE(info.st_mode) == 0o755, "Runtime parent ownership differs")
+
+
 def verify_installed(archive, target, prefix, *, owner=0):
     """Verify a complete installed tree, including replay after a lost marker."""
     target = Path(target)
@@ -103,6 +119,7 @@ def main(argv=None):
          "Installation arguments refused")
     root = Path(root_value)
     need(root == Path("/opt/pqbtc-runpod"), "Installation root refused")
+    prepare_layout()
     root.mkdir(mode=0o755, exist_ok=True)
     owned(root)
     uploads = root / "uploads"

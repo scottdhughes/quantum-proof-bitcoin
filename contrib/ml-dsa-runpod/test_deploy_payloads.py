@@ -10,6 +10,7 @@ import tarfile
 import tempfile
 import unittest
 import sys
+from unittest.mock import patch
 
 import deploy_payloads
 import install_payload
@@ -17,6 +18,26 @@ import export_state
 
 
 class DeploymentTests(unittest.TestCase):
+    def test_runtime_layout_secures_only_mount_parent_and_refuses_links(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            mount = root / 'volume'
+            mount.mkdir(mode=0o777)
+            retained = mount / 'retained-data'
+            retained.write_bytes(b'UNCHANGED')
+            retained.chmod(0o600)
+            with patch.object(install_payload.os.path, 'ismount', return_value=True):
+                install_payload.prepare_layout(root / 'runtime', mount, owner=os.geteuid(), group=os.getegid())
+                self.assertEqual(mount.stat().st_mode & 0o777, 0o755)
+                self.assertEqual(retained.read_bytes(), b'UNCHANGED')
+                self.assertEqual(retained.stat().st_mode & 0o777, 0o600)
+                linked = root / 'linked'
+                linked.symlink_to(mount)
+                with self.assertRaises(ValueError):
+                    install_payload.prepare_layout(root / 'other', linked, owner=os.geteuid(), group=os.getegid())
+            with self.assertRaises(ValueError):
+                install_payload.prepare_layout(root / 'other', mount, owner=os.geteuid(), group=os.getegid())
+
     def test_refuse_unsafe_archive_members(self):
         for name, kind in (("../escape", tarfile.REGTYPE), ("c/../../escape", tarfile.REGTYPE),
                            ("a3/file", tarfile.REGTYPE), ("c/link", tarfile.SYMTYPE), ("c/fifo", tarfile.FIFOTYPE)):

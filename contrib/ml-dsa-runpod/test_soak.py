@@ -210,6 +210,84 @@ class TransportTests(unittest.TestCase):
 
 
 class ControllerBoundaryTests(unittest.TestCase):
+    def cgroup_fixture(self, root, *, version=1, mount_root="/docker/live", membership="/docker/live"):
+        proc = root / "proc/self"
+        proc.mkdir(parents=True)
+        if version == 1:
+            controllers = {"cpu": "cpu,cpuacct", "cpuset": "cpuset", "memory": "memory", "pids": "pids"}
+            rows, mounts = [], []
+            for index, (directory, names) in enumerate(controllers.items(), 1):
+                rows.append(f"{index}:{names}:{membership}")
+                mounts.append(f"{index} 1 0:{index} {mount_root} /sys/fs/cgroup/{directory} rw - cgroup cgroup rw,{names}")
+            values = {"cpu": {"cpu.cfs_quota_us": "-1", "cpu.cfs_period_us": "100000", "cpu.stat": "nr_throttled 0\n",
+                               "cpuacct.usage": "123456789000"},
+                      "cpuset": {"cpuset.effective_cpus": "22,30,54,62", "cpuset.cpus": "22,30,54,62"},
+                      "memory": {"memory.limit_in_bytes": "8000000000", "memory.usage_in_bytes": "496427008"},
+                      "pids": {"pids.max": "max", "pids.current": "12"}}
+        else:
+            rows = ["0::" + membership]
+            mounts = [f"1 0 0:1 {mount_root} /sys/fs/cgroup rw - cgroup2 cgroup rw"]
+            values = {"": {"cpu.max": "400000 100000", "cpu.stat": "usage_usec 123456789\nnr_throttled 1\n",
+                            "cpuset.cpus.effective": "0-3", "memory.max": str(8 * 1024**3), "memory.current": "496427008",
+                            "pids.max": "512", "pids.current": "12"}}
+        (proc / "cgroup").write_text("\n".join(rows) + "\n")
+        (proc / "mountinfo").write_text("\n".join(mounts) + "\n")
+        relative = Path(membership).relative_to(mount_root)
+        for directory, files in values.items():
+            path = root / "sys/fs/cgroup" / directory / relative
+            path.mkdir(parents=True, exist_ok=True)
+            for name, contents in files.items():
+                (path / name).write_text(contents)
+        return root / "proc"
+
+    def test_current_cgroup_v1_cpuset_decimal_memory_proof(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            proc = self.cgroup_fixture(root)
+            value = agent.cgroup_snapshot(proc=proc, filesystem=root)
+            self.assertEqual((value["cgroup_version"], value["scope"]), (1, "PROVIDER_CONTAINER_CGROUP_V1"))
+            self.assertEqual(value["controller_paths"]["cpu"], "/sys/fs/cgroup/cpu")
+            self.assertEqual(value["cpu_cores"], 4)
+            self.assertIsNone(value["cpu_quota"])
+            self.assertIsNone(value["pids_max"])
+            self.assertEqual(value["cpu_usage_usec"], 123456789)
+            self.assertEqual(value["memory_max_bytes"], 8000000000)
+            driver.validate_resource_identity(value, {"cpu_cores": 4, "memory_bytes": 8000000000})
+            with self.assertRaises(ValueError):
+                driver.validate_resource_identity(value, {"cpu_cores": 4, "memory_bytes": 8 * 1024**3})
+
+    def test_v1_selects_current_child_not_unlimited_host_root(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            proc = self.cgroup_fixture(root, mount_root="/", membership="/docker/live")
+            (root / "sys/fs/cgroup/memory/memory.limit_in_bytes").write_text(str(2**63 - 4096))
+            (root / "sys/fs/cgroup/cpuset/cpuset.effective_cpus").write_text("0-63")
+            value = agent.cgroup_snapshot(proc=proc, filesystem=root)
+            self.assertEqual(value["controller_paths"]["memory"], "/sys/fs/cgroup/memory/docker/live")
+            self.assertEqual(value["memory_max_bytes"], 8000000000)
+            self.assertEqual(value["cpu_cores"], 4)
+
+    def test_current_cgroup_v2_quota_proof_stays_versioned(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            proc = self.cgroup_fixture(root, version=2, mount_root="/", membership="/owned/pod")
+            value = agent.cgroup_snapshot(proc=proc, filesystem=root)
+            self.assertEqual(value["cgroup_version"], 2)
+            self.assertEqual(value["controller_paths"], {"unified": "/sys/fs/cgroup/owned/pod"})
+            driver.validate_resource_identity(value, {"cpu_cores": 4, "memory_bytes": 8 * 1024**3})
+
+    def test_missing_current_mount_and_unlimited_memory_fail_closed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            proc = self.cgroup_fixture(root)
+            memory = root / "sys/fs/cgroup/memory/memory.limit_in_bytes"
+            memory.write_text(str(2**63 - 4096))
+            with self.assertRaises(ValueError):
+                agent.cgroup_snapshot(proc=proc, filesystem=root)
+            (proc / "self/mountinfo").write_text((proc / "self/mountinfo").read_text().replace("/docker/live", "/docker/other"))
+            with self.assertRaises(ValueError):
+                agent.cgroup_snapshot(proc=proc, filesystem=root)
+
     def test_all_remote_python_control_entrypoints_disable_bytecode(self):
         docker = {"backend": "docker", "repo": "/control", "state_dir": "/task/control", "control_identity": {},
                   "role": "bootstrap", "container": "pqbtc-mldsa-public-soak-data", "p2p_port": 23833,

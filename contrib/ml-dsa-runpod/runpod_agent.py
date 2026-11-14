@@ -13,7 +13,7 @@ import hashlib
 import importlib.util
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import platform
 import re
 import stat
@@ -105,28 +105,93 @@ def cpuset_count(raw):
     return len(cpus)
 
 
-def cgroup_snapshot():
-    """Kernel provider-container counters; these are not whole-host metrics."""
-    root = Path("/sys/fs/cgroup")
-    require((root / "cgroup.controllers").is_file(), "Runpod qualification requires cgroup v2 counters")
-    def value(name):
-        return (root / name).read_text().strip()
-    quota, period = value("cpu.max").split()
-    require(int(period) > 0 and (quota == "max" or int(quota) > 0), "Provider CPU allocation syntax unavailable")
-    effective = root / "cpuset.cpus.effective"
-    cpus = cpuset_count(effective.read_text().strip()) if effective.is_file() else None
-    require(quota != "max" or cpus is not None, "Provider CPU hard allocation unavailable")
-    cores = min(int(quota) / int(period) if quota != "max" else float("inf"), cpus or float("inf"))
-    memory = value("memory.max")
-    require(memory != "max" and int(memory) > 0, "Provider memory hard allocation unavailable")
-    stats = dict(line.split() for line in value("cpu.stat").splitlines())
-    pids = value("pids.max")
-    return {"cpu_quota": None if quota == "max" else int(quota), "cpu_period": int(period), "cpu_cores": cores,
-            "cpuset_cpu_count": cpus,
-            "memory_max_bytes": int(memory), "memory_current_bytes": int(value("memory.current")),
-            "pids_max": None if pids == "max" else int(pids), "pids_current": int(value("pids.current")),
-            "cpu_usage_usec": int(stats["usage_usec"]), "cpu_nr_throttled": int(stats.get("nr_throttled", 0)),
-            "scope": "PROVIDER_CONTAINER_CGROUP_V2"}
+def cgroup_locations(membership, mountinfo):
+    """Map kernel membership through mount roots, never an assumed host root."""
+    groups = {}
+    for line in membership.splitlines():
+        hierarchy, controllers, path = line.split(":", 2)
+        require(hierarchy.isdigit() and path.startswith("/") and ".." not in PurePosixPath(path).parts,
+                "Kernel cgroup membership refused")
+        names = controllers.split(",") if controllers else ["unified"]
+        for name in names:
+            require(name not in groups, "Duplicate kernel cgroup membership")
+            groups[name] = PurePosixPath(path)
+    candidates = {}
+    def unescape(value):
+        return re.sub(r"\\([0-7]{3})", lambda match: chr(int(match[1], 8)), value)
+    for line in mountinfo.splitlines():
+        before, separator, after = line.partition(" - ")
+        require(separator, "Kernel mountinfo separator missing")
+        fields, kind = before.split(), after.split()
+        require(len(fields) >= 6 and len(kind) >= 3, "Kernel mountinfo fields missing")
+        if kind[0] not in ("cgroup", "cgroup2"):
+            continue
+        root, mount = PurePosixPath(unescape(fields[3])), PurePosixPath(unescape(fields[4]))
+        require(root.is_absolute() and mount.is_absolute() and ".." not in root.parts and ".." not in mount.parts,
+                "Kernel cgroup mount paths refused")
+        controllers = ["unified"] if kind[0] == "cgroup2" else kind[2].split(",")
+        for name in controllers:
+            current = groups.get(name)
+            if current is None or not current.is_relative_to(root):
+                continue
+            location = mount / current.relative_to(root)
+            candidates.setdefault(name, []).append((len(root.parts), str(location)))
+    return {name: max(values)[1] for name, values in candidates.items()}
+
+
+def cgroup_snapshot(*, proc=Path("/proc"), filesystem=Path("/")):
+    """Current provider-container v1/v2 counters, with exact kernel paths."""
+    locations = cgroup_locations((Path(proc) / "self/cgroup").read_text(),
+                                (Path(proc) / "self/mountinfo").read_text())
+    def file(controller, name):
+        require(controller in locations, "Current kernel cgroup controller is not mounted")
+        return Path(filesystem) / PurePosixPath(locations[controller]).relative_to("/") / name
+    def value(controller, name):
+        return file(controller, name).read_text().strip()
+    unified = "unified" in locations and all(file("unified", name).is_file() for name in
+                                             ("cpu.max", "cpu.stat", "memory.max", "memory.current", "pids.current", "pids.max"))
+    if unified:
+        version = 2
+        quota, period = value("unified", "cpu.max").split()
+        quota = None if quota == "max" else int(quota)
+        period = int(period)
+        effective = file("unified", "cpuset.cpus.effective")
+        cpus = cpuset_count(effective.read_text().strip()) if effective.is_file() else None
+        memory = value("unified", "memory.max")
+        require(memory != "max", "Provider memory hard allocation unavailable")
+        memory, usage = int(memory), int(value("unified", "memory.current"))
+        stats = dict(line.split() for line in value("unified", "cpu.stat").splitlines())
+        cpu_usage_usec = int(stats["usage_usec"])
+        pids, count = value("unified", "pids.max"), int(value("unified", "pids.current"))
+        selected = {"unified": locations["unified"]}
+    else:
+        version = 1
+        require({"cpu", "cpuacct", "memory", "pids"} <= set(locations), "Current cgroup v1 controller paths missing")
+        quota, period = int(value("cpu", "cpu.cfs_quota_us")), int(value("cpu", "cpu.cfs_period_us"))
+        quota = None if quota == -1 else quota
+        cpus = None
+        if "cpuset" in locations:
+            for name in ("cpuset.effective_cpus", "cpuset.cpus"):
+                path = file("cpuset", name)
+                if path.is_file() and path.read_text().strip():
+                    cpus = cpuset_count(path.read_text().strip())
+                    break
+        memory, usage = int(value("memory", "memory.limit_in_bytes")), int(value("memory", "memory.usage_in_bytes"))
+        stats = dict(line.split() for line in value("cpu", "cpu.stat").splitlines())
+        cpu_usage_usec = int(value("cpuacct", "cpuacct.usage")) // 1000
+        pids, count = value("pids", "pids.max"), int(value("pids", "pids.current"))
+        selected = {name: locations[name] for name in ("cpu", "cpuacct", "memory", "pids", "cpuset") if name in locations}
+    require(period > 0 and (quota is None or quota > 0) and (quota is not None or cpus is not None),
+            "Provider CPU hard allocation unavailable")
+    require(0 < memory < 2**60 and usage >= 0 and count > 0 and cpu_usage_usec >= 0,
+            "Provider memory/PID/usage counters are unavailable or unlimited")
+    cores = min(quota / period if quota is not None else float("inf"), cpus or float("inf"))
+    return {"schema": "PQBTC-RUNPOD-CGROUP-SNAPSHOT-1", "cgroup_version": version, "controller_paths": selected,
+            "cpu_quota": quota, "cpu_period": period, "cpu_cores": cores, "cpuset_cpu_count": cpus,
+            "memory_max_bytes": memory, "memory_current_bytes": usage,
+            "pids_max": None if pids == "max" else int(pids), "pids_current": count,
+            "cpu_usage_usec": cpu_usage_usec, "cpu_nr_throttled": int(stats.get("nr_throttled", 0)),
+            "scope": "PROVIDER_CONTAINER_CGROUP_V" + str(version)}
 
 
 def quarantine_records(controller):

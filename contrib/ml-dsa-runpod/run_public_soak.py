@@ -67,6 +67,18 @@ def validate_native_paths(settings, state_dir):
             "Native controller/data must be fresh siblings inside one scoped provider-mounted namespace")
 
 
+def validate_resource_identity(value, settings):
+    version = value.get("cgroup_version")
+    paths = value.get("controller_paths", {})
+    require(value.get("schema") == "PQBTC-RUNPOD-CGROUP-SNAPSHOT-1" and type(version) is int and version in (1, 2) and
+            value.get("scope") == "PROVIDER_CONTAINER_CGROUP_V" + str(version) and type(paths) is dict and paths and
+            all(safe_path(path) for path in paths.values()), "Actual versioned provider cgroup proof required")
+    require((set(paths) == {"unified"}) if version == 2 else {"cpu", "cpuacct", "memory", "pids"} <= set(paths),
+            "Current process cgroup controller paths missing")
+    require(value.get("cpu_cores") == settings["cpu_cores"] and value.get("memory_max_bytes") == settings["memory_bytes"],
+            "Provider cgroup hard allocation differs from the declared binding")
+
+
 def validate_ssh(transport):
     require(type(transport) is dict and {"kind", "argv"} <= set(transport) <=
             {"kind", "argv", "pod_id", "generation", "hostkey_source", "known_hosts_sha256"} and transport["kind"] == "ssh" and
@@ -248,8 +260,8 @@ def prelaunch_host(host):
             "Actual execution architecture would emulate a qualified payload")
     if native(host):
         limits = value.get("provider_container", {})
-        require(value.get("pod_id") == host["native"]["pod_id"] and limits.get("cpu_cores") == host["native"]["cpu_cores"] and
-                limits.get("memory_max_bytes") == host["native"]["memory_bytes"], "Provider cgroup hard allocation differs")
+        require(value.get("pod_id") == host["native"]["pod_id"], "Actual provider pod identity differs")
+        validate_resource_identity(limits, host["native"])
     else:
         require(type(value.get("docker_daemon_id")) is str and len(value["docker_daemon_id"]) >= 8, "Actual Docker daemon identity missing")
     return value
@@ -513,9 +525,8 @@ class Soak(base.Soak):
                     0 <= value["mempool_usage_bytes"] <= 32_000_000, "Actual node memory/mempool budget failed")
             if native(config):
                 limits = value.get("provider_container", {})
-                require(limits.get("cpu_cores") == config["native"]["cpu_cores"] and
-                        limits.get("memory_max_bytes") == config["native"]["memory_bytes"] and
-                        0 < limits.get("memory_current_bytes", 0) <= config["native"]["memory_bytes"] and
+                validate_resource_identity(limits, config["native"])
+                require(0 < limits.get("memory_current_bytes", 0) <= config["native"]["memory_bytes"] and
                         type(limits.get("pids_current")) is int and 0 < limits["pids_current"] <= 256 and
                         base.finite(value.get("pod_cpu_percent")) and 0 <= value["pod_cpu_percent"] < 90,
                         "Runpod provider-container resource budget exceeded")

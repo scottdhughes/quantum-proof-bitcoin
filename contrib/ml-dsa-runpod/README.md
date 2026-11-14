@@ -21,8 +21,14 @@ The new launcher is separately frozen to a committed source HEAD/tree and the
 eight control-file hashes listed in `run_public_soak.py`.
 
 The provider adapter supplies a fresh owned CPU-only pod and persistent storage.
-Runpod allocation must expose cgroup v2 `cpu.max`, `memory.max`, `cpu.stat`, and
-PID/memory counters. The declaration binds the actual CPU/memory hard allocation;
+Runpod allocation must expose cgroup v1 or v2 CPU, memory, and PID counters.
+The launcher maps `/proc/self/cgroup` through `/proc/self/mountinfo` to select
+the current process's controller directories, rather than an assumed host root.
+Receipts explicitly record the cgroup version and selected paths. CPU quota
+and/or the effective cpuset must provide the declared hard CPU bound; memory
+must have a finite hard limit. `memory_bytes` is the exact observed byte count
+(for example 8,000,000,000 bytes is distinct from 8 GiB).
+The declaration binds the actual CPU/memory hard allocation;
 PID count and node RSS monitoring are observations, not a claim of the old Docker
 `--pids-limit` or read-only-root configuration. Child capabilities/UIDs and owned
 process-session cleanup are checked by `native_backend.py`.
