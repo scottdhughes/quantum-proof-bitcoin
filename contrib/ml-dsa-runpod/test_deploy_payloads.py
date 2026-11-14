@@ -71,7 +71,10 @@ class DeploymentTests(unittest.TestCase):
             retained = mount / 'retained-data'
             retained.write_bytes(b'UNCHANGED')
             retained.chmod(0o600)
-            with patch.object(install_payload.os.path, 'ismount', return_value=True):
+            # This DATA fixture verifies layout ownership; real cross-UID
+            # traversal is checked separately with a traversable Linux parent.
+            with patch.object(install_payload.os.path, 'ismount', return_value=True), \
+                 patch.object(install_payload, 'verify_posix_isolation'):
                 install_payload.prepare_layout(root / 'runtime', mount, owner=os.geteuid(), group=os.getegid())
                 self.assertEqual(mount.stat().st_mode & 0o777, 0o755)
                 self.assertEqual(retained.read_bytes(), b'UNCHANGED')

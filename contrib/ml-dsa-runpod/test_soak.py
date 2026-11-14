@@ -451,9 +451,17 @@ class ControllerBoundaryTests(unittest.TestCase):
                 pid = int(child_pid.read_text())
                 deadline, running = time.monotonic() + 1, True
                 while running and time.monotonic() < deadline:
-                    observed = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True)
-                    state = observed.stdout.strip()
-                    running = observed.returncode == 0 and bool(state) and not state.startswith("Z")
+                    if sys.platform.startswith("linux"):
+                        try:
+                            state = (Path("/proc") / str(pid) / "stat").read_text().rpartition(")")[2].split()[0]
+                        except FileNotFoundError:
+                            state = ""
+                        running = bool(state) and state != "Z"
+                    else:
+                        observed = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True,
+                                                  text=True, encoding="utf8")
+                        state = observed.stdout.strip()
+                        running = observed.returncode == 0 and bool(state) and not state.startswith("Z")
                     if running:
                         time.sleep(0.02)
                 self.assertFalse(running, "Exited helper left its same-session child running")

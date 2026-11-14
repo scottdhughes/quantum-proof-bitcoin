@@ -5,6 +5,13 @@ pod, paired with the Mac's independently qualified Docker node. Research is not
 used. It reuses the existing sealed wallet formats, UID1000 signer, UID1001 node,
 public address-floor journal, and the original public-soak payment/timing rules.
 
+Validation status, 2026-11-14: Runpod native startup is blocked. Both qualified
+A3 and C daemons received SIGKILL before diagnostic cleanup, without a recorded
+cgroup OOM event. The sender and cause are unconfirmed. Installation, real NFS
+UID isolation, and private evidence export passed, but no Runpod wallet,
+transaction, provider-restart qualification, public preflight, or elapsed soak
+completed. These results do not qualify Runpod as a functioning platform yet.
+
 Runpod's outer provider container is the isolation boundary. There is no nested
 Docker daemon. Native application-session crashes, native payload upgrades, Mac
 Docker image replacements, and actual provider-container restarts are recorded
