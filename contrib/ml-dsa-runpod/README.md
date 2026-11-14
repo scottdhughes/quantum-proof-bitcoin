@@ -39,6 +39,13 @@ UID1001 cannot open it for reading or appending. Synthetic permission listings
 alone do not qualify a mount. A rejected storage tier must not be used for live
 wallet state, and selecting `HIGH_PERFORMANCE` does not itself establish that
 this test passes.
+On root-squashed NFS, each role creates its own private directory exclusively;
+the fresh initialization parent is sticky only during creation and returns to
+0755 before any application starts. The installer also proves that neither
+application UID can read or modify the root-owned control journal. Export runs
+under the native global lock with all application sessions stopped, reading
+each private branch as its owner and restoring root between branches. It
+preserves the original ownership/modes and excludes task authentication cookies.
 
 The running node hash comes from its actual `/proc/<pid>/exe`. The hardened
 signer deliberately denies post-exec executable inspection, including to the
