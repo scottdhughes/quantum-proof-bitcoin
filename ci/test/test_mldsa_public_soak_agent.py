@@ -44,11 +44,16 @@ class PublicSoakAgentTests(unittest.TestCase):
         def spawn(mode, command, **kwargs):
             ready = {"event": "bridge_started", "hostname": params["hostname"], "loopback_port": 23834,
                      "public_ips": params["public_ips"], "until_utc": params["until_utc"]}
-            if mode == "wrong_host": ready["hostname"] = "foreign.example.org"
-            if mode == "wrong_port": ready["loopback_port"] = 23835
-            if mode == "float_port": ready["loopback_port"] = 23834.0
-            if mode == "wrong_ips": ready["public_ips"] = ["8.8.8.8"]
-            if mode == "wrong_deadline": ready["until_utc"] = "2000-01-01T00:00:00+00:00"
+            if mode == "wrong_host":
+                ready["hostname"] = "foreign.example.org"
+            if mode == "wrong_port":
+                ready["loopback_port"] = 23835
+            if mode == "float_port":
+                ready["loopback_port"] = 23834.0
+            if mode == "wrong_ips":
+                ready["public_ips"] = ["8.8.8.8"]
+            if mode == "wrong_deadline":
+                ready["until_utc"] = "2000-01-01T00:00:00+00:00"
             script = '''import json,os,pathlib,sys,time
 print(json.dumps({'bridge_pid':os.getpid(),'instance_id':sys.argv[1]}),flush=True)
 mode=sys.argv[2]

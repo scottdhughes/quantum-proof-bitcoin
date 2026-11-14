@@ -324,10 +324,33 @@ def validate_adverse(value):
             "Actual adverse signature verification rejection or wrong-network HELLO control failed")
 
 
+def private_docker_host(host):
+    if "docker_host" not in host:
+        return None
+    endpoint = host["docker_host"]
+    require(host["transport"]["kind"] == "ssh" and host.get("sudo_docker") is False,
+            "Private Docker endpoints require SSH without sudo")
+    require(type(endpoint) is str and len(endpoint) <= 256 and
+            re.fullmatch(r"unix:///[A-Za-z0-9_./-]+", endpoint), "Private Docker endpoint must be a canonical Unix URL")
+    path = endpoint.removeprefix("unix://")
+    parts = path.split("/")[1:]
+    require(len(parts) >= 3 and all(part and not part.startswith(".") and
+            part.lower() not in {"credentials", "secrets", "tokens", "keys"} for part in parts) and
+            parts[0] not in {"etc", "proc", "sys", "dev", "root", "boot", "lib", "lib64", "usr", "bin", "sbin"} and
+            path not in {"/run/docker.sock", "/var/run/docker.sock"} and parts[-1].endswith(".sock"),
+            "Private Docker endpoint path is not a dedicated nonsensitive socket")
+    return endpoint
+
+
 def host_exec(host, arguments):
     arguments = list(map(str, arguments))
+    endpoint = private_docker_host(host)
     if host["transport"]["kind"] == "local":
         return arguments
+    if endpoint is not None:
+        # Every SSH helper and agent inherits this exact engine; contexts must
+        # not silently override it. shlex.join still quotes each argv item.
+        arguments = ["env", "-u", "DOCKER_CONTEXT", "DOCKER_HOST=" + endpoint, *arguments]
     return [*host["transport"]["argv"], shlex.join(arguments)]
 
 
@@ -354,6 +377,14 @@ def hashed(name):
  finally: os.close(fd)
 identity={'source_head':head,'source_tree':tree,'clean':True,
  'control_sha256':{name:hashed(name) for name in p['control_files']}}
+if 'docker_host' in p:
+ endpoint=p['docker_host']; assert os.environ.get('DOCKER_HOST')==endpoint and 'DOCKER_CONTEXT' not in os.environ,'private engine environment mismatch'
+ path=pathlib.Path(endpoint.removeprefix('unix://')); parent=path.parent.lstat(); sock=path.lstat(); uid=os.getuid()
+ assert stat.S_ISDIR(parent.st_mode) and parent.st_uid==uid and stat.S_IMODE(parent.st_mode)==0o700,'private engine parent ownership/mode refused'
+ assert stat.S_ISSOCK(sock.st_mode) and sock.st_uid in (0,uid) and stat.S_IMODE(sock.st_mode) in (0o600,0o660),'private engine socket ownership/mode refused'
+ identity['docker_endpoint']={'docker_host':endpoint,'client_uid':uid,'socket_uid':sock.st_uid,'socket_gid':sock.st_gid,
+  'socket_mode':stat.S_IMODE(sock.st_mode),'socket_device':sock.st_dev,'socket_inode':sock.st_ino,
+  'parent_uid':parent.st_uid,'parent_mode':stat.S_IMODE(parent.st_mode),'parent_device':parent.st_dev,'parent_inode':parent.st_ino}
 raw=subprocess.check_output(p['docker']+['info','--format','{"architecture":{{json .Architecture}},"daemon_id":{{json .ID}}}'],timeout=20)
 d=json.loads(raw); identity.update(docker_architecture=d['architecture'],docker_daemon_id=d['daemon_id'])
 print(json.dumps(identity,sort_keys=True))
@@ -364,6 +395,15 @@ def validate_prelaunch(host, value):
     qualify = load_module(HERE / "run_native_qualification.py", "soak_live_architecture")
     require(value.get("clean") is True and type(value.get("docker_daemon_id")) is str and
             8 <= len(value["docker_daemon_id"]) <= 256, "Agent checkout must be clean and actual Docker daemon identity must be known")
+    endpoint = private_docker_host(host)
+    if endpoint is not None:
+        bound = value.get("docker_endpoint")
+        require(type(bound) is dict and set(bound) == {"docker_host", "client_uid", "socket_uid", "socket_gid", "socket_mode",
+                "socket_device", "socket_inode", "parent_uid", "parent_mode", "parent_device", "parent_inode"} and
+                bound["docker_host"] == endpoint and all(type(bound[key]) is int and bound[key] >= 0 for key in bound if key != "docker_host") and
+                bound["socket_uid"] in (0, bound["client_uid"]) and bound["socket_mode"] in (0o600, 0o660) and
+                bound["parent_uid"] == bound["client_uid"] and bound["parent_mode"] == 0o700 and
+                bound["socket_inode"] > 0 and bound["parent_inode"] > 0, "Private Docker endpoint identity was not safely bound")
     for label in ("a", "b"):
         version = host["versions"][label]["qualified"]
         if (value.get("source_head"), value.get("source_tree")) == (version["source_head"], version["source_tree"]):
@@ -382,6 +422,8 @@ def prelaunch_host(host):
                "approved_revisions": [[version["qualified"]["source_head"], version["qualified"]["source_tree"]]
                                       for version in host["versions"].values()],
                "docker": ["sudo", "-n", "docker"] if host["sudo_docker"] else ["docker"]}
+    if "docker_host" in host:
+        payload["docker_host"] = private_docker_host(host)
     return validate_prelaunch(host, host_json(host, ["python3", "-I", "-c", PRELAUNCH_SCRIPT, canonical(payload).decode()]))
 
 
@@ -629,7 +671,8 @@ def prepare_config(value):
     require(len({host.get("name") for host in hosts}) == 2, "Distinct public host names required")
     result = copy.deepcopy(value)
     for host in result["hosts"]:
-        require(set(host) == {"name", "role", "transport", "repo", "state_dir", "container", "p2p_port", "sudo_docker", "versions"} and
+        required_host = {"name", "role", "transport", "repo", "state_dir", "container", "p2p_port", "sudo_docker", "versions"}
+        require(required_host <= set(host) <= required_host | {"docker_host"} and
                 type(host["name"]) is str and re.fullmatch(r"[a-z][a-z0-9_-]{0,30}", host["name"]) and
                 type(host["container"]) is str and re.fullmatch(r"pqbtc-mldsa-public-soak-[a-z0-9][a-z0-9_.-]{0,60}", host["container"]),
                 "Only new dedicated public soak host/container namespaces are accepted")
@@ -648,6 +691,7 @@ def prepare_config(value):
             require(not any(part in ("-F", "-i", "-L", "-R", "-D") or
                             part.lower().startswith(("proxycommand=", "localcommand=", "remotecommand=")) for part in transport["argv"]),
                     "Agent SSH configuration cannot add forwarding, credential paths or shell hooks")
+        private_docker_host(host)
         require(type(host["versions"]) is dict and set(host["versions"]) == {"a", "b"}, "Both qualified versions are required")
         for label, version in host["versions"].items():
             require(type(version) is dict and set(version) == {"descriptor", "native_receipt", "remote_descriptor"} and
@@ -1217,6 +1261,8 @@ def declaration(config, mode, source, config_sha256, initial, *, prelaunch, volu
             versions[label] = {key: item for key, item in value["qualified"].items() if key != "descriptor"}
         hosts.append({"name": host["name"], "role": host["role"], "container": host["container"],
                       "transport": host["transport"]["kind"], "p2p_port": host["p2p_port"], "versions": versions})
+        if "docker_host" in host:
+            hosts[-1]["docker_host"] = private_docker_host(host)
     return {"schema": DECLARATION_SCHEMA, "scope": SCOPE, "profile_sha256": PROFILE, "mode": mode,
             "duration_seconds": duration, "normal_slot_seconds": SlotLedger(mode).interval,
             "amount_sats": 100_000, "fee_sats": 5000, "configuration_sha256": config_sha256,

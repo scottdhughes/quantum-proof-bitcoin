@@ -82,6 +82,15 @@ needed. Existing noninteractive SSH and Docker access must already work. SSH
 keepalives keep the control route active while the other host replaces a binary;
 they do not extend action deadlines or retry an ambiguous operation.
 
+An SSH host using a separately managed Docker engine may additionally declare
+`"docker_host": "unix:///absolute/private-client/docker.sock"` and
+`"sudo_docker": false`. Only a dedicated Unix socket is accepted. Its immediate
+parent must be an actual directory owned by the SSH user with mode 0700; the
+socket must be owned by root or that user with mode 0600 or 0660. Prelaunch binds
+these identities and the actual daemon ID. Every agent and independent helper
+uses the declared endpoint, with `DOCKER_CONTEXT` removed so it cannot select a
+different engine. No network Docker API or credential path is supported.
+
 Use new dedicated state/container **and volume** names and a new output directory
 for every attempt. Both hosts must have absent container and named-volume
 namespaces, and neither state directory may already exist, even empty. Each

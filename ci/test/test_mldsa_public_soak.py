@@ -7,8 +7,11 @@ import shlex
 import tempfile
 import unittest
 import hashlib
+import os
+import socket
 import subprocess
 import sys
+import threading
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -82,6 +85,40 @@ class PublicSoakTests(unittest.TestCase):
         remote = shlex.split(command[-1])
         self.assertIn(host["repo"] + "/contrib/ml-dsa-qualification/public_soak_agent.py", remote)
         self.assertEqual(remote[remote.index("--state-dir") + 1], host["state_dir"])
+
+    def test_private_docker_endpoint_is_inherited_by_quoted_ssh_commands(self):
+        runner = self.runner()
+        endpoint = "unix:///data/owned/client/docker.sock"
+        host = {"transport": {"kind": "ssh", "argv": ["ssh", "-T", "unit@example.invalid"]},
+                "docker_host": endpoint, "sudo_docker": False, "repo": "/tmp/project ' $(literal)",
+                "state_dir": "/tmp/state ' literal", "container": "pqbtc-mldsa-public-soak-unit",
+                "p2p_port": 23833, "role": "follower", "versions": {"a": {"remote_descriptor": "/tmp/descriptor.json"}}}
+        command = runner.agent_command(host, "2026-11-12T00:00:00+00:00")
+        remote = shlex.split(command[-1])
+        self.assertEqual(command[:-1], host["transport"]["argv"])
+        self.assertEqual(remote[:4], ["env", "-u", "DOCKER_CONTEXT", "DOCKER_HOST=" + endpoint])
+        self.assertEqual(remote[remote.index("--state-dir") + 1], host["state_dir"])
+        for script in (runner.PRELAUNCH_SCRIPT, runner.NAMESPACE_SCRIPT, runner.EMERGENCY_STOP_SCRIPT):
+            arguments = ["python3", "-I", "-c", script, '{"literal":"$(not a shell command)"}']
+            self.assertEqual(shlex.split(runner.host_exec(host, arguments)[-1]), remote[:4] + arguments)
+
+    def test_private_docker_endpoint_rejects_unsafe_urls_paths_and_privilege_combinations(self):
+        runner = self.runner()
+        host = {"transport": {"kind": "ssh", "argv": ["ssh", "unit@example.invalid"]}, "sudo_docker": False}
+        invalid = ("tcp://127.0.0.1:2375", "ssh://user@example.org", "http:///data/client/docker.sock",
+                   "unix://user@/data/client/docker.sock", "unix:///data/client/docker.sock?x=1",
+                   "unix:///data/client/docker.sock#fragment", "unix:///data/../client/docker.sock",
+                   "unix:////data/client/docker.sock", "unix:///data/client/./docker.sock",
+                   "unix:///data/client/docker.sock\n", "unix:///data/$(touch-x)/docker.sock",
+                   "unix:///data/caf\u00e9/docker.sock", "unix:///var/run/docker.sock", "unix:///run/docker.sock",
+                   "unix:///etc/client/docker.sock", "unix:///proc/self/docker.sock", "unix:///home/user/.ssh/docker.sock",
+                   "unix:///data/credentials/docker.sock", "unix:///data/" + "x" * 260 + "/docker.sock")
+        for endpoint in invalid:
+            with self.subTest(endpoint=endpoint), self.assertRaises(ValueError):
+                runner.host_exec({**host, "docker_host": endpoint}, ["docker", "info"])
+        for wrong in ({**host, "sudo_docker": True}, {**host, "transport": {"kind": "local"}}):
+            with self.assertRaises(ValueError):
+                runner.host_exec({**wrong, "docker_host": "unix:///data/client/docker.sock"}, ["docker", "info"])
 
     def test_dispatched_action_is_identified_without_logging_operator_input(self):
         runner = self.runner()
@@ -351,6 +388,18 @@ class PublicSoakTests(unittest.TestCase):
             value = runner.prepare_config(config)
             self.assertIn("qualified", value["hosts"][0]["versions"]["a"])
             self.assertNotIn("qualified", config["hosts"][0]["versions"]["a"])
+            private = copy.deepcopy(config)
+            private["hosts"][0].update(docker_host="unix:///data/owned/client/docker.sock", sudo_docker=False)
+            selected = runner.prepare_config(private)
+            declared = runner.declaration(selected, "preflight", {}, "ab" * 32, {}, prelaunch={}, volumes={},
+                                          funnel={}, attempt_id="cd" * 16, namespace_proofs={}, claims={})
+            self.assertEqual(declared["hosts"][0]["docker_host"], "unix:///data/owned/client/docker.sock")
+            for invalid in ({**private["hosts"][0], "sudo_docker": True},
+                            {**private["hosts"][1], "docker_host": "unix:///data/owned/client/docker.sock"}):
+                bad = copy.deepcopy(config)
+                bad["hosts"][0 if invalid["name"] == "one" else 1] = invalid
+                with self.assertRaises(ValueError):
+                    runner.prepare_config(bad)
             swapped = copy.deepcopy(config)
             swapped["hosts"][0]["transport"] = {"kind": "local"}
             swapped["hosts"][0]["sudo_docker"] = False
@@ -649,6 +698,98 @@ else: raise SystemExit(2)
             self.assertEqual(value["source_head"], git("rev-parse", "HEAD"))
             self.assertEqual(value["docker_architecture"], "aarch64")
             self.assertEqual(set(value["control_sha256"]), set(runner.CONTROL_FILES))
+
+    def test_prelaunch_binds_a_real_private_unix_socket_and_rejects_unsafe_metadata(self):
+        runner = self.runner()
+        with tempfile.TemporaryDirectory(dir="/tmp") as temporary:
+            folder = Path(temporary)
+            repo = folder / "repo"
+            repo.mkdir()
+            def git(*args):
+                return subprocess.check_output(["git", "-C", str(repo), *args], stderr=subprocess.DEVNULL).decode().strip()
+            git("init", "-q")
+            git("config", "user.name", "Public fixture")
+            git("config", "user.email", "fixture@example.invalid")
+            (repo / "control.py").write_text("raise RuntimeError('do not import host code')\n")
+            git("add", ".")
+            git("commit", "-qm", "Private engine fixture")
+            client = folder / "client"
+            client.mkdir(mode=0o700)
+            path = client / "docker.sock"
+            endpoint = "unix://" + str(path)
+            fake = folder / "docker.py"
+            fake.write_text('import os,socket\n'
+                            'with socket.socket(socket.AF_UNIX) as s:\n'
+                            ' s.settimeout(2);s.connect(os.environ["DOCKER_HOST"].removeprefix("unix://"))\n'
+                            ' s.sendall(b"INFO\\n");print(s.recv(4096).decode())\n')
+            payload = {"repo": str(repo), "control_files": ["control.py"], "docker": [sys.executable, str(fake)],
+                       "approved_revisions": [[git("rev-parse", "HEAD"), git("rev-parse", "HEAD^{tree}")]],
+                       "docker_host": endpoint}
+            environment = {"PATH": os.defpath, "DOCKER_HOST": endpoint}
+            stopped, requests, errors = threading.Event(), [], []
+            with socket.socket(socket.AF_UNIX) as server:
+                server.bind(str(path))
+                path.chmod(0o660)
+                server.listen(1)
+                server.settimeout(.1)
+                def api():
+                    try:
+                        while not stopped.is_set():
+                            try:
+                                connection, _ = server.accept()
+                            except TimeoutError:
+                                continue
+                            with connection:
+                                connection.settimeout(2)
+                                requests.append(connection.recv(100))
+                                connection.sendall(b'{"architecture":"x86_64","daemon_id":"private-fixture-daemon"}')
+                    except BaseException as error:
+                        errors.append(error)
+                worker = threading.Thread(target=api, daemon=True)
+                worker.start()
+                def launch(value=payload, env=environment):
+                    return subprocess.run([sys.executable, "-c", runner.PRELAUNCH_SCRIPT, json.dumps(value)],
+                                          env=env, capture_output=True, timeout=5)
+                try:
+                    result = launch()
+                    self.assertEqual(result.returncode, 0, result.stderr.decode())
+                    value = json.loads(result.stdout)
+                    self.assertEqual(value["docker_endpoint"]["docker_host"], endpoint)
+                    self.assertEqual(value["docker_endpoint"]["socket_mode"], 0o660)
+                    self.assertEqual(value["docker_endpoint"]["parent_mode"], 0o700)
+                    self.assertEqual(value["docker_endpoint"]["parent_uid"], os.getuid())
+                    self.assertEqual(requests, [b"INFO\n"])
+                    for unsafe in ("parent_mode", "socket_mode", "wrong_environment", "context", "symlink", "regular"):
+                        with self.subTest(unsafe=unsafe):
+                            changed, env = dict(payload), dict(environment)
+                            if unsafe == "parent_mode":
+                                client.chmod(0o755)
+                            elif unsafe == "socket_mode":
+                                path.chmod(0o666)
+                            elif unsafe == "wrong_environment":
+                                env["DOCKER_HOST"] = "unix:///tmp/foreign/client/docker.sock"
+                            elif unsafe == "context":
+                                env["DOCKER_CONTEXT"] = "foreign-context"
+                            else:
+                                alias = client / (unsafe + ".sock")
+                                if unsafe == "symlink":
+                                    alias.symlink_to(path)
+                                else:
+                                    alias.touch(mode=0o600)
+                                changed["docker_host"] = env["DOCKER_HOST"] = "unix://" + str(alias)
+                            try:
+                                refused = launch(changed, env)
+                                self.assertNotEqual(refused.returncode, 0)
+                                self.assertEqual(requests, [b"INFO\n"], "Unsafe endpoint reached the Docker API")
+                            finally:
+                                client.chmod(0o700)
+                                path.chmod(0o660)
+                finally:
+                    stopped.set()
+                    worker.join(2)
+                self.assertFalse(worker.is_alive())
+                if errors:
+                    raise errors[0]
 
     def test_failed_independent_stop_preserves_the_still_live_agent_watchdog(self):
         import io
