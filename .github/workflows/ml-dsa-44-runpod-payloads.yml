@@ -40,7 +40,7 @@ jobs:
       - name: Check packaging controls and prepare frozen source
         run: |
           set -euo pipefail
-          python3 -B -m unittest discover -s contrib/ml-dsa-runpod -p test_package_payload.py
+          python3 -B -m unittest discover -s contrib/ml-dsa-runpod -p 'test_*.py'
           mkdir -m 700 "$EVIDENCE_DIR"
           git worktree add --detach "$SOURCE_DIR" "$EXPECTED_HEAD"
           test "$(git -C "$SOURCE_DIR" rev-parse HEAD)" = "$EXPECTED_HEAD"

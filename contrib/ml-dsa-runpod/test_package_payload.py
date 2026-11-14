@@ -24,8 +24,16 @@ class PayloadTests(unittest.TestCase):
         binary.chmod(0o755)
         h = pack.digest(binary)
         head, tree = pack.VERSIONS["c"]
+        client = seed / 'pqbtc-mldsa-client'
+        client.write_bytes(b'DATA client')
+        signer = runtime / 'seed/demo-signer-bin/pilot-signer'
+        signer.parent.mkdir()
+        signer.write_bytes(b'DATA signer')
         manifest = {"schema": "PQBTC-MLDSA44-SOURCE-BUILD-1", "source_head": head, "source_tree": tree,
-                    "architecture": "x86_64", "compiler": "gcc", "sha256": {"/tmp/mldsa-demo-build/bin/pqbtcd": h}}
+                    "architecture": "x86_64", "compiler": "gcc", "sha256": {
+                        "/tmp/mldsa-demo-build/bin/pqbtcd": h,
+                        "/tmp/mldsa-demo-build/bin/pqbtc-mldsa-client": pack.digest(client),
+                        "/tmp/demo-signer-bin/pilot-signer": pack.digest(signer)}}
         raw = (json.dumps(manifest, sort_keys=True) + "\n").encode()
         (runtime / "manifest.json").write_bytes(raw)
         descriptor = {"schema": "PQBTC-MLDSA44-SOURCE-RUNTIME-1", "image": "sha256:" + "a" * 64,
@@ -35,7 +43,8 @@ class PayloadTests(unittest.TestCase):
                   "source": {"head": head, "tree": tree}, "image": descriptor["image"],
                   "checks": dict.fromkeys(pack.GATES, "PASS"), "architecture": "x86_64", "emulated": False,
                   "identity_before": identity, "identity_after": identity, "cleanup": "REMOVED",
-                  "manifest_sha256": descriptor["manifest_sha256"]}
+                  "manifest_sha256": descriptor["manifest_sha256"], "compiler": "gcc", "public_soak": False,
+                  "production_admitted": False}
         for name, data in (("build.json", descriptor), ("report.json", report)):
             (root / name).write_text(json.dumps(data))
         return runtime, descriptor, report, raw
@@ -47,6 +56,7 @@ class PayloadTests(unittest.TestCase):
             mutations = [lambda r: r.update(emulated=True), lambda r: r.update(identity_before=None, identity_after=None),
                          lambda r: r.update(cleanup="FAILED"), lambda r: r.update(image="sha256:" + "b" * 64),
                          lambda r: r["checks"].pop("signer-normal"),
+                         lambda r: r["identity_before"]["sha256"].pop("/tmp/demo-signer-bin/pilot-signer"),
                          lambda r: r["identity_after"].update(tree="b" * 40)]
             for mutate in mutations:
                 candidate = copy.deepcopy(report)

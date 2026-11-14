@@ -70,6 +70,11 @@ def validate_provenance(version, descriptor, report, manifest_bytes, *, expected
             type(before.get("sha256")) is dict and before["sha256"] and
             before == report.get("identity_after"),
             "Qualification native identity differs")
+    critical = {"/tmp/mldsa-demo-build/bin/pqbtcd", "/tmp/mldsa-demo-build/bin/pqbtc-mldsa-client",
+                "/tmp/demo-signer-bin/pilot-signer"}
+    require(critical <= set(before["sha256"]) and report.get("compiler") == "gcc" and
+            report.get("public_soak") is False and report.get("production_admitted") is False,
+            "Qualification critical native identity or scope differs")
     require(report.get("cleanup") == "REMOVED" and report.get("manifest_sha256") == descriptor["manifest_sha256"] and
             all(manifest["sha256"].get(path) == expected for path, expected in before["sha256"].items()),
             "Qualification cleanup or binary hashes differ")
@@ -86,6 +91,7 @@ def extract_regular(archive, destination):
             require(member.name not in seen and not path.is_absolute() and ".." not in path.parts,
                     "Unsafe or duplicate payload archive path")
             seen.add(member.name)
+            require(len(seen) <= 20000, "Payload archive has too many members")
             require(path.parts and path.parts[0] in ("seed", "manifest.json"), "Unexpected image export member")
             require(member.isdir() or member.isfile(), "Payload links and special files are refused")
             target = destination / path
