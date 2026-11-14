@@ -869,6 +869,7 @@ class Soak:
         if self.action_deadline is not None:
             timeout = min(timeout, self.action_deadline - time.monotonic())
             require(timeout > 0, "Declared operation/fault recovery deadline passed")
+        self.log.append("action_dispatched", {"host": host, "action": action})
         value = self.agents[host].call(action, params, timeout=timeout)
         if "status" in value:
             self.statuses[host] = value["status"]

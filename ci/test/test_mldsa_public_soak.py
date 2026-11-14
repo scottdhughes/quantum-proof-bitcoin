@@ -83,6 +83,21 @@ class PublicSoakTests(unittest.TestCase):
         self.assertIn(host["repo"] + "/contrib/ml-dsa-qualification/public_soak_agent.py", remote)
         self.assertEqual(remote[remote.index("--state-dir") + 1], host["state_dir"])
 
+    def test_dispatched_action_is_identified_without_logging_operator_input(self):
+        runner = self.runner()
+        events = []
+        class Log:
+            def append(self, kind, data): events.append((kind, data))
+        class Agent:
+            def call(self, *_args, **_kwargs):
+                raise TimeoutError("control response deadline")
+        run = runner.Soak({"hosts": [{"name": "one", "role": "bootstrap"}, {"name": "two", "role": "follower"}]},
+                          "preflight", Log(), {}, "future")
+        run.agents["two"] = Agent()
+        with self.assertRaises(TimeoutError):
+            run.action("two", "unlock", {"password": "unit-disposable-operator-value"})
+        self.assertEqual(events, [("action_dispatched", {"host": "two", "action": "unlock"})])
+
     def test_reconnect_reuses_surviving_bridge_and_starts_a_missing_bridge(self):
         runner = self.runner()
         class Log:

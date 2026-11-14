@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -21,6 +22,9 @@ class PublicNetworkTests(unittest.TestCase):
         spec = importlib.util.spec_from_file_location("public_network_wallet", ROOT / "contrib/ml-dsa-signer/node_wallet.py")
         cls.wallet = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cls.wallet)
+        spec = importlib.util.spec_from_file_location("public_network_runtime", ROOT / "contrib/ml-dsa-console/public_runtime.py")
+        cls.runtime = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.runtime)
         cls.fixture = json.loads((ROOT / "src/test/data/mldsa44_node.json").read_text())
         cls.key = bytes.fromhex(cls.fixture["public_key"])
 
@@ -34,6 +38,98 @@ class PublicNetworkTests(unittest.TestCase):
             "scope": "VALUELESS_EXPERIMENTAL_PUBLIC_TEST_ONLY", "active": True, "activation_height": 1,
             "network_binding": TEST_BINDING, "spec_sha256": SPEC, "profile_sha256": PROFILE,
             "verification_cost": 625, "max_block_verifications": 128, "max_standard_tx_verifications": 25}}
+
+    def status_runtime(self, *, initialized=True):
+        """Exercise the real wallet paths without native processes or custody files."""
+        test = self
+        manifest = self.manifest() if initialized else None
+        script = "5220" + TEST_PROGRAM
+
+        class RPC:
+            expired = False
+
+            def getblockchaininfo(inner):
+                if inner.expired:
+                    raise BrokenPipeError("idle HTTP connection closed")
+                return {**test.info(), "bestblockhash": "aa" * 32}
+
+            def gettxoutsetinfo(inner):
+                return {"hash_serialized_3": "bb" * 32, "txouts": 1}
+
+            def getpeerinfo(inner):
+                return [{"id": 1}]
+
+            def scantxoutset(inner, action, descriptors):
+                test.assertEqual((action, descriptors), ("start", [{"desc": "raw(" + script + ")"}]))
+                return {"success": True, "unspents": [{"txid": "22" * 32, "vout": 0, "scriptPubKey": script}]}
+
+            def getrawmempool(inner):
+                return []
+
+            def gettxout(inner, txid, vout, include_mempool):
+                test.assertEqual((txid, vout, include_mempool), ("22" * 32, 0, True))
+                return {"scriptPubKey": {"hex": script}, "coinbase": False, "confirmations": 2, "value": 1}
+
+        class Store:
+            network = "test"
+
+            def export(inner):
+                if manifest is None:
+                    raise test.wallet.WalletError("public wallet not initialized")
+                return test.wallet.validate_manifest(manifest, network="test")
+
+            def observe_status(inner, payload):
+                return test.wallet.parse_status(payload)
+
+        class Signer:
+            network = "test"
+
+            def call(inner, operation):
+                test.assertEqual(operation, 5)
+                if not initialized:
+                    raise test.wallet.WalletError("authenticated signer transport refused")
+                return b"\0" + bytes.fromhex("11" * 16) + (1).to_bytes(4, "little") + bytes(4)
+
+        value = self.runtime.PublicRuntime.__new__(self.runtime.PublicRuntime)
+        value.module, value.protocol, value.running = self.wallet, self.wallet.protocol, True
+        value.node, value.store = SimpleNamespace(rpc=RPC), Store()
+        value.wallet = self.wallet.NodeWallet(RPC(), Signer(), value.store, network="test")
+        return value
+
+    def test_status_after_idle_rpc_expiry_preserves_wallet_status_and_coin_scan(self):
+        # Removing the status refresh must break both the signer-observation
+        # path and the coin scan used when signer observation is disabled.
+        for observe in (True, False):
+            with self.subTest(observe=observe):
+                runtime = self.status_runtime()
+                runtime.status(observe=observe)
+                runtime.wallet.rpc.expired = True
+                try:
+                    status = runtime.dispatch("status", {}) if observe else runtime.status(observe=False)
+                except BrokenPipeError as error:
+                    self.fail("Status reused an idle-closed wallet RPC connection: " + str(error))
+                self.assertEqual(status["wallet"]["wallet_id"], "11" * 16)
+                self.assertEqual(status["wallet"]["balance_sats"], 100000000)
+                self.assertEqual(status["wallet"]["next_receive"], 1)
+                self.assertEqual(status["wallet"]["next_change"], 0)
+                self.assertEqual(status["wallet"]["locked"], not observe)
+                self.assertEqual(status["wallet"]["utxos"][0]["txid"], "22" * 32)
+
+    def test_status_before_wallet_setup_reports_running_and_uninitialized(self):
+        status = self.status_runtime(initialized=False).dispatch("status", {})
+        self.assertEqual(status["phase"], "running")
+        self.assertFalse(status["ready"])
+        self.assertIsNone(status["wallet"]["wallet_id"])
+        self.assertTrue(status["wallet"]["locked"])
+        self.assertEqual(status["wallet"]["utxos"], [])
+
+    def test_stopped_status_needs_no_wallet_or_rpc_connection(self):
+        runtime = self.status_runtime(initialized=False)
+        runtime.running, runtime.wallet, runtime.node = False, None, None
+        status = runtime.dispatch("status", {})
+        self.assertEqual(status["phase"], "stopped")
+        self.assertEqual(status["nodes"], [])
+        self.assertTrue(status["wallet"]["locked"])
 
     def test_test_manifest_is_explicit_and_cannot_be_relabelled(self):
         value = self.manifest()

@@ -158,6 +158,9 @@ class PublicRuntime:
         observed, nodes, coins = None, [], []
         if self.running:
             rpc = self.node.rpc()
+            # Wallet observations must not reuse an HTTP connection that the
+            # daemon may have closed while this worker was idle.
+            self.wallet.rpc = rpc
             info, inventory = rpc.getblockchaininfo(), rpc.gettxoutsetinfo()
             nodes = [{"name": "public-test", "height": info["blocks"], "tip": info["bestblockhash"],
                       "peers": len(rpc.getpeerinfo()), "utxo_hash": inventory["hash_serialized_3"],

@@ -82,7 +82,8 @@ needed. Existing noninteractive SSH and Docker access must already work.
 
 Use new dedicated state/container **and volume** names and a new output directory
 for every attempt. Both hosts must have absent container and named-volume
-namespaces, and neither state directory may already exist, even empty. The
+namespaces, and neither state directory may already exist, even empty. Each
+state directory's private parent must already exist. The
 runner checks both hosts before starting either agent. It then atomically
 creates each private state directory and its `.public-soak-attempt.json` claim,
 rechecking Docker absence at claim time. A collision or failed second claim
@@ -105,8 +106,10 @@ python3 contrib/ml-dsa-qualification/run_public_soak.py \
   --mode preflight --output-dir /absolute/path/to/new-preflight-evidence
 ```
 
-Preflight lasts 900 actual seconds, uses five-second payment slots, and compresses
-the fault schedule. Its only successful label is `PREFLIGHT_PASS`. Reprovision
+Preflight lasts 900 actual seconds, uses sixty-second payment slots, and compresses
+the fault schedule. Public relay and settlement can legitimately exceed five
+seconds within the unchanged sixty-second payment budget. Its only successful
+label is `PREFLIGHT_PASS`. Reprovision
 fresh disposable state and the task's public route for the separate soak:
 
 ```sh
@@ -151,6 +154,13 @@ after the agent has ensured the live marker, then bound in the declaration;
 every upgrade and rollback must retain that original ID. After the
 elapsed run the follower also restores an old backup with its current record
 missing, then completes another cross-host confirmed spend.
+
+Reconnecting peers reuses a surviving public bridge listener. A replacement is
+started when the old bridge is absent or dead, including after container
+replacement. Reusing a listener does not waive chain/UTXO/peer agreement or the
+new confirmed recovery payment. The event log records the host and action before
+each dispatch, so a timed-out request remains identifiable without logging its
+parameters or operator input.
 
 Samples enforce node peak RSS at most 1 GiB, 32 MB maxmempool and bounded actual
 usage, a live bridge on the follower, and Research whole-host CPU below 90% on
