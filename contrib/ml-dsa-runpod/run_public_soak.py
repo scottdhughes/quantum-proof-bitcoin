@@ -131,6 +131,21 @@ def validate_control_identity(value):
     return value
 
 
+def expected_provider_binding(transport, pod_id):
+    require(transport.get("hostkey_source") == "AUTHENTICATED_PROVIDER_EXEC_PUBLIC_KEY_ONLY" and
+            transport.get("pod_id") == pod_id and type(transport.get("generation")) is str and
+            10 <= len(transport["generation"]) <= 80 and hex64(transport.get("known_hosts_sha256")),
+            "Native SSH transport requires complete API-attested pod/generation/public-key metadata")
+    return {"schema": "PQBTC-RUNPOD-PROVIDER-BINDING-1", "pod_id": pod_id, "generation": transport["generation"],
+            "known_hosts_sha256": transport["known_hosts_sha256"], "proof_kind": "PROVIDER_API_ATTESTED_SSH_BINDING"}
+
+
+def validate_provider_identity(value, expected):
+    require(type(value) is dict and value.get("proof_kind") == "PROVIDER_API_ATTESTED_SSH_BINDING" and
+            value.get("binding") == expected and hex64(value.get("binding_sha256")) and
+            type(value.get("environment_pod_id_observed")) is bool, "Actual protected API/SSH provider binding proof differs")
+
+
 def validate_payload(payload, qualified, label):
     require(type(payload) is dict and set(payload) in (
         {"schema", "version", "source_head", "source_tree", "manifest_sha256", "files"},
@@ -190,6 +205,7 @@ def prepare_config(value):
         host["backend"], host["control_identity"] = source["backend"], source["control_identity"]
         if native(host):
             host["native"] = source["native"]
+            host["_provider_binding_expected"] = expected_provider_binding(source["transport"], host["native"]["pod_id"])
             for label, version in host["versions"].items():
                 payload, digest = base.load_public_json(source["versions"][label]["payload"], maximum=16 * 1024 * 1024)
                 version["qualified"]["payload"] = validate_payload(payload, version["qualified"], label)
@@ -229,7 +245,7 @@ if p['backend']=='docker':
  raw=subprocess.check_output(p['docker']+['info','--format','{"architecture":{{json .Architecture}},"daemon_id":{{json .ID}}}'],timeout=20)
  d=json.loads(raw);value.update(docker_architecture=d['architecture'],docker_daemon_id=d['daemon_id'])
 else:
- assert os.geteuid()==0 and os.environ.get('RUNPOD_POD_ID')==p['native']['pod_id']
+ assert os.geteuid()==0
  mounted=pathlib.Path('/var/lib/pqbtc');s=mounted.lstat()
  assert stat.S_ISDIR(s.st_mode) and s.st_uid==0 and not s.st_mode&0o022 and s.st_mode&0o001,'provider state mount ownership/traversal differs'
  for destination in (p['state_dir'],p['native']['data_root']):
@@ -239,8 +255,9 @@ else:
    if os.path.lexists(ancestor):
     s=ancestor.lstat();assert stat.S_ISDIR(s.st_mode) and s.st_uid==0 and not s.st_mode&0o022 and s.st_mode&0o001,'native state parent ownership/traversal differs'
    ancestor=ancestor.parent
- sys.path.insert(0,str(root/'contrib/ml-dsa-runpod'));from runpod_agent import cgroup_snapshot
- value.update(pod_id=p['native']['pod_id'],provider_container=cgroup_snapshot(),outer_image_provider_binding=p['native']['outer_image'])
+ sys.path.insert(0,str(root/'contrib/ml-dsa-runpod'));from runpod_agent import cgroup_snapshot,read_provider_binding
+ expected=p['provider_binding_expected'];binding=read_provider_binding(expected['pod_id'],expected['generation'],expected['known_hosts_sha256'])
+ value.update(pod_id=binding['binding']['pod_id'],provider_identity=binding,provider_container=cgroup_snapshot(),outer_image_provider_binding=p['native']['outer_image'])
 print(json.dumps(value,sort_keys=True))
 '''
 
@@ -250,6 +267,7 @@ def prelaunch_host(host):
     payload["docker"] = ["sudo", "-n", "docker"] if host["sudo_docker"] else ["docker"]
     if native(host):
         payload["native"] = host["native"]
+        payload["provider_binding_expected"] = host["_provider_binding_expected"]
     value = base.host_json(host, ["python3", "-B", "-I", "-c", PRELAUNCH_SCRIPT, canonical(payload).decode()])
     require(value.get("backend") == host["backend"] and value.get("control_identity") == host["control_identity"] and
             value.get("actual_control_sha256") == host["control_identity"]["sha256"] and
@@ -261,6 +279,7 @@ def prelaunch_host(host):
     if native(host):
         limits = value.get("provider_container", {})
         require(value.get("pod_id") == host["native"]["pod_id"], "Actual provider pod identity differs")
+        validate_provider_identity(value.get("provider_identity"), host["_provider_binding_expected"])
         validate_resource_identity(limits, host["native"])
     else:
         require(type(value.get("docker_daemon_id")) is str and len(value["docker_daemon_id"]) >= 8, "Actual Docker daemon identity missing")
@@ -355,7 +374,9 @@ try:
  claim=json.loads(os.read(fd,4097));assert claim==p['attempt_claim']
 finally:os.close(fd)
 assert claim['schema']=='PQBTC-RUNPOD-SOAK-ATTEMPT-1' and claim['pod_id']==p['native']['pod_id'] and claim['namespace']==p['native']['namespace']
-assert claim['data_root']==p['native']['data_root'] and os.environ.get('RUNPOD_POD_ID')==claim['pod_id']
+assert claim['data_root']==p['native']['data_root']
+sys.path.insert(0,p['repo']+'/contrib/ml-dsa-runpod');from runpod_agent import read_provider_binding
+expected=p['provider_binding_expected'];read_provider_binding(expected['pod_id'],expected['generation'],expected['known_hosts_sha256'])
 sys.path.insert(0,p['repo']+'/contrib/ml-dsa-runpod');from native_backend import NativeManager
 manager=NativeManager(state,versions_root=pathlib.Path(p['native']['versions_root']),runtime_root=pathlib.Path(p['native']['runtime_root']),data_root=pathlib.Path(p['native']['data_root']),namespace=p['native']['namespace'])
 if (state/'native-runtime.json').exists():
@@ -374,7 +395,8 @@ def emergency_stop_owned(host):
         return _docker_emergency(host)
     require(type(host.get("_attempt_claim")) is dict, "Native cleanup requires this attempt claim")
     payload = {"repo": host["repo"], "state_dir": host["state_dir"], "native": host["native"],
-               "attempt_claim": host["_attempt_claim"], "expected_volume_id": host.get("_attempt_volume_id")}
+               "attempt_claim": host["_attempt_claim"], "expected_volume_id": host.get("_attempt_volume_id"),
+               "provider_binding_expected": host["_provider_binding_expected"]}
     value = base.host_json(host, ["python3", "-B", "-I", "-c", EMERGENCY_SCRIPT, canonical(payload).decode()], timeout=100)
     require(value.get("backend_stopped") is True and value.get("backend") == "native", "Native cleanup did not establish owned shutdown")
     return value
@@ -388,6 +410,8 @@ def agent_command(host, until):
     if native(host):
         for name in ("versions_root", "runtime_root", "data_root", "pod_id"):
             command += ["--" + name.replace("_", "-"), str(host["native"][name])]
+        expected = host["_provider_binding_expected"]
+        command += ["--provider-generation", expected["generation"], "--known-hosts-sha256", expected["known_hosts_sha256"]]
     elif host["sudo_docker"]:
         command += ["--sudo-docker"]
     if host["role"] == "bootstrap":
@@ -396,6 +420,7 @@ def agent_command(host, until):
 
 
 def validate_native_identity(host, value, version):
+    validate_provider_identity(value.get("provider_identity"), host["_provider_binding_expected"])
     payload, expected = value.get("payload", {}), version["payload"]
     require(value.get("schema") == "PQBTC-RUNPOD-NATIVE-IDENTITY-1" and value.get("backend") == "native" and
             value.get("pod_id") == host["native"]["pod_id"] and value.get("namespace") == host["native"]["namespace"] and
@@ -436,6 +461,9 @@ def validate_restart_receipt(value, pod_id):
             type(value.get("after_generation")) is str and value["after_generation"] and
             value["before_generation"] != value["after_generation"], "Actual provider restart generation proof missing")
     validate_ssh(value.get("transport"))
+    require(value["transport"].get("pod_id") == pod_id and
+            value["transport"].get("generation") == value["after_generation"],
+            "Restart SSH attestation belongs to another pod or stale generation")
     return value
 
 
@@ -478,6 +506,7 @@ class Soak(base.Soak):
         receipt = public_command(helper)
         validate_restart_receipt(receipt, config["native"]["pod_id"])
         config["transport"] = validate_ssh(receipt["transport"])
+        config["_provider_binding_expected"] = expected_provider_binding(receipt["transport"], config["native"]["pod_id"])
         self.prelaunch[host] = prelaunch_host(config)
         self.agents[host] = base.AgentClient(config, self.until, self.operator_values.values())
         self.action(host, "start", timeout=240)

@@ -10,6 +10,7 @@ import tarfile
 import tempfile
 import unittest
 import sys
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import deploy_payloads
@@ -18,6 +19,50 @@ import export_state
 
 
 class DeploymentTests(unittest.TestCase):
+    def test_restart_during_final_binding_write_cannot_return_install_pass(self):
+        transport = {'kind': 'ssh', 'pod_id': 'pod-test', 'generation': '2026-11-14T19:23:27Z',
+                     'known_hosts_sha256': 'a' * 64, 'hostkey_source': 'AUTHENTICATED_PROVIDER_EXEC_PUBLIC_KEY_ONLY',
+                     'argv': ['ssh', '-T', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes',
+                              '-o', 'ForwardAgent=no', '-o', 'UserKnownHostsFile=/owned/hosts', 'root@203.0.113.1']}
+        before = {'id': 'pod-test', 'name': 'owned-task', 'started_at': transport['generation'], 'mounts': {}}
+        binding = deploy_payloads.binding_for_transport(transport, before)
+        entries = {role: {'sha256': role * 64, 'size': 1, 'path': '/public/' + role} for role in ('a3', 'c', 'control')}
+        plan = {'archives': entries, 'control_head': 'a' * 40, 'control_tree': 'b' * 40}
+        for changed in (False, True):
+            with self.subTest(changed=changed):
+                final = {**before, 'started_at': '2026-11-14T20:00:00Z'} if changed else before
+                responses = [SimpleNamespace(returncode=0, stdout='')]
+                responses.extend(SimpleNamespace(returncode=0, stdout=json.dumps(
+                    {'result': 'PASS', 'role': role, 'archive_sha256': entries[role]['sha256']})) for role in entries)
+                responses.append(SimpleNamespace(returncode=0, stdout=json.dumps({'result': 'PASS', 'provider_binding': binding})))
+                with patch.object(deploy_payloads, 'provider', side_effect=[before, before, final]), \
+                     patch.object(deploy_payloads, 'bounded', side_effect=responses):
+                    if changed:
+                        with self.assertRaisesRegex(ValueError, 'crossed a restart'):
+                            deploy_payloads.install(plan, transport)
+                    else:
+                        self.assertEqual(len(deploy_payloads.install(plan, transport)), 3)
+
+    def test_provider_binding_requires_matching_attestation_and_protected_destination(self):
+        transport = {'pod_id': 'pod-test', 'generation': '2026-11-14T19:23:27Z', 'known_hosts_sha256': 'a' * 64,
+                     'hostkey_source': 'AUTHENTICATED_PROVIDER_EXEC_PUBLIC_KEY_ONLY'}
+        pod = {'id': 'pod-test', 'started_at': transport['generation']}
+        binding = deploy_payloads.binding_for_transport(transport, pod)
+        with self.assertRaises(ValueError):
+            deploy_payloads.binding_for_transport(transport, {**pod, 'id': 'other-pod'})
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / 'binding.json'
+            install_payload.write_provider_binding(path, binding, owner=os.geteuid())
+            self.assertEqual(json.loads(path.read_text()), binding)
+            self.assertEqual(path.stat().st_mode & 0o777, 0o444)
+            with self.assertRaises(ValueError):
+                install_payload.write_provider_binding(path, {**binding, 'pod_id': 'other-pod'}, owner=os.geteuid())
+            link = root / 'linked'
+            link.symlink_to(path)
+            with self.assertRaises(ValueError):
+                install_payload.write_provider_binding(link, binding, owner=os.geteuid())
+
     def test_runtime_layout_secures_only_mount_parent_and_refuses_links(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

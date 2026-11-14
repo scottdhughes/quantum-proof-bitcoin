@@ -11,6 +11,7 @@ import tempfile
 import tarfile
 import time
 import unittest
+from unittest import mock
 
 import provider_control as p
 
@@ -45,10 +46,12 @@ class FakeAPI:
         if path.startswith("/v2/catalog/cpus/"):
             return 200, {"id": "cpu3c", "ramGbPerVcpu": 2, "vcpu": {"min": 2, "max": 32},
                          "price": {"securePerVcpu": 0.03}, "availability": "HIGH",
-                         "dataCenters": [{"id": "US-MD-1", "availability": "HIGH"}, {"id": "EU-RO-1", "availability": "HIGH"}]}
+                         "dataCenters": [{"id": "US-MD-1", "availability": "HIGH"}, {"id": "EU-RO-1", "availability": "HIGH"},
+                                         {"id": "US-CA-2", "availability": "HIGH"}]}
         if path.startswith("/v2/catalog/datacenters"):
             return 200, {"dataCenters": [{"id": "EU-RO-1", "networkVolumeTypes": ["STANDARD"]},
-                                        {"id": "US-MD-1", "networkVolumeTypes": ["STANDARD"]}]}
+                                        {"id": "US-MD-1", "networkVolumeTypes": ["STANDARD"]},
+                                        {"id": "US-CA-2", "networkVolumeTypes": ["HIGH_PERFORMANCE"]}]}
         if method == "POST" and path == "/v2/network-volumes":
             value = {"id": "volume1", **body}
             self.volumes[value["id"]] = copy.deepcopy(value)
@@ -152,6 +155,90 @@ class ProviderTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t:
             with self.assertRaisesRegex(p.Refused, "image_digest_required"):
                 p.make_plan(Path(t) / "other", self.api, "runpod/base:latest")
+
+    def test_high_performance_catalog_and_create_keep_the_selected_tier(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary) / "hpfs"
+            api = FakeAPI()
+            plan = p.make_plan(directory, api, PIN, data_center="US-CA-2", volume_type="HIGH_PERFORMANCE")
+            self.assertEqual(plan["volume_type"], "HIGH_PERFORMANCE")
+            self.assertEqual(plan["catalog"]["data_centers"],
+                             [{"id": "US-CA-2", "cpu_availability": "HIGH", "network_volume_type": "HIGH_PERFORMANCE"}])
+            self.assertEqual(plan["quote"]["network_volume_usd_per_gb_month"], "0.14")
+            self.assertIn(("GET", "/v2/catalog/datacenters?include=CPU_AVAILABILITY&networkVolumeTypes=HIGH_PERFORMANCE", None), api.calls)
+            api.plan = plan
+            binding = p.load(directory)[1]
+            binding.update(deadline_epoch=int(time.time()) + p.MAX_SECONDS,
+                           guard={"script_sha256": "0" * 64, "label": "org.pqbtc.runpod." + plan["task"].rsplit("-", 1)[1],
+                                  "armed_at_epoch": int(time.time())})
+            p.save_binding(directory, binding)
+            p.put(directory / "guard-heartbeat.json", {"task": plan["task"], "plan_sha256": binding["plan_sha256"],
+                  "pid": os.getpid(), "epoch": int(time.time()), "deadline_epoch": binding["deadline_epoch"]})
+            p.create(directory, api)
+            self.assertEqual(api.volumes["volume1"]["type"], "HIGH_PERFORMANCE")
+            wrong = dict(api.volumes["volume1"], type="STANDARD")
+            with self.assertRaisesRegex(p.Refused, "volume_identity"):
+                p.volume_projection(wrong, plan)
+
+    def test_unknown_or_unavailable_volume_tier_is_refused_without_resources(self):
+        for tier, center in (("GLOBAL", "US-CA-2"), ("HIGH_PERFORMANCE", "US-MD-1")):
+            with self.subTest(tier=tier), tempfile.TemporaryDirectory() as temporary, self.assertRaises(p.Refused):
+                p.make_plan(Path(temporary) / "state", self.api, PIN, data_center=center, volume_type=tier)
+        self.assertFalse(any(call[0] in ("POST", "DELETE") for call in self.api.calls))
+
+    def test_replacement_quote_carries_prior_exposure_inside_the_total_cap(self):
+        quote = p.quote_bound("0.12", volume_type="HIGH_PERFORMANCE", prior_exposure_usd="0.50")
+        self.assertEqual(quote["storage_usd"], "0.29")
+        self.assertEqual(quote["prior_exposure_usd"], "0.50")
+        self.assertEqual(quote["all_in_planned_upper_usd"], "7.98")
+        for prior in ("3.00", "-0.01", "NaN", "Infinity"):
+            with self.subTest(prior=prior), self.assertRaises(p.Refused):
+                p.quote_bound("0.12", volume_type="HIGH_PERFORMANCE", prior_exposure_usd=prior)
+
+    def test_legacy_standard_plan_retains_its_original_quote(self):
+        self.assertEqual(self.plan["quote"]["storage_usd"], "0.23")
+        self.assertEqual(self.plan["quote"]["all_in_planned_upper_usd"], "7.39")
+        legacy = copy.deepcopy(self.plan)
+        for key in ("volume_type", "prior_exposure_usd", "hard_deadline_epoch"):
+            legacy.pop(key, None)
+        self.assertEqual(p.validate_plan(legacy), legacy)
+
+    def test_fractional_prior_exposure_rounds_up_before_planning(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            plan = p.make_plan(Path(temporary) / "fractional", self.api, PIN,
+                               volume_type="HIGH_PERFORMANCE", data_center="US-CA-2", prior_exposure_usd="0.001")
+            self.assertEqual(plan["prior_exposure_usd"], "0.01")
+            self.assertEqual(plan["quote"]["all_in_planned_upper_usd"], "7.49")
+
+    def test_replacement_guard_cannot_extend_the_original_absolute_deadline(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary) / "replacement"
+            now = int(time.time())
+            deadline = now + 26 * 3600
+            plan = p.make_plan(directory, self.api, PIN, hard_deadline_epoch=deadline, prior_exposure_usd="0.50")
+            self.assertEqual(p.guard_deadline(plan, now + 600), deadline)
+            binding = p.load(directory)[1]
+            binding.update(deadline_epoch=deadline + 1, guard={"script_sha256": "0" * 64,
+                           "label": "org.pqbtc.runpod." + plan["task"].rsplit("-", 1)[1], "armed_at_epoch": now})
+            p.save_binding(directory, binding)
+            with self.assertRaisesRegex(p.Refused, "guard_bound"):
+                p.load(directory)
+            with self.assertRaises(p.Refused):
+                p.guard_deadline(plan, deadline - 24 * 3600)
+        for offset in (24 * 3600, p.MAX_SECONDS + 1):
+            with tempfile.TemporaryDirectory() as temporary, self.assertRaises(p.Refused):
+                p.make_plan(Path(temporary) / "bad", self.api, PIN, hard_deadline_epoch=int(time.time()) + offset)
+
+    def test_cli_passes_replacement_tier_deadline_and_prior_exposure(self):
+        output = io.StringIO()
+        with mock.patch.object(p, "API", return_value=self.api), mock.patch.object(p, "make_plan", return_value={"result": "DATA"}) as planner, \
+             mock.patch("sys.stdout", output):
+            self.assertEqual(p.main(["plan", "--state", str(self.directory), "--image", PIN,
+                                     "--volume-type", "HIGH_PERFORMANCE", "--hard-deadline-epoch", "1794784982",
+                                     "--prior-exposure-usd", "0.50"]), 0)
+        self.assertEqual(planner.call_args.kwargs["volume_type"], "HIGH_PERFORMANCE")
+        self.assertEqual(planner.call_args.kwargs["hard_deadline_epoch"], 1794784982)
+        self.assertEqual(planner.call_args.kwargs["prior_exposure_usd"], "0.50")
 
     def test_budget_refuses_excessive_rate_and_short_soak(self):
         for hourly, seconds in ((0.21, p.MAX_SECONDS), (0.12, 86400), (0.12, p.MAX_SECONDS + 1)):

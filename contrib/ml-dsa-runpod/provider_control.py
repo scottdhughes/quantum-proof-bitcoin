@@ -34,6 +34,7 @@ ORIGIN = "https://api.runpod.io"
 MAX_BYTES = 2 * 1024 * 1024
 MAX_SECONDS = 28 * 3600
 MAX_USD = Decimal("10.00")
+VOLUME_RATES = {"STANDARD": "0.07", "HIGH_PERFORMANCE": "0.14"}
 ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
 TASK = re.compile(r"pqbtc-runpod-public-[0-9]{8}-[0-9a-f]{16}")
 IMAGE = re.compile(r"[a-zA-Z0-9./:_-]+@sha256:[0-9a-f]{64}")
@@ -253,8 +254,12 @@ def cents(value):
     return str(Decimal(value).quantize(Decimal("0.01"), rounding=ROUND_CEILING))
 
 
-def quote_bound(hourly, *, seconds=MAX_SECONDS, disk_gb=40, volume_gb=20):
+def quote_bound(hourly, *, seconds=MAX_SECONDS, disk_gb=40, volume_gb=20, volume_type="STANDARD", prior_exposure_usd="0.00"):
     hourly = Decimal(str(hourly))
+    prior = Decimal(str(prior_exposure_usd))
+    need(volume_type in VOLUME_RATES, "volume_type")
+    need(prior.is_finite() and 0 <= prior <= MAX_USD, "prior_exposure")
+    prior = Decimal(cents(prior))
     need(hourly.is_finite() and 0 < hourly <= Decimal("0.20"), "compute_rate")
     need(type(seconds) is int and 24 * 3600 < seconds <= MAX_SECONDS, "duration")
     need(type(disk_gb) is int and 20 <= disk_gb <= 40 and volume_gb == 20, "storage_size")
@@ -263,32 +268,38 @@ def quote_bound(hourly, *, seconds=MAX_SECONDS, disk_gb=40, volume_gb=20):
     # conservative relative to the published per-second/hourly storage rates.
     compute = hourly * hours
     storage = Decimal(disk_gb) * Decimal("0.10") * hours / (28 * 24)
-    storage += Decimal(volume_gb) * Decimal("0.07") * (hours.to_integral_value(rounding=ROUND_CEILING) + 1) / (28 * 24)
-    upper = (compute + storage) * Decimal("1.50") + Decimal("2.00")
+    storage += Decimal(volume_gb) * Decimal(VOLUME_RATES[volume_type]) * (hours.to_integral_value(rounding=ROUND_CEILING) + 1) / (28 * 24)
+    upper = prior + (compute + storage) * Decimal("1.50") + Decimal("2.00")
     need(upper <= MAX_USD, "budget")
-    return {"hourly_compute_usd": str(hourly), "compute_usd": cents(compute), "storage_usd": cents(storage),
+    result = {"hourly_compute_usd": str(hourly), "compute_usd": cents(compute), "storage_usd": cents(storage),
             "tax_contingency_multiplier": "1.50", "additional_reserve_usd": "2.00", "all_in_planned_upper_usd": cents(upper),
             "maximum_total_usd": "10.00", "seconds": seconds,
             "storage_source": "https://docs.runpod.io/pods/pricing", "provider_budget_guarantee": False}
+    # Preserve the exact old quote contract for already armed STANDARD guards.
+    if volume_type != "STANDARD" or prior:
+        result.update(network_volume_type=volume_type, network_volume_usd_per_gb_month=VOLUME_RATES[volume_type],
+                      prior_exposure_usd=cents(prior), storage_source="https://www.runpod.io/pricing")
+    return result
 
 
-def catalog(api):
+def catalog(api, volume_type="STANDARD"):
+    need(volume_type in VOLUME_RATES, "volume_type")
     status, cpu = api.call("GET", "/v2/catalog/cpus/cpu3c?include=AVAILABILITY&product=POD&vcpuCount=4")
     need(status == 200 and cpu.get("id") == "cpu3c" and cpu.get("ramGbPerVcpu") == 2 and
          cpu["vcpu"]["min"] <= 4 <= cpu["vcpu"]["max"] and cpu.get("availability") in ("HIGH", "MEDIUM", "LOW"), "cpu_catalog")
     hourly = Decimal(str(cpu["price"]["securePerVcpu"])) * 4
-    quote_bound(hourly)
-    status, dc = api.call("GET", "/v2/catalog/datacenters?include=CPU_AVAILABILITY&networkVolumeTypes=STANDARD")
+    quote_bound(hourly, volume_type=volume_type)
+    status, dc = api.call("GET", "/v2/catalog/datacenters?include=CPU_AVAILABILITY&networkVolumeTypes=" + volume_type)
     need(status == 200 and type(dc.get("dataCenters")) is list, "datacenter_catalog")
     cpu_stock = {v["id"]: v["availability"] for v in cpu.get("dataCenters", []) if type(v) is dict}
     selected = []
     for item in dc["dataCenters"]:
-        if "STANDARD" in item.get("networkVolumeTypes", []) and cpu_stock.get(item.get("id")) in ("HIGH", "MEDIUM", "LOW"):
-            selected.append({"id": item["id"], "cpu_availability": cpu_stock[item["id"]], "network_volume_type": "STANDARD"})
+        if volume_type in item.get("networkVolumeTypes", []) and cpu_stock.get(item.get("id")) in ("HIGH", "MEDIUM", "LOW"):
+            selected.append({"id": item["id"], "cpu_availability": cpu_stock[item["id"]], "network_volume_type": volume_type})
     need(selected, "no_storage_cpu_intersection")
     selected.sort(key=lambda v: (not v["id"].startswith("US-"), v["cpu_availability"] != "HIGH", v["id"]))
     return {"observed_at_epoch": int(time.time()), "cpu_id": "cpu3c", "vcpu_count": 4, "memory_gb": 8,
-            "hourly_compute_usd": str(hourly), "data_centers": selected, "quote": quote_bound(hourly)}
+            "hourly_compute_usd": str(hourly), "data_centers": selected, "quote": quote_bound(hourly, volume_type=volume_type)}
 
 
 def validate_plan(plan):
@@ -301,8 +312,16 @@ def validate_plan(plan):
     need(archive_root.is_absolute() and not archive_root.is_symlink(), "artifact_root")
     info = archive_root.stat()
     need(stat.S_ISDIR(info.st_mode) and info.st_uid == os.getuid() and stat.S_IMODE(info.st_mode) == 0o700, "artifact_root")
-    quote = quote_bound(plan["catalog"]["hourly_compute_usd"])
-    need(plan["quote"] == quote and plan["data_center"] in [v["id"] for v in plan["catalog"]["data_centers"]], "plan_quote")
+    volume_type = plan.get("volume_type", "STANDARD")
+    quote = quote_bound(plan["catalog"]["hourly_compute_usd"], volume_type=volume_type,
+                        prior_exposure_usd=plan.get("prior_exposure_usd", "0.00"))
+    need(plan["quote"] == quote and any(v["id"] == plan["data_center"] and v["network_volume_type"] == volume_type
+         for v in plan["catalog"]["data_centers"]), "plan_quote")
+    hard_deadline = plan.get("hard_deadline_epoch")
+    if hard_deadline is not None:
+        need(type(hard_deadline) is int and type(plan.get("created_at_epoch")) is int and
+             plan["created_at_epoch"] + 24 * 3600 < hard_deadline <= plan["created_at_epoch"] + MAX_SECONDS,
+             "absolute_deadline")
     return plan
 
 
@@ -320,6 +339,7 @@ def load(directory):
              type(binding.get("deadline_epoch")) is int and
              guard["armed_at_epoch"] <= binding["deadline_epoch"] <= guard["armed_at_epoch"] + MAX_SECONDS,
              "guard_bound")
+        need(plan.get("hard_deadline_epoch") is None or binding["deadline_epoch"] <= plan["hard_deadline_epoch"], "guard_bound")
     return plan, binding
 
 
@@ -327,11 +347,12 @@ def save_binding(directory, binding):
     put(Path(directory) / "binding.json", binding)
 
 
-def make_plan(directory, api, image, data_center=None, artifact_root=None):
+def make_plan(directory, api, image, data_center=None, artifact_root=None, *, volume_type="STANDARD",
+              hard_deadline_epoch=None, prior_exposure_usd="0.00"):
     directory = private_dir(directory)
     need(not (directory / "plan.json").exists() and not (directory / "binding.json").exists(), "fresh_state_required")
     need(type(image) is str and IMAGE.fullmatch(image), "image_digest_required")
-    available = catalog(api)
+    available = catalog(api, volume_type)
     data_center = data_center or available["data_centers"][0]["id"]
     artifact_root = private_dir(artifact_root or directory.parent)
     task = "pqbtc-runpod-public-" + datetime.now(timezone.utc).strftime("%Y%m%d") + "-" + uuid.uuid4().hex[:16]
@@ -340,6 +361,11 @@ def make_plan(directory, api, image, data_center=None, artifact_root=None):
             "cap_usd": "10.00", "catalog": available, "quote": available["quote"],
             "provider_expiry": False, "guard_type": "INDEPENDENT_LOCAL_LAUNCHD", "created_at_epoch": int(time.time()),
             "artifact_root": str(artifact_root)}
+    if volume_type != "STANDARD" or Decimal(str(prior_exposure_usd)):
+        plan.update(volume_type=volume_type, prior_exposure_usd=cents(prior_exposure_usd),
+                    quote=quote_bound(available["hourly_compute_usd"], volume_type=volume_type, prior_exposure_usd=prior_exposure_usd))
+    if hard_deadline_epoch is not None:
+        plan["hard_deadline_epoch"] = hard_deadline_epoch
     validate_plan(plan)
     put(directory / "plan.json", plan)
     binding = {"task": task, "plan_sha256": digest(read(directory / "plan.json")), "phase": "PLANNED",
@@ -350,7 +376,7 @@ def make_plan(directory, api, image, data_center=None, artifact_root=None):
 
 def volume_projection(value, plan, expected_id=None):
     need(type(value) is dict and ID.fullmatch(value.get("id", "")) and value.get("name") == plan["task"] + "-data" and
-         value.get("size") == 20 and value.get("dataCenter") == plan["data_center"] and value.get("type") == "STANDARD" and
+         value.get("size") == 20 and value.get("dataCenter") == plan["data_center"] and value.get("type") == plan.get("volume_type", "STANDARD") and
          (expected_id is None or value["id"] == expected_id), "volume_identity")
     return {k: value[k] for k in ("id", "name", "size", "dataCenter", "type")}
 
@@ -426,7 +452,7 @@ def create(directory, api):
         binding["intents"]["volume"] = int(time.time())
         save_binding(directory, binding)
         status, value = api.call("POST", "/v2/network-volumes", {"name": plan["task"] + "-data", "size": 20,
-                                                              "dataCenter": plan["data_center"], "type": "STANDARD"})
+                                                              "dataCenter": plan["data_center"], "type": plan.get("volume_type", "STANDARD")})
         if status != 201:
             binding.setdefault("rejections", {})["volume"] = status
             save_binding(directory, binding)
@@ -661,12 +687,19 @@ def launchctl(*args):
     return result
 
 
+def guard_deadline(plan, now):
+    deadline = min(now + MAX_SECONDS, plan.get("hard_deadline_epoch", now + MAX_SECONDS))
+    need(type(now) is int and now + 24 * 3600 < deadline <= now + MAX_SECONDS, "absolute_deadline")
+    return deadline
+
+
 def arm(directory):
     directory = private_dir(directory)
     with locked(directory):
         plan, binding = load(directory)
         need(binding["phase"] == "PLANNED" and binding.get("guard") is None, "guard_already_armed")
         need(sys.platform == "darwin", "mac_guard_required")
+        deadline = guard_deadline(plan, int(time.time()))
         capsule = directory / "guard-capsule"
         capsule.mkdir(mode=0o700)
         script = capsule / "provider_control.py"
@@ -678,7 +711,6 @@ def arm(directory):
         finally:
             os.close(fd)
         label = "org.pqbtc.runpod." + plan["task"].rsplit("-", 1)[1]
-        deadline = int(time.time()) + MAX_SECONDS
         binding["deadline_epoch"] = deadline
         binding["guard"] = {"label": label, "script_sha256": digest(raw), "armed_at_epoch": int(time.time())}
         save_binding(directory, binding)
@@ -776,6 +808,9 @@ def main(argv=None):
     parser.add_argument("--state", type=Path)
     parser.add_argument("--image")
     parser.add_argument("--data-center")
+    parser.add_argument("--volume-type", choices=tuple(VOLUME_RATES), default="STANDARD")
+    parser.add_argument("--hard-deadline-epoch", type=int)
+    parser.add_argument("--prior-exposure-usd", default="0.00")
     parser.add_argument("--artifact-root", type=Path)
     parser.add_argument("--script-sha256")
     parser.add_argument("--export-receipt", type=Path)
@@ -783,11 +818,13 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         if args.operation == "catalog":
-            result = catalog(API())
+            result = catalog(API(), args.volume_type)
         else:
             need(args.state is not None and args.state.is_absolute(), "state_path")
             if args.operation == "plan":
-                result = make_plan(args.state, API(), args.image, args.data_center, args.artifact_root)
+                result = make_plan(args.state, API(), args.image, args.data_center, args.artifact_root,
+                                   volume_type=args.volume_type, hard_deadline_epoch=args.hard_deadline_epoch,
+                                   prior_exposure_usd=args.prior_exposure_usd)
             elif args.operation == "arm":
                 result = arm(args.state)
             elif args.operation == "watch":

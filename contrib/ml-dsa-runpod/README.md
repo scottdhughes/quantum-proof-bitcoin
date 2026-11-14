@@ -33,6 +33,13 @@ PID count and node RSS monitoring are observations, not a claim of the old Docke
 `--pids-limit` or read-only-root configuration. Child capabilities/UIDs and owned
 process-session cleanup are checked by `native_backend.py`.
 
+Persistent storage must enforce real per-user permissions. The installer first
+creates a disposable file as UID1000, verifies owner-only mode, and proves that
+UID1001 cannot open it for reading or appending. Synthetic permission listings
+alone do not qualify a mount. A rejected storage tier must not be used for live
+wallet state, and selecting `HIGH_PERFORMANCE` does not itself establish that
+this test passes.
+
 The running node hash comes from its actual `/proc/<pid>/exe`. The hardened
 signer deliberately denies post-exec executable inspection, including to the
 container's root without ptrace privileges. Its separate receipt binds a
@@ -77,6 +84,13 @@ Both hosts use the original public-soak host fields, plus:
 SSH is noninteractive, with strict host-key checking, forwarding disabled, and
 the provider-attested per-generation public known-hosts file. Explicit private
 key/config paths, forwarding, proxies, and remote-command hooks are refused.
+The native transport also retains `pod_id`, `generation`, `known_hosts_sha256`,
+and `hostkey_source` from the provider adapter. Since sshd may omit
+`RUNPOD_POD_ID`, the installer writes a root-owned, read-only public binding at
+`/opt/pqbtc-runpod/provider-binding.json`, checked against that transport on
+startup and after restart. Receipts call this an API-attested SSH binding and
+separately report whether the environment supplied the pod ID. Provider reads
+before and after installation must identify the same runtime generation.
 
 ```sh
 python3 contrib/ml-dsa-runpod/run_public_soak.py \
@@ -113,3 +127,8 @@ provider lifecycle operations. The user-approved total spending envelope is
 enforced there. No public RPC, wallet console, signer IPC, or operator material
 is exposed. All coins are disposable TEST coins; no production admission is
 implied by a passing finite run.
+
+Replacement plans can select `--volume-type HIGH_PERFORMANCE`, but must carry
+`--prior-exposure-usd` and the original `--hard-deadline-epoch`. This keeps one
+total spending envelope and one absolute deadline across attempts. Export and
+close the previous owned resources before creating replacement compute.

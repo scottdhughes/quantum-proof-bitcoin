@@ -69,6 +69,77 @@ def prepare_layout(runtime_root=Path("/opt/pqbtc-runtime"), data_mount=Path("/va
         info = path.lstat()
         need(stat.S_ISDIR(info.st_mode) and info.st_uid == owner and
              stat.S_IMODE(info.st_mode) == 0o755, "Runtime parent ownership differs")
+    if owner == 0:
+        verify_posix_isolation(data_mount)
+
+
+def verify_posix_isolation(parent):
+    """Prove real cross-UID denial; a filesystem may synthesize mode bits."""
+    with tempfile.TemporaryDirectory(prefix=".pqbtc-posix-probe-", dir=parent) as temporary:
+        root = Path(temporary)
+        root.chmod(0o755)
+        signer = root / "signer"
+        signer.mkdir(mode=0o700)
+        os.chown(signer, 1000, 1000)
+        path = signer / "public-probe"
+        writer = ('import os,stat,sys;p=sys.argv[1];fd=os.open(p,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600);'
+                  'os.write(fd,b"PUBLIC PERMISSION PROBE");os.fsync(fd);s=os.fstat(fd);os.close(fd);'
+                  'assert s.st_uid==1000 and stat.S_IMODE(s.st_mode)==0o600')
+        result = subprocess.run([sys.executable, "-B", "-I", "-c", writer, str(path)],
+                                user=1000, group=1000, extra_groups=[], capture_output=True, timeout=10)
+        need(result.returncode == 0 and not result.stdout and not result.stderr,
+             "Provider storage does not preserve owner-only file modes")
+        reader = '''import errno,os,sys
+for flags in (os.O_RDONLY,os.O_WRONLY|os.O_APPEND):
+ try:fd=os.open(sys.argv[1],flags)
+ except OSError as error:
+  if error.errno not in (errno.EACCES,errno.EPERM):raise
+ else:
+  os.close(fd);raise SystemExit(1)
+'''
+        result = subprocess.run([sys.executable, "-B", "-I", "-c", reader, str(path)],
+                                user=1001, group=1000, extra_groups=[], capture_output=True, timeout=10)
+        need(result.returncode == 0 and not result.stdout and not result.stderr,
+             "Provider storage permits cross-UID wallet access")
+
+
+def write_provider_binding(path, value, *, owner=0):
+    """Record public API/SSH attestation without relying on sshd environment."""
+    need(type(value) is dict and set(value) == {"schema", "pod_id", "generation", "known_hosts_sha256", "proof_kind"} and
+         value["schema"] == "PQBTC-RUNPOD-PROVIDER-BINDING-1" and
+         value["proof_kind"] == "PROVIDER_API_ATTESTED_SSH_BINDING" and
+         re.fullmatch(r"[a-zA-Z0-9_-]{4,80}", value["pod_id"]) and
+         re.fullmatch(r"[0-9a-f]{64}", value["known_hosts_sha256"]) and
+         type(value["generation"]) is str and 10 <= len(value["generation"]) <= 80,
+         "Provider binding shape differs")
+    path = Path(path)
+    info = path.parent.lstat()
+    need(stat.S_ISDIR(info.st_mode) and info.st_uid == owner and not info.st_mode & 0o022,
+         "Provider binding parent differs")
+    if path.exists() or path.is_symlink():
+        info = path.lstat()
+        need(stat.S_ISREG(info.st_mode) and info.st_uid == owner and info.st_nlink == 1 and
+             stat.S_IMODE(info.st_mode) == 0o444 and info.st_size < 4096,
+             "Existing provider binding differs")
+        prior = json.loads(path.read_text())
+        need(prior.get("pod_id") == value["pod_id"], "Another pod binding was preserved")
+    fd, temporary = tempfile.mkstemp(prefix=".provider-binding-", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf8") as output:
+            json.dump(value, output, sort_keys=True)
+            output.write("\n")
+            output.flush()
+            os.fchmod(output.fileno(), 0o444)
+            os.fsync(output.fileno())
+        os.replace(temporary, path)
+        directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
 
 
 def verify_installed(archive, target, prefix, *, owner=0):

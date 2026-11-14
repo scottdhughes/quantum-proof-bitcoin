@@ -40,6 +40,37 @@ base = load("runpod_agent_public_base", ROOT / "contrib/ml-dsa-qualification/pub
 require = base.require
 PROFILE = base.PROFILE
 SCOPE = base.SCOPE
+PROVIDER_PROOF = "PROVIDER_API_ATTESTED_SSH_BINDING"
+_UNOBSERVED_ENV = object()
+
+
+def read_provider_binding(pod_id, generation, known_hosts_sha256, *,
+                          path=Path("/opt/pqbtc-runpod/provider-binding.json"), owner=0,
+                          environment_pod_id=_UNOBSERVED_ENV):
+    """Read a protected API/SSH attestation; do not manufacture environment proof."""
+    require(type(pod_id) is str and re.fullmatch(r"[a-zA-Z0-9_-]{4,80}", pod_id) and
+            type(generation) is str and 10 <= len(generation) <= 80 and
+            type(known_hosts_sha256) is str and re.fullmatch(r"[0-9a-f]{64}", known_hosts_sha256),
+            "Expected provider identity is incomplete")
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+    try:
+        info = os.fstat(fd)
+        require(stat.S_ISREG(info.st_mode) and info.st_uid == owner and info.st_nlink == 1 and
+                stat.S_IMODE(info.st_mode) == 0o444 and 0 < info.st_size <= 4096,
+                "Provider binding ownership/type/mode refused")
+        raw = os.read(fd, 4097)
+        require(len(raw) <= 4096, "Provider binding bound exceeded")
+        value = json.loads(raw, object_pairs_hook=base.strict_pairs)
+    finally:
+        os.close(fd)
+    expected = {"schema": "PQBTC-RUNPOD-PROVIDER-BINDING-1", "pod_id": pod_id, "generation": generation,
+                "known_hosts_sha256": known_hosts_sha256, "proof_kind": PROVIDER_PROOF}
+    require(value == expected, "Protected provider binding differs from API-attested SSH expectation")
+    if environment_pod_id is _UNOBSERVED_ENV:
+        environment_pod_id = os.environ.get("RUNPOD_POD_ID")
+    require(environment_pod_id is None or environment_pod_id == pod_id, "Existing provider environment identity disagrees")
+    return {"proof_kind": PROVIDER_PROOF, "binding": value, "binding_sha256": hashlib.sha256(raw).hexdigest(),
+            "environment_pod_id_observed": environment_pod_id is not None}
 
 
 def owned_directory(path):
@@ -229,10 +260,11 @@ class DockerAgent(base.Agent):
 
 
 class NativeAgent(base.Agent):
-    def __init__(self, controller, state_dir, deadline, pod_id):
+    def __init__(self, controller, state_dir, deadline, pod_id, provider_identity):
         super().__init__(controller, state_dir, deadline)
         self.pod_id, self.bridge_info, self.bridge_reader = pod_id, None, None
         self.bridge_error = None
+        self.provider_identity = provider_identity
 
     def bridge_stop(self):
         if self.bridge is not None:
@@ -307,7 +339,9 @@ class NativeAgent(base.Agent):
             signer = value.get("signer_execution_proof")
             require(not running or type(signer) is dict and signer.get("pid") == self.controller._signer.pid and
                     signer.get("start") == self.controller._signer_info["start"], "Live signer execution proof is missing")
-            value.update(pod_id=self.pod_id, architecture=platform.machine(),
+            expected = self.provider_identity["binding"]
+            observed = read_provider_binding(expected["pod_id"], expected["generation"], expected["known_hosts_sha256"])
+            value.update(pod_id=self.pod_id, provider_identity=observed, architecture=platform.machine(),
                          running_node=native_process("pqbtcd", 1001),
                          signer_running=running, running_signer=signer if running else None)
             return base.public_result(value)
@@ -339,6 +373,8 @@ def main(argv=None):
     parser.add_argument("--runtime-root", type=Path, default=Path("/opt/pqbtc-runtime"))
     parser.add_argument("--data-root", type=Path, default=Path("/var/lib/pqbtc"))
     parser.add_argument("--pod-id")
+    parser.add_argument("--provider-generation")
+    parser.add_argument("--known-hosts-sha256")
     parser.add_argument("--until-utc", required=True)
     args = parser.parse_args(argv)
     end = datetime.fromisoformat(args.until_utc)
@@ -348,14 +384,15 @@ def main(argv=None):
         require(sys.platform.startswith("linux") and os.geteuid() == 0 and not args.sudo_docker and not args.bootstrap,
                 "Native follower requires the isolated Linux root supervisor")
         require(type(args.pod_id) is str and re.fullmatch(r"[a-zA-Z0-9_-]{4,80}", args.pod_id), "Owned pod identity required")
-        require(os.environ.get("RUNPOD_POD_ID") == args.pod_id, "Actual provider pod identity differs")
+        provider_identity = read_provider_binding(args.pod_id, args.provider_generation, args.known_hosts_sha256)
         from native_backend import NativeController
         controller = NativeController(args.state_dir, read_json(args.descriptor, maximum=16 * 1024 * 1024), versions_root=args.versions_root,
                                       runtime_root=args.runtime_root, data_root=args.data_root, namespace=args.namespace)
-        agent = NativeAgent(controller, args.state_dir, end.timestamp(), args.pod_id)
+        agent = NativeAgent(controller, args.state_dir, end.timestamp(), args.pod_id, provider_identity)
         cleanup = controller.manager.emergency_stop
     else:
-        require(args.pod_id is None, "Docker backend cannot claim a provider pod")
+        require(args.pod_id is None and args.provider_generation is None and args.known_hosts_sha256 is None,
+                "Docker backend cannot claim a provider pod")
         from public_controller import PublicController
         from source_runtime import load_descriptor
         controller = PublicController(args.state_dir, load_descriptor(args.descriptor), container=args.namespace,

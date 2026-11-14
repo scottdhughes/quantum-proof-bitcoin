@@ -37,6 +37,22 @@ def transport():
                                      "-p", "2222", "root@203.0.113.2"]}
 
 
+def provider_binding():
+    return {"schema": "PQBTC-RUNPOD-PROVIDER-BINDING-1", "pod_id": "test-pod-123", "generation": "2026-11-14T12:05:00Z",
+            "known_hosts_sha256": "f" * 64, "proof_kind": "PROVIDER_API_ATTESTED_SSH_BINDING"}
+
+
+def provider_identity():
+    return {"proof_kind": "PROVIDER_API_ATTESTED_SSH_BINDING", "binding": provider_binding(),
+            "binding_sha256": "e" * 64, "environment_pod_id_observed": False}
+
+
+def attested_transport():
+    value = provider_binding()
+    return {**transport(), "pod_id": value["pod_id"], "generation": value["generation"],
+            "known_hosts_sha256": value["known_hosts_sha256"], "hostkey_source": "AUTHENTICATED_PROVIDER_EXEC_PUBLIC_KEY_ONLY"}
+
+
 def qualified():
     hashes = {driver.base.NODE: "a" * 64, driver.base.SIGNER: "b" * 64,
               driver.base.SOURCE_PREFIX + "docs/ML_DSA_44_PUBLIC_TEST_PROFILE.md": driver.base.PROFILE,
@@ -54,7 +70,7 @@ def payload():
 
 def restart():
     return {"schema": "PQBTC-RUNPOD-RESTART-1", "result": "PASS", "pod_id": "test-pod-123", "provider_restart": True,
-            "before_generation": "2026-11-14T12:00:00Z", "after_generation": "2026-11-14T12:05:00Z", "transport": transport()}
+            "before_generation": "2026-11-14T12:00:00Z", "after_generation": "2026-11-14T12:05:00Z", "transport": attested_transport()}
 
 
 class IdentityTests(unittest.TestCase):
@@ -146,10 +162,11 @@ class IdentityTests(unittest.TestCase):
         summary.update(node_sha256="a" * 64, signer_sha256="b" * 64,
                        payload_sha256=hashlib.sha256(driver.canonical(payload()) + b"\n").hexdigest())
         value = {"schema": "PQBTC-RUNPOD-NATIVE-IDENTITY-1", "backend": "native", "pod_id": "test-pod-123",
+                 "provider_identity": provider_identity(),
                  "namespace": "pqbtc-runpod-test", "payload": summary,
                  "payload_root": "/opt/pqbtc-runpod/versions/a3", "active_seed": "/opt/pqbtc-runtime/seed",
                  "running_node": {"uid": 1001, "pid": 12, "sha256": "a" * 64}, "running_signer": None, "signer_running": False}
-        host = {"native": {"pod_id": "test-pod-123", "namespace": "pqbtc-runpod-test",
+        host = {"_provider_binding_expected": provider_binding(), "native": {"pod_id": "test-pod-123", "namespace": "pqbtc-runpod-test",
                            "versions_root": "/opt/pqbtc-runpod/versions", "runtime_root": "/opt/pqbtc-runtime"}}
         driver.validate_native_identity(host, value, version)
         for field, wrong in (("uid", 0), ("sha256", "f" * 64), ("pid", 1)):
@@ -185,6 +202,13 @@ class IdentityTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             driver.validate_restart_receipt(value, "test-pod-123")
 
+    def test_provider_restart_transport_is_bound_to_new_generation_and_same_pod(self):
+        for field, changed in (("generation", "2026-11-14T12:00:00Z"), ("pod_id", "another-pod-456")):
+            value = restart()
+            value["transport"][field] = changed
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                driver.validate_restart_receipt(value, "test-pod-123")
+
 
 class TransportTests(unittest.TestCase):
     def test_strict_transport_with_provider_public_key_metadata(self):
@@ -210,6 +234,47 @@ class TransportTests(unittest.TestCase):
 
 
 class ControllerBoundaryTests(unittest.TestCase):
+    def test_provider_file_binding_without_environment_is_explicitly_attested(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "provider-binding.json"
+            value = provider_binding()
+            path.write_text(json.dumps(value))
+            path.chmod(0o444)
+            def read(environment=None, **updates):
+                fields = {**value, **updates}
+                return agent.read_provider_binding(fields["pod_id"], fields["generation"], fields["known_hosts_sha256"],
+                                                   path=path, owner=os.geteuid(), environment_pod_id=environment)
+            observed = read()
+            self.assertEqual(observed["proof_kind"], "PROVIDER_API_ATTESTED_SSH_BINDING")
+            self.assertFalse(observed["environment_pod_id_observed"])
+            self.assertTrue(read("test-pod-123")["environment_pod_id_observed"])
+            for changes in ({"pod_id": "other-pod-456"}, {"generation": "2026-11-14T12:00:00Z"}, {"known_hosts_sha256": "a" * 64}):
+                with self.subTest(changes=changes), self.assertRaises(ValueError):
+                    read(**changes)
+            with self.assertRaises(ValueError):
+                read("another-environment-pod")
+            path.chmod(0o600)
+            with self.assertRaises(ValueError):
+                read()
+            path.chmod(0o444)
+            alias = path.with_name("alias")
+            alias.symlink_to(path)
+            with self.assertRaises((ValueError, OSError)):
+                agent.read_provider_binding(value["pod_id"], value["generation"], value["known_hosts_sha256"],
+                                            path=alias, owner=os.geteuid(), environment_pod_id=None)
+            alias.unlink()
+            os.link(path, alias)
+            with self.assertRaises(ValueError):
+                read()
+
+    def test_expected_provider_binding_requires_attested_generation_and_key(self):
+        self.assertEqual(driver.expected_provider_binding(attested_transport(), "test-pod-123"), provider_binding())
+        for key in ("pod_id", "generation", "known_hosts_sha256", "hostkey_source"):
+            value = attested_transport()
+            del value[key]
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                driver.expected_provider_binding(value, "test-pod-123")
+
     def cgroup_fixture(self, root, *, version=1, mount_root="/docker/live", membership="/docker/live"):
         proc = root / "proc/self"
         proc.mkdir(parents=True)
@@ -294,6 +359,7 @@ class ControllerBoundaryTests(unittest.TestCase):
                   "sudo_docker": False, "transport": {"kind": "local"},
                   "versions": {"a": {"remote_descriptor": "/task/descriptor.json"}}}
         native = {**docker, "backend": "native", "role": "follower", "transport": transport(), "_attempt_claim": {},
+                  "_provider_binding_expected": provider_binding(),
                   "native": {"namespace": "pqbtc-runpod-data", "pod_id": "test-pod-123", "data_root": "/var/lib/pqbtc/data/data",
                              "versions_root": "/opt/pqbtc-runpod/versions", "runtime_root": "/opt/pqbtc-runtime"}}
         self.assertEqual(driver.agent_command(docker, "future")[:2], ["python3", "-B"])
@@ -315,11 +381,11 @@ class ControllerBoundaryTests(unittest.TestCase):
         control = types.SimpleNamespace(manager=types.SimpleNamespace(identity=lambda: {"signer_execution_proof": proof}),
                                         _signer=types.SimpleNamespace(pid=23, poll=lambda: None), _signer_info={"start": "99"})
         holder = types.SimpleNamespace(controller=control, pod_id="test-pod-123", deadline=time.time() + 5,
-                                       monotonic_deadline=time.monotonic() + 5)
+                                       monotonic_deadline=time.monotonic() + 5, provider_identity=provider_identity())
         def observed(name, uid, **kwargs):
             self.assertEqual((name, uid), ("pqbtcd", 1001))
             return {"sha256": "a" * 64, "uid": 1001}
-        with patch.object(agent, "native_process", side_effect=observed):
+        with patch.object(agent, "native_process", side_effect=observed), patch.object(agent, "read_provider_binding", return_value=provider_identity()):
             value = agent.NativeAgent.act(holder, "identity", {})
         self.assertTrue(value["signer_running"])
         self.assertEqual(value["running_signer"], proof)

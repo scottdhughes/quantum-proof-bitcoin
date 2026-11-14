@@ -90,6 +90,8 @@ def ssh_command(transport, arguments):
 def install(plan, transport):
     # Only public packages are installed; no registry credentials or user files
     # enter the pod. Runpod's base image already supplies the SSH service.
+    before = provider(plan, "get")
+    binding = binding_for_transport(transport, before)
     command = ["sh", "-c", "dpkg-query -W python3 git util-linux libevent-dev ca-certificates >/dev/null 2>&1 || "
                "(apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "
                "python3 git util-linux libevent-dev ca-certificates)"]
@@ -107,7 +109,30 @@ def install(plan, transport):
         need(receipt.get("result") == "PASS" and receipt.get("role") == role and
              receipt.get("archive_sha256") == entry["sha256"], "Pod installation receipt differs")
         receipts.append(receipt)
+    after = provider(plan, "get")
+    need(all(after[key] == before[key] for key in ("id", "name", "started_at", "mounts")),
+         "Installation crossed a provider restart")
+    script = ('import json,pathlib,sys;sys.path.insert(0,sys.argv[1]);'
+              'from install_payload import write_provider_binding;'
+              'write_provider_binding(pathlib.Path("/opt/pqbtc-runpod/provider-binding.json"),json.loads(sys.argv[2]));'
+              'print(json.dumps({"result":"PASS","provider_binding":json.loads(sys.argv[2])},sort_keys=True))')
+    result = bounded(ssh_command(transport, ["python3", "-B", "-I", "-c", script,
+                    "/opt/pqbtc-runpod/control-" + plan["control_head"][:16] + "/contrib/ml-dsa-runpod",
+                    json.dumps(binding, sort_keys=True)]))
+    need(json.loads(result.stdout) == {"result": "PASS", "provider_binding": binding}, "Provider binding installation differs")
+    final = provider(plan, "get")
+    need(all(final[key] == before[key] for key in ("id", "name", "started_at", "mounts")),
+         "Provider binding installation crossed a restart")
     return receipts
+
+
+def binding_for_transport(transport, pod):
+    need(transport.get("hostkey_source") == "AUTHENTICATED_PROVIDER_EXEC_PUBLIC_KEY_ONLY" and
+         transport.get("pod_id") == pod.get("id") and transport.get("generation") == pod.get("started_at") and
+         re.fullmatch(r"[0-9a-f]{64}", transport.get("known_hosts_sha256", "")),
+         "Provider API/SSH attestation differs")
+    return {"schema": "PQBTC-RUNPOD-PROVIDER-BINDING-1", "pod_id": pod["id"], "generation": pod["started_at"],
+            "known_hosts_sha256": transport["known_hosts_sha256"], "proof_kind": "PROVIDER_API_ATTESTED_SSH_BINDING"}
 
 
 def prepare(repo, provider_state, payload_a3, payload_c, output):
