@@ -166,7 +166,7 @@ def configured_auth():
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
+    def redirect_request(self, req, fp, code, msg, headers, _newurl):
         raise Refused("redirect")
 
 

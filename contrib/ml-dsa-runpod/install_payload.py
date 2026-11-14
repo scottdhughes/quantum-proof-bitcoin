@@ -138,7 +138,7 @@ def main(argv=None):
             staged = temporary / "files" / role
             if role == "control":
                 def git(*command):
-                    return subprocess.check_output(["git", "-C", str(staged), *command], text=True, timeout=30).strip()
+                    return subprocess.check_output(["git", "-C", str(staged), *command], text=True, encoding="utf8", timeout=30).strip()
                 need(git("rev-parse", "HEAD") == control_head and git("rev-parse", "HEAD^{tree}") == control_tree and
                      git("status", "--porcelain=v1", "--untracked-files=all") == "", "Control source identity differs")
             else:
@@ -164,7 +164,7 @@ def main(argv=None):
         verify_installed(archive, target, role)
         if role == "control":
             def installed_git(*command):
-                return subprocess.check_output(["git", "-C", str(target), *command], text=True, timeout=30).strip()
+                return subprocess.check_output(["git", "-C", str(target), *command], text=True, encoding="utf8", timeout=30).strip()
             need(installed_git("rev-parse", "HEAD") == control_head and installed_git("rev-parse", "HEAD^{tree}") == control_tree and
                  installed_git("status", "--porcelain=v1", "--untracked-files=all") == "", "Installed control source differs")
         if not marker.exists():

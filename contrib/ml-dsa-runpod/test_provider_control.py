@@ -94,9 +94,11 @@ class Opener:
     def __init__(self, responses):
         self.responses, self.requests = list(responses), []
 
-    def open(self, request, timeout):
+    def open_response(self, request, timeout):
         self.requests.append(request)
         return self.responses.pop(0)
+
+    open = open_response
 
 
 class ProviderTest(unittest.TestCase):
