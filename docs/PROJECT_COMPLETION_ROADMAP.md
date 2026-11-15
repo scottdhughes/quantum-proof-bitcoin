@@ -5,7 +5,7 @@ The April–July Track A roadmap remains historical. This roadmap builds on the
 [owner continuation](ML_DSA_44_OWNER_CONTINUATION.md), the implemented node
 integration, and the [durable local app](DURABLE_RUNTIME_VALIDATION.md).
 The [current qualification record](ML_DSA_44_CURRENT_QUALIFICATION.md) identifies
-the tested sources, completed public preflight and active 24-hour soak.
+the tested sources, completed public preflight and failed 24-hour soak attempt.
 
 ## Owner direction
 
@@ -91,19 +91,20 @@ sources and exclusions; inherited/default network rules retain their meaning.
 
 ## Remaining execution
 
-1. Complete the active, fresh D/F 24-hour public TEST soak. Its clock started at
-   2026-11-15 01:13:20.645543 UTC; the earliest elapsed-time completion is
-   2026-11-16 at the same UTC time. Both clocks, workload/fault/recovery criteria,
-   final cross-node state and cleanup must pass before recording a soak PASS.
-   Preserve interrupted attempts without carrying their elapsed time forward.
+1. Fix the growing transaction-poll overhead found in the failed D/F soak,
+   requalify the exact source, and complete a fresh public preflight and separate
+   fresh 24-hour public TEST soak. Attempt 01 failed after approximately 21 hours
+   despite passing all seven fault phases. Both clocks, workload/fault/recovery
+   criteria, final cross-node state and cleanup must pass before recording a
+   soak PASS. Preserve failed attempts without carrying elapsed time forward.
 2. Finish the portable source/evidence packet and public tester instructions,
    preserving source, image, compiler and workload identities. Fix reproducible
-   failures found during the active soak or public testing.
+   failures found during the soak or public testing.
 3. Publish the actual completed soak result and record a scoped, evidence-based
    experimental release decision. Production activation remains a separate
    explicit decision; the production backend and release hold are unchanged.
 
-Public GitHub source testing can continue during the active soak. The completed
+Public GitHub source testing can continue while the soak is repaired. The completed
 900-second preflight does not replace the separate 86,400-second run.
 
 ## How work advances
@@ -121,5 +122,5 @@ Public GitHub source testing can continue during the active soak. The completed
   or a passing test suite. Decide that release posture from the completed
   technical record and explicit owner direction.
 
-Current results and the active-run status are source-bound in the qualification
+Current results and the failed-run status are source-bound in the qualification
 record. Update the soak result only from its completed final report.

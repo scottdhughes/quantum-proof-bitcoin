@@ -5,6 +5,7 @@
 import argparse
 import importlib.util
 import io
+import json
 import os
 from pathlib import Path
 import stat
@@ -99,6 +100,7 @@ class PublicRuntime:
         self.signer = node_wallet.NativeSigner(self.build / "bin/pqbtc-mldsa-client", socket, 1000, network="test")
         self.node = PublicNode(self.build / "bin/pqbtcd", self.state / "chain", AuthServiceProxy)
         self.wallet, self.running, self.bootstrap = None, False, bootstrap
+        self._emitted_manifest = None
 
     def manifest(self):
         try:
@@ -335,7 +337,26 @@ class PublicRuntime:
             return self.adverse()
         raise ValueError("unsupported public action")
 
-    response = offline.Runtime.response
+    def response(self, request):
+        value = offline.Runtime.response(self, request)
+        if not value["ok"]:
+            return value
+        try:
+            # The host already retained the last complete successful snapshot.
+            # Keep the full response shape while avoiding repeated multi-MB
+            # validation, merges and durable journal writes for read-only polls.
+            # Canonical JSON distinguishes values such as True and 1; a Python
+            # dict comparison could hide a malformed changed manifest.
+            snapshot = json.dumps(value["manifest"], sort_keys=True, separators=(",", ":"), allow_nan=False)
+        except (TypeError, ValueError) as error:
+            return {"ok": False, "error": str(error)[:1000] or type(error).__name__}
+        if snapshot == self._emitted_manifest:
+            value["manifest"] = None
+        else:
+            # A fresh worker starts without a snapshot and resends complete
+            # state. Failed requests never acknowledge an unretained change.
+            self._emitted_manifest = snapshot
+        return value
 
 
 def main():

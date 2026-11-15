@@ -20,6 +20,15 @@ SPEC.loader.exec_module(agent)
 
 
 class PublicSoakAgentTests(unittest.TestCase):
+    def test_transaction_agent_requests_exact_membership_without_wallet_status(self):
+        from unittest.mock import Mock
+        params = {"txid": "ab" * 32, "block_hash": "cd" * 32}
+        membership = {**params, "confirmed": True, "confirmations": 1, "in_mempool": False}
+        controller = SimpleNamespace(action=Mock(return_value={"result": membership}))
+        value = agent.Agent(controller, Path("/unused/public-fixture"), time.time() + 30)
+        self.assertEqual(value.act("transaction", params), membership)
+        controller.action.assert_called_once_with("transaction", params, include_status=False)
+
     def bridge_fixture(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

@@ -1,0 +1,1312 @@
+{
+  "final_payment_calls": [
+    {
+      "action": "sample",
+      "completed_utc": "2026-11-15T22:12:41.442706+00:00",
+      "dispatch_elapsed_from_receive_seconds": -39.756666333,
+      "dispatch_sequence": 48497,
+      "dispatched_utc": "2026-11-15T22:12:41.032243+00:00",
+      "duration_seconds": 0.410432916,
+      "host": "mac",
+      "response_elapsed_from_receive_seconds": -39.346233417,
+      "response_sequence": 48498
+    },
+    {
+      "action": "sample",
+      "completed_utc": "2026-11-15T22:12:42.232611+00:00",
+      "dispatch_elapsed_from_receive_seconds": -39.346143625,
+      "dispatch_sequence": 48499,
+      "dispatched_utc": "2026-11-15T22:12:41.442799+00:00",
+      "duration_seconds": 0.789825417,
+      "host": "research",
+      "response_elapsed_from_receive_seconds": -38.556318208,
+      "response_sequence": 48500
+    },
+    {
+      "action": "sample",
+      "completed_utc": "2026-11-15T22:13:12.718312+00:00",
+      "dispatch_elapsed_from_receive_seconds": -8.443648917,
+      "dispatch_sequence": 48501,
+      "dispatched_utc": "2026-11-15T22:13:12.345357+00:00",
+      "duration_seconds": 0.372937084,
+      "host": "mac",
+      "response_elapsed_from_receive_seconds": -8.070711833,
+      "response_sequence": 48502
+    },
+    {
+      "action": "sample",
+      "completed_utc": "2026-11-15T22:13:13.508444+00:00",
+      "dispatch_elapsed_from_receive_seconds": -8.070620625,
+      "dispatch_sequence": 48503,
+      "dispatched_utc": "2026-11-15T22:13:12.718407+00:00",
+      "duration_seconds": 0.790037,
+      "host": "research",
+      "response_elapsed_from_receive_seconds": -7.280583625,
+      "response_sequence": 48504
+    },
+    {
+      "action": "receive",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:23.004014+00:00",
+      "dispatch_elapsed_from_receive_seconds": 0.0,
+      "dispatch_sequence": 48505,
+      "dispatched_utc": "2026-11-15T22:13:20.789045+00:00",
+      "duration_seconds": 2.214961792,
+      "host": "research",
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 2.214961792,
+      "response_sequence": 48506,
+      "utxos_count": 1136
+    },
+    {
+      "action": "send",
+      "addresses_count": 1266,
+      "broadcast": true,
+      "completed_utc": "2026-11-15T22:13:25.188141+00:00",
+      "dispatch_elapsed_from_receive_seconds": 2.215262875,
+      "dispatch_sequence": 48507,
+      "dispatched_utc": "2026-11-15T22:13:23.004320+00:00",
+      "duration_seconds": 2.183822875,
+      "host": "mac",
+      "next_change": 631,
+      "next_receive": 635,
+      "peers": 1,
+      "pending_sats": 4999795000,
+      "response_elapsed_from_receive_seconds": 4.39908575,
+      "response_sequence": 48508,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1106
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:26.815891+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 4.399184,
+      "dispatch_sequence": 48509,
+      "dispatched_utc": "2026-11-15T22:13:25.188245+00:00",
+      "duration_seconds": 1.627644625,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 6.026828625,
+      "response_sequence": 48510,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:28.504636+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 6.131197208,
+      "dispatch_sequence": 48511,
+      "dispatched_utc": "2026-11-15T22:13:26.920258+00:00",
+      "duration_seconds": 1.584371209,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 7.715568417,
+      "response_sequence": 48512,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:30.208011+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 7.8208845,
+      "dispatch_sequence": 48513,
+      "dispatched_utc": "2026-11-15T22:13:28.609951+00:00",
+      "duration_seconds": 1.598055583,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 9.418940083,
+      "response_sequence": 48514,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:31.932288+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 9.52284175,
+      "dispatch_sequence": 48515,
+      "dispatched_utc": "2026-11-15T22:13:30.311912+00:00",
+      "duration_seconds": 1.620381833,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 11.143223583,
+      "response_sequence": 48516,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:33.643987+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 11.246974,
+      "dispatch_sequence": 48517,
+      "dispatched_utc": "2026-11-15T22:13:32.036039+00:00",
+      "duration_seconds": 1.607940375,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 12.854914375,
+      "response_sequence": 48518,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:35.340241+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 12.960504542,
+      "dispatch_sequence": 48519,
+      "dispatched_utc": "2026-11-15T22:13:33.749581+00:00",
+      "duration_seconds": 1.590673208,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 14.55117775,
+      "response_sequence": 48520,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:37.066146+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 14.655911417,
+      "dispatch_sequence": 48521,
+      "dispatched_utc": "2026-11-15T22:13:35.444983+00:00",
+      "duration_seconds": 1.621144083,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 16.2770555,
+      "response_sequence": 48522,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:38.838487+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 16.381150708,
+      "dispatch_sequence": 48523,
+      "dispatched_utc": "2026-11-15T22:13:37.170239+00:00",
+      "duration_seconds": 1.668254417,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 18.049405125,
+      "response_sequence": 48524,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:40.570326+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 18.151559583,
+      "dispatch_sequence": 48525,
+      "dispatched_utc": "2026-11-15T22:13:38.940642+00:00",
+      "duration_seconds": 1.629690292,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 19.781249875,
+      "response_sequence": 48526,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:42.300597+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 19.886741875,
+      "dispatch_sequence": 48527,
+      "dispatched_utc": "2026-11-15T22:13:40.675817+00:00",
+      "duration_seconds": 1.624787375,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 21.51152925,
+      "response_sequence": 48528,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:44.081478+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 21.617349333,
+      "dispatch_sequence": 48529,
+      "dispatched_utc": "2026-11-15T22:13:42.406434+00:00",
+      "duration_seconds": 1.675036042,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 23.292385375,
+      "response_sequence": 48530,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:45.796799+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 23.397921333,
+      "dispatch_sequence": 48531,
+      "dispatched_utc": "2026-11-15T22:13:44.187017+00:00",
+      "duration_seconds": 1.609774667,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 25.007696,
+      "response_sequence": 48532,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:47.501437+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 25.108458,
+      "dispatch_sequence": 48533,
+      "dispatched_utc": "2026-11-15T22:13:45.897548+00:00",
+      "duration_seconds": 1.603871458,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 26.712329458,
+      "response_sequence": 48534,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:49.231876+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 26.813995333,
+      "dispatch_sequence": 48535,
+      "dispatched_utc": "2026-11-15T22:13:47.603087+00:00",
+      "duration_seconds": 1.628770292,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 28.442765625,
+      "response_sequence": 48536,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:50.964504+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 28.547088667,
+      "dispatch_sequence": 48537,
+      "dispatched_utc": "2026-11-15T22:13:49.336193+00:00",
+      "duration_seconds": 1.628305125,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 30.175393792,
+      "response_sequence": 48538,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:52.691573+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 30.280300167,
+      "dispatch_sequence": 48539,
+      "dispatched_utc": "2026-11-15T22:13:51.069384+00:00",
+      "duration_seconds": 1.622153375,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 31.902453542,
+      "response_sequence": 48540,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:54.402244+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 32.004091042,
+      "dispatch_sequence": 48541,
+      "dispatched_utc": "2026-11-15T22:13:52.793204+00:00",
+      "duration_seconds": 1.609028083,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 33.613119125,
+      "response_sequence": 48542,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:56.172686+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 33.718752208,
+      "dispatch_sequence": 48543,
+      "dispatched_utc": "2026-11-15T22:13:54.507874+00:00",
+      "duration_seconds": 1.664812917,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 35.383565125,
+      "response_sequence": 48544,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:57.874796+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 35.489133833,
+      "dispatch_sequence": 48545,
+      "dispatched_utc": "2026-11-15T22:13:56.278264+00:00",
+      "duration_seconds": 1.596531834,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 37.085665667,
+      "response_sequence": 48546,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:13:59.588155+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 37.189446083,
+      "dispatch_sequence": 48547,
+      "dispatched_utc": "2026-11-15T22:13:57.978569+00:00",
+      "duration_seconds": 1.609573459,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 38.799019542,
+      "response_sequence": 48548,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:14:01.293250+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 38.901100042,
+      "dispatch_sequence": 48549,
+      "dispatched_utc": "2026-11-15T22:13:59.690231+00:00",
+      "duration_seconds": 1.603003583,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 40.504103625,
+      "response_sequence": 48550,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:14:03.008926+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 40.609795667,
+      "dispatch_sequence": 48551,
+      "dispatched_utc": "2026-11-15T22:14:01.398938+00:00",
+      "duration_seconds": 1.609985541,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 42.219781208,
+      "response_sequence": 48552,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:14:04.724236+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 42.324813458,
+      "dispatch_sequence": 48553,
+      "dispatched_utc": "2026-11-15T22:14:03.113959+00:00",
+      "duration_seconds": 1.610272084,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 43.935085542,
+      "response_sequence": 48554,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:14:06.460197+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 44.038419125,
+      "dispatch_sequence": 48555,
+      "dispatched_utc": "2026-11-15T22:14:04.827569+00:00",
+      "duration_seconds": 1.632620292,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 45.671039417,
+      "response_sequence": 48556,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:14:08.243751+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 45.776543,
+      "dispatch_sequence": 48557,
+      "dispatched_utc": "2026-11-15T22:14:06.565704+00:00",
+      "duration_seconds": 1.678042667,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 47.454585667,
+      "response_sequence": 48558,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:14:09.965023+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 47.56013325,
+      "dispatch_sequence": 48559,
+      "dispatched_utc": "2026-11-15T22:14:08.349296+00:00",
+      "duration_seconds": 1.615721083,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 49.175854333,
+      "response_sequence": 48560,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:14:11.715437+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 49.280105125,
+      "dispatch_sequence": 48561,
+      "dispatched_utc": "2026-11-15T22:14:10.069269+00:00",
+      "duration_seconds": 1.646161417,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 50.926266542,
+      "response_sequence": 48562,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:14:13.479474+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 51.031090542,
+      "dispatch_sequence": 48563,
+      "dispatched_utc": "2026-11-15T22:14:11.820255+00:00",
+      "duration_seconds": 1.659197833,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 52.690288375,
+      "response_sequence": 48564,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:14:15.200459+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 52.795511792,
+      "dispatch_sequence": 48565,
+      "dispatched_utc": "2026-11-15T22:14:13.584695+00:00",
+      "duration_seconds": 1.61576675,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 54.411278542,
+      "response_sequence": 48566,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:14:16.916466+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 54.516721583,
+      "dispatch_sequence": 48567,
+      "dispatched_utc": "2026-11-15T22:14:15.305894+00:00",
+      "duration_seconds": 1.61055825,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 0,
+      "response_elapsed_from_receive_seconds": 56.127279833,
+      "response_sequence": 48568,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1136
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:14:18.730128+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 56.230057583,
+      "dispatch_sequence": 48569,
+      "dispatched_utc": "2026-11-15T22:14:17.019239+00:00",
+      "duration_seconds": 1.71088,
+      "host": "research",
+      "in_mempool": false,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 100000,
+      "response_elapsed_from_receive_seconds": 57.940937583,
+      "response_sequence": 48570,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1137
+    },
+    {
+      "action": "transaction",
+      "addresses_count": 1266,
+      "completed_utc": "2026-11-15T22:14:20.457543+00:00",
+      "confirmations": 0,
+      "confirmed": false,
+      "dispatch_elapsed_from_receive_seconds": 58.04640075,
+      "dispatch_sequence": 48571,
+      "dispatched_utc": "2026-11-15T22:14:18.835577+00:00",
+      "duration_seconds": 1.621948542,
+      "host": "research",
+      "in_mempool": true,
+      "next_change": 634,
+      "next_receive": 632,
+      "peers": 1,
+      "pending_sats": 100000,
+      "response_elapsed_from_receive_seconds": 59.668349292,
+      "response_sequence": 48572,
+      "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+      "utxos_count": 1137
+    }
+  ],
+  "final_payment_summary": {
+    "false_poll_count": 31,
+    "final_true_response_to_mine_dispatch_seconds": 0.000558375,
+    "mine_dispatch_to_failure_seconds": 0.340081791,
+    "native_receipt_time_not_observed": true,
+    "pending_coin_evidence_not_txid_specific": true,
+    "pending_coin_status_before_true_membership_ack_seconds": 1.727411709,
+    "poll_count": 32,
+    "poll_duration_max_seconds": 1.71088,
+    "poll_duration_median_seconds": 1.6207629579999998,
+    "poll_duration_min_seconds": 1.584371209,
+    "receive_dispatch_to_failure_seconds": 60.008989458,
+    "receive_duration_seconds": 2.214961792,
+    "send_duration_seconds": 2.183822875,
+    "send_response_to_final_true_response_seconds": 55.269263542,
+    "settlement_budget_remaining_at_mine_dispatch_upper_bound_seconds": 0.33109233300000085
+  },
+  "findings": {
+    "engineering_next_steps": [
+      "Preserve the sixty-second settlement gate, all seven fault requirements and the failed original run. Do not accumulate its partial elapsed time into a replacement soak.",
+      "Add a read-only transaction-observation path whose response does not reconstruct full wallet balances/UTXOs or serialize/retain an unchanged manifest. Keep authoritative floor/journal durability on mutation and recovery paths.",
+      "Exercise a disposable public fixture with at least the observed1266 addresses and1136 UTXOs, measuring observation, send and confirmation costs separately before a replacement preflight.",
+      "Add public-safe per-stage native relay timestamps or an equivalent diagnostic before attributing the long tail. Any relay-policy change requires its own scoped review/tests and fresh exact-source qualification."
+    ],
+    "hypotheses_not_established_by_this_log": [
+      "A long native randomized inventory interval is consistent with the long Mac-to-Research wait, but event logs do not timestamp INV/GETDATA/TX or expose scheduler draws. It is not established as the unique cause.",
+      "A public TLS transport stall or receiver scheduling delay cannot be distinguished from inventory delay with the available coordinator receipts. Peer count one and bridge liveness do not prove continuous packet progress.",
+      "Manifest serialization/retention and full UTXO observation are proven growing work and plausible contributors to measured latency, but no substep profiles allocate their individual costs.",
+      "The penultimate pending coin is strongly correlated with the target payment but is not direct txid-specific receipt evidence because compact status omits individual UTXO ids.",
+      "The timed-out mine call is ambiguous; this log does not prove whether it mined a block. It must not be retried or credited."
+    ],
+    "proven": [
+      "The sealed F report is FAIL with successful owned cleanup; the complete original event chain verifies. There is no public_clock_completed event.",
+      "Final target transaction was broadcast by Mac, then 31 negative membership replies were followed by one positive Research reply. The subsequent mine request did not return before the shared sixty-second payment deadline.",
+      "Penultimate negative membership response includes pending_sats=100000 and one additional owned UTXO in its later full status. That shows an owned pending coin before the final positive membership acknowledgment; compact status omits its txid.",
+      "PublicController.action(transaction) issues a transaction request and then a separate full status request. Each successful runtime response carries the full public manifest, and each controller request merges/validates/deep-copies it and fsyncs the retained journal, even when unchanged.",
+      "Full status scans all owned scripts with scantxoutset, then performs one gettxout per candidate and renders all addresses. Research had 1266 addresses and 1136 UTXOs before the final incoming payment. The agent compacts status only after this work.",
+      "Measured transaction RPC latency grows over the run: Research median 0.2513 seconds in hour one to 1.6059 seconds in the last observed hour; Mac 0.2192 to 1.0591 seconds.",
+      "Native inventory scheduling queues transactions, then uses exponential inter-announcement intervals (inbound mean five seconds, outbound mean two seconds). The scheduler contains no policy delay cap below sixty seconds. PublicNode adds no NoBan whitelist option.",
+      "The selected runtime/node source paths are byte-identical between qualified D and F; the inspected ten paths are byte-identical between F and documentation commit62fed742."
+    ]
+  },
+  "input_events": {
+    "bytes": 42672241,
+    "path": "df-soak-20261115-01-output/events.jsonl",
+    "sha256": "e782946da8a7da9a29e1bae43bb9c6f9e61eb5b1e099cb939f0d3b242b05d64e",
+    "verified_chain": {
+      "clock_boundaries": {
+        "public_clock_started": {
+          "data": {
+            "duration_seconds": 86400,
+            "public_probe": {
+              "certificate_sha256": "82dac8876ffe34291908e339d82e2020efa49cb5698c6bb25feb02be20581beb",
+              "commands": [
+                "version",
+                "wtxidrelay",
+                "sendaddrv2",
+                "verack"
+              ],
+              "elapsed_seconds": 0.6766657920088619,
+              "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+              "native_magic": "a7e29cf7",
+              "port": 443,
+              "public_peer_ip": "209.177.145.97",
+              "remote_height": 205,
+              "remote_protocol": 70016,
+              "remote_subversion": "/PQBTC:30.2.0/",
+              "result": "PASS",
+              "scope": "ANONYMOUS_PUBLIC_TLS_NATIVE_P2P_HANDSHAKE_ONLY",
+              "tls_version": "TLSv1.3"
+            }
+          },
+          "monotonic_ns": 1311963204739625,
+          "utc": "2026-11-15T01:13:20.645543+00:00"
+        }
+      },
+      "count": 48577,
+      "last_sha256": "c66e889ffd84e1a49fa110470b5e9223f432bd4def4ebb2beed6da105d712093"
+    }
+  },
+  "input_report": {
+    "path": "df-soak-20261115-01-output/report.json",
+    "sha256": "3e48f9852315feb6d5a55c8562f941b7dd3b8493069efb3615d97066ae09667a"
+  },
+  "last_confirmed_payment": {
+    "receipt": {
+      "block_hash": "6c865fbd5951bf0ac223e4a39c75685e8f7fc65772bd35389ff92668746219c5",
+      "completed_elapsed": 75554.22834345791,
+      "receiver": "mac",
+      "recipient_in_mempool": true,
+      "recipient_relay_seconds": 8.078334416961297,
+      "sender": "research",
+      "settle_seconds": 14.223247583024204,
+      "started_elapsed": 75540.00509374985,
+      "txid": "ec20c1fb85a9148ac89ffef96e9c26280b3040199cac9ae02551bccd1e974d43"
+    },
+    "sequence": 48495,
+    "utc": "2026-11-15T22:12:35.012236+00:00"
+  },
+  "latency_windows": [
+    {
+      "elapsed_window_seconds": [
+        0,
+        3600
+      ],
+      "observed_action_latency": {
+        "mac/mine": {
+          "count": 30,
+          "max_seconds": 0.262486916,
+          "median_seconds": 0.223223604
+        },
+        "mac/receive": {
+          "count": 30,
+          "max_seconds": 0.700589584,
+          "median_seconds": 0.6326441039999999
+        },
+        "mac/sample": {
+          "count": 115,
+          "max_seconds": 0.128636291,
+          "median_seconds": 0.097538292
+        },
+        "mac/send": {
+          "count": 30,
+          "max_seconds": 1.144372666,
+          "median_seconds": 1.042286729
+        },
+        "mac/status": {
+          "count": 60,
+          "max_seconds": 0.226492667,
+          "median_seconds": 0.1932008955
+        },
+        "mac/transaction": {
+          "count": 567,
+          "max_seconds": 0.265804875,
+          "median_seconds": 0.2192085
+        },
+        "research/mine": {
+          "count": 30,
+          "max_seconds": 0.337843791,
+          "median_seconds": 0.2550505
+        },
+        "research/receive": {
+          "count": 30,
+          "max_seconds": 0.810027834,
+          "median_seconds": 0.7232059584999999
+        },
+        "research/sample": {
+          "count": 115,
+          "max_seconds": 0.535014666,
+          "median_seconds": 0.34134
+        },
+        "research/send": {
+          "count": 30,
+          "max_seconds": 1.210098916,
+          "median_seconds": 1.084177854
+        },
+        "research/status": {
+          "count": 60,
+          "max_seconds": 0.3344135,
+          "median_seconds": 0.23577777049999998
+        },
+        "research/transaction": {
+          "count": 638,
+          "max_seconds": 0.443188666,
+          "median_seconds": 0.25128962499999996
+        }
+      }
+    },
+    {
+      "elapsed_window_seconds": [
+        3600,
+        7200
+      ],
+      "observed_action_latency": {
+        "mac/mine": {
+          "count": 30,
+          "max_seconds": 0.316152208,
+          "median_seconds": 0.29420060400000003
+        },
+        "mac/receive": {
+          "count": 30,
+          "max_seconds": 0.790552083,
+          "median_seconds": 0.699125438
+        },
+        "mac/sample": {
+          "count": 114,
+          "max_seconds": 0.136168167,
+          "median_seconds": 0.12185385400000001
+        },
+        "mac/send": {
+          "count": 30,
+          "max_seconds": 1.201062,
+          "median_seconds": 1.1478581664999998
+        },
+        "mac/status": {
+          "count": 60,
+          "max_seconds": 0.255386041,
+          "median_seconds": 0.2295641045
+        },
+        "mac/transaction": {
+          "count": 422,
+          "max_seconds": 0.315739458,
+          "median_seconds": 0.282376958
+        },
+        "research/mine": {
+          "count": 30,
+          "max_seconds": 0.498618875,
+          "median_seconds": 0.32901304200000003
+        },
+        "research/receive": {
+          "count": 30,
+          "max_seconds": 0.866242333,
+          "median_seconds": 0.795246917
+        },
+        "research/sample": {
+          "count": 114,
+          "max_seconds": 0.625340667,
+          "median_seconds": 0.363622229
+        },
+        "research/send": {
+          "count": 30,
+          "max_seconds": 1.347140209,
+          "median_seconds": 1.1942000629999998
+        },
+        "research/status": {
+          "count": 60,
+          "max_seconds": 0.373377458,
+          "median_seconds": 0.27601583350000003
+        },
+        "research/transaction": {
+          "count": 394,
+          "max_seconds": 0.499744958,
+          "median_seconds": 0.30768639600000003
+        }
+      }
+    },
+    {
+      "elapsed_window_seconds": [
+        36000,
+        39600
+      ],
+      "observed_action_latency": {
+        "mac/mine": {
+          "count": 30,
+          "max_seconds": 0.668059958,
+          "median_seconds": 0.653212771
+        },
+        "mac/receive": {
+          "count": 30,
+          "max_seconds": 1.172630042,
+          "median_seconds": 1.1201499375
+        },
+        "mac/sample": {
+          "count": 112,
+          "max_seconds": 0.280486625,
+          "median_seconds": 0.25499245849999996
+        },
+        "mac/send": {
+          "count": 30,
+          "max_seconds": 1.738773958,
+          "median_seconds": 1.650695542
+        },
+        "mac/status": {
+          "count": 60,
+          "max_seconds": 0.473902167,
+          "median_seconds": 0.45230402049999996
+        },
+        "mac/transaction": {
+          "count": 212,
+          "max_seconds": 0.674676208,
+          "median_seconds": 0.637374917
+        },
+        "research/mine": {
+          "count": 30,
+          "max_seconds": 1.060515708,
+          "median_seconds": 0.9438380829999999
+        },
+        "research/receive": {
+          "count": 30,
+          "max_seconds": 1.594255125,
+          "median_seconds": 1.4632672709999999
+        },
+        "research/sample": {
+          "count": 112,
+          "max_seconds": 0.762008291,
+          "median_seconds": 0.5684959380000001
+        },
+        "research/send": {
+          "count": 30,
+          "max_seconds": 2.21297675,
+          "median_seconds": 2.0649578335000003
+        },
+        "research/status": {
+          "count": 60,
+          "max_seconds": 0.7837035,
+          "median_seconds": 0.691671688
+        },
+        "research/transaction": {
+          "count": 253,
+          "max_seconds": 1.103645583,
+          "median_seconds": 0.938690125
+        }
+      }
+    },
+    {
+      "elapsed_window_seconds": [
+        72000,
+        75661
+      ],
+      "observed_action_latency": {
+        "mac/mine": {
+          "count": 30,
+          "max_seconds": 2.433925459,
+          "median_seconds": 1.054886979
+        },
+        "mac/receive": {
+          "count": 30,
+          "max_seconds": 2.114705541,
+          "median_seconds": 1.607174396
+        },
+        "mac/sample": {
+          "count": 109,
+          "max_seconds": 0.522824083,
+          "median_seconds": 0.388962
+        },
+        "mac/send": {
+          "count": 31,
+          "max_seconds": 2.916249458,
+          "median_seconds": 2.280624959
+        },
+        "mac/status": {
+          "count": 60,
+          "max_seconds": 1.354682417,
+          "median_seconds": 0.7111463124999999
+        },
+        "mac/transaction": {
+          "count": 171,
+          "max_seconds": 1.617041167,
+          "median_seconds": 1.059084542
+        },
+        "research/mine": {
+          "count": 30,
+          "max_seconds": 2.623431958,
+          "median_seconds": 1.5951555415
+        },
+        "research/receive": {
+          "count": 31,
+          "max_seconds": 5.2827355,
+          "median_seconds": 2.204167417
+        },
+        "research/sample": {
+          "count": 109,
+          "max_seconds": 0.884641459,
+          "median_seconds": 0.791464125
+        },
+        "research/send": {
+          "count": 30,
+          "max_seconds": 3.424975334,
+          "median_seconds": 3.0726274585
+        },
+        "research/status": {
+          "count": 60,
+          "max_seconds": 1.7405205,
+          "median_seconds": 1.1433360625
+        },
+        "research/transaction": {
+          "count": 199,
+          "max_seconds": 2.900535875,
+          "median_seconds": 1.605890416
+        }
+      }
+    }
+  ],
+  "latest_resource_samples": [
+    {
+      "data": {
+        "maxmempool_bytes": 32000000,
+        "mempool_size": 0,
+        "mempool_usage_bytes": 64,
+        "peak_rss_bytes": 124350464,
+        "pid": 19,
+        "rss_bytes": 93261824,
+        "system_ticks": 3529,
+        "user_ticks": 6693
+      },
+      "host": "mac",
+      "utc": "2026-11-15T22:12:41.442706+00:00"
+    },
+    {
+      "data": {
+        "bridge_alive": true,
+        "maxmempool_bytes": 32000000,
+        "mempool_size": 0,
+        "mempool_usage_bytes": 64,
+        "peak_rss_bytes": 96571392,
+        "pid": 19,
+        "rss_bytes": 93634560,
+        "system_ticks": 4786,
+        "user_ticks": 11857,
+        "whole_host_cpu_percent": 0.0
+      },
+      "host": "research",
+      "utc": "2026-11-15T22:12:42.232611+00:00"
+    },
+    {
+      "data": {
+        "maxmempool_bytes": 32000000,
+        "mempool_size": 0,
+        "mempool_usage_bytes": 64,
+        "peak_rss_bytes": 124350464,
+        "pid": 19,
+        "rss_bytes": 93261824,
+        "system_ticks": 3532,
+        "user_ticks": 6695
+      },
+      "host": "mac",
+      "utc": "2026-11-15T22:13:12.718312+00:00"
+    },
+    {
+      "data": {
+        "bridge_alive": true,
+        "maxmempool_bytes": 32000000,
+        "mempool_size": 0,
+        "mempool_usage_bytes": 64,
+        "peak_rss_bytes": 96571392,
+        "pid": 19,
+        "rss_bytes": 93634560,
+        "system_ticks": 4787,
+        "user_ticks": 11860,
+        "whole_host_cpu_percent": 0.3115264797507788
+      },
+      "host": "research",
+      "utc": "2026-11-15T22:13:13.508444+00:00"
+    }
+  ],
+  "observed_counts": {
+    "completed_faults": [
+      {
+        "name": "crash",
+        "result": "PASS"
+      },
+      {
+        "name": "partition",
+        "result": "PASS"
+      },
+      {
+        "name": "hostile",
+        "result": "PASS"
+      },
+      {
+        "name": "old_backup_missing_record",
+        "result": "PASS"
+      },
+      {
+        "name": "reindex",
+        "result": "PASS"
+      },
+      {
+        "name": "upgrade",
+        "result": "PASS"
+      },
+      {
+        "name": "rollback",
+        "result": "PASS"
+      }
+    ],
+    "confirmed_payments_including_setup_and_fault_payments": 1264,
+    "fault_attributed_misses": 5,
+    "normal_slot_successes": 1255,
+    "normal_slots_recorded": 1260
+  },
+  "partial_elapsed_time_credited_to_future_soak": false,
+  "pending_coin_penultimate_reply": {
+    "action": "transaction",
+    "addresses_count": 1266,
+    "completed_utc": "2026-11-15T22:14:18.730128+00:00",
+    "confirmations": 0,
+    "confirmed": false,
+    "dispatch_elapsed_from_receive_seconds": 56.230057583,
+    "dispatch_sequence": 48569,
+    "dispatched_utc": "2026-11-15T22:14:17.019239+00:00",
+    "duration_seconds": 1.71088,
+    "host": "research",
+    "in_mempool": false,
+    "next_change": 634,
+    "next_receive": 632,
+    "peers": 1,
+    "pending_sats": 100000,
+    "response_elapsed_from_receive_seconds": 57.940937583,
+    "response_sequence": 48570,
+    "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+    "utxos_count": 1137
+  },
+  "positive_membership_final_reply": {
+    "action": "transaction",
+    "addresses_count": 1266,
+    "completed_utc": "2026-11-15T22:14:20.457543+00:00",
+    "confirmations": 0,
+    "confirmed": false,
+    "dispatch_elapsed_from_receive_seconds": 58.04640075,
+    "dispatch_sequence": 48571,
+    "dispatched_utc": "2026-11-15T22:14:18.835577+00:00",
+    "duration_seconds": 1.621948542,
+    "host": "research",
+    "in_mempool": true,
+    "next_change": 634,
+    "next_receive": 632,
+    "peers": 1,
+    "pending_sats": 100000,
+    "response_elapsed_from_receive_seconds": 59.668349292,
+    "response_sequence": 48572,
+    "txid": "8cadc000d4916efeb409782f0bce93e45a01be1c6d1cfca81dc60a036b9a0b51",
+    "utxos_count": 1137
+  },
+  "production_admitted": false,
+  "schema": "PQBTC-SOAK-FAILURE-TIMELINE-1",
+  "scope": "READ_ONLY_PUBLIC_EVIDENCE_AND_SOURCE_ANALYSIS",
+  "soak_result": "FAIL",
+  "source_equivalence": {
+    "D_to_F_diff_exit": 0,
+    "D_to_F_runtime_node_paths": [
+      "contrib/ml-dsa-console/public_runtime.py",
+      "contrib/ml-dsa-console/runtime.py",
+      "contrib/ml-dsa-signer/node_wallet.py",
+      "src/net_processing.cpp"
+    ],
+    "F_to_62_selected_ten_paths_diff_exit": 0,
+    "not_binary_equivalence": true
+  },
+  "source_sha256": {
+    "contrib/ml-dsa-console/controller.py": "8619657e00b52e7ad4f14927160a0c7359521f2845b23370cd6e3bc4d7677380",
+    "contrib/ml-dsa-console/public_controller.py": "dd08fc4d1cea7cafdd370dab41e1e2408f712eeb6f5a6efe137160b997781035",
+    "contrib/ml-dsa-console/public_runtime.py": "58a126957e991366bce9bbcd2df2f062402dd7ae8d350ba9eeda93dea73d6571",
+    "contrib/ml-dsa-console/runtime.py": "ffcd0bff7ec8779087db2d0027067bcfd4c776ce71a4b527c3407c28282cadc8",
+    "contrib/ml-dsa-qualification/public_soak_agent.py": "173f059fe95ebc3edcd31ef9d2df2e16e810848b0a334dca1c4c8ac82e6c2645",
+    "contrib/ml-dsa-qualification/run_public_soak.py": "62a2a8af09ead25ff8a0d1cf379dd60bf5b70643611e8c1c0f2a86199bdce616",
+    "contrib/ml-dsa-signer/node_wallet.py": "ec3a8f16d4d814ae31dfd202a79be3aa2c759b4e9b17359a051a35c22f55ccac",
+    "src/net_processing.cpp": "4b7bfa07c70d450a7d7a3973f1b6ae1a9d60fb43098afd3932c7448bf8267a63",
+    "src/random.cpp": "0e30e1ca6a07f8d0662176d222f56eccaeba72b318419c3480a9e21ff9cc2673",
+    "src/random.h": "455d6508769258e5fafa0797a90bb7b1532e23055b2d90ef1d5664c5919d5adb"
+  },
+  "source_subject": {
+    "driver_sha256": "62a2a8af09ead25ff8a0d1cf379dd60bf5b70643611e8c1c0f2a86199bdce616",
+    "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+    "tree": "9426d9dd4c3c2d082059b2ffc14fa912a121b1dc"
+  },
+  "unanswered_mine": {
+    "error": {
+      "detail": "Owned agent response deadline; ambiguous operations are not retried",
+      "error_class": "ValueError"
+    },
+    "failure_sequence": 48574,
+    "failure_utc": "2026-11-15T22:14:20.798198+00:00",
+    "sequence": 48573,
+    "utc": "2026-11-15T22:14:20.458111+00:00"
+  }
+}

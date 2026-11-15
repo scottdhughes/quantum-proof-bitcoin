@@ -1,7 +1,9 @@
 # Copyright (c) 2026 The PQBTC Core developers
 # Distributed under the MIT software license, see the accompanying COPYING.
 """Explicit TEST binding through real public metadata and transaction codecs."""
+import copy
 import importlib.util
+import io
 import json
 from pathlib import Path
 import sys
@@ -25,6 +27,9 @@ class PublicNetworkTests(unittest.TestCase):
         spec = importlib.util.spec_from_file_location("public_network_runtime", ROOT / "contrib/ml-dsa-console/public_runtime.py")
         cls.runtime = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cls.runtime)
+        spec = importlib.util.spec_from_file_location("public_network_controller", ROOT / "contrib/ml-dsa-console/public_controller.py")
+        cls.controller = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.controller)
         cls.fixture = json.loads((ROOT / "src/test/data/mldsa44_node.json").read_text())
         cls.key = bytes.fromhex(cls.fixture["public_key"])
 
@@ -91,6 +96,7 @@ class PublicNetworkTests(unittest.TestCase):
                 return b"\0" + bytes.fromhex("11" * 16) + (1).to_bytes(4, "little") + bytes(4)
 
         value = self.runtime.PublicRuntime.__new__(self.runtime.PublicRuntime)
+        value._emitted_manifest = None
         value.module, value.protocol, value.running = self.wallet, self.wallet.protocol, True
         value.node, value.store = SimpleNamespace(rpc=RPC), Store()
         value.wallet = self.wallet.NodeWallet(RPC(), Signer(), value.store, network="test")
@@ -130,6 +136,124 @@ class PublicNetworkTests(unittest.TestCase):
         self.assertEqual(status["phase"], "stopped")
         self.assertEqual(status["nodes"], [])
         self.assertTrue(status["wallet"]["locked"])
+
+    def response_runtime(self):
+        """Real transaction dispatch and response framing over public fixtures."""
+        runtime = self.runtime.PublicRuntime.__new__(self.runtime.PublicRuntime)
+        runtime._emitted_manifest = None
+        runtime.module, runtime.running = self.wallet, True
+        runtime.store = SimpleNamespace(record=self.manifest())
+
+        def export():
+            if runtime.store.record is None:
+                raise self.wallet.WalletError("public wallet not initialized")
+            return copy.deepcopy(runtime.store.record)
+
+        runtime.store.export = export
+        runtime.wallet = SimpleNamespace(rpc=None)
+        runtime.node = SimpleNamespace(rpc=lambda: SimpleNamespace(getrawmempool=lambda: ["22" * 32]))
+        return runtime
+
+    def transaction_response(self, runtime):
+        value = runtime.response({"action": "transaction", "params": {"txid": "22" * 32}})
+        self.assertEqual(set(value), {"ok", "result", "manifest"})
+        self.assertTrue(value["ok"])
+        self.assertTrue(value["result"]["in_mempool"])
+        return value
+
+    def test_unchanged_transaction_and_status_responses_omit_manifest(self):
+        runtime = self.response_runtime()
+        first = self.transaction_response(runtime)
+        self.assertEqual(first["manifest"], self.manifest())
+        for _ in range(3):
+            response = self.transaction_response(runtime)
+            self.assertIsNone(response["manifest"])
+            self.assertEqual(response["result"], first["result"])
+        status_runtime = self.status_runtime()
+        initial = status_runtime.response({"action": "status"})
+        repeated = status_runtime.response({"action": "status"})
+        self.assertEqual(repeated["result"], initial["result"])
+        self.assertIsNone(repeated["manifest"])
+
+    def test_manifest_initialization_change_and_restart_resend_complete_record(self):
+        runtime = self.response_runtime()
+        runtime.store.record = None
+        self.assertIsNone(self.transaction_response(runtime)["manifest"])
+        runtime.store.record = self.manifest()
+        self.assertEqual(self.transaction_response(runtime)["manifest"], self.manifest())
+        self.assertIsNone(self.transaction_response(runtime)["manifest"])
+        runtime.store.record["next_receive"] = 3
+        changed = self.transaction_response(runtime)
+        self.assertEqual(changed["manifest"], runtime.store.record)
+        self.assertIsNone(self.transaction_response(runtime)["manifest"])
+        # Comparing only identity/floors would hide a changed retained path.
+        replacement_key = bytes([23]) * 1312
+        runtime.store.record["entries"][0].update(
+            public_key=replacement_key.hex(),
+            program=self.wallet.protocol.key_commitment("test", replacement_key).hex())
+        self.assertEqual(self.transaction_response(runtime)["manifest"], runtime.store.record)
+        self.assertIsNone(self.transaction_response(runtime)["manifest"])
+        restarted = self.response_runtime()
+        restarted.store.record = copy.deepcopy(runtime.store.record)
+        self.assertEqual(self.transaction_response(restarted)["manifest"], runtime.store.record)
+
+    def test_failed_request_does_not_acknowledge_changed_manifest(self):
+        runtime = self.response_runtime()
+        self.transaction_response(runtime)
+        self.assertIsNone(self.transaction_response(runtime)["manifest"])
+        runtime.store.record["next_receive"] = 2
+        refused = runtime.response({"action": "unknown"})
+        self.assertEqual(set(refused), {"ok", "error"})
+        self.assertFalse(refused["ok"])
+        self.assertEqual(self.transaction_response(runtime)["manifest"], runtime.store.record)
+        self.assertIsNone(self.transaction_response(runtime)["manifest"])
+
+    def test_manifest_snapshot_distinguishes_json_types_and_returned_mutation(self):
+        runtime = self.response_runtime()
+        first = self.transaction_response(runtime)
+        first["manifest"]["entries"].clear()
+        self.assertIsNone(self.transaction_response(runtime)["manifest"])
+        # Python equality equates True and 1; the wire manifest must not.
+        runtime.store.record["next_receive"] = True
+        response = self.transaction_response(runtime)
+        self.assertIs(response["manifest"]["next_receive"], True)
+        runtime.store.record["next_receive"] = 1
+        self.assertIs(type(self.transaction_response(runtime)["manifest"]["next_receive"]), int)
+        explicit = runtime.response({"action": "manifest"})
+        self.assertEqual(explicit["result"], runtime.store.record)
+        self.assertIsNone(explicit["manifest"])
+
+    def test_delta_response_skips_unchanged_journal_writes_and_validates_changes(self):
+        runtime = self.response_runtime()
+        controller = self.controller.PublicController.__new__(self.controller.PublicController)
+        controller._tainted = False
+        controller._worker = SimpleNamespace(poll=lambda: None, stdin=io.BytesIO())
+        controller.journal = {"checkpoint": {"wallet_id": "11" * 16, "generation": 1,
+                              "next_receive": 1, "next_change": 0}, "manifest": None}
+        saved = []
+        controller._save = lambda: saved.append(copy.deepcopy(controller.journal))
+
+        def line(*_args):
+            request = json.loads(controller._worker.stdin.getvalue().splitlines()[-1])
+            return json.dumps(runtime.response(request)).encode()
+
+        controller._line = line
+        params = {"txid": "22" * 32}
+        first = controller._request("transaction", params)
+        self.assertEqual(len(saved), 1)
+        self.assertEqual(controller._request("transaction", params), first)
+        self.assertEqual(len(saved), 1)
+        runtime.store.record["next_receive"] = 2
+        controller._request("transaction", params)
+        self.assertEqual(len(saved), 2)
+        self.assertEqual(saved[-1]["checkpoint"]["next_receive"], 2)
+        retained = copy.deepcopy(controller.journal)
+        runtime.store.record["entries"][0]["program"] = "00" * 32
+        with self.assertRaisesRegex(self.controller.legacy.ConsoleError, "Public worker transport failed"):
+            controller._request("transaction", params)
+        self.assertTrue(controller._tainted)
+        self.assertEqual(controller.journal, retained)
+        self.assertEqual(len(saved), 2)
 
     def test_test_manifest_is_explicit_and_cannot_be_relabelled(self):
         value = self.manifest()

@@ -12,8 +12,8 @@ builds the Linux node, client and isolated signer from source, without a prepare
 project container or private binary. The qualified flows exercise real
 transactions, app/container recreation, older-backup recovery and another spend.
 
-**Fresh D/F public preflight: PASS. The separate 24-hour public soak: ACTIVE,
-not PASS.**
+**Fresh D/F public preflight: PASS. The separate 24-hour public soak: FAIL
+after approximately 21 hours. A fresh complete run is required.**
 
 | Evidence | Observed source | Result and boundary |
 | --- | --- | --- |
@@ -75,7 +75,7 @@ Use a new name/output directory for Clang. The [console quickstart](../contrib/m
 [public soak procedure](../contrib/ml-dsa-qualification/PUBLIC_SOAK.md) describe
 the separate workflows and their limits.
 
-## Public preflight and active soak
+## Public preflight and failed soak
 
 Fresh attempt 03 returned `PREFLIGHT_PASS` after 900.009 monotonic seconds and
 900.006 wall seconds. It completed all seven declared fault phases: crash,
@@ -85,20 +85,37 @@ normal slots and three misses only during declared upgrade/rollback faults.
 Normal-slot settlement p95 was 13.1855 seconds. Final missing-record old-backup
 recovery, another confirmed spend and owned cleanup all passed.
 
-The separate fresh 24-hour soak began at **2026-11-15 01:13:20.645543 UTC**.
-Its earliest possible elapsed-time completion is **2026-11-16 01:13:20.645543
-UTC**, subject to both clocks, the declared workload/fault criteria, final
-cross-node state checks and cleanup. Its current status is **ACTIVE**. A start
-time or successful preflight is not a completed soak result.
+The separate fresh 24-hour soak began at **2026-11-15 01:13:20.645543 UTC**
+and failed at **2026-11-15 22:14:20.798198 UTC**. It completed all seven fault
+phases and recorded 1,264 confirmed payments, with 1,255 successful normal slots
+and five misses during declared faults. The next payment exhausted its shared
+60-second settlement deadline: recipient mempool observation returned only
+0.34 seconds before that deadline, leaving insufficient time for mining and
+confirmation checks. The final report is `FAIL`; independent owned cleanup
+confirmed both backend containers stopped.
+
+The [failed-attempt evidence index](reviews/evidence/ml-dsa-44-public-soak/F-3a76cdd6-attempt01/SOURCE.json)
+includes the original final report/declaration, checksummed compressed event
+chain, and the [measured failure timeline](reviews/evidence/ml-dsa-44-public-soak/F-3a76cdd6-attempt01/failure-timeline.md).
+
+The event timeline also exposed growing controller overhead: each transaction
+poll rebuilt full wallet status, including a scan and over 1,100 individual
+owned-output RPCs, and transferred/retained two complete public manifests.
+Research poll median grew from approximately 0.25 seconds in the first hour
+to 1.61 seconds in the last. This establishes avoidable poll cost; it does not
+attribute the entire roughly 55-second relay-observation delay to that cost.
+The fix must preserve the 60-second settlement gate and specific-transaction
+checks, pass fresh exact-source qualification, and begin a new public preflight
+and a new 86,400-second soak. This failed attempt contributes no elapsed credit.
 
 | Public operation | Current result | Evidence boundary |
 | --- | --- | --- |
 | Fresh D/F preflight, attempt 03 | **PREFLIGHT_PASS** | Complete 900-second public-route run, all seven fault phases, final recovery/spend and cleanup. |
-| Separate 24-hour public soak, fresh attempt 01 | **ACTIVE — not PASS** | Requires at least 86,400 actual UTC and monotonic seconds plus the declared acceptance criteria and final report. |
+| Separate 24-hour public soak, fresh attempt 01 | **FAIL** | Stopped at approximately 21 hours on a payment response deadline; all seven fault phases passed and owned cleanup passed. No 24-hour PASS or final post-soak recovery is claimed. |
 
 Earlier native-only snapshots retain their recorded pending public-run fields;
 the separately dated preflight section supplies the completed preflight result.
-Interrupted attempts contribute no elapsed time to the active soak. Update its
+Interrupted attempts contribute no elapsed time to a later soak. Update its
 status only from the completed, source-bound final report. All coins remain
 disposable TEST coins; production activation and an explicit release decision
 are separate.

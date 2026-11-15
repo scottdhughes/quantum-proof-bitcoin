@@ -668,7 +668,7 @@ class PublicController(Files):
             value["restart_required"] = self._restart_needed
             return value
 
-    def action(self, action, params=None):
+    def action(self, action, params=None, *, include_status=True):
         params = {} if params is None else params
         allowed = {"start": set(), "stop": set(), "setup": {"password"}, "unlock": {"password"}, "lock": set(),
                    "receive": set(), "send": {"address", "amount_sats", "fee_sats"}, "mine": {"address", "blocks"},
@@ -676,6 +676,11 @@ class PublicController(Files):
                    "network": {"active"}, "reindex": set(), "crash": set(), "adverse": set(), "bootstrap": set(), "clear_bans": set(),
                    "transaction": {"txid", "block_hash"}, "sample": set(), "upgrade": {"descriptor"}, "rollback": {"descriptor"}}
         require(type(action) is str and type(params) is dict and action in allowed and set(params) <= allowed[action], "Unsupported public console action or parameters")
+        # The owned soak polls exact transaction membership frequently. A full
+        # UI refresh scans every owned Coin and needlessly grows poll latency.
+        # Keep the default UI response and every mutating action unchanged.
+        require(type(include_status) is bool and (include_status or action == "transaction"),
+                "Only transaction membership queries may omit wallet status")
         with self._mutex:
             self._reconcile_handles()
             if action == "start":
@@ -732,7 +737,7 @@ class PublicController(Files):
                         self._stop_signer()
                         self._event("interrupted", "Address operation refused or interrupted; unlock again to advance the retained floor")
                     raise
-            return {"result": result, "status": self.status()}
+            return {"result": result, **({"status": self.status()} if include_status else {})}
 
     def close(self):
         with self._mutex:

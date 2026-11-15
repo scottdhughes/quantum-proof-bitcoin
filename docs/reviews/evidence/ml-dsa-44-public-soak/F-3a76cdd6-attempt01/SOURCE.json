@@ -1,0 +1,310 @@
+{
+  "checkout_byte_preservation": {
+    "path": ".gitattributes",
+    "policy": "* -text",
+    "scope": "Only this evidence packet; retain original checksum-bound bytes when a Git client enables newline conversion."
+  },
+  "checksum_inventory": "SHA256SUMS",
+  "cleanup_ok": true,
+  "declaration_path": "declaration.json",
+  "declared_runtime_subjects": [
+    {
+      "name": "mac",
+      "role": "bootstrap",
+      "transport": "local",
+      "versions": {
+        "a": {
+          "architecture": "aarch64",
+          "descriptor_file_sha256": "726175479b72111ae4c1f0725cdf3154edb7821fbc26a8aa3b26f0c7bb9fb5c0",
+          "image": "sha256:ad592d9f8e13d375f2dc9c47f2c5cca8ae3901b60ef040b312fed2a31642adc9",
+          "native_receipt_sha256": "14df9174efd53df7f7873bdbc3b272fbc50dbd72174231743e4a443e5359bbd2",
+          "node_sha256": "621d6bfb4d6d3cb8105fbbbae2eac6c2bbade11c73f0b6e84530c536253d56af",
+          "signer_sha256": "830c0872db6d11c7f97668ebceb030774f6713a43bfd09a602b7e8d2c0a3969e",
+          "source_head": "cc15838139360a0d6feccacc8707943781fdb002",
+          "source_tree": "af905ace2462c0ae087cf262b561b4d7c71d9300"
+        },
+        "b": {
+          "architecture": "aarch64",
+          "descriptor_file_sha256": "d5211de3b8781052c3d88d71706adc922e98aec3546065b1a4330788ba375b41",
+          "image": "sha256:e31973dfbc0cc11a960c8cbffb6b991966b5f1044acf96b83503fc61dfcb1efa",
+          "native_receipt_sha256": "ae57345d49487a94e5e294037b5a02fd44c1fdd71692c41d2e00d97a44b5cf83",
+          "node_sha256": "0f0fcaff4c2091ac4d9e02c498c57b54e899457e58b35e8e990faf6c4aae10af",
+          "signer_sha256": "1887e4dadac3ee3ea9f6bff0bdfb30f2251854d3112a8ba3626fb66ce010bb10",
+          "source_head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+          "source_tree": "9426d9dd4c3c2d082059b2ffc14fa912a121b1dc"
+        }
+      }
+    },
+    {
+      "name": "research",
+      "role": "follower",
+      "transport": "ssh",
+      "versions": {
+        "a": {
+          "architecture": "x86_64",
+          "descriptor_file_sha256": "09941648256b87c39cb7a25a1a5f10da256c50e992b7a206ed755c0a7d8dc26e",
+          "image": "sha256:0dac45e92d731f439d8bc1a12b2531cb764620130fcbfa9841c4f49a783049fa",
+          "native_receipt_sha256": "dce7b7342d26ab73a85bc3d3ec9e3d12ec875e1dba46b96fe44332bfea2eb3e9",
+          "node_sha256": "0b2914a781dee3fbc587edc0b0db6422eb0faa3c77e15fb212d173f85f3bdc61",
+          "signer_sha256": "f34bb180f1888dea9ff0f78b18d900a952e818f29cc9648f7b4f2259dbe6b882",
+          "source_head": "cc15838139360a0d6feccacc8707943781fdb002",
+          "source_tree": "af905ace2462c0ae087cf262b561b4d7c71d9300"
+        },
+        "b": {
+          "architecture": "x86_64",
+          "descriptor_file_sha256": "078c30dc1824abc022880ced14b2ed0591884f38103d36e41c4ede70cddd436e",
+          "image": "sha256:cbdb40bb721dbcf83aa8697005251adf54fbefd46e3d0836e91c43d43b8a941f",
+          "native_receipt_sha256": "0d40249638b2cbedbe28bde5470fb86128fc785c0982b5e93d7765b8c2c9675d",
+          "node_sha256": "325a9d1f3707dde9257c96520140f4a0e41d4c9f32836df47a1787d508efa322",
+          "signer_sha256": "42c02d4a3fdd6be149ebede0f2c767a091f2ab4a1e11d70a83e1218e72c99f13",
+          "source_head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+          "source_tree": "9426d9dd4c3c2d082059b2ffc14fa912a121b1dc"
+        }
+      }
+    }
+  ],
+  "derived_index": true,
+  "event_chain": {
+    "clock_boundaries": {
+      "public_clock_started": {
+        "data": {
+          "duration_seconds": 86400,
+          "public_probe": {
+            "certificate_sha256": "82dac8876ffe34291908e339d82e2020efa49cb5698c6bb25feb02be20581beb",
+            "commands": [
+              "version",
+              "wtxidrelay",
+              "sendaddrv2",
+              "verack"
+            ],
+            "elapsed_seconds": 0.6766657920088619,
+            "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+            "native_magic": "a7e29cf7",
+            "port": 443,
+            "public_peer_ip": "209.177.145.97",
+            "remote_height": 205,
+            "remote_protocol": 70016,
+            "remote_subversion": "/PQBTC:30.2.0/",
+            "result": "PASS",
+            "scope": "ANONYMOUS_PUBLIC_TLS_NATIVE_P2P_HANDSHAKE_ONLY",
+            "tls_version": "TLSv1.3"
+          }
+        },
+        "monotonic_ns": 1311963204739625,
+        "utc": "2026-11-15T01:13:20.645543+00:00"
+      }
+    },
+    "count": 48577,
+    "last_sha256": "c66e889ffd84e1a49fa110470b5e9223f432bd4def4ebb2beed6da105d712093"
+  },
+  "events_gzip_path": "events.jsonl.gz",
+  "failure_policy": "The original attempt is terminal FAIL. A later attempt must use fresh namespaces and its own complete elapsed clock; no continuation or accumulated partial time.",
+  "files": [
+    {
+      "bytes": 8,
+      "classification": "NEW_SCOPED_CHECKSUMMED_BYTE_PRESERVATION_POLICY",
+      "path": ".gitattributes",
+      "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
+    },
+    {
+      "bytes": 10687,
+      "classification": "ORIGINAL_SEALED_PUBLIC_DECLARATION",
+      "path": "declaration.json",
+      "sha256": "f9e14279bb2ab3fffe1442c8adf1f418498ecefa2bc59816cfdefe213805fa45"
+    },
+    {
+      "bytes": 6320862,
+      "classification": "DETERMINISTIC_GZIP_OF_ORIGINAL_PUBLIC_EVENTS",
+      "path": "events.jsonl.gz",
+      "sha256": "8c25c056cb7744f8e165d1ca0021e56f4f5142cb9290864f77476bae97dbea68"
+    },
+    {
+      "bytes": 251,
+      "classification": "ORIGINAL_SEALED_INVENTORY_REFERENCING_UNCOMPRESSED_EVENTS",
+      "path": "evidence-sha256.json",
+      "sha256": "5d24ca22a548b00857caef6c1148b928ce28fb5f4e3c7a2a227a06a54c2b8035"
+    },
+    {
+      "bytes": 46347,
+      "classification": "UNCHANGED_COPY_OF_DERIVED_READ_ONLY_PUBLIC_ANALYSIS",
+      "path": "failure-timeline.json",
+      "sha256": "2d5b07af354902c5078d400e3fb3fccf0f15c3d318ce042cc5078b8ce4243318"
+    },
+    {
+      "bytes": 6368,
+      "classification": "UNCHANGED_COPY_OF_DERIVED_READ_ONLY_PUBLIC_ANALYSIS",
+      "path": "failure-timeline.md",
+      "sha256": "b955cdda247af907083c9926b6d97225e19065e244fe216f46305a4af29d95da"
+    },
+    {
+      "bytes": 2495,
+      "classification": "ORIGINAL_SEALED_FAIL_REPORT",
+      "path": "report.json",
+      "sha256": "3e48f9852315feb6d5a55c8562f941b7dd3b8493069efb3615d97066ae09667a"
+    }
+  ],
+  "generated_at_utc": "2026-11-15T22:32:11+00:00",
+  "independent_human_cryptographic_review": "NOT_PERFORMED",
+  "mode": "soak",
+  "observed_counts_from_events": {
+    "confirmed_payments_including_setup_and_faults": 1264,
+    "event_kinds": {
+      "action": 22951,
+      "action_dispatched": 22952,
+      "anonymous_public_probe": 128,
+      "attempt_completed": 1,
+      "attempt_failed": 1,
+      "cleanup": 1,
+      "confirmed_payment": 1264,
+      "declaration_bound": 1,
+      "fault_completed": 7,
+      "fault_started": 7,
+      "initial_volume_bound": 2,
+      "normal_slot": 1260,
+      "prelaunch_bound": 1,
+      "public_clock_started": 1
+    },
+    "events": 48577,
+    "fault_attributed_misses": 5,
+    "faults": [
+      {
+        "event_sequence": 6717,
+        "name": "crash",
+        "result": "PASS"
+      },
+      {
+        "event_sequence": 12418,
+        "name": "partition",
+        "result": "PASS"
+      },
+      {
+        "event_sequence": 17482,
+        "name": "hostile",
+        "result": "PASS"
+      },
+      {
+        "event_sequence": 22207,
+        "name": "old_backup_missing_record",
+        "result": "PASS"
+      },
+      {
+        "event_sequence": 30770,
+        "name": "reindex",
+        "result": "PASS"
+      },
+      {
+        "event_sequence": 38985,
+        "name": "upgrade",
+        "result": "PASS"
+      },
+      {
+        "event_sequence": 42958,
+        "name": "rollback",
+        "result": "PASS"
+      }
+    ],
+    "normal_slot_outcomes": 1260,
+    "normal_slot_successes": 1255
+  },
+  "observed_failure": {
+    "duration_qualification": "INCOMPLETE_NO_ELAPSED_CREDIT",
+    "error": "Owned agent response deadline; ambiguous operations are not retried",
+    "error_class": "ValueError",
+    "failure_event_sequence": 48574,
+    "failure_utc": "2026-11-15T22:14:20.798198+00:00",
+    "final_24h_recovery_gate": "NOT_REACHED",
+    "observed_start_to_failure_monotonic_seconds": 75660.014284041,
+    "observed_start_to_failure_wall_seconds": 75660.152655,
+    "public_clock_completed_event_present": false,
+    "public_clock_started_utc": "2026-11-15T01:13:20.645543+00:00"
+  },
+  "original_declaration_sha256": "f9e14279bb2ab3fffe1442c8adf1f418498ecefa2bc59816cfdefe213805fa45",
+  "original_events": {
+    "bytes": 42672241,
+    "compression_level": 9,
+    "copied_uncompressed": false,
+    "gzip_bytes": 6320862,
+    "gzip_filename": "",
+    "gzip_mtime": 0,
+    "gzip_path": "events.jsonl.gz",
+    "gzip_sha256": "8c25c056cb7744f8e165d1ca0021e56f4f5142cb9290864f77476bae97dbea68",
+    "sha256": "e782946da8a7da9a29e1bae43bb9c6f9e61eb5b1e099cb939f0d3b242b05d64e"
+  },
+  "original_inventory_member_resolution": {
+    "declaration.json": {
+      "packet_path": "declaration.json",
+      "sha256": "f9e14279bb2ab3fffe1442c8adf1f418498ecefa2bc59816cfdefe213805fa45",
+      "transform": "NONE"
+    },
+    "events.jsonl": {
+      "packet_path": "events.jsonl.gz",
+      "sha256": "e782946da8a7da9a29e1bae43bb9c6f9e61eb5b1e099cb939f0d3b242b05d64e",
+      "transform": "GZIP_DECOMPRESS_BEFORE_ORIGINAL_SHA256_CHECK"
+    },
+    "report.json": {
+      "packet_path": "report.json",
+      "sha256": "3e48f9852315feb6d5a55c8562f941b7dd3b8493069efb3615d97066ae09667a",
+      "transform": "NONE"
+    }
+  },
+  "original_inventory_path": "evidence-sha256.json",
+  "original_report_sha256": "3e48f9852315feb6d5a55c8562f941b7dd3b8493069efb3615d97066ae09667a",
+  "packaging_activity": {
+    "live_or_private_files_read": false,
+    "network_Research_native_execution": false,
+    "new_CI_launched": false,
+    "new_index_and_inventory": true,
+    "original_records_modified": false
+  },
+  "packet_scope_limits": [
+    "The attempt remains FAIL despite completed transactions, fault phases, and successful cleanup.",
+    "This is selected public evidence and derived analysis, not an executable runtime/archive or native qualification rerun.",
+    "No final 24-hour completion, final recovered-spend gate, independent human review or production admission is established.",
+    "No wallet/state/backups, operator input, raw deployment configurations, credentials or native binaries are included.",
+    "The prior F qualification packet and all original sealed records remain unchanged."
+  ],
+  "partial_elapsed_seconds_credited_to_future_soak": 0,
+  "partial_elapsed_time_credited_to_future_soak": false,
+  "production_admitted": false,
+  "production_backend": "NONE",
+  "public_field_review": {
+    "credential_pattern_scan": "No matching private-key blocks, authentication headers, credential URLs, or signed temporary download parameters",
+    "frozen_F_public_value": "PASS on original report/declaration, every public event, and timeline JSON",
+    "operator_input_present": false,
+    "raw_private_configuration_included": false,
+    "sensitive_object_keys_and_action_parameters": "No forbidden private key names or action params objects"
+  },
+  "release_hold": true,
+  "report_path": "report.json",
+  "required_actual_elapsed_seconds": 86400,
+  "result": "FAIL",
+  "resumption_allowed": false,
+  "schema": "PQBTC-MLDSA44-SEALED-FAILED-PUBLIC-SOAK-SELECTED-PACKET-1",
+  "scope": "VALUELESS_EXPERIMENTAL_PUBLIC_TEST_ONLY",
+  "source_subject": {
+    "driver_sha256": "62a2a8af09ead25ff8a0d1cf379dd60bf5b70643611e8c1c0f2a86199bdce616",
+    "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+    "tree": "9426d9dd4c3c2d082059b2ffc14fa912a121b1dc"
+  },
+  "timeline_analysis": {
+    "classification": "Derived read-only timeline analysis copied unchanged; not a native rerun or a qualification PASS.",
+    "historical_input_path_mapping": [
+      {
+        "original_custody_path": "df-soak-20261115-01-output/events.jsonl",
+        "original_sha256": "e782946da8a7da9a29e1bae43bb9c6f9e61eb5b1e099cb939f0d3b242b05d64e",
+        "packet_path": "events.jsonl.gz",
+        "transform": "GZIP_DECOMPRESS"
+      },
+      {
+        "original_custody_path": "df-soak-20261115-01-output/report.json",
+        "original_sha256": "3e48f9852315feb6d5a55c8562f941b7dd3b8493069efb3615d97066ae09667a",
+        "packet_path": "report.json",
+        "transform": "NONE"
+      }
+    ],
+    "hypothesis_policy": "Use the original timeline findings to distinguish proven observations, source behavior and unconfirmed causes; no sole root-cause claim is introduced by this packet.",
+    "json_path": "failure-timeline.json",
+    "markdown_path": "failure-timeline.md",
+    "source_code_path_policy": "Source paths and recorded build/runtime paths inside original analysis are historical subject/custody references pinned by its recorded source hashes, not extra local packet dependencies."
+  }
+}

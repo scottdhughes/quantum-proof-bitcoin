@@ -47,6 +47,28 @@ class PublicConsoleTests(unittest.TestCase):
         value["sha256"] = hashlib.sha256(control.canonical(value)).hexdigest()
         return value
 
+    def test_transaction_poll_can_omit_wallet_scan_without_changing_ui_default(self):
+        params = {"txid": "ab" * 32, "block_hash": "cd" * 32}
+        membership = {**params, "confirmed": True, "confirmations": 1, "in_mempool": False}
+        with patch.object(self.c, "_request", return_value=membership) as request, \
+                patch.object(self.c, "status", side_effect=AssertionError("Unexpected full wallet scan")), \
+                patch.object(self.c, "_save", side_effect=AssertionError("Unexpected journal rewrite")):
+            self.assertEqual(self.c.action("transaction", params, include_status=False), {"result": membership})
+            request.assert_called_once_with("transaction", params)
+        with patch.object(self.c, "_request", return_value=membership), \
+                patch.object(self.c, "status", return_value={"phase": "running"}) as status:
+            self.assertEqual(self.c.action("transaction", params),
+                             {"result": membership, "status": {"phase": "running"}})
+            status.assert_called_once_with()
+
+    def test_narrow_transaction_mode_keeps_parameter_and_action_boundaries(self):
+        with patch.object(self.c, "_request", side_effect=AssertionError("Invalid request reached worker")):
+            for action, params, include_status in (("transaction", {"foreign": 1}, False),
+                                                   ("transaction", {}, 0), ("receive", {}, False),
+                                                   ("send", {}, False), ("unknown", {}, False)):
+                with self.subTest(action=action, params=params, include_status=include_status), self.assertRaises(ValueError):
+                    self.c.action(action, params, include_status=include_status)
+
     def test_public_backup_is_bound_to_profile_and_contains_no_chain_or_binary_pin(self):
         value = self.backup()
         self.assertEqual(control.validate_backup(value), value)
