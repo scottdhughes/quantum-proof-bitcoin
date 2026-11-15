@@ -1,5 +1,13 @@
 # ML-DSA-44 Backend Admission
 
+> **Current experimental qualification:** See [the dated qualification record](ML_DSA_44_CURRENT_QUALIFICATION.md)
+> for verified portable-v2 comparator/isolated-wrapper observations, assembled F
+> app results, completed public preflight and the active 24-hour soak. The
+> pending-v2 entries below and in the sealed machine record describe an earlier
+> checkpoint; the dated observations supersede that absence-of-reproduction
+> description within their stated scopes. Audited records and source identities
+> remain unchanged. Production backend `NONE` and `RELEASE_HOLD` remain in force.
+
 ## v2.0.0 reconciliation (2026-10-20)
 
 The current portable source is v2.0.0, commit

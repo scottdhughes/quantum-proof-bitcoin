@@ -1,0 +1,46 @@
+{
+  "compiler_shell_declarations": {
+    "clang20": "devShells.valgrind-varlat_clang20 = util.mkShellWithCC_valgrind' pkgs.clang_20;",
+    "gcc13": "devShells.valgrind-varlat_gcc13 = util.mkShellWithCC_valgrind' pkgs.gcc13;"
+  },
+  "files": [
+    {
+      "bytes": 1606,
+      "git_blob": "88422aae3314d1c12e32cdae8273840c22a6babb",
+      "path": "flake.lock",
+      "sha256": "8f1762cc57561256465ef3b467f44b99b606c3b196870b81a329b8de0cebdd69",
+      "source_commit": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+      "source_url": "https://github.com/pq-code-package/mldsa-native/blob/834a90d5e846ffa1e1611bd24e160bb2e9b86d35/flake.lock"
+    },
+    {
+      "bytes": 10683,
+      "git_blob": "5fe88aae3406dbb7c7ceb35faad8fc26c301eabe",
+      "path": "flake.nix",
+      "sha256": "37050e4cd51e0d83dd08b5164dc4a27640e50d0873b598b549f4e460d74e9d42",
+      "source_commit": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+      "source_url": "https://github.com/pq-code-package/mldsa-native/blob/834a90d5e846ffa1e1611bd24e160bb2e9b86d35/flake.nix"
+    },
+    {
+      "bytes": 36011,
+      "git_blob": "43826afab2c10825758ab9ab3b69e91073207566",
+      "path": "nix/valgrind/valgrind-varlat-patch-20240808.txt",
+      "sha256": "d54b140f2bacaea91470940a963950b7126685810df2192640cd103328b421f4",
+      "source_commit": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+      "source_url": "https://github.com/pq-code-package/mldsa-native/blob/834a90d5e846ffa1e1611bd24e160bb2e9b86d35/nix/valgrind/valgrind-varlat-patch-20240808.txt"
+    }
+  ],
+  "nixpkgs": {
+    "lastModified": 1780453794,
+    "narHash": "sha256-bXMRa9VTsHSPXL4Cw8R6JJLQeY3Y/IP4+YJCYVmQ7FY=",
+    "owner": "NixOS",
+    "repo": "nixpkgs",
+    "rev": "6b316287bae2ee04c9b93c8c858d930fd07d7338",
+    "type": "github"
+  },
+  "result": "PASS",
+  "schema": "PQBTC-PINNED-NATIVE-V2-NIX-SOURCE-VERIFICATION-1",
+  "scope": "Pinned public source bytes independently fetched; runtime tool versions and binary hashes remain observations in the qualified CT artifacts.",
+  "source_commit": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+  "source_only_no_nix_evaluation": true,
+  "source_repository": "pq-code-package/mldsa-native"
+}

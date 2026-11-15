@@ -1,0 +1,4 @@
+# Preserve the exact bytes recorded in the selected evidence inventories.
+* -text
+# The immutable upstream unified patch includes significant context whitespace.
+native-v2/upstream-native-v2/nix/valgrind/valgrind-varlat-patch-20240808.txt -diff

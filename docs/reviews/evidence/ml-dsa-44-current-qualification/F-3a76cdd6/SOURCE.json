@@ -1,0 +1,1188 @@
+{
+  "baseline_d": {
+    "private_records_or_binaries_included": false,
+    "profiles": [
+      {
+        "architecture": "aarch64",
+        "compiler": "gcc",
+        "descriptor": "baseline-d/linux-aarch64-gcc/runtime-descriptor.json",
+        "descriptor_sha256": "726175479b72111ae4c1f0725cdf3154edb7821fbc26a8aa3b26f0c7bb9fb5c0",
+        "emulated": false,
+        "image_id": "sha256:ad592d9f8e13d375f2dc9c47f2c5cca8ae3901b60ef040b312fed2a31642adc9",
+        "instrumentation_scope": {
+          "contract_backend_and_signer": "normal plus ASan/UBSan",
+          "key_lifecycle": "normal plus ASan/UBSan with entropy/fault controls",
+          "node": "release build; resource timings exclude fixture generation",
+          "openssl": "pinned static library; not instrumented by this run"
+        },
+        "manifest_sha256": "2dd2b83bceaa64612052d1a895518c61811bcce19386741e9e246428681e448c",
+        "matches_declared_version": "a",
+        "matches_preflight_host": "mac",
+        "native_gate_count": 9,
+        "native_report": "baseline-d/linux-aarch64-gcc/native-qualification/report.json",
+        "native_report_sha256": "14df9174efd53df7f7873bdbc3b272fbc50dbd72174231743e4a443e5359bbd2",
+        "native_status": "PASS",
+        "node_sha256": "621d6bfb4d6d3cb8105fbbbae2eac6c2bbade11c73f0b6e84530c536253d56af",
+        "private_app_flow_status": "PASS",
+        "private_app_report": "baseline-d/linux-aarch64-gcc/public-profile-app/report.json",
+        "private_app_scope": "PRIVATE_TWO_CONTAINER_APP_FLOW_NOT_PUBLIC_SOAK",
+        "signer_sha256": "830c0872db6d11c7f97668ebceb030774f6713a43bfd09a602b7e8d2c0a3969e",
+        "source": {
+          "head": "cc15838139360a0d6feccacc8707943781fdb002",
+          "tree": "af905ace2462c0ae087cf262b561b4d7c71d9300"
+        }
+      },
+      {
+        "architecture": "x86_64",
+        "compiler": "gcc",
+        "descriptor": "baseline-d/linux-x86_64-gcc/runtime-descriptor.json",
+        "descriptor_sha256": "09941648256b87c39cb7a25a1a5f10da256c50e992b7a206ed755c0a7d8dc26e",
+        "emulated": false,
+        "image_id": "sha256:0dac45e92d731f439d8bc1a12b2531cb764620130fcbfa9841c4f49a783049fa",
+        "instrumentation_scope": {
+          "contract_backend_and_signer": "normal plus ASan/UBSan",
+          "key_lifecycle": "normal plus ASan/UBSan with entropy/fault controls",
+          "node": "release build; resource timings exclude fixture generation",
+          "openssl": "pinned static library; not instrumented by this run"
+        },
+        "manifest_sha256": "b4f253089ce92c37ffcf3024e236bbc733eddb20d569a11e0ba701f63e5ab3d1",
+        "matches_declared_version": "a",
+        "matches_preflight_host": "research",
+        "native_gate_count": 9,
+        "native_report": "baseline-d/linux-x86_64-gcc/native-qualification/report.json",
+        "native_report_sha256": "dce7b7342d26ab73a85bc3d3ec9e3d12ec875e1dba46b96fe44332bfea2eb3e9",
+        "native_status": "PASS",
+        "node_sha256": "0b2914a781dee3fbc587edc0b0db6422eb0faa3c77e15fb212d173f85f3bdc61",
+        "private_app_flow_status": "PASS",
+        "private_app_report": "baseline-d/linux-x86_64-gcc/public-profile-app/report.json",
+        "private_app_scope": "PRIVATE_TWO_CONTAINER_APP_FLOW_NOT_PUBLIC_SOAK",
+        "signer_sha256": "f34bb180f1888dea9ff0f78b18d900a952e818f29cc9648f7b4f2259dbe6b882",
+        "source": {
+          "head": "cc15838139360a0d6feccacc8707943781fdb002",
+          "tree": "af905ace2462c0ae087cf262b561b4d7c71d9300"
+        }
+      }
+    ],
+    "scope": "EXACT_D_GCC_BASELINES_USED_BY_DECLARED_PUBLIC_PREFLIGHT",
+    "selected_file_count": 6,
+    "selection_policy": "Exactly the ARM/x86 GCC runtime descriptor, native nine-gate PASS and private app-flow PASS public JSONs authorized for this baseline; descriptor/native hashes match preflight declaration versions.a.",
+    "source": {
+      "head": "cc15838139360a0d6feccacc8707943781fdb002",
+      "tree": "af905ace2462c0ae087cf262b561b4d7c71d9300"
+    }
+  },
+  "byte_policy": {
+    "git_checkout_policy": "Packet-scoped -text prevents checkout line-ending conversion. Only the verbatim upstream Valgrind patch is marked -diff because its literal unified-diff context whitespace must remain byte-identical.",
+    "gzip": "Original events.jsonl compressed with empty filename, mtime=0 and compression level9; both compressed and original digests are bound below.",
+    "new_derived_files": [
+      "SOURCE.json",
+      "SHA256SUMS",
+      ".gitattributes"
+    ],
+    "original_records": "Copied byte-for-byte after checking exact source allowlists, SHA256 and sizes.",
+    "sole_transformed_original": "public-preflight03/events.jsonl.gz"
+  },
+  "checksum_inventory": "SHA256SUMS",
+  "closure": {
+    "executable_reproduction_closure": false,
+    "inner_historical_inventories": "Preserved for exact artifact identity; their omitted ELF/corpus members remain external historical custody. Top SHA256SUMS covers the selected packet only.",
+    "private_raw_configuration_included": false,
+    "selected_records": "All files listed here have packet-relative paths and SHA256/size bindings; top SHA256SUMS also binds this derived index."
+  },
+  "derived_index": true,
+  "excluded_categories": [
+    "whole ZIP/tar/image archives",
+    "native executables and raw fuzz corpus/frame data",
+    "wallet/state/session/backup records",
+    "operator input, private keys, passwords, credentials and cookies",
+    "raw private deployment configuration",
+    "temporary signed download URIs",
+    "unselected helper logs and scripts",
+    "live or growing 24-hour soak events"
+  ],
+  "files": [
+    {
+      "bytes": 245,
+      "classification": "DERIVED_GIT_BYTE_PRESERVATION_METADATA",
+      "path": ".gitattributes",
+      "sha256": "a3de852e9739dd4c9ac24271fa0412067c31ffa8780d2a27553a3e03c5695361"
+    },
+    {
+      "bytes": 22607,
+      "classification": "ORIGINAL_QUALIFIED_D_GCC_UPGRADE_BASELINE_PUBLIC_JSON",
+      "path": "baseline-d/linux-aarch64-gcc/native-qualification/report.json",
+      "sha256": "14df9174efd53df7f7873bdbc3b272fbc50dbd72174231743e4a443e5359bbd2"
+    },
+    {
+      "bytes": 3378,
+      "classification": "ORIGINAL_QUALIFIED_D_GCC_UPGRADE_BASELINE_PUBLIC_JSON",
+      "path": "baseline-d/linux-aarch64-gcc/public-profile-app/report.json",
+      "sha256": "da80792e0e28cbb7a0dcb5a4c487d9039f74987894a78cceae51c4aa1ab44767"
+    },
+    {
+      "bytes": 30509,
+      "classification": "ORIGINAL_QUALIFIED_D_GCC_UPGRADE_BASELINE_PUBLIC_JSON",
+      "path": "baseline-d/linux-aarch64-gcc/runtime-descriptor.json",
+      "sha256": "726175479b72111ae4c1f0725cdf3154edb7821fbc26a8aa3b26f0c7bb9fb5c0"
+    },
+    {
+      "bytes": 22604,
+      "classification": "ORIGINAL_QUALIFIED_D_GCC_UPGRADE_BASELINE_PUBLIC_JSON",
+      "path": "baseline-d/linux-x86_64-gcc/native-qualification/report.json",
+      "sha256": "dce7b7342d26ab73a85bc3d3ec9e3d12ec875e1dba46b96fe44332bfea2eb3e9"
+    },
+    {
+      "bytes": 3334,
+      "classification": "ORIGINAL_QUALIFIED_D_GCC_UPGRADE_BASELINE_PUBLIC_JSON",
+      "path": "baseline-d/linux-x86_64-gcc/public-profile-app/report.json",
+      "sha256": "6fa177b19e4445e5aceaad21518c007159713a6d8a0e08c0ccdeaee16488c92f"
+    },
+    {
+      "bytes": 30627,
+      "classification": "ORIGINAL_QUALIFIED_D_GCC_UPGRADE_BASELINE_PUBLIC_JSON",
+      "path": "baseline-d/linux-x86_64-gcc/runtime-descriptor.json",
+      "sha256": "09941648256b87c39cb7a25a1a5f10da256c50e992b7a206ed755c0a7d8dc26e"
+    },
+    {
+      "bytes": 1872,
+      "classification": "ORIGINAL_NATIVE_F_SELECTED_CHECKSUM_SNAPSHOT",
+      "path": "native-f/SHA256SUMS",
+      "sha256": "69f1c0912b9dad55ae946f25cd437d332a08ef1b8d3de0b9fae006d9741bb663"
+    },
+    {
+      "bytes": 16707,
+      "classification": "ORIGINAL_HISTORICAL_NATIVE_F_SELECTION_INDEX",
+      "path": "native-f/SOURCE.json",
+      "sha256": "e554b34ac66bad30eda65b8f96f0bed029e18777fa4ead0724f3d51463fe7e35"
+    },
+    {
+      "bytes": 22611,
+      "classification": "ORIGINAL_NATIVE_F_PUBLIC_JSON",
+      "path": "native-f/linux-aarch64-clang/native-qualification/report.json",
+      "sha256": "673c98c3d3a91202eb8df6f553cf19b09b0fd49289876a0895a3438c222f761d"
+    },
+    {
+      "bytes": 3378,
+      "classification": "ORIGINAL_NATIVE_F_PUBLIC_JSON",
+      "path": "native-f/linux-aarch64-clang/public-profile-app/report.json",
+      "sha256": "930a71f91c90ace321637f7322e400f85c807b722210ee5f38f9dfe4d56b5029"
+    },
+    {
+      "bytes": 30523,
+      "classification": "ORIGINAL_NATIVE_F_PUBLIC_JSON",
+      "path": "native-f/linux-aarch64-clang/runtime-descriptor.json",
+      "sha256": "3ec3653512722b36b9f4e6f141b9a7a7082d1fe7da898f7ae716ae9bc068831e"
+    },
+    {
+      "bytes": 22607,
+      "classification": "ORIGINAL_NATIVE_F_PUBLIC_JSON",
+      "path": "native-f/linux-aarch64-gcc/native-qualification/report.json",
+      "sha256": "ae57345d49487a94e5e294037b5a02fd44c1fdd71692c41d2e00d97a44b5cf83"
+    },
+    {
+      "bytes": 3378,
+      "classification": "ORIGINAL_NATIVE_F_PUBLIC_JSON",
+      "path": "native-f/linux-aarch64-gcc/public-profile-app/report.json",
+      "sha256": "22af05da88561f06d7102480e8c20436c99fcabb106e9e0fc7f6983f326480b8"
+    },
+    {
+      "bytes": 30509,
+      "classification": "ORIGINAL_NATIVE_F_PUBLIC_JSON",
+      "path": "native-f/linux-aarch64-gcc/runtime-descriptor.json",
+      "sha256": "d5211de3b8781052c3d88d71706adc922e98aec3546065b1a4330788ba375b41"
+    },
+    {
+      "bytes": 56776,
+      "classification": "ORIGINAL_NATIVE_F_PUBLIC_JSON",
+      "path": "native-f/linux-x86_64-clang/assembled/report.json",
+      "sha256": "a71839448d9874e6f795e07096fd07363c6d738c4c8fd8a18fe3d3c9d61f6885"
+    },
+    {
+      "bytes": 22608,
+      "classification": "ORIGINAL_NATIVE_F_PUBLIC_JSON",
+      "path": "native-f/linux-x86_64-clang/native-qualification/report.json",
+      "sha256": "8456e664f6047861b51b377296970a9ce71af75fcf990f1d5e0566db6861a96d"
+    },
+    {
+      "bytes": 3334,
+      "classification": "ORIGINAL_NATIVE_F_PUBLIC_JSON",
+      "path": "native-f/linux-x86_64-clang/public-profile-app/report.json",
+      "sha256": "6ce56ac0e3d047f7f514adca2b0402e0b91d9af843efcc16cdc04f15b23cf7bb"
+    },
+    {
+      "bytes": 30641,
+      "classification": "ORIGINAL_NATIVE_F_PUBLIC_JSON",
+      "path": "native-f/linux-x86_64-clang/runtime-descriptor.json",
+      "sha256": "0ff7f76d4fb1010189e161b1bfde560da79f0831d9060476435f63c353d1c74f"
+    },
+    {
+      "bytes": 56735,
+      "classification": "ORIGINAL_NATIVE_F_PUBLIC_JSON",
+      "path": "native-f/linux-x86_64-gcc/assembled/report.json",
+      "sha256": "c15dd7521e02fd95a875c8a18ae2f1aff6b1929bf2adcb441438e82601f8aad5"
+    },
+    {
+      "bytes": 22604,
+      "classification": "ORIGINAL_NATIVE_F_PUBLIC_JSON",
+      "path": "native-f/linux-x86_64-gcc/native-qualification/report.json",
+      "sha256": "0d40249638b2cbedbe28bde5470fb86128fc785c0982b5e93d7765b8c2c9675d"
+    },
+    {
+      "bytes": 3334,
+      "classification": "ORIGINAL_NATIVE_F_PUBLIC_JSON",
+      "path": "native-f/linux-x86_64-gcc/public-profile-app/report.json",
+      "sha256": "2733f49145e44c33791b612a3888f89d9a0d617cc791f9857efd430d70d66c45"
+    },
+    {
+      "bytes": 30627,
+      "classification": "ORIGINAL_NATIVE_F_PUBLIC_JSON",
+      "path": "native-f/linux-x86_64-gcc/runtime-descriptor.json",
+      "sha256": "078c30dc1824abc022880ced14b2ed0591884f38103d36e41c4ede70cddd436e"
+    },
+    {
+      "bytes": 2050,
+      "classification": "ORIGINAL_NATIVE_F_PUBLIC_JSON",
+      "path": "native-f/linux-x86_64-gcc/runtime-image-export.json",
+      "sha256": "01ef957642edeff514258cd35425042dd7241cddf09dfe88915437027ec310b7"
+    },
+    {
+      "bytes": 36989,
+      "classification": "ORIGINAL_NATIVE_F_PUBLIC_JSON",
+      "path": "native-f/originals/source-F-3a76cdd6-success.json",
+      "sha256": "b49f4685635953c1f8723f34b68031900abaae3f35f85e09f5b4691333d51205"
+    },
+    {
+      "bytes": 565,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-campaign-parameters.txt",
+      "sha256": "3dc8665a62315303b882e27d305154cd797369a83888f5f37fa7f01471777fb8"
+    },
+    {
+      "bytes": 827,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-coverage-floors.json",
+      "sha256": "7e99a1ad150592c34e75ef493c0649a56a5295599aa7b7c5ce85276ac328a263"
+    },
+    {
+      "bytes": 24896,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-fuzz-run.json",
+      "sha256": "114806501eeb9cd052532c2ead0dcac14f09efcfd34bf4dd50a018779b27b425"
+    },
+    {
+      "bytes": 103,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-fuzz-run.sha256",
+      "sha256": "2b3ff44b12fc270db7fc7d198a06a4fb4a3a093689f3b2acc7b1904ee3a4c26f"
+    },
+    {
+      "bytes": 78430,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-fuzz/SHA256SUMS",
+      "sha256": "450dab7d7d2f041bc93796655b66f8e0fbc7da6d4d31bb00963bbc6b6dbff612"
+    },
+    {
+      "bytes": 26919,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-fuzz/campaign.json",
+      "sha256": "892b6a96dbfbf9a8f1d2397e4c205facd1666de7e8b1261e191e4f75acc86ef8"
+    },
+    {
+      "bytes": 40763,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-fuzz/coverage.json",
+      "sha256": "9667122d61d686b713319efc9487dd407e3350e7baf58aec51855c5445930a13"
+    },
+    {
+      "bytes": 12107,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-fuzz/coverage.txt",
+      "sha256": "8e32ca078d7b248467752df718294cbf8f14817c8bd300f922616036548a7273"
+    },
+    {
+      "bytes": 753,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-retained-corpus.txt",
+      "sha256": "0abc39ecb5e54c1ba8c3e47db8faf4ebc755e5ffa2693fe62586a077eb224eac"
+    },
+    {
+      "bytes": 431,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-supplemental.sha256",
+      "sha256": "90c345c8baee9c761d677ed4ad2e621eac3b87ff86b507dddc98620a8d388eb6"
+    },
+    {
+      "bytes": 1136,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-review-run-context.txt",
+      "sha256": "48d3a6055a67076e90317054ac5c0d31830757a0b442f13fd546bdcd9c5601c6"
+    },
+    {
+      "bytes": 453498,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-review-run.json",
+      "sha256": "f0b13f23d0a809c3a0383713039bcc0b97d5af29c094c6bcd85a9bd1c539d3af"
+    },
+    {
+      "bytes": 92,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-review-run.sha256",
+      "sha256": "009069a09541a883f9b5a4aafa974e41fa8b53b368a1f730019fda9c16efa75b"
+    },
+    {
+      "bytes": 548,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-review-toolchain.txt",
+      "sha256": "064213ebb8b3c84b597e5d10f70b5637b5d137d822801763268898add2e4d292"
+    },
+    {
+      "bytes": 1639,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/SHA256SUMS",
+      "sha256": "9bc5e4b3e5c6f9b92d2e8c3b2fc804b1a9b11689f07cf44251f51c058c0945f7"
+    },
+    {
+      "bytes": 3015,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-address.xml",
+      "sha256": "9d3639025f0ab65ee5e21fd216ecfdd3a53817fa2b5b6b96cefed5fd372717a7"
+    },
+    {
+      "bytes": 3037,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-branch.xml",
+      "sha256": "3911dc1091f4221998b664357cc13d8d08be2ec01bf6024a07aa0943ee4e9009"
+    },
+    {
+      "bytes": 3084,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-variable-latency.xml",
+      "sha256": "57e0a719123f5cf5096717d8f379825f5b0052e80ec3558fbfee286f0f51fef4"
+    },
+    {
+      "bytes": 3095,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/secret-key-taint-control.xml",
+      "sha256": "b87408f6eadb8c55a063fd932ec671b6c12d7941e8dacfa84ec070ce12975f56"
+    },
+    {
+      "bytes": 2028,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/wrapper-ct.xml",
+      "sha256": "6f199401799a87cc55341ca657674b11bcf24d0b8008524a546ff28c812a11ae"
+    },
+    {
+      "bytes": 17554,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/valgrind-ct-plan.json",
+      "sha256": "89debfe0f2d67dde7d6e1d7a7520a542aa3c1e79dba5bda659ed2e5d6da17878"
+    },
+    {
+      "bytes": 11633,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/valgrind-ct-report.json",
+      "sha256": "5299dc6b1192c4d581918e77163c0aa11791ac30a35c89cd5b3260a25b0fbdf5"
+    },
+    {
+      "bytes": 150,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/workflow-context.txt",
+      "sha256": "8e0f3d603c9620ac0b50e0b0772e5f314d37b3ea503d751fcc1737d504853826"
+    },
+    {
+      "bytes": 1639,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/SHA256SUMS",
+      "sha256": "36f099b419822f3a90736d07c8cea294adb97097724fc115f7fe65491a24c886"
+    },
+    {
+      "bytes": 3005,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-address.xml",
+      "sha256": "beecdf651467ac80c1d9a9c1b78a32d02a07989ee9ab416740aaf8e4b6b5b386"
+    },
+    {
+      "bytes": 3027,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-branch.xml",
+      "sha256": "1aad2e8d748da8b6190e95deb14967b0bcd9c50e09cba26d139629781eeef328"
+    },
+    {
+      "bytes": 3074,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-variable-latency.xml",
+      "sha256": "6f48195fac73d6cc2619e837b1e954e022ba8b17952f5a688bd636ba8544f4f2"
+    },
+    {
+      "bytes": 3092,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/secret-key-taint-control.xml",
+      "sha256": "f6841d66421d5b486d31eae9a812a2415c817f05527bbd22ae21d2eb9f6ec9c5"
+    },
+    {
+      "bytes": 2022,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/wrapper-ct.xml",
+      "sha256": "a559b588e5128a9708f9cdc813f09c1d8b52f6af2a0a5ed9c30fb65804eef78f"
+    },
+    {
+      "bytes": 17542,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/valgrind-ct-plan.json",
+      "sha256": "e610e69a0ed0910e79c5afdcacd4be6cb95caca3b7899679373c33193acb8dc4"
+    },
+    {
+      "bytes": 11404,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/valgrind-ct-report.json",
+      "sha256": "90426506ed43e4ce36c63c31636c1a7ccd54a43ae90b39adb39ce24a8c8d0d49"
+    },
+    {
+      "bytes": 148,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/workflow-context.txt",
+      "sha256": "d420721c41c0139da4645abc809f82be4a60259576b9a77b31f6db399705eeb7"
+    },
+    {
+      "bytes": 18047,
+      "classification": "derived verification or public primary metadata",
+      "path": "native-v2/github-observations.json",
+      "sha256": "0f8d26fa12abebe8e3b5bf4b1c96f1b12e9d98b88321494152b480c623cb93aa"
+    },
+    {
+      "bytes": 1164,
+      "classification": "derived verification or public primary metadata",
+      "path": "native-v2/github-run-details.json",
+      "sha256": "f93b7e766ebd8cc0c3ddcdac632891889742b5872417efbfb4c7e768883b9c1c"
+    },
+    {
+      "bytes": 12235,
+      "classification": "ORIGINAL_NATIVE_V2_COPY_ALLOWLIST",
+      "path": "native-v2/selected-public-files.json",
+      "sha256": "ca1c66b78d4c42057e05d3a89c8d71cb19a17dbb7d9389e2bacdd1bb1779bb62"
+    },
+    {
+      "bytes": 4156,
+      "classification": "derived verification or public primary metadata",
+      "path": "native-v2/source-lineage-from-explorer.json",
+      "sha256": "3e614e3cf7b54dc139b3c083c2064e50712fa65a236299fe7cf6eb8ae4c0352d"
+    },
+    {
+      "bytes": 1606,
+      "classification": "pinned public upstream source bytes",
+      "path": "native-v2/upstream-native-v2/flake.lock",
+      "sha256": "8f1762cc57561256465ef3b467f44b99b606c3b196870b81a329b8de0cebdd69"
+    },
+    {
+      "bytes": 10683,
+      "classification": "pinned public upstream source bytes",
+      "path": "native-v2/upstream-native-v2/flake.nix",
+      "sha256": "37050e4cd51e0d83dd08b5164dc4a27640e50d0873b598b549f4e460d74e9d42"
+    },
+    {
+      "bytes": 36011,
+      "classification": "pinned public upstream source bytes",
+      "path": "native-v2/upstream-native-v2/nix/valgrind/valgrind-varlat-patch-20240808.txt",
+      "sha256": "d54b140f2bacaea91470940a963950b7126685810df2192640cd103328b421f4"
+    },
+    {
+      "bytes": 2169,
+      "classification": "derived verification or public primary metadata",
+      "path": "native-v2/upstream-pins-verification.json",
+      "sha256": "c55b0241b91b8a84408d702ebff03eebeed5ce6ae289df2f67f7aa905fdc1b0a"
+    },
+    {
+      "bytes": 45250,
+      "classification": "derived verification or public primary metadata",
+      "path": "native-v2/verification-receipt.json",
+      "sha256": "3ddc2d53b8ecc87bd11d4eade5e3d167482f06d9a88aa2c3a51b684d9e36741b"
+    },
+    {
+      "bytes": 10723,
+      "classification": "ORIGINAL_COMPLETED_PUBLIC_PREFLIGHT_RECORD",
+      "path": "public-preflight03/declaration.json",
+      "sha256": "8c48a4fdcb9418e3c65acfb08495ea01ee83bdffcd81a9d3a2d883ddc1a6a0d0"
+    },
+    {
+      "bytes": 187075,
+      "classification": "DERIVED_DETERMINISTIC_GZIP_OF_ORIGINAL_PUBLIC_EVENT_STREAM",
+      "gzip_filename": "",
+      "gzip_mtime": 0,
+      "path": "public-preflight03/events.jsonl.gz",
+      "sha256": "09f9e02702299dc35862e912eddb30ef01634d45106e589aa0fa4b844c6a98a2",
+      "uncompressed_bytes": 1336286,
+      "uncompressed_sha256": "2ac9eab2b8ade50c71c0a66acaab06d5a47123fea847521196a1cfb9c1cda193"
+    },
+    {
+      "bytes": 11300,
+      "classification": "ORIGINAL_COMPLETED_PUBLIC_PREFLIGHT_RECORD",
+      "path": "public-preflight03/report.json",
+      "sha256": "80edacaaf42fb7ced37e49589f8f0a75c227135c92d1f701a94628146a8f275a"
+    }
+  ],
+  "generated_at_utc": "2026-11-15T01:29:29+00:00",
+  "historical_full_inventories": [
+    {
+      "classification": "ORIGINAL_HISTORICAL_INVENTORY_WITH_OMITTED_EXECUTABLE_OR_CORPUS_PAYLOADS",
+      "path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-fuzz/SHA256SUMS",
+      "selected_packet_closure": false
+    },
+    {
+      "classification": "ORIGINAL_HISTORICAL_INVENTORY_WITH_OMITTED_EXECUTABLE_OR_CORPUS_PAYLOADS",
+      "path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/SHA256SUMS",
+      "selected_packet_closure": false
+    },
+    {
+      "classification": "ORIGINAL_HISTORICAL_INVENTORY_WITH_OMITTED_EXECUTABLE_OR_CORPUS_PAYLOADS",
+      "path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/SHA256SUMS",
+      "selected_packet_closure": false
+    }
+  ],
+  "independent_human_cryptographic_review": "NOT_PERFORMED",
+  "native_f": {
+    "arm_scope_note": "The two ARM lanes supply native nine-gate and private two-container app receipts. The separately named assembled CI reports are the two x86 lanes; no missing ARM assembled report is implied.",
+    "ci_snapshot_path": "native-f/originals/source-F-3a76cdd6-success.json",
+    "historical_pending_field_policy": "The original native-only index and aggregator retain their then-PENDING public preflight/soak fields byte-for-byte. Completed public preflight is separately recorded in public_preflight03; no historical record is rewritten.",
+    "historical_selected_inventory_path": "native-f/SHA256SUMS",
+    "historical_selection_index_path": "native-f/SOURCE.json",
+    "image_export_receipt_path": "native-f/linux-x86_64-gcc/runtime-image-export.json",
+    "native_profile_count": 4,
+    "original_aggregator_external_custody_fields": [
+      "qualified_runtime_verification",
+      "research_transfer_verification",
+      "previous_failure_preserved"
+    ],
+    "private_app_flow_profile_count": 4,
+    "profiles": [
+      {
+        "architecture": "x86_64",
+        "assembled_report": "native-f/linux-x86_64-gcc/assembled/report.json",
+        "compiler": "gcc",
+        "descriptor": "native-f/linux-x86_64-gcc/runtime-descriptor.json",
+        "emulated": false,
+        "image_id": "sha256:cbdb40bb721dbcf83aa8697005251adf54fbefd46e3d0836e91c43d43b8a941f",
+        "instrumentation_scope": {
+          "contract_backend_and_signer": "normal plus ASan/UBSan",
+          "key_lifecycle": "normal plus ASan/UBSan with entropy/fault controls",
+          "node": "release build; resource timings exclude fixture generation",
+          "openssl": "pinned static library; not instrumented by this run"
+        },
+        "manifest_sha256": "ca75d849e3e36ca40e449a72866d239a83491dd4c5f9ec671e3fe4535b6556c3",
+        "native_gate_count": 9,
+        "native_report": "native-f/linux-x86_64-gcc/native-qualification/report.json",
+        "native_status": "PASS",
+        "node_sha256": "325a9d1f3707dde9257c96520140f4a0e41d4c9f32836df47a1787d508efa322",
+        "private_app_flow_status": "PASS",
+        "private_app_report": "native-f/linux-x86_64-gcc/public-profile-app/report.json",
+        "private_app_scope": "PRIVATE_TWO_CONTAINER_APP_FLOW_NOT_PUBLIC_SOAK",
+        "production_admitted": false,
+        "public_soak": false,
+        "signer_sha256": "42c02d4a3fdd6be149ebede0f2c767a091f2ab4a1e11d70a83e1218e72c99f13"
+      },
+      {
+        "architecture": "x86_64",
+        "assembled_report": "native-f/linux-x86_64-clang/assembled/report.json",
+        "compiler": "clang",
+        "descriptor": "native-f/linux-x86_64-clang/runtime-descriptor.json",
+        "emulated": false,
+        "image_id": "sha256:fcfed8466be9c61c244e03b039925379e26371ce62134bd4173148f8301df97b",
+        "instrumentation_scope": {
+          "contract_backend_and_signer": "normal plus ASan/UBSan",
+          "key_lifecycle": "normal plus ASan/UBSan with entropy/fault controls",
+          "node": "release build; resource timings exclude fixture generation",
+          "openssl": "pinned static library; not instrumented by this run"
+        },
+        "manifest_sha256": "cc05eeb9768fabd4396caa17b77306cc5806a6f61134ed2ceed146e4e70f5068",
+        "native_gate_count": 9,
+        "native_report": "native-f/linux-x86_64-clang/native-qualification/report.json",
+        "native_status": "PASS",
+        "node_sha256": "2f8b0ac211dd74c440de7790dbc706e212b3429522bd7f57af9f78887dd2a01d",
+        "private_app_flow_status": "PASS",
+        "private_app_report": "native-f/linux-x86_64-clang/public-profile-app/report.json",
+        "private_app_scope": "PRIVATE_TWO_CONTAINER_APP_FLOW_NOT_PUBLIC_SOAK",
+        "production_admitted": false,
+        "public_soak": false,
+        "signer_sha256": "f69e88c2536bdb031fb4048fba4d4825bc758d00bb52fa574e557f91b6604255"
+      },
+      {
+        "architecture": "aarch64",
+        "compiler": "gcc",
+        "descriptor": "native-f/linux-aarch64-gcc/runtime-descriptor.json",
+        "emulated": false,
+        "image_id": "sha256:e31973dfbc0cc11a960c8cbffb6b991966b5f1044acf96b83503fc61dfcb1efa",
+        "instrumentation_scope": {
+          "contract_backend_and_signer": "normal plus ASan/UBSan",
+          "key_lifecycle": "normal plus ASan/UBSan with entropy/fault controls",
+          "node": "release build; resource timings exclude fixture generation",
+          "openssl": "pinned static library; not instrumented by this run"
+        },
+        "manifest_sha256": "aef44a326a1e5067920610bb8af6b1efc6c910783bc5445476c50456f420646e",
+        "native_gate_count": 9,
+        "native_report": "native-f/linux-aarch64-gcc/native-qualification/report.json",
+        "native_status": "PASS",
+        "node_sha256": "0f0fcaff4c2091ac4d9e02c498c57b54e899457e58b35e8e990faf6c4aae10af",
+        "private_app_flow_status": "PASS",
+        "private_app_report": "native-f/linux-aarch64-gcc/public-profile-app/report.json",
+        "private_app_scope": "PRIVATE_TWO_CONTAINER_APP_FLOW_NOT_PUBLIC_SOAK",
+        "production_admitted": false,
+        "public_soak": false,
+        "signer_sha256": "1887e4dadac3ee3ea9f6bff0bdfb30f2251854d3112a8ba3626fb66ce010bb10"
+      },
+      {
+        "architecture": "aarch64",
+        "compiler": "clang",
+        "descriptor": "native-f/linux-aarch64-clang/runtime-descriptor.json",
+        "emulated": false,
+        "image_id": "sha256:7f9d769599b5ce97e009da0bdb590555d776980d88dd0d8f95fc4028464bab08",
+        "instrumentation_scope": {
+          "contract_backend_and_signer": "normal plus ASan/UBSan",
+          "key_lifecycle": "normal plus ASan/UBSan with entropy/fault controls",
+          "node": "release build; resource timings exclude fixture generation",
+          "openssl": "pinned static library; not instrumented by this run"
+        },
+        "manifest_sha256": "b877777566f6fb4238d59d79de9510b6fa87276ba4346caddad5af9c95d2a74e",
+        "native_gate_count": 9,
+        "native_report": "native-f/linux-aarch64-clang/native-qualification/report.json",
+        "native_status": "PASS",
+        "node_sha256": "27976360c1f854268d034a5911ee6d52dff1106f9a9903003442354932d17678",
+        "private_app_flow_status": "PASS",
+        "private_app_report": "native-f/linux-aarch64-clang/public-profile-app/report.json",
+        "private_app_scope": "PRIVATE_TWO_CONTAINER_APP_FLOW_NOT_PUBLIC_SOAK",
+        "production_admitted": false,
+        "public_soak": false,
+        "signer_sha256": "191954cb9b3212e58f95719308138b6d3d9772c93372692a6af9c95b4c7356cb"
+      }
+    ],
+    "runtime_images_binaries_archives_included": false,
+    "scope": "NATIVE_LINUX_FOUR_PROFILE_AND_PRIVATE_TWO_CONTAINER_APP_QUALIFICATION",
+    "source": {
+      "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+      "tree": "9426d9dd4c3c2d082059b2ffc14fa912a121b1dc"
+    },
+    "successful_ci_jobs": 17,
+    "successful_ci_runs": 9,
+    "x86_assembled_ci_profile_count": 2
+  },
+  "native_v2": {
+    "archive_integrity_observation": {
+      "archive_count": 3,
+      "authority_path": "native-v2/verification-receipt.json",
+      "inner_checksum_entries_previously_verified": 695,
+      "members_previously_crc_length_verified": 708,
+      "original_zips_included": false,
+      "repeated_by_packet_copier": false
+    },
+    "comparator": {
+      "campaign_path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-fuzz/campaign.json",
+      "campaign_summary": {
+        "actual_fuzzer_seconds": 1801.211,
+        "crash_count": 0,
+        "exact_replay_cases": 5,
+        "executed_units": 1577151,
+        "imported_retained_seeds": 83,
+        "instrumentation_scope": {
+          "instrumented": [
+            "pqbtc_mldsa44 wrapper and vendored portable C backend",
+            "differential fuzz target and exact replay driver",
+            "OpenSSL C adapter"
+          ],
+          "not_instrumented": [
+            "prebuilt OpenSSL provider implementation body",
+            "prebuilt libcrux Rust implementation body"
+          ]
+        },
+        "promoted_replay_cases": 38,
+        "recorded_total_seconds": 1854.381
+      },
+      "check_count": 13,
+      "checks": {
+        "adapter_asan_ubsan": "PASS",
+        "boundary_and_mutation_rejection": "PASS",
+        "fips204_and_update_artifact_provenance": "PASS",
+        "full_signature_byte_agreement": "PASS",
+        "libcrux_executed_security_regressions": "PASS",
+        "libcrux_source_and_crate_provenance": "PASS",
+        "nist_deterministic_and_randomized_siggen": "PASS",
+        "nist_selected_profile_acvp_70_cases": "PASS",
+        "nist_sigver_all_accept_reject_cases": "PASS",
+        "nist_source_provenance": "PASS",
+        "pqbtc_sighash_vector": "PASS",
+        "randomized_interoperability": "PASS",
+        "research_cli_adapter_fuzz": "PASS"
+      },
+      "coverage_path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-fuzz/coverage.json",
+      "differential_report_path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-fuzz-run.json",
+      "native_pin": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+      "promotion_eligible_context_is_production_approval": false,
+      "report_path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-review-run.json",
+      "run_attempt": 1,
+      "run_context_path": "native-v2/comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-review-run-context.txt",
+      "run_id": 43024791797,
+      "selected_acvp": {
+        "keygen_cases": 25,
+        "siggen_cases": 30,
+        "sigver_cases": 15,
+        "total_cases": 70
+      },
+      "source_head": "72acd0f566ece43723e8116ff70209e97f354746",
+      "workflow_event": "schedule"
+    },
+    "copy_allowlist_path": "native-v2/selected-public-files.json",
+    "copy_allowlisted_file_count": 40,
+    "historical_pending_field_policy": "Original verification receipt public preflight/soak PENDING fields are historical observations about this isolated evidence. The separate dated public_preflight03 record supplies its own result.",
+    "isolated_ct_lanes": [
+      {
+        "architecture": "x86_64",
+        "binary_relabelled_as_F": false,
+        "compiler": "gcc",
+        "compiler_version": "gcc (GCC) 13.4.0",
+        "historical_inventory_path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/SHA256SUMS",
+        "native_pin": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+        "optimization": {
+          "positive_controls": "-O0",
+          "wrapper": "-O2"
+        },
+        "plan_path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/valgrind-ct-plan.json",
+        "report_path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/valgrind-ct-report.json",
+        "reported_untracked_entry": ".audit/mldsa-native/",
+        "run_attempt": 1,
+        "run_id": 39604807430,
+        "scope": {
+          "isolated_wrapper_only": true,
+          "key_generation_constant_time": false,
+          "not_covered": [
+            "rejection-count statistics",
+            "cache or speculative-execution leakage",
+            "power or electromagnetic leakage",
+            "ARM, macOS, or Windows execution",
+            "native assembly",
+            "secret erasure",
+            "production fitness"
+          ],
+          "observes": [
+            "secret-dependent conditional branches",
+            "secret-dependent effective addresses",
+            "patched-VEX variable-latency operations",
+            "Memcheck memory errors",
+            "definite, indirect, and possible leaks"
+          ],
+          "production_integration": false,
+          "release_hold_unchanged": true,
+          "secret_key_signing": true,
+          "seeded_key_generation_is_setup_only": true,
+          "wrapper_generated_randomizer_health_checks": true
+        },
+        "source_head": "0b6474fd90023e3c13ccdbca0a08d264833e9401",
+        "tracked_audit_inputs_clean": true,
+        "whole_worktree_clean": false,
+        "workflow_context_path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/workflow-context.txt",
+        "xml_checks": [
+          {
+            "evidence_path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-branch.xml",
+            "finished": true,
+            "id": "probe-branch",
+            "return_code": 99,
+            "sha256": "1aad2e8d748da8b6190e95deb14967b0bcd9c50e09cba26d139629781eeef328",
+            "variable_latency_count": 0,
+            "xml_error_count": 1,
+            "xml_error_kinds": [
+              "UninitCondition"
+            ]
+          },
+          {
+            "evidence_path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-address.xml",
+            "finished": true,
+            "id": "probe-address",
+            "return_code": 99,
+            "sha256": "beecdf651467ac80c1d9a9c1b78a32d02a07989ee9ab416740aaf8e4b6b5b386",
+            "variable_latency_count": 0,
+            "xml_error_count": 1,
+            "xml_error_kinds": [
+              "UninitValue"
+            ]
+          },
+          {
+            "evidence_path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-variable-latency.xml",
+            "finished": true,
+            "id": "probe-variable-latency",
+            "return_code": 99,
+            "sha256": "6f48195fac73d6cc2619e837b1e954e022ba8b17952f5a688bd636ba8544f4f2",
+            "variable_latency_count": 1,
+            "xml_error_count": 1,
+            "xml_error_kinds": [
+              "UninitValue"
+            ]
+          },
+          {
+            "evidence_path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/secret-key-taint-control.xml",
+            "finished": true,
+            "id": "secret-key-taint-control",
+            "return_code": 99,
+            "sha256": "f6841d66421d5b486d31eae9a812a2415c817f05527bbd22ae21d2eb9f6ec9c5",
+            "variable_latency_count": 0,
+            "xml_error_count": 1,
+            "xml_error_kinds": [
+              "UninitCondition"
+            ]
+          },
+          {
+            "evidence_path": "native-v2/ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/wrapper-ct.xml",
+            "finished": true,
+            "id": "wrapper-ct",
+            "return_code": 0,
+            "sha256": "a559b588e5128a9708f9cdc813f09c1d8b52f6af2a0a5ed9c30fb65804eef78f",
+            "variable_latency_count": 0,
+            "xml_error_count": 0,
+            "xml_error_kinds": []
+          }
+        ]
+      },
+      {
+        "architecture": "x86_64",
+        "binary_relabelled_as_F": false,
+        "compiler": "clang",
+        "compiler_version": "clang version 20.1.8",
+        "historical_inventory_path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/SHA256SUMS",
+        "native_pin": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+        "optimization": {
+          "positive_controls": "-O0",
+          "wrapper": "-O2"
+        },
+        "plan_path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/valgrind-ct-plan.json",
+        "report_path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/valgrind-ct-report.json",
+        "reported_untracked_entry": ".audit/mldsa-native/",
+        "run_attempt": 1,
+        "run_id": 39604807430,
+        "scope": {
+          "isolated_wrapper_only": true,
+          "key_generation_constant_time": false,
+          "not_covered": [
+            "rejection-count statistics",
+            "cache or speculative-execution leakage",
+            "power or electromagnetic leakage",
+            "ARM, macOS, or Windows execution",
+            "native assembly",
+            "secret erasure",
+            "production fitness"
+          ],
+          "observes": [
+            "secret-dependent conditional branches",
+            "secret-dependent effective addresses",
+            "patched-VEX variable-latency operations",
+            "Memcheck memory errors",
+            "definite, indirect, and possible leaks"
+          ],
+          "production_integration": false,
+          "release_hold_unchanged": true,
+          "secret_key_signing": true,
+          "seeded_key_generation_is_setup_only": true,
+          "wrapper_generated_randomizer_health_checks": true
+        },
+        "source_head": "0b6474fd90023e3c13ccdbca0a08d264833e9401",
+        "tracked_audit_inputs_clean": true,
+        "whole_worktree_clean": false,
+        "workflow_context_path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/workflow-context.txt",
+        "xml_checks": [
+          {
+            "evidence_path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-branch.xml",
+            "finished": true,
+            "id": "probe-branch",
+            "return_code": 99,
+            "sha256": "3911dc1091f4221998b664357cc13d8d08be2ec01bf6024a07aa0943ee4e9009",
+            "variable_latency_count": 0,
+            "xml_error_count": 1,
+            "xml_error_kinds": [
+              "UninitCondition"
+            ]
+          },
+          {
+            "evidence_path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-address.xml",
+            "finished": true,
+            "id": "probe-address",
+            "return_code": 99,
+            "sha256": "9d3639025f0ab65ee5e21fd216ecfdd3a53817fa2b5b6b96cefed5fd372717a7",
+            "variable_latency_count": 0,
+            "xml_error_count": 1,
+            "xml_error_kinds": [
+              "UninitValue"
+            ]
+          },
+          {
+            "evidence_path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-variable-latency.xml",
+            "finished": true,
+            "id": "probe-variable-latency",
+            "return_code": 99,
+            "sha256": "57e0a719123f5cf5096717d8f379825f5b0052e80ec3558fbfee286f0f51fef4",
+            "variable_latency_count": 1,
+            "xml_error_count": 1,
+            "xml_error_kinds": [
+              "UninitValue"
+            ]
+          },
+          {
+            "evidence_path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/secret-key-taint-control.xml",
+            "finished": true,
+            "id": "secret-key-taint-control",
+            "return_code": 99,
+            "sha256": "b87408f6eadb8c55a063fd932ec671b6c12d7941e8dacfa84ec070ce12975f56",
+            "variable_latency_count": 0,
+            "xml_error_count": 1,
+            "xml_error_kinds": [
+              "UninitCondition"
+            ]
+          },
+          {
+            "evidence_path": "native-v2/ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/wrapper-ct.xml",
+            "finished": true,
+            "id": "wrapper-ct",
+            "return_code": 0,
+            "sha256": "6f199401799a87cc55341ca657674b11bcf24d0b8008524a546ff28c812a11ae",
+            "variable_latency_count": 0,
+            "xml_error_count": 0,
+            "xml_error_kinds": []
+          }
+        ]
+      }
+    ],
+    "native_pin": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+    "pinned_upstream_public_source_paths": [
+      "native-v2/upstream-native-v2/flake.lock",
+      "native-v2/upstream-native-v2/flake.nix",
+      "native-v2/upstream-native-v2/nix/valgrind/valgrind-varlat-patch-20240808.txt"
+    ],
+    "primary_github_metadata_paths": [
+      "native-v2/github-observations.json",
+      "native-v2/github-run-details.json"
+    ],
+    "scope": "OLDER_SOURCE_BOUND_COMPARATOR_AND_ISOLATED_X86_WRAPPER_CT_RECORDS",
+    "source_continuity": {
+      "binary_scope_limit": "Source-code continuity does not relabel the W audit binaries as M/F binaries and does not extend isolated CT to the assembled app or release compiler/architecture matrix.",
+      "capsule_sha256": "e07f0f6a9bb46fd9afcbe7699f95f1ce43e6fcf48623d6de7b3e95ed405023cb",
+      "comparator_guarded_diffs": "Empty under recorded exclusions for baseline to M, baseline to F and M to F; read original proof for exact paths.",
+      "ct_fifteen_inputs_M_to_F": {
+        "reported_empty": true
+      },
+      "ct_fifteen_inputs_W_to_M": {
+        "classification": "Readiness prose only; preserve older audit source identity.",
+        "only_changed_path": "docs/PQSIG_PRODUCTION_READINESS.md",
+        "reported_patch_bytes": 4190,
+        "reported_patch_sha256": "7899b4c9be78224c8b9eec26cd574c27659c3b1df13c6a5ee5975a9c10958c2a"
+      },
+      "engineering_tree_all_four_refs": "d538ea2466660ebdd27101cbf9efd88a0651fae5",
+      "native_commit": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+      "native_tree": "e61bc2b09d705cbc378e3e8c6d556cae05750fd6",
+      "proof_path": "native-v2/source-lineage-from-explorer.json",
+      "vectors_file_sha256": "64d069741c014c07852bbd3c798296b2ff6cae990161bec3763b983746d44dba",
+      "wrapper_code_W_to_M": "Unchanged code/workflow/test/vector set."
+    },
+    "source_lineage_path": "native-v2/source-lineage-from-explorer.json",
+    "upstream_pins_proof_path": "native-v2/upstream-pins-verification.json",
+    "upstream_verification": "Exact public source and blob/hash observations are preserved; this packet copier did not evaluate Nix or reexecute tool binaries.",
+    "verification_receipt_path": "native-v2/verification-receipt.json"
+  },
+  "packaging_method": {
+    "admission_or_guarded_source_modified": false,
+    "native_code_or_Nix_executed": false,
+    "network_or_Research_calls": false,
+    "new_CI_launched": false,
+    "new_test_suite_added": false,
+    "original_reports_modified": false,
+    "verification_method": "Offline stdlib checksum, safe-relative-path, source/profile binding, deterministic gzip, public field review and event-chain/clock checks; no executable reproduction claim."
+  },
+  "production_admitted": false,
+  "production_backend": "NONE",
+  "public_preflight03": {
+    "D_qualification_record_policy": "Both D GCC descriptors, exact native qualification receipts and private app-flow PASS reports are included under baseline_d; descriptor/native hashes exactly match original declaration versions.a on ARM/x86. D executable payloads remain external historical custody.",
+    "F_qualification_record_policy": "Both F GCC host identities join the corresponding native_f ARM/x86 GCC descriptors and native receipts included in this packet.",
+    "both_owned_backends_stopped": true,
+    "cleanup_ok": true,
+    "confirmed_payments": 22,
+    "declaration_path": "public-preflight03/declaration.json",
+    "declared_fault_misses": [
+      {
+        "fault": "upgrade",
+        "slot": 10,
+        "success": false
+      },
+      {
+        "fault": "upgrade",
+        "slot": 11,
+        "success": false
+      },
+      {
+        "fault": "rollback",
+        "slot": 12,
+        "success": false
+      }
+    ],
+    "declared_host_versions": [
+      {
+        "name": "mac",
+        "role": "bootstrap",
+        "transport": "local",
+        "versions": {
+          "a": {
+            "architecture": "aarch64",
+            "descriptor_file_sha256": "726175479b72111ae4c1f0725cdf3154edb7821fbc26a8aa3b26f0c7bb9fb5c0",
+            "image": "sha256:ad592d9f8e13d375f2dc9c47f2c5cca8ae3901b60ef040b312fed2a31642adc9",
+            "native_receipt_sha256": "14df9174efd53df7f7873bdbc3b272fbc50dbd72174231743e4a443e5359bbd2",
+            "node_sha256": "621d6bfb4d6d3cb8105fbbbae2eac6c2bbade11c73f0b6e84530c536253d56af",
+            "signer_sha256": "830c0872db6d11c7f97668ebceb030774f6713a43bfd09a602b7e8d2c0a3969e",
+            "source_head": "cc15838139360a0d6feccacc8707943781fdb002",
+            "source_tree": "af905ace2462c0ae087cf262b561b4d7c71d9300"
+          },
+          "b": {
+            "architecture": "aarch64",
+            "descriptor_file_sha256": "d5211de3b8781052c3d88d71706adc922e98aec3546065b1a4330788ba375b41",
+            "image": "sha256:e31973dfbc0cc11a960c8cbffb6b991966b5f1044acf96b83503fc61dfcb1efa",
+            "native_receipt_sha256": "ae57345d49487a94e5e294037b5a02fd44c1fdd71692c41d2e00d97a44b5cf83",
+            "node_sha256": "0f0fcaff4c2091ac4d9e02c498c57b54e899457e58b35e8e990faf6c4aae10af",
+            "signer_sha256": "1887e4dadac3ee3ea9f6bff0bdfb30f2251854d3112a8ba3626fb66ce010bb10",
+            "source_head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+            "source_tree": "9426d9dd4c3c2d082059b2ffc14fa912a121b1dc"
+          }
+        }
+      },
+      {
+        "name": "research",
+        "role": "follower",
+        "transport": "ssh",
+        "versions": {
+          "a": {
+            "architecture": "x86_64",
+            "descriptor_file_sha256": "09941648256b87c39cb7a25a1a5f10da256c50e992b7a206ed755c0a7d8dc26e",
+            "image": "sha256:0dac45e92d731f439d8bc1a12b2531cb764620130fcbfa9841c4f49a783049fa",
+            "native_receipt_sha256": "dce7b7342d26ab73a85bc3d3ec9e3d12ec875e1dba46b96fe44332bfea2eb3e9",
+            "node_sha256": "0b2914a781dee3fbc587edc0b0db6422eb0faa3c77e15fb212d173f85f3bdc61",
+            "signer_sha256": "f34bb180f1888dea9ff0f78b18d900a952e818f29cc9648f7b4f2259dbe6b882",
+            "source_head": "cc15838139360a0d6feccacc8707943781fdb002",
+            "source_tree": "af905ace2462c0ae087cf262b561b4d7c71d9300"
+          },
+          "b": {
+            "architecture": "x86_64",
+            "descriptor_file_sha256": "078c30dc1824abc022880ced14b2ed0591884f38103d36e41c4ede70cddd436e",
+            "image": "sha256:cbdb40bb721dbcf83aa8697005251adf54fbefd46e3d0836e91c43d43b8a941f",
+            "native_receipt_sha256": "0d40249638b2cbedbe28bde5470fb86128fc785c0982b5e93d7765b8c2c9675d",
+            "node_sha256": "325a9d1f3707dde9257c96520140f4a0e41d4c9f32836df47a1787d508efa322",
+            "signer_sha256": "42c02d4a3fdd6be149ebede0f2c767a091f2ab4a1e11d70a83e1218e72c99f13",
+            "source_head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+            "source_tree": "9426d9dd4c3c2d082059b2ffc14fa912a121b1dc"
+          }
+        }
+      }
+    ],
+    "elapsed": {
+      "monotonic_seconds": 900.0090748749208,
+      "wall_seconds": 900.0057783126831
+    },
+    "event_chain": {
+      "count": 1449,
+      "last_sha256": "931625b2668457652ad56fd1a729c48ba3dcb17e8862dabf1e26f3fe762830fa"
+    },
+    "event_clock_elapsed": {
+      "monotonic_seconds": 900.009330625,
+      "wall_seconds": 900.006015
+    },
+    "events_gzip_path": "public-preflight03/events.jsonl.gz",
+    "final_recovered_spend": true,
+    "finished_utc": "2026-11-15T01:11:51.992071+00:00",
+    "gzip_bytes": 187075,
+    "gzip_mtime": 0,
+    "gzip_sha256": "09f9e02702299dc35862e912eddb30ef01634d45106e589aa0fa4b844c6a98a2",
+    "host_control_runtime_boundary": "The coordinator and approved host-control source are F; declared runtime version a is D and version b is F. Original declaration and event receipts preserve the selected runtime and image identities. Host-control source approval does not relabel a D runtime binary as F.",
+    "host_runner_source": {
+      "driver_sha256": "62a2a8af09ead25ff8a0d1cf379dd60bf5b70643611e8c1c0f2a86199bdce616",
+      "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+      "tree": "9426d9dd4c3c2d082059b2ffc14fa912a121b1dc"
+    },
+    "missed_slots": 3,
+    "mode": "preflight",
+    "original_declaration_sha256": "8c48a4fdcb9418e3c65acfb08495ea01ee83bdffcd81a9d3a2d883ddc1a6a0d0",
+    "original_events_bytes": 1336286,
+    "original_events_sha256": "2ac9eab2b8ade50c71c0a66acaab06d5a47123fea847521196a1cfb9c1cda193",
+    "original_report_sha256": "80edacaaf42fb7ced37e49589f8f0a75c227135c92d1f701a94628146a8f275a",
+    "phases": [
+      {
+        "name": "crash",
+        "result": "PASS"
+      },
+      {
+        "name": "partition",
+        "result": "PASS"
+      },
+      {
+        "name": "hostile",
+        "result": "PASS"
+      },
+      {
+        "name": "old_backup_missing_record",
+        "result": "PASS"
+      },
+      {
+        "name": "reindex",
+        "result": "PASS"
+      },
+      {
+        "name": "upgrade",
+        "result": "PASS"
+      },
+      {
+        "name": "rollback",
+        "result": "PASS"
+      }
+    ],
+    "public_clock_completed_utc": "2026-11-15T01:11:41.209908+00:00",
+    "public_clock_started_utc": "2026-11-15T00:56:41.203893+00:00",
+    "public_field_review": {
+      "frozen_F_public_value": "PASS on report, declaration and all events",
+      "operational_host_and_build_paths": "Retained public historical metadata, not portable dependencies.",
+      "operator_action_parameters_present": false,
+      "private_key_and_auth_pattern_scan": "No matching key blocks, authentication headers, credential URLs or signed temporary download parameters"
+    },
+    "public_tls_native_p2p_probe_end": "PASS",
+    "public_tls_native_p2p_probe_start": "PASS",
+    "report_path": "public-preflight03/report.json",
+    "required_actual_elapsed_seconds": 900,
+    "result": "PREFLIGHT_PASS",
+    "scope": "VALUELESS_EXPERIMENTAL_PUBLIC_TEST_ONLY",
+    "source_pair": {
+      "a": {
+        "head": "cc15838139360a0d6feccacc8707943781fdb002",
+        "tree": "af905ace2462c0ae087cf262b561b4d7c71d9300"
+      },
+      "b": {
+        "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+        "tree": "9426d9dd4c3c2d082059b2ffc14fa912a121b1dc"
+      }
+    },
+    "started_utc": "2026-11-15T00:56:41.204020+00:00",
+    "successful_normal_slots": 12
+  },
+  "public_soak_24h": {
+    "earliest_possible_completion_utc": "2026-11-16T01:13:20.645543Z",
+    "live_growing_logs_included": false,
+    "pass_asserted": false,
+    "public_clock_started_utc": "2026-11-15T01:13:20.645543Z",
+    "required_actual_elapsed_seconds": 86400,
+    "scope": "VALUELESS_EXPERIMENTAL_PUBLIC_TEST_ONLY",
+    "status": "ACTIVE",
+    "status_authority": "Coordinator snapshot supplied during packet preparation; this packet contains no live soak log or completed soak receipt."
+  },
+  "qualification_limits": [
+    "No independent human cryptographic review is established.",
+    "Isolated W CT does not qualify the whole F app, release compiler/architecture matrix, signer IPC, wallet encryption/derivation or general key generation as constant-time.",
+    "CT excludes rejection-count statistics, cache/speculation, physical power/EM, ARM/macOS/Windows execution, native assembly, erasure and production fitness.",
+    "Comparator agreement and test success are implementation evidence, not a cryptographic proof or production admission.",
+    "Public preflight is a completed 900-second test; it does not establish the separate 86400-second soak."
+  ],
+  "reference_policy": "Original absolute build/runtime paths, artifact verifier public_selected_files paths, and original aggregator custody links are preserved historical observations. They are not dependencies of this portable selected-record packet. This new index uses only packet-relative paths for its selected evidence references.",
+  "release_hold": true,
+  "schema": "PQBTC-MLDSA44-CURRENT-QUALIFICATION-SELECTED-PACKET-1",
+  "scope": "SELECTED_PUBLIC_RECORDS_WITH_DISTINCT_NATIVE_COMPARATOR_CT_AND_PREFLIGHT_SUBJECTS",
+  "selected_file_count": 69,
+  "subject": {
+    "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+    "tree": "9426d9dd4c3c2d082059b2ffc14fa912a121b1dc"
+  },
+  "whole_app_constant_time_qualified": false
+}

@@ -1,0 +1,116 @@
+{
+  "schema": "PQBTC-NATIVE-V2-SOURCE-CONTINUITY-1",
+  "verification_method": "Read-only Git verification performed by independent explorer /root/remaining_native_evidence and supplied to this artifact-verification task; not re-run here.",
+  "artifact_verifier_accessed_local_source_repository": false,
+  "refs": {
+    "baseline": "f6b406ecb59bb9d7c9502457daa3be4a1deb7019",
+    "wrapper_audit": "0b6474fd90023e3c13ccdbca0a08d264833e9401",
+    "current_main": "72acd0f566ece43723e8116ff70209e97f354746",
+    "candidate_f": "3a76cdd6005c1f5d948deb602c6985c1db508375"
+  },
+  "ancestry": [
+    {
+      "argv": [
+        "git",
+        "merge-base",
+        "--is-ancestor",
+        "f6b406ecb59bb9d7c9502457daa3be4a1deb7019",
+        "0b6474fd90023e3c13ccdbca0a08d264833e9401"
+      ],
+      "reported_exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "merge-base",
+        "--is-ancestor",
+        "f6b406ecb59bb9d7c9502457daa3be4a1deb7019",
+        "72acd0f566ece43723e8116ff70209e97f354746"
+      ],
+      "reported_exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "merge-base",
+        "--is-ancestor",
+        "0b6474fd90023e3c13ccdbca0a08d264833e9401",
+        "72acd0f566ece43723e8116ff70209e97f354746"
+      ],
+      "reported_exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "merge-base",
+        "--is-ancestor",
+        "72acd0f566ece43723e8116ff70209e97f354746",
+        "3a76cdd6005c1f5d948deb602c6985c1db508375"
+      ],
+      "reported_exit_code": 0
+    }
+  ],
+  "comparator_guarded_paths": [
+    ".github/workflows/ml-dsa-44-review-reproduction.yml",
+    ".github/workflows/ml-dsa-44-resource-envelope.yml",
+    "contrib/ml-dsa-engineering",
+    "contrib/ml-dsa-ref",
+    "ci/test/test_ml_dsa_cli_adapter_fuzz.py",
+    "ci/test/test_ml_dsa_differential_fuzz.py",
+    "ci/test/test_ml_dsa_reference.py",
+    "ci/test/test_ml_dsa_resource_envelope.py",
+    "ci/test/test_ml_dsa_review_baseline.py"
+  ],
+  "comparator_exclusions": [
+    ":(exclude)contrib/ml-dsa-ref/review_baseline_commit.txt",
+    ":(exclude)contrib/ml-dsa-ref/README.md",
+    ":(exclude)contrib/ml-dsa-ref/wolfram/**"
+  ],
+  "comparator_diffs": [
+    {
+      "from": "baseline",
+      "to": "current_main",
+      "reported_exit_code": 0,
+      "reported_stdout_bytes": 0,
+      "reported_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "from": "baseline",
+      "to": "candidate_f",
+      "reported_exit_code": 0,
+      "reported_stdout_bytes": 0,
+      "reported_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "from": "current_main",
+      "to": "candidate_f",
+      "reported_exit_code": 0,
+      "reported_stdout_bytes": 0,
+      "reported_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "engineering_tree_all_four_refs": "d538ea2466660ebdd27101cbf9efd88a0651fae5",
+  "native_commit": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+  "native_tree": "e61bc2b09d705cbc378e3e8c6d556cae05750fd6",
+  "capsule_sha256": "e07f0f6a9bb46fd9afcbe7699f95f1ce43e6fcf48623d6de7b3e95ed405023cb",
+  "vectors_file_sha256": "64d069741c014c07852bbd3c798296b2ff6cae990161bec3763b983746d44dba",
+  "wrapper_code_diff_wrapper_head_to_main": {
+    "paths": [
+      ".github/workflows/ml-dsa-44-wrapper-prototype.yml",
+      "contrib/ml-dsa-engineering",
+      "ci/test/test_ml_dsa_wrapper_prototype.py",
+      "contrib/ml-dsa-ref/vectors.json"
+    ],
+    "reported_empty": true
+  },
+  "ct_fifteen_source_input_diff_wrapper_head_to_main": {
+    "only_changed_path": "docs/PQSIG_PRODUCTION_READINESS.md",
+    "reported_patch_bytes": 4190,
+    "reported_patch_sha256": "7899b4c9be78224c8b9eec26cd574c27659c3b1df13c6a5ee5975a9c10958c2a",
+    "classification": "Readiness prose only; preserve older audit source identity."
+  },
+  "ct_fifteen_source_input_diff_main_to_f": {
+    "reported_empty": true
+  },
+  "scope_limit": "Source-code continuity does not relabel the W audit binaries as M/F binaries and does not extend isolated CT to the assembled app or release compiler/architecture matrix."
+}

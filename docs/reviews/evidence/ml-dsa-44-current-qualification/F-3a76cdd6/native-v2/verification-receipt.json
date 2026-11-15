@@ -1,0 +1,1073 @@
+{
+  "archive_integrity": [
+    {
+      "all_member_crc_and_lengths_verified": true,
+      "artifact_id": 13859439392,
+      "checksum_manifests": [
+        {
+          "all_entries_verified": true,
+          "entries": 1,
+          "path": "ml-dsa-44-review-run.sha256",
+          "sha256": "009069a09541a883f9b5a4aafa974e41fa8b53b368a1f730019fda9c16efa75b"
+        },
+        {
+          "all_entries_verified": true,
+          "entries": 1,
+          "path": "ml-dsa-44-differential-fuzz-run.sha256",
+          "sha256": "2b3ff44b12fc270db7fc7d198a06a4fb4a3a093689f3b2acc7b1904ee3a4c26f"
+        },
+        {
+          "all_entries_verified": true,
+          "entries": 4,
+          "path": "ml-dsa-44-differential-supplemental.sha256",
+          "sha256": "90c345c8baee9c761d677ed4ad2e621eac3b87ff86b507dddc98620a8d388eb6"
+        },
+        {
+          "all_entries_verified": true,
+          "entries": 653,
+          "path": "ml-dsa-44-differential-fuzz/SHA256SUMS",
+          "sha256": "450dab7d7d2f041bc93796655b66f8e0fbc7da6d4d31bb00963bbc6b6dbff612"
+        }
+      ],
+      "covered_member_count": 659,
+      "declared_checksum_entries": 659,
+      "member_count": 664,
+      "member_hashes": null,
+      "member_hashes_omitted_from_summary": true,
+      "outer_zip_digest_only_members": [
+        "ml-dsa-44-review-toolchain.txt"
+      ],
+      "uncompressed_bytes": 3755891,
+      "zip_bytes": 2270896,
+      "zip_sha256": "43b4e13ada29ef6c63e632a34c983637f329e7340606c3e965e4a695d32c0c43"
+    },
+    {
+      "all_member_crc_and_lengths_verified": true,
+      "artifact_id": 12348177795,
+      "checksum_manifests": [
+        {
+          "all_entries_verified": true,
+          "entries": 18,
+          "path": "audit/SHA256SUMS",
+          "sha256": "36f099b419822f3a90736d07c8cea294adb97097724fc115f7fe65491a24c886"
+        }
+      ],
+      "covered_member_count": 18,
+      "declared_checksum_entries": 18,
+      "member_count": 22,
+      "member_hashes": null,
+      "member_hashes_omitted_from_summary": true,
+      "outer_zip_digest_only_members": [
+        "nix-develop.log",
+        "nix-version.log",
+        "workflow-context.txt"
+      ],
+      "uncompressed_bytes": 278480,
+      "zip_bytes": 115511,
+      "zip_sha256": "364070f73ee03aca938faffeaac799fe0d8cae010c75ba34b2e1ff401a3a6081"
+    },
+    {
+      "all_member_crc_and_lengths_verified": true,
+      "artifact_id": 12347698293,
+      "checksum_manifests": [
+        {
+          "all_entries_verified": true,
+          "entries": 18,
+          "path": "audit/SHA256SUMS",
+          "sha256": "9bc5e4b3e5c6f9b92d2e8c3b2fc804b1a9b11689f07cf44251f51c058c0945f7"
+        }
+      ],
+      "covered_member_count": 18,
+      "declared_checksum_entries": 18,
+      "member_count": 22,
+      "member_hashes": null,
+      "member_hashes_omitted_from_summary": true,
+      "outer_zip_digest_only_members": [
+        "nix-develop.log",
+        "nix-version.log",
+        "workflow-context.txt"
+      ],
+      "uncompressed_bytes": 308346,
+      "zip_bytes": 124649,
+      "zip_sha256": "d43b178b659ce5cc68077634adbd5ac654b9cfcd553e592ba69de214e30ea4c8"
+    }
+  ],
+  "ci_launched": false,
+  "comparator": {
+    "acvp": {
+      "keygen_cases": 25,
+      "siggen_cases": 30,
+      "sigver_cases": 15,
+      "total_cases": 70
+    },
+    "baseline": "f6b406ecb59bb9d7c9502457daa3be4a1deb7019",
+    "campaign": {
+      "actual_fuzzer_seconds": 1801.211,
+      "coverage_floors": {
+        "campaign_seconds": 1800,
+        "openssl_bridge": {
+          "branches": {
+            "count": 50,
+            "covered": 37,
+            "percent": 74.0,
+            "required_percent": 74.0
+          },
+          "functions": {
+            "count": 4,
+            "covered": 3,
+            "percent": 75.0,
+            "required_percent": 75.0
+          },
+          "lines": {
+            "count": 113,
+            "covered": 81,
+            "percent": 71.681416,
+            "required_percent": 71.0
+          }
+        },
+        "schema_version": 1,
+        "target": {
+          "branches": {
+            "count": 114,
+            "covered": 98,
+            "percent": 85.964912,
+            "required_percent": 85.0
+          },
+          "functions": {
+            "count": 11,
+            "covered": 11,
+            "percent": 100.0,
+            "required_percent": 100.0
+          },
+          "lines": {
+            "count": 307,
+            "covered": 275,
+            "percent": 89.576547,
+            "required_percent": 89.0
+          }
+        }
+      },
+      "crash_count": 0,
+      "exact_replay_cases": 5,
+      "executed_units": 1577151,
+      "imported_retained_seeds": 83,
+      "instrumentation_scope": {
+        "instrumented": [
+          "pqbtc_mldsa44 wrapper and vendored portable C backend",
+          "differential fuzz target and exact replay driver",
+          "OpenSSL C adapter"
+        ],
+        "not_instrumented": [
+          "prebuilt OpenSSL provider implementation body",
+          "prebuilt libcrux Rust implementation body"
+        ]
+      },
+      "minimized_corpus": {
+        "aggregate_sha256": "3c2f114584248f8c64afb4c63fdab3828f62b82b3ac34a4be6e373dde2849df9",
+        "file_count": 153,
+        "total_bytes": 529804
+      },
+      "promoted_replay_cases": 38,
+      "recorded_total_seconds": 1854.381,
+      "retained_source": {
+        "event_name": "schedule",
+        "restore_policy": "latest_successful_main_run",
+        "restored_seed_file_count": "153",
+        "seed_directory": "ml-dsa-44-differential-fuzz/minimized-corpus",
+        "source_artifact": "ml-dsa-44-review-evidence-0b6474fd90023e3c13ccdbca0a08d264833e9401",
+        "source_campaign_minimized_aggregate_sha256": "259fffb015615ebb4b169905b961a64a74d26f26fc7eb8be44874f2b75e1e550",
+        "source_campaign_minimized_file_count": "153",
+        "source_campaign_minimized_total_bytes": "529501",
+        "source_campaign_repository_commit": "0b6474fd90023e3c13ccdbca0a08d264833e9401",
+        "source_evidence_sha256": "2b637efcdf4cd649392596dd5ab0e67e6f6896257a9b555dcf8758713803b7a1",
+        "source_head_sha": "0b6474fd90023e3c13ccdbca0a08d264833e9401",
+        "source_run_attempt": "1",
+        "source_run_created_at": "2026-11-04T13:16:55Z",
+        "source_run_id": "41836664980",
+        "state": "restored"
+      },
+      "utc_interval_seconds": 1854.38593,
+      "working_corpus": {
+        "aggregate_sha256": "a6a97462874d984539e8019b233011739c911a0b1f348ef4d18eb3fca3eed449",
+        "file_count": 403,
+        "total_bytes": 1464254
+      }
+    },
+    "checks": {
+      "adapter_asan_ubsan": "PASS",
+      "boundary_and_mutation_rejection": "PASS",
+      "fips204_and_update_artifact_provenance": "PASS",
+      "full_signature_byte_agreement": "PASS",
+      "libcrux_executed_security_regressions": "PASS",
+      "libcrux_source_and_crate_provenance": "PASS",
+      "nist_deterministic_and_randomized_siggen": "PASS",
+      "nist_selected_profile_acvp_70_cases": "PASS",
+      "nist_sigver_all_accept_reject_cases": "PASS",
+      "nist_source_provenance": "PASS",
+      "pqbtc_sighash_vector": "PASS",
+      "randomized_interoperability": "PASS",
+      "research_cli_adapter_fuzz": "PASS"
+    },
+    "limitations": [
+      "Bounded comparator and differential evidence, not a cryptographic security proof or production admission",
+      "Retained-source provenance is in the checksum-bound supplemental sidecar; prior source-run ZIP was not re-downloaded in this task",
+      "No raw corpus frames were parsed or executed; their opaque bytes were hashed against the complete manifest"
+    ],
+    "mldsa_native_commit": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+    "oracle_pins": {
+      "libcrux_commit": "c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd",
+      "native_commit": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+      "openssl_commit": "c8bd5a57108599ac650bbae77fcabe3109dab2e8",
+      "openssl_tree": "96ac34688809c56b1afa117c75c0ef303ff19a75"
+    },
+    "promotion_eligible_context": true,
+    "public_selected_files": [
+      "ml-dsa-44-review-run-context.txt",
+      "ml-dsa-44-review-run.sha256",
+      "ml-dsa-44-review-run.json",
+      "ml-dsa-44-review-toolchain.txt",
+      "ml-dsa-44-differential-fuzz-run.json",
+      "ml-dsa-44-differential-fuzz-run.sha256",
+      "ml-dsa-44-differential-campaign-parameters.txt",
+      "ml-dsa-44-differential-retained-corpus.txt",
+      "ml-dsa-44-differential-coverage-floors.json",
+      "ml-dsa-44-differential-supplemental.sha256",
+      "ml-dsa-44-differential-fuzz/SHA256SUMS",
+      "ml-dsa-44-differential-fuzz/campaign.json",
+      "ml-dsa-44-differential-fuzz/coverage.json",
+      "ml-dsa-44-differential-fuzz/coverage.txt"
+    ],
+    "report_sha256": "f0b13f23d0a809c3a0383713039bcc0b97d5af29c094c6bcd85a9bd1c539d3af",
+    "run_context_sha256": "48d3a6055a67076e90317054ac5c0d31830757a0b442f13fd546bdcd9c5601c6",
+    "run_id": 43024791797,
+    "source_head": "72acd0f566ece43723e8116ff70209e97f354746",
+    "trust_scope": "frozen_baseline_reproduction"
+  },
+  "constant_time_lanes": [
+    {
+      "artifact_id": 12348177795,
+      "binary_tool_files_not_reexecuted": true,
+      "builds": [
+        {
+          "bytes": 205272,
+          "elf_class": 64,
+          "elf_machine": "x86_64",
+          "elf_type": 3,
+          "executed_by_this_verifier": false,
+          "path": "bin/pqbtc_mldsa44_ct_memcheck",
+          "sha256": "ce92eeec2a4af2c62921bc59ef0b1c64182bfe4c3948e0bcaf743e6bb2e7288e"
+        },
+        {
+          "bytes": 21632,
+          "elf_class": 64,
+          "elf_machine": "x86_64",
+          "elf_type": 3,
+          "executed_by_this_verifier": false,
+          "path": "bin/pqbtc_mldsa44_ct_probe",
+          "sha256": "ae3e9f6b5db84557a0900c5b572567013809386dba640a48e88642f5031fdd72"
+        }
+      ],
+      "compiler": "gcc",
+      "compiler_version": "gcc (GCC) 13.4.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+      "host": {
+        "machine": "x86_64",
+        "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.42",
+        "system": "Linux"
+      },
+      "optimization": {
+        "positive_controls": "-O0",
+        "wrapper": "-O2"
+      },
+      "plan_sha256": "e610e69a0ed0910e79c5afdcacd4be6cb95caca3b7899679373c33193acb8dc4",
+      "public_selected_files": [
+        "audit/SHA256SUMS",
+        "audit/logs/build-probe.log",
+        "audit/logs/build-wrapper.log",
+        "audit/logs/probe-address.log",
+        "audit/logs/probe-address.xml",
+        "audit/logs/probe-branch.log",
+        "audit/logs/probe-branch.xml",
+        "audit/logs/probe-variable-latency.log",
+        "audit/logs/probe-variable-latency.xml",
+        "audit/logs/secret-key-taint-control.log",
+        "audit/logs/secret-key-taint-control.xml",
+        "audit/logs/toolchain.log",
+        "audit/logs/wrapper-ct.log",
+        "audit/logs/wrapper-ct.stdout",
+        "audit/logs/wrapper-ct.xml",
+        "audit/valgrind-ct-plan.json",
+        "audit/valgrind-ct-report.json",
+        "nix-develop.log",
+        "nix-version.log",
+        "workflow-context.txt"
+      ],
+      "report_sha256": "90426506ed43e4ce36c63c31636c1a7ccd54a43ae90b39adb39ce24a8c8d0d49",
+      "repository": {
+        "all_audit_inputs_tracked": true,
+        "audit_input_dirty": false,
+        "commit": "0b6474fd90023e3c13ccdbca0a08d264833e9401",
+        "dirty_audit_inputs": [],
+        "tracked_changes": [],
+        "untracked_evidence_sources": [],
+        "untracked_files": [
+          ".audit/mldsa-native/"
+        ],
+        "worktree_dirty": true
+      },
+      "run_id": 39604807430,
+      "scope": {
+        "isolated_wrapper_only": true,
+        "key_generation_constant_time": false,
+        "not_covered": [
+          "rejection-count statistics",
+          "cache or speculative-execution leakage",
+          "power or electromagnetic leakage",
+          "ARM, macOS, or Windows execution",
+          "native assembly",
+          "secret erasure",
+          "production fitness"
+        ],
+        "observes": [
+          "secret-dependent conditional branches",
+          "secret-dependent effective addresses",
+          "patched-VEX variable-latency operations",
+          "Memcheck memory errors",
+          "definite, indirect, and possible leaks"
+        ],
+        "production_integration": false,
+        "release_hold_unchanged": true,
+        "secret_key_signing": true,
+        "seeded_key_generation_is_setup_only": true,
+        "wrapper_generated_randomizer_health_checks": true
+      },
+      "source_files": {
+        ".github/workflows/ml-dsa-44-wrapper-prototype.yml": "a01dfafc5c64aa8c6a5d69a1b2f5a265197b30465afac997c4eeae57e8c28f27",
+        "ci/test/test_ml_dsa_wrapper_prototype.py": "d274d07109860da56be7ef69f3379bdd1510a20c938fff5c77b2db7055e164a1",
+        "contrib/ml-dsa-engineering/README.md": "7f60b6701793c3e12424e0f0b19ae75cbd30683d19f8bc628a67abcbded6582e",
+        "contrib/ml-dsa-engineering/backend_admission.json": "0a0a349ab822373484db4b08412660d142bd09bc0507038b257593e53d3411c0",
+        "contrib/ml-dsa-engineering/pqbtc_mldsa44.c": "61cdf459578277f737e3206049dfbc8e536a0c7e85760d85c78df3d3b2df3a70",
+        "contrib/ml-dsa-engineering/pqbtc_mldsa44.h": "9bb114b51bdc225605b99c92ed8b21ed5e08f9c8efb7ca7924214e1f679a8255",
+        "contrib/ml-dsa-engineering/pqbtc_mldsa44_config.h": "1794769a3a79d013fea68d8b58f667b5e0bec54810ed74a1bd785a867eba6c4d",
+        "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_memcheck.c": "68ee5188836b87775c60cdf341919a6ba4b43a52c3457440b20398fcc8014c03",
+        "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_probe.c": "8c658b341508f4f1e38f5bcdf2485e8f6b61fed7d78fb9808fd00834366cea0b",
+        "contrib/ml-dsa-engineering/pqbtc_mldsa44_test.h": "4d76421c13ff2cd28f73c81c5784d5b34f2bf1aef1901cac841de08240e8402f",
+        "contrib/ml-dsa-engineering/run_valgrind_ct_analysis.py": "1eac2fe96e8a37e7c87125fbcade4a47e8ed916badc259dbb1deb90915381545",
+        "contrib/ml-dsa-engineering/run_wrapper_tests.py": "24f3969b8ff9c3488ea702c625c0d338197d9a56bc4d72d74e930627de9c065f",
+        "contrib/ml-dsa-engineering/vendor/mldsa-native/SOURCE.json": "c381f8abcbc0ecce1592563379d23d8ca2f9c9bbf10aaccb06ea9aea43ca42c7",
+        "docs/ML_DSA_44_WRAPPER_PROTOTYPE.md": "3c3415a1002d849246000f4be72649401ba06c8f3be84df6ef81c8ba37d5c74a",
+        "docs/PQSIG_PRODUCTION_READINESS.md": "5f9aa0cdc33e8cf3b5e57b75312724a8f6c550601c6e0a15ed3c24a3bb1499a7"
+      },
+      "source_head": "0b6474fd90023e3c13ccdbca0a08d264833e9401",
+      "taint_contract": {
+        "all_zero_failures": 1,
+        "combined_active_source_declassification_sites": 17,
+        "harness_declassification_calls": [],
+        "harness_secret_calls": [
+          {
+            "call": "VALGRIND_MAKE_MEM_UNDEFINED(secret_key, sizeof(secret_key));",
+            "line": 82,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_memcheck.c"
+          }
+        ],
+        "immediate_repeat_failures": 1,
+        "manual_output_declassification": false,
+        "observed_project_declassification_markers": [
+          "randomizer_all_zero_predicate",
+          "immediate_repeat_predicate"
+        ],
+        "positive_control_secret_calls": [
+          {
+            "call": "VALGRIND_MAKE_MEM_UNDEFINED((void*)&secret, sizeof(secret));",
+            "line": 16,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_probe.c"
+          },
+          {
+            "call": "VALGRIND_MAKE_MEM_UNDEFINED((void*)&secret, sizeof(secret));",
+            "line": 24,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_probe.c"
+          },
+          {
+            "call": "VALGRIND_MAKE_MEM_UNDEFINED((void*)&secret, sizeof(secret));",
+            "line": 31,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_probe.c"
+          }
+        ],
+        "project_declassification_calls": [
+          {
+            "call": "PQBTC_MLDSA44_CT_DECLASSIFY(&all_zero, sizeof(all_zero));",
+            "line": 246,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44.c"
+          },
+          {
+            "call": "PQBTC_MLDSA44_CT_DECLASSIFY(&repeated, sizeof(repeated));",
+            "line": 258,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44.c"
+          }
+        ],
+        "project_declassifications": [
+          {
+            "id": "randomizer_all_zero_predicate",
+            "observable": "PQBTC_MLDSA44_ERR_ENTROPY_ALL_ZERO",
+            "reason": "predicate is exposed through the public result code"
+          },
+          {
+            "id": "immediate_repeat_predicate",
+            "observable": "PQBTC_MLDSA44_ERR_ENTROPY_REPEAT",
+            "reason": "predicate is exposed through the public result code"
+          }
+        ],
+        "project_secret_calls": [
+          {
+            "call": "PQBTC_MLDSA44_CT_SECRET(ptr, PQBTC_MLDSA44_RANDOMIZER_BYTES);",
+            "line": 237,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44.c"
+          }
+        ],
+        "project_secret_markers": [
+          "generated_randomizer"
+        ],
+        "project_valgrind_declassification_calls": [
+          {
+            "call": "VALGRIND_MAKE_MEM_DEFINED((ptr), (len))",
+            "line": 26,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44.c"
+          }
+        ],
+        "project_valgrind_secret_calls": [
+          {
+            "call": "VALGRIND_MAKE_MEM_UNDEFINED((ptr), (len))",
+            "line": 24,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44.c"
+          }
+        ],
+        "randomizer_bytes": 32,
+        "secret_key_bytes": 2560,
+        "successful_hedged_signatures": 5,
+        "upstream_active_declassification_sites": 15,
+        "upstream_declassification_inventory": {
+          "active": [
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&t_valid, sizeof(int));",
+              "line": 242,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/poly_kl.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&t_valid, sizeof(int));",
+              "line": 249,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/poly_kl.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(rho, MLDSA_SEEDBYTES);",
+              "line": 383,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(pk, MLDSA_CRYPTO_PUBLICKEYBYTES);",
+              "line": 413,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&z_invalid, sizeof(uint32_t));",
+              "line": 602,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(challenge_bytes, MLDSA_CTILDEBYTES);",
+              "line": 783,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&w0_invalid, sizeof(uint32_t));",
+              "line": 858,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&h_invalid, sizeof(uint32_t));",
+              "line": 875,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(w0, sizeof(*w0));",
+              "line": 897,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(w1, sizeof(*w1));",
+              "line": 898,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(sig, MLDSA_CRYPTO_BYTES);",
+              "line": 918,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(rho, MLDSA_SEEDBYTES);",
+              "line": 998,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&cmp, sizeof(cmp));",
+              "line": 1307,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&check, sizeof(check));",
+              "line": 1681,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(pk, MLDSA_CRYPTO_PUBLICKEYBYTES);",
+              "line": 1692,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            }
+          ],
+          "inactive": [
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&t_valid, sizeof(int));",
+              "line": 257,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/poly_kl.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&t_valid, sizeof(int));",
+              "line": 263,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/poly_kl.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&success, sizeof(int));",
+              "line": 998,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/poly.c"
+            }
+          ],
+          "sha256": "a88cfef87be8f9f08d5f9445b06c6a696aeedc9e40d56be713a2d3046227545b"
+        },
+        "upstream_syntactic_declassification_sites": 18
+      },
+      "tools": {
+        "compiler": {
+          "configured_command": "gcc",
+          "predefined_macros": {
+            "__GNUC__": "13"
+          },
+          "resolved_command": "/nix/store/6p3f0vwgfpqnxqaxr3dmjal3h6353h20-gcc-wrapper-13.4.0/bin/gcc",
+          "sha256": "1be8bada3e9da2ab2134f7c9168e1c8c364f9a75eb9a699800de70e42666d630",
+          "status": "passed",
+          "version": "gcc (GCC) 13.4.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
+        },
+        "nix": {
+          "configured_command": "nix",
+          "resolved_command": "/nix/store/2nhrwv91g6ycpyxvhmvc0xs8p92wp4bk-nix-2.24.9/bin/nix",
+          "sha256": "7546b04d5774aa01784e9a1c8fdace5e74d0ac2e94eb7d6f30ac41b3a3c53959",
+          "status": "passed",
+          "version": "nix (Nix) 2.24.9"
+        },
+        "valgrind": {
+          "configured_command": "valgrind",
+          "resolved_command": "/nix/store/3zfcm1wx9llsb7z2wc57imdiil0kggn9-valgrind-3.26.0/bin/valgrind",
+          "sha256": "e0c52a92126ccabe9537452d6fff467a6b16efa59c86ae004cd50e8373c62b8e",
+          "status": "passed",
+          "variable_latency_option_present": true,
+          "version": "valgrind-3.26.0"
+        }
+      },
+      "upstream_pins": {
+        "commit": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+        "flake_lock_sha256": "8f1762cc57561256465ef3b467f44b99b606c3b196870b81a329b8de0cebdd69",
+        "git_archive_tar_sha256": "1bb12c7eac6a44ea96bc2043b8c8b5bb2f2b2a85a3a9b5926fa2eb5ed86e27b7",
+        "git_tree": "e61bc2b09d705cbc378e3e8c6d556cae05750fd6",
+        "nixpkgs_nar_hash": "sha256-bXMRa9VTsHSPXL4Cw8R6JJLQeY3Y/IP4+YJCYVmQ7FY=",
+        "nixpkgs_rev": "6b316287bae2ee04c9b93c8c858d930fd07d7338",
+        "valgrind_patch_sha256": "d54b140f2bacaea91470940a963950b7126685810df2192640cd103328b421f4"
+      },
+      "xml_checks": [
+        {
+          "finished": true,
+          "id": "probe-branch",
+          "return_code": 99,
+          "sha256": "1aad2e8d748da8b6190e95deb14967b0bcd9c50e09cba26d139629781eeef328",
+          "variable_latency_count": 0,
+          "xml": "logs/probe-branch.xml",
+          "xml_error_count": 1,
+          "xml_error_kinds": [
+            "UninitCondition"
+          ]
+        },
+        {
+          "finished": true,
+          "id": "probe-address",
+          "return_code": 99,
+          "sha256": "beecdf651467ac80c1d9a9c1b78a32d02a07989ee9ab416740aaf8e4b6b5b386",
+          "variable_latency_count": 0,
+          "xml": "logs/probe-address.xml",
+          "xml_error_count": 1,
+          "xml_error_kinds": [
+            "UninitValue"
+          ]
+        },
+        {
+          "finished": true,
+          "id": "probe-variable-latency",
+          "return_code": 99,
+          "sha256": "6f48195fac73d6cc2619e837b1e954e022ba8b17952f5a688bd636ba8544f4f2",
+          "variable_latency_count": 1,
+          "xml": "logs/probe-variable-latency.xml",
+          "xml_error_count": 1,
+          "xml_error_kinds": [
+            "UninitValue"
+          ]
+        },
+        {
+          "finished": true,
+          "id": "secret-key-taint-control",
+          "return_code": 99,
+          "sha256": "f6841d66421d5b486d31eae9a812a2415c817f05527bbd22ae21d2eb9f6ec9c5",
+          "variable_latency_count": 0,
+          "xml": "logs/secret-key-taint-control.xml",
+          "xml_error_count": 1,
+          "xml_error_kinds": [
+            "UninitCondition"
+          ]
+        },
+        {
+          "finished": true,
+          "id": "wrapper-ct",
+          "return_code": 0,
+          "sha256": "a559b588e5128a9708f9cdc813f09c1d8b52f6af2a0a5ed9c30fb65804eef78f",
+          "variable_latency_count": 0,
+          "xml": "logs/wrapper-ct.xml",
+          "xml_error_count": 0,
+          "xml_error_kinds": []
+        }
+      ]
+    },
+    {
+      "artifact_id": 12347698293,
+      "binary_tool_files_not_reexecuted": true,
+      "builds": [
+        {
+          "bytes": 236032,
+          "elf_class": 64,
+          "elf_machine": "x86_64",
+          "elf_type": 3,
+          "executed_by_this_verifier": false,
+          "path": "bin/pqbtc_mldsa44_ct_memcheck",
+          "sha256": "97a0586d0471dabd2035c416f338d3639852d2ed6e3414dadd58418cc96918e5"
+        },
+        {
+          "bytes": 20432,
+          "elf_class": 64,
+          "elf_machine": "x86_64",
+          "elf_type": 3,
+          "executed_by_this_verifier": false,
+          "path": "bin/pqbtc_mldsa44_ct_probe",
+          "sha256": "8126a81b93e087b979e0c74dff691992c31f257470efdbd018db7f7dfff6b6c7"
+        }
+      ],
+      "compiler": "clang",
+      "compiler_version": "clang version 20.1.8\nTarget: x86_64-unknown-linux-gnu\nThread model: posix\nInstalledDir: /nix/store/zp88aqv38c13ghq3vw6p632diyhwj6w3-clang-20.1.8/bin",
+      "host": {
+        "machine": "x86_64",
+        "platform": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.42",
+        "system": "Linux"
+      },
+      "optimization": {
+        "positive_controls": "-O0",
+        "wrapper": "-O2"
+      },
+      "plan_sha256": "89debfe0f2d67dde7d6e1d7a7520a542aa3c1e79dba5bda659ed2e5d6da17878",
+      "public_selected_files": [
+        "audit/SHA256SUMS",
+        "audit/logs/build-probe.log",
+        "audit/logs/build-wrapper.log",
+        "audit/logs/probe-address.log",
+        "audit/logs/probe-address.xml",
+        "audit/logs/probe-branch.log",
+        "audit/logs/probe-branch.xml",
+        "audit/logs/probe-variable-latency.log",
+        "audit/logs/probe-variable-latency.xml",
+        "audit/logs/secret-key-taint-control.log",
+        "audit/logs/secret-key-taint-control.xml",
+        "audit/logs/toolchain.log",
+        "audit/logs/wrapper-ct.log",
+        "audit/logs/wrapper-ct.xml",
+        "audit/logs/wrapper-ct.stdout",
+        "audit/valgrind-ct-plan.json",
+        "audit/valgrind-ct-report.json",
+        "nix-develop.log",
+        "nix-version.log",
+        "workflow-context.txt"
+      ],
+      "report_sha256": "5299dc6b1192c4d581918e77163c0aa11791ac30a35c89cd5b3260a25b0fbdf5",
+      "repository": {
+        "all_audit_inputs_tracked": true,
+        "audit_input_dirty": false,
+        "commit": "0b6474fd90023e3c13ccdbca0a08d264833e9401",
+        "dirty_audit_inputs": [],
+        "tracked_changes": [],
+        "untracked_evidence_sources": [],
+        "untracked_files": [
+          ".audit/mldsa-native/"
+        ],
+        "worktree_dirty": true
+      },
+      "run_id": 39604807430,
+      "scope": {
+        "isolated_wrapper_only": true,
+        "key_generation_constant_time": false,
+        "not_covered": [
+          "rejection-count statistics",
+          "cache or speculative-execution leakage",
+          "power or electromagnetic leakage",
+          "ARM, macOS, or Windows execution",
+          "native assembly",
+          "secret erasure",
+          "production fitness"
+        ],
+        "observes": [
+          "secret-dependent conditional branches",
+          "secret-dependent effective addresses",
+          "patched-VEX variable-latency operations",
+          "Memcheck memory errors",
+          "definite, indirect, and possible leaks"
+        ],
+        "production_integration": false,
+        "release_hold_unchanged": true,
+        "secret_key_signing": true,
+        "seeded_key_generation_is_setup_only": true,
+        "wrapper_generated_randomizer_health_checks": true
+      },
+      "source_files": {
+        ".github/workflows/ml-dsa-44-wrapper-prototype.yml": "a01dfafc5c64aa8c6a5d69a1b2f5a265197b30465afac997c4eeae57e8c28f27",
+        "ci/test/test_ml_dsa_wrapper_prototype.py": "d274d07109860da56be7ef69f3379bdd1510a20c938fff5c77b2db7055e164a1",
+        "contrib/ml-dsa-engineering/README.md": "7f60b6701793c3e12424e0f0b19ae75cbd30683d19f8bc628a67abcbded6582e",
+        "contrib/ml-dsa-engineering/backend_admission.json": "0a0a349ab822373484db4b08412660d142bd09bc0507038b257593e53d3411c0",
+        "contrib/ml-dsa-engineering/pqbtc_mldsa44.c": "61cdf459578277f737e3206049dfbc8e536a0c7e85760d85c78df3d3b2df3a70",
+        "contrib/ml-dsa-engineering/pqbtc_mldsa44.h": "9bb114b51bdc225605b99c92ed8b21ed5e08f9c8efb7ca7924214e1f679a8255",
+        "contrib/ml-dsa-engineering/pqbtc_mldsa44_config.h": "1794769a3a79d013fea68d8b58f667b5e0bec54810ed74a1bd785a867eba6c4d",
+        "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_memcheck.c": "68ee5188836b87775c60cdf341919a6ba4b43a52c3457440b20398fcc8014c03",
+        "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_probe.c": "8c658b341508f4f1e38f5bcdf2485e8f6b61fed7d78fb9808fd00834366cea0b",
+        "contrib/ml-dsa-engineering/pqbtc_mldsa44_test.h": "4d76421c13ff2cd28f73c81c5784d5b34f2bf1aef1901cac841de08240e8402f",
+        "contrib/ml-dsa-engineering/run_valgrind_ct_analysis.py": "1eac2fe96e8a37e7c87125fbcade4a47e8ed916badc259dbb1deb90915381545",
+        "contrib/ml-dsa-engineering/run_wrapper_tests.py": "24f3969b8ff9c3488ea702c625c0d338197d9a56bc4d72d74e930627de9c065f",
+        "contrib/ml-dsa-engineering/vendor/mldsa-native/SOURCE.json": "c381f8abcbc0ecce1592563379d23d8ca2f9c9bbf10aaccb06ea9aea43ca42c7",
+        "docs/ML_DSA_44_WRAPPER_PROTOTYPE.md": "3c3415a1002d849246000f4be72649401ba06c8f3be84df6ef81c8ba37d5c74a",
+        "docs/PQSIG_PRODUCTION_READINESS.md": "5f9aa0cdc33e8cf3b5e57b75312724a8f6c550601c6e0a15ed3c24a3bb1499a7"
+      },
+      "source_head": "0b6474fd90023e3c13ccdbca0a08d264833e9401",
+      "taint_contract": {
+        "all_zero_failures": 1,
+        "combined_active_source_declassification_sites": 17,
+        "harness_declassification_calls": [],
+        "harness_secret_calls": [
+          {
+            "call": "VALGRIND_MAKE_MEM_UNDEFINED(secret_key, sizeof(secret_key));",
+            "line": 82,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_memcheck.c"
+          }
+        ],
+        "immediate_repeat_failures": 1,
+        "manual_output_declassification": false,
+        "observed_project_declassification_markers": [
+          "randomizer_all_zero_predicate",
+          "immediate_repeat_predicate"
+        ],
+        "positive_control_secret_calls": [
+          {
+            "call": "VALGRIND_MAKE_MEM_UNDEFINED((void*)&secret, sizeof(secret));",
+            "line": 16,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_probe.c"
+          },
+          {
+            "call": "VALGRIND_MAKE_MEM_UNDEFINED((void*)&secret, sizeof(secret));",
+            "line": 24,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_probe.c"
+          },
+          {
+            "call": "VALGRIND_MAKE_MEM_UNDEFINED((void*)&secret, sizeof(secret));",
+            "line": 31,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_probe.c"
+          }
+        ],
+        "project_declassification_calls": [
+          {
+            "call": "PQBTC_MLDSA44_CT_DECLASSIFY(&all_zero, sizeof(all_zero));",
+            "line": 246,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44.c"
+          },
+          {
+            "call": "PQBTC_MLDSA44_CT_DECLASSIFY(&repeated, sizeof(repeated));",
+            "line": 258,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44.c"
+          }
+        ],
+        "project_declassifications": [
+          {
+            "id": "randomizer_all_zero_predicate",
+            "observable": "PQBTC_MLDSA44_ERR_ENTROPY_ALL_ZERO",
+            "reason": "predicate is exposed through the public result code"
+          },
+          {
+            "id": "immediate_repeat_predicate",
+            "observable": "PQBTC_MLDSA44_ERR_ENTROPY_REPEAT",
+            "reason": "predicate is exposed through the public result code"
+          }
+        ],
+        "project_secret_calls": [
+          {
+            "call": "PQBTC_MLDSA44_CT_SECRET(ptr, PQBTC_MLDSA44_RANDOMIZER_BYTES);",
+            "line": 237,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44.c"
+          }
+        ],
+        "project_secret_markers": [
+          "generated_randomizer"
+        ],
+        "project_valgrind_declassification_calls": [
+          {
+            "call": "VALGRIND_MAKE_MEM_DEFINED((ptr), (len))",
+            "line": 26,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44.c"
+          }
+        ],
+        "project_valgrind_secret_calls": [
+          {
+            "call": "VALGRIND_MAKE_MEM_UNDEFINED((ptr), (len))",
+            "line": 24,
+            "path": "contrib/ml-dsa-engineering/pqbtc_mldsa44.c"
+          }
+        ],
+        "randomizer_bytes": 32,
+        "secret_key_bytes": 2560,
+        "successful_hedged_signatures": 5,
+        "upstream_active_declassification_sites": 15,
+        "upstream_declassification_inventory": {
+          "active": [
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&t_valid, sizeof(int));",
+              "line": 242,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/poly_kl.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&t_valid, sizeof(int));",
+              "line": 249,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/poly_kl.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(rho, MLDSA_SEEDBYTES);",
+              "line": 383,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(pk, MLDSA_CRYPTO_PUBLICKEYBYTES);",
+              "line": 413,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&z_invalid, sizeof(uint32_t));",
+              "line": 602,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(challenge_bytes, MLDSA_CTILDEBYTES);",
+              "line": 783,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&w0_invalid, sizeof(uint32_t));",
+              "line": 858,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&h_invalid, sizeof(uint32_t));",
+              "line": 875,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(w0, sizeof(*w0));",
+              "line": 897,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(w1, sizeof(*w1));",
+              "line": 898,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(sig, MLDSA_CRYPTO_BYTES);",
+              "line": 918,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(rho, MLDSA_SEEDBYTES);",
+              "line": 998,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&cmp, sizeof(cmp));",
+              "line": 1307,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&check, sizeof(check));",
+              "line": 1681,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(pk, MLDSA_CRYPTO_PUBLICKEYBYTES);",
+              "line": 1692,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c"
+            }
+          ],
+          "inactive": [
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&t_valid, sizeof(int));",
+              "line": 257,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/poly_kl.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&t_valid, sizeof(int));",
+              "line": 263,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/poly_kl.c"
+            },
+            {
+              "call": "MLD_CT_TESTING_DECLASSIFY(&success, sizeof(int));",
+              "line": 998,
+              "path": "contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/poly.c"
+            }
+          ],
+          "sha256": "a88cfef87be8f9f08d5f9445b06c6a696aeedc9e40d56be713a2d3046227545b"
+        },
+        "upstream_syntactic_declassification_sites": 18
+      },
+      "tools": {
+        "compiler": {
+          "configured_command": "clang",
+          "predefined_macros": {
+            "__GNUC__": "4",
+            "__clang__": "1",
+            "__clang_major__": "20"
+          },
+          "resolved_command": "/nix/store/fjsi5ljbp4z2djdqdgjgdakibbl9gm64-clang-wrapper-20.1.8/bin/clang",
+          "sha256": "f29388a96527f820ce5c4cdc3a7e35f5db5285ef858b2d328527e888c7924bd4",
+          "status": "passed",
+          "version": "clang version 20.1.8\nTarget: x86_64-unknown-linux-gnu\nThread model: posix\nInstalledDir: /nix/store/zp88aqv38c13ghq3vw6p632diyhwj6w3-clang-20.1.8/bin"
+        },
+        "nix": {
+          "configured_command": "nix",
+          "resolved_command": "/nix/store/2nhrwv91g6ycpyxvhmvc0xs8p92wp4bk-nix-2.24.9/bin/nix",
+          "sha256": "7546b04d5774aa01784e9a1c8fdace5e74d0ac2e94eb7d6f30ac41b3a3c53959",
+          "status": "passed",
+          "version": "nix (Nix) 2.24.9"
+        },
+        "valgrind": {
+          "configured_command": "valgrind",
+          "resolved_command": "/nix/store/3zfcm1wx9llsb7z2wc57imdiil0kggn9-valgrind-3.26.0/bin/valgrind",
+          "sha256": "e0c52a92126ccabe9537452d6fff467a6b16efa59c86ae004cd50e8373c62b8e",
+          "status": "passed",
+          "variable_latency_option_present": true,
+          "version": "valgrind-3.26.0"
+        }
+      },
+      "upstream_pins": {
+        "commit": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+        "flake_lock_sha256": "8f1762cc57561256465ef3b467f44b99b606c3b196870b81a329b8de0cebdd69",
+        "git_archive_tar_sha256": "1bb12c7eac6a44ea96bc2043b8c8b5bb2f2b2a85a3a9b5926fa2eb5ed86e27b7",
+        "git_tree": "e61bc2b09d705cbc378e3e8c6d556cae05750fd6",
+        "nixpkgs_nar_hash": "sha256-bXMRa9VTsHSPXL4Cw8R6JJLQeY3Y/IP4+YJCYVmQ7FY=",
+        "nixpkgs_rev": "6b316287bae2ee04c9b93c8c858d930fd07d7338",
+        "valgrind_patch_sha256": "d54b140f2bacaea91470940a963950b7126685810df2192640cd103328b421f4"
+      },
+      "xml_checks": [
+        {
+          "finished": true,
+          "id": "probe-branch",
+          "return_code": 99,
+          "sha256": "3911dc1091f4221998b664357cc13d8d08be2ec01bf6024a07aa0943ee4e9009",
+          "variable_latency_count": 0,
+          "xml": "logs/probe-branch.xml",
+          "xml_error_count": 1,
+          "xml_error_kinds": [
+            "UninitCondition"
+          ]
+        },
+        {
+          "finished": true,
+          "id": "probe-address",
+          "return_code": 99,
+          "sha256": "9d3639025f0ab65ee5e21fd216ecfdd3a53817fa2b5b6b96cefed5fd372717a7",
+          "variable_latency_count": 0,
+          "xml": "logs/probe-address.xml",
+          "xml_error_count": 1,
+          "xml_error_kinds": [
+            "UninitValue"
+          ]
+        },
+        {
+          "finished": true,
+          "id": "probe-variable-latency",
+          "return_code": 99,
+          "sha256": "57e0a719123f5cf5096717d8f379825f5b0052e80ec3558fbfee286f0f51fef4",
+          "variable_latency_count": 1,
+          "xml": "logs/probe-variable-latency.xml",
+          "xml_error_count": 1,
+          "xml_error_kinds": [
+            "UninitValue"
+          ]
+        },
+        {
+          "finished": true,
+          "id": "secret-key-taint-control",
+          "return_code": 99,
+          "sha256": "b87408f6eadb8c55a063fd932ec671b6c12d7941e8dacfa84ec070ce12975f56",
+          "variable_latency_count": 0,
+          "xml": "logs/secret-key-taint-control.xml",
+          "xml_error_count": 1,
+          "xml_error_kinds": [
+            "UninitCondition"
+          ]
+        },
+        {
+          "finished": true,
+          "id": "wrapper-ct",
+          "return_code": 0,
+          "sha256": "6f199401799a87cc55341ca657674b11bcf24d0b8008524a546ff28c812a11ae",
+          "variable_latency_count": 0,
+          "xml": "logs/wrapper-ct.xml",
+          "xml_error_count": 0,
+          "xml_error_kinds": []
+        }
+      ]
+    }
+  ],
+  "corpus_integrity_scope": {
+    "aggregate_sha256_fields": "Preserved reported values; independent aggregate algorithm rederivation not claimed. Every corpus member is nevertheless individually checksum-verified.",
+    "all_manifest_entries_and_member_crc_verified": true,
+    "file_counts_and_total_bytes_recomputed": true
+  },
+  "f_release_binary_constant_time_qualified": false,
+  "github_mutations": false,
+  "independent_human_review": "NOT_PERFORMED",
+  "local_download_transport_note": "First stdin attempt was interrupted before download because of local canonical PTY line limit; fixed noncanonical input then downloaded all three ZIPs. No artifact/CI failure and no authorized reference was printed or persisted.",
+  "local_project_checkout_accessed": false,
+  "native_code_executed_by_this_verifier": false,
+  "native_v2_pin": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+  "production_admitted": false,
+  "public_pinned_upstream_source_downloaded": true,
+  "public_preflight": "NOT_ESTABLISHED_BY_THIS_ISOLATED_EVIDENCE",
+  "public_soak_24h": "NOT_ESTABLISHED_BY_THIS_ISOLATED_EVIDENCE",
+  "repository_writes": false,
+  "research_accessed": false,
+  "result": "PASS",
+  "schema": "PQBTC-NATIVE-V2-EXISTING-EVIDENCE-VERIFICATION-1",
+  "scope": "EXISTING_MAIN_COMPARATOR_AND_ISOLATED_PORTABLE_WRAPPER_EVIDENCE_ONLY",
+  "source_continuity_proof": "source-lineage-from-explorer.json",
+  "source_continuity_proof_sha256": "3e614e3cf7b54dc139b3c083c2064e50712fa65a236299fe7cf6eb8ae4c0352d",
+  "upstream_public_source_proof": "upstream-pins-verification.json",
+  "upstream_public_source_proof_sha256": "c55b0241b91b8a84408d702ebff03eebeed5ce6ae289df2f67f7aa905fdc1b0a",
+  "verification_process_notes": [
+    "Initial local XML checker required an unsuffixed C function name; the GCC artifact actually records ProbeSecretKeyTaint.isra.0. The final checker permits only the exact stem or GCC .isra.<digits> suffix with the expected C file, and all diagnostics/return codes/XML error counts remain required. No artifact bytes changed.",
+    "Pinned upstream flake declarations and separately stored patch were independently retrieved; no Nix evaluation or audit-binary execution was performed."
+  ],
+  "verified_at_utc": "2026-11-15 00:25:50 UTC",
+  "whole_app_constant_time_qualified": false
+}
