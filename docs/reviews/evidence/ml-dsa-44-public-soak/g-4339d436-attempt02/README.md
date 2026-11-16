@@ -20,15 +20,17 @@ An additional shell checksum check is optional:
 shasum -a 256 -c SHA256SUMS
 ```
 
-On systems with GNU coreutils, `sha256sum -c SHA256SUMS` is equivalent. The SHA256SUMS file hashes SOURCE.json and every payload member; SHA256SUMS itself is the external sealing root returned to the integrator. SOURCE.json lists payload sizes/hashes and original-to-copy provenance. Self-referential manifest hashes are deliberately not claimed.
+On systems with GNU coreutils, `sha256sum -c SHA256SUMS` is equivalent. The packet contains 18 files. The SHA256SUMS file hashes SOURCE.json and all 16 other payload members; SHA256SUMS itself is the external sealing root returned to the integrator. SOURCE.json lists payload sizes/hashes and original-to-copy provenance. Self-referential manifest hashes are deliberately not claimed.
 
 ## Original byte resolution
 
 - report.json, declaration.json, and evidence-sha256.json are unchanged copies of the sealed public originals.
 - events.jsonl.gz is deterministic gzip (level 9, mtime 0, empty filename). Decompress in memory before checking the original `events.jsonl` digest in evidence-sha256.json. No raw event file needs to be written.
-- failure-timeline.json and failure-timeline.md are unchanged derived analyses. Their absolute custody/source links are historical references, not dependencies of verify.py. Resolve original event references to the decompressed events in this packet; sequence N is line N+1.
+- failure-timeline.json and failure-timeline.original.txt are unchanged copies of the original derived analyses. The latter preserves the original Markdown bytes with a plain-text extension, including historical custody links. failure-timeline.md is a clearly marked derived presentation with relative packet links, explicit event numbers, and full-commit GitHub source links. Sequence N is line N+1 of the decompressed events. Neither presentation links nor historical paths are dependencies of verify.py.
 - public-transport/ contains exactly three authorized public JSONLs, their exact-copy manifest, and the unchanged correlation report. It contains no other state files or unrelated process dump.
 
 The transport logs contain seven TLS connection records and six `peer_closed` disconnections. They have **no per-event timestamps** or exception-class fields. The latest file's final mtime is a last-write correlation, not the disconnect event's timestamp. The correlation report preserves its own inference limits and does not prove a TLS root cause for this connection. Reported bridge PIDs are log identities, not proven host PID namespaces.
 
 SOURCE.json pins G head 4339d436cdcfce9724476b9786994d347f1a4b06, tree b9923bede37da41119ac69a39d57f16a8a89b3eb, and driver SHA256 62a2a8af09ead25ff8a0d1cf379dd60bf5b70643611e8c1c0f2a86199bdce616. Runtime versions in the declaration distinguish the F baseline images from the G upgrade images. The original F failed packet and G frozen source were left unchanged.
+
+The lower-case packet directory follows the repository source-path convention. verify.py is executable (0755); invoke it with Python as shown above or with `./verify.py`. Its executable Python syntax tree is unchanged from the previously sealed verifier; only the normal copyright/license comments were added. All original event, report, declaration, inventory, timeline JSON, and public transport bytes remain unchanged.

@@ -40,7 +40,7 @@ The [G native/preflight index](reviews/evidence/ml-dsa-44-current-qualification/
 adds four G native profiles and completed public preflight 02. Its
 `public_soak_24h: NOT_STARTED` field is explicitly the historical staging
 snapshot from 2026-11-15 23:53:32 UTC, before the separate run started.
-The [G failed-attempt index](reviews/evidence/ml-dsa-44-public-soak/G-4339d436-attempt02/SOURCE.json)
+The [G failed-attempt index](reviews/evidence/ml-dsa-44-public-soak/g-4339d436-attempt02/SOURCE.json)
 records that run's subsequent terminal failure; the snapshot is not current
 soak status. Earlier evidence bytes remain unchanged.
 Native-v2 is commit `834a90d5e846ffa1e1611bd24e160bb2e9b86d35`; the comparator's
@@ -151,7 +151,7 @@ The recipient never observed that transaction in its mempool before the
 unchanged 60-second payment deadline. Owned cleanup verified both backends
 stopped. The final result is **FAIL**, with zero elapsed credit for a later run.
 
-The [G failure packet](reviews/evidence/ml-dsa-44-public-soak/G-4339d436-attempt02/README.md)
+The [G failure packet](reviews/evidence/ml-dsa-44-public-soak/g-4339d436-attempt02/README.md)
 preserves the final report, declaration, all 59,862 hash-chained events,
 measured timeline and the available public bridge logs. Run its standard-library
 `verify.py` from that directory to verify the packet without a node or wallet.

@@ -151,14 +151,14 @@
       "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
     },
     {
-      "bytes": 3600,
+      "bytes": 4293,
       "classification": "GENERATED_PACKET_ONLY_METADATA_OR_VERIFIER",
       "path": "README.md",
       "provenance": {
         "kind": "GENERATED_FOR_PACKET",
         "transform": "GENERATED_NOT_AN_ORIGINAL_COPY"
       },
-      "sha256": "8313f70a7768ef2f2e314edd057341f90964cd05cb75e601b9c7e1620d9ed8f0"
+      "sha256": "75b8083286f53202ca046dbc8ce7b017ff0a11899029ddff9c702d66bddd6ea6"
     },
     {
       "bytes": 10677,
@@ -213,9 +213,23 @@
       "sha256": "288bd58f5dbe7d023b579c0208a8f8fb588dc736657aa1342864be048b8bdf42"
     },
     {
+      "bytes": 10581,
+      "classification": "DERIVED_PUBLIC_PRESENTATION",
+      "path": "failure-timeline.md",
+      "provenance": {
+        "kind": "DERIVED_FROM_PRESERVED_ORIGINAL_ANALYSIS",
+        "original_bytes": 11894,
+        "original_packet_path": "failure-timeline.original.txt",
+        "original_path": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/g-soak02-failure-timeline.md",
+        "original_sha256": "33407195928b68ffd1f2e2ac98d6ad03c67b04211d79099dfe8e035bd7b82865",
+        "transform": "PRESENTATION_ONLY_RELATIVE_PACKET_LINKS_EVENT_NUMBERS_AND_FULL_COMMIT_GITHUB_SOURCE_URLS"
+      },
+      "sha256": "335894a45837d1b6f80df2600ea3429a267b269ff5b68d59008d81a2059b42e0"
+    },
+    {
       "bytes": 11894,
       "classification": "UNCHANGED_DERIVED_PUBLIC_ANALYSIS",
-      "path": "failure-timeline.md",
+      "path": "failure-timeline.original.txt",
       "provenance": {
         "kind": "UNCHANGED_COPY",
         "original_bytes": 11894,
@@ -317,14 +331,15 @@
       "sha256": "d6e5e77793f5fdadd709c29d38182dd8c02c0e69f314b525978bc9e04f150416"
     },
     {
-      "bytes": 11169,
+      "bytes": 11355,
       "classification": "GENERATED_PACKET_ONLY_METADATA_OR_VERIFIER",
+      "mode": "0755",
       "path": "verify.py",
       "provenance": {
         "kind": "GENERATED_FOR_PACKET",
         "transform": "GENERATED_NOT_AN_ORIGINAL_COPY"
       },
-      "sha256": "6ccd8179e6ee23f7a9cfb4e122f17edf6fe2397f0bd7695eb0dd9a7ef32affcd"
+      "sha256": "a9eccbc1335190f229a3120bc7cd328e58bc78f8058f213bf2487723ab1d00e9"
     }
   ],
   "generated_at_utc": "2026-11-16T17:26:26+00:00",
@@ -458,6 +473,20 @@
     "runtime_SSH_Docker_or_network_actions": false,
     "wallet_key_backup_cookie_env_or_private_file_opened": false
   },
+  "packet_publication_repair": {
+    "checksum_members": 17,
+    "dated": "2026-11-16",
+    "original_evidence_bytes_unchanged": true,
+    "packet_directory": "g-4339d436-attempt02",
+    "packet_files_including_checksum_inventory": 18,
+    "payload_members": 16,
+    "previous_checksum_inventory_sha256": "6541df1df9f7af8c770f202f7e7fbbd0906c981c92603d0e4f5ebe8278b2ac14",
+    "previous_packet_directory": "G-4339d436-attempt02",
+    "previous_source_sha256": "4c587283f25ea1ee74ea967e0d800fb17d0bfa61b70b9e2bdaa7b07536700431",
+    "verifier_change": "Copyright/license comments only; executable Python syntax tree unchanged.",
+    "verifier_mode": "0755",
+    "verifier_normalized_ast_unchanged": true
+  },
   "packet_scope_limits": [
     "The attempt remains FAIL despite completed payments, phases, and successful reported cleanup.",
     "No completed 24-hour clock, final recovery gate, production admission, or human cryptographic review is established.",
@@ -508,7 +537,7 @@
   },
   "release_hold": true,
   "required_actual_elapsed_seconds": 86400,
-  "resealed_at_utc": "2026-11-16T17:35:57+00:00",
+  "resealed_at_utc": "2026-11-16T18:11:20.014552+00:00",
   "result": "FAIL",
   "resumption_allowed": false,
   "schema": "PQBTC-MLDSA44-SEALED-FAILED-PUBLIC-SOAK-SELECTED-PACKET-1",
@@ -519,9 +548,17 @@
     "tree": "b9923bede37da41119ac69a39d57f16a8a89b3eb"
   },
   "timeline_analysis": {
-    "classification": "Unchanged evidence-only analysis; causal uncertainty retained; no qualification PASS or native rerun.",
-    "historical_path_policy": "Absolute custody/source links are historical references. Portable verification uses only relative packet members.",
+    "classification": "Original analysis bytes preserved separately; derived Markdown presentation changes links and adds an explicit derivation notice only; causal uncertainty and FAIL unchanged.",
+    "historical_path_policy": "Historical absolute custody links are retained unchanged in failure-timeline.original.txt. Published Markdown uses relative packet links and full-commit GitHub source URLs.",
     "json_path": "failure-timeline.json",
-    "markdown_path": "failure-timeline.md"
+    "markdown_path": "failure-timeline.md",
+    "original_markdown_bytes_path": "failure-timeline.original.txt",
+    "original_markdown_to_plain_text_mapping": {
+      "bytes": 11894,
+      "original_basename": "g-soak02-failure-timeline.md",
+      "packet_path": "failure-timeline.original.txt",
+      "sha256": "33407195928b68ffd1f2e2ac98d6ad03c67b04211d79099dfe8e035bd7b82865",
+      "transform": "NONE"
+    }
   }
 }
