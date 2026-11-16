@@ -1,0 +1,12 @@
+{"bridge_pid": 66, "instance_id": "beef863da9204f6fbd6aafb55ac4fba0"}
+{"event": "bridge_started", "hostname": "scotts-macbook-pro.tail628f36.ts.net", "loopback_port": 23834, "public_ips": ["209.177.145.97", "209.177.145.192"], "until_utc": "2026-11-17T01:00:26+00:00"}
+{"event": "public_tls_connected", "hostname": "scotts-macbook-pro.tail628f36.ts.net", "public_ip": "209.177.145.97", "tls": "TLSv1.3"}
+{"bytes": [338079, 340651], "event": "public_tls_disconnected", "reason": "peer_closed"}
+{"event": "public_tls_connected", "hostname": "scotts-macbook-pro.tail628f36.ts.net", "public_ip": "209.177.145.97", "tls": "TLSv1.3"}
+{"bytes": [744329, 691338], "event": "public_tls_disconnected", "reason": "peer_closed"}
+{"event": "public_tls_connected", "hostname": "scotts-macbook-pro.tail628f36.ts.net", "public_ip": "209.177.145.97", "tls": "TLSv1.3"}
+{"bytes": [674892, 737840], "event": "public_tls_disconnected", "reason": "peer_closed"}
+{"event": "public_tls_connected", "hostname": "scotts-macbook-pro.tail628f36.ts.net", "public_ip": "209.177.145.97", "tls": "TLSv1.3"}
+{"bytes": [743001, 700465], "event": "public_tls_disconnected", "reason": "peer_closed"}
+{"event": "public_tls_connected", "hostname": "scotts-macbook-pro.tail628f36.ts.net", "public_ip": "209.177.145.97", "tls": "TLSv1.3"}
+{"bytes": [4348, 5131], "event": "public_tls_disconnected", "reason": "peer_closed"}

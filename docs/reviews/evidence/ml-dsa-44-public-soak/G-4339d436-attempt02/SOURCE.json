@@ -1,0 +1,527 @@
+{
+  "both_backends_reported": "STOPPED",
+  "checkout_byte_preservation": {
+    "path": ".gitattributes",
+    "policy": "* -text",
+    "scope": "This packet only; preserve checksum-bound bytes under Git newline-conversion settings."
+  },
+  "checksum_inventory": "SHA256SUMS",
+  "cleanup_ok": true,
+  "cleanup_report": {
+    "attempt_claims": {
+      "attempt_id": "8533f48f442ebe89d96d10be3116cae7",
+      "claimed_hosts": [
+        "mac",
+        "research"
+      ],
+      "state_directories_preserved": true
+    },
+    "mac": {
+      "backend_stop_proofs": {
+        "after_exit": {
+          "backend_stopped": true,
+          "last_id": "1ece090128b19ec37e38c2f946210d69e79703143bbc0a0fc9dbc25d5e157a30",
+          "state": "STOPPED",
+          "stopped_ids": [
+            "1ece090128b19ec37e38c2f946210d69e79703143bbc0a0fc9dbc25d5e157a30"
+          ]
+        }
+      },
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "research": {
+      "backend_stop_proofs": {
+        "after_exit": {
+          "backend_stopped": true,
+          "last_id": "7a36a8786374009e65ecd8e1281b84a32ea6533eaf37db56f2fc2f74b2a070cd",
+          "state": "STOPPED",
+          "stopped_ids": [
+            "7a36a8786374009e65ecd8e1281b84a32ea6533eaf37db56f2fc2f74b2a070cd"
+          ]
+        }
+      },
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "task_public_route": "BACKEND_AND_BRIDGE_STOPPED_ROUTE_CONFIG_RETAINED_FOR_OWNER"
+  },
+  "declared_runtime_subjects": [
+    {
+      "name": "mac",
+      "role": "bootstrap",
+      "transport": "local",
+      "versions": {
+        "a": {
+          "architecture": "aarch64",
+          "descriptor_file_sha256": "d5211de3b8781052c3d88d71706adc922e98aec3546065b1a4330788ba375b41",
+          "image": "sha256:e31973dfbc0cc11a960c8cbffb6b991966b5f1044acf96b83503fc61dfcb1efa",
+          "native_receipt_sha256": "ae57345d49487a94e5e294037b5a02fd44c1fdd71692c41d2e00d97a44b5cf83",
+          "node_sha256": "0f0fcaff4c2091ac4d9e02c498c57b54e899457e58b35e8e990faf6c4aae10af",
+          "signer_sha256": "1887e4dadac3ee3ea9f6bff0bdfb30f2251854d3112a8ba3626fb66ce010bb10",
+          "source_head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+          "source_tree": "9426d9dd4c3c2d082059b2ffc14fa912a121b1dc"
+        },
+        "b": {
+          "architecture": "aarch64",
+          "descriptor_file_sha256": "d1df4672713494fc170df638131564af6c2632523cd0aef7826e472311a6fef1",
+          "image": "sha256:3c042b6e21c94368ecf58ab2cb793bf5f40a546736e77d82e42d7d6e4197d02e",
+          "native_receipt_sha256": "d7d480a826db26fc14a493d61f864c79ab9670675b8442261f403bc6125b39e8",
+          "node_sha256": "aac60621df8aa09139d1d46b458f57f57556dc76e60caff183fa6da0d0320cee",
+          "signer_sha256": "fba8b0c7d2c824d3c25c5b0105cd9f7cb2829e416f11cf754f77297ecd386a8b",
+          "source_head": "4339d436cdcfce9724476b9786994d347f1a4b06",
+          "source_tree": "b9923bede37da41119ac69a39d57f16a8a89b3eb"
+        }
+      }
+    },
+    {
+      "name": "research",
+      "role": "follower",
+      "transport": "ssh",
+      "versions": {
+        "a": {
+          "architecture": "x86_64",
+          "descriptor_file_sha256": "078c30dc1824abc022880ced14b2ed0591884f38103d36e41c4ede70cddd436e",
+          "image": "sha256:cbdb40bb721dbcf83aa8697005251adf54fbefd46e3d0836e91c43d43b8a941f",
+          "native_receipt_sha256": "0d40249638b2cbedbe28bde5470fb86128fc785c0982b5e93d7765b8c2c9675d",
+          "node_sha256": "325a9d1f3707dde9257c96520140f4a0e41d4c9f32836df47a1787d508efa322",
+          "signer_sha256": "42c02d4a3fdd6be149ebede0f2c767a091f2ab4a1e11d70a83e1218e72c99f13",
+          "source_head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+          "source_tree": "9426d9dd4c3c2d082059b2ffc14fa912a121b1dc"
+        },
+        "b": {
+          "architecture": "x86_64",
+          "descriptor_file_sha256": "2ef412977e4b30be1eb1c1698451187b96b89a3e5b132ede43c5eb7aaa8db83f",
+          "image": "sha256:89e3d98fa388a8fa4841174dc490feab836036f9352f8065b7a461b8d05f9eb8",
+          "native_receipt_sha256": "872006d476ff8846fe5b91ffc06e44775fcb91766829f85faa46db505c8b144e",
+          "node_sha256": "8971f59ae9deff4f8d09a1754da2ee875be2fc6cddb1c556d3b0131828bada2e",
+          "signer_sha256": "1072081dd194fdf454ee94c8c1f4eea937f0b67c71334352adf16c15ac74f406",
+          "source_head": "4339d436cdcfce9724476b9786994d347f1a4b06",
+          "source_tree": "b9923bede37da41119ac69a39d57f16a8a89b3eb"
+        }
+      }
+    }
+  ],
+  "derived_index": true,
+  "event_chain": {
+    "clock_boundaries": {
+      "public_clock_started": {
+        "data": {
+          "duration_seconds": 86400,
+          "public_probe": {
+            "certificate_sha256": "82dac8876ffe34291908e339d82e2020efa49cb5698c6bb25feb02be20581beb",
+            "commands": [
+              "version",
+              "wtxidrelay",
+              "sendaddrv2",
+              "verack"
+            ],
+            "elapsed_seconds": 0.09746895893476903,
+            "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+            "native_magic": "a7e29cf7",
+            "port": 443,
+            "public_peer_ip": "209.177.145.97",
+            "remote_height": 205,
+            "remote_protocol": 70016,
+            "remote_subversion": "/PQBTC:30.2.0/",
+            "result": "PASS",
+            "scope": "ANONYMOUS_PUBLIC_TLS_NATIVE_P2P_HANDSHAKE_ONLY",
+            "tls_version": "TLSv1.3"
+          }
+        },
+        "monotonic_ns": 1394018629582041,
+        "utc": "2026-11-16T00:00:56.248278+00:00"
+      }
+    },
+    "count": 59862,
+    "last_sha256": "7bec39aeac9065dfe9fae515a4d79291d518a62fd87f090690aa32a1b0ccc9bf"
+  },
+  "failure_policy": "Terminal FAIL; every later attempt requires fresh namespaces and its own complete actual elapsed clock. No accumulated partial time.",
+  "files": [
+    {
+      "bytes": 8,
+      "classification": "GENERATED_PACKET_ONLY_METADATA_OR_VERIFIER",
+      "path": ".gitattributes",
+      "provenance": {
+        "kind": "GENERATED_FOR_PACKET",
+        "transform": "GENERATED_NOT_AN_ORIGINAL_COPY"
+      },
+      "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
+    },
+    {
+      "bytes": 3600,
+      "classification": "GENERATED_PACKET_ONLY_METADATA_OR_VERIFIER",
+      "path": "README.md",
+      "provenance": {
+        "kind": "GENERATED_FOR_PACKET",
+        "transform": "GENERATED_NOT_AN_ORIGINAL_COPY"
+      },
+      "sha256": "8313f70a7768ef2f2e314edd057341f90964cd05cb75e601b9c7e1620d9ed8f0"
+    },
+    {
+      "bytes": 10677,
+      "classification": "ORIGINAL_SEALED_PUBLIC_RECORD",
+      "path": "declaration.json",
+      "provenance": {
+        "kind": "UNCHANGED_COPY",
+        "original_bytes": 10677,
+        "original_path": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/g-soak-20261115-02-output/declaration.json",
+        "original_sha256": "282a3e423804e591cf123d4047279bd0e0c5117c837d97746cd2fa3352bea680",
+        "transform": "NONE"
+      },
+      "sha256": "282a3e423804e591cf123d4047279bd0e0c5117c837d97746cd2fa3352bea680"
+    },
+    {
+      "bytes": 6326492,
+      "classification": "DETERMINISTIC_GZIP_OF_ORIGINAL_PUBLIC_EVENTS",
+      "path": "events.jsonl.gz",
+      "provenance": {
+        "kind": "TRANSFORMED_COPY",
+        "original_bytes": 32878175,
+        "original_path": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/g-soak-20261115-02-output/events.jsonl",
+        "original_sha256": "ffaf5ea2f33f9c3f774c1c88740da262f0577c4334b4a90e9072958d10d07ed6",
+        "transform": "GZIP_LEVEL_9_MTIME_0_EMPTY_FILENAME"
+      },
+      "sha256": "8ae8a5774d3c8f9ab4e9cf0d24aca67a42e0b32f58276320f8f34bb9ed095ba8"
+    },
+    {
+      "bytes": 251,
+      "classification": "ORIGINAL_SEALED_PUBLIC_RECORD",
+      "path": "evidence-sha256.json",
+      "provenance": {
+        "kind": "UNCHANGED_COPY",
+        "original_bytes": 251,
+        "original_path": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/g-soak-20261115-02-output/evidence-sha256.json",
+        "original_sha256": "2a55fe8d51dfa4470df76e7fdd065fea7fd63cd2c63db66643ec3c9edc2da46d",
+        "transform": "NONE"
+      },
+      "sha256": "2a55fe8d51dfa4470df76e7fdd065fea7fd63cd2c63db66643ec3c9edc2da46d"
+    },
+    {
+      "bytes": 357087,
+      "classification": "UNCHANGED_DERIVED_PUBLIC_ANALYSIS",
+      "path": "failure-timeline.json",
+      "provenance": {
+        "kind": "UNCHANGED_COPY",
+        "original_bytes": 357087,
+        "original_path": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/g-soak02-failure-timeline.json",
+        "original_sha256": "288bd58f5dbe7d023b579c0208a8f8fb588dc736657aa1342864be048b8bdf42",
+        "transform": "NONE"
+      },
+      "sha256": "288bd58f5dbe7d023b579c0208a8f8fb588dc736657aa1342864be048b8bdf42"
+    },
+    {
+      "bytes": 11894,
+      "classification": "UNCHANGED_DERIVED_PUBLIC_ANALYSIS",
+      "path": "failure-timeline.md",
+      "provenance": {
+        "kind": "UNCHANGED_COPY",
+        "original_bytes": 11894,
+        "original_path": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/g-soak02-failure-timeline.md",
+        "original_sha256": "33407195928b68ffd1f2e2ac98d6ad03c67b04211d79099dfe8e035bd7b82865",
+        "transform": "NONE"
+      },
+      "sha256": "33407195928b68ffd1f2e2ac98d6ad03c67b04211d79099dfe8e035bd7b82865"
+    },
+    {
+      "bytes": 11375,
+      "classification": "UNCHANGED_DERIVED_PUBLIC_ANALYSIS",
+      "path": "public-transport/correlation.json",
+      "provenance": {
+        "kind": "UNCHANGED_COPY",
+        "original_bytes": 11375,
+        "original_path": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/g-soak02-transport-logs/correlation.json",
+        "original_sha256": "11be495e94d7a3e10ab4ce3eb2ec8be9ec046997f9a3e9585a552256d6bae76c",
+        "transform": "NONE"
+      },
+      "sha256": "11be495e94d7a3e10ab4ce3eb2ec8be9ec046997f9a3e9585a552256d6bae76c"
+    },
+    {
+      "bytes": 2670,
+      "classification": "UNCHANGED_DERIVED_PUBLIC_ANALYSIS",
+      "path": "public-transport/correlation.md",
+      "provenance": {
+        "kind": "UNCHANGED_COPY",
+        "original_bytes": 2670,
+        "original_path": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/g-soak02-transport-logs/correlation.md",
+        "original_sha256": "bd8ad064157d776fa888df5e026b18697b5835132f2aa866be43b8c52812041a",
+        "transform": "NONE"
+      },
+      "sha256": "bd8ad064157d776fa888df5e026b18697b5835132f2aa866be43b8c52812041a"
+    },
+    {
+      "bytes": 1924,
+      "classification": "UNCHANGED_DERIVED_PUBLIC_ANALYSIS",
+      "path": "public-transport/manifest.json",
+      "provenance": {
+        "kind": "UNCHANGED_COPY",
+        "original_bytes": 1924,
+        "original_path": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/g-soak02-transport-logs/manifest.json",
+        "original_sha256": "5c446599ee9e54353e433533894151677a6bc4ad00ec0123f115c8fd74bd03a8",
+        "transform": "NONE"
+      },
+      "sha256": "5c446599ee9e54353e433533894151677a6bc4ad00ec0123f115c8fd74bd03a8"
+    },
+    {
+      "bytes": 493,
+      "classification": "UNCHANGED_EXACT_PUBLIC_TRANSPORT_LOG",
+      "path": "public-transport/public-transport-141674854658832.jsonl",
+      "provenance": {
+        "kind": "UNCHANGED_COPY",
+        "original_bytes": 493,
+        "original_path": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/g-soak02-transport-logs/public-transport-141674854658832.jsonl",
+        "original_sha256": "d4841ead3df3d33c453c83dd5cfcf7137a9535d01abb28725be2ec74358e7d99",
+        "transform": "NONE"
+      },
+      "sha256": "d4841ead3df3d33c453c83dd5cfcf7137a9535d01abb28725be2ec74358e7d99"
+    },
+    {
+      "bytes": 404,
+      "classification": "UNCHANGED_EXACT_PUBLIC_TRANSPORT_LOG",
+      "path": "public-transport/public-transport-83946471535236.jsonl",
+      "provenance": {
+        "kind": "UNCHANGED_COPY",
+        "original_bytes": 404,
+        "original_path": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/g-soak02-transport-logs/public-transport-83946471535236.jsonl",
+        "original_sha256": "260a495c3e7cfffa5c636b055242fca3a338a895ba766c6030f416754351a270",
+        "transform": "NONE"
+      },
+      "sha256": "260a495c3e7cfffa5c636b055242fca3a338a895ba766c6030f416754351a270"
+    },
+    {
+      "bytes": 1385,
+      "classification": "UNCHANGED_EXACT_PUBLIC_TRANSPORT_LOG",
+      "path": "public-transport/public-transport-91174136453043.jsonl",
+      "provenance": {
+        "kind": "UNCHANGED_COPY",
+        "original_bytes": 1385,
+        "original_path": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/g-soak02-transport-logs/public-transport-91174136453043.jsonl",
+        "original_sha256": "a0eeb95cecea2b6e4e78257d253ddc36077b2d34bb7da7595c90c70d45665ef9",
+        "transform": "NONE"
+      },
+      "sha256": "a0eeb95cecea2b6e4e78257d253ddc36077b2d34bb7da7595c90c70d45665ef9"
+    },
+    {
+      "bytes": 2492,
+      "classification": "ORIGINAL_SEALED_PUBLIC_RECORD",
+      "path": "report.json",
+      "provenance": {
+        "kind": "UNCHANGED_COPY",
+        "original_bytes": 2492,
+        "original_path": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/g-soak-20261115-02-output/report.json",
+        "original_sha256": "d6e5e77793f5fdadd709c29d38182dd8c02c0e69f314b525978bc9e04f150416",
+        "transform": "NONE"
+      },
+      "sha256": "d6e5e77793f5fdadd709c29d38182dd8c02c0e69f314b525978bc9e04f150416"
+    },
+    {
+      "bytes": 11169,
+      "classification": "GENERATED_PACKET_ONLY_METADATA_OR_VERIFIER",
+      "path": "verify.py",
+      "provenance": {
+        "kind": "GENERATED_FOR_PACKET",
+        "transform": "GENERATED_NOT_AN_ORIGINAL_COPY"
+      },
+      "sha256": "6ccd8179e6ee23f7a9cfb4e122f17edf6fe2397f0bd7695eb0dd9a7ef32affcd"
+    }
+  ],
+  "generated_at_utc": "2026-11-16T17:26:26+00:00",
+  "independent_human_cryptographic_review": "NOT_PERFORMED",
+  "manifest_coverage": {
+    "SHA256SUMS": "External sealing root; its own SHA256 is returned to the integrator, not embedded self-referentially.",
+    "SOURCE.json": "Hash and size available through SHA256SUMS and external integrator receipt; self hash is not embedded.",
+    "payload": "Every payload member has size/SHA/provenance in files and SHA256SUMS."
+  },
+  "mode": "soak",
+  "observed_counts_from_events": {
+    "confirmed_payments_including_setup_and_faults": 1010,
+    "event_kinds": {
+      "action": 28862,
+      "action_dispatched": 28862,
+      "anonymous_public_probe": 103,
+      "attempt_completed": 1,
+      "attempt_failed": 1,
+      "cleanup": 1,
+      "confirmed_payment": 1010,
+      "declaration_bound": 1,
+      "fault_completed": 6,
+      "fault_started": 6,
+      "initial_volume_bound": 2,
+      "normal_slot": 1005,
+      "prelaunch_bound": 1,
+      "public_clock_started": 1
+    },
+    "events": 59862,
+    "fault_attributed_misses": 3,
+    "faults": [
+      {
+        "event_sequence": 9915,
+        "name": "crash",
+        "result": "PASS"
+      },
+      {
+        "event_sequence": 18746,
+        "name": "partition",
+        "result": "PASS"
+      },
+      {
+        "event_sequence": 26216,
+        "name": "hostile",
+        "result": "PASS"
+      },
+      {
+        "event_sequence": 32911,
+        "name": "old_backup_missing_record",
+        "result": "PASS"
+      },
+      {
+        "event_sequence": 45278,
+        "name": "reindex",
+        "result": "PASS"
+      },
+      {
+        "event_sequence": 55987,
+        "name": "upgrade",
+        "result": "PASS"
+      }
+    ],
+    "missed_slots": [
+      {
+        "fault": "partition",
+        "slot": 240,
+        "success": false
+      },
+      {
+        "fault": "upgrade",
+        "slot": 960,
+        "success": false
+      },
+      {
+        "fault": "upgrade",
+        "slot": 961,
+        "success": false
+      }
+    ],
+    "normal_slot_outcomes": 1005,
+    "normal_slot_successes": 1002
+  },
+  "observed_failure": {
+    "duration_qualification": "INCOMPLETE_NO_ELAPSED_CREDIT",
+    "error": "Receiver did not observe actual transaction relay before mining",
+    "error_class": "ValueError",
+    "failure_event_sequence": 59859,
+    "failure_utc": "2026-11-16T16:46:56.470020+00:00",
+    "final_24h_recovery_gate": "NOT_REACHED",
+    "observed_start_to_failure_monotonic_seconds": 60360.005481417,
+    "observed_start_to_failure_wall_seconds": 60360.221742,
+    "public_clock_completed_event_present": false,
+    "public_clock_started_utc": "2026-11-16T00:00:56.248278+00:00"
+  },
+  "original_declaration_sha256": "282a3e423804e591cf123d4047279bd0e0c5117c837d97746cd2fa3352bea680",
+  "original_events": {
+    "bytes": 32878175,
+    "compression_level": 9,
+    "copied_uncompressed": false,
+    "gzip_bytes": 6326492,
+    "gzip_filename": "",
+    "gzip_mtime": 0,
+    "gzip_path": "events.jsonl.gz",
+    "gzip_sha256": "8ae8a5774d3c8f9ab4e9cf0d24aca67a42e0b32f58276320f8f34bb9ed095ba8",
+    "sha256": "ffaf5ea2f33f9c3f774c1c88740da262f0577c4334b4a90e9072958d10d07ed6"
+  },
+  "original_inventory_member_resolution": {
+    "declaration.json": {
+      "packet_path": "declaration.json",
+      "sha256": "282a3e423804e591cf123d4047279bd0e0c5117c837d97746cd2fa3352bea680",
+      "transform": "NONE"
+    },
+    "events.jsonl": {
+      "packet_path": "events.jsonl.gz",
+      "sha256": "ffaf5ea2f33f9c3f774c1c88740da262f0577c4334b4a90e9072958d10d07ed6",
+      "transform": "GZIP_DECOMPRESS_BEFORE_ORIGINAL_SHA256_CHECK"
+    },
+    "report.json": {
+      "packet_path": "report.json",
+      "sha256": "d6e5e77793f5fdadd709c29d38182dd8c02c0e69f314b525978bc9e04f150416",
+      "transform": "NONE"
+    }
+  },
+  "original_inventory_path": "evidence-sha256.json",
+  "original_report_sha256": "d6e5e77793f5fdadd709c29d38182dd8c02c0e69f314b525978bc9e04f150416",
+  "packaging_activity": {
+    "F_packet_modified": false,
+    "frozen_G_clone_modified": false,
+    "new_CI_or_native_execution": false,
+    "original_records_modified": false,
+    "runtime_SSH_Docker_or_network_actions": false,
+    "wallet_key_backup_cookie_env_or_private_file_opened": false
+  },
+  "packet_scope_limits": [
+    "The attempt remains FAIL despite completed payments, phases, and successful reported cleanup.",
+    "No completed 24-hour clock, final recovery gate, production admission, or human cryptographic review is established.",
+    "No wallet/state/backups, operator input, credentials, native binaries, or raw private deployment configuration are included.",
+    "The public transport logs have no intrinsic event timestamps or exception-class evidence; their report is correlation-only."
+  ],
+  "packet_verifier_formatting": {
+    "changes": "E401 import splitting and formatter-only E701/E702 layout normalization",
+    "normalized_ast_unchanged": true,
+    "original_evidence_bytes_unchanged": true,
+    "tool": "ruff 0.5.5"
+  },
+  "partial_elapsed_seconds_credited_to_future_soak": 0,
+  "partial_elapsed_time_credited_to_future_soak": false,
+  "portable_verification": {
+    "checksum_command": "shasum -a 256 -c SHA256SUMS",
+    "command": "python3 -B verify.py",
+    "expected_result": "VERIFIED_FAILED_ATTEMPT",
+    "script": "verify.py"
+  },
+  "production_admitted": false,
+  "production_backend": "NONE",
+  "public_field_review": {
+    "credential_pattern_scan": "No matching private-key blocks, authorization headers, credential URLs, or access-key identifiers",
+    "frozen_G_public_value_on_every_original_event_report_declaration_timeline_and_transport_JSON": "PASS",
+    "private_object_fields": "NONE_DETECTED",
+    "transport_JSONL_field_allowlist": "PASS",
+    "unrelated_process_dump_fields": "NONE_DETECTED"
+  },
+  "public_transport_supplement": {
+    "causal_status": "CORRELATION_ONLY_NOT_CAUSAL_ATTRIBUTION",
+    "correlation_paths": [
+      "public-transport/correlation.json",
+      "public-transport/correlation.md"
+    ],
+    "directory": "public-transport",
+    "event_counts": {
+      "bridge_identity": 3,
+      "bridge_started": 3,
+      "public_tls_connected": 7,
+      "public_tls_disconnected": 6
+    },
+    "exact_public_jsonl_files": 3,
+    "explicit_per_event_timestamp_fields": 0,
+    "jsonl_total_bytes": 2282,
+    "original_manifest_path": "public-transport/manifest.json",
+    "review": "Whitelisted public bridge identity/endpoint/TLS/byte-counter fields; correlation infrastructure metadata pertains to this owned G test only; no unrelated process dump."
+  },
+  "release_hold": true,
+  "required_actual_elapsed_seconds": 86400,
+  "resealed_at_utc": "2026-11-16T17:35:57+00:00",
+  "result": "FAIL",
+  "resumption_allowed": false,
+  "schema": "PQBTC-MLDSA44-SEALED-FAILED-PUBLIC-SOAK-SELECTED-PACKET-1",
+  "scope": "VALUELESS_EXPERIMENTAL_PUBLIC_TEST_ONLY",
+  "source_subject": {
+    "driver_sha256": "62a2a8af09ead25ff8a0d1cf379dd60bf5b70643611e8c1c0f2a86199bdce616",
+    "head": "4339d436cdcfce9724476b9786994d347f1a4b06",
+    "tree": "b9923bede37da41119ac69a39d57f16a8a89b3eb"
+  },
+  "timeline_analysis": {
+    "classification": "Unchanged evidence-only analysis; causal uncertainty retained; no qualification PASS or native rerun.",
+    "historical_path_policy": "Absolute custody/source links are historical references. Portable verification uses only relative packet members.",
+    "json_path": "failure-timeline.json",
+    "markdown_path": "failure-timeline.md"
+  }
+}

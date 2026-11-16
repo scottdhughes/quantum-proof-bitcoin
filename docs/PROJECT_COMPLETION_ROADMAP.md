@@ -1,6 +1,6 @@
 # PQBTC completion roadmap
 
-Updated 2026-11-15 UTC. This is the current execution order for the ML-DSA path.
+Updated 2026-11-16 UTC. This is the current execution order for the ML-DSA path.
 The April–July Track A roadmap remains historical. This roadmap builds on the
 [owner continuation](ML_DSA_44_OWNER_CONTINUATION.md), the implemented node
 integration, and the [durable local app](DURABLE_RUNTIME_VALIDATION.md).
@@ -51,10 +51,14 @@ after release; it is not an undefined prerequisite to shipping v1.
 - Historical durable-app checkpoint: 111 focused console/protocol tests. That
   bounded count retains its original scope and is not the current release total.
 - Clean-source installation and assembled-system CI, with all nine native gates
-  and private app flows passing for F on Linux x86_64/aarch64 with GCC/Clang.
+  and private app flows passing for F and G on Linux x86_64/aarch64 with GCC/Clang.
 - Fresh D/F public preflight 03: all seven fault phases, 22 confirmed payments,
   final missing-record recovery/spend and owned cleanup passed over 900 seconds.
-  The separate 24-hour soak is active and has no completed PASS yet.
+  The separate F 24-hour attempt failed after approximately 21 hours.
+- Fresh F/G public preflight 02 also passed all seven fault phases, 22 confirmed
+  payments and final recovery/spend/cleanup. Its separate G 24-hour attempt
+  failed after 16 hours 46 minutes when both nodes lost their sole connection.
+  Neither failed attempt contributes elapsed credit to a new run.
 
 ## Build order and acceptance tests
 
@@ -83,18 +87,22 @@ runtime remains available for its original fixture; it is not the normal
 fresh-install prerequisite. See [clean-checkout validation](CLEAN_CHECKOUT_VALIDATION.md)
 and the [public wallet guide](../contrib/ml-dsa-console/PUBLIC_TEST.md).
 
-F has passing exact-source native and private app flows for Linux x86_64 and
-native Linux aarch64 with both GCC and Clang, plus seventeen successful CI jobs.
+G has passing exact-source native and private app flows for Linux x86_64 and
+native Linux aarch64 with both GCC and Clang, plus 52 successful CI jobs across
+14 runs. F's earlier qualification and failed-soak evidence remain preserved.
 The dedicated TEST accepted-set, reindex and measured resource-bound checks are
 implemented. The current qualification record binds these observations to their
 sources and exclusions; inherited/default network rules retain their meaning.
 
 ## Remaining execution
 
-1. Fix the growing transaction-poll overhead found in the failed D/F soak,
-   requalify the exact source, and complete a fresh public preflight and separate
-   fresh 24-hour public TEST soak. Attempt 01 failed after approximately 21 hours
-   despite passing all seven fault phases. Both clocks, workload/fault/recovery
+1. Qualify the TLS forwarding, durable peer maintenance and known-transaction
+   recovery fixes, then complete a fresh public preflight and separate fresh
+   24-hour public TEST soak. G fixed growing transaction-poll overhead, but its
+   separate run failed after 16 hours 46 minutes with both peers disconnected;
+   the earlier F run failed after approximately 21 hours. Preserve the live
+   failure and independently reproduced TLS defect as distinct observations.
+   Both clocks, workload/fault/recovery
    criteria, final cross-node state and cleanup must pass before recording a
    soak PASS. Preserve failed attempts without carrying elapsed time forward.
 2. Finish the portable source/evidence packet and public tester instructions,

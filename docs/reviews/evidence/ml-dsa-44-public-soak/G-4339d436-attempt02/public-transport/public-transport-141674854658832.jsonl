@@ -1,0 +1,4 @@
+{"bridge_pid": 78, "instance_id": "c1c712b3e3b04c6f8d56e3c7940af160"}
+{"event": "bridge_started", "hostname": "scotts-macbook-pro.tail628f36.ts.net", "loopback_port": 23834, "public_ips": ["209.177.145.97", "209.177.145.192"], "until_utc": "2026-11-17T01:00:26+00:00"}
+{"event": "public_tls_connected", "hostname": "scotts-macbook-pro.tail628f36.ts.net", "public_ip": "209.177.145.97", "tls": "TLSv1.3"}
+{"bytes": [128597, 151295], "event": "public_tls_disconnected", "reason": "peer_closed"}

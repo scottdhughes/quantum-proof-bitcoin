@@ -1,0 +1,29 @@
+{
+  "result": "PREFLIGHT_PASS_ROOT_REVERIFIED",
+  "scope": "PREFLIGHT_ONLY_NOT_24H_SOAK",
+  "source": {
+    "head": "4339d436cdcfce9724476b9786994d347f1a4b06",
+    "tree": "b9923bede37da41119ac69a39d57f16a8a89b3eb",
+    "driver_sha256": "62a2a8af09ead25ff8a0d1cf379dd60bf5b70643611e8c1c0f2a86199bdce616"
+  },
+  "report_sha256": "e437e1481a98987f06c854193dffc1bd5b17594fe6d80e565ced3b4d5b9a1c3d",
+  "event_chain": {
+    "count": 2261,
+    "last_sha256": "5de5075806377f35e6f55bb8591eab3c9f3392ac73900e86b165ea4d87c1d112"
+  },
+  "event_clock": {
+    "monotonic_seconds": 900.15510875,
+    "wall_seconds": 900.161317
+  },
+  "scope_bound_before_clock": true,
+  "validation": {
+    "result": "PREFLIGHT_PASS",
+    "successful_normal_slots": 12,
+    "missed_slots": 3,
+    "p95_settle_seconds": 14.567081708926708,
+    "elapsed_monotonic_seconds": 900.1545019170735,
+    "elapsed_wall_seconds": 900.1607820987701
+  },
+  "final_recovered_spend": true,
+  "owned_cleanup_verified": true
+}

@@ -1,0 +1,371 @@
+{
+  "aggregate_events": {
+    "bridge_started": 3,
+    "public_tls_connected": 7,
+    "public_tls_disconnected": 6
+  },
+  "disconnect_reason_counts": {
+    "peer_closed": 6
+  },
+  "exact_copy_manifest_sha256": "5c446599ee9e54353e433533894151677a6bc4ad00ec0123f115c8fd74bd03a8",
+  "explicit_event_timestamp_count": 0,
+  "explicit_exception_class_counts": {},
+  "file_count": 3,
+  "independent_stopped_metadata": {
+    "backend": {
+      "ExitCode": 137,
+      "FinishedAt": "2026-11-16T16:47:00.653939677Z",
+      "Id": "7a36a8786374009e65ecd8e1281b84a32ea6533eaf37db56f2fc2f74b2a070cd",
+      "Name": "/pqbtc-mldsa-public-soak-r3-g-soak-20261115-02-research",
+      "Pid": 0,
+      "Running": false,
+      "Status": "exited"
+    },
+    "idle_infrastructure": {
+      "aggregate_cpu_mean_cores_over1sec": 0.0004379657966247731,
+      "boot_epoch_seconds": 1794703290,
+      "boot_id": "29b85e0b-ee1c-4d67-b307-3b2cc3a967f1",
+      "no_mutation_or_signal": true,
+      "parent_cpu_max": "200000 100000",
+      "private_engine": {
+        "ContainersRunning": 0,
+        "ID": "898eeae9-915d-499e-977a-9168abb73d17"
+      },
+      "result": "PASS_IDLE_HARD_TWO_CORE_INFRASTRUCTURE_NO_BACKENDS",
+      "utc": "2026-11-16T17:04:00.048594+00:00"
+    },
+    "scope": {
+      "ActiveState": "inactive",
+      "ControlGroup": "",
+      "LoadState": "not-found",
+      "Result": "success",
+      "SubState": "dead"
+    }
+  },
+  "latest_bridge_findings": {
+    "connected_count": 1,
+    "declared_until_utc": "2026-11-17T01:00:26+00:00",
+    "disconnected_count": 1,
+    "final_disconnect_bytes": [
+      128597,
+      151295
+    ],
+    "instance_id": "c1c712b3e3b04c6f8d56e3c7940af160",
+    "last_write_utc": "2026-11-16T16:45:21.532326185Z",
+    "no_connection_record_after_final_peer_closed": true,
+    "reported_pid": 78
+  },
+  "limits_of_inference": [
+    "No JSONL row carries a UTC or monotonic event timestamp; individual closes in the middle file cannot be assigned to16:44\u201316:47.",
+    "Filename-to-UTC mapping is approximate and assumes the known monotonic-ns naming convention and unchanged current boot; it is not an intrinsic event timestamp.",
+    "Reported bridge PIDs are log identities; the logs alone do not establish their host PID namespace.",
+    "peer_closed does not log the closing direction, exception class, TLS session-ticket/control-record state or causative operation.",
+    "Latest file final peer_closed row and16:45:21.532326185 last-write are consistent with loss before the reported relay timeout, but do not prove the independently reproduced TLS1.3 cause occurred in this connection.",
+    "Multiple connections in a retained bridge log do not by themselves prove an automatic reconnect loop or identify why a local connection was retried."
+  ],
+  "mtime_correlated_files_in_window": [
+    {
+      "correlation_boundary": "mtime is last filesystem modification, not a timestamp field on the disconnect record",
+      "file": "public-transport-141674854658832.jsonl",
+      "final_record": {
+        "line": 4,
+        "record": {
+          "bytes": [
+            128597,
+            151295
+          ],
+          "event": "public_tls_disconnected",
+          "reason": "peer_closed"
+        }
+      },
+      "source_mtime_utc": "2026-11-16T16:45:21.532326185Z"
+    }
+  ],
+  "no_other_state_wallet_cookie_key_env_or_backup_files_read": true,
+  "no_runtime_changes_or_signals": true,
+  "requested_window_utc": {
+    "end": "2026-11-16T16:47:00+00:00",
+    "start": "2026-11-16T16:44:00+00:00"
+  },
+  "result": "PUBLIC_LOG_CORRELATION_ONLY_NOT_CAUSAL_ATTRIBUTION",
+  "timeline": [
+    {
+      "approx_filename_creation_utc_if_monotonic_boot_mapping": "2026-11-16T00:00:36.471535236Z",
+      "event_counts": {
+        "bridge_identity": 1,
+        "bridge_started": 1,
+        "public_tls_connected": 1
+      },
+      "explicit_per_event_timestamp_rows": 0,
+      "file": "public-transport-83946471535236.jsonl",
+      "filename_monotonic_value_ns": 83946471535236,
+      "final_record": {
+        "line": 3,
+        "record": {
+          "event": "public_tls_connected",
+          "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+          "public_ip": "209.177.145.97",
+          "tls": "TLSv1.3"
+        }
+      },
+      "instance_id": "140bcd851e4a4354a114944cf46fea28",
+      "reported_bridge_pid": 55,
+      "rows": [
+        {
+          "line": 1,
+          "record": {
+            "bridge_pid": 55,
+            "instance_id": "140bcd851e4a4354a114944cf46fea28"
+          }
+        },
+        {
+          "line": 2,
+          "record": {
+            "event": "bridge_started",
+            "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+            "loopback_port": 23834,
+            "public_ips": [
+              "209.177.145.97",
+              "209.177.145.192"
+            ],
+            "until_utc": "2026-11-17T01:00:26+00:00"
+          }
+        },
+        {
+          "line": 3,
+          "record": {
+            "event": "public_tls_connected",
+            "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+            "public_ip": "209.177.145.97",
+            "tls": "TLSv1.3"
+          }
+        }
+      ],
+      "sha256": "260a495c3e7cfffa5c636b055242fca3a338a895ba766c6030f416754351a270",
+      "size_bytes": 404,
+      "source_mtime_utc": "2026-11-16T00:00:36.867934766Z"
+    },
+    {
+      "approx_filename_creation_utc_if_monotonic_boot_mapping": "2026-11-16T02:01:04.136453043Z",
+      "event_counts": {
+        "bridge_identity": 1,
+        "bridge_started": 1,
+        "public_tls_connected": 5,
+        "public_tls_disconnected": 5
+      },
+      "explicit_per_event_timestamp_rows": 0,
+      "file": "public-transport-91174136453043.jsonl",
+      "filename_monotonic_value_ns": 91174136453043,
+      "final_record": {
+        "line": 12,
+        "record": {
+          "bytes": [
+            4348,
+            5131
+          ],
+          "event": "public_tls_disconnected",
+          "reason": "peer_closed"
+        }
+      },
+      "instance_id": "beef863da9204f6fbd6aafb55ac4fba0",
+      "reported_bridge_pid": 66,
+      "rows": [
+        {
+          "line": 1,
+          "record": {
+            "bridge_pid": 66,
+            "instance_id": "beef863da9204f6fbd6aafb55ac4fba0"
+          }
+        },
+        {
+          "line": 2,
+          "record": {
+            "event": "bridge_started",
+            "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+            "loopback_port": 23834,
+            "public_ips": [
+              "209.177.145.97",
+              "209.177.145.192"
+            ],
+            "until_utc": "2026-11-17T01:00:26+00:00"
+          }
+        },
+        {
+          "line": 3,
+          "record": {
+            "event": "public_tls_connected",
+            "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+            "public_ip": "209.177.145.97",
+            "tls": "TLSv1.3"
+          }
+        },
+        {
+          "line": 4,
+          "record": {
+            "bytes": [
+              338079,
+              340651
+            ],
+            "event": "public_tls_disconnected",
+            "reason": "peer_closed"
+          }
+        },
+        {
+          "line": 5,
+          "record": {
+            "event": "public_tls_connected",
+            "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+            "public_ip": "209.177.145.97",
+            "tls": "TLSv1.3"
+          }
+        },
+        {
+          "line": 6,
+          "record": {
+            "bytes": [
+              744329,
+              691338
+            ],
+            "event": "public_tls_disconnected",
+            "reason": "peer_closed"
+          }
+        },
+        {
+          "line": 7,
+          "record": {
+            "event": "public_tls_connected",
+            "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+            "public_ip": "209.177.145.97",
+            "tls": "TLSv1.3"
+          }
+        },
+        {
+          "line": 8,
+          "record": {
+            "bytes": [
+              674892,
+              737840
+            ],
+            "event": "public_tls_disconnected",
+            "reason": "peer_closed"
+          }
+        },
+        {
+          "line": 9,
+          "record": {
+            "event": "public_tls_connected",
+            "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+            "public_ip": "209.177.145.97",
+            "tls": "TLSv1.3"
+          }
+        },
+        {
+          "line": 10,
+          "record": {
+            "bytes": [
+              743001,
+              700465
+            ],
+            "event": "public_tls_disconnected",
+            "reason": "peer_closed"
+          }
+        },
+        {
+          "line": 11,
+          "record": {
+            "event": "public_tls_connected",
+            "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+            "public_ip": "209.177.145.97",
+            "tls": "TLSv1.3"
+          }
+        },
+        {
+          "line": 12,
+          "record": {
+            "bytes": [
+              4348,
+              5131
+            ],
+            "event": "public_tls_disconnected",
+            "reason": "peer_closed"
+          }
+        }
+      ],
+      "sha256": "a0eeb95cecea2b6e4e78257d253ddc36077b2d34bb7da7595c90c70d45665ef9",
+      "size_bytes": 1385,
+      "source_mtime_utc": "2026-11-16T16:01:54.096764050Z"
+    },
+    {
+      "approx_filename_creation_utc_if_monotonic_boot_mapping": "2026-11-16T16:02:44.854658832Z",
+      "event_counts": {
+        "bridge_identity": 1,
+        "bridge_started": 1,
+        "public_tls_connected": 1,
+        "public_tls_disconnected": 1
+      },
+      "explicit_per_event_timestamp_rows": 0,
+      "file": "public-transport-141674854658832.jsonl",
+      "filename_monotonic_value_ns": 141674854658832,
+      "final_record": {
+        "line": 4,
+        "record": {
+          "bytes": [
+            128597,
+            151295
+          ],
+          "event": "public_tls_disconnected",
+          "reason": "peer_closed"
+        }
+      },
+      "instance_id": "c1c712b3e3b04c6f8d56e3c7940af160",
+      "reported_bridge_pid": 78,
+      "rows": [
+        {
+          "line": 1,
+          "record": {
+            "bridge_pid": 78,
+            "instance_id": "c1c712b3e3b04c6f8d56e3c7940af160"
+          }
+        },
+        {
+          "line": 2,
+          "record": {
+            "event": "bridge_started",
+            "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+            "loopback_port": 23834,
+            "public_ips": [
+              "209.177.145.97",
+              "209.177.145.192"
+            ],
+            "until_utc": "2026-11-17T01:00:26+00:00"
+          }
+        },
+        {
+          "line": 3,
+          "record": {
+            "event": "public_tls_connected",
+            "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+            "public_ip": "209.177.145.97",
+            "tls": "TLSv1.3"
+          }
+        },
+        {
+          "line": 4,
+          "record": {
+            "bytes": [
+              128597,
+              151295
+            ],
+            "event": "public_tls_disconnected",
+            "reason": "peer_closed"
+          }
+        }
+      ],
+      "sha256": "d4841ead3df3d33c453c83dd5cfcf7137a9535d01abb28725be2ec74358e7d99",
+      "size_bytes": 493,
+      "source_mtime_utc": "2026-11-16T16:45:21.532326185Z"
+    }
+  ],
+  "total_bytes": 2282,
+  "utc": "2026-11-16T17:05:57.664804+00:00"
+}
