@@ -1,14 +1,22 @@
 # Current ML-DSA-44 qualification
 
-Updated 2026-11-16 UTC. The latest completed four-profile qualification is G
-`4339d436cdcfce9724476b9786994d347f1a4b06`, tree
-`b9923bede37da41119ac69a39d57f16a8a89b3eb`. Its public transition cohort uses
-application baseline F `3a76cdd6005c1f5d948deb602c6985c1db508375` and candidate G.
-Connection recovery source H is
+Updated 2026-11-16 UTC. The latest completed four-profile qualification is K
+`18430ea2cfcac66cca0e8612605db47a5c0e935b`, tree
+`d397b324f83b82017722073c3c53688e0765fb30`. Its public transition cohort uses
+connection-recovery baseline H
 `52f26f31e2d8fcf52459f9cb2e9159564395f74a`, tree
-`d2e07ad8db149f6d3eac1cb15379d97e1484e2e6`. Its host checks pass; exact-source
-native/app qualification remains pending. The G results below do not qualify H
-or this later evidence/documentation revision.
+`d2e07ad8db149f6d3eac1cb15379d97e1484e2e6`. H has three completed native
+profiles; K has four. Both have their matching private HTTP app receipts.
+K is an evidence/documentation successor with the same 15 selected H runtime,
+test and UI files. Its separate full-duration run was deliberately superseded
+after a public-launcher recovery defect was found. The launcher correction in
+this later revision requires new qualification and fresh public clocks; the
+completed H/K records do not qualify this later source automatically.
+
+Historical transition sources remain F
+`3a76cdd6005c1f5d948deb602c6985c1db508375` and G
+`4339d436cdcfce9724476b9786994d347f1a4b06`, tree
+`b9923bede37da41119ac69a39d57f16a8a89b3eb`.
 
 The experimental, valueless TEST app builds from a clean checkout and provides
 wallet setup, status, receive/send, test funding/mining, lock/unlock,
@@ -17,9 +25,11 @@ builds the Linux node, client and isolated signer from source, without a prepare
 project container or private binary. The qualified flows exercise real
 transactions, app/container recreation, older-backup recovery and another spend.
 
-**Fresh F/G public preflight: PASS. The separate G 24-hour public soak: FAIL
-after approximately 16 hours 46 minutes. The earlier F attempt also failed.
-A fresh complete preflight and separate 24-hour run are required.**
+**Fresh H/K public preflight: PASS. The separate K 24-hour run was stopped for
+source supersession before completion, with zero elapsed credit. Its raw report
+remains FAIL/KeyboardInterrupt and owned cleanup passed. The earlier F and G
+full-duration attempts failed. A fixed-source preflight and separate full
+24-hour run remain required.**
 
 | Evidence | Observed source | Result and boundary |
 | --- | --- | --- |
@@ -29,6 +39,16 @@ A fresh complete preflight and separate 24-hour run are required.**
 | F continuous checks | Same F source; [manual assembled/export run](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43651886514) and its source/PR checks | All nine recorded runs and seventeen jobs pass, including both compiler lanes, native qualification, controls, lint and inventory. |
 | G assembled app/native qualification | G source above; [assembled/export run](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43770171273) and native aarch64 Docker runs | All nine native gates and all four private-transport public-profile HTTP wallet/recovery flows pass on Linux x86_64/aarch64 with GCC/Clang. |
 | G continuous checks | Same G source, including [Promotion Matrix](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43770187266) | All 14 recorded runs and 52 jobs pass on attempt 1, including all 22 platform/fuzz matrix jobs. |
+| H baseline qualification | H source above; [assembled/export run](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43923679742) and native aarch64 Docker run | Linux aarch64 GCC and Linux x86_64 GCC/Clang: all nine native gates and the extended 17-event private HTTP app flow per executed profile. H ARM Clang was not qualified. |
+| K assembled app/native qualification | K source above; [assembled/export run](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43931134439) and native aarch64 Docker runs | All four Linux x86_64/aarch64 GCC/Clang profiles pass nine native gates and the extended 17-event private HTTP app flow. Each includes 30 distinct full-weight/128-verification blocks and the resource/consensus controls. |
+| K continuous checks | Same K source, including [Promotion Matrix](https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43931134510) | All 13 runs and 51 latest logical jobs pass, including 22 matrix jobs. Each initially unassigned macOS job passed one actual capacity retry; the advisory job passed one retry after its anonymous API quota reset. Original attempts remain recorded. |
+
+The [H/K native and completed preflight packet](reviews/evidence/ml-dsa-44-current-qualification/h-k-native-preflight-20261116/readme.md)
+contains selected original reports, their exact descriptor bindings, a complete
+2,305-event preflight chain and offline positive/negative verification. Omitted
+native inventory payloads are explicitly external custody references. The
+[K CI packet](reviews/evidence/ml-dsa-44-current-qualification/k-18430ea2-ci/readme.md)
+preserves the separate 13-run/51-job snapshot and its retry history.
 
 The [sealed G CI snapshot](reviews/evidence/ml-dsa-44-current-qualification/G-4339d436-ci/README.md)
 preserves exact run, attempt, source and job attribution separately from native
@@ -48,7 +68,7 @@ frozen review baseline is `f6b406ecb59bb9d7c9502457daa3be4a1deb7019`. The
 source-continuity record preserves the older CT audit identity and its later
 readiness-prose delta.
 
-The CT observations do not qualify the complete F/G app, its GCC12/Clang16 or ARM
+The CT observations do not qualify the complete F/G/H/K app, its GCC12/Clang16 or ARM
 binaries, general key generation, secret erasure, or physical/cache/speculative
 leakage. Comparator sanitizer coverage excludes the prebuilt OpenSSL provider
 and libcrux Rust implementation bodies. Full scopes, exclusions, corpus
@@ -62,7 +82,7 @@ backend `NONE` and `RELEASE_HOLD` remain in force. Independent human review is
 NOT PERFORMED; the owner's direction permits continued engineering and accurately
 described public experimental testing without paid review or an outside response.
 
-## Install and exercise the tested source
+## Install and exercise the public candidate
 
 Install Git, Python 3.11+ and Docker/BuildKit with Linux containers and sufficient
 build storage, then run:
@@ -70,9 +90,13 @@ build storage, then run:
 ```sh
 git clone https://github.com/scottdhughes/quantum-proof-bitcoin.git
 cd quantum-proof-bitcoin
-git switch --detach 4339d436cdcfce9724476b9786994d347f1a4b06
+git switch codex/mldsa-runpod-soak-20261114
 ./contrib/ml-dsa-console/launch-public.command
 ```
+
+Record the checkout's exact commit before testing. This branch can contain the
+launcher follow-up before its new qualification completes; the source-pinned
+results above describe their own completed checkpoints.
 
 The first build downloads pinned/checksummed dependencies, then compiles and
 tests inside Linux. Follow the [public wallet guide](../contrib/ml-dsa-console/PUBLIC_TEST.md)
@@ -170,11 +194,11 @@ reannounce the same known transaction. It does not repeat address reservation,
 signing or payment creation, reset the settlement clock, or replace the
 recipient-mempool and specific-block confirmation checks.
 
-These repairs require their own exact-source native/app qualification, a fresh
-900-second public preflight and a fresh full 86,400-second public soak. Neither
+H/K subsequently qualified these repairs and completed the fresh preflight
+recorded below. A full 86,400-second public soak remains outstanding. Neither
 failed attempt supplies partial elapsed credit.
 
-## Recovery source H and its evidence successor
+## Recovery sources H/K and the launcher follow-up
 
 H adds persistent, bounded peer settings and transaction-peer readiness based
 on a completed native ping/pong exchange. A deliberately paused network stays
@@ -190,20 +214,47 @@ Python without the required process-ownership primitives; the completed run
 uses the host's Python 3.15 for those tests, without an implementation fallback.
 Host checks are not native platform or public-soak qualification.
 
-The next cohort uses H as the corrected baseline and a documentation/evidence
-successor with the same runtime control code. Both versions must have their own
-matching native receipts before use. Their source, image and node binary
+The completed preflight uses H as the corrected baseline and K as its
+documentation/evidence successor with the same runtime control code. Both
+versions have their own matching native receipts. Their source, image and node binary
 identities differ; the upgrade/rollback experiment exercises actual image/node
 replacement on retained data. It does not claim a new consensus or wallet-format
 transition from an evidence-only change. The existing 60-second settlement and
 actual 900/86,400-second elapsed-time requirements remain unchanged.
 
-| Next gate | Status at this documentation checkpoint |
+The H/K preflight passed over 900.075852 event monotonic seconds and 900.081071
+wall seconds. All seven faults, 22 unique confirmed payments, final old-record
+recovery followed by another spend, chain/UTXO agreement and owned cleanup
+passed. Twelve normal slots succeeded; three misses were confined to declared
+upgrade/rollback windows. The final public recovery retained the independent
+journal; the private HTTP flow separately tests both records missing.
+
+The separate K soak started at **2026-11-16 19:55:36.167124 UTC**. At
+**2026-11-16 22:18:34.166921 UTC**, the operator requested a controlled SIGINT
+to supersede this source. Static inspection found that a surviving public HTTP
+console could be reopened before Docker Desktop readiness, leaving the app
+unusable when Desktop was stopped or still restarting. This availability
+defect was outside the observed payment/crash workload; no network-failure
+cause is inferred. The raw terminal result is **FAIL/KeyboardInterrupt**, with
+owned cleanup successful, and is not relabelled as a completed soak.
+The [controlled-supersession packet](reviews/evidence/ml-dsa-44-public-soak/k-18430ea2-superseded01/readme.md)
+preserves all 16,164 events, 143 successful normal slots, 146 unique payments,
+the completed crash phase and the identity-verified stop request. Its offline
+verifier checks the unmodified raw outcome, cleanup and zero elapsed credit.
+
+The follow-up moves Docker readiness before the existing-console fast path and
+adds a stopped-daemon/live-console regression. Its exact source needs its own
+native/app and CI receipts, a fresh 900-second preflight and a separate actual
+86,400-second run. The K partial run contributes zero time.
+
+| Gate | Status at this documentation checkpoint |
 | --- | --- |
-| H baseline native GCC images and private app flows on both host architectures | Pending exact-source execution |
-| Evidence successor native GCC/Clang profiles on both architectures and CI | Pending exact-source execution |
-| Fresh public preflight | Not started |
-| Separate fresh 24-hour public soak and final recovery | Not started |
+| H baseline native GCC images and private app flows on both host architectures | PASS; additional x86_64 Clang PASS, no ARM Clang claim |
+| K native GCC/Clang profiles on both architectures and CI | PASS: four native profiles and 51 CI jobs |
+| H/K fresh public preflight | PREFLIGHT_PASS; actual 900 seconds and final recovery/cleanup |
+| Separate K 24-hour run | Controlled source supersession; raw FAIL/KeyboardInterrupt, cleanup PASS, zero credit |
+| Launcher follow-up native/app/CI and daemon-recovery acceptance | Pending exact-source execution |
+| Fixed-source fresh preflight and separate full 24-hour run | Not started |
 
 Earlier native-only snapshots retain their recorded pending public-run fields;
 the separately dated preflight section supplies the completed preflight result.

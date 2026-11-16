@@ -1,11 +1,13 @@
 """Public-test custody, floor durability and local HTTP boundary controls."""
 import copy
+from contextlib import redirect_stdout
 import hashlib
 import importlib.util
 import io
 import json
 from pathlib import Path
 import tempfile
+import threading
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -24,6 +26,100 @@ def load(name, path):
 control = load("test_public_controller", HERE / "public_controller.py")
 app = load("test_public_app", HERE / "public_app.py")
 runtime = load("test_public_runtime", HERE / "public_runtime.py")
+
+
+class PublicLauncherTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.state = Path(self.temp.name) / "state"
+        self.container = "pqbtc-mldsa-public-launcher-unit"
+        self.daemon_ready = self.daemon_start_fails = False
+        self.phase = "stopped"
+        self.starts = 0
+        self.events, self.browser_urls = [], []
+        self.output = io.StringIO()
+        identity = {"schema": "PQBTC-MLDSA44-PUBLIC-CONSOLE-1", "profile_sha256": app.PROFILE,
+                    "state_id": hashlib.sha256(str(self.state.resolve()).encode()).hexdigest(), "container": self.container}
+        self.server = app.app.make_server(SimpleNamespace(status=self.status, action=self.action), port=0,
+                                          identity=identity, action_validator=app.validate_action, assets_dir=HERE / "web-public")
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.url = "http://127.0.0.1:" + str(self.server.server_port)
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(timeout=5)
+
+    def status(self):
+        self.events.append("status")
+        return {"phase": self.phase, "ready": self.phase == "running"}
+
+    def action(self, action, params):
+        if action != "start" or params != {}:
+            raise AssertionError("Unexpected action in launcher fixture")
+        self.events.append("start-request")
+        if not self.daemon_ready:
+            raise ValueError("Docker daemon is stopped")
+        self.starts += 1
+        self.phase = "running"
+        return {"result": {}, "status": self.status()}
+
+    def docker_command(self, command, **kwargs):
+        if command == ["docker", "info", "--format", "{{json .ServerVersion}}"]:
+            self.events.append("docker-info")
+            return SimpleNamespace(returncode=0 if self.daemon_ready else 1)
+        if command == ["docker", "desktop", "start", "--timeout", "120"]:
+            self.events.append("desktop-start")
+            if self.daemon_start_fails:
+                raise app.source._legacy.RuntimeError("Docker Desktop could not start")
+            self.daemon_ready = True
+            return SimpleNamespace(returncode=0)
+        raise AssertionError("Unexpected Docker command in launcher fixture")
+
+    def launch(self, *flags):
+        args = ["--state-dir", str(self.state), "--container", self.container,
+                "--port", str(self.server.server_port), *flags]
+        with patch.object(app.source._legacy.RuntimeManager, "_run", side_effect=self.docker_command), \
+                patch.object(app, "PublicController", side_effect=AssertionError("Reopening created another writer")), \
+                patch.object(app.source.SourceManager, "_build_image", side_effect=AssertionError("Reopening rebuilt the runtime")), \
+                patch.object(app.webbrowser, "open", side_effect=self.browser_urls.append), redirect_stdout(self.output):
+            app.main(args)
+
+    def test_relaunch_starts_stopped_docker_before_resuming_existing_console(self):
+        self.launch()
+        self.launch()
+        self.assertTrue(self.daemon_ready)
+        self.assertEqual(self.phase, "running")
+        self.assertEqual(self.starts, 1)
+        self.assertEqual(self.events.count("desktop-start"), 1)
+        self.assertLess(self.events.index("desktop-start"), self.events.index("start-request"))
+        self.assertEqual(self.browser_urls, [self.url, self.url])
+
+    def test_daemon_start_failure_does_not_open_or_resume_existing_console(self):
+        self.daemon_start_fails = True
+        with self.assertRaisesRegex(app.source._legacy.RuntimeError, "could not start"):
+            self.launch()
+        self.assertEqual(self.phase, "stopped")
+        self.assertEqual(self.starts, 0)
+        self.assertNotIn("status", self.events)
+        self.assertNotIn("public-test console:", self.output.getvalue())
+        self.assertEqual(self.browser_urls, [])
+
+    def test_no_autostart_readies_docker_without_resuming_or_opening_browser(self):
+        self.launch("--no-autostart", "--no-browser")
+        self.assertTrue(self.daemon_ready)
+        self.assertEqual(self.phase, "stopped")
+        self.assertEqual(self.starts, 0)
+        self.assertEqual(self.browser_urls, [])
+
+    def test_sudo_reopen_does_not_start_desktop(self):
+        self.launch("--docker-sudo", "--no-autostart", "--no-browser")
+        self.assertFalse(self.daemon_ready)
+        self.assertEqual(self.events, [])
+        self.assertEqual(self.phase, "stopped")
+        self.assertEqual(self.browser_urls, [])
 
 
 class PublicConsoleTests(unittest.TestCase):

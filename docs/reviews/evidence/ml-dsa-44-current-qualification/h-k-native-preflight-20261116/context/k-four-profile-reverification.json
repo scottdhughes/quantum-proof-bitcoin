@@ -1,0 +1,73 @@
+{
+  "complete_CI_green_claimed": false,
+  "profiles": [
+    {
+      "architecture": "aarch64",
+      "compiler": "gcc",
+      "descriptor_sha256": "f02b0bb26f1ac355f3d527ff6cac453b70ec5502f01ed24f83233947de683f00",
+      "image": "sha256:d08be0fe97cd15551f9d9d597d5a47dad259a838da6698c2f572e67811a11aa3",
+      "native_cleanup_original": "STOPPED_RETAINED",
+      "native_gates": 9,
+      "native_report_sha256": "0997684e45fd7603234615cf9637286a5bf65f9fd9d74963db879cfba06ffc7d",
+      "node_peak_rss_bytes": 404029440,
+      "p95_wall_ns": 226877875,
+      "private_app_report_sha256": "457cc5da97e16ad9461bfc9b7547654bc6499b6422e2951b031143599ba43a23",
+      "private_events": 17,
+      "same_known_transaction_seconds": 9.68906749994494
+    },
+    {
+      "architecture": "aarch64",
+      "compiler": "clang",
+      "descriptor_sha256": "668d1abd651e1c9a116a3d9483e96d81559b7fb78b215144912046237bb6e3ef",
+      "image": "sha256:51aaad8474396b37da1dde0b94acab0b5cf1b47e93742a0d385dd2f91a0e541a",
+      "native_cleanup_original": "STOPPED_RETAINED",
+      "native_gates": 9,
+      "native_report_sha256": "2219f0f9f623b18f61aa2290051f7ab9a7be505b7ca84dc14fd711c5c848675f",
+      "node_peak_rss_bytes": 402030592,
+      "p95_wall_ns": 199524625,
+      "private_app_report_sha256": "365fb895190144b799a9591094ecb8153b3eeb37d59c26ab6c6a89df4ffedec9",
+      "private_events": 17,
+      "same_known_transaction_seconds": 4.599555749911815
+    },
+    {
+      "architecture": "x86_64",
+      "compiler": "gcc",
+      "descriptor_sha256": "2866c382195eb6f82372e5c579f588a6ac5289e5aa6a9abb5f654adc52e1240e",
+      "image": "sha256:ac9e2206349929c6e0c33fc64e6403d805417cffb4b7bc22135fde81dfe77d4c",
+      "native_cleanup_original": "REMOVED",
+      "native_gates": 9,
+      "native_report_sha256": "5b2210b0d72cc5b5d5c9916a2a2465a3b7061795ab5421b2626f7b8adb17762b",
+      "node_peak_rss_bytes": 402739200,
+      "p95_wall_ns": 208498734,
+      "private_app_report_sha256": "bf004207eee115154594f44325cdab76e6ddc26007669350643615321a653e79",
+      "private_events": 17,
+      "same_known_transaction_seconds": 4.31374496400008
+    },
+    {
+      "architecture": "x86_64",
+      "compiler": "clang",
+      "descriptor_sha256": "e701aebdbbe0d249df81f0d78b189da111f367a0b17312f44b6d6ffa97bae7b1",
+      "image": "sha256:076bd853eaa5df70830c974bbb8a72d638bf899071a5b813b2eb87b72d677c7f",
+      "native_cleanup_original": "REMOVED",
+      "native_gates": 9,
+      "native_report_sha256": "1907607509cfbfefd7a3a672da5986f64e97aac07dbf768e30667a382996fe9d",
+      "node_peak_rss_bytes": 403693568,
+      "p95_wall_ns": 180305280,
+      "private_app_report_sha256": "1878945b51237aa7ab21ea394f28c959aec3461bd5b5cbdbc89bcde9727f5c0b",
+      "private_events": 17,
+      "same_known_transaction_seconds": 9.702514752999946
+    }
+  ],
+  "public_soak_credit_seconds": 0,
+  "result": "PASS_FOUR_K_NATIVE_AND_PRIVATE_APP_PROFILES",
+  "schema": "PQBTC-K-FOUR-PROFILE-ROOT-REVERIFICATION-1",
+  "source": {
+    "head": "18430ea2cfcac66cca0e8612605db47a5c0e935b",
+    "tree": "d397b324f83b82017722073c3c53688e0765fb30"
+  },
+  "used_public_profiles": [
+    "aarch64/gcc",
+    "x86_64/gcc"
+  ],
+  "verified_utc": "2026-11-16T19:12:45.709896+00:00"
+}

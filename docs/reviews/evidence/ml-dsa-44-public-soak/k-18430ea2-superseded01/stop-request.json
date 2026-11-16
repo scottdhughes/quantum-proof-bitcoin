@@ -1,0 +1,16 @@
+{
+  "classification": "CONTROLLED_SOURCE_SUPERSESSION_NOT_OBSERVED_NETWORK_WORKLOAD_FAILURE",
+  "coordinator_pid": 10537,
+  "exact_argv_verified": true,
+  "partial_elapsed_credit_seconds": 0,
+  "partial_wall_seconds_at_request": 8577.999797,
+  "process_start_lstart": "Mon Nov 16 14:55:00 2026",
+  "raw_terminal_report_must_remain_unmodified": true,
+  "reason": "P2 public launcher bypasses Docker daemon readiness when reusing a surviving HTTP server after Desktop stop or during restart; fix and fresh exact-source qualification/full clock required",
+  "required_next": "matching fixed-source native qualification; fresh900s preflight and separate86400s soak",
+  "schema": "PQBTC-K-SOAK-CONTROLLED-SOURCE-SUPERSESSION-1",
+  "signal": "SIGINT",
+  "signal_count_requested": 1,
+  "uid": 501,
+  "utc": "2026-11-16T22:18:34.166921+00:00"
+}

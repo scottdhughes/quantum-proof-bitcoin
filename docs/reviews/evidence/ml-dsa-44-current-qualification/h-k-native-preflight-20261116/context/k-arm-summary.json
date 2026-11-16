@@ -1,0 +1,107 @@
+{
+  "H_GCC_and_K_GCC_images_retained": true,
+  "Research_operations_by_this_agent": false,
+  "lanes": {
+    "clang": {
+      "actual_VM_and_container_architecture": "aarch64",
+      "all_own_disposable_native_app_containers_and_app_volumes_absent": true,
+      "descriptor_sha256": "668d1abd651e1c9a116a3d9483e96d81559b7fb78b215144912046237bb6e3ef",
+      "emulated": false,
+      "image_at_qualification": "sha256:51aaad8474396b37da1dde0b94acab0b5cf1b47e93742a0d385dd2f91a0e541a",
+      "manifest_sha256": "f11537ea3ac34d50766a4459e8b4d29092b16a7b0a050628c69f923011e8b62d",
+      "native_binaries_sha256": {
+        "/tmp/demo-signer-bin/pilot-signer": "88c53a7a3a26b306d588fd92348a2be546fa58d7a2b210b7104cfc9cf641af75",
+        "/tmp/mldsa-demo-build/bin/pqbtc-cli": "5110f8aa2cf6d9505e964ed0115bc3743ee541ea38ed7b50697f728b3435065a",
+        "/tmp/mldsa-demo-build/bin/pqbtc-mldsa-client": "b5a1fa16b7fed3d5b4177b1204b445422a1f7d2c73f9d4cfef40577895fa580d",
+        "/tmp/mldsa-demo-build/bin/pqbtcd": "f2031c7d3127a216e89c721d79287e8bccc5505ef65860f2d980b2d5c8f37492",
+        "/tmp/mldsa-demo-build/bin/test_pqbtc": "77742e9d2174882c7e33fa037a38bb18e5e14496ccf0677456235f266c17d7a3",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_consensus_controls.py": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_native_qualification.py": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_spend_restore.py": "0dfc691f58d8a1ad89719d6d962104a3899a56ba1ccdc72a1828e1d625c5e02a"
+      },
+      "native_checks": {
+        "actual-node-30-full-blocks-and-mempool-pressure": "PASS",
+        "actual-node-spend-old-record-restore": "PASS",
+        "actual-public-accepted-set-and-both-reindex-paths": "PASS",
+        "integration-asan-ubsan": "PASS",
+        "integration-normal": "PASS",
+        "key-lifecycle-normal-and-sanitized": "PASS",
+        "node-profile-and-resource-units": "PASS",
+        "signer-asan-ubsan": "PASS",
+        "signer-normal": "PASS"
+      },
+      "native_evidence_inventory_hash_count": 81,
+      "native_gate_count": 9,
+      "private_app_event_count": 17,
+      "resource": {
+        "node_peak_rss_bytes": 402030592,
+        "p95_wall_ns": 199524625,
+        "pressure_evicted": 17,
+        "samples": 30
+      },
+      "summary_path": "arm-clang-qualification-summary-20261116.json",
+      "summary_sha256": "c2002d7c1bd0d406ac27afe4d1ece1ef9391ea24d1d13004f1fbb50d639c6aa3"
+    },
+    "gcc": {
+      "actual_VM_and_container_architecture": "aarch64",
+      "all_own_disposable_native_app_containers_and_app_volumes_absent": true,
+      "descriptor_sha256": "f02b0bb26f1ac355f3d527ff6cac453b70ec5502f01ed24f83233947de683f00",
+      "emulated": false,
+      "image_at_qualification": "sha256:d08be0fe97cd15551f9d9d597d5a47dad259a838da6698c2f572e67811a11aa3",
+      "manifest_sha256": "af8b7714630b7231e4378d11d1381825e0c4851177a7bcbc1525835bf82e0713",
+      "native_binaries_sha256": {
+        "/tmp/demo-signer-bin/pilot-signer": "1b26e89803aa1f2e0537b5e6db415949155e6ac951b764f13080a7887839442c",
+        "/tmp/mldsa-demo-build/bin/pqbtc-cli": "107cbe1714682569d892725898587126bad8d718d049b1dc6f57945c079326e3",
+        "/tmp/mldsa-demo-build/bin/pqbtc-mldsa-client": "c43a6939b8609acdfc207eb6bbe308aa122027cba3c7d67522a982e4586bf175",
+        "/tmp/mldsa-demo-build/bin/pqbtcd": "efc80b6dadb0a656d22f5b42f86f6946e13cc7e5e8200ad15dad50c06661a14c",
+        "/tmp/mldsa-demo-build/bin/test_pqbtc": "04a785dad02ca6dd0902e09da43fe4c7297ce9154772a441e867bd248c241708",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_consensus_controls.py": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_native_qualification.py": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_spend_restore.py": "0dfc691f58d8a1ad89719d6d962104a3899a56ba1ccdc72a1828e1d625c5e02a"
+      },
+      "native_checks": {
+        "actual-node-30-full-blocks-and-mempool-pressure": "PASS",
+        "actual-node-spend-old-record-restore": "PASS",
+        "actual-public-accepted-set-and-both-reindex-paths": "PASS",
+        "integration-asan-ubsan": "PASS",
+        "integration-normal": "PASS",
+        "key-lifecycle-normal-and-sanitized": "PASS",
+        "node-profile-and-resource-units": "PASS",
+        "signer-asan-ubsan": "PASS",
+        "signer-normal": "PASS"
+      },
+      "native_evidence_inventory_hash_count": 81,
+      "native_gate_count": 9,
+      "private_app_event_count": 17,
+      "resource": {
+        "node_peak_rss_bytes": 404029440,
+        "p95_wall_ns": 226877875,
+        "pressure_evicted": 17,
+        "samples": 30
+      },
+      "summary_path": "arm-gcc-qualification-summary-20261116.json",
+      "summary_sha256": "e0867aef9b9367cb0ce156f2e67cd1893e262b20b9a39a5641229770c26c519d"
+    }
+  },
+  "native_macOS_or_Windows_signer_qualification_claimed": false,
+  "new_unused_K_Clang_image_removed_after_sealed_evidence": {
+    "receipt": "arm-clang-unused-image-removal-20261116.json",
+    "sha256": "740751d25303a3c5cd0a9a7bc09a4d4b1f3a4056dd4d80fd1e96f09847f4c191"
+  },
+  "original_native_reports_preserved_with_historical_cleanup_STOPPED_RETAINED": true,
+  "prior_resources_or_original_wallet_targeted": false,
+  "production_admitted": false,
+  "project_sources_edited": false,
+  "public_soak_credit_seconds": 0,
+  "public_soak_result_claimed": false,
+  "result": "PASS_BOTH_NATIVE9_AND_EXTENDED_PRIVATE_APP17",
+  "schema": "PQBTC-K-ARM-TWO-COMPILER-QUALIFICATION-SUMMARY-1",
+  "scope": "LINUX_AARCH64_GCC_AND_CLANG_NATIVE_EXECUTION_INSIDE_DOCKER_WITHOUT_EMULATION_AND_PRIVATE_HTTP_FLOW_ONLY",
+  "separate_successful_exact_container_removal_receipts": true,
+  "source": {
+    "head": "18430ea2cfcac66cca0e8612605db47a5c0e935b",
+    "pristine_after": true,
+    "tree": "d397b324f83b82017722073c3c53688e0765fb30"
+  },
+  "utc": "2026-11-16T19:10:04.789393+00:00"
+}

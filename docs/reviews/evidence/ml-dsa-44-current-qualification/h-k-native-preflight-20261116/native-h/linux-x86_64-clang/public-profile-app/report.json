@@ -1,0 +1,149 @@
+{
+  "clean_source_qualified": true,
+  "cleanup_errors": [],
+  "events": [
+    {
+      "containers": [
+        "pqbtc-mldsa-public-ci-4c7047abdae8",
+        "pqbtc-mldsa-public-ci-34ef2bc9dfb7"
+      ],
+      "monotonic_ns": 772400413635,
+      "name": "two_fresh_private_containers_started"
+    },
+    {
+      "monotonic_ns": 776307345635,
+      "name": "two_native_test_wallets_funded",
+      "wallet_ids": [
+        "2b34b7f004ba45864cdb87ff5d85d2c3",
+        "ee6ccd48357557e5e84a7ce471730a85"
+      ]
+    },
+    {
+      "block_hash": "12dee0e384a068141d05cbc2439b63a9e8710f874a2252082448632c0fecdac4",
+      "monotonic_ns": 782960053262,
+      "name": "confirmed_cross_container_send",
+      "source": 0,
+      "txid": "2278298b24faa0cc0ee807e2a1d6da0b7857374a7f1098f638866e2f6a40b90b"
+    },
+    {
+      "block_hash": "0ee9ea0165dee6ad53a8896b1afb63610fd6a1cdfd0c80fe694df16c100ab205",
+      "monotonic_ns": 784415183737,
+      "name": "confirmed_cross_container_send",
+      "source": 1,
+      "txid": "5bc7a8c7395b5fcb44fdd60523f96572e93191f9eb289af7d36e45d28aaebd87"
+    },
+    {
+      "elapsed_seconds": 0.5429891219999945,
+      "endpoint": "172.17.0.3:23833",
+      "monotonic_ns": 784969869130,
+      "name": "unexpected_native_peer_disconnect_repaired",
+      "new_node_ids": [
+        1
+      ],
+      "old_node_id": 0,
+      "transaction_peers": [
+        1,
+        1
+      ]
+    },
+    {
+      "block_hash": "48a3c335c653d13e1da33819eb181f5247a80401c33a3dcd6e592e3586265a7f",
+      "monotonic_ns": 793985957761,
+      "name": "confirmed_cross_container_send",
+      "source": 0,
+      "txid": "10c381f5e7b4657b96888bf9b9fbd171e2c6df89ffbe09df3154d84ba2f09c66"
+    },
+    {
+      "elapsed_seconds": 9.016079826999999,
+      "known_in_mempool": true,
+      "monotonic_ns": 793985988044,
+      "name": "same_known_transaction_rebroadcast_after_rejoin",
+      "raw_transaction_sha256": "2beed543e345e69429c0c917689943c29c292dfd258c0283e91cf96635c3c056",
+      "rebroadcast": true,
+      "reissued_payment": false,
+      "txid": "10c381f5e7b4657b96888bf9b9fbd171e2c6df89ffbe09df3154d84ba2f09c66"
+    },
+    {
+      "baseline_accepted": true,
+      "baseline_source": "NodeWallet.sign.testmempoolaccept",
+      "broadcast": false,
+      "invalid_signature_allowed": false,
+      "monotonic_ns": 794431046082,
+      "name": "actual_signature_and_wrong_network_controls",
+      "reject_reason": "block-script-verify-flag-failed (Witness program hash mismatch)",
+      "wrong_network_refused": true
+    },
+    {
+      "monotonic_ns": 796402888798,
+      "name": "durable_network_off_survived_native_reindex"
+    },
+    {
+      "monotonic_ns": 796967067477,
+      "name": "chainstate_reindex_preserved_full_agreement",
+      "tip": "48a3c335c653d13e1da33819eb181f5247a80401c33a3dcd6e592e3586265a7f"
+    },
+    {
+      "monotonic_ns": 805154757133,
+      "name": "durable_network_off_survived_docker_restart",
+      "volume_id": "9cb3cb65880b48aa83cc44e77b7347f1"
+    },
+    {
+      "endpoints": [
+        "172.17.0.3:23833"
+      ],
+      "monotonic_ns": 805209948880,
+      "name": "peer_policy_orphan_preserved_and_recovered_inactive",
+      "network_active": false,
+      "original_sha256": "e3a1468eb1dd82c304cbc4b20f605dfa53bf6db3d5f6c2b8b39845f0d0ec6265",
+      "preserved": true
+    },
+    {
+      "monotonic_ns": 807148253579,
+      "name": "actual_docker_restart_and_public_orphan_recovery",
+      "receive_index": 2
+    },
+    {
+      "monotonic_ns": 814276798158,
+      "name": "actual_sigkill_restart_preserved_agreement"
+    },
+    {
+      "monotonic_ns": 815451828635,
+      "name": "wrong_password_and_rechecksummed_corrupt_ciphertext_preserved_selected_record"
+    },
+    {
+      "block_hash": "197e7f46d8796e027d4f68fd759c5f31a633362052cf0826688afe351b0c582b",
+      "monotonic_ns": 826340706340,
+      "name": "confirmed_cross_container_send",
+      "source": 0,
+      "txid": "1ad0c7af4c4ead1525e883a485426704ca3272bb341dcd46e9e7628fe35ae79b"
+    },
+    {
+      "monotonic_ns": 826340736996,
+      "name": "old_backup_missing_both_records_recovered_and_spent",
+      "next_change": 2,
+      "next_receive": 3,
+      "receive_index": 3,
+      "wallet_id": "2b34b7f004ba45864cdb87ff5d85d2c3"
+    }
+  ],
+  "final": {
+    "height": 207,
+    "tip": "197e7f46d8796e027d4f68fd759c5f31a633362052cf0826688afe351b0c582b",
+    "utxo_hash": "af74f3b5d90df44fcbb219172eda5c2280875b562c187101d482a281aae05dd6",
+    "volume_ids": [
+      "9cb3cb65880b48aa83cc44e77b7347f1",
+      "ec65b2dabaf34090a14d497eca1125ac"
+    ],
+    "wallet_ids": [
+      "2b34b7f004ba45864cdb87ff5d85d2c3",
+      "ee6ccd48357557e5e84a7ce471730a85"
+    ]
+  },
+  "image": "sha256:f7f2da0df067aab6e4d80c32bd2bcbd9e9f80bb166c3849e7db77dd459312579",
+  "manifest_sha256": "8687d1138c4f492205177f1e525a06e23483229d8fc07f5119c948285318023e",
+  "result": "PASS",
+  "schema": "PQBTC-MLDSA44-PUBLIC-APP-FLOW-1",
+  "scope": "PRIVATE_TWO_CONTAINER_APP_FLOW_NOT_PUBLIC_SOAK",
+  "source_head": "52f26f31e2d8fcf52459f9cb2e9159564395f74a",
+  "source_tree": "d2e07ad8db149f6d3eac1cb15379d97e1484e2e6"
+}

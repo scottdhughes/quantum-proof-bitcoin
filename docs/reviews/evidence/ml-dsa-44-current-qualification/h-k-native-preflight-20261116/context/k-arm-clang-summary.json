@@ -1,0 +1,165 @@
+{
+  "architecture": "aarch64",
+  "clang_image_retained_at_seal": true,
+  "compiler": "clang",
+  "descriptor_file_sha256": "668d1abd651e1c9a116a3d9483e96d81559b7fb78b215144912046237bb6e3ef",
+  "docker_vm_architecture": "aarch64",
+  "emulated": false,
+  "files_sha256": {
+    "arm-clang-build.log": {
+      "bytes": 4375,
+      "sha256": "54e94c5a398255b1edb86e3df26f9034daa52fc74dbc9fa97f3a8474b19e7ecd"
+    },
+    "arm-clang-native-initial-identity.json": {
+      "bytes": 928,
+      "sha256": "70dafd06fa37493083bab759509c3ee32d94a0a8f9181e661d7d18945907ada0"
+    },
+    "arm-clang-native-output-seal.json": {
+      "bytes": 8771,
+      "sha256": "3efae4eec4aeb8c649d14f3deda1548471f9e53b56ab9e63b385667b433ee3c4"
+    },
+    "arm-clang-native-postpass-removal.json": {
+      "bytes": 1499,
+      "sha256": "2919e24ea4fb83485032bc61715cb144e1e7b099b20ddee0082692f475fad1b3"
+    },
+    "arm-clang-public-app.log": {
+      "bytes": 3678,
+      "sha256": "ccd622e96bb77193d8c15413f53ebac4389c7eb3ee78243d0dd47e1b0d3dc251"
+    },
+    "arm-clang-public-app/report.json": {
+      "bytes": 5141,
+      "sha256": "365fb895190144b799a9591094ecb8153b3eeb37d59c26ab6c6a89df4ffedec9"
+    },
+    "arm-clang-qualification.log": {
+      "bytes": 156,
+      "sha256": "505bed7305495c9246286350b55d38fc722e6ceb25c042f273fc55e08de91285"
+    },
+    "arm-clang-qualification/evidence-sha256.json": {
+      "bytes": 7960,
+      "sha256": "fef5ea88a1d6f05ebe68c7af1baf767f24cbc0bb67a9af20de60d6877eefdfde"
+    },
+    "arm-clang-qualification/node-resources.json": {
+      "bytes": 30723,
+      "sha256": "95959f832a56bf85e2279e3c583db8cd7f33da93c56bb313a446b98e92187d91"
+    },
+    "arm-clang-qualification/public-consensus-controls.json": {
+      "bytes": 12388,
+      "sha256": "97b4a73304f305810f5f9f867ef8fddb7cf20f5d499606695f526788f945b5a4"
+    },
+    "arm-clang-qualification/report.json": {
+      "bytes": 22620,
+      "sha256": "2219f0f9f623b18f61aa2290051f7ab9a7be505b7ca84dc14fd711c5c848675f"
+    },
+    "arm-clang-runtime.json": {
+      "bytes": 30523,
+      "sha256": "668d1abd651e1c9a116a3d9483e96d81559b7fb78b215144912046237bb6e3ef"
+    },
+    "arm-source-preexecution-20261116.json": {
+      "bytes": 2355,
+      "sha256": "9734eca73a1de6f5969cab32cfcbb054a9bc44feb858ca7ddeaa437244d027c4"
+    }
+  },
+  "image": "sha256:51aaad8474396b37da1dde0b94acab0b5cf1b47e93742a0d385dd2f91a0e541a",
+  "image_platform": {
+    "architecture": "arm64",
+    "os": "linux"
+  },
+  "manifest_sha256": "f11537ea3ac34d50766a4459e8b4d29092b16a7b0a050628c69f923011e8b62d",
+  "native_binaries_sha256": {
+    "/tmp/demo-signer-bin/pilot-signer": "88c53a7a3a26b306d588fd92348a2be546fa58d7a2b210b7104cfc9cf641af75",
+    "/tmp/mldsa-demo-build/bin/pqbtc-cli": "5110f8aa2cf6d9505e964ed0115bc3743ee541ea38ed7b50697f728b3435065a",
+    "/tmp/mldsa-demo-build/bin/pqbtc-mldsa-client": "b5a1fa16b7fed3d5b4177b1204b445422a1f7d2c73f9d4cfef40577895fa580d",
+    "/tmp/mldsa-demo-build/bin/pqbtcd": "f2031c7d3127a216e89c721d79287e8bccc5505ef65860f2d980b2d5c8f37492",
+    "/tmp/mldsa-demo-build/bin/test_pqbtc": "77742e9d2174882c7e33fa037a38bb18e5e14496ccf0677456235f266c17d7a3",
+    "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_consensus_controls.py": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c",
+    "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_native_qualification.py": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0",
+    "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_spend_restore.py": "0dfc691f58d8a1ad89719d6d962104a3899a56ba1ccdc72a1828e1d625c5e02a"
+  },
+  "native_checks": {
+    "actual-node-30-full-blocks-and-mempool-pressure": "PASS",
+    "actual-node-spend-old-record-restore": "PASS",
+    "actual-public-accepted-set-and-both-reindex-paths": "PASS",
+    "integration-asan-ubsan": "PASS",
+    "integration-normal": "PASS",
+    "key-lifecycle-normal-and-sanitized": "PASS",
+    "node-profile-and-resource-units": "PASS",
+    "signer-asan-ubsan": "PASS",
+    "signer-normal": "PASS"
+  },
+  "native_evidence_hashes_verified": 81,
+  "native_gate_count": 9,
+  "native_original_report_cleanup": "STOPPED_RETAINED",
+  "other_containers_or_prior_images_targeted": false,
+  "postpass_owned_native_container_removed": true,
+  "private_app": {
+    "clean_source_qualified": true,
+    "cleanup_errors": [],
+    "event_names": [
+      "two_fresh_private_containers_started",
+      "two_native_test_wallets_funded",
+      "confirmed_cross_container_send",
+      "confirmed_cross_container_send",
+      "unexpected_native_peer_disconnect_repaired",
+      "confirmed_cross_container_send",
+      "same_known_transaction_rebroadcast_after_rejoin",
+      "actual_signature_and_wrong_network_controls",
+      "durable_network_off_survived_native_reindex",
+      "chainstate_reindex_preserved_full_agreement",
+      "durable_network_off_survived_docker_restart",
+      "peer_policy_orphan_preserved_and_recovered_inactive",
+      "actual_docker_restart_and_public_orphan_recovery",
+      "actual_sigkill_restart_preserved_agreement",
+      "wrong_password_and_rechecksummed_corrupt_ciphertext_preserved_selected_record",
+      "confirmed_cross_container_send",
+      "old_backup_missing_both_records_recovered_and_spent"
+    ],
+    "independent_own_disposable_absence": {
+      "pqbtc-mldsa-public-ci-d1bb349922f9": {
+        "container_absent": true,
+        "own_disposable_volume_absent": true
+      },
+      "pqbtc-mldsa-public-ci-de3e3784706c": {
+        "container_absent": true,
+        "own_disposable_volume_absent": true
+      }
+    },
+    "peer_policy_recovered_off": {
+      "endpoints": [
+        "172.17.0.3:23833"
+      ],
+      "monotonic_ns": 1462633909882208,
+      "name": "peer_policy_orphan_preserved_and_recovered_inactive",
+      "network_active": false,
+      "original_sha256": "e3a1468eb1dd82c304cbc4b20f605dfa53bf6db3d5f6c2b8b39845f0d0ec6265",
+      "preserved": true
+    },
+    "result": "PASS",
+    "same_known_transaction_reannounce": {
+      "elapsed_seconds": 4.599555749911815,
+      "known_in_mempool": true,
+      "monotonic_ns": 1462621447380041,
+      "name": "same_known_transaction_rebroadcast_after_rejoin",
+      "raw_transaction_sha256": "38578e3da94b731ebcb3dc63ac9a39984038a73833d1ba1c827a74f10eaa1f5b",
+      "rebroadcast": true,
+      "reissued_payment": false,
+      "txid": "6169671561a41addbad2456597997af87ef10a9a80b7d775b05a58719e99d9b5"
+    }
+  },
+  "production_admitted": false,
+  "public_soak": false,
+  "resource": {
+    "node_peak_rss_bytes": 402030592,
+    "p95_wall_ns": 199524625,
+    "pressure_evicted": 17,
+    "samples": 30
+  },
+  "result": "PASS_NATIVE_AND_EXTENDED_PRIVATE_APP",
+  "schema": "PQBTC-K-ARM-CLANG-QUALIFICATION-SUMMARY-1",
+  "scope": "NATIVE_LINUX_AARCH64_CLANG_AND_PRIVATE_HTTP_FLOW_NOT_PUBLIC_SOAK",
+  "source": {
+    "head": "18430ea2cfcac66cca0e8612605db47a5c0e935b",
+    "pristine_after": true,
+    "tree": "d397b324f83b82017722073c3c53688e0765fb30"
+  },
+  "utc": "2026-11-16T19:05:50.948012+00:00"
+}

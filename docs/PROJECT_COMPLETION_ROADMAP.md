@@ -5,7 +5,8 @@ The April–July Track A roadmap remains historical. This roadmap builds on the
 [owner continuation](ML_DSA_44_OWNER_CONTINUATION.md), the implemented node
 integration, and the [durable local app](DURABLE_RUNTIME_VALIDATION.md).
 The [current qualification record](ML_DSA_44_CURRENT_QUALIFICATION.md) identifies
-the tested sources, completed public preflight and failed 24-hour soak attempt.
+the tested sources, completed public preflights and terminal full-duration
+attempts, including controlled source supersession.
 
 ## Owner direction
 
@@ -59,6 +60,12 @@ after release; it is not an undefined prerequisite to shipping v1.
   payments and final recovery/spend/cleanup. Its separate G 24-hour attempt
   failed after 16 hours 46 minutes when both nodes lost their sole connection.
   Neither failed attempt contributes elapsed credit to a new run.
+- H has three native profiles and K has all four Linux architecture/compiler
+  profiles, each with nine gates and the extended 17-event private HTTP flow.
+  K has 13 green CI runs/51 latest logical jobs. Its fresh H/K preflight passed
+  all seven faults, 22 payments and final recovery/spend/cleanup over 900 seconds.
+  The separate K run was deliberately stopped for a launcher correction;
+  its raw FAIL/KeyboardInterrupt and successful cleanup remain preserved.
 
 ## Build order and acceptance tests
 
@@ -87,18 +94,24 @@ runtime remains available for its original fixture; it is not the normal
 fresh-install prerequisite. See [clean-checkout validation](CLEAN_CHECKOUT_VALIDATION.md)
 and the [public wallet guide](../contrib/ml-dsa-console/PUBLIC_TEST.md).
 
-G has passing exact-source native and private app flows for Linux x86_64 and
-native Linux aarch64 with both GCC and Clang, plus 52 successful CI jobs across
-14 runs. F's earlier qualification and failed-soak evidence remain preserved.
+K has passing exact-source native and extended private app flows for Linux
+x86_64 and native Linux aarch64 with both GCC and Clang, plus 51 successful
+latest logical CI jobs across 13 runs. H baseline receipts are also complete
+for the used GCC images. F/G qualification and failed-soak evidence remain preserved.
 The dedicated TEST accepted-set, reindex and measured resource-bound checks are
 implemented. The current qualification record binds these observations to their
 sources and exclusions; inherited/default network rules retain their meaning.
 
 ## Remaining execution
 
-1. Qualify the TLS forwarding, durable peer maintenance and known-transaction
-   recovery fixes, then complete a fresh public preflight and separate fresh
-   24-hour public TEST soak. G fixed growing transaction-poll overhead, but its
+1. Qualify the public launcher's Docker-readiness ordering correction, including
+   one-click recovery with a surviving HTTP server while Desktop is stopped or
+   restarting. H/K qualified the TLS forwarding, durable peer maintenance and
+   known-transaction fixes and completed their fresh preflight. K's separate
+   24-hour run was deliberately superseded before completion when this launcher
+   gap was found. Repeat exact-source qualification and a fresh preflight,
+   then complete a separate fresh 24-hour public TEST soak. G fixed growing
+   transaction-poll overhead, but its
    separate run failed after 16 hours 46 minutes with both peers disconnected;
    the earlier F run failed after approximately 21 hours. Preserve the live
    failure and independently reproduced TLS defect as distinct observations.

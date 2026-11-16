@@ -70,6 +70,8 @@ def main(argv=None):
     identity = {"schema": "PQBTC-MLDSA44-PUBLIC-CONSOLE-1", "profile_sha256": PROFILE,
                 "state_id": hashlib.sha256(str(args.state_dir.resolve()).encode()).hexdigest(), "container": args.container}
     url = "http://127.0.0.1:" + str(args.port)
+    if not args.docker_sudo:
+        source._legacy.RuntimeManager(container=args.container)._daemon(print)
     # Reopening never spawns a second signer or competes for its writer lock.
     if not (args.upgrade_descriptor or args.rollback_descriptor) and app.reopen_existing(
             url, identity, autostart=not args.no_autostart, max_bytes=2 * 1024 * 1024):
@@ -78,8 +80,6 @@ def main(argv=None):
         print("ML-DSA public-test console: " + url, flush=True)
         return
     docker = ("sudo", "-n", "docker") if args.docker_sudo else ("docker",)
-    if not args.docker_sudo:
-        source._legacy.RuntimeManager(container=args.container)._daemon(print)
     descriptor = source.load_descriptor(args.runtime_descriptor) if args.runtime_descriptor else None
     if descriptor is None and not (args.state_dir / "public-runtime.json").exists():
         if args.docker_sudo:

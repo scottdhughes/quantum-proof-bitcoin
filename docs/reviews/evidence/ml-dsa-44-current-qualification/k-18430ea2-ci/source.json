@@ -1,0 +1,240 @@
+{
+  "availability_history_summary": {
+    "actual_Mac_retry_results": {
+      "GUI": "PASS",
+      "fuzz": "PASS"
+    },
+    "advisory_retry_result": "PASS",
+    "anonymous_advisory_quota_original": "HTTP403/curl22 retained; exact unauthenticated request contract unchanged.",
+    "executed_Mac_capacity_retries": {
+      "GUI": 1,
+      "fuzz": 1
+    },
+    "executed_advisory_availability_retries": 1,
+    "original_Mac_capacity_cancellations": 2,
+    "original_and_retry_details_or_external_hash_references_retained_in_report": true,
+    "rejected_API_calls": 2,
+    "rejected_API_calls_count_as_executed_retries": false
+  },
+  "derived_files": {
+    ".gitattributes": "Generated scoped byte-preservation policy.",
+    "readme.md": "Derived presentation and standard-library offline verification instructions.",
+    "sha256sums": "Generated SHA256 inventory of the four other local members.",
+    "source.json": "Generated provenance/index; not an original CI output."
+  },
+  "derived_verifier_repair": {
+    "changes": "Only derived readme/source/checksum changed: isolated Python command and explicit optimization refusal. Exact report bytes and scoped attributes unchanged.",
+    "previous_readme_sha256": "9401a1b119f70d94aab27f1066d9a3cb191cf32a9bd8c16ee6723d9fd338c4d7",
+    "previous_sha256sums_sha256": "284d3cfcd9869646d5680a4384bbb1c9dd9628b50cc11355b047d195cee38b7f",
+    "previous_source_sha256": "bb3c7634baff1fbea314df365a00d6dd1be18e57a8b4e93f7e562c8ebc0d996a",
+    "raw_report_unchanged": true
+  },
+  "external_closure_boundary": "Referenced external custody/history files and their auxiliaries are not local packet members. The unchanged report embeds selected history details and records their hashes; this compact packet does not claim closure of all51 original custody files.",
+  "external_history_references": {
+    "advisory-attempt1-fetch-failure-diagnosis.json": {
+      "bytes": 4780,
+      "copied_into_this_packet": false,
+      "custody_root_relative_path": "candidate-k/github/advisory-attempt1-fetch-failure-diagnosis.json",
+      "sha256": "ecca7957a584579e37c1c0e1111e6107ea5180fe36819cef562bdd287c0883f2"
+    },
+    "advisory-attempt1-snapshot.json": {
+      "bytes": 7743,
+      "copied_into_this_packet": false,
+      "custody_root_relative_path": "candidate-k/github/advisory-attempt1-snapshot.json",
+      "sha256": "735f4f94ccffc6a8d7c699c3034be573f38139caa16ca99cd89decf99faa9f2b"
+    },
+    "advisory-attempt2-feed-success.json": {
+      "bytes": 71050,
+      "copied_into_this_packet": false,
+      "custody_root_relative_path": "candidate-k/github/advisory-attempt2-feed-success.json",
+      "sha256": "d024e05c9e5371eea5741a5651459f6f2e88f4dc07384c0ca43bf459441c5de4"
+    },
+    "advisory-attempt2-success-snapshot.json": {
+      "bytes": 9015,
+      "copied_into_this_packet": false,
+      "custody_root_relative_path": "candidate-k/github/advisory-attempt2-success-snapshot.json",
+      "sha256": "235392ad1f64ee861e26f914b5bd06e1e9e2820dfe7b61fc2d1dca160bb7d1b3"
+    },
+    "advisory-one-authorized-job-retry.json": {
+      "bytes": 1347,
+      "copied_into_this_packet": false,
+      "custody_root_relative_path": "candidate-k/github/advisory-one-authorized-job-retry.json",
+      "sha256": "3632ae218c4824f4289d12e717f18ff661fb8b5ea2bb7a66a156acfdd76db59a"
+    },
+    "macos-GUI-current-attempt-id-rejection.json": {
+      "bytes": 1792,
+      "copied_into_this_packet": false,
+      "custody_root_relative_path": "candidate-k/github/macos-GUI-current-attempt-id-rejection.json",
+      "sha256": "96840b5f623eb304bf531c5c83d966c86a502a5f3bd97f7dfd5e7ff195cadc32"
+    },
+    "macos-GUI-one-authorized-capacity-retry.json": {
+      "bytes": 1033,
+      "copied_into_this_packet": false,
+      "custody_root_relative_path": "candidate-k/github/macos-GUI-one-authorized-capacity-retry.json",
+      "sha256": "f9a8a425e7274c53811312807e484ecd660ce9d4ac2e8b4bfd876a0092dd084c"
+    },
+    "macos-capacity-retry-api-deferral.json": {
+      "bytes": 1324,
+      "copied_into_this_packet": false,
+      "custody_root_relative_path": "candidate-k/github/macos-capacity-retry-api-deferral.json",
+      "sha256": "8bd92e633ae2519ac77cc71511029d93c1929024dcfeba7ec0e33ff94745e30e"
+    },
+    "macos-fuzz-one-authorized-capacity-retry.json": {
+      "bytes": 997,
+      "copied_into_this_packet": false,
+      "custody_root_relative_path": "candidate-k/github/macos-fuzz-one-authorized-capacity-retry.json",
+      "sha256": "68870385566b3e742f710bec80fc2b48b67991ca9a04e38e1c4e45e61778ce4b"
+    },
+    "macos-fuzz-retry-runner-acquired.json": {
+      "bytes": 2823,
+      "copied_into_this_packet": false,
+      "custody_root_relative_path": "candidate-k/github/macos-fuzz-retry-runner-acquired.json",
+      "sha256": "7952cb48a8a563c066c9ffad1824303be6f7e4d59356a646f6a9ca4b56d8e7d4"
+    },
+    "matrix-attempt1-macos-capacity-cancellations.json": {
+      "bytes": 5570,
+      "copied_into_this_packet": false,
+      "custody_root_relative_path": "candidate-k/github/matrix-attempt1-macos-capacity-cancellations.json",
+      "sha256": "f9cff9bfc373c657bcca28c2ebdd4e590334c6b087e742bd5825db53861f79f9"
+    },
+    "matrix-attempt1-terminal-snapshot.json": {
+      "bytes": 75053,
+      "copied_into_this_packet": false,
+      "custody_root_relative_path": "candidate-k/github/matrix-attempt1-terminal-snapshot.json",
+      "sha256": "c4bb2f2a2fb3b38d6ccb8c451d2b04a92b7b5597081c88731441b8f78550fc6d"
+    },
+    "matrix-attempt2-terminal-snapshot.json": {
+      "bytes": 81815,
+      "copied_into_this_packet": false,
+      "custody_root_relative_path": "candidate-k/github/matrix-attempt2-terminal-snapshot.json",
+      "sha256": "f156a19051af5ae95aacf4dccf226695f23d024896f61ba25609aedb8c48bae3"
+    },
+    "matrix-attempt3-terminal-success.json": {
+      "bytes": 85170,
+      "copied_into_this_packet": false,
+      "custody_root_relative_path": "candidate-k/github/matrix-attempt3-terminal-success.json",
+      "sha256": "5dc11a75e3f9fed9423a491b6f5964236a91241c9cce8eee12e2a307033afe8d"
+    }
+  },
+  "external_original_custody_inventory": {
+    "bytes": 5748,
+    "copied_into_this_packet": false,
+    "recorded_file_count": 51,
+    "root_relative_path": "candidate-k/github/CI-EVIDENCE-SHA256SUMS",
+    "sha256": "832dc5bd893130a064372b73dbfd7c89ad23d1695aa29190bb56f0628fa4c3c5"
+  },
+  "generated_at_utc": "2026-11-16T20:50:55.183104+00:00",
+  "latest_logical_inventory": {
+    "jobs": 51,
+    "matrix_jobs": 22,
+    "non_matrix_jobs": 29,
+    "non_matrix_runs": 12,
+    "runs": 13
+  },
+  "local_packet": {
+    "byte_preservation": "* -text",
+    "checksum_members": 4,
+    "file_count": 5,
+    "members": [
+      ".gitattributes",
+      "readme.md",
+      "report.json",
+      "sha256sums",
+      "source.json"
+    ],
+    "payload_sizes_and_hashes": {
+      ".gitattributes": {
+        "bytes": 8,
+        "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
+      },
+      "readme.md": {
+        "bytes": 5395,
+        "sha256": "4a630e3eea7be89c01c68570b148c8fc142af32465270faa576a6c281b706892"
+      },
+      "report.json": {
+        "bytes": 223222,
+        "sha256": "08bfcb22321ce0fc9a3b93cde46a1b2ffea9837e8523065b4ffe40468b3dedb6"
+      }
+    },
+    "sha256sums_hash": "External sealing root returned to integrator; not embedded self-referentially.",
+    "source_json_hash": "Provided by sha256sums; not embedded self-referentially."
+  },
+  "manual_assembled_export_scope": {
+    "Clang": "PASS",
+    "GCC": "PASS",
+    "GCC_export_identity_verification": "PASS",
+    "architecture": "Linux x86_64",
+    "attempt": 1,
+    "image_not_loaded_or_executed_by_CI_verifier": true,
+    "native_and_private_app_flow": "PASS",
+    "referenced_auxiliary_files_and_archives_copied": false,
+    "run_id": 43931134439
+  },
+  "offline_validation": {
+    "actual_Mac_retry_execution_receipts": "PASS",
+    "bounded_source_run_job_semantics": "PASS",
+    "byte_tamper_control": "REJECTED_BY_PINNED_SHA256",
+    "optimization_safety": {
+      "PYTHONOPTIMIZE_environment_policy": "Ignored by isolated -I mode; positive environment-isolation test included in final offline validation.",
+      "documented_command": "python3 -I -B -",
+      "explicit_non_assert_guard": "if not __debug__: raise SystemExit('Optimized Python refused')",
+      "explicit_optimized_interpreter_control": {
+        "VERIFIED_output_present": false,
+        "command": "python3 -I -O -B -",
+        "exit_status": 1,
+        "result": "REFUSED",
+        "stderr": "Optimized Python refused"
+      },
+      "guard_precedes_all_assert_checks": true,
+      "original_verification_AST_unchanged_after_guard": true
+    },
+    "original_report_byte_identity": "PASS",
+    "private_field_and_credential_signed_URL_review": "No matching private object fields, credential material or signed URLs in report; no extra original input files opened.",
+    "semantic_negative_controls": [
+      {
+        "control": "wrong_source",
+        "result": "REJECTED"
+      },
+      {
+        "control": "wrong_count",
+        "result": "REJECTED"
+      },
+      {
+        "control": "hidden_job_failure",
+        "result": "REJECTED"
+      },
+      {
+        "control": "unexecuted_gui_claim",
+        "result": "REJECTED"
+      },
+      {
+        "control": "extra_retry",
+        "result": "REJECTED"
+      }
+    ]
+  },
+  "original_report": {
+    "bytes": 223222,
+    "custody_scope": "EXTERNAL_TASK_EVIDENCE_ROOT",
+    "packet_path": "report.json",
+    "root_relative_path": "github/K-18430ea2-all-CI.json",
+    "sha256": "08bfcb22321ce0fc9a3b93cde46a1b2ffea9837e8523065b4ffe40468b3dedb6",
+    "transform": "NONE"
+  },
+  "result": "PASS",
+  "schema": "PQBTC-K-COMPACT-PUBLIC-CI-PACKET-1",
+  "scope": "EXACT_SOURCE_GITHUB_ACTIONS_LATEST_LOGICAL_CI_JOBS_AND_VERIFIED_ASSEMBLED_LINUX_X86_64_NATIVE_PRIVATE_APP_REPORTS",
+  "scope_boundaries": {
+    "completed_24_hour_public_soak_claimed": false,
+    "independent_human_cryptographic_review": "NOT_ESTABLISHED",
+    "new_CI_polling_dispatch_or_rerun_performed": false,
+    "production_admission_claimed": false,
+    "public_soak_elapsed_seconds_credited": 0,
+    "publication_or_commit_performed": false,
+    "source_or_runtime_change_performed": false
+  },
+  "source_subject": {
+    "head": "18430ea2cfcac66cca0e8612605db47a5c0e935b",
+    "tree": "d397b324f83b82017722073c3c53688e0765fb30"
+  }
+}

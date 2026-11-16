@@ -1,0 +1,100 @@
+{
+  "Research_operations_by_reviewer": false,
+  "all7faults_completed": false,
+  "attempt_state_preserved": true,
+  "both_owned_backends_stopped": true,
+  "classification": "CONTROLLED_SOURCE_SUPERSESSION_NOT_OBSERVED_NETWORK_WORKLOAD_FAILURE",
+  "cleanup_ok": true,
+  "completed_faults": [
+    {
+      "finished_elapsed": 7215.229271166958,
+      "name": "crash",
+      "recovery_payment": {
+        "block_hash": "05bd572a105838eaff19779cac4858b855a273f192f79e546e21ea6395905079",
+        "completed_elapsed": 7214.852242042078,
+        "receiver": "mac",
+        "recipient_in_mempool": true,
+        "recipient_relay_seconds": 4.2847642078995705,
+        "sender": "research",
+        "settle_seconds": 5.012982416898012,
+        "started_elapsed": 7209.839258250082,
+        "txid": "9357ade623fbeb73e4bb08545df785e2b940f640cd9f00371d8213ef5138626f"
+      },
+      "result": "PASS",
+      "started_elapsed": 7200.0051028330345
+    }
+  ],
+  "confirmed_unique_payments": 146,
+  "coordinator_start_sha256": "b375ce769f8cc48d5c5d0ba82466848405ef80c4699ab4d0319c51370e2607c0",
+  "event_chain": {
+    "clock_boundaries": {
+      "public_clock_started": {
+        "data": {
+          "duration_seconds": 86400,
+          "public_probe": {
+            "certificate_sha256": "82dac8876ffe34291908e339d82e2020efa49cb5698c6bb25feb02be20581beb",
+            "commands": [
+              "version",
+              "wtxidrelay",
+              "sendaddrv2",
+              "verack"
+            ],
+            "elapsed_seconds": 0.10460204188711941,
+            "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+            "native_magic": "a7e29cf7",
+            "port": 443,
+            "public_peer_ip": "209.177.145.97",
+            "remote_height": 205,
+            "remote_protocol": 70016,
+            "remote_subversion": "/PQBTC:30.2.0/",
+            "result": "PASS",
+            "scope": "ANONYMOUS_PUBLIC_TLS_NATIVE_P2P_HANDSHAKE_ONLY",
+            "tls_version": "TLSv1.3"
+          }
+        },
+        "monotonic_ns": 1465698268773958,
+        "utc": "2026-11-16T19:55:36.167124+00:00"
+      }
+    },
+    "count": 16164,
+    "last_sha256": "901696799226493de6374dadbd08bbd196f2eae9e425efb60aaf5e14ed48b850"
+  },
+  "event_count": 16164,
+  "final_postclock_recovery_and_spend_claimed": false,
+  "full_clock_completed": false,
+  "next_required": "Qualified fixedsourceL, fresh900spreflight and separatefresh86400ssoak fromzero.",
+  "normal_slots": {
+    "missed": 0,
+    "outcomes": 143,
+    "p95_settle_seconds": 14.270504208980128,
+    "successful": 143
+  },
+  "observed_workload_failure_before_operator_stop": false,
+  "original_public_evidence_sha256": {
+    "declaration.json": "fc8f307029b78066524135496bc082e27cf6b74afbf1c972374ae67e40b213ef",
+    "events.jsonl": "a066dae093c048baa1402a19e248efe1e12abea84585fd004fde78dc50671950",
+    "evidence-sha256.json": "333b56d14acc726b881ecbccb4ded922e12a941095d999f9003fb2d3194d2a41",
+    "report.json": "8d3faf0eb5ae1e4fd72201fa188e8c3411bc811487c1fa34ad67e991d3df2ea3"
+  },
+  "partial_clock_to_interrupt": {
+    "monotonic_seconds": 8577.963417083,
+    "wall_seconds": 8578.000737
+  },
+  "prior_preflight_credit_seconds": 0,
+  "production_admitted": false,
+  "public_24h_soak_credit_seconds": 0,
+  "public_route_configuration_retained": true,
+  "raw_error_class": "KeyboardInterrupt",
+  "raw_result_unchanged": "FAIL",
+  "required_duration_seconds": 86400,
+  "schema": "PQBTC-K-CONTROLLED-SUPERSESSION-INDEPENDENT-AUDIT-1",
+  "source": {
+    "driver_sha256": "6668f219acff79a25161d57bf505a3204ab50ef434adbb3487f913f0f913a6d0",
+    "head": "18430ea2cfcac66cca0e8612605db47a5c0e935b",
+    "tree": "d397b324f83b82017722073c3c53688e0765fb30"
+  },
+  "source_or_output_modified": false,
+  "stop_request_before_interrupt_event": true,
+  "stop_request_sha256": "c0718068aa74757a73cee1ed63570327c469b78c2e99a765575c9770971d8699",
+  "utc": "2026-11-16T22:22:41.436098+00:00"
+}
