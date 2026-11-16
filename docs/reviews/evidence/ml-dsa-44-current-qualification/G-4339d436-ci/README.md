@@ -10,7 +10,7 @@ three push runs, and two manual workflow dispatches.
 
 This CI result belongs only to G. It supplies **no H/I qualification credit**, no
 public-soak PASS, and no production admission. G's separate 24-hour public attempt
-failed; the [failed-attempt packet](../../ml-dsa-44-public-soak/G-4339d436-attempt02/SOURCE.json)
+failed; the [failed-attempt packet](../../ml-dsa-44-public-soak/g-4339d436-attempt02/SOURCE.json)
 retains its own terminal result and zero elapsed credit. The separate
 [G native/preflight packet](../G-4339d436/SOURCE.json) preserves its distinct native
 and 900-second preflight evidence. CI jobs do not replace those source/binary/run
