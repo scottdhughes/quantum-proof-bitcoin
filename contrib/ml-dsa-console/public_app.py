@@ -21,7 +21,8 @@ def validate_action(value):
     action, params, request_id = value["action"], value["params"], value["request_id"]
     allowed = {"start": set(), "stop": set(), "setup": {"password"}, "unlock": {"password"}, "lock": set(),
                "receive": set(), "send": {"address", "amount_sats", "fee_sats"}, "mine": {"blocks", "address"},
-               "fund": {"address"}, "backup": set(), "recover": {"backup_id", "password"}, "peer": {"endpoint"}, "bootstrap": set()}
+               "fund": {"address"}, "backup": set(), "recover": {"backup_id", "password"}, "peer": {"endpoint"},
+               "network": {"active"}, "bootstrap": set()}
     if (type(action) is not str or type(params) is not dict or action not in allowed or set(params) - allowed[action] or
             type(request_id) is not str or not re.fullmatch(r"[A-Za-z0-9_-]{12,80}", request_id)):
         raise ValueError("Invalid public action, parameters or request ID")
@@ -44,6 +45,8 @@ def validate_action(value):
         endpoint = params.get("endpoint")
         if type(endpoint) is not str or not 3 <= len(endpoint) <= 255 or not endpoint.isascii() or any(c.isspace() for c in endpoint):
             raise ValueError("Enter a P2P host:port endpoint")
+    if action == "network" and type(params.get("active")) is not bool:
+        raise ValueError("Choose pause or resume networking")
     return action, params, request_id
 
 

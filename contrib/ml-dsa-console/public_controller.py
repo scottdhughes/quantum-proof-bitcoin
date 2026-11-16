@@ -674,13 +674,14 @@ class PublicController(Files):
                    "receive": set(), "send": {"address", "amount_sats", "fee_sats"}, "mine": {"address", "blocks"},
                    "fund": {"address"}, "backup": set(), "recover": {"backup_id", "password"}, "peer": {"endpoint"},
                    "network": {"active"}, "reindex": set(), "crash": set(), "adverse": set(), "bootstrap": set(), "clear_bans": set(),
-                   "transaction": {"txid", "block_hash"}, "sample": set(), "upgrade": {"descriptor"}, "rollback": {"descriptor"}}
+                   "transaction": {"txid", "block_hash"}, "peer_status": set(), "rebroadcast": {"txid"},
+                   "sample": set(), "upgrade": {"descriptor"}, "rollback": {"descriptor"}}
         require(type(action) is str and type(params) is dict and action in allowed and set(params) <= allowed[action], "Unsupported public console action or parameters")
         # The owned soak polls exact transaction membership frequently. A full
         # UI refresh scans every owned Coin and needlessly grows poll latency.
-        # Keep the default UI response and every mutating action unchanged.
-        require(type(include_status) is bool and (include_status or action == "transaction"),
-                "Only transaction membership queries may omit wallet status")
+        # Keep the default UI response and all address-consuming actions intact.
+        require(type(include_status) is bool and (include_status or action in ("transaction", "peer_status", "rebroadcast")),
+                "Only peer/transaction queries and known reannouncements may omit wallet status")
         with self._mutex:
             self._reconcile_handles()
             if action == "start":

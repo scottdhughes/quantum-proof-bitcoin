@@ -1,10 +1,19 @@
 """Bounds and actual byte forwarding for the explicit public P2P adapter."""
 import importlib.util
 import errno
+from contextlib import redirect_stdout
+from datetime import datetime, timezone
+import io
+import json
+import os
 from pathlib import Path
+import queue
 import socket
+import ssl
 import struct
+import subprocess
 import sys
+import tempfile
 import threading
 import time
 import unittest
@@ -18,6 +27,319 @@ SPEC.loader.exec_module(transport)
 
 
 class PublicTransportTests(unittest.TestCase):
+    def tls_pair(self, tickets=0):
+        """Real certificate-checked localhost TLS, using only a disposable key."""
+        temporary = tempfile.TemporaryDirectory(prefix="pqbtc-tls-unit-")
+        self.addCleanup(temporary.cleanup)
+        directory = Path(temporary.name)
+        config, certificate, key = (directory / name for name in ("localhost.cnf", "certificate.pem", "key.pem"))
+        config.write_text("[req]\ndistinguished_name=dn\nx509_extensions=ext\nprompt=no\n"
+                          "[dn]\nCN=localhost\n[ext]\nsubjectAltName=DNS:localhost\n"
+                          "basicConstraints=critical,CA:TRUE\nkeyUsage=critical,digitalSignature,keyEncipherment,keyCertSign\n")
+        subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-sha256", "-days", "1",
+                        "-config", str(config), "-keyout", str(key), "-out", str(certificate)],
+                       check=True, capture_output=True, timeout=10,
+                       env={"PATH": os.environ["PATH"], "LANG": "C", "OPENSSL_CONF": "/dev/null"})
+        server_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        server_context.minimum_version = server_context.maximum_version = ssl.TLSVersion.TLSv1_3
+        server_context.load_cert_chain(certificate, key)
+        server_context.num_tickets = tickets
+        client_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        client_context.minimum_version = client_context.maximum_version = ssl.TLSVersion.TLSv1_3
+        client_context.load_verify_locations(cafile=certificate)
+
+        class ObservedTLS(ssl.SSLSocket):
+            def recv(inner, size=1024, flags=0):
+                if hasattr(inner, "recv_entered"):
+                    inner.recv_entered.set()
+                return super().recv(size, flags)
+
+        client_context.sslsocket_class = ObservedTLS
+        accepted = queue.Queue()
+        listener = socket.socket()
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(1)
+        listener.settimeout(2)
+
+        def accept():
+            try:
+                raw, _address = listener.accept()
+                raw.settimeout(2)
+                accepted.put(server_context.wrap_socket(raw, server_side=True))
+            except BaseException as error:
+                accepted.put(error)
+
+        worker = threading.Thread(target=accept, daemon=True)
+        worker.start()
+        raw = socket.create_connection(listener.getsockname(), timeout=2)
+        remote = client_context.wrap_socket(raw, server_hostname="localhost")
+        server = accepted.get(timeout=2)
+        listener.close()
+        worker.join(2)
+        self.assertFalse(worker.is_alive())
+        if isinstance(server, BaseException):
+            raise server
+        self.addCleanup(remote.close)
+        self.addCleanup(server.close)
+        remote.recv_entered = threading.Event()
+        server.settimeout(1.5)
+        return remote, server
+
+    @staticmethod
+    def exact(connection, count):
+        data = bytearray()
+        while len(data) < count:
+            part = connection.recv(count - len(data))
+            if not part:
+                break
+            data.extend(part)
+        return bytes(data)
+
+    def relay_thread(self, local, remote, peers, *, lifetime=4, **kwargs):
+        state = {}
+
+        def run():
+            try:
+                state["result"] = transport.relay(local, remote, time.monotonic() + lifetime, **kwargs)
+            except BaseException as error:
+                state["error"] = type(error).__name__
+            finally:
+                local.close()
+                remote.close()
+
+        worker = threading.Thread(target=run, daemon=True)
+        worker.start()
+
+        def cleanup():
+            for peer in peers:
+                try:
+                    peer.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
+                peer.close()
+            worker.join(2)
+            self.assertFalse(worker.is_alive(), "Owned relay fixture failed to stop")
+        self.addCleanup(cleanup)
+        return state, worker
+
+    def test_tls13_control_records_do_not_block_opposite_direction(self):
+        remote, server = self.tls_pair(tickets=2)
+        self.assertEqual(remote.pending(), 0)
+        self.assertTrue(transport.select.select([remote], [], [], 1)[0], "TLS session tickets were not queued")
+        client, local = socket.socketpair()
+        client.settimeout(1.5)
+        state, worker = self.relay_thread(local, remote, (client, server))
+        self.assertTrue(remote.recv_entered.wait(1))
+        outbound = transport.frame(b"inv", b"\x01" + (5).to_bytes(4, "little") + bytes([51]) * 32)
+        client.sendall(outbound)
+        try:
+            observed = self.exact(server, len(outbound))
+        except TimeoutError:
+            self.fail("TLS control-only readability blocked the queued local INV")
+        self.assertEqual(observed, outbound)
+        inbound = b"reply spanning TLS records" * 2200
+        server.sendall(inbound)
+        self.assertEqual(self.exact(client, len(inbound)), inbound)
+        client.shutdown(socket.SHUT_WR)
+        worker.join(2)
+        self.assertFalse(worker.is_alive())
+        self.assertNotIn("error", state)
+        self.assertEqual(state["result"]["bytes"], [len(outbound), len(inbound)])
+
+    def test_tls_pending_plaintext_is_drained_without_kernel_readability(self):
+        remote, server = self.tls_pair()
+        payload = b"already decrypted plaintext" * 300
+        server.sendall(payload)
+        first = remote.recv(1)
+        self.assertGreater(remote.pending(), 0)
+        self.assertFalse(transport.select.select([remote], [], [], 0)[0])
+        client, local = socket.socketpair()
+        client.settimeout(1.5)
+        state, worker = self.relay_thread(local, remote, (client, server))
+        self.assertEqual(first + self.exact(client, len(payload) - 1), payload)
+        client.shutdown(socket.SHUT_WR)
+        worker.join(2)
+        self.assertNotIn("error", state)
+
+    def test_tls_multirecord_chunks_are_written_completely_in_both_directions(self):
+        remote, server = self.tls_pair()
+        client, local = socket.socketpair()
+        client.settimeout(1.5)
+        state, worker = self.relay_thread(local, remote, (client, server))
+        for sender, receiver, payload in ((client, server, b"outbound opaque bytes" * 12000),
+                                           (server, client, b"inbound opaque bytes" * 11000)):
+            errors = []
+
+            def send():
+                try:
+                    sender.sendall(payload)
+                except BaseException as error:
+                    errors.append(type(error).__name__)
+
+            writer = threading.Thread(target=send, daemon=True)
+            writer.start()
+            self.assertEqual(self.exact(receiver, len(payload)), payload)
+            writer.join(2)
+            self.assertFalse(writer.is_alive())
+            self.assertEqual(errors, [])
+        client.shutdown(socket.SHUT_WR)
+        worker.join(2)
+        self.assertNotIn("error", state)
+        self.assertEqual(state["result"]["bytes"], [252000, 220000])
+
+    def test_tls_control_only_traffic_preserves_idle_and_lifetime_bounds(self):
+        for lifetime, idle, reason in ((2, 0.1, "idle_deadline"), (0.1, 2, "lifetime_deadline")):
+            with self.subTest(reason=reason):
+                remote, server = self.tls_pair(tickets=2)
+                self.assertTrue(transport.select.select([remote], [], [], 1)[0])
+                client, local = socket.socketpair()
+                began = time.monotonic()
+                state, worker = self.relay_thread(local, remote, (client, server), lifetime=lifetime, idle_seconds=idle)
+                worker.join(0.6)
+                self.assertFalse(worker.is_alive(), "TLS control records defeated the declared close bound")
+                self.assertLess(time.monotonic() - began, 0.6)
+                self.assertEqual(state.get("result", {}).get("reason"), reason)
+                self.assertEqual(state["result"]["bytes"], [0, 0])
+
+    def test_tls_want_write_read_retries_on_write_readiness(self):
+        client, local = socket.socketpair()
+        remote, peer = socket.socketpair()
+        payload = b"plaintext after TLS write readiness"
+
+        class WantWriteSocket:
+            buffered = None
+            def fileno(inner): return remote.fileno()
+            def settimeout(inner, timeout): remote.settimeout(timeout)
+            def close(inner): remote.close()
+            def sendall(inner, value): remote.sendall(value)
+            def recv(inner, size):
+                if inner.buffered is None:
+                    inner.buffered = remote.recv(size)
+                    raise ssl.SSLWantWriteError(ssl.SSL_ERROR_WANT_WRITE, "TLS read requires write readiness")
+                if inner.buffered:
+                    result, inner.buffered = inner.buffered[:size], inner.buffered[size:]
+                    return result
+                return remote.recv(size)
+
+        peer.sendall(payload)
+        client.settimeout(1.5)
+        state, worker = self.relay_thread(local, WantWriteSocket(), (client, peer))
+        self.assertEqual(self.exact(client, len(payload)), payload)
+        client.shutdown(socket.SHUT_WR)
+        worker.join(2)
+        self.assertNotIn("error", state)
+        self.assertEqual(state["result"]["bytes"], [0, len(payload)])
+
+    def test_repeated_want_write_cannot_evade_idle_or_lifetime_close(self):
+        for lifetime, idle, reason in ((2, 0.1, "idle_deadline"), (0.1, 2, "lifetime_deadline")):
+            with self.subTest(reason=reason):
+                client, local = socket.socketpair()
+                remote, peer = socket.socketpair()
+
+                class StillWantsWrite:
+                    first = True
+                    def fileno(inner): return remote.fileno()
+                    def settimeout(inner, timeout): remote.settimeout(timeout)
+                    def close(inner): remote.close()
+                    def recv(inner, size):
+                        if inner.first:
+                            remote.recv(size)
+                            inner.first = False
+                        raise ssl.SSLWantWriteError(ssl.SSL_ERROR_WANT_WRITE, "TLS operation remains write-ready")
+
+                peer.sendall(b"control")
+                state, worker = self.relay_thread(local, StillWantsWrite(), (client, peer),
+                                                  lifetime=lifetime, idle_seconds=idle)
+                worker.join(0.6)
+                self.assertFalse(worker.is_alive(), "Repeated WANT_WRITE escaped its close bound")
+                self.assertEqual(state.get("result", {}).get("reason"), reason)
+                self.assertEqual(state["result"]["bytes"], [0, 0])
+
+    def test_timeout_restoration_does_not_mask_the_original_receive_error(self):
+        client, local = socket.socketpair()
+        remote, peer = socket.socketpair()
+        for connection in (client, local, remote, peer):
+            self.addCleanup(connection.close)
+
+        class ResetThenClosed:
+            failed = False
+            def fileno(inner): return remote.fileno()
+            def settimeout(inner, timeout):
+                if inner.failed:
+                    raise OSError(errno.EBADF, "Concurrent close during timeout restoration")
+                remote.settimeout(timeout)
+            def recv(inner, size):
+                remote.recv(size)
+                inner.failed = True
+                raise ConnectionResetError("Original receive failure")
+
+        peer.sendall(b"control")
+        with self.assertRaises(OSError) as error:
+            transport.relay(local, ResetThenClosed(), time.monotonic() + 2)
+        self.assertIs(type(error.exception), ConnectionResetError)
+        self.assertEqual(getattr(error.exception, "_pqbtc_close_side", None), "public_tls")
+
+    def test_ambiguous_partial_sendall_is_not_replayed_and_logs_only_side_and_class(self):
+        client, local = socket.socketpair()
+        remote, peer = socket.socketpair()
+        self.addCleanup(client.close)
+        self.addCleanup(local.close)
+        self.addCleanup(remote.close)
+        self.addCleanup(peer.close)
+
+        class PartialWrite:
+            def fileno(inner): return remote.fileno()
+            def settimeout(inner, timeout): remote.settimeout(timeout)
+            def recv(inner, size): return remote.recv(size)
+            def sendall(inner, value):
+                remote.sendall(value[:3])
+                raise TimeoutError("uncontrolled private exception text")
+
+        endpoint = transport.PublicEndpoint("public.example.org", 443, ("1.1.1.1",))
+        output = io.StringIO()
+        client.sendall(b"abcdef")
+        with transport.Bridge(self.bridge_port(), endpoint, time.monotonic() + 3) as bridge, redirect_stdout(output):
+            try:
+                transport.relay(local, PartialWrite(), time.monotonic() + 2)
+            except TimeoutError:
+                bridge.handle_error(local, ("127.0.0.1", 1))
+            else:
+                self.fail("Ambiguous partial write was accepted")
+        remote.shutdown(socket.SHUT_WR)
+        self.assertEqual(self.exact(peer, 100), b"abc")
+        value = json.loads(output.getvalue())
+        self.assertEqual(value.get("close_side"), "public_tls")
+        self.assertEqual(value.get("error_class"), "TimeoutError")
+        self.assertNotIn("uncontrolled private exception text", output.getvalue())
+        self.assertLessEqual(len(value["utc"]), 40)
+        self.assertEqual(datetime.fromisoformat(value["utc"]).utcoffset(), timezone.utc.utcoffset(None))
+        self.assertIs(type(value["monotonic_ns"]), int)
+
+    def test_connection_events_are_timed_but_initial_readiness_schema_is_unchanged(self):
+        remote, server = self.tls_pair()
+        client, local = socket.socketpair()
+        self.addCleanup(client.close)
+        self.addCleanup(local.close)
+        client.shutdown(socket.SHUT_WR)
+        endpoint = transport.PublicEndpoint("public.example.org", 443, ("1.1.1.1",))
+        readiness = {"event": "bridge_started", "loopback_port": 23834, "hostname": endpoint.hostname,
+                     "public_ips": endpoint.addresses, "until_utc": "2026-11-17T00:00:00+00:00"}
+        output = io.StringIO()
+        with transport.Bridge(self.bridge_port(), endpoint, time.monotonic() + 3) as bridge, redirect_stdout(output):
+            bridge.event(readiness)
+            self.assertTrue(bridge.verify_request(local, ("127.0.0.1", 1)))
+            with mock.patch.object(transport, "open_public_tls", return_value=remote):
+                transport.BridgeHandler(local, ("127.0.0.1", 1), bridge)
+        values = [json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertEqual(values[0], {**readiness, "public_ips": ["1.1.1.1"]})
+        self.assertEqual([v["event"] for v in values[1:]], ["public_tls_connected", "public_tls_disconnected"])
+        for value in values[1:]:
+            self.assertIs(type(value.get("monotonic_ns")), int)
+            self.assertLessEqual(len(value["utc"]), 40)
+            self.assertEqual(datetime.fromisoformat(value["utc"]).utcoffset(), timezone.utc.utcoffset(None))
+            self.assertIsNone(value["error_class"])
+        self.assertEqual(values[-1]["close_side"], "local")
+
     def bridge_port(self):
         with socket.socket() as reserved:
             reserved.bind(("127.0.0.1", 0))
@@ -247,7 +569,7 @@ class PublicTransportTests(unittest.TestCase):
             client.shutdown(socket.SHUT_WR)
             worker.join(2)
             self.assertFalse(worker.is_alive())
-            self.assertEqual(result, [{"reason": "peer_closed", "bytes": [len(outbound), len(inbound)]}])
+            self.assertEqual(result, [{"reason": "peer_closed", "bytes": [len(outbound), len(inbound)], "close_side": "local"}])
         finally:
             for connection in (client, local, remote, peer):
                 connection.close()
@@ -260,7 +582,7 @@ class PublicTransportTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "byte bound"):
                 transport.relay(local, remote, time.monotonic() + 2, byte_limit=3)
             self.assertEqual(transport.relay(local, remote, time.monotonic() + 2, idle_seconds=0),
-                             {"reason": "idle_deadline", "bytes": [0, 0]})
+                             {"reason": "idle_deadline", "bytes": [0, 0], "close_side": "bridge"})
         finally:
             for connection in (client, local, remote, peer):
                 connection.close()

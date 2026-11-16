@@ -61,6 +61,16 @@ class PublicConsoleTests(unittest.TestCase):
                              {"result": membership, "status": {"phase": "running"}})
             status.assert_called_once_with()
 
+    def test_peer_repair_queries_do_not_mutate_wallet_floors_or_scan_outputs(self):
+        for action, params in (("peer_status", {}), ("rebroadcast", {"txid": "ab" * 32})):
+            with self.subTest(action=action), \
+                    patch.object(self.c, "_request", return_value={"fixture": True}) as request, \
+                    patch.object(self.c, "status", side_effect=AssertionError("Unexpected full wallet scan")), \
+                    patch.object(self.c, "_intent", side_effect=AssertionError("Recovery consumed a wallet address")), \
+                    patch.object(self.c, "_save", side_effect=AssertionError("Recovery rewrote wallet floors")):
+                self.assertEqual(self.c.action(action, params, include_status=False), {"result": {"fixture": True}})
+                request.assert_called_once_with(action, params)
+
     def test_narrow_transaction_mode_keeps_parameter_and_action_boundaries(self):
         with patch.object(self.c, "_request", side_effect=AssertionError("Invalid request reached worker")):
             for action, params, include_status in (("transaction", {"foreign": 1}, False),
@@ -217,6 +227,15 @@ class PublicConsoleTests(unittest.TestCase):
         for name in ("pqbtc-mldsa-local", "pqbtc-mldsa-demo", "unrelated"):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 control.PublicManager(self.state, container=name)
+
+    def test_browser_network_resume_and_pause_require_an_explicit_boolean(self):
+        for active in (True, False):
+            value = {"action": "network", "params": {"active": active}, "request_id": "unit-browser-request"}
+            self.assertEqual(app.validate_action(value)[:2], ("network", {"active": active}))
+        for params in ({}, {"active": 1}, {"active": 0}, {"active": "false"}, {"active": None},
+                       {"active": True, "endpoint": "127.0.0.1:23834"}):
+            with self.subTest(params=params), self.assertRaises(ValueError):
+                app.validate_action({"action": "network", "params": params, "request_id": "unit-browser-request"})
 
     def test_browser_schema_excludes_fault_and_binary_replacement_controls(self):
         for action, params in (("crash", {}), ("upgrade", {"descriptor": {}}), ("adverse", {}),

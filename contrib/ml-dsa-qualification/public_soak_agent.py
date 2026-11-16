@@ -403,7 +403,7 @@ print(json.dumps(rows[0],sort_keys=True))'''
         if action == "status":
             require(not params, "Status takes no parameters")
             return compact_status(self.controller.status())
-        if action == "transaction":
+        if action in ("transaction", "peer_status", "rebroadcast"):
             return public_result(self.controller.action(action, params, include_status=False))["result"]
         if action == "sample":
             require(not params, "Sample takes no parameters")
@@ -453,7 +453,7 @@ print(json.dumps(rows[0],sort_keys=True))'''
             return self.bridge_stop()
         require(action in {"start", "stop", "setup", "unlock", "lock", "receive", "send", "mine", "fund", "backup",
                            "recover", "peer", "network", "reindex", "upgrade", "rollback", "adverse", "crash",
-                           "transaction", "clear_bans"},
+                           "transaction", "rebroadcast", "clear_bans"},
                 "Unknown public agent action")
         return public_result(self.controller.action(action, params))
 

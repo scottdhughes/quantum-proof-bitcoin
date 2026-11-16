@@ -466,6 +466,9 @@ class PublicSoakTests(unittest.TestCase):
         seen, state = [], {"relayed": False, "polls": 0}
         def action(host, action, params=None, **_kwargs):
             seen.append((host, action, params))
+            if action == "peer_status":
+                return {"network_active": True, "transaction_peers": 1,
+                        "declared_endpoints": ["127.0.0.1:23834"], "connected_endpoints": ["127.0.0.1:23834"]}
             if action == "send":
                 return {"broadcast": True, "txid": "ab" * 32}
             if action == "transaction" and "block_hash" not in params:
@@ -482,6 +485,134 @@ class PublicSoakTests(unittest.TestCase):
         self.assertTrue(value["recipient_in_mempool"])
         self.assertEqual(state["polls"], 2)
         self.assertEqual(value["txid"], "ab" * 32)
+
+    def test_ready_unrelated_peer_does_not_substitute_for_the_declared_bridge(self):
+        runner = self.runner()
+        config = {"hosts": [{"name": "one", "role": "bootstrap"}, {"name": "two", "role": "follower"}]}
+        run = runner.Soak(config, "preflight", type("Log", (), {"append": lambda *_: None})(), {}, "future")
+        run.action = lambda *_args: {"network_active": True, "transaction_peers": 1,
+                                    "declared_endpoints": ["127.0.0.1:23834"], "connected_endpoints": ["127.0.0.1:23999"]}
+        self.assertFalse(run.transaction_peers_connected())
+
+    def test_peer_repair_waits_for_the_transaction_handshake(self):
+        runner = self.runner()
+        config = {"hosts": [{"name": "one", "role": "bootstrap"}, {"name": "two", "role": "follower"}]}
+        run = runner.Soak(config, "preflight", type("Log", (), {"append": lambda *_: None})(), {}, "future")
+        from unittest.mock import Mock
+        run.transaction_peers_connected = Mock(side_effect=[False, False, True])
+        run.bridge = Mock()
+        with patch.object(runner.time, "sleep", return_value=None):
+            run.ensure_transaction_peers()
+        run.bridge.assert_called_once_with()
+        self.assertEqual(run.transaction_peers_connected.call_count, 3)
+
+    def test_payment_repairs_a_dropped_connection_before_broadcast(self):
+        runner = self.runner()
+        config = {"hosts": [{"name": "one", "role": "bootstrap"}, {"name": "two", "role": "follower"}]}
+        run = runner.Soak(config, "preflight", type("Log", (), {"append": lambda *_: None})(), {}, "future")
+        state, seen = {"connected": False}, []
+        def bridge():
+            seen.append("repair")
+            state["connected"] = True
+        run.bridge = bridge
+        def receive(_host):
+            self.assertTrue(state["connected"], "Issued a payment before repairing the known disconnected peer")
+            return "tq1public-unit-address"
+        run.receive = receive
+        run.agree = lambda **_kwargs: None
+        def action(_host, name, params=None, **_kwargs):
+            seen.append(name)
+            if name == "peer_status":
+                return {"network_active": True, "transaction_peers": int(state["connected"]),
+                        "declared_endpoints": ["127.0.0.1:23834"], "connected_endpoints": ["127.0.0.1:23834"]}
+            if name == "send":
+                return {"broadcast": True, "txid": "ab" * 32}
+            if name == "mine":
+                return {"blocks": ["cd" * 32]}
+            return {"txid": "ab" * 32, "in_mempool": True, "confirmed": True,
+                    "confirmations": 1, "block_hash": "cd" * 32}
+        run.action = action
+        self.assertEqual(run.payment("one", "two")["txid"], "ab" * 32)
+        self.assertLess(seen.index("repair"), seen.index("send"))
+        self.assertEqual(seen.count("send"), 1)
+
+    def test_connection_drop_rebroadcasts_only_the_existing_transaction(self):
+        runner = self.runner()
+        config = {"hosts": [{"name": "one", "role": "bootstrap"}, {"name": "two", "role": "follower"}]}
+        run = runner.Soak(config, "preflight", type("Log", (), {"append": lambda *_: None})(), {}, "future")
+        state, seen = {"connected": True, "relayed": False, "received": 0, "polls": 0}, []
+        def receive(_host):
+            state["received"] += 1
+            return "tq1public-unit-address"
+        run.receive, run.agree = receive, lambda **_kwargs: None
+        run.bridge = lambda: state.update(connected=True)
+        def action(_host, name, params=None, **_kwargs):
+            seen.append((name, params))
+            if name == "peer_status":
+                return {"network_active": True, "transaction_peers": int(state["connected"]),
+                        "declared_endpoints": ["127.0.0.1:23834"], "connected_endpoints": ["127.0.0.1:23834"]}
+            if name == "send":
+                state["connected"] = False
+                return {"broadcast": True, "txid": "ab" * 32}
+            if name == "rebroadcast":
+                self.assertTrue(state["connected"])
+                self.assertEqual(params, {"txid": "ab" * 32})
+                state["relayed"] = True
+                return {"txid": "ab" * 32, "known_in_mempool": True, "rebroadcast": True, "reissued_payment": False}
+            if name == "mine":
+                self.assertTrue(state["relayed"])
+                return {"blocks": ["cd" * 32]}
+            if name == "transaction" and "block_hash" not in params:
+                state["polls"] += 1
+                self.assertLessEqual(state["polls"], 3, "Lost connection was not repaired and the known transaction was not rebroadcast")
+            return {"txid": "ab" * 32, "in_mempool": state["relayed"], "confirmed": True,
+                    "confirmations": 1, "block_hash": "cd" * 32}
+        run.action = action
+        with patch.object(runner.time, "sleep", return_value=None):
+            value = run.payment("one", "two")
+        self.assertEqual(value["txid"], "ab" * 32)
+        self.assertEqual(state["received"], 1)
+        self.assertEqual(sum(name == "send" for name, _ in seen), 1)
+        self.assertEqual(sum(name == "rebroadcast" for name, _ in seen), 1)
+
+    def test_payment_never_reconnects_an_intentionally_disabled_network(self):
+        runner = self.runner()
+        config = {"hosts": [{"name": "one", "role": "bootstrap"}, {"name": "two", "role": "follower"}]}
+        run = runner.Soak(config, "preflight", type("Log", (), {"append": lambda *_: None})(), {}, "future")
+        run.action = lambda *_args, **_kwargs: {"network_active": False, "transaction_peers": 0}
+        def forbidden(*_args):
+            self.fail("Disabled-network control was overridden")
+        run.bridge = run.receive = forbidden
+        with self.assertRaisesRegex(ValueError, "intentionally disabled"):
+            run.payment("one", "two")
+
+    def test_known_rebroadcast_never_restarts_the_sixty_second_clock(self):
+        runner = self.runner()
+        config = {"hosts": [{"name": "one", "role": "bootstrap"}, {"name": "two", "role": "follower"}]}
+        run = runner.Soak(config, "preflight", type("Log", (), {"append": lambda *_: None})(), {}, "future")
+        clock, deadlines = [100.0], []
+        run.receive = lambda *_args: "tq1public-unit-address"
+        def action(_host, name, _params=None, **_kwargs):
+            if name == "peer_status":
+                return {"network_active": True, "transaction_peers": 1,
+                        "declared_endpoints": ["127.0.0.1:23834"], "connected_endpoints": ["127.0.0.1:23834"]}
+            if name == "send":
+                return {"broadcast": True, "txid": "ab" * 32}
+            if name == "transaction":
+                clock[0] += 10
+                return {"txid": "ab" * 32, "in_mempool": False}
+            if name == "rebroadcast":
+                deadlines.append(run.action_deadline)
+                clock[0] += 55
+                return {"txid": "ab" * 32, "known_in_mempool": True, "rebroadcast": True, "reissued_payment": False}
+            self.fail("Late payment was mined or retried")
+        run.action = action
+        with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            with self.assertRaisesRegex(ValueError, "before mining"):
+                run.payment("one", "two")
+        self.assertEqual(deadlines, [160.0])
+        self.assertIsNone(run.action_deadline)
 
     def test_workload_clock_origin_follows_the_fsynced_start_event(self):
         runner = self.runner()

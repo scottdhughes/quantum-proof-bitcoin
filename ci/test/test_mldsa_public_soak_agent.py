@@ -20,6 +20,17 @@ SPEC.loader.exec_module(agent)
 
 
 class PublicSoakAgentTests(unittest.TestCase):
+    def test_recovery_agent_returns_bare_evidence_without_a_wallet_scan(self):
+        from unittest.mock import Mock
+        for action, params, result in (
+                ("peer_status", {}, {"network_active": True, "transaction_peers": 1}),
+                ("rebroadcast", {"txid": "ab" * 32}, {"txid": "ab" * 32, "reissued_payment": False})):
+            with self.subTest(action=action):
+                controller = SimpleNamespace(action=Mock(return_value={"result": result}))
+                value = agent.Agent(controller, Path("/unused/public-fixture"), time.time() + 30)
+                self.assertEqual(value.act(action, params), result)
+                controller.action.assert_called_once_with(action, params, include_status=False)
+
     def test_transaction_agent_requests_exact_membership_without_wallet_status(self):
         from unittest.mock import Mock
         params = {"txid": "ab" * 32, "block_hash": "cd" * 32}

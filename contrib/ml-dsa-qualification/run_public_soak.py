@@ -953,6 +953,37 @@ class Soak:
         self.action(self.follower, "peer", {"endpoint": "127.0.0.1:23834"})
         return self.agree()
 
+    def transaction_peers_connected(self):
+        """Observe actual transaction peers without scanning wallet history."""
+        connected = True
+        for host in self.hosts:
+            value = self.action(host, "peer_status")
+            require(type(value.get("network_active")) is bool and
+                    type(value.get("transaction_peers")) is int and value["transaction_peers"] >= 0,
+                    "Actual transaction-peer readiness evidence missing")
+            require(value["network_active"], "Payment cannot repair an intentionally disabled network")
+            connected = connected and value["transaction_peers"] > 0
+            if host == self.follower:
+                for field in ("declared_endpoints", "connected_endpoints"):
+                    endpoints = value.get(field)
+                    require(type(endpoints) is list and len(endpoints) <= 4 and
+                            all(type(endpoint) is str for endpoint in endpoints),
+                            "Declared public transaction-peer evidence missing")
+                    connected = connected and "127.0.0.1:23834" in endpoints
+        return connected
+
+    def ensure_transaction_peers(self):
+        # A live loopback listener does not prove its native/TLS connection is
+        # still alive. Repair the existing declared route before a new payment.
+        deadline = min(time.monotonic() + 60, self.action_deadline if self.action_deadline is not None else float("inf"))
+        if not self.transaction_peers_connected():
+            self.bridge()
+            while time.monotonic() < deadline:
+                if self.transaction_peers_connected():
+                    return
+                time.sleep(min(0.1, max(0, deadline - time.monotonic())))
+            raise ValueError("Declared public peer repair did not restore transaction relay")
+
     def probe(self):
         sys.path.insert(0, str(HERE))
         from public_transport import PublicEndpoint, probe
@@ -998,14 +1029,30 @@ class Soak:
         outer_deadline = self.action_deadline
         self.action_deadline = min(started + 60, outer_deadline if outer_deadline is not None else float("inf"))
         try:
+            self.ensure_transaction_peers()
             address = self.receive(receiver)
             sent = self.action(sender, "send", {"address": address, "amount_sats": 100_000, "fee_sats": 5000}, timeout=60)
             require(sent.get("broadcast") is True and hex64(sent.get("txid")), "Actual test payment was not broadcast")
+            checked_peers, rebroadcast_at = None, time.monotonic()
             while time.monotonic() < self.action_deadline:
                 tx = self.action(receiver, "transaction", {"txid": sent["txid"]})
                 require(tx.get("txid") == sent["txid"], "Receiver relay observation returned another transaction")
                 if tx.get("in_mempool") is True:
                     break
+                now, repaired = time.monotonic(), False
+                if checked_peers is None or now - checked_peers >= 1:
+                    if not self.transaction_peers_connected():
+                        self.ensure_transaction_peers()
+                        repaired = True
+                    checked_peers = time.monotonic()
+                if repaired or time.monotonic() - rebroadcast_at >= 10:
+                    # Reannounce only the already-known mempool transaction.
+                    # This never repeats receive/sign/send or consumes a path.
+                    value = self.action(sender, "rebroadcast", {"txid": sent["txid"]})
+                    require(value.get("txid") == sent["txid"] and value.get("known_in_mempool") is True and
+                            value.get("rebroadcast") is True and value.get("reissued_payment") is False,
+                            "Known-transaction reannouncement identity or ownership proof failed")
+                    rebroadcast_at = time.monotonic()
                 time.sleep(min(0.1, max(0, self.action_deadline - time.monotonic())))
             else:
                 raise ValueError("Receiver did not observe actual transaction relay before mining")

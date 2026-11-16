@@ -230,24 +230,75 @@ def relay(left, right, deadline, *, byte_limit=MAX_CONNECTION_BYTES, idle_second
     """Forward opaque bytes with bounded memory, idle time, total bytes and life."""
     counts = [0, 0]
     last_activity = time.monotonic()
+    connections = (left, right)
+    wants_write = [False, False]
+
+    def finished(reason, side="bridge"):
+        return {"reason": reason, "bytes": counts, "close_side": side}
+
     left.settimeout(5)
     right.settimeout(5)
     while time.monotonic() < deadline:
         now = time.monotonic()
-        if now - last_activity >= idle_seconds:
-            return {"reason": "idle_deadline", "bytes": counts}
-        pending = [item for item in (left, right) if isinstance(item, ssl.SSLSocket) and item.pending()]
-        readable = pending or select.select([left, right], [], [], min(1, max(0, deadline - now)))[0]
-        for source in readable:
-            index = 0 if source is left else 1
-            data = source.recv(min(65536, byte_limit - sum(counts) + 1))
+        idle_remaining = last_activity + idle_seconds - now
+        if idle_remaining <= 0:
+            return finished("idle_deadline")
+        pending = [item for index, item in enumerate(connections)
+                   if not wants_write[index] and isinstance(item, ssl.SSLSocket) and item.pending()]
+        readable, writable, _ = select.select(
+            [item for index, item in enumerate(connections) if not wants_write[index]],
+            [item for index, item in enumerate(connections) if wants_write[index]], [],
+            0 if pending else min(1, max(0, deadline - now), idle_remaining))
+        for index, source in enumerate(connections):
+            if source not in pending + readable + writable:
+                continue
+            # A readable TLS fd may hold only control records. SSL recv must
+            # not block the opposite direction while waiting for application
+            # data; a WANT result instead selects its required I/O direction.
+            receive_failed = False
+            try:
+                source.settimeout(0)
+                data = source.recv(min(65536, byte_limit - sum(counts) + 1))
+            except ssl.SSLWantWriteError:
+                wants_write[index] = True
+                continue
+            except (ssl.SSLWantReadError, BlockingIOError):
+                wants_write[index] = False
+                continue
+            except (OSError, ValueError) as error:
+                receive_failed = True
+                error._pqbtc_close_side = "local" if index == 0 else "public_tls"
+                raise
+            finally:
+                try:
+                    source.settimeout(5)
+                except (OSError, ValueError) as error:
+                    # An owned concurrent close must not replace an already
+                    # propagating receive error or erase its side/class.
+                    if not receive_failed:
+                        error._pqbtc_close_side = "local" if index == 0 else "public_tls"
+                        raise
+            wants_write[index] = False
             if not data:
-                return {"reason": "peer_closed", "bytes": counts}
+                return finished("peer_closed", "local" if index == 0 else "public_tls")
             counts[index] += len(data)
             require(sum(counts) <= byte_limit, "P2P bridge connection byte bound")
-            (right if source is left else left).sendall(data)
+            now = time.monotonic()
+            if now >= deadline:
+                return finished("lifetime_deadline")
+            if now >= last_activity + idle_seconds:
+                return finished("idle_deadline")
+            target = connections[1 - index]
+            try:
+                target.settimeout(min(5, deadline - now, last_activity + idle_seconds - now))
+                # A failed sendall may have partially written this chunk.
+                # Propagate it; replaying the whole chunk can duplicate bytes.
+                target.sendall(data)
+            except (OSError, ValueError) as error:
+                error._pqbtc_close_side = "public_tls" if index == 0 else "local"
+                raise
             last_activity = time.monotonic()
-    return {"reason": "lifetime_deadline", "bytes": counts}
+    return finished("lifetime_deadline")
 
 
 class Bridge(socketserver.ThreadingTCPServer):
@@ -272,6 +323,11 @@ class Bridge(socketserver.ThreadingTCPServer):
         with self.output_lock:
             print(json.dumps(value, sort_keys=True), flush=True)
 
+    def connection_event(self, value):
+        # The initial bridge_started readiness schema is deliberately unchanged.
+        self.event({**value, "utc": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+                    "monotonic_ns": time.monotonic_ns()})
+
     def verify_request(self, request, client_address):
         return client_address[0] == "127.0.0.1" and self.slots.acquire(blocking=False)
 
@@ -287,7 +343,10 @@ class Bridge(socketserver.ThreadingTCPServer):
 
     def handle_error(self, request, client_address):
         # No request bytes, traceback, or uncontrolled exception text in logs.
-        self.event({"event": "bridge_connection_failed"})
+        error = sys.exc_info()[1]
+        side = getattr(error, "_pqbtc_close_side", "bridge")
+        self.connection_event({"event": "bridge_connection_failed", "error_class": type(error).__name__[:80],
+                               "close_side": side if side in ("local", "public_tls", "bridge") else "bridge"})
 
 
 class BridgeHandler(socketserver.BaseRequestHandler):
@@ -296,13 +355,18 @@ class BridgeHandler(socketserver.BaseRequestHandler):
         try:
             with self.server.connections_lock:
                 self.server.connections.add(self.request)
-            remote = open_public_tls(self.server.endpoint)
+            try:
+                remote = open_public_tls(self.server.endpoint)
+            except (OSError, ValueError) as error:
+                error._pqbtc_close_side = "public_tls"
+                raise
             with self.server.connections_lock:
                 self.server.connections.add(remote)
-            self.server.event({"event": "public_tls_connected", "public_ip": remote.getpeername()[0],
-                               "hostname": self.server.endpoint.hostname, "tls": remote.version()})
+            self.server.connection_event({"event": "public_tls_connected", "public_ip": remote.getpeername()[0],
+                                          "hostname": self.server.endpoint.hostname, "tls": remote.version(),
+                                          "close_side": None, "error_class": None})
             result = relay(self.request, remote, self.server.deadline)
-            self.server.event({"event": "public_tls_disconnected", **result})
+            self.server.connection_event({"event": "public_tls_disconnected", **result, "error_class": None})
         finally:
             with self.server.connections_lock:
                 self.server.connections.discard(self.request)

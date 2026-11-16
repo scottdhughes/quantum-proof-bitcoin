@@ -28,6 +28,7 @@ function successMessage(name, result) {
     case "start": return "Public test node is running.";
     case "stop": return "Public test node stopped. Wallet locked.";
     case "peer": return `Peer connection requested: ${field("peer")}`;
+    case "network": return value.active === true ? "Networking resumed. Saved peers will reconnect." : "Networking paused. This setting survives restart.";
     case "bootstrap": return "Test-chain activation block mined. You can now set up or unlock the wallet.";
     default: return "Action completed.";
   }
@@ -35,7 +36,11 @@ function successMessage(name, result) {
 function render(status) {
   const wallet = status.wallet;
   setupRequired = status.setup_required;
-  el("phase").textContent = `${status.phase} · wallet ${wallet.locked ? "locked" : "unlocked"} · ${(status.nodes[0] || {}).peers || 0} peers`;
+  const node = status.nodes[0] || {};
+  el("phase").textContent = `${status.phase} · wallet ${wallet.locked ? "locked" : "unlocked"} · ${node.peers || 0} peers`;
+  el("network-status").textContent = node.network_active === false ? "Networking paused. Resume networking to reconnect to saved peers." : node.network_active === true ? "Networking active. Saved peers reconnect automatically." : "Start the node to read networking status.";
+  el("network-pause").disabled = busy || node.network_active !== true;
+  el("network-resume").disabled = busy || node.network_active !== false;
   el("balance").textContent = `${wallet.spendable_sats} spendable test sats · ${wallet.pending_sats} pending · ${wallet.immature_sats || 0} immature`;
   el("identity").textContent = wallet.wallet_id ? `Wallet ${wallet.wallet_id} · receive floor ${wallet.next_receive} · change floor ${wallet.next_change}` : "No wallet set up yet.";
   el("access-button").textContent = setupRequired ? "Set up new wallet" : "Unlock wallet";
@@ -64,6 +69,7 @@ async function action(name, params = {}) {
   finally { busy = false; document.querySelectorAll("button").forEach(button => button.disabled = false); await status(); }
 }
 document.querySelectorAll("[data-action]").forEach(button => button.addEventListener("click", () => action(button.dataset.action)));
+document.querySelectorAll("[data-network-active]").forEach(button => button.addEventListener("click", () => action("network", {active: button.dataset.networkActive === "true"})));
 el("access").addEventListener("submit", event => {event.preventDefault(); const password = el("password").value; el("password").value = ""; action(setupRequired ? "setup" : "unlock", {password});});
 el("send").addEventListener("submit", event => {event.preventDefault(); action("send", {address: el("destination").value.trim(), amount_sats: Number(el("amount").value), fee_sats: Number(el("fee").value)});});
 el("recover").addEventListener("submit", event => {event.preventDefault(); const password = el("recovery-password").value; el("recovery-password").value = ""; action("recover", {backup_id: el("backups").value, password});});

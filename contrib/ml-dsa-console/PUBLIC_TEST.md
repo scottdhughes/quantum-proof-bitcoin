@@ -54,6 +54,18 @@ controller connection causes only this verified public container's process
 namespace to restart; the encrypted state and independent address floors stay
 intact. No password is retained for automatic unlock.
 
+Saved peer endpoints reconnect automatically while networking is active.
+**Pause networking** is durable across node, Docker and computer restarts.
+Choose **Resume networking** to enable it again. Status distinguishes paused
+networking from an active node that is still connecting.
+
+If a restart finds an interrupted peer-settings write, it preserves both
+public files in a private `peer-policy.orphan-*` directory inside the data
+volume and starts with networking paused. Only endpoints from the last valid
+saved settings survive; partial settings never add a peer. Inspect the saved
+settings as needed, then use **Resume networking** to rejoin. Wallet recovery
+and password checks remain separate from this public-settings repair.
+
 **Save encrypted backup** requires a clean native signer checkpoint and locks
 the wallet. Backups are private JSON files under
 `~/quantum-proof-bitcoin-evidence/public-console/backups/`. They contain the
