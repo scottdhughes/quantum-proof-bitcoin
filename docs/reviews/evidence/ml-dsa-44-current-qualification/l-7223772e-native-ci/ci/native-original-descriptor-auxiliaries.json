@@ -1,0 +1,84 @@
+{
+  "descriptors": [
+    {
+      "GCC_export_outer_descriptor": {
+        "bytes": 30627,
+        "complete_parsed_JSON_identity": true,
+        "path": "qualified-runtime-gcc-43970911876-1/runtime-descriptor.json",
+        "sha256": "76f72ca631c9a66c2c1d67e5dd00f04ea20903f26d14782472587630665d25bc"
+      },
+      "archive": {
+        "bytes": 589678,
+        "path": "artifact-14279042327.zip",
+        "sha256": "526833cc6e00d37edbc8862f10c3589ff981c1669f7f04e487f3104b8731c534"
+      },
+      "artifact_id": 14279042327,
+      "attempt": 1,
+      "compiler": "gcc",
+      "native_inventory": {
+        "bytes": 8150,
+        "entry": "runtime-descriptor.json",
+        "exact_hash_match": true,
+        "path": "assembled-gcc-43970911876-1/native-qualification/evidence-sha256.json",
+        "sha256": "0f35b8c54537d73ea0252f69b6bba412658bafb287b237141e9c5a1bb4188c23"
+      },
+      "only_member_opened": "native-qualification/runtime-descriptor.json",
+      "original_member_SHA256": "4dd1c3e91e9024c407432c432cf136dfa209be4f6d147d89295ed588bc35b221",
+      "original_member_bytes": 30627,
+      "outer_descriptor": {
+        "bytes": 30627,
+        "complete_parsed_JSON_identity": true,
+        "path": "assembled-gcc-43970911876-1/runtime-descriptor.json",
+        "sha256": "76f72ca631c9a66c2c1d67e5dd00f04ea20903f26d14782472587630665d25bc"
+      },
+      "output_path": "assembled-gcc-43970911876-1/native-qualification/runtime-descriptor.json",
+      "raw_bytes_preserved": true,
+      "regular_safe_path_and_size_checks": "PASS",
+      "run_id": 43970911876
+    },
+    {
+      "GCC_export_outer_descriptor": null,
+      "archive": {
+        "bytes": 598578,
+        "path": "artifact-14280126532.zip",
+        "sha256": "da16db8def81770a29403ed2480f072acd98fe132e66e657de92fc31d8cf5a0b"
+      },
+      "artifact_id": 14280126532,
+      "attempt": 1,
+      "compiler": "clang",
+      "native_inventory": {
+        "bytes": 8150,
+        "entry": "runtime-descriptor.json",
+        "exact_hash_match": true,
+        "path": "assembled-clang-43970911876-1/native-qualification/evidence-sha256.json",
+        "sha256": "c6b01802e802391548392c11238df7b046693553411f95571ac82cce6ce4e51c"
+      },
+      "only_member_opened": "native-qualification/runtime-descriptor.json",
+      "original_member_SHA256": "f0f489712c97be0b805f7baa9e63b542b574f12f82be2559a516df8dfc64b0fa",
+      "original_member_bytes": 30641,
+      "outer_descriptor": {
+        "bytes": 30641,
+        "complete_parsed_JSON_identity": true,
+        "path": "assembled-clang-43970911876-1/runtime-descriptor.json",
+        "sha256": "88ec14126ce2337857b40cf6fad30358d71f3520136a0d96bed5ec0011710f88"
+      },
+      "output_path": "assembled-clang-43970911876-1/native-qualification/runtime-descriptor.json",
+      "raw_bytes_preserved": true,
+      "regular_safe_path_and_size_checks": "PASS",
+      "run_id": 43970911876
+    }
+  ],
+  "generated_at_utc": "2026-11-17T00:17:41.003587+00:00",
+  "image_archive_or_private_members_opened": false,
+  "opened_members_total": 2,
+  "preexisting_public_files_verified_unchanged_before_derived_reseal": 52,
+  "private_wallet_corpus_key_backup_cookie_env_or_credentials_opened": false,
+  "result": "PASS",
+  "runtime_or_source_changes": false,
+  "schema": "PQBTC-L-NATIVE-ORIGINAL-DESCRIPTOR-AUXILIARIES-1",
+  "scope": "Two original public native-qualification runtime-descriptor JSON members only; original raw native inventories and outer descriptors remain unchanged. Clang has an assembled qualified descriptor and no runtime-image export is claimed.",
+  "source": {
+    "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+    "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+  }
+}

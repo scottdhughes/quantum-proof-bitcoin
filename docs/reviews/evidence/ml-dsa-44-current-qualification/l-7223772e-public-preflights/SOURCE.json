@@ -1,0 +1,251 @@
+{
+  "attempts": {
+    "l01": {
+      "completed_900_second_clock": false,
+      "completed_phases": 5,
+      "configuration_sha256": "524d1fabc4f4766441c3b599d3447ea3854abd6089f2c02d6d592506cb40ca9c",
+      "confirmed_payments": 17,
+      "events": 2429,
+      "fault_misses": 0,
+      "mode": "preflight",
+      "normal_success": 10,
+      "original_events": {
+        "bytes": 1324917,
+        "sha256": "1e0a449f28127ceaecd5b17b56c2db2425a15ef54ef921d93f1d471a2f8a8c4b"
+      },
+      "public_24_hour_credit_seconds": 0,
+      "result": "FAIL"
+    },
+    "l02": {
+      "completed_900_second_clock": true,
+      "completed_phases": 7,
+      "configuration_sha256": "a5dc036b4b58d07571b05211579262c2a3b93aa354a80efc5c672a0f34aa8ab1",
+      "confirmed_payments": 22,
+      "event_clock_elapsed": {
+        "monotonic_seconds": 900.172816125,
+        "wall_seconds": 900.177095
+      },
+      "events": 2663,
+      "fault_misses": 3,
+      "mode": "preflight",
+      "normal_success": 12,
+      "original_events": {
+        "bytes": 1511266,
+        "sha256": "21cdb83a09a2f3c3e7622eaab8bba57cf987053c13158bd6f73cb5b570eedb0f"
+      },
+      "public_24_hour_credit_seconds": 0,
+      "result": "PREFLIGHT_PASS"
+    }
+  },
+  "driver_loading": "Only hash-pinned pure AST constants/functions and SlotLedger are compiled into a restricted namespace. No runtime imports, main(), file writers, native code or process/network operations are selected.",
+  "files": [
+    {
+      "bytes": 8,
+      "path": ".gitattributes",
+      "provenance": {
+        "derivation": "Byte-preservation attributes, review presentation, or offline stdlib verifier; no original evidence bytes changed.",
+        "transform": "DERIVED"
+      },
+      "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
+    },
+    {
+      "bytes": 2834,
+      "path": "README.md",
+      "provenance": {
+        "derivation": "Byte-preservation attributes, review presentation, or offline stdlib verifier; no original evidence bytes changed.",
+        "transform": "DERIVED"
+      },
+      "sha256": "e6a2de80581f8021a9e3c4c0f832ee5022bba47e9af0560946b4f5132fb18ded"
+    },
+    {
+      "bytes": 6452,
+      "path": "closeout/l02-backend-observer-result.json",
+      "provenance": {
+        "original_bytes": 6452,
+        "original_sha256": "c38266c8f9eea3aa0f5bb553171feebdc63dafa06ae8a7410b3d23ec065f1bdf",
+        "original_task_path": "research/l-preflight02-backend-closeout-20261117/RESULT.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "c38266c8f9eea3aa0f5bb553171feebdc63dafa06ae8a7410b3d23ec065f1bdf"
+    },
+    {
+      "bytes": 86889,
+      "path": "frozen-l-public-soak-driver.py",
+      "provenance": {
+        "original_bytes": 86889,
+        "original_sha256": "6668f219acff79a25161d57bf505a3204ab50ef434adbb3487f913f0f913a6d0",
+        "original_task_path": "candidate-l/source-clean-7223772e/contrib/ml-dsa-qualification/run_public_soak.py",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "6668f219acff79a25161d57bf505a3204ab50ef434adbb3487f913f0f913a6d0"
+    },
+    {
+      "bytes": 10757,
+      "path": "l01/declaration.json",
+      "provenance": {
+        "original_bytes": 10757,
+        "original_sha256": "660bea8afe1e7fda08257bf11dba62a899e0a7db00c8183b07846065b799f33e",
+        "original_task_path": "research/l-preflight-20261116-01-output/declaration.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "660bea8afe1e7fda08257bf11dba62a899e0a7db00c8183b07846065b799f33e"
+    },
+    {
+      "bytes": 236340,
+      "path": "l01/events.jsonl.gz",
+      "provenance": {
+        "original_bytes": 1324917,
+        "original_sha256": "1e0a449f28127ceaecd5b17b56c2db2425a15ef54ef921d93f1d471a2f8a8c4b",
+        "original_task_path": "research/l-preflight-20261116-01-output/events.jsonl",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "DETERMINISTIC_LOSSLESS_GZIP_MTIME0_LEVEL9"
+      },
+      "sha256": "53613359bbb345e0f3f14a1a66207a8607c16ea072fd051d4bc43385de13903a"
+    },
+    {
+      "bytes": 251,
+      "path": "l01/evidence-sha256.json",
+      "provenance": {
+        "original_bytes": 251,
+        "original_sha256": "dcfcebbe98ebb72ad05959ae1cc29b0edef44196b4501f4c418a037bf9c01b3b",
+        "original_task_path": "research/l-preflight-20261116-01-output/evidence-sha256.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "dcfcebbe98ebb72ad05959ae1cc29b0edef44196b4501f4c418a037bf9c01b3b"
+    },
+    {
+      "bytes": 32088,
+      "path": "l01/independent-review.json",
+      "provenance": {
+        "original_bytes": 32088,
+        "original_sha256": "a39f768307403435cc866fff87aeee2a348066d0dc91bf9f5338265235544a01",
+        "original_task_path": "research/l-preflight01-independent-terminal-review-20261117/terminal-review.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "a39f768307403435cc866fff87aeee2a348066d0dc91bf9f5338265235544a01"
+    },
+    {
+      "bytes": 2481,
+      "path": "l01/report.json",
+      "provenance": {
+        "original_bytes": 2481,
+        "original_sha256": "e7240a1350897f0132a5ad22c855b871e0f9cc0d68e06b189a430fbd31fd16f6",
+        "original_task_path": "research/l-preflight-20261116-01-output/report.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "e7240a1350897f0132a5ad22c855b871e0f9cc0d68e06b189a430fbd31fd16f6"
+    },
+    {
+      "bytes": 10757,
+      "path": "l02/declaration.json",
+      "provenance": {
+        "original_bytes": 10757,
+        "original_sha256": "c0316cca1b4372da7aeead0b0973b8e685ab168de3b545ef1a0cfa107e4de937",
+        "original_task_path": "research/l-preflight-20261117-02-output/declaration.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "c0316cca1b4372da7aeead0b0973b8e685ab168de3b545ef1a0cfa107e4de937"
+    },
+    {
+      "bytes": 266352,
+      "path": "l02/events.jsonl.gz",
+      "provenance": {
+        "original_bytes": 1511266,
+        "original_sha256": "21cdb83a09a2f3c3e7622eaab8bba57cf987053c13158bd6f73cb5b570eedb0f",
+        "original_task_path": "research/l-preflight-20261117-02-output/events.jsonl",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "DETERMINISTIC_LOSSLESS_GZIP_MTIME0_LEVEL9"
+      },
+      "sha256": "6ee9059dbe7578241c1f0aab23675c46028b91f84bb31596f37d79709c9c2b35"
+    },
+    {
+      "bytes": 251,
+      "path": "l02/evidence-sha256.json",
+      "provenance": {
+        "original_bytes": 251,
+        "original_sha256": "00fd6093468d770bb062c29c4c7f61e88007915df37e28b9d03619b2ff8f9b19",
+        "original_task_path": "research/l-preflight-20261117-02-output/evidence-sha256.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "00fd6093468d770bb062c29c4c7f61e88007915df37e28b9d03619b2ff8f9b19"
+    },
+    {
+      "bytes": 24310,
+      "path": "l02/independent-review.json",
+      "provenance": {
+        "original_bytes": 24310,
+        "original_sha256": "f67fcafc7526e7828dbda1262ac0ddb8ae723782579078a556a88a299f663a54",
+        "original_task_path": "research/l-preflight02-independent-terminal-review-20261117/terminal-review.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "f67fcafc7526e7828dbda1262ac0ddb8ae723782579078a556a88a299f663a54"
+    },
+    {
+      "bytes": 11341,
+      "path": "l02/report.json",
+      "provenance": {
+        "original_bytes": 11341,
+        "original_sha256": "f47e3dcb56ef56f62ff7aa1f7964f9d31a4e82fca698322d5f29a520eb2b2ee1",
+        "original_task_path": "research/l-preflight-20261117-02-output/report.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "f47e3dcb56ef56f62ff7aa1f7964f9d31a4e82fca698322d5f29a520eb2b2ee1"
+    },
+    {
+      "bytes": 2776,
+      "path": "l02/root-terminal-review.json",
+      "provenance": {
+        "original_bytes": 2776,
+        "original_sha256": "8281f0b7d7930859fcdd4e2aa776e7b720d985f70bfb441ab4501837ef30e6ef",
+        "original_task_path": "research/l-preflight02-root-terminal-verification-20261117.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "8281f0b7d7930859fcdd4e2aa776e7b720d985f70bfb441ab4501837ef30e6ef"
+    },
+    {
+      "bytes": 6561,
+      "path": "verification-controls.json",
+      "provenance": {
+        "derivation": "Recorded public-only offline relocation and tamper controls; not an acceptance input.",
+        "transform": "DERIVED"
+      },
+      "sha256": "554a1c77936035d982d7d4de95ea40affc99ee3c73d8f92c373e53014a06f9c1"
+    },
+    {
+      "bytes": 28900,
+      "path": "verify.py",
+      "provenance": {
+        "derivation": "Byte-preservation attributes, review presentation, or offline stdlib verifier; no original evidence bytes changed.",
+        "transform": "DERIVED"
+      },
+      "sha256": "dc93ffdebab483fb37db4e21495733650ac4f9abb63adc20da19df60449b5f3e"
+    }
+  ],
+  "independent_public_floor_journal_retained": true,
+  "local_membership_scope": "Only files listed in this manifest are local custody members. Native/CI packets, referenced process trace and live or future soak data are external and excluded.",
+  "original_failure_proven_fixed": false,
+  "original_failure_status": "UNKNOWN_UNREPRODUCED",
+  "private_diagnostic_context": "A separate fresh H-to-L-to-H native transition diagnostic passed without reproducing or fixing L01's original inner cause; no diagnostic output or credit is included.",
+  "production_admitted": false,
+  "public_24_hour_credit_seconds": 0,
+  "public_both_records_missing_recovery_claimed": false,
+  "resumption_allowed": false,
+  "schema": "PQBTC-L-SELECTED-PUBLIC-PREFLIGHT-PACKET-1",
+  "scope": "VALUELESS_EXPERIMENTAL_PUBLIC_TEST_ONLY",
+  "source_subject": {
+    "driver_sha256": "6668f219acff79a25161d57bf505a3204ab50ef434adbb3487f913f0f913a6d0",
+    "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+    "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+  }
+}

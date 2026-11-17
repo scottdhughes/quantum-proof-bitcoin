@@ -1,0 +1,23 @@
+{
+  "argv": [
+    "/opt/homebrew/opt/python@3.15/bin/python3.15",
+    "-B",
+    "-u",
+    "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/candidate-l/run_desktop_recovery_02.py",
+    "--descriptor",
+    "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/candidate-l/arm-gcc-runtime.json",
+    "--output",
+    "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/candidate-l/desktop-recovery-20261117-02",
+    "--allow-desktop-restart"
+  ],
+  "driver_sha256": "7ec3433ef1dd2849f4451a9003351898bfaa9176549b7eb089f2d472b41d3b7c",
+  "harness_correction": "Recovery already unlocks; assert that postcondition and proceed",
+  "no_active_public_attempt": true,
+  "operating_system_reboot_performed": false,
+  "owner_authorization_record_sha256": "38be0752428744ad52b23cfb35e285eb88d45d26fef11f24486239b721bdeff3",
+  "pid": 38041,
+  "prior_full_driver_report_FAIL_preserved_sha256": "819558b469e3cf8cccb1ecc553f8ad82838ed80071b970d04bd39f845b30a3aa",
+  "root24_guard_and_flow_tests_pass": true,
+  "schema": "PQBTC-ACTUAL-DESKTOP-TEST-LAUNCH-1",
+  "utc": "2026-11-17T05:40:26.734823+00:00"
+}

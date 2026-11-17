@@ -1,0 +1,106 @@
+{
+  "control_count": 15,
+  "controls": [
+    {
+      "isolated_PYTHONOPTIMIZE_ignored": true,
+      "name": "relocated_minimal_environment_positive",
+      "native_or_network_execution": false,
+      "result": "PASS"
+    },
+    {
+      "name": "explicit_optimized_interpreter_refused",
+      "result": "PASS"
+    },
+    {
+      "checksum_rebuilt": false,
+      "name": "file_tamper_rejected",
+      "result": "PASS"
+    },
+    {
+      "checksums_and_index_rebuilt": true,
+      "expected_gate": "Native source binding",
+      "name": "wrong_L_HEAD_semantic_rejection",
+      "result": "PASS",
+      "selected_native_inventory_updated": true
+    },
+    {
+      "checksums_and_index_rebuilt": true,
+      "expected_gate": "Image/manifest binding",
+      "name": "wrong_app_manifest_semantic_rejection",
+      "result": "PASS",
+      "selected_native_inventory_updated": false
+    },
+    {
+      "checksums_and_index_rebuilt": true,
+      "expected_gate": "Private HTTP app outcome/scope",
+      "name": "app_cleanup_error_semantic_rejection",
+      "result": "PASS",
+      "selected_native_inventory_updated": false
+    },
+    {
+      "checksums_and_index_rebuilt": true,
+      "expected_gate": "All nine native gates",
+      "name": "short_native_gates_semantic_rejection",
+      "result": "PASS",
+      "selected_native_inventory_updated": true
+    },
+    {
+      "checksums_and_index_rebuilt": true,
+      "expected_gate": "Thirty actual full-weight",
+      "name": "short_resource_samples_semantic_rejection",
+      "result": "PASS",
+      "selected_native_inventory_updated": true
+    },
+    {
+      "checksums_and_index_rebuilt": true,
+      "expected_gate": "All sixteen actual public consensus",
+      "name": "short_consensus_controls_semantic_rejection",
+      "result": "PASS",
+      "selected_native_inventory_updated": true
+    },
+    {
+      "checksums_and_index_rebuilt": true,
+      "expected_gate": "Same-id rebroadcast proof",
+      "name": "reissued_payment_claim_semantic_rejection",
+      "result": "PASS",
+      "selected_native_inventory_updated": false
+    },
+    {
+      "checksums_and_index_rebuilt": true,
+      "expected_gate": "Conservative peer-policy recovery proof",
+      "name": "orphan_network_resumed_semantic_rejection",
+      "result": "PASS",
+      "selected_native_inventory_updated": false
+    },
+    {
+      "name": "directory_symlink_rejected_without_recursing",
+      "result": "PASS"
+    },
+    {
+      "name": "copy_and_open_directory_symlink_gate",
+      "result": "PASS"
+    },
+    {
+      "name": "file_symlink_rejected",
+      "result": "PASS"
+    },
+    {
+      "name": "root_symlink_component_rejected",
+      "result": "PASS"
+    }
+  ],
+  "generated_at_utc": "2026-11-17T00:42:51.274018+00:00",
+  "original_payloads_modified": false,
+  "public_soak_credit_seconds": 0,
+  "python_implementation": "cpython",
+  "python_version": [
+    3,
+    15,
+    0
+  ],
+  "relocated_stdlib_minimal_environment": true,
+  "result": "PASS",
+  "schema": "PQBTC-L-PORTABLE-PACKET-CONTROLS-1",
+  "scope": "DERIVED_TEST_RECEIPT_ONLY_NO_NATIVE_OR_NETWORK_OPERATIONS",
+  "verifier_sha256": "13c4cffe915f0017d2da0612c557fba74b1b6248251969c401f229d5c942ee52"
+}

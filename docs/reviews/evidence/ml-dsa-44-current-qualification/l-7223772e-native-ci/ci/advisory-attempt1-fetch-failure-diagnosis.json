@@ -1,0 +1,125 @@
+{
+  "artifact_id": 14276754687,
+  "artifact_zip_bytes": 165766,
+  "artifact_zip_sha256": "937f7031a4df827bc6fe8af39d65bbcdd0d7b4047093b17b33351a8601188929",
+  "attempt": 1,
+  "classification": "GITHUB_UNAUTHENTICATED_CORE_API_RATE_LIMIT_EXHAUSTED",
+  "curl_exit_code": 22,
+  "early_validation": {
+    "error": "mldsa-native advisory fetch failed: curl 22",
+    "schema_version": 1,
+    "status": "FAIL"
+  },
+  "explicit_rate_limit_response_body": true,
+  "http_status": 403,
+  "job_id": 133661937231,
+  "native_or_Miri_failure_established": false,
+  "opened_zip_entries": [
+    "mldsa-native-fetch.json",
+    "oracle-feed-early-validation.json",
+    "mldsa-native-response-headers.txt",
+    "mldsa-native-advisories.json",
+    "mldsa-native-request.json",
+    "mldsa-native-curl.exit-code",
+    "mldsa-native-curl.stderr"
+  ],
+  "original_public_entries": {
+    "mldsa-native-advisories.json": {
+      "bytes": 278,
+      "sha256": "3bc62d700c997c2ac581f1320a02933efac092f2304141dd196c537533f422c7"
+    },
+    "mldsa-native-curl.exit-code": {
+      "bytes": 3,
+      "sha256": "f14b4987904bcb5814e4459a057ed4d20f58a633152288a761214dcd28780b56"
+    },
+    "mldsa-native-curl.stderr": {
+      "bytes": 196,
+      "sha256": "6cd71e89da18c040367b4991d845b9a9c1a1764db7462107e14782543085b436"
+    },
+    "mldsa-native-fetch.json": {
+      "bytes": 1974,
+      "sha256": "229fe4fab2286ebb24028d668fb9fe39fcd050f52e16f2932aab019b280b6c64"
+    },
+    "mldsa-native-request.json": {
+      "bytes": 279,
+      "sha256": "046ccd79ae4abd2a9d9d23574d4d7442b2af7475c1d3028142e9ca0d5d666b2e"
+    },
+    "mldsa-native-response-headers.txt": {
+      "bytes": 4080,
+      "sha256": "1f2dce7e35fa0e9283f24eaf9686aab62bddf6720b4ae789a5c79f20085fee4f"
+    },
+    "oracle-feed-early-validation.json": {
+      "bytes": 96,
+      "sha256": "abd2bbe4acf980463525afd149716bf1899c1a941fa6801833694d154a29cbcb"
+    }
+  },
+  "private_material_opened": false,
+  "rate_limit_reset_unix": 1794870115,
+  "rate_limit_reset_utc": "2026-11-16T23:01:55+00:00",
+  "request": {
+    "accept": "application/vnd.github+json",
+    "api_version": "2022-11-28",
+    "authenticated": false,
+    "url": "https://api.github.com/repos/pq-code-package/mldsa-native/security-advisories?state=published&per_page=100&page=1",
+    "user_agent": "pqbtc-ml-dsa-advisory-ledger/1"
+  },
+  "request_contract_match_evidence": "Exact request equality is checked before the observed curl22 validator failure.",
+  "request_matches_pinned_workflow": true,
+  "reset_plus_five_seconds_utc": "2026-11-16T23:02:00+00:00",
+  "response_headers": [
+    {
+      "headers": {
+        "date": "Mon, 16 Nov 2026 22:31:16 GMT",
+        "x-github-request-id": "5BCC:991D2:14CC995:4104D5B:6AFB8434",
+        "x-ratelimit-limit": "60",
+        "x-ratelimit-remaining": "0",
+        "x-ratelimit-reset": "1794870115",
+        "x-ratelimit-resource": "core",
+        "x-ratelimit-used": "60"
+      },
+      "status": "HTTP/2 403 "
+    },
+    {
+      "headers": {
+        "date": "Mon, 16 Nov 2026 22:31:18 GMT",
+        "x-github-request-id": "5BCC:991D2:14CD866:4107C0F:6AFB8434",
+        "x-ratelimit-limit": "60",
+        "x-ratelimit-remaining": "0",
+        "x-ratelimit-reset": "1794870115",
+        "x-ratelimit-resource": "core",
+        "x-ratelimit-used": "60"
+      },
+      "status": "HTTP/2 403 "
+    },
+    {
+      "headers": {
+        "date": "Mon, 16 Nov 2026 22:31:20 GMT",
+        "x-github-request-id": "5BCC:991D2:14CE6BB:410A968:6AFB8436",
+        "x-ratelimit-limit": "60",
+        "x-ratelimit-remaining": "0",
+        "x-ratelimit-reset": "1794870115",
+        "x-ratelimit-resource": "core",
+        "x-ratelimit-used": "60"
+      },
+      "status": "HTTP/2 403 "
+    },
+    {
+      "headers": {
+        "date": "Mon, 16 Nov 2026 22:31:22 GMT",
+        "x-github-request-id": "5BCC:991D2:14CF579:410D845:6AFB8438",
+        "x-ratelimit-limit": "60",
+        "x-ratelimit-remaining": "0",
+        "x-ratelimit-reset": "1794870115",
+        "x-ratelimit-resource": "core",
+        "x-ratelimit-used": "60"
+      },
+      "status": "HTTP/2 403 "
+    }
+  ],
+  "retries_authorized": false,
+  "retries_performed": 0,
+  "run_id": 43970746110,
+  "schema": "PQBTC-L-ADVISORY-FIRST-ATTEMPT-FAILURE-DIAGNOSIS-1",
+  "source_head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+  "workflow_sha256": "0607438db05acb440c8dba9397cabeb885d6f827780d9dfd720a80fb1c07507f"
+}

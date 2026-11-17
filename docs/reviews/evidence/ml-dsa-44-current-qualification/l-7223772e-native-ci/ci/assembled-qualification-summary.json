@@ -1,0 +1,722 @@
+{
+  "advisory_first_attempt_failure_preserved": true,
+  "artifacts": [
+    {
+      "archive_download_url": "https://api.github.com/repos/scottdhughes/quantum-proof-bitcoin/actions/artifacts/14280600594/zip",
+      "created_at": "2026-11-16T22:48:30Z",
+      "digest": "sha256:891925e956ecc78fe6806fd21e6fb4a7eea3a111d1841d3978c155921c75c6d9",
+      "expired": false,
+      "expires_at": "2026-11-23T22:48:26Z",
+      "id": 14280600594,
+      "name": "pqbtc-qualified-runtime-gcc-43970911876-1",
+      "size_in_bytes": 538848243,
+      "updated_at": "2026-11-16T22:48:30Z",
+      "url": "https://api.github.com/repos/scottdhughes/quantum-proof-bitcoin/actions/artifacts/14280600594",
+      "workflow_run": {
+        "head_branch": "codex/mldsa-runpod-soak-20261114",
+        "head_repository_id": 1136579990,
+        "head_sha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+        "id": 43970911876,
+        "repository_id": 1136579990
+      }
+    },
+    {
+      "archive_download_url": "https://api.github.com/repos/scottdhughes/quantum-proof-bitcoin/actions/artifacts/14280126532/zip",
+      "created_at": "2026-11-16T22:46:54Z",
+      "digest": "sha256:da16db8def81770a29403ed2480f072acd98fe132e66e657de92fc31d8cf5a0b",
+      "expired": false,
+      "expires_at": "2027-02-14T22:31:45Z",
+      "id": 14280126532,
+      "name": "pqbtc-assembled-clang-43970911876-1",
+      "size_in_bytes": 598578,
+      "updated_at": "2026-11-16T22:46:54Z",
+      "url": "https://api.github.com/repos/scottdhughes/quantum-proof-bitcoin/actions/artifacts/14280126532",
+      "workflow_run": {
+        "head_branch": "codex/mldsa-runpod-soak-20261114",
+        "head_repository_id": 1136579990,
+        "head_sha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+        "id": 43970911876,
+        "repository_id": 1136579990
+      }
+    },
+    {
+      "archive_download_url": "https://api.github.com/repos/scottdhughes/quantum-proof-bitcoin/actions/artifacts/14279042327/zip",
+      "created_at": "2026-11-16T22:48:31Z",
+      "digest": "sha256:526833cc6e00d37edbc8862f10c3589ff981c1669f7f04e487f3104b8731c534",
+      "expired": false,
+      "expires_at": "2027-02-14T22:31:45Z",
+      "id": 14279042327,
+      "name": "pqbtc-assembled-gcc-43970911876-1",
+      "size_in_bytes": 589678,
+      "updated_at": "2026-11-16T22:48:31Z",
+      "url": "https://api.github.com/repos/scottdhughes/quantum-proof-bitcoin/actions/artifacts/14279042327",
+      "workflow_run": {
+        "head_branch": "codex/mldsa-runpod-soak-20261114",
+        "head_repository_id": 1136579990,
+        "head_sha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+        "id": 43970911876,
+        "repository_id": 1136579990
+      }
+    }
+  ],
+  "candidate": "L",
+  "compiler_public_report_verification": {
+    "clang": {
+      "additional_native": {
+        "actual_frozen_source_data_validators_pass": true,
+        "artifact_id": 14280126532,
+        "artifact_zip_sha256": "da16db8def81770a29403ed2480f072acd98fe132e66e657de92fc31d8cf5a0b",
+        "compiler": "clang",
+        "consensus": {
+          "controls": 16,
+          "owned_node_cleanup": "STOPPED"
+        },
+        "data_validator_sha256": {
+          "public_consensus_controls.py": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c",
+          "run_native_qualification.py": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0"
+        },
+        "files": {
+          "evidence-sha256.json": {
+            "bytes": 8150,
+            "path": "candidate-l/github/assembled-clang-43970911876-1/native-qualification/evidence-sha256.json",
+            "sha256": "c6b01802e802391548392c11238df7b046693553411f95571ac82cce6ce4e51c"
+          },
+          "node-resources.json": {
+            "bytes": 30561,
+            "path": "candidate-l/github/assembled-clang-43970911876-1/native-qualification/node-resources.json",
+            "sha256": "8f7165c54998ab4700e867296ffc5b25586a9ecd9b723ddb6638b86ff3be861e"
+          },
+          "public-consensus-controls.json": {
+            "bytes": 12388,
+            "path": "candidate-l/github/assembled-clang-43970911876-1/native-qualification/public-consensus-controls.json",
+            "sha256": "a1558157e545e1088966f0ec0746867102fd762785f147a648d6c0a9c29ce6c4"
+          }
+        },
+        "inventory_sha256": "c6b01802e802391548392c11238df7b046693553411f95571ac82cce6ce4e51c",
+        "native_execution": false,
+        "node_binary_sha256": "5ba9957583228aa4f57b043dceb65b8276f6b2d7956e7a6de94b2e15ef7f9cc7",
+        "opened_zip_entries": [
+          "native-qualification/node-resources.json",
+          "native-qualification/public-consensus-controls.json",
+          "native-qualification/evidence-sha256.json"
+        ],
+        "original_native_inventory_entries": 83,
+        "private_wallet_backup_key_material_accessed": false,
+        "public_soak_credit_seconds": 0,
+        "resource": {
+          "blocks": 30,
+          "mempool_pressure_evicted": 17,
+          "mempool_usage": 31999728,
+          "node_peak_rss_bytes": 405270528,
+          "p95_wall_ns": 200323785,
+          "verifications_each": 128,
+          "weight_each": 4000000
+        },
+        "result": "PASS",
+        "run_id": 43970911876,
+        "schema": "PQBTC-ADDITIONAL-PUBLIC-NATIVE-REPORTS-1",
+        "source": {
+          "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+          "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+        }
+      },
+      "base": {
+        "artifact_id": 14280126532,
+        "compiler": "clang",
+        "image": "sha256:98209ba29cc260e8671b959baa65f2b706e681cc0192c52a9cb2355d999277e5",
+        "native_binary_sha256": {
+          "/tmp/demo-signer-bin/pilot-signer": "6174c4e1f66338a8e608f650ecdec70aa6c220a918c43c2b86b1114a7cac0a16",
+          "/tmp/mldsa-demo-build/bin/pqbtc-cli": "704d984173bf72fea78ce47f79c4c1dd14932bd5d80abe5f3a90be98427e4bf3",
+          "/tmp/mldsa-demo-build/bin/pqbtc-mldsa-client": "59671b62812044c6e7b3302789b2a83ee56d05e3bd1dd30e5e9ceca1e09f984c",
+          "/tmp/mldsa-demo-build/bin/pqbtcd": "5ba9957583228aa4f57b043dceb65b8276f6b2d7956e7a6de94b2e15ef7f9cc7",
+          "/tmp/mldsa-demo-build/bin/test_pqbtc": "1e7574175ae8968724ec324591391cdcb10b7858cc3b26aebd834de06538204c",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_consensus_controls.py": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_native_qualification.py": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_spend_restore.py": "0dfc691f58d8a1ad89719d6d962104a3899a56ba1ccdc72a1828e1d625c5e02a"
+        },
+        "native_code_loaded_or_executed": false,
+        "reports": {
+          "native-qualification/report.json": {
+            "bytes": 22608,
+            "sha256": "4a28206cdc22a7a90bc0d47f439a5cd8b9475a206641b3e051996d8a318652fe"
+          },
+          "public-profile-app/report.json": {
+            "bytes": 5074,
+            "sha256": "b2be2af7dd8db52ccd63b22685399295bd7959018b9854defa5bcfae085bee9b"
+          },
+          "report.json": {
+            "bytes": 56775,
+            "sha256": "4593def9d5e939666f0352283b7fbc7801f82a0f0cc287fc74f93620db52971b"
+          },
+          "runtime-descriptor.json": {
+            "bytes": 30641,
+            "sha256": "88ec14126ce2337857b40cf6fad30358d71f3520136a0d96bed5ec0011710f88"
+          }
+        },
+        "result": "PASS",
+        "run_id": 43970911876,
+        "schema": "PQBTC-ASSEMBLED-PUBLIC-REPORTS-VERIFICATION-1",
+        "scope": "EXACT_SOURCE_LINUX_X86_64_QUALIFICATION_AND_PRIVATE_APP_FLOW_NOT_PUBLIC_SOAK",
+        "source": {
+          "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+          "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+        },
+        "zip_bytes": 598578,
+        "zip_sha256": "da16db8def81770a29403ed2480f072acd98fe132e66e657de92fc31d8cf5a0b"
+      },
+      "supplement": {
+        "artifact_id": 14280126532,
+        "binary_identity_scope": "Verified reported before/after hashes against the manifest; no image filesystem or binary execution",
+        "build_checks": {
+          "mldsa44_node_tests": "PASS",
+          "mldsa44_public_tests": "PASS",
+          "mldsa44_resource_tests": "PASS",
+          "native_integration": "PASS",
+          "node_functional_validation": "PASS",
+          "signer": "PASS"
+        },
+        "cleanup": {
+          "app_errors": [],
+          "native": "REMOVED"
+        },
+        "compiler": "clang",
+        "dependency_inventory_entries": 152,
+        "image": "sha256:98209ba29cc260e8671b959baa65f2b706e681cc0192c52a9cb2355d999277e5",
+        "inactive_peer_policy_recovery": {
+          "endpoints": [
+            "172.17.0.3:23833"
+          ],
+          "monotonic_ns": 889971343652,
+          "name": "peer_policy_orphan_preserved_and_recovered_inactive",
+          "network_active": false,
+          "original_sha256": "e3a1468eb1dd82c304cbc4b20f605dfa53bf6db3d5f6c2b8b39845f0d0ec6265",
+          "preserved": true
+        },
+        "manifest_sha256": "6469a840c8cb7d3646f2fca3bd18873eef74d665ecbe76e9f4c85640823bba52",
+        "native_checks": {
+          "actual-node-30-full-blocks-and-mempool-pressure": "PASS",
+          "actual-node-spend-old-record-restore": "PASS",
+          "actual-public-accepted-set-and-both-reindex-paths": "PASS",
+          "integration-asan-ubsan": "PASS",
+          "integration-normal": "PASS",
+          "key-lifecycle-normal-and-sanitized": "PASS",
+          "node-profile-and-resource-units": "PASS",
+          "signer-asan-ubsan": "PASS",
+          "signer-normal": "PASS"
+        },
+        "packages": 211,
+        "peer_repair": {
+          "elapsed_seconds": 0.36309250400006476,
+          "endpoint": "172.17.0.3:23833",
+          "monotonic_ns": 868653702470,
+          "name": "unexpected_native_peer_disconnect_repaired",
+          "new_node_ids": [
+            1
+          ],
+          "old_node_id": 0,
+          "transaction_peers": [
+            1,
+            1
+          ]
+        },
+        "public_soak_credit_seconds": 0,
+        "result": "PASS",
+        "run_id": 43970911876,
+        "same_known_transaction": {
+          "elapsed_seconds": 9.450235378000002,
+          "known_in_mempool": true,
+          "monotonic_ns": 878103984556,
+          "name": "same_known_transaction_rebroadcast_after_rejoin",
+          "raw_transaction_sha256": "f8b314ddac70d057c0b0860871ea7e66cc6b46748246f4c5f8a3b7abc99a9824",
+          "rebroadcast": true,
+          "reissued_payment": false,
+          "txid": "32bd3aaf8bc91e76004c8880c744f511ffa04f4c302a37ea7d9e677fc637bb20"
+        },
+        "schema": "PQBTC-CI-PUBLIC-REPORT-SUPPLEMENT-1",
+        "scope": "PRIVATE_TWO_CONTAINER_APP_FLOW_NOT_PUBLIC_SOAK",
+        "source": {
+          "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+          "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+        },
+        "toolchain": {
+          "clang": "Debian clang version 16.0.6 (15~deb12u1)",
+          "clang++": "Debian clang version 16.0.6 (15~deb12u1)",
+          "cmake": "cmake version 3.25.1",
+          "git": "git version 2.39.5",
+          "ninja": "1.11.1"
+        }
+      }
+    },
+    "gcc": {
+      "additional_native": {
+        "actual_frozen_source_data_validators_pass": true,
+        "artifact_id": 14279042327,
+        "artifact_zip_sha256": "526833cc6e00d37edbc8862f10c3589ff981c1669f7f04e487f3104b8731c534",
+        "compiler": "gcc",
+        "consensus": {
+          "controls": 16,
+          "owned_node_cleanup": "STOPPED"
+        },
+        "data_validator_sha256": {
+          "public_consensus_controls.py": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c",
+          "run_native_qualification.py": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0"
+        },
+        "files": {
+          "evidence-sha256.json": {
+            "bytes": 8150,
+            "path": "candidate-l/github/assembled-gcc-43970911876-1/native-qualification/evidence-sha256.json",
+            "sha256": "0f35b8c54537d73ea0252f69b6bba412658bafb287b237141e9c5a1bb4188c23"
+          },
+          "node-resources.json": {
+            "bytes": 30565,
+            "path": "candidate-l/github/assembled-gcc-43970911876-1/native-qualification/node-resources.json",
+            "sha256": "46fae2b04006b9be3749766d599a33754fcd156da61b6c2125756ba1bfe92851"
+          },
+          "public-consensus-controls.json": {
+            "bytes": 12388,
+            "path": "candidate-l/github/assembled-gcc-43970911876-1/native-qualification/public-consensus-controls.json",
+            "sha256": "b22c368b65e71ce23b4c0592d00604376dc44e014da887c324c7bbbaceedc5be"
+          }
+        },
+        "inventory_sha256": "0f35b8c54537d73ea0252f69b6bba412658bafb287b237141e9c5a1bb4188c23",
+        "native_execution": false,
+        "node_binary_sha256": "633140a85127d44b60b81ed1a20d0aa3054c992b4042e273481261250225feae",
+        "opened_zip_entries": [
+          "native-qualification/node-resources.json",
+          "native-qualification/public-consensus-controls.json",
+          "native-qualification/evidence-sha256.json"
+        ],
+        "original_native_inventory_entries": 83,
+        "private_wallet_backup_key_material_accessed": false,
+        "public_soak_credit_seconds": 0,
+        "resource": {
+          "blocks": 30,
+          "mempool_pressure_evicted": 17,
+          "mempool_usage": 31999728,
+          "node_peak_rss_bytes": 402817024,
+          "p95_wall_ns": 225534750,
+          "verifications_each": 128,
+          "weight_each": 4000000
+        },
+        "result": "PASS",
+        "run_id": 43970911876,
+        "schema": "PQBTC-ADDITIONAL-PUBLIC-NATIVE-REPORTS-1",
+        "source": {
+          "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+          "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+        }
+      },
+      "base": {
+        "artifact_id": 14279042327,
+        "compiler": "gcc",
+        "image": "sha256:dd6752a750692c442c28655a078cfa2382274705c60c4c2d80f869718565ebf2",
+        "native_binary_sha256": {
+          "/tmp/demo-signer-bin/pilot-signer": "fe8f29a06b94638239815a04a68378fd47250b1521bfecd5613af7711f952623",
+          "/tmp/mldsa-demo-build/bin/pqbtc-cli": "aec8233d3cebfe1cf46e200af22489215f788c6fc109acd388ca62fb834dc6c8",
+          "/tmp/mldsa-demo-build/bin/pqbtc-mldsa-client": "6eb48d60ee20653e680ef58104067e164bf42a2f91cf01e0b99caf11b235a714",
+          "/tmp/mldsa-demo-build/bin/pqbtcd": "633140a85127d44b60b81ed1a20d0aa3054c992b4042e273481261250225feae",
+          "/tmp/mldsa-demo-build/bin/test_pqbtc": "611febaa217c43549806ae44bf2569ec0c725abedbf20b2664844676bb5a3e93",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_consensus_controls.py": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_native_qualification.py": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_spend_restore.py": "0dfc691f58d8a1ad89719d6d962104a3899a56ba1ccdc72a1828e1d625c5e02a"
+        },
+        "native_code_loaded_or_executed": false,
+        "reports": {
+          "native-qualification/report.json": {
+            "bytes": 22604,
+            "sha256": "c0fb59bc2ef5ab14b37fc158465577a0139be8d54ab298ad1b0f3c9ef5d555a3"
+          },
+          "public-profile-app/report.json": {
+            "bytes": 5073,
+            "sha256": "b0edc80c25cd0a31f934bd3cc6c12cca39076475f037be6f969bd933c4876c78"
+          },
+          "report.json": {
+            "bytes": 56732,
+            "sha256": "755005e2fac7be681bdc721ada6f8b60c1bb1745a6d59350ddbbd321ace70dd1"
+          },
+          "runtime-descriptor.json": {
+            "bytes": 30627,
+            "sha256": "76f72ca631c9a66c2c1d67e5dd00f04ea20903f26d14782472587630665d25bc"
+          }
+        },
+        "result": "PASS",
+        "run_id": 43970911876,
+        "schema": "PQBTC-ASSEMBLED-PUBLIC-REPORTS-VERIFICATION-1",
+        "scope": "EXACT_SOURCE_LINUX_X86_64_QUALIFICATION_AND_PRIVATE_APP_FLOW_NOT_PUBLIC_SOAK",
+        "source": {
+          "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+          "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+        },
+        "zip_bytes": 589678,
+        "zip_sha256": "526833cc6e00d37edbc8862f10c3589ff981c1669f7f04e487f3104b8731c534"
+      },
+      "supplement": {
+        "artifact_id": 14279042327,
+        "binary_identity_scope": "Verified reported before/after hashes against the manifest; no image filesystem or binary execution",
+        "build_checks": {
+          "mldsa44_node_tests": "PASS",
+          "mldsa44_public_tests": "PASS",
+          "mldsa44_resource_tests": "PASS",
+          "native_integration": "PASS",
+          "node_functional_validation": "PASS",
+          "signer": "PASS"
+        },
+        "cleanup": {
+          "app_errors": [],
+          "native": "REMOVED"
+        },
+        "compiler": "gcc",
+        "dependency_inventory_entries": 152,
+        "image": "sha256:dd6752a750692c442c28655a078cfa2382274705c60c4c2d80f869718565ebf2",
+        "inactive_peer_policy_recovery": {
+          "endpoints": [
+            "172.17.0.3:23833"
+          ],
+          "monotonic_ns": 958288912091,
+          "name": "peer_policy_orphan_preserved_and_recovered_inactive",
+          "network_active": false,
+          "original_sha256": "e3a1468eb1dd82c304cbc4b20f605dfa53bf6db3d5f6c2b8b39845f0d0ec6265",
+          "preserved": true
+        },
+        "manifest_sha256": "538714254b8ebae4ff49d63189be7a8b6a7fe05f773ab7dce8d8c2716751b7ff",
+        "native_checks": {
+          "actual-node-30-full-blocks-and-mempool-pressure": "PASS",
+          "actual-node-spend-old-record-restore": "PASS",
+          "actual-public-accepted-set-and-both-reindex-paths": "PASS",
+          "integration-asan-ubsan": "PASS",
+          "integration-normal": "PASS",
+          "key-lifecycle-normal-and-sanitized": "PASS",
+          "node-profile-and-resource-units": "PASS",
+          "signer-asan-ubsan": "PASS",
+          "signer-normal": "PASS"
+        },
+        "packages": 211,
+        "peer_repair": {
+          "elapsed_seconds": 0.8805170630000703,
+          "endpoint": "172.17.0.3:23833",
+          "monotonic_ns": 942045102948,
+          "name": "unexpected_native_peer_disconnect_repaired",
+          "new_node_ids": [
+            1
+          ],
+          "old_node_id": 0,
+          "transaction_peers": [
+            1,
+            1
+          ]
+        },
+        "public_soak_credit_seconds": 0,
+        "result": "PASS",
+        "run_id": 43970911876,
+        "same_known_transaction": {
+          "elapsed_seconds": 4.495951276000028,
+          "known_in_mempool": true,
+          "monotonic_ns": 946541102965,
+          "name": "same_known_transaction_rebroadcast_after_rejoin",
+          "raw_transaction_sha256": "27e563b26c517195084b7092d6a8c5e66a21ab629c290672173403988dfbc5f8",
+          "rebroadcast": true,
+          "reissued_payment": false,
+          "txid": "56953acd48e3c1a5342221749b7d32932d5f2bf082d8bdf0a4a995a58e621229"
+        },
+        "schema": "PQBTC-CI-PUBLIC-REPORT-SUPPLEMENT-1",
+        "scope": "PRIVATE_TWO_CONTAINER_APP_FLOW_NOT_PUBLIC_SOAK",
+        "source": {
+          "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+          "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+        },
+        "toolchain": {
+          "cmake": "cmake version 3.25.1",
+          "g++": "g++ (Debian 12.2.0-14+deb12u1) 12.2.0",
+          "gcc": "gcc (Debian 12.2.0-14+deb12u1) 12.2.0",
+          "git": "git version 2.39.5",
+          "ninja": "1.11.1"
+        }
+      }
+    }
+  },
+  "generated_at_utc": "2026-11-16T22:54:40.889563+00:00",
+  "image_download_fallback": {
+    "archive_entries_opened": false,
+    "artifact_id": 14280600594,
+    "attempt": 1,
+    "bytes": 538848243,
+    "connector_limit_bytes": 536870912,
+    "connector_rejection": "Artifact exceeds max size",
+    "credential_values_read_or_printed": false,
+    "fallback": "Bounded gh API raw ZIP byte stream; authenticated redirect handled internally by CLI",
+    "path": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/candidate-l/github/artifact-14280600594.zip",
+    "result": "PASS",
+    "run_id": 43970911876,
+    "schema": "PQBTC-L-LARGE-ACTIONS-ARTIFACT-DOWNLOAD-1",
+    "sha256": "891925e956ecc78fe6806fd21e6fb4a7eea3a111d1841d3978c155921c75c6d9",
+    "signed_capability_URL_observed_or_persisted": false,
+    "source_head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd"
+  },
+  "image_verification": {
+    "artifact_id": 14280600594,
+    "artifact_zip_bytes": 538848243,
+    "artifact_zip_sha256": "891925e956ecc78fe6806fd21e6fb4a7eea3a111d1841d3978c155921c75c6d9",
+    "bundle_path": "candidate-l/github/qualified-runtime-gcc-43970911876-1",
+    "compressed_archive_bytes": 538814711,
+    "compressed_archive_sha256": "61382d40954ebf24a270ac32da4054af3dcf288a576f17a3c2788cf3e11a9bd4",
+    "docker_save_uncompressed_bytes": 1333404672,
+    "image": {
+      "Architecture": "amd64",
+      "Id": "sha256:dd6752a750692c442c28655a078cfa2382274705c60c4c2d80f869718565ebf2",
+      "Os": "linux",
+      "RootFS": {
+        "Layers": [
+          "sha256:1d7b9dd8778ebc4d9bf2f64436dd358640718cb349f5640b33bebaea4ffd62c2",
+          "sha256:e688e273109f323b73854feb516ee9a1ad587ff2350e823a8b8de0c98d2bd8ef",
+          "sha256:ec0ace20d66623e4c9b61401e3894b4d9c010352b0486227642d7f60c06f63f9",
+          "sha256:1964932a20c8aa82d220d1a7bb7fd0c5423eb80f73229551db6ff9a8dd14bdf5",
+          "sha256:a7a6d0ec842a19a250e44444c2b4804043e90370141e78ba67e8b6194ebf249b",
+          "sha256:50e8ca4fc93f0009e003c02425ed3e32515c877381f0e51ba41110c8fba64b68"
+        ],
+        "Type": "layers"
+      },
+      "Size": 1303382603
+    },
+    "image_not_loaded_or_executed": true,
+    "layers": [
+      {
+        "diff_id": "sha256:1d7b9dd8778ebc4d9bf2f64436dd358640718cb349f5640b33bebaea4ffd62c2",
+        "path": "blobs/sha256/1d7b9dd8778ebc4d9bf2f64436dd358640718cb349f5640b33bebaea4ffd62c2",
+        "uncompressed_layer_tar_bytes": 77946880
+      },
+      {
+        "diff_id": "sha256:e688e273109f323b73854feb516ee9a1ad587ff2350e823a8b8de0c98d2bd8ef",
+        "path": "blobs/sha256/e688e273109f323b73854feb516ee9a1ad587ff2350e823a8b8de0c98d2bd8ef",
+        "uncompressed_layer_tar_bytes": 926287360
+      },
+      {
+        "diff_id": "sha256:ec0ace20d66623e4c9b61401e3894b4d9c010352b0486227642d7f60c06f63f9",
+        "path": "blobs/sha256/ec0ace20d66623e4c9b61401e3894b4d9c010352b0486227642d7f60c06f63f9",
+        "uncompressed_layer_tar_bytes": 105984512
+      },
+      {
+        "diff_id": "sha256:1964932a20c8aa82d220d1a7bb7fd0c5423eb80f73229551db6ff9a8dd14bdf5",
+        "path": "blobs/sha256/1964932a20c8aa82d220d1a7bb7fd0c5423eb80f73229551db6ff9a8dd14bdf5",
+        "uncompressed_layer_tar_bytes": 11776
+      },
+      {
+        "diff_id": "sha256:a7a6d0ec842a19a250e44444c2b4804043e90370141e78ba67e8b6194ebf249b",
+        "path": "blobs/sha256/a7a6d0ec842a19a250e44444c2b4804043e90370141e78ba67e8b6194ebf249b",
+        "uncompressed_layer_tar_bytes": 55080448
+      },
+      {
+        "diff_id": "sha256:50e8ca4fc93f0009e003c02425ed3e32515c877381f0e51ba41110c8fba64b68",
+        "path": "blobs/sha256/50e8ca4fc93f0009e003c02425ed3e32515c877381f0e51ba41110c8fba64b68",
+        "uncompressed_layer_tar_bytes": 168070656
+      }
+    ],
+    "result": "PASS",
+    "run_id": 43970911876,
+    "schema": "PQBTC-QUALIFIED-RUNTIME-IMAGE-VERIFICATION-1",
+    "source": {
+      "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+      "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+    },
+    "storage_note": "Measured archive and layer tar sizes are not an upper bound for target filesystem capacity.",
+    "sum_uncompressed_layer_tar_bytes": 1333381632
+  },
+  "jobs": [
+    {
+      "conclusion": "success",
+      "id": 133662513713,
+      "logs_url": null,
+      "name": "Source build, wallet recovery and native qualification (clang)",
+      "run_id": 43970911876,
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Checkout exact source without persisted credentials",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Verify pristine checkout and host-only console checks",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Build native source without cache and test the assembled app",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Qualify native components, actual spend/restore and node resource bounds",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Test public-profile HTTP wallet and recovery on private test transport",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Verify source stayed unchanged",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Export the qualified GCC runtime image when requested",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Upload the qualified GCC image bundle",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Upload source, native and end-to-end evidence",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Checkout exact source without persisted credentials",
+          "number": 20,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 21,
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "conclusion": "success",
+      "id": 133662514218,
+      "logs_url": null,
+      "name": "Source build, wallet recovery and native qualification (gcc)",
+      "run_id": 43970911876,
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Checkout exact source without persisted credentials",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Verify pristine checkout and host-only console checks",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Build native source without cache and test the assembled app",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Qualify native components, actual spend/restore and node resource bounds",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Test public-profile HTTP wallet and recovery on private test transport",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Verify source stayed unchanged",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Export the qualified GCC runtime image when requested",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Upload the qualified GCC image bundle",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Upload source, native and end-to-end evidence",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Checkout exact source without persisted credentials",
+          "number": 20,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 21,
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "manual_assembled_result": "PASS",
+  "native_code_executed_by_evidence_verifier": false,
+  "prior_candidate_qualification_credit": false,
+  "private_archive_entries_opened": false,
+  "public_soak_credit_seconds": 0,
+  "qualification_boundary": "This receipt does not establish ARM Docker qualification, complete broad CI, Docker Desktop stop/relaunch behavior, public preflight or a completed24-hour public soak. Separate source-pinned receipts are required.",
+  "run": {
+    "conclusion": "success",
+    "created_at": "2026-11-16T22:31:44Z",
+    "event": "workflow_dispatch",
+    "head_branch": "codex/mldsa-runpod-soak-20261114",
+    "head_sha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+    "html_url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43970911876",
+    "id": 43970911876,
+    "name": "ML-DSA-44 clean-checkout assembled system",
+    "path": ".github/workflows/ml-dsa-44-assembled-system.yml",
+    "repository": {
+      "full_name": "scottdhughes/quantum-proof-bitcoin",
+      "id": 1136579990
+    },
+    "run_attempt": 1,
+    "status": "completed",
+    "updated_at": "2026-11-16T22:48:33Z",
+    "workflow_id": 412493927
+  },
+  "schema": "PQBTC-L-CI-ASSEMBLED-QUALIFICATION-1",
+  "scope": "EXACT_SOURCE_GITHUB_LINUX_X86_64_GCC_CLANG_NATIVE_AND_PRIVATE_TWO_CONTAINER_APP_FLOW",
+  "single_advisory_availability_retry_authorization": "advisory-single-retry-authorization.json",
+  "source": {
+    "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+    "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+  },
+  "whole_CI_result": "PENDING"
+}

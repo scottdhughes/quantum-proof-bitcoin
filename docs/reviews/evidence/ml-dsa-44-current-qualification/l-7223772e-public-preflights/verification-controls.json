@@ -1,0 +1,160 @@
+{
+  "controls": [
+    {
+      "exit_code": 0,
+      "expected": "PASS",
+      "message": "{\"attempts\": {\"l01\": {\"dual_clocks\": null, \"events\": 2429, \"fault_misses\": 0, \"last_sha256\": \"e35ca276ffbd3b6dc06ddb8eb8686fa9428399047c0a3ec55cbd22426260a4ef\", \"normal_success\": 10, \"payments\": 17, \"phases\": 5, \"result\": \"FAIL\"}, \"l02\": {\"dual_clocks\": {\"monotonic_seconds\": 900.172816125, \"wall_seconds\": 900.177095}, \"events\": 2663, \"fault_misses\": 3, \"last_sha256\": \"1371ff1f80b33d9d42e5cda3ea921af529b077bd666a00db114ebcb459b4d8f0\", \"normal_success\": 12, \"payments\": 22, \"phases\": 7, \"result\": \"PREFLIGHT_PASS\"}}, \"local_files_including_seal\": 19, \"original_failure_status\": \"UNKNOWN_UNREPRODUCED\", \"private_or_native_operations\": false, \"public_24_hour_credit_seconds\": 0, \"result\": \"VERIFIED_S",
+      "name": "relocated_explicit_root",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 0,
+      "expected": "PASS",
+      "message": "{\"attempts\": {\"l01\": {\"dual_clocks\": null, \"events\": 2429, \"fault_misses\": 0, \"last_sha256\": \"e35ca276ffbd3b6dc06ddb8eb8686fa9428399047c0a3ec55cbd22426260a4ef\", \"normal_success\": 10, \"payments\": 17, \"phases\": 5, \"result\": \"FAIL\"}, \"l02\": {\"dual_clocks\": {\"monotonic_seconds\": 900.172816125, \"wall_seconds\": 900.177095}, \"events\": 2663, \"fault_misses\": 3, \"last_sha256\": \"1371ff1f80b33d9d42e5cda3ea921af529b077bd666a00db114ebcb459b4d8f0\", \"normal_success\": 12, \"payments\": 22, \"phases\": 7, \"result\": \"PREFLIGHT_PASS\"}}, \"local_files_including_seal\": 19, \"original_failure_status\": \"UNKNOWN_UNREPRODUCED\", \"private_or_native_operations\": false, \"public_24_hour_credit_seconds\": 0, \"result\": \"VERIFIED_S",
+      "name": "relocated_default_root_other_working_directory",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Optimized Python refused",
+      "name": "optimized_python_refused",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Isolated Python (-I) is required",
+      "name": "nonisolated_python_refused",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Verification refused: Exact public packet membership differs",
+      "name": "unexpected_member",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Verification refused: Exact public packet membership differs",
+      "name": "missing_member",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Verification refused: Packet checksum mismatch",
+      "name": "byte_tamper_without_reseal",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Verification refused: Symlink component refused",
+      "name": "symlink_file_component",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Verification refused: Symlink component refused",
+      "name": "symlink_directory_component",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Verification refused: [Errno 20] Not a directory: 'root-link'",
+      "name": "symlink_root_component",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Verification refused: [Errno 20] Not a directory: 'ancestor-link'",
+      "name": "symlink_ancestor_component",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Verification refused: Manifest source/failure/acceptance scope differs",
+      "name": "resealed_wrong_manifest_source",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Verification refused: Pinned attempt source differs",
+      "name": "resealed_wrong_report_source",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Verification refused: Full actual monotonic and UTC elapsed duration is required",
+      "name": "resealed_short_actual_elapsed",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Verification refused: Full actual monotonic and UTC elapsed duration is required",
+      "name": "resealed_short_event_clock",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Verification refused: Declared fault phase timing or recovery limit failed: crash",
+      "name": "resealed_failed_phase",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Verification refused: Recomputed outcome differs",
+      "name": "resealed_wrong_outcome_count",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Verification refused: Attempt result/scope/profile differs",
+      "name": "resealed_wrong_result_label",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Verification refused: Positive credit refused",
+      "name": "resealed_positive_24_hour_credit",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Verification refused: Public selected-record/retained-journal boundary differs",
+      "name": "resealed_missing_journal_boundary",
+      "result": "PASS"
+    },
+    {
+      "exit_code": 1,
+      "expected": "REFUSED",
+      "message": "Verification refused: Pinned L driver bytes differ",
+      "name": "resealed_changed_driver",
+      "result": "PASS"
+    }
+  ],
+  "method": "Temporary fixtures contained only the packet public allowlist; copied with no-follow component checks. Resealed semantic mutants repaired packet/SOURCE/original-inventory/event-chain hashes as needed. Their expected semantic refusals were asserted before downstream pinned-review checks. All temporary fixtures were removed.",
+  "negative_controls": 19,
+  "no_runtime_network_private_or_active_soak_operations": true,
+  "original_packet_members_unchanged_during_controls": true,
+  "positive_controls": 2,
+  "schema": "PQBTC-L-PREFLIGHT-PORTABLE-CONTROLS-1",
+  "selected_pure_driver_AST_independently_reviewed": true,
+  "status": "PASS",
+  "verifier_sha256": "dc93ffdebab483fb37db4e21495733650ac4f9abb63adc20da19df60449b5f3e"
+}

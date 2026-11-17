@@ -1,0 +1,69 @@
+{
+  "controlled": {
+    "absent_queries": 328,
+    "dropped_MSG_WTX_items": 1,
+    "forced_transport": "v1",
+    "live_cause_proved": false,
+    "loss_elapsed_seconds": 60.00774470786564,
+    "positive_control_report_seconds": 3.6860904169734567,
+    "positive_control_trace_seconds": 3.6859056670218706,
+    "result": "REPRODUCED_WITH_PASSING_POSITIVE_CONTROL",
+    "same_connection_rebroadcasts": 5
+  },
+  "original_live_failure_cause": "UNKNOWN",
+  "public_24_hour_credit_seconds": 0,
+  "public_preflight_credit_seconds": 0,
+  "receiver": {
+    "copied_bytes": 18173046,
+    "copied_file_count": 14,
+    "first_result": "FAIL_INITIALIZER",
+    "full_datasets_local_members": false,
+    "live_ephemeral_state_restored": false,
+    "native_allowed": true,
+    "persisted_context": {
+      "height": 408,
+      "mempool_size": 0,
+      "network_active": false,
+      "peer_count": 0,
+      "tip": "54a78dadccd74a664b730f09d436f7272b3fda02081deb9915935b0a5a4ff8be",
+      "utxo_count": 547,
+      "utxo_hash": "5e8dbc2dc2a2a945baf0cd994eaaba8e4f02d6d0701b8b4ac60a9ead44aaac0d"
+    },
+    "primary_source_excerpts": [
+      {
+        "file": "src/init.cpp",
+        "full_source_file_sha256": "e348f6e04525146785390a1ca741179f2873bc74c66bb678d96d002c812c5624",
+        "line_end": 1143,
+        "line_start": 1127,
+        "selected_excerpt_sha256": "d121ca06e0114bb34523e51e01353c599053f8cde6a6dda6740d5b528b73c67e"
+      },
+      {
+        "file": "src/util/fs_helpers.cpp",
+        "full_source_file_sha256": "c4118757ec9480dc33fc948bee9371ff46600ef5100ce39a7943dc79cb107197",
+        "line_end": 65,
+        "line_start": 47,
+        "selected_excerpt_sha256": "641eadb0c3fc681f25637224b423267f0e8380b5782515565b388d900621574d"
+      },
+      {
+        "file": "src/node/blockstorage.cpp",
+        "full_source_file_sha256": "29a2af84415d1382713debbda5f65007052420a2e94f849c47bf5992f5004038",
+        "line_end": 1132,
+        "line_start": 1126,
+        "selected_excerpt_sha256": "f7455b7d5dd530385396a014c86be9249286111a111fc97b95687e35ebe031e6"
+      }
+    ],
+    "result": "PASS_DIAGNOSTIC",
+    "second_result": "FAIL_BEFORE_NATIVE_COPY_PATH_GUARD"
+  },
+  "schema": "PQBTC-SELECTED-RELAY-DIAGNOSTICS-SUMMARY-1",
+  "sender": {
+    "first_result": "FAIL_BEFORE_DECODER_READ",
+    "raw_bytes": 3878,
+    "raw_payload_local_member": false,
+    "raw_sha256": "d9216ce739ace40ebbc309eada41f54317d7f48ec7d009e95480cc9f1bd8e028",
+    "result": "PASS",
+    "source_file_bytes": 3953,
+    "txid": "f52c9e1538c8f9aa619266c06e5389fa194b724a51a769d0b00de54db6adcb94"
+  },
+  "subsequent_M_fix_qualification_claimed": false
+}

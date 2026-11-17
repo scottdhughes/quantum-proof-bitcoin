@@ -1,0 +1,325 @@
+{
+  "app_cleanup": "INTENTIONAL_SIGINT_EXIT0",
+  "backend_cleanup": {
+    "backend_stopped": true,
+    "container_id": "e1c1e225a4dda31301fe8e9cf0fd9c52bb8e17072ed69a2c80c8728147953b04",
+    "image": "sha256:fc470f630a0eaa679aa49563d13b1a1e1d183528eb4348877c7cbb60b3c0e6f3",
+    "pid": 0,
+    "volume_retained": true
+  },
+  "error_class": "ValueError",
+  "events": [
+    {
+      "app_pid": 15463,
+      "confirmation": {
+        "block_hash": "62455652fdfc2cf0cc3cfebc61e8a502b7330e53984e597675793b0a591eb0fb",
+        "confirmations": 1,
+        "confirmed": true,
+        "txid": "aa984ed5e2bebb310263ce93e8de11a0d6e0a34eb5357cd9068d6d1f3a94056f"
+      },
+      "container_id": "e1c1e225a4dda31301fe8e9cf0fd9c52bb8e17072ed69a2c80c8728147953b04",
+      "monotonic_ns": 1500102425305666,
+      "status": {
+        "backup_ids": [
+          "3bf995d96f404d0c8e503aba6f0ca9c4"
+        ],
+        "nodes": [
+          {
+            "height": 103,
+            "network_active": false,
+            "tip": "62455652fdfc2cf0cc3cfebc61e8a502b7330e53984e597675793b0a591eb0fb",
+            "utxo_count": 104,
+            "utxo_hash": "d0ca5380a90d930c46d6a181d91b90eadabe878604b777b6444d8e07c64e2665"
+          }
+        ],
+        "phase": "running",
+        "ready": true,
+        "wallet": {
+          "balance_sats": 510000000000,
+          "confirmed_sats": 510000000000,
+          "locked": false,
+          "next_change": 1,
+          "next_receive": 2,
+          "wallet_id": "dbbad60f6607369527e8bf87cf5e7849"
+        }
+      },
+      "step": "disposable_wallet_funded_sent_confirmed_and_paused",
+      "txid": "aa984ed5e2bebb310263ce93e8de11a0d6e0a34eb5357cd9068d6d1f3a94056f",
+      "utc": "2026-11-17T05:29:00.497260+00:00"
+    },
+    {
+      "confirmation": {
+        "block_hash": "62455652fdfc2cf0cc3cfebc61e8a502b7330e53984e597675793b0a591eb0fb",
+        "confirmations": 1,
+        "confirmed": true,
+        "txid": "aa984ed5e2bebb310263ce93e8de11a0d6e0a34eb5357cd9068d6d1f3a94056f"
+      },
+      "monotonic_ns": 1500122208716708,
+      "status": {
+        "backup_ids": [
+          "3bf995d96f404d0c8e503aba6f0ca9c4"
+        ],
+        "nodes": [
+          {
+            "height": 103,
+            "network_active": false,
+            "tip": "62455652fdfc2cf0cc3cfebc61e8a502b7330e53984e597675793b0a591eb0fb",
+            "utxo_count": 104,
+            "utxo_hash": "d0ca5380a90d930c46d6a181d91b90eadabe878604b777b6444d8e07c64e2665"
+          }
+        ],
+        "phase": "running",
+        "ready": true,
+        "wallet": {
+          "balance_sats": 510000000000,
+          "confirmed_sats": 510000000000,
+          "locked": true,
+          "next_change": 1,
+          "next_receive": 2,
+          "wallet_id": "dbbad60f6607369527e8bf87cf5e7849"
+        }
+      },
+      "step": "actual_desktop_restart_existing_app_reopened",
+      "utc": "2026-11-17T05:29:20.280911+00:00"
+    },
+    {
+      "app_pid": 15463,
+      "monotonic_ns": 1500136056184375,
+      "step": "desktop_stopped_existing_http_app_still_alive",
+      "utc": "2026-11-17T05:29:34.128441+00:00"
+    },
+    {
+      "app_pid": 15463,
+      "confirmation": {
+        "block_hash": "62455652fdfc2cf0cc3cfebc61e8a502b7330e53984e597675793b0a591eb0fb",
+        "confirmations": 1,
+        "confirmed": true,
+        "txid": "aa984ed5e2bebb310263ce93e8de11a0d6e0a34eb5357cd9068d6d1f3a94056f"
+      },
+      "monotonic_ns": 1500146025466291,
+      "status": {
+        "backup_ids": [
+          "3bf995d96f404d0c8e503aba6f0ca9c4"
+        ],
+        "nodes": [
+          {
+            "height": 103,
+            "network_active": false,
+            "tip": "62455652fdfc2cf0cc3cfebc61e8a502b7330e53984e597675793b0a591eb0fb",
+            "utxo_count": 104,
+            "utxo_hash": "d0ca5380a90d930c46d6a181d91b90eadabe878604b777b6444d8e07c64e2665"
+          }
+        ],
+        "phase": "running",
+        "ready": true,
+        "wallet": {
+          "balance_sats": 510000000000,
+          "confirmed_sats": 510000000000,
+          "locked": true,
+          "next_change": 1,
+          "next_receive": 2,
+          "wallet_id": "dbbad60f6607369527e8bf87cf5e7849"
+        }
+      },
+      "step": "one_click_started_desktop_and_reused_app",
+      "utc": "2026-11-17T05:29:44.097751+00:00"
+    },
+    {
+      "confirmation": {
+        "block_hash": "62455652fdfc2cf0cc3cfebc61e8a502b7330e53984e597675793b0a591eb0fb",
+        "confirmations": 1,
+        "confirmed": true,
+        "txid": "aa984ed5e2bebb310263ce93e8de11a0d6e0a34eb5357cd9068d6d1f3a94056f"
+      },
+      "monotonic_ns": 1500170022529791,
+      "new_app_pid": 16658,
+      "old_app_pid": 15463,
+      "status": {
+        "backup_ids": [
+          "3bf995d96f404d0c8e503aba6f0ca9c4"
+        ],
+        "nodes": [
+          {
+            "height": 103,
+            "network_active": false,
+            "tip": "62455652fdfc2cf0cc3cfebc61e8a502b7330e53984e597675793b0a591eb0fb",
+            "utxo_count": 104,
+            "utxo_hash": "d0ca5380a90d930c46d6a181d91b90eadabe878604b777b6444d8e07c64e2665"
+          }
+        ],
+        "phase": "running",
+        "ready": true,
+        "wallet": {
+          "balance_sats": 510000000000,
+          "confirmed_sats": 510000000000,
+          "locked": true,
+          "next_change": 1,
+          "next_receive": 2,
+          "wallet_id": "dbbad60f6607369527e8bf87cf5e7849"
+        }
+      },
+      "step": "cold_desktop_and_new_host_app_one_click_resume",
+      "utc": "2026-11-17T05:30:08.094916+00:00"
+    }
+  ],
+  "failed_step": "cold_desktop_and_new_host_app_one_click_resume",
+  "finished_utc": "2026-11-17T05:30:43.560417+00:00",
+  "image": "sha256:fc470f630a0eaa679aa49563d13b1a1e1d183528eb4348877c7cbb60b3c0e6f3",
+  "original_after": {
+    "container": {
+      "id": "6f16c11df7ba80fa294ee5172650611bb5efd5224997af2e0dd680ba908176d3",
+      "image": "sha256:767891744587d93faf96d0f9d8ce2c66ebe3a73695b2a7389f82b62735b8ad3a",
+      "mounts": [
+        {
+          "Destination": "/tmp",
+          "Driver": "local",
+          "Mode": "z",
+          "Name": "pqbtc-mldsa-local-data-v1",
+          "Propagation": "",
+          "RW": true,
+          "Source": "/var/lib/docker/volumes/pqbtc-mldsa-local-data-v1/_data",
+          "Type": "volume"
+        }
+      ],
+      "name": "/pqbtc-mldsa-local",
+      "pid": 1405,
+      "restart": {
+        "MaximumRetryCount": 0,
+        "Name": "no"
+      },
+      "running": true
+    },
+    "identity": {
+      "container": "pqbtc-mldsa-local",
+      "managed": true,
+      "schema": "PQBTC-MLDSA44-LOCAL-CONSOLE-1",
+      "state_id": "de3b34e0286f5fe79cc33444a0a300291d361633f9f883b3f981a3edef2a38d2"
+    },
+    "status": {
+      "backup_ids": [
+        "2c078dd3fc7c4dcd9fa849502cb82874",
+        "3949b73016ae4ccba8b5d6443c94cc6d",
+        "746dd0cce1484fe882ac997667f80d19",
+        "a17ae4cb5c5d451f954e4374d7fe500f"
+      ],
+      "nodes": [
+        {
+          "height": 108,
+          "network_active": null,
+          "tip": "1d1a9e7d6399453f9f9f483b3514ce02c8d43b4febb97d234a64ed18b47a3840",
+          "utxo_count": 115,
+          "utxo_hash": "a4685a0ea48e63ce5c4243bd62b3ccb0c6b9cefe3de2c0d8f7a79a60eb420971"
+        },
+        {
+          "height": 108,
+          "network_active": null,
+          "tip": "1d1a9e7d6399453f9f9f483b3514ce02c8d43b4febb97d234a64ed18b47a3840",
+          "utxo_count": 115,
+          "utxo_hash": "a4685a0ea48e63ce5c4243bd62b3ccb0c6b9cefe3de2c0d8f7a79a60eb420971"
+        }
+      ],
+      "phase": "running",
+      "ready": true,
+      "wallet": {
+        "balance_sats": 1994000,
+        "confirmed_sats": 1994000,
+        "locked": false,
+        "next_change": 6,
+        "next_receive": 13,
+        "wallet_id": "1bfcc1a4bd726f58c26ee2d8e6ccb62e"
+      }
+    },
+    "volume": {
+      "created": "2026-11-09T16:49:46Z",
+      "driver": "local",
+      "labels": {
+        "org.pqbtc.console.schema": "durable-1",
+        "org.pqbtc.console.source": "9f4b20a938e67ef985df0780fb41b6035abef15e"
+      },
+      "name": "pqbtc-mldsa-local-data-v1"
+    }
+  },
+  "original_before": {
+    "container": {
+      "id": "6f16c11df7ba80fa294ee5172650611bb5efd5224997af2e0dd680ba908176d3",
+      "image": "sha256:767891744587d93faf96d0f9d8ce2c66ebe3a73695b2a7389f82b62735b8ad3a",
+      "mounts": [
+        {
+          "Destination": "/tmp",
+          "Driver": "local",
+          "Mode": "z",
+          "Name": "pqbtc-mldsa-local-data-v1",
+          "Propagation": "",
+          "RW": true,
+          "Source": "/var/lib/docker/volumes/pqbtc-mldsa-local-data-v1/_data",
+          "Type": "volume"
+        }
+      ],
+      "name": "/pqbtc-mldsa-local",
+      "pid": 38809,
+      "restart": {
+        "MaximumRetryCount": 0,
+        "Name": "no"
+      },
+      "running": true
+    },
+    "identity": {
+      "container": "pqbtc-mldsa-local",
+      "managed": true,
+      "schema": "PQBTC-MLDSA44-LOCAL-CONSOLE-1",
+      "state_id": "de3b34e0286f5fe79cc33444a0a300291d361633f9f883b3f981a3edef2a38d2"
+    },
+    "status": {
+      "backup_ids": [
+        "2c078dd3fc7c4dcd9fa849502cb82874",
+        "3949b73016ae4ccba8b5d6443c94cc6d",
+        "746dd0cce1484fe882ac997667f80d19",
+        "a17ae4cb5c5d451f954e4374d7fe500f"
+      ],
+      "nodes": [
+        {
+          "height": 108,
+          "network_active": null,
+          "tip": "1d1a9e7d6399453f9f9f483b3514ce02c8d43b4febb97d234a64ed18b47a3840",
+          "utxo_count": 115,
+          "utxo_hash": "a4685a0ea48e63ce5c4243bd62b3ccb0c6b9cefe3de2c0d8f7a79a60eb420971"
+        },
+        {
+          "height": 108,
+          "network_active": null,
+          "tip": "1d1a9e7d6399453f9f9f483b3514ce02c8d43b4febb97d234a64ed18b47a3840",
+          "utxo_count": 115,
+          "utxo_hash": "a4685a0ea48e63ce5c4243bd62b3ccb0c6b9cefe3de2c0d8f7a79a60eb420971"
+        }
+      ],
+      "phase": "running",
+      "ready": true,
+      "wallet": {
+        "balance_sats": 1994000,
+        "confirmed_sats": 1994000,
+        "locked": false,
+        "next_change": 6,
+        "next_receive": 13,
+        "wallet_id": "1bfcc1a4bd726f58c26ee2d8e6ccb62e"
+      }
+    },
+    "volume": {
+      "created": "2026-11-09T16:49:46Z",
+      "driver": "local",
+      "labels": {
+        "org.pqbtc.console.schema": "durable-1",
+        "org.pqbtc.console.source": "9f4b20a938e67ef985df0780fb41b6035abef15e"
+      },
+      "name": "pqbtc-mldsa-local-data-v1"
+    }
+  },
+  "original_custody_preserved": true,
+  "public_soak_credit_seconds": 0,
+  "result": "FAIL",
+  "schema": "PQBTC-L-ACTUAL-DESKTOP-PUBLIC-RECOVERY-1",
+  "scope": "ONE_DISPOSABLE_PUBLIC_TEST_WALLET_HOST_APP_AND_REAL_DESKTOP_NOT_PUBLIC_SOAK",
+  "source": {
+    "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+    "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+  }
+}

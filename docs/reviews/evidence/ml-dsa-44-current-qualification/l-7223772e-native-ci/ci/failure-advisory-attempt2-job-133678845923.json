@@ -1,0 +1,63 @@
+{
+  "schema": "PQBTC-BOUNDED-CI-FAILURE-DIAGNOSTICS-1",
+  "source_head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+  "run_id": 43970746110,
+  "job_id": 133678845923,
+  "run_attempt": 2,
+  "original_log_lines": 821,
+  "retained_lines": 12,
+  "max_lines": 500,
+  "max_bytes": 262144,
+  "lines": [
+    {
+      "line": 713,
+      "text": "2026-11-16T23:02:56.5400409Z + set +e"
+    },
+    {
+      "line": 714,
+      "text": "2026-11-16T23:02:56.5402659Z + curl --fail-with-body --silent --show-error --proto =https --connect-timeout 15 --max-time 60 --retry 3 --retry-delay 2 --retry-all-errors --header 'Accept: application/vnd.github+json' --header 'X-GitHub-Api-Version: 2022-11-28' --user-agent pqbtc-ml-dsa-advisory-ledger/1 --dump-header /home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/ml-dsa-44-advisory-evidence/mldsa-native-response-headers.txt --output /home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/ml-dsa-44-advisory-evidence/mldsa-native-advisories.json --write-out '%{json}\\n' 'https://api.github.com/repos/pq-code-package/mldsa-native/security-advisories?state=published&per_page=100&page=1'"
+    },
+    {
+      "line": 715,
+      "text": "2026-11-16T23:03:02.5903372Z + MLDSA_NATIVE_ADVISORY_CURL_EXIT=22"
+    },
+    {
+      "line": 716,
+      "text": "2026-11-16T23:03:02.5903986Z + set -e"
+    },
+    {
+      "line": 717,
+      "text": "2026-11-16T23:03:02.5905913Z + printf '%s\\n' 22"
+    },
+    {
+      "line": 718,
+      "text": "2026-11-16T23:03:02.5906520Z + tee /home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/ml-dsa-44-advisory-evidence/mldsa-native-curl.exit-code"
+    },
+    {
+      "line": 719,
+      "text": "2026-11-16T23:03:02.5913364Z 22"
+    },
+    {
+      "line": 720,
+      "text": "2026-11-16T23:03:02.5917540Z + python3 contrib/ml-dsa-engineering/run_advisory_ledger.py --validate-oracle-feeds --openssl-advisory-feed /home/runner/work/_temp/ml-dsa-advisory/sources/openssl-release-metadata --mldsa-native-advisories /home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/ml-dsa-44-advisory-evidence/mldsa-native-advisories.json --mldsa-native-response-headers /home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/ml-dsa-44-advisory-evidence/mldsa-native-response-headers.txt --mldsa-native-fetch /home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/ml-dsa-44-advisory-evidence/mldsa-native-fetch.json --mldsa-native-request /home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/ml-dsa-44-advisory-evidence/mldsa-native-request.json --mldsa-native-curl-exit-code 22"
+    },
+    {
+      "line": 721,
+      "text": "2026-11-16T23:03:02.6890042Z ##[error]Process completed with exit code 1."
+    },
+    {
+      "line": 722,
+      "text": "2026-11-16T23:03:02.6964741Z ##[group]Run set -euxo pipefail"
+    },
+    {
+      "line": 723,
+      "text": "2026-11-16T23:03:02.6965056Z \u001b[36;1mset -euxo pipefail\u001b[0m"
+    },
+    {
+      "line": 724,
+      "text": "2026-11-16T23:03:02.6965395Z \u001b[36;1mmkdir -p \"$GITHUB_WORKSPACE/ml-dsa-44-advisory-evidence\"\u001b[0m"
+    }
+  ],
+  "authorized_retry_count_used": 1,
+  "further_retry_authorized": false
+}

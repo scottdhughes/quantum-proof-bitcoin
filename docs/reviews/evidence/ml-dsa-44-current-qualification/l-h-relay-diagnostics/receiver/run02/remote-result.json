@@ -1,0 +1,84 @@
+{
+  "cleanup": {
+    "absence_proved": true,
+    "backend_stopped": true,
+    "fresh_clone_volume_and_data_retained": true,
+    "state": "ABSENT"
+  },
+  "default_engine_unchanged_idle": true,
+  "guard": "COPY_RECEIPT_REFUSED",
+  "helper_sha256": "e25dd8b5043adc359245b1894984adb4a006191763ca0d6632992f73e1f52edb",
+  "host_cpu_readiness": {
+    "host_busy_percent": 0.5167958656330749,
+    "host_cpu_count": 16,
+    "seconds": 15.000135895010317
+  },
+  "initializer_boundary": {
+    "cgroup": "0::/pqbtc.slice/pqbtc-public.slice/pqbtc-public-soak.slice/pqbtc-public-soak-20261114.slice/docker-93ec77a898312ddf0762d16980db924332656ab350d3793b731ea1c4a3284648.scope",
+    "leaf_limits": {
+      "cgroup.freeze": "0",
+      "cpu.max": "200000 100000",
+      "memory.max": "134217728",
+      "pids.max": "64"
+    },
+    "parent_limits": {
+      "cgroup.freeze": "0",
+      "cpu.max": "200000 100000",
+      "memory.max": "4294967296",
+      "pids.max": "2048"
+    }
+  },
+  "original_source_metadata_unchanged": true,
+  "original_source_stopped_after": {
+    "id": "e6ffad0815e423a2f54088232d6b8940282dfc7be457f7599085925ad27a5666",
+    "image": "sha256:b3358bb35d60a5f42c9ce1fe65c26926250c26e99815c3446810a8eb6e730f0a",
+    "state": {
+      "FinishedAt": "2026-11-17T05:14:44.530064456Z",
+      "Pid": 0,
+      "Running": false
+    },
+    "volume": {
+      "driver": "local",
+      "labels": {
+        "org.pqbtc.console.profile": "78f5f1024d8276a49acbf54c5026f3e4c7e1c9ba3b901c102a0ac4e1311fa933",
+        "org.pqbtc.console.schema": "public-test-1"
+      },
+      "name": "pqbtc-mldsa-public-soak-r3-l-soak-20261116-01-research-data-v1",
+      "options": null
+    }
+  },
+  "original_source_stopped_before": {
+    "id": "e6ffad0815e423a2f54088232d6b8940282dfc7be457f7599085925ad27a5666",
+    "image": "sha256:b3358bb35d60a5f42c9ce1fe65c26926250c26e99815c3446810a8eb6e730f0a",
+    "state": {
+      "FinishedAt": "2026-11-17T05:14:44.530064456Z",
+      "Pid": 0,
+      "Running": false
+    },
+    "volume": {
+      "driver": "local",
+      "labels": {
+        "org.pqbtc.console.profile": "78f5f1024d8276a49acbf54c5026f3e4c7e1c9ba3b901c102a0ac4e1311fa933",
+        "org.pqbtc.console.schema": "public-test-1"
+      },
+      "name": "pqbtc-mldsa-public-soak-r3-l-soak-20261116-01-research-data-v1",
+      "options": null
+    }
+  },
+  "public_soak_credit_seconds": 0,
+  "raw_sha256": "d9216ce739ace40ebbc309eada41f54317d7f48ec7d009e95480cc9f1bd8e028",
+  "result": "FAIL",
+  "schema": "PQBTC-L-RESEARCH-RECEIVER-CLONE-FORENSIC-1",
+  "source_image": "sha256:b3358bb35d60a5f42c9ce1fe65c26926250c26e99815c3446810a8eb6e730f0a",
+  "target_txid": "f52c9e1538c8f9aa619266c06e5389fa194b724a51a769d0b00de54db6adcb94",
+  "temporary_helpers": [
+    {
+      "role": "copy",
+      "state": "ABSENT"
+    },
+    {
+      "role": "init",
+      "state": "ABSENT"
+    }
+  ]
+}

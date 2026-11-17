@@ -1,0 +1,2 @@
+{"container_ids": ["5ec57eca8e92ce70f4161f5c28c0c86bdd9194cf89636b63dca4f1c9451edbed", "8cc1254ee8d1d0f027487fac04a3c02f19405ae932eda71c7af70ccf8482c9a9"], "event": "two_fresh_owned_nodes_started", "monotonic_ns": 1502916023419000}
+{"cleanup_errors": ["PROXY_CLOSE_FAILED"], "event": "terminal", "monotonic_ns": 1502927399722333, "result": "FAIL"}

@@ -1,0 +1,50 @@
+{
+  "bulk_manifest_sha256": "3bea2a588062d4e9c12be27c0dcc51c1a48fe5e786b83463ff70a06d75337c94",
+  "bulk_restore": {
+    "checkpoint_deadline_seconds": 45,
+    "checkpoint_received": true,
+    "checkpoint_wait_ns": 468505417,
+    "entries": 1450,
+    "frame_bytes": 1956099,
+    "operator_frame_deadline_seconds": 5,
+    "start_signer_elapsed_ns": 599333125
+  },
+  "cleanup": {
+    "backend_stopped": true,
+    "container_and_volume_retained": true,
+    "container_id": "588788407c1f6e98efdf67d58c1a1f73bb5d60d564708b015b1baa0d6ff0d266",
+    "image": "sha256:87075e6b6c13a805afaa8dcdc72b8e9cb35c78389ed6283949f1cf079b626153",
+    "pid": 0
+  },
+  "confirmed_self_payment": {
+    "block_hash": "51ba9eb7feb5be739e97dcd08bbecb41f93da813956f3268392803777df1decc",
+    "confirmations": 1,
+    "confirmed": true,
+    "in_mempool": false,
+    "txid": "6cd852579387b6f9dfd5f5bb7160d5ad18419549819949ac0401ef8d9986d30b"
+  },
+  "controller_closed_cleanly": true,
+  "descriptor_sha256": "d9cb075bfc4fdc03911eb7b0d702a622d88230a7801d9228831b2f289d869db2",
+  "desktop_restart": false,
+  "engine": {
+    "arch": "aarch64",
+    "cpus": 10,
+    "id": "4d2c0ea7-0efe-46b4-9ca7-f8cb3ee300ab",
+    "memory": 8319438848
+  },
+  "events_sha256": "c75c3701c1a7f19d07328fdbe179a6c100c4d37eaf7e76269943dc166defde9d",
+  "final_floors": {
+    "next_change": 726,
+    "next_receive": 726
+  },
+  "finished_utc": "2026-11-17T06:05:05.661931+00:00",
+  "helper_sha256": "c13df76b388861d7e059de8d894d1e4946128b9b558bda987e6ebd5c2bd45fcb",
+  "image": "sha256:87075e6b6c13a805afaa8dcdc72b8e9cb35c78389ed6283949f1cf079b626153",
+  "post_recovery_receive_index": 725,
+  "public_soak_credit_seconds": 0,
+  "recovery_entries": 1450,
+  "result": "PASS",
+  "schema": "PQBTC-BULK-RECOVERY-DIAGNOSTIC-1",
+  "source_head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+  "volume_id": "d0fbb5d8c3b542a7b1531a5bb7dc485f"
+}

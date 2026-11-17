@@ -1,0 +1,187 @@
+{
+  "after": "PASS_SELECTED_DESKTOP_EVIDENCE",
+  "baseline": "PASS_SELECTED_DESKTOP_EVIDENCE",
+  "controls": [
+    {
+      "case": "relocated-a",
+      "expected": "PASS",
+      "observed": "PASS_SELECTED_DESKTOP_EVIDENCE"
+    },
+    {
+      "case": "relocated with spaces",
+      "expected": "PASS",
+      "observed": "PASS_SELECTED_DESKTOP_EVIDENCE"
+    },
+    {
+      "case": "result_false_pass",
+      "expected_gate": "COMPLETE_NATIVE_PASS",
+      "observed_gate": "COMPLETE_NATIVE_PASS"
+    },
+    {
+      "case": "source_head",
+      "expected_gate": "REPORT_SOURCE",
+      "observed_gate": "REPORT_SOURCE"
+    },
+    {
+      "case": "source_image",
+      "expected_gate": "REPORT_IMAGE",
+      "observed_gate": "REPORT_IMAGE"
+    },
+    {
+      "case": "os_reboot_claim",
+      "expected_gate": "NO_OS_REBOOT_CLAIM",
+      "observed_gate": "NO_OS_REBOOT_CLAIM"
+    },
+    {
+      "case": "soak_time_claim",
+      "expected_gate": "ZERO_PUBLIC_CREDIT",
+      "observed_gate": "ZERO_PUBLIC_CREDIT"
+    },
+    {
+      "case": "five_steps_only",
+      "expected_gate": "ORDERED_SIX_STEPS",
+      "observed_gate": "ORDERED_SIX_STEPS"
+    },
+    {
+      "case": "confirmation_false",
+      "expected_gate": "CONFIRMED_TRANSACTION",
+      "observed_gate": "CONFIRMED_TRANSACTION"
+    },
+    {
+      "case": "same_spend_reused",
+      "expected_gate": "NEW_CONFIRMED_SPEND",
+      "observed_gate": "NEW_CONFIRMED_SPEND"
+    },
+    {
+      "case": "restart_wrong_block",
+      "expected_gate": "RESTART_TRANSACTION_MEMBERSHIP",
+      "observed_gate": "RESTART_TRANSACTION_MEMBERSHIP"
+    },
+    {
+      "case": "initial_wrong_tip",
+      "expected_gate": "INITIAL_CHAIN_MEMBERSHIP",
+      "observed_gate": "INITIAL_CHAIN_MEMBERSHIP"
+    },
+    {
+      "case": "wallet_counter_reuse",
+      "expected_gate": "POST_RECOVERY_COUNTERS",
+      "observed_gate": "POST_RECOVERY_COUNTERS"
+    },
+    {
+      "case": "wallet_identity_changed",
+      "expected_gate": "POST_RECOVERY_COUNTERS",
+      "observed_gate": "POST_RECOVERY_COUNTERS"
+    },
+    {
+      "case": "backup_changed",
+      "expected_gate": "BACKUP_CONTINUITY",
+      "observed_gate": "BACKUP_CONTINUITY"
+    },
+    {
+      "case": "original_wallet_counter_changed",
+      "expected_gate": "ORIGINAL_CUSTODY",
+      "observed_gate": "ORIGINAL_CUSTODY"
+    },
+    {
+      "case": "cleanup_pid_alive",
+      "expected_gate": "BACKEND_CLEANUP",
+      "observed_gate": "BACKEND_CLEANUP"
+    },
+    {
+      "case": "cleanup_volume_missing",
+      "expected_gate": "BACKEND_CLEANUP",
+      "observed_gate": "BACKEND_CLEANUP"
+    },
+    {
+      "case": "same_host_process",
+      "expected_gate": "COLD_HOST_APP_PROCESS",
+      "observed_gate": "COLD_HOST_APP_PROCESS"
+    },
+    {
+      "case": "nonmonotonic_event",
+      "expected_gate": "MONOTONIC_ORDER",
+      "observed_gate": "MONOTONIC_ORDER"
+    },
+    {
+      "case": "historical_failure_promoted",
+      "expected_gate": "HISTORICAL_FAILURE",
+      "observed_gate": "HISTORICAL_FAILURE"
+    },
+    {
+      "case": "owner_confirmation_reintroduced",
+      "expected_gate": "OWNER_AUTHORIZATION",
+      "observed_gate": "OWNER_AUTHORIZATION"
+    },
+    {
+      "case": "only_ten_container_ids",
+      "expected_gate": "ELEVEN_BOUND_IDS",
+      "observed_gate": "ELEVEN_BOUND_IDS"
+    },
+    {
+      "case": "musashi_still_running",
+      "expected_gate": "MUSASHI_STOPPED",
+      "observed_gate": "MUSASHI_STOPPED"
+    },
+    {
+      "case": "launch_driver_unbound",
+      "expected_gate": "LAUNCH_BINDING",
+      "observed_gate": "LAUNCH_BINDING"
+    },
+    {
+      "case": "restart_during_soak",
+      "expected_gate": "NO_ACTIVE_SOAK_AT_RESTART",
+      "observed_gate": "NO_ACTIVE_SOAK_AT_RESTART"
+    },
+    {
+      "case": "descriptor_other_source",
+      "expected_gate": "DESCRIPTOR_SOURCE_IMAGE",
+      "observed_gate": "DESCRIPTOR_SOURCE_IMAGE"
+    },
+    {
+      "case": "production_admission_claim",
+      "expected_gate": "PACKET_EXCLUSIONS",
+      "observed_gate": "PACKET_EXCLUSIONS"
+    },
+    {
+      "case": "extra_driver_behavior",
+      "expected_gate": "EXACT_DRIVER_DIFF",
+      "observed_gate": "EXACT_DRIVER_DIFF"
+    },
+    {
+      "case": "unsealed_byte_tamper",
+      "expected_gate": "SEALED_FILE_HASH",
+      "observed_gate": "SEALED_FILE_HASH"
+    },
+    {
+      "case": "unexpected_file",
+      "expected_gate": "EXACT_PACKET_MEMBERS",
+      "observed_gate": "EXACT_PACKET_MEMBERS"
+    },
+    {
+      "case": "symlink_member",
+      "expected_gate": "FILE_TYPE",
+      "observed_gate": "FILE_TYPE"
+    },
+    {
+      "case": "oversized_member",
+      "expected_gate": "FILE_SIZE",
+      "observed_gate": "FILE_SIZE"
+    },
+    {
+      "case": "duplicate_seal_member",
+      "expected_gate": "DUPLICATE_SEAL_MEMBER",
+      "observed_gate": "DUPLICATE_SEAL_MEMBER"
+    },
+    {
+      "case": "traversal_seal_member",
+      "expected_gate": "SAFE_MEMBER_PATH",
+      "observed_gate": "SAFE_MEMBER_PATH"
+    }
+  ],
+  "gate_specific_negative_controls": 33,
+  "original_packet_member_hashes_unchanged": 21,
+  "relocated_positive_controls": 2,
+  "result": "PASS",
+  "runtime_or_historical_driver_execution": false,
+  "schema": "PQBTC-DESKTOP-PACKET-OFFLINE-CONTROLS-1"
+}

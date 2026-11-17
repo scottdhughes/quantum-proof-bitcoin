@@ -1,0 +1,68 @@
+{
+  "artifact_id": 14280600594,
+  "artifact_zip_bytes": 538848243,
+  "artifact_zip_sha256": "891925e956ecc78fe6806fd21e6fb4a7eea3a111d1841d3978c155921c75c6d9",
+  "bundle_path": "candidate-l/github/qualified-runtime-gcc-43970911876-1",
+  "compressed_archive_bytes": 538814711,
+  "compressed_archive_sha256": "61382d40954ebf24a270ac32da4054af3dcf288a576f17a3c2788cf3e11a9bd4",
+  "docker_save_uncompressed_bytes": 1333404672,
+  "image": {
+    "Architecture": "amd64",
+    "Id": "sha256:dd6752a750692c442c28655a078cfa2382274705c60c4c2d80f869718565ebf2",
+    "Os": "linux",
+    "RootFS": {
+      "Layers": [
+        "sha256:1d7b9dd8778ebc4d9bf2f64436dd358640718cb349f5640b33bebaea4ffd62c2",
+        "sha256:e688e273109f323b73854feb516ee9a1ad587ff2350e823a8b8de0c98d2bd8ef",
+        "sha256:ec0ace20d66623e4c9b61401e3894b4d9c010352b0486227642d7f60c06f63f9",
+        "sha256:1964932a20c8aa82d220d1a7bb7fd0c5423eb80f73229551db6ff9a8dd14bdf5",
+        "sha256:a7a6d0ec842a19a250e44444c2b4804043e90370141e78ba67e8b6194ebf249b",
+        "sha256:50e8ca4fc93f0009e003c02425ed3e32515c877381f0e51ba41110c8fba64b68"
+      ],
+      "Type": "layers"
+    },
+    "Size": 1303382603
+  },
+  "image_not_loaded_or_executed": true,
+  "layers": [
+    {
+      "diff_id": "sha256:1d7b9dd8778ebc4d9bf2f64436dd358640718cb349f5640b33bebaea4ffd62c2",
+      "path": "blobs/sha256/1d7b9dd8778ebc4d9bf2f64436dd358640718cb349f5640b33bebaea4ffd62c2",
+      "uncompressed_layer_tar_bytes": 77946880
+    },
+    {
+      "diff_id": "sha256:e688e273109f323b73854feb516ee9a1ad587ff2350e823a8b8de0c98d2bd8ef",
+      "path": "blobs/sha256/e688e273109f323b73854feb516ee9a1ad587ff2350e823a8b8de0c98d2bd8ef",
+      "uncompressed_layer_tar_bytes": 926287360
+    },
+    {
+      "diff_id": "sha256:ec0ace20d66623e4c9b61401e3894b4d9c010352b0486227642d7f60c06f63f9",
+      "path": "blobs/sha256/ec0ace20d66623e4c9b61401e3894b4d9c010352b0486227642d7f60c06f63f9",
+      "uncompressed_layer_tar_bytes": 105984512
+    },
+    {
+      "diff_id": "sha256:1964932a20c8aa82d220d1a7bb7fd0c5423eb80f73229551db6ff9a8dd14bdf5",
+      "path": "blobs/sha256/1964932a20c8aa82d220d1a7bb7fd0c5423eb80f73229551db6ff9a8dd14bdf5",
+      "uncompressed_layer_tar_bytes": 11776
+    },
+    {
+      "diff_id": "sha256:a7a6d0ec842a19a250e44444c2b4804043e90370141e78ba67e8b6194ebf249b",
+      "path": "blobs/sha256/a7a6d0ec842a19a250e44444c2b4804043e90370141e78ba67e8b6194ebf249b",
+      "uncompressed_layer_tar_bytes": 55080448
+    },
+    {
+      "diff_id": "sha256:50e8ca4fc93f0009e003c02425ed3e32515c877381f0e51ba41110c8fba64b68",
+      "path": "blobs/sha256/50e8ca4fc93f0009e003c02425ed3e32515c877381f0e51ba41110c8fba64b68",
+      "uncompressed_layer_tar_bytes": 168070656
+    }
+  ],
+  "result": "PASS",
+  "run_id": 43970911876,
+  "schema": "PQBTC-QUALIFIED-RUNTIME-IMAGE-VERIFICATION-1",
+  "source": {
+    "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+    "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+  },
+  "storage_note": "Measured archive and layer tar sizes are not an upper bound for target filesystem capacity.",
+  "sum_uncompressed_layer_tar_bytes": 1333381632
+}

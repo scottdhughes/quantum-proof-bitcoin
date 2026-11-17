@@ -1,0 +1,28 @@
+{
+  "ast": "PASS",
+  "current_green": {
+    "errors": 0,
+    "failures": 0,
+    "tests": 2
+  },
+  "executed_4fb_red": {
+    "errors": 2,
+    "failures": 0,
+    "tests": 2
+  },
+  "full_current_green": {
+    "errors": 0,
+    "failures": 0,
+    "tests": 38
+  },
+  "new_names": [
+    "pqbtc-mldsa-public-lostinv-a-20261117-02",
+    "pqbtc-mldsa-public-lostinv-b-20261117-02"
+  ],
+  "new_remote": "/tmp/pqbtc-lostinv-20261117-02",
+  "run_01_preserved_sha256": {
+    "events.jsonl": "9a70ee01ccf6bd604c412399e830db4082150c4f42e090c0590c386c634bb192",
+    "report.json": "ac0e3383c08e804fe9a4efcaf1404e04dc417d60d18f2c993275715c16491e70"
+  },
+  "scope": "HOST_PYTHON_UNIX_SOCKET_NO_TCP_P2P_NO_DOCKER_NO_NATIVE"
+}

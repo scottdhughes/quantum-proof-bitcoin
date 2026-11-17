@@ -1,0 +1,59 @@
+{
+  "artifact": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/candidate-l/relay-forensics-fixture-20261117-01/sender-extraction-20261117-02/pending-signed-transaction.raw",
+  "cleanup": [
+    {
+      "container_retained": true,
+      "id": "b98f279257cd3b6851d81f9d0c2cd77a9be2b51f0364c672b8e5c5ffd5c5c1a5",
+      "pid": 0,
+      "role": "init",
+      "stopped": true
+    },
+    {
+      "container_retained": true,
+      "id": "1fdcecbcb0e21ef8ed4528e654908f5e26984609333d1bcf95856cd37c61adf5",
+      "pid": 0,
+      "role": "extract",
+      "stopped": true
+    }
+  ],
+  "decoder_sha256": "581ea271483691c0cbeba5f0448ac73b9e6452d1846e3ef04a9c14cd7e491f45",
+  "engine_id": "4d2c0ea7-0efe-46b4-9ca7-f8cb3ee300ab",
+  "extraction": {
+    "artifact": "/out/pending-signed-transaction.raw",
+    "decoded": {
+      "fee_delta_entries": 0,
+      "record_count": 1,
+      "selected_fee_delta": 0,
+      "selected_raw_sha256": "d9216ce739ace40ebbc309eada41f54317d7f48ec7d009e95480cc9f1bd8e028",
+      "selected_timestamp": 1794892421,
+      "txid": "f52c9e1538c8f9aa619266c06e5389fa194b724a51a769d0b00de54db6adcb94",
+      "unbroadcast_entries": 1,
+      "version": 2
+    },
+    "no_raw_payload_stdout": true,
+    "public_volume_marker_verified": true,
+    "result": "PASS",
+    "schema": "PQBTC-L-SENDER-PUBLIC-MEMPOOL-EXTRACTION-1",
+    "signed_raw_bytes": 3878,
+    "source_file": {
+      "bytes": 3953,
+      "gid": 1000,
+      "mode": "0600",
+      "same_identity_metadata_and_second_digest": true,
+      "sha256": "8d7b058ce175a7cbfd0bd05bb18d3c8e210d6ffe176e442819fa3d668bf93763",
+      "uid": 1001
+    },
+    "timestamps_are_saved_metadata_fee_delta_is_not_actual_fee": true
+  },
+  "last_stage": "copy_selected_public_transaction",
+  "original_node_started": false,
+  "original_still_stopped_same_identity": true,
+  "public_soak_credit_seconds": 0,
+  "result": "PASS",
+  "schema": "PQBTC-ROOT-SENDER-MEMPOOL-EXTRACTION-1",
+  "source_container": "09357eb22afff16e50da4e4b1d4ca94469f3060729d6811bfdc736de3dffa63d",
+  "source_image": "sha256:87075e6b6c13a805afaa8dcdc72b8e9cb35c78389ed6283949f1cf079b626153",
+  "source_mounted_read_only": true,
+  "source_volume": "pqbtc-mldsa-public-soak-r3-l-soak-20261116-01-mac-data-v1",
+  "wrapper_sha256": "7ad55e2c53e919b95af6a7a3a7c8ee1ce2c2c9a0f8a6e4fc4bd851cb349a22f7"
+}

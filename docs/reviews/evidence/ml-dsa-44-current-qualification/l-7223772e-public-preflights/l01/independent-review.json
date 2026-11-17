@@ -1,0 +1,798 @@
+{
+  "attempt_result": "FAIL",
+  "cause_boundary": "The public stream proves Research upgrade returned ConsoleError after dispatch. It does not expose the ConsoleError inner cause; no timeout, resource, transport, or randomness attribution is made.",
+  "completed_900_second_clock": false,
+  "completed_phases": [
+    {
+      "finished_elapsed": 94.91106037516147,
+      "name": "crash",
+      "recovery_payment": {
+        "block_hash": "6dd2b49758d5f5bcf14cf99353da2e1149a3c47f8b423392335521cb6ca2deb6",
+        "completed_elapsed": 94.45716762519442,
+        "receiver": "mac",
+        "recipient_in_mempool": true,
+        "recipient_relay_seconds": 8.634399625007063,
+        "sender": "research",
+        "settle_seconds": 9.335441750008613,
+        "started_elapsed": 85.12172487517819,
+        "txid": "9f8530a0ff81ef420628e6f643b7002d1db48da395bbeca428f6efe0a73dca21"
+      },
+      "result": "PASS",
+      "started_elapsed": 75.71974479104392
+    },
+    {
+      "competing_tips": {
+        "mac": "1dc6376a9378768996ed50159e8e8e5914a84382ccc7941c2594f1100f0a10e4",
+        "research": "00cf15977987920e524b66cab29beaf489167e2091785fee84a5e8f341a6dc7f"
+      },
+      "finished_elapsed": 166.19619033299387,
+      "name": "partition",
+      "recovery_payment": {
+        "block_hash": "394247f7d905b4cdd061376e1c79423b2fef608099e9ec8bea7631e21893f020",
+        "completed_elapsed": 165.67192920809612,
+        "receiver": "mac",
+        "recipient_in_mempool": true,
+        "recipient_relay_seconds": 5.948260874953121,
+        "sender": "research",
+        "settle_seconds": 6.621977999806404,
+        "started_elapsed": 159.04994983319193,
+        "txid": "bd3e526797df77de69be902c362d6d37b08b4f2529768c3c3432698a641cf61f"
+      },
+      "rejoined_tip": "00cf15977987920e524b66cab29beaf489167e2091785fee84a5e8f341a6dc7f",
+      "result": "PASS",
+      "started_elapsed": 150.6397458750289
+    },
+    {
+      "finished_elapsed": 234.74736887519248,
+      "name": "hostile",
+      "recovery_payment": {
+        "block_hash": "7ee3d9bba90b9dd2533098db7192f197c04529f3e2e1355203900e23a67ef352",
+        "completed_elapsed": 234.09305416606367,
+        "receiver": "mac",
+        "recipient_in_mempool": true,
+        "recipient_relay_seconds": 5.782785458955914,
+        "sender": "research",
+        "settle_seconds": 6.554969041841105,
+        "started_elapsed": 227.53808429115452,
+        "txid": "4beb1befae0e8585cd102df4ae2cc0366b44d30a34fe8b3221ce8ff93b2fa1c0"
+      },
+      "result": "PASS",
+      "started_elapsed": 225.2676613330841
+    },
+    {
+      "finished_elapsed": 307.23060579109006,
+      "name": "old_backup_missing_record",
+      "recovery_payment": {
+        "block_hash": "18577b6d8eb6ea78efca3e72cce16cec93502a1bc002c6a30357cdb4f62751d3",
+        "completed_elapsed": 306.78893366619013,
+        "receiver": "research",
+        "recipient_in_mempool": true,
+        "recipient_relay_seconds": 3.1616306668147445,
+        "sender": "mac",
+        "settle_seconds": 3.730849332874641,
+        "started_elapsed": 303.05808283318765,
+        "txid": "863d56546ea45105aaa6dea4600db8c7baf061bbcf9a215a737e48466bb554cd"
+      },
+      "result": "PASS",
+      "started_elapsed": 300.0030249161646
+    },
+    {
+      "finished_elapsed": 461.52444154117256,
+      "name": "reindex",
+      "recovery_payment": {
+        "block_hash": "76f5e4522b666cd10fb972649fa6c00a5fef10274965552343a1d2a65aaa4a78",
+        "completed_elapsed": 461.09557962510735,
+        "receiver": "mac",
+        "recipient_in_mempool": true,
+        "recipient_relay_seconds": 7.953199040843174,
+        "sender": "research",
+        "settle_seconds": 9.121599582955241,
+        "started_elapsed": 451.9739788752049,
+        "txid": "5a348782a86f85e922356871a14f8ed1b7f0b3c7fa97edd1779d91cb2471d942"
+      },
+      "result": "PASS",
+      "started_elapsed": 450.18361362512223
+    }
+  ],
+  "configuration_sha256_binding": "524d1fabc4f4766441c3b599d3447ea3854abd6089f2c02d6d592506cb40ca9c",
+  "confirmed_payments": 17,
+  "custody_scope": "All four original public members were read and hash-audited in place. They are external references, not copied local members of this independent-review directory.",
+  "event_chain": {
+    "clock_boundaries": {
+      "public_clock_started": {
+        "data": {
+          "duration_seconds": 900,
+          "public_probe": {
+            "certificate_sha256": "82dac8876ffe34291908e339d82e2020efa49cb5698c6bb25feb02be20581beb",
+            "commands": [
+              "version",
+              "wtxidrelay",
+              "sendaddrv2",
+              "verack"
+            ],
+            "elapsed_seconds": 0.33158741681836545,
+            "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+            "native_magic": "a7e29cf7",
+            "port": 443,
+            "public_peer_ip": "209.177.145.97",
+            "remote_height": 205,
+            "remote_protocol": 70016,
+            "remote_subversion": "/PQBTC:30.2.0/",
+            "result": "PASS",
+            "scope": "ANONYMOUS_PUBLIC_TLS_NATIVE_P2P_HANDSHAKE_ONLY",
+            "tls_version": "TLSv1.3"
+          }
+        },
+        "monotonic_ns": 1482119305009333,
+        "utc": "2026-11-17T00:29:17.286394+00:00"
+      }
+    },
+    "count": 2429,
+    "last_sha256": "e35ca276ffbd3b6dc06ddb8eb8686fa9428399047c0a3ec55cbd22426260a4ef"
+  },
+  "evidence_integrity_result": "PASS",
+  "failed_phase": "upgrade",
+  "failure": {
+    "completed_Mac_upgrade_event": {
+      "data": {
+        "action": "upgrade",
+        "host": "mac",
+        "result": {
+          "result": {
+            "backup": {
+              "created_at": "2026-11-17T00:39:17+00:00",
+              "id": "914d4240df7940a98eb1f1041f95c829",
+              "wallet_id": "4692103cd4aca8922108c71d8ada00b3"
+            },
+            "data_rollback": false,
+            "image": "sha256:fc470f630a0eaa679aa49563d13b1a1e1d183528eb4348877c7cbb60b3c0e6f3",
+            "previous_image": "sha256:87075e6b6c13a805afaa8dcdc72b8e9cb35c78389ed6283949f1cf079b626153",
+            "volume_id": "32dd542917884f2aa80910fd16e96645"
+          },
+          "status": {
+            "nodes": [
+              {
+                "context": {
+                  "activation_height": 1,
+                  "active": true,
+                  "max_block_verifications": 128,
+                  "max_standard_tx_verifications": 25,
+                  "network_binding": "a7e29cf779a947a9a6b549d08f256effeebbbcc0790868ee192d960a84aa48a0c639692b",
+                  "profile_sha256": "78f5f1024d8276a49acbf54c5026f3e4c7e1c9ba3b901c102a0ac4e1311fa933",
+                  "scope": "VALUELESS_EXPERIMENTAL_PUBLIC_TEST_ONLY",
+                  "spec_sha256": "c7993d7f2ae72623cf3b9e2f45c021885f610ef3169dbf176e0c2dd1a619d126",
+                  "verification_cost": 625
+                },
+                "height": 222,
+                "name": "public-test",
+                "network_active": true,
+                "peers": 0,
+                "tip": "3cd3e20e646bb51807e13fcaeb92d083fe077daed3153c6319b48a62cf3349be",
+                "utxo_count": 236,
+                "utxo_hash": "c7f6cabebd6be85e8aa8a24896f402c354baab955c6aaabad1d45d66da7acb9c"
+              }
+            ],
+            "phase": "running",
+            "ready": true,
+            "scope": "VALUELESS_EXPERIMENTAL_PUBLIC_TEST_ONLY",
+            "wallet": {
+              "addresses_count": 18,
+              "balance_sats": 540000300000,
+              "confirmed_sats": 540000300000,
+              "locked": true,
+              "next_change": 7,
+              "next_receive": 11,
+              "pending_sats": 0,
+              "signer_connected": false,
+              "spendable_sats": 505000265000,
+              "utxos_count": 118,
+              "wallet_id": "4692103cd4aca8922108c71d8ada00b3"
+            }
+          }
+        }
+      },
+      "kind": "action",
+      "monotonic_ns": 1482769362249041,
+      "previous_sha256": "a5cfaac87cdef730c5a1a8d3a7755f50c5051fb75a8552acf9c19727c4b407e1",
+      "sequence": 2410,
+      "sha256": "4deea4c6c0c870bd8be80f1332f404fee2cc65fa1bd3f4b7a05e139cde6731ca",
+      "utc": "2026-11-17T00:40:07.347107+00:00"
+    },
+    "dispatch_to_failure_seconds": 0.294737958,
+    "event": {
+      "data": {
+        "detail": "Owned public action failed: upgrade (ConsoleError)",
+        "error_class": "ValueError"
+      },
+      "kind": "attempt_failed",
+      "monotonic_ns": 1482772041493541,
+      "previous_sha256": "9bf0d50162abd83ae53fc5b446d4c46759a5b8e4fcb448112271a58dcb1bca32",
+      "sequence": 2426,
+      "sha256": "6bd30375fc820c66af1b7f7a65be2508806889498eff85c71bb80189c30e282c",
+      "utc": "2026-11-17T00:40:10.026397+00:00"
+    },
+    "failed_dispatch": {
+      "data": {
+        "action": "upgrade",
+        "host": "research"
+      },
+      "kind": "action_dispatched",
+      "monotonic_ns": 1482771746755583,
+      "previous_sha256": "159dfc8d7746c734ac53e2a435866fb113a85147be314c836d381f760bb71981",
+      "sequence": 2425,
+      "sha256": "9bf0d50162abd83ae53fc5b446d4c46759a5b8e4fcb448112271a58dcb1bca32",
+      "utc": "2026-11-17T00:40:09.731668+00:00"
+    },
+    "last_confirmed_payment": {
+      "data": {
+        "block_hash": "3cd3e20e646bb51807e13fcaeb92d083fe077daed3153c6319b48a62cf3349be",
+        "completed_elapsed": 549.0260501250159,
+        "receiver": "mac",
+        "recipient_in_mempool": true,
+        "recipient_relay_seconds": 8.373373625101522,
+        "sender": "research",
+        "settle_seconds": 9.021508250152692,
+        "started_elapsed": 540.0045404999983,
+        "txid": "02e852bbe4b16228865f8c7d61f8be14e0d85bf28098ed97114d419b381cd68b"
+      },
+      "kind": "confirmed_payment",
+      "monotonic_ns": 1482668331153166,
+      "previous_sha256": "7387d6c5adebafb74423d020ffc2a393e87be68dc21f9198a5741b87362cfb84",
+      "sequence": 2391,
+      "sha256": "ce509c333dbb6b8bbe0a9d4ac84cda912f14f28cca7290e83ad459a7d9514f47",
+      "utc": "2026-11-17T00:38:26.315488+00:00"
+    },
+    "last_successful_actions": [
+      {
+        "action": "sample",
+        "dispatch_sequence": 2404,
+        "dispatch_utc": "2026-11-17T00:39:03.447280+00:00",
+        "duration_seconds": 0.322636667,
+        "host": "research",
+        "response_sequence": 2405,
+        "response_utc": "2026-11-17T00:39:03.769900+00:00"
+      },
+      {
+        "action": "lock",
+        "dispatch_sequence": 2407,
+        "dispatch_utc": "2026-11-17T00:39:17.335914+00:00",
+        "duration_seconds": 0.270449625,
+        "host": "mac",
+        "response_sequence": 2408,
+        "response_utc": "2026-11-17T00:39:17.606373+00:00"
+      },
+      {
+        "action": "upgrade",
+        "dispatch_sequence": 2409,
+        "dispatch_utc": "2026-11-17T00:39:17.606528+00:00",
+        "duration_seconds": 49.740344208,
+        "host": "mac",
+        "response_sequence": 2410,
+        "response_utc": "2026-11-17T00:40:07.347107+00:00"
+      },
+      {
+        "action": "unlock",
+        "dispatch_sequence": 2411,
+        "dispatch_utc": "2026-11-17T00:40:07.347855+00:00",
+        "duration_seconds": 0.804927958,
+        "host": "mac",
+        "response_sequence": 2412,
+        "response_utc": "2026-11-17T00:40:08.152763+00:00"
+      },
+      {
+        "action": "identity",
+        "dispatch_sequence": 2413,
+        "dispatch_utc": "2026-11-17T00:40:08.153084+00:00",
+        "duration_seconds": 0.487038,
+        "host": "mac",
+        "response_sequence": 2414,
+        "response_utc": "2026-11-17T00:40:08.640122+00:00"
+      },
+      {
+        "action": "sample",
+        "dispatch_sequence": 2415,
+        "dispatch_utc": "2026-11-17T00:40:08.640326+00:00",
+        "duration_seconds": 0.337351875,
+        "host": "research",
+        "response_sequence": 2416,
+        "response_utc": "2026-11-17T00:40:08.977668+00:00"
+      },
+      {
+        "action": "peer",
+        "dispatch_sequence": 2417,
+        "dispatch_utc": "2026-11-17T00:40:08.977912+00:00",
+        "duration_seconds": 0.209316333,
+        "host": "research",
+        "response_sequence": 2418,
+        "response_utc": "2026-11-17T00:40:09.187218+00:00"
+      },
+      {
+        "action": "status",
+        "dispatch_sequence": 2419,
+        "dispatch_utc": "2026-11-17T00:40:09.187530+00:00",
+        "duration_seconds": 0.169120958,
+        "host": "mac",
+        "response_sequence": 2420,
+        "response_utc": "2026-11-17T00:40:09.356644+00:00"
+      },
+      {
+        "action": "status",
+        "dispatch_sequence": 2421,
+        "dispatch_utc": "2026-11-17T00:40:09.356980+00:00",
+        "duration_seconds": 0.204169833,
+        "host": "research",
+        "response_sequence": 2422,
+        "response_utc": "2026-11-17T00:40:09.561142+00:00"
+      },
+      {
+        "action": "lock",
+        "dispatch_sequence": 2423,
+        "dispatch_utc": "2026-11-17T00:40:09.561912+00:00",
+        "duration_seconds": 0.169608,
+        "host": "research",
+        "response_sequence": 2424,
+        "response_utc": "2026-11-17T00:40:09.731525+00:00"
+      }
+    ]
+  },
+  "issuance_boundary": {
+    "change_branch_address_uniqueness_claimed": false,
+    "observed_receive_branch0_events": 19,
+    "observed_wallet_identities_and_both_counters_nonregressing": true,
+    "public_both_records_missing_recovery_claimed": false,
+    "receive_paths_and_addresses_unique": true,
+    "scope": "Completed public old selected-record restore preserved the independent public floor journal; separate private orphan controls are outside this attempt."
+  },
+  "latest_observed_status": {
+    "mac": {
+      "sequence": 2420,
+      "status": {
+        "nodes": [
+          {
+            "context": {
+              "activation_height": 1,
+              "active": true,
+              "max_block_verifications": 128,
+              "max_standard_tx_verifications": 25,
+              "network_binding": "a7e29cf779a947a9a6b549d08f256effeebbbcc0790868ee192d960a84aa48a0c639692b",
+              "profile_sha256": "78f5f1024d8276a49acbf54c5026f3e4c7e1c9ba3b901c102a0ac4e1311fa933",
+              "scope": "VALUELESS_EXPERIMENTAL_PUBLIC_TEST_ONLY",
+              "spec_sha256": "c7993d7f2ae72623cf3b9e2f45c021885f610ef3169dbf176e0c2dd1a619d126",
+              "verification_cost": 625
+            },
+            "height": 222,
+            "name": "public-test",
+            "network_active": true,
+            "peers": 1,
+            "tip": "3cd3e20e646bb51807e13fcaeb92d083fe077daed3153c6319b48a62cf3349be",
+            "utxo_count": 236,
+            "utxo_hash": "c7f6cabebd6be85e8aa8a24896f402c354baab955c6aaabad1d45d66da7acb9c"
+          }
+        ],
+        "phase": "running",
+        "ready": true,
+        "scope": "VALUELESS_EXPERIMENTAL_PUBLIC_TEST_ONLY",
+        "wallet": {
+          "addresses_count": 18,
+          "balance_sats": 540000300000,
+          "confirmed_sats": 540000300000,
+          "locked": false,
+          "next_change": 7,
+          "next_receive": 11,
+          "pending_sats": 0,
+          "signer_connected": true,
+          "spendable_sats": 505000265000,
+          "utxos_count": 118,
+          "wallet_id": "4692103cd4aca8922108c71d8ada00b3"
+        }
+      },
+      "utc": "2026-11-17T00:40:09.356644+00:00"
+    },
+    "research": {
+      "sequence": 2424,
+      "status": {
+        "nodes": [
+          {
+            "context": {
+              "activation_height": 1,
+              "active": true,
+              "max_block_verifications": 128,
+              "max_standard_tx_verifications": 25,
+              "network_binding": "a7e29cf779a947a9a6b549d08f256effeebbbcc0790868ee192d960a84aa48a0c639692b",
+              "profile_sha256": "78f5f1024d8276a49acbf54c5026f3e4c7e1c9ba3b901c102a0ac4e1311fa933",
+              "scope": "VALUELESS_EXPERIMENTAL_PUBLIC_TEST_ONLY",
+              "spec_sha256": "c7993d7f2ae72623cf3b9e2f45c021885f610ef3169dbf176e0c2dd1a619d126",
+              "verification_cost": 625
+            },
+            "height": 222,
+            "name": "public-test",
+            "network_active": true,
+            "peers": 1,
+            "tip": "3cd3e20e646bb51807e13fcaeb92d083fe077daed3153c6319b48a62cf3349be",
+            "utxo_count": 236,
+            "utxo_hash": "c7f6cabebd6be85e8aa8a24896f402c354baab955c6aaabad1d45d66da7acb9c"
+          }
+        ],
+        "phase": "running",
+        "ready": true,
+        "scope": "VALUELESS_EXPERIMENTAL_PUBLIC_TEST_ONLY",
+        "wallet": {
+          "addresses_count": 18,
+          "balance_sats": 564999700000,
+          "confirmed_sats": 564999700000,
+          "locked": true,
+          "next_change": 10,
+          "next_receive": 8,
+          "pending_sats": 0,
+          "signer_connected": false,
+          "spendable_sats": 99999650000,
+          "utxos_count": 117,
+          "wallet_id": "e64338ee04c841ea5eaa5c2320c1c437"
+        }
+      },
+      "utc": "2026-11-17T00:40:09.731525+00:00"
+    }
+  },
+  "latest_successful_identity": {
+    "mac": {
+      "identity": {
+        "architecture": "aarch64",
+        "image": "sha256:fc470f630a0eaa679aa49563d13b1a1e1d183528eb4348877c7cbb60b3c0e6f3",
+        "sha256": {
+          "/tmp/demo-signer-bin/pilot-signer": "bd18fc492bd3460aa1bfe8f95dbf167fc527bff819133ff776fdc9d98d6f973a",
+          "/tmp/mldsa-demo-build/bin/pqbtc-cli": "f6e77d138025293e3febe9562305b88b341b48e74f7a36c7136d33b5c20d80ee",
+          "/tmp/mldsa-demo-build/bin/pqbtc-mldsa-client": "c43a6939b8609acdfc207eb6bbe308aa122027cba3c7d67522a982e4586bf175",
+          "/tmp/mldsa-demo-build/bin/pqbtcd": "15b6dfea63954224835eb9bf0670fbf2655efd6dc9e79434f2dfe6aa26b1ff44",
+          "/tmp/mldsa-demo-build/bin/test_pqbtc": "70cafc995126b37381f213605b296633724222152b51fad6237cd5982f2b406d",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_app.py": "ce5e4a440aa9dfaac578fd0f1005f09f3c4fe9fa8825bcc488c07ff8c86774aa",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_controller.py": "ba175939b711e824678d01405910f2a8e771e73f093efb30936d275cbf2ee2b5",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_runtime.py": "c1fd5f565ab1deb6875a8e0c005e75624575456519db6f744f282a87d0e2a348",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-production-contract/public-test-manifest-v1.json": "8595edee7a9523c2ff615509ed828a2b135e88da95b63d3f336c9d0eb768f0fd",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_consensus_controls.py": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_soak_agent.py": "84c60ec4873cbe4da97603b64e4e119470bf9a5735dd98099a287ea72f5ce310",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_transport.py": "f2203fa513041127539fc18ad240f2427eb1e8376c1d5531cc9f81f1d5026423",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_native_qualification.py": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_public_app_ci.py": "2f14e4dcfd1a229423a4a3966483b49d3ac536b423e244d724914e54eecb2ff9",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_spend_restore.py": "0dfc691f58d8a1ad89719d6d962104a3899a56ba1ccdc72a1828e1d625c5e02a",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-signer/node_wallet.py": "ec3a8f16d4d814ae31dfd202a79be3aa2c759b4e9b17359a051a35c22f55ccac",
+          "/tmp/mldsa-demo-source/docs/ML_DSA_44_PRODUCTION_CONTRACT_V1.md": "c7993d7f2ae72623cf3b9e2f45c021885f610ef3169dbf176e0c2dd1a619d126",
+          "/tmp/mldsa-demo-source/docs/ML_DSA_44_PUBLIC_TEST_PROFILE.md": "78f5f1024d8276a49acbf54c5026f3e4c7e1c9ba3b901c102a0ac4e1311fa933"
+        },
+        "source_head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+        "source_tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+      },
+      "sequence": 2414,
+      "utc": "2026-11-17T00:40:08.640122+00:00"
+    },
+    "research": {
+      "identity": {
+        "architecture": "x86_64",
+        "image": "sha256:b3358bb35d60a5f42c9ce1fe65c26926250c26e99815c3446810a8eb6e730f0a",
+        "sha256": {
+          "/tmp/demo-signer-bin/pilot-signer": "22f6e68214c3c0945534bef9d30960b3e6f643c7ebc66f644e7097eb5eed9fc9",
+          "/tmp/mldsa-demo-build/bin/pqbtc-cli": "abcf6ebafbc69f60bf345cc9fb4e4bc7c6546ea009db1244ec46e05e8e122292",
+          "/tmp/mldsa-demo-build/bin/pqbtc-mldsa-client": "6eb48d60ee20653e680ef58104067e164bf42a2f91cf01e0b99caf11b235a714",
+          "/tmp/mldsa-demo-build/bin/pqbtcd": "d27c11ac740e4061bf2003ed166f692dc058f979b93495025d451e495f46c729",
+          "/tmp/mldsa-demo-build/bin/test_pqbtc": "12389b238635c0d3cc970b41330f05b1a2b4d35541b68c02c125d4756f031f6d",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_app.py": "0246cde9b7e12ac009af1eb01d1cb848b55793b3cb1a8c6c6ecf554e64a62b98",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_controller.py": "ba175939b711e824678d01405910f2a8e771e73f093efb30936d275cbf2ee2b5",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_runtime.py": "c1fd5f565ab1deb6875a8e0c005e75624575456519db6f744f282a87d0e2a348",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-production-contract/public-test-manifest-v1.json": "8595edee7a9523c2ff615509ed828a2b135e88da95b63d3f336c9d0eb768f0fd",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_consensus_controls.py": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_soak_agent.py": "84c60ec4873cbe4da97603b64e4e119470bf9a5735dd98099a287ea72f5ce310",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_transport.py": "f2203fa513041127539fc18ad240f2427eb1e8376c1d5531cc9f81f1d5026423",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_native_qualification.py": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_public_app_ci.py": "2f14e4dcfd1a229423a4a3966483b49d3ac536b423e244d724914e54eecb2ff9",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_spend_restore.py": "0dfc691f58d8a1ad89719d6d962104a3899a56ba1ccdc72a1828e1d625c5e02a",
+          "/tmp/mldsa-demo-source/contrib/ml-dsa-signer/node_wallet.py": "ec3a8f16d4d814ae31dfd202a79be3aa2c759b4e9b17359a051a35c22f55ccac",
+          "/tmp/mldsa-demo-source/docs/ML_DSA_44_PRODUCTION_CONTRACT_V1.md": "c7993d7f2ae72623cf3b9e2f45c021885f610ef3169dbf176e0c2dd1a619d126",
+          "/tmp/mldsa-demo-source/docs/ML_DSA_44_PUBLIC_TEST_PROFILE.md": "78f5f1024d8276a49acbf54c5026f3e4c7e1c9ba3b901c102a0ac4e1311fa933"
+        },
+        "source_head": "52f26f31e2d8fcf52459f9cb2e9159564395f74a",
+        "source_tree": "d2e07ad8db149f6d3eac1cb15379d97e1484e2e6"
+      },
+      "sequence": 655,
+      "utc": "2026-11-17T00:30:42.039871+00:00"
+    }
+  },
+  "live_Research_cleanup_verified_by_this_reviewer": false,
+  "missed_slots": 0,
+  "mode": "preflight",
+  "observed_clock_start_to_failure": {
+    "monotonic_seconds": 652.736484208,
+    "wall_seconds": 652.740003
+  },
+  "per_payment_native_event_proofs": [
+    {
+      "confirmed_host_sequences": {
+        "mac": 345,
+        "research": 347
+      },
+      "mine_sequence": 339,
+      "payment_sequence": 348,
+      "receiver_mempool_sequence": 337,
+      "send_sequence": 113,
+      "txid": "5903a635e6c8dd9e074720a26b4be6b1e944710f031eba2669f1349eb18f6d46"
+    },
+    {
+      "confirmed_host_sequences": {
+        "mac": 444,
+        "research": 446
+      },
+      "mine_sequence": 438,
+      "payment_sequence": 447,
+      "receiver_mempool_sequence": 436,
+      "send_sequence": 356,
+      "txid": "0a4e7746582a7af06dd9e47792652b72fb60e1dd8401ad465683c09600d83c01"
+    },
+    {
+      "confirmed_host_sequences": {
+        "mac": 519,
+        "research": 521
+      },
+      "mine_sequence": 513,
+      "payment_sequence": 522,
+      "receiver_mempool_sequence": 511,
+      "send_sequence": 475,
+      "txid": "61690145d6814e56c333244a332445d7a9542cdfad7ab99937f5f70f0e36a7c8"
+    },
+    {
+      "confirmed_host_sequences": {
+        "mac": 626,
+        "research": 628
+      },
+      "mine_sequence": 616,
+      "payment_sequence": 629,
+      "receiver_mempool_sequence": 614,
+      "send_sequence": 540,
+      "txid": "9942ce2129935544fecf906b5ab1b672eb5aeea87028d5bb54795e978aa7e509"
+    },
+    {
+      "confirmed_host_sequences": {
+        "mac": 819,
+        "research": 821
+      },
+      "mine_sequence": 813,
+      "payment_sequence": 822,
+      "receiver_mempool_sequence": 811,
+      "send_sequence": 667,
+      "txid": "9f8530a0ff81ef420628e6f643b7002d1db48da395bbeca428f6efe0a73dca21"
+    },
+    {
+      "confirmed_host_sequences": {
+        "mac": 862,
+        "research": 864
+      },
+      "mine_sequence": 856,
+      "payment_sequence": 865,
+      "receiver_mempool_sequence": 854,
+      "send_sequence": 844,
+      "txid": "ca624c2830d2dcf3e726b2cfc04d1caff4f7f4ff56eca55e6f367d0d86cc974d"
+    },
+    {
+      "confirmed_host_sequences": {
+        "mac": 1013,
+        "research": 1015
+      },
+      "mine_sequence": 1007,
+      "payment_sequence": 1016,
+      "receiver_mempool_sequence": 1005,
+      "send_sequence": 915,
+      "txid": "bd3e526797df77de69be902c362d6d37b08b4f2529768c3c3432698a641cf61f"
+    },
+    {
+      "confirmed_host_sequences": {
+        "mac": 1125,
+        "research": 1127
+      },
+      "mine_sequence": 1119,
+      "payment_sequence": 1128,
+      "receiver_mempool_sequence": 1117,
+      "send_sequence": 1033,
+      "txid": "f22f8fb12ec928020c685347a204b850576ae4e3bb549a64a451116b77b48581"
+    },
+    {
+      "confirmed_host_sequences": {
+        "mac": 1253,
+        "research": 1255
+      },
+      "mine_sequence": 1247,
+      "payment_sequence": 1256,
+      "receiver_mempool_sequence": 1245,
+      "send_sequence": 1163,
+      "txid": "4beb1befae0e8585cd102df4ae2cc0366b44d30a34fe8b3221ce8ff93b2fa1c0"
+    },
+    {
+      "confirmed_host_sequences": {
+        "mac": 1469,
+        "research": 1471
+      },
+      "mine_sequence": 1463,
+      "payment_sequence": 1472,
+      "receiver_mempool_sequence": 1461,
+      "send_sequence": 1273,
+      "txid": "af220ebf9c45eb02ef99f3c57fed94cdcb0c34496e319372505948d2000ed644"
+    },
+    {
+      "confirmed_host_sequences": {
+        "mac": 1543,
+        "research": 1545
+      },
+      "mine_sequence": 1537,
+      "payment_sequence": 1546,
+      "receiver_mempool_sequence": 1535,
+      "send_sequence": 1511,
+      "txid": "863d56546ea45105aaa6dea4600db8c7baf061bbcf9a215a737e48466bb554cd"
+    },
+    {
+      "confirmed_host_sequences": {
+        "mac": 1699,
+        "research": 1701
+      },
+      "mine_sequence": 1689,
+      "payment_sequence": 1702,
+      "receiver_mempool_sequence": 1687,
+      "send_sequence": 1559,
+      "txid": "a00cc4d96fd24a5f333037d8f457fb3dee48f5827709aff5682398e1a51dbce7"
+    },
+    {
+      "confirmed_host_sequences": {
+        "mac": 1852,
+        "research": 1854
+      },
+      "mine_sequence": 1846,
+      "payment_sequence": 1855,
+      "receiver_mempool_sequence": 1844,
+      "send_sequence": 1724,
+      "txid": "7bc1fb34d912bdd18026a15cc59df18e1903c0af263673d66dd8f8fb569e3012"
+    },
+    {
+      "confirmed_host_sequences": {
+        "mac": 1993,
+        "research": 1995
+      },
+      "mine_sequence": 1983,
+      "payment_sequence": 1996,
+      "receiver_mempool_sequence": 1981,
+      "send_sequence": 1873,
+      "txid": "ce8455e0fb734724aab88bc718e1c8bb36dc18a6ca1f9287c56d5375d96b0c02"
+    },
+    {
+      "confirmed_host_sequences": {
+        "mac": 2163,
+        "research": 2165
+      },
+      "mine_sequence": 2153,
+      "payment_sequence": 2166,
+      "receiver_mempool_sequence": 2151,
+      "send_sequence": 2041,
+      "txid": "5a348782a86f85e922356871a14f8ed1b7f0b3c7fa97edd1779d91cb2471d942"
+    },
+    {
+      "confirmed_host_sequences": {
+        "mac": 2215,
+        "research": 2217
+      },
+      "mine_sequence": 2209,
+      "payment_sequence": 2218,
+      "receiver_mempool_sequence": 2207,
+      "send_sequence": 2183,
+      "txid": "5738dae1ab0117d86b2ee801657a421ccdb2602e8e96a723c195a4dd893b9191"
+    },
+    {
+      "confirmed_host_sequences": {
+        "mac": 2388,
+        "research": 2390
+      },
+      "mine_sequence": 2382,
+      "payment_sequence": 2391,
+      "receiver_mempool_sequence": 2380,
+      "send_sequence": 2240,
+      "txid": "02e852bbe4b16228865f8c7d61f8be14e0d85bf28098ed97114d419b381cd68b"
+    }
+  ],
+  "preflight_elapsed_credit_seconds": 0,
+  "private_config_wallet_key_backup_credentials_opened": false,
+  "production_admitted": false,
+  "public_output": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/l-preflight-20261116-01-output",
+  "public_soak_credit_seconds": 0,
+  "raw_member_identities": {
+    "declaration.json": {
+      "bytes": 10757,
+      "sha256": "660bea8afe1e7fda08257bf11dba62a899e0a7db00c8183b07846065b799f33e"
+    },
+    "events.jsonl": {
+      "bytes": 1324917,
+      "sha256": "1e0a449f28127ceaecd5b17b56c2db2425a15ef54ef921d93f1d471a2f8a8c4b"
+    },
+    "evidence-sha256.json": {
+      "bytes": 251,
+      "sha256": "dcfcebbe98ebb72ad05959ae1cc29b0edef44196b4501f4c418a037bf9c01b3b"
+    },
+    "report.json": {
+      "bytes": 2481,
+      "sha256": "e7240a1350897f0132a5ad22c855b871e0f9cc0d68e06b189a430fbd31fd16f6"
+    }
+  },
+  "raw_members_stable_before_and_after": true,
+  "reported_cleanup": {
+    "attempt_claims": {
+      "attempt_id": "8dcf44b40b91fadfc3c4e425a33a1cc6",
+      "claimed_hosts": [
+        "mac",
+        "research"
+      ],
+      "state_directories_preserved": true
+    },
+    "mac": {
+      "backend_stop_proofs": {
+        "after_exit": {
+          "backend_stopped": true,
+          "last_id": "e38ec1239f4541c1491b14d51d916b36d7dbd71341e6f699e1af326bb195d046",
+          "state": "STOPPED",
+          "stopped_ids": [
+            "e38ec1239f4541c1491b14d51d916b36d7dbd71341e6f699e1af326bb195d046"
+          ]
+        }
+      },
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "research": {
+      "backend_stop_proofs": {
+        "after_exit": {
+          "backend_stopped": true,
+          "last_id": "7d99a77ead469a29d8ef2c3c6e6e6379a7cf3e3a9f66a8e37b871dbb75513621",
+          "state": "STOPPED",
+          "stopped_ids": [
+            "7d99a77ead469a29d8ef2c3c6e6e6379a7cf3e3a9f66a8e37b871dbb75513621"
+          ]
+        }
+      },
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "task_public_route": "BACKEND_AND_BRIDGE_STOPPED_ROUTE_CONFIG_RETAINED_FOR_OWNER"
+  },
+  "reviewed_at_utc": "2026-11-17T00:44:03.926157+00:00",
+  "rollback_and_final_old_backup_recovery_spend_reached": false,
+  "runtime_controls_or_archived_native_code_executed": false,
+  "schema": "PQBTC-L-PREFLIGHT-INDEPENDENT-FAILED-TERMINAL-REVIEW-1",
+  "selected_record_recoveries": [
+    {
+      "host": "mac",
+      "quarantine": {
+        "result": {
+          "independent_journal_preserved": true,
+          "next_change": 4,
+          "next_receive": 7,
+          "selected_record_missing": true,
+          "wallet_id": "4692103cd4aca8922108c71d8ada00b3"
+        },
+        "sequence": 1489,
+        "utc": "2026-11-17T00:34:17.511509+00:00"
+      },
+      "recovery_result": {
+        "chain_snapshot_restored": false,
+        "id": "71c5a57c47a447bdafb7a5caf2e21df7",
+        "next_change": 4,
+        "next_receive": 7,
+        "wallet_id": "4692103cd4aca8922108c71d8ada00b3"
+      },
+      "recovery_sequence": 1491
+    }
+  ],
+  "source": {
+    "driver_sha256": "6668f219acff79a25161d57bf505a3204ab50ef434adbb3487f913f0f913a6d0",
+    "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+    "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+  },
+  "source_or_output_modified": false,
+  "successful_normal_slots": 10,
+  "verifier": {
+    "helper_sha256": "1e6c3975b0360f9f63c6be60ac221cfa76967827120bcf4776ad4845d41f59f4",
+    "reviewer_sha256": "7b7c9ba096b04493af706612cca8131efede89bd50eb344d5533f8f991a8a9ad"
+  }
+}

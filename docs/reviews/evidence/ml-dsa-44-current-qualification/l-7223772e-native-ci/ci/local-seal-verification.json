@@ -1,0 +1,130 @@
+{
+  "advisory_executed_retry_count": 2,
+  "exact_duplicate_report_bytes": 243231,
+  "exact_duplicate_report_sha256": "682c1677fe0aaeef4ab89cb82bd7c853a7bd9c0c84c45741c752225552bcd0c6",
+  "generated_at_utc": "2026-11-17T00:17:41.010308+00:00",
+  "latest_logical_job_count": 52,
+  "mac_jobs_both_actual_runners": true,
+  "matrix_jobs": 22,
+  "matrix_retry_count": 0,
+  "native_original_descriptor_auxiliaries": {
+    "bytes": 3703,
+    "path": "native-original-descriptor-auxiliaries.json",
+    "sha256": "f54f80e01846ae1d67d5498a794f6d9202d59ba621d53a7da4a5d0f521343201"
+  },
+  "native_original_public_descriptors": [
+    {
+      "GCC_export_outer_descriptor": {
+        "bytes": 30627,
+        "complete_parsed_JSON_identity": true,
+        "path": "qualified-runtime-gcc-43970911876-1/runtime-descriptor.json",
+        "sha256": "76f72ca631c9a66c2c1d67e5dd00f04ea20903f26d14782472587630665d25bc"
+      },
+      "archive": {
+        "bytes": 589678,
+        "path": "artifact-14279042327.zip",
+        "sha256": "526833cc6e00d37edbc8862f10c3589ff981c1669f7f04e487f3104b8731c534"
+      },
+      "artifact_id": 14279042327,
+      "attempt": 1,
+      "compiler": "gcc",
+      "native_inventory": {
+        "bytes": 8150,
+        "entry": "runtime-descriptor.json",
+        "exact_hash_match": true,
+        "path": "assembled-gcc-43970911876-1/native-qualification/evidence-sha256.json",
+        "sha256": "0f35b8c54537d73ea0252f69b6bba412658bafb287b237141e9c5a1bb4188c23"
+      },
+      "only_member_opened": "native-qualification/runtime-descriptor.json",
+      "original_member_SHA256": "4dd1c3e91e9024c407432c432cf136dfa209be4f6d147d89295ed588bc35b221",
+      "original_member_bytes": 30627,
+      "outer_descriptor": {
+        "bytes": 30627,
+        "complete_parsed_JSON_identity": true,
+        "path": "assembled-gcc-43970911876-1/runtime-descriptor.json",
+        "sha256": "76f72ca631c9a66c2c1d67e5dd00f04ea20903f26d14782472587630665d25bc"
+      },
+      "output_path": "assembled-gcc-43970911876-1/native-qualification/runtime-descriptor.json",
+      "raw_bytes_preserved": true,
+      "regular_safe_path_and_size_checks": "PASS",
+      "run_id": 43970911876
+    },
+    {
+      "GCC_export_outer_descriptor": null,
+      "archive": {
+        "bytes": 598578,
+        "path": "artifact-14280126532.zip",
+        "sha256": "da16db8def81770a29403ed2480f072acd98fe132e66e657de92fc31d8cf5a0b"
+      },
+      "artifact_id": 14280126532,
+      "attempt": 1,
+      "compiler": "clang",
+      "native_inventory": {
+        "bytes": 8150,
+        "entry": "runtime-descriptor.json",
+        "exact_hash_match": true,
+        "path": "assembled-clang-43970911876-1/native-qualification/evidence-sha256.json",
+        "sha256": "c6b01802e802391548392c11238df7b046693553411f95571ac82cce6ce4e51c"
+      },
+      "only_member_opened": "native-qualification/runtime-descriptor.json",
+      "original_member_SHA256": "f0f489712c97be0b805f7baa9e63b542b574f12f82be2559a516df8dfc64b0fa",
+      "original_member_bytes": 30641,
+      "outer_descriptor": {
+        "bytes": 30641,
+        "complete_parsed_JSON_identity": true,
+        "path": "assembled-clang-43970911876-1/runtime-descriptor.json",
+        "sha256": "88ec14126ce2337857b40cf6fad30358d71f3520136a0d96bed5ec0011710f88"
+      },
+      "output_path": "assembled-clang-43970911876-1/native-qualification/runtime-descriptor.json",
+      "raw_bytes_preserved": true,
+      "regular_safe_path_and_size_checks": "PASS",
+      "run_id": 43970911876
+    }
+  ],
+  "no_source_runtime_or_private_material_changes": true,
+  "non_matrix_jobs": 30,
+  "opaque_archive_identities_reverified_without_opening_members": {
+    "advisory-attempt1-14276754687.zip": {
+      "bytes": 165766,
+      "sha256": "937f7031a4df827bc6fe8af39d65bbcdd0d7b4047093b17b33351a8601188929"
+    },
+    "advisory-attempt2-14280553282.zip": {
+      "bytes": 165765,
+      "sha256": "f14d9435779d26566160932012ed4755525875c9f23abae7c80fa39255c72a3e"
+    },
+    "advisory-attempt3-14282635764.zip": {
+      "bytes": 4732543,
+      "sha256": "d4f5aed49055ce9ea2faf3a88a9c97c6752c0ee08808d17d870f7fcb90ebcff7"
+    },
+    "artifact-14279042327.zip": {
+      "bytes": 589678,
+      "sha256": "526833cc6e00d37edbc8862f10c3589ff981c1669f7f04e487f3104b8731c534"
+    },
+    "artifact-14280126532.zip": {
+      "bytes": 598578,
+      "sha256": "da16db8def81770a29403ed2480f072acd98fe132e66e657de92fc31d8cf5a0b"
+    },
+    "artifact-14280600594.zip": {
+      "bytes": 538848243,
+      "sha256": "891925e956ecc78fe6806fd21e6fb4a7eea3a111d1841d3978c155921c75c6d9"
+    },
+    "qualified-runtime-gcc-43970911876-1/runtime-image.tar.gz": {
+      "bytes": 538814711,
+      "sha256": "61382d40954ebf24a270ac32da4054af3dcf288a576f17a3c2788cf3e11a9bd4"
+    }
+  },
+  "optimized_interpreter_refusal": "Verifier process explicitly checks __debug__ before assertions under python3 -I -B.",
+  "preexisting_public_files_verified_unchanged_before_derived_reseal": 52,
+  "public_files_scanned_for_credentials_and_signed_URLs": 55,
+  "public_soak_credit_seconds": 0,
+  "result": "PASS",
+  "retained_history_hashes_reverified": 28,
+  "run_count": 14,
+  "schema": "PQBTC-L-CI-LOCAL-SEAL-VERIFICATION-1",
+  "seal_scope": "CI-EVIDENCE-SHA256SUMS covers selected public JSON/scripts/txt/checksum files only. Opaque ZIP/gzip archives have identities in this receipt and separate artifact receipts; no private archive member extraction is implied.",
+  "source": {
+    "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+    "parent": "18430ea2cfcac66cca0e8612605db47a5c0e935b",
+    "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+  }
+}

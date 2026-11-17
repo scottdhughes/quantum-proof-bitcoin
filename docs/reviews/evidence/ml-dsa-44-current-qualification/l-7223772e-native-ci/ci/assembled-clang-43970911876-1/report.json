@@ -1,0 +1,1097 @@
+{
+  "schema": 1,
+  "scope": "CLEAN_CHECKOUT_ASSEMBLED_SYSTEM",
+  "result": "PASS",
+  "source": {
+    "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+    "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+  },
+  "compiler": "clang",
+  "container": "pqbtc-ci-clang-43970911876-1",
+  "volume": "pqbtc-ci-clang-43970911876-1-data-v1",
+  "runtime_descriptor": {
+    "schema": "PQBTC-MLDSA44-SOURCE-RUNTIME-1",
+    "image": "sha256:98209ba29cc260e8671b959baa65f2b706e681cc0192c52a9cb2355d999277e5",
+    "manifest": {
+      "architecture": "x86_64",
+      "base_image": "debian:bookworm-slim@sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc",
+      "checks": {
+        "mldsa44_node_tests": "PASS",
+        "mldsa44_public_tests": "PASS",
+        "mldsa44_resource_tests": "PASS",
+        "native_integration": "PASS",
+        "node_functional_validation": "PASS",
+        "signer": "PASS"
+      },
+      "compiler": "clang",
+      "evidence_sha256": {
+        "native-integration.json": "9f9cc7f48c8acfa23bad705e954071351a78a5eb4e1ece6a4b5bcf538694573a",
+        "node-build.log": "9fe4138b6250e325750454bd638073ebc38d544b282e0ac7a3bfc3ddf4f1cbf2",
+        "node-configure.log": "8b4047374998f49ebd40775b48f095aacf02cbd39da80db965740d56904713ec",
+        "node-functional.log": "d06739448b371cf9bffba1b335ae21d7000f23701d337e815f9d032f5ef5359e",
+        "node-unit.log": "192230209b6378997489c08f4374e366d8bbab5e89e48d7668856e36ca324b24",
+        "openssl-build.log": "42e84de2bb04879062a3eafa2d9467d49d70f7fdb5055a12d04e3578555f85f0",
+        "signer.json": "1d75d1a09ae43aff14d80290bf4d95d6873b04dba62712089ae68a606ee93803"
+      },
+      "openssl_source_sha256": "a2157c2830efdec3788939b00c9b0638306d3f0bbb76dc4832ee503bb397df98",
+      "packages": [
+        "adduser\t3.134",
+        "apt\t2.6.2",
+        "base-files\t12.4+deb12u15",
+        "base-passwd\t3.6.1",
+        "bash\t5.2.15-2+b13",
+        "binutils\t2.40-2",
+        "binutils-common\t2.40-2",
+        "binutils-x86-64-linux-gnu\t2.40-2",
+        "bsdutils\t1:2.38.1-5+deb12u3",
+        "build-essential\t12.9",
+        "bzip2\t1.0.8-5+b1",
+        "ca-certificates\t20250419~deb12u2",
+        "clang-16\t1:16.0.6-15~deb12u1",
+        "cmake\t3.25.1-1",
+        "cmake-data\t3.25.1-1",
+        "coreutils\t9.1-1",
+        "cpp\t4:12.2.0-3",
+        "cpp-12\t12.2.0-14+deb12u1",
+        "curl\t7.88.1-10+deb12u15",
+        "dash\t0.5.12-2",
+        "debconf\t1.5.82",
+        "debian-archive-keyring\t2023.3+deb12u2",
+        "debianutils\t5.7-0.5~deb12u1",
+        "diffutils\t1:3.8-4",
+        "dpkg\t1.21.23",
+        "dpkg-dev\t1.21.23",
+        "e2fsprogs\t1.47.0-2+b2",
+        "findutils\t4.9.0-4",
+        "g++\t4:12.2.0-3",
+        "g++-12\t12.2.0-14+deb12u1",
+        "gcc\t4:12.2.0-3",
+        "gcc-12\t12.2.0-14+deb12u1",
+        "gcc-12-base\t12.2.0-14+deb12u1",
+        "git\t1:2.39.5-0+deb12u3",
+        "git-man\t1:2.39.5-0+deb12u3",
+        "gpgv\t2.2.40-1.1+deb12u2",
+        "grep\t3.8-5",
+        "gzip\t1.12-1",
+        "hostname\t3.23+nmu1",
+        "init-system-helpers\t1.65.2+deb12u1",
+        "lib32gcc-s1\t12.2.0-14+deb12u1",
+        "lib32stdc++6\t12.2.0-14+deb12u1",
+        "libacl1\t2.3.1-3",
+        "libapt-pkg6.0\t2.6.2",
+        "libarchive13\t3.6.2-1+deb12u5",
+        "libasan8\t12.2.0-14+deb12u1",
+        "libatomic1\t12.2.0-14+deb12u1",
+        "libattr1\t1:2.5.1-4",
+        "libaudit-common\t1:3.0.9-1",
+        "libaudit1\t1:3.0.9-1",
+        "libbinutils\t2.40-2",
+        "libblkid1\t2.38.1-5+deb12u3",
+        "libboost-dev\t1.74.0.3",
+        "libboost1.74-dev\t1.74.0+ds1-21",
+        "libbrotli1\t1.0.9-2+deb12u1",
+        "libbsd0\t0.11.7-2",
+        "libbz2-1.0\t1.0.8-5+b1",
+        "libc-bin\t2.36-9+deb12u14",
+        "libc-dev-bin\t2.36-9+deb12u14",
+        "libc6\t2.36-9+deb12u14",
+        "libc6-dev\t2.36-9+deb12u14",
+        "libc6-i386\t2.36-9+deb12u14",
+        "libcap-ng0\t0.8.3-1+b3",
+        "libcap2\t1:2.66-4+deb12u3+b1",
+        "libcc1-0\t12.2.0-14+deb12u1",
+        "libclang-common-16-dev\t1:16.0.6-15~deb12u1",
+        "libclang-cpp16\t1:16.0.6-15~deb12u1",
+        "libclang-rt-16-dev\t1:16.0.6-15~deb12u1",
+        "libclang1-16\t1:16.0.6-15~deb12u1",
+        "libcom-err2\t1.47.0-2+b2",
+        "libcrypt-dev\t1:4.4.33-2",
+        "libcrypt1\t1:4.4.33-2",
+        "libctf-nobfd0\t2.40-2",
+        "libctf0\t2.40-2",
+        "libcurl3-gnutls\t7.88.1-10+deb12u15",
+        "libcurl4\t7.88.1-10+deb12u15",
+        "libdb5.3\t5.3.28+dfsg2-1",
+        "libdebconfclient0\t0.270",
+        "libdpkg-perl\t1.21.23",
+        "libedit2\t3.1-20221030-2",
+        "liberror-perl\t0.17029-2",
+        "libevent-2.1-7\t2.1.12-stable-8+deb12u1",
+        "libevent-core-2.1-7\t2.1.12-stable-8+deb12u1",
+        "libevent-dev\t2.1.12-stable-8+deb12u1",
+        "libevent-extra-2.1-7\t2.1.12-stable-8+deb12u1",
+        "libevent-openssl-2.1-7\t2.1.12-stable-8+deb12u1",
+        "libevent-pthreads-2.1-7\t2.1.12-stable-8+deb12u1",
+        "libexpat1\t2.5.0-1+deb12u5",
+        "libext2fs2\t1.47.0-2+b2",
+        "libffi8\t3.4.4-1",
+        "libgc1\t1:8.2.2-3",
+        "libgcc-12-dev\t12.2.0-14+deb12u1",
+        "libgcc-s1\t12.2.0-14+deb12u1",
+        "libgcrypt20\t1.10.1-3+deb12u1",
+        "libgdbm-compat4\t1.23-3",
+        "libgdbm6\t1.23-3",
+        "libgmp10\t2:6.2.1+dfsg1-1.1",
+        "libgnutls30\t3.7.9-2+deb12u7",
+        "libgomp1\t12.2.0-14+deb12u1",
+        "libgpg-error0\t1.46-1",
+        "libgprofng0\t2.40-2",
+        "libgssapi-krb5-2\t1.20.1-2+deb12u5",
+        "libhogweed6\t3.8.1-2",
+        "libicu72\t72.1-3+deb12u1",
+        "libidn2-0\t2.3.3-1+b1",
+        "libisl23\t0.25-1.1",
+        "libitm1\t12.2.0-14+deb12u1",
+        "libjansson4\t2.14-2",
+        "libjsoncpp25\t1.9.5-4",
+        "libk5crypto3\t1.20.1-2+deb12u5",
+        "libkeyutils1\t1.6.3-2",
+        "libkrb5-3\t1.20.1-2+deb12u5",
+        "libkrb5support0\t1.20.1-2+deb12u5",
+        "libldap-2.5-0\t2.5.13+dfsg-5",
+        "libllvm16\t1:16.0.6-15~deb12u1",
+        "liblsan0\t12.2.0-14+deb12u1",
+        "liblz4-1\t1.9.4-1",
+        "liblzma5\t5.4.1-1+deb12u2",
+        "libmd0\t1.0.4-2",
+        "libmount1\t2.38.1-5+deb12u3",
+        "libmpc3\t1.3.1-1",
+        "libmpfr6\t4.2.0-1",
+        "libncursesw6\t6.4-4",
+        "libnettle8\t3.8.1-2",
+        "libnghttp2-14\t1.52.0-1+deb12u3",
+        "libnsl-dev\t1.3.0-2",
+        "libnsl2\t1.3.0-2",
+        "libobjc-12-dev\t12.2.0-14+deb12u1",
+        "libobjc4\t12.2.0-14+deb12u1",
+        "libp11-kit0\t0.24.1-2",
+        "libpam-modules\t1.5.2-6+deb12u2",
+        "libpam-modules-bin\t1.5.2-6+deb12u2",
+        "libpam-runtime\t1.5.2-6+deb12u2",
+        "libpam0g\t1.5.2-6+deb12u2",
+        "libpcre2-8-0\t10.42-1+deb12u2",
+        "libperl5.36\t5.36.0-7+deb12u4",
+        "libpkgconf3\t1.8.1-1",
+        "libproc2-0\t2:4.0.2-3",
+        "libpsl5\t0.21.2-1",
+        "libpython3-stdlib\t3.11.2-1+b1",
+        "libpython3.11-minimal\t3.11.2-6+deb12u9",
+        "libpython3.11-stdlib\t3.11.2-6+deb12u9",
+        "libquadmath0\t12.2.0-14+deb12u1",
+        "libreadline8\t8.2-1.3",
+        "librhash0\t1.4.3-3",
+        "librtmp1\t2.4+20151223.gitfa8646d.1-2+b2",
+        "libsasl2-2\t2.1.28+dfsg-10+deb12u1",
+        "libsasl2-modules-db\t2.1.28+dfsg-10+deb12u1",
+        "libseccomp2\t2.5.4-1+deb12u1",
+        "libselinux1\t3.4-1+b6",
+        "libsemanage-common\t3.4-1",
+        "libsemanage2\t3.4-1+b5",
+        "libsepol2\t3.4-2.1",
+        "libsmartcols1\t2.38.1-5+deb12u3",
+        "libsqlite3-0\t3.40.1-2+deb12u2",
+        "libss2\t1.47.0-2+b2",
+        "libssh2-1\t1.10.0-3+deb12u1",
+        "libssl3\t3.0.22-1~deb12u2",
+        "libstdc++-12-dev\t12.2.0-14+deb12u1",
+        "libstdc++6\t12.2.0-14+deb12u1",
+        "libsystemd0\t252.39-1~deb12u2",
+        "libtasn1-6\t4.19.0-2+deb12u1",
+        "libtinfo6\t6.4-4",
+        "libtirpc-common\t1.3.3+ds-1",
+        "libtirpc-dev\t1.3.3+ds-1",
+        "libtirpc3\t1.3.3+ds-1",
+        "libtsan2\t12.2.0-14+deb12u1",
+        "libubsan1\t12.2.0-14+deb12u1",
+        "libudev1\t252.39-1~deb12u2",
+        "libunistring2\t1.0-2",
+        "libuuid1\t2.38.1-5+deb12u3",
+        "libuv1\t1.44.2-1+deb12u1",
+        "libxml2\t2.9.14+dfsg-1.3~deb12u6",
+        "libxxhash0\t0.8.1-1",
+        "libz3-4\t4.8.12-3.1",
+        "libzstd1\t1.5.4+dfsg2-5",
+        "linux-libc-dev\t6.1.192-2",
+        "llvm-16-linker-tools\t1:16.0.6-15~deb12u1",
+        "login\t1:4.13+dfsg1-1+deb12u2",
+        "logsave\t1.47.0-2+b2",
+        "make\t4.3-4.1",
+        "mawk\t1.3.4.20200120-3.1",
+        "media-types\t10.0.0",
+        "mount\t2.38.1-5+deb12u3",
+        "ncurses-base\t6.4-4",
+        "ncurses-bin\t6.4-4",
+        "ninja-build\t1.11.1-2~deb12u1",
+        "openssl\t3.0.22-1~deb12u2",
+        "passwd\t1:4.13+dfsg1-1+deb12u2",
+        "patch\t2.7.6-7",
+        "perl\t5.36.0-7+deb12u4",
+        "perl-base\t5.36.0-7+deb12u4",
+        "perl-modules-5.36\t5.36.0-7+deb12u4",
+        "pkgconf\t1.8.1-1",
+        "pkgconf-bin\t1.8.1-1",
+        "procps\t2:4.0.2-3",
+        "python3\t3.11.2-1+b1",
+        "python3-minimal\t3.11.2-1+b1",
+        "python3.11\t3.11.2-6+deb12u9",
+        "python3.11-minimal\t3.11.2-6+deb12u9",
+        "readline-common\t8.2-1.3",
+        "rpcsvc-proto\t1.4.3-1",
+        "sed\t4.9-1+deb12u1",
+        "sysvinit-utils\t3.06-4",
+        "tar\t1.34+dfsg-1.2+deb12u1",
+        "tzdata\t2026f-0+deb12u1",
+        "usr-is-merged\t37~deb12u1",
+        "util-linux\t2.38.1-5+deb12u3",
+        "util-linux-extra\t2.38.1-5+deb12u3",
+        "xz-utils\t5.4.1-1+deb12u2",
+        "zlib1g\t1:1.2.13.dfsg-1"
+      ],
+      "qualification_dependencies_sha256": {
+        "dependencies/openssl/bin/c_rehash": "23cadf2443208e59a13ce32d579c7f07b9ebf4e6994f029018719ec4a3b5c0b2",
+        "dependencies/openssl/bin/openssl": "932f64fca9e974328ffd679cc02fa0b2ea8cc4912549f46848716b935f2fc0d3",
+        "dependencies/openssl/include/openssl/aes.h": "130e304c466bda5db6de2fdbca3a970905070ab935d702e61c8371334851ea27",
+        "dependencies/openssl/include/openssl/asn1.h": "12ebcf8ca6bb0d96c97b056800dba19d5b504bef331fef12718b0ece3fe20b63",
+        "dependencies/openssl/include/openssl/asn1err.h": "9d60638b3d0c52170d390fe566c0b96a6381590590cc3dd71339eb85140fe1d6",
+        "dependencies/openssl/include/openssl/asn1t.h": "febedcfe28cbcfa9b9718caaaebc532085aaa349d13e6e06914692fcf7964689",
+        "dependencies/openssl/include/openssl/async.h": "708d52ecd7bb5ca83d243ddecb132db0693b0809f65c093eabda549156934030",
+        "dependencies/openssl/include/openssl/asyncerr.h": "eb6ea0f0389aa7846ea5b8f5b7b8d2a82a7b52e7dbfa105bc137e52be1399a69",
+        "dependencies/openssl/include/openssl/bio.h": "d927b58ab0993cee60b6520f29b9d632b35fc2601e71836c8e70b7456b6291d9",
+        "dependencies/openssl/include/openssl/bioerr.h": "fe1bf57251e4eaab30d2a6aa2048ee93deb1f0f15ef6634f61093b4d405586c6",
+        "dependencies/openssl/include/openssl/blowfish.h": "97064924914f71425e48f5d53893abca0f07f329dde7a8b93b581dc9ee2e837a",
+        "dependencies/openssl/include/openssl/bn.h": "da179e5d98e8351e3e29f148bd88b42cba84fe60c7927a584f213bf2d09c38ed",
+        "dependencies/openssl/include/openssl/bnerr.h": "beeb78746fbcc2c09e1f833f4c2ea72e845e757390aad7dc8699f7787b580204",
+        "dependencies/openssl/include/openssl/buffer.h": "c7b9803f89bb492176a1e2738999dad86195ab8048a26e8ec9ef6948b8882e8a",
+        "dependencies/openssl/include/openssl/buffererr.h": "4dea6e8ec7f09bfbdaa85fa3e75572b95d2ea62a813e7420a04f5f56ee7ccdfd",
+        "dependencies/openssl/include/openssl/byteorder.h": "f062018f5fbe9f8459967dffaaa8e27f34596fb0da21fc011d0d556384a0305c",
+        "dependencies/openssl/include/openssl/camellia.h": "e03acf0f3406032e5322e4f3368e8e48e5b73e8846955c3bcb3a4f1cb54d2ebc",
+        "dependencies/openssl/include/openssl/cast.h": "4fafc375a53d88fe4c709d8ee5fb74dc0fcaf91915837c3c6b4df0d916b07f0a",
+        "dependencies/openssl/include/openssl/cmac.h": "048677b08aab6fd862d2b8b15556db8355d2142b93a9431ffba1d75a25912847",
+        "dependencies/openssl/include/openssl/cmp.h": "585b6bde0459ebb49ccd57c12949286f3d2e67060cf0f32712649067a6a3b098",
+        "dependencies/openssl/include/openssl/cmp_util.h": "16c51c48c83c930b018ff711553e107f1870f1cedd32d94c06f15709b080c321",
+        "dependencies/openssl/include/openssl/cmperr.h": "220d1a903b66e25fa1de92f3ee8b3f5ef27de6dface0a4ea68e683a19e3549a7",
+        "dependencies/openssl/include/openssl/cms.h": "26b86512ef09a490e189d267e3382e8cde72c2628ec534a2b292d55bd8a031bd",
+        "dependencies/openssl/include/openssl/cmserr.h": "9faf0de7e75f3f14ef712186ee81770fe95631fc1000b2e96d2f1da289252db1",
+        "dependencies/openssl/include/openssl/comp.h": "b3179eef857a2b5ecc733acabdc791bf3b88b107937806b9b7e0b7cb844c7c28",
+        "dependencies/openssl/include/openssl/comperr.h": "03faa7ac9cf7ec99350a55758a685056dae8f75992887e0411c23b0d8c5d83b0",
+        "dependencies/openssl/include/openssl/conf.h": "5ecd0c5f7f8b2f5bdc3bfd7f69687ec499ad0bf49d0b0f40d8dae56774dcc0bb",
+        "dependencies/openssl/include/openssl/conf_api.h": "38dce9e9e0a438fcaf1d173c26e61c821bfd3756e221e3be76cf010580ac52f7",
+        "dependencies/openssl/include/openssl/conferr.h": "ea9346e399d5dd1fbcca4f34078e1acb5039333602ecaf72faa04e32cdd55484",
+        "dependencies/openssl/include/openssl/configuration.h": "2deb86f54a220e54d23a45924f64c3fb42c38c3197264091c6c376b015bb7af3",
+        "dependencies/openssl/include/openssl/conftypes.h": "496997cc0f4c32b840677eeefd3ecb488453254be6e228b8cd34d4a4061a9e28",
+        "dependencies/openssl/include/openssl/core.h": "4d4e63e2e01d06530515adbbe3c93601c5f0f5e1a96754d34d3470bccfcbdbc3",
+        "dependencies/openssl/include/openssl/core_dispatch.h": "e1e5f63565543509d1377e50f64034ae29b2091caae3f1b8635bce5af0b29032",
+        "dependencies/openssl/include/openssl/core_names.h": "0a74d2a3ef842b4e8d8b2ba9bd6366bc07ea91f125f3df73a2adb36ba0a0149f",
+        "dependencies/openssl/include/openssl/core_object.h": "e8fa8c62ad1367bd325d59d721214d1a7afd5423205134152f60cc39a8590c8a",
+        "dependencies/openssl/include/openssl/crmf.h": "f249d3fb8c64e48572ecfdbc96e1ef137726e6c3bd9d6c9ae24de849cd66b0a2",
+        "dependencies/openssl/include/openssl/crmferr.h": "9f2ff7a468b5048d543fef0324b39abdea63fa07bc915f62ff42a1937d7258c2",
+        "dependencies/openssl/include/openssl/crypto.h": "159455d9d79f1a1de3e50cc094b913e580513f53ed28a4edb891fdca77ef3d68",
+        "dependencies/openssl/include/openssl/cryptoerr.h": "c457c0591449551657a69ff9727784a79cc1afd899ac733c682c1a41fefdaa19",
+        "dependencies/openssl/include/openssl/cryptoerr_legacy.h": "985664cb71a62441b2822028340bb4ad5e3f98d6c74ba4c1bc7c997e188b97d3",
+        "dependencies/openssl/include/openssl/ct.h": "b9963346dff7fcfe2ff7f01fc30df12138d1265a6c3e107d2ef9ae42236a53ae",
+        "dependencies/openssl/include/openssl/cterr.h": "26d971ab2166ba4473864506dcd933290fa6c321956ef46220eb61fb33a04c89",
+        "dependencies/openssl/include/openssl/decoder.h": "72dbf52e4dc4efbfaddbf31ab6f2bec3e9a5c22eed865d057b960a014a4b9ec8",
+        "dependencies/openssl/include/openssl/decodererr.h": "c6818c667bdf8c37c5423580e0551359c69efc884198d28675db23e9fc70946e",
+        "dependencies/openssl/include/openssl/des.h": "420afefcf27f28046912c5f156bc9e93d71a2c8a47bf0f605695a13f391cd5f9",
+        "dependencies/openssl/include/openssl/dh.h": "25080c32c48d5a88053c4b83c326e8f024b68249a0ef65d3c45af4f9aab6e0c6",
+        "dependencies/openssl/include/openssl/dherr.h": "70f9e260865a9aae4c5f9a72d42d878e4dc216c906709245a8da2cceb79c3a14",
+        "dependencies/openssl/include/openssl/dsa.h": "dac47d9779f83eb4e5a4f57c234e6eb25277cea68001384360e16c8859c38338",
+        "dependencies/openssl/include/openssl/dsaerr.h": "b8fb8dae664d18298ae4b0c5444378e3f5c5d095256acb50764230159b1a15d6",
+        "dependencies/openssl/include/openssl/dtls1.h": "3477022a712ecbb2bfb61b297c57026f1c354d52c638dfb22292183bd68d2e8f",
+        "dependencies/openssl/include/openssl/e_os2.h": "d7300e16ec04f764e8fd45ae5288c37ab5af09dd1ea204d17c54c0155c69921c",
+        "dependencies/openssl/include/openssl/e_ostime.h": "0528cffa1548778b3ad52d4abb527e5f31590fb1bab4b0f55aad391efd79fd68",
+        "dependencies/openssl/include/openssl/ebcdic.h": "f50d3c91cb24772cf3155fe6464d811219b8f7c65ea3d4f974f58c03c3f27ab5",
+        "dependencies/openssl/include/openssl/ec.h": "2cc0edb6a18c4c1199bfce6799ca56362a6c27d41dfdfee62177a3d53a8c9a65",
+        "dependencies/openssl/include/openssl/ecdh.h": "5b99fdd1dfea38640ed8a506fb9b66db381cc26a1254448a81cc6b161e41850f",
+        "dependencies/openssl/include/openssl/ecdsa.h": "5b99fdd1dfea38640ed8a506fb9b66db381cc26a1254448a81cc6b161e41850f",
+        "dependencies/openssl/include/openssl/ecerr.h": "c072432649cd1e4bd1eb8c1f636bc2b57045d6f620d69d61c85f589d1c6b63e3",
+        "dependencies/openssl/include/openssl/encoder.h": "73459b25f863cf9bbb3de66f04ffe7ddaf9450f3c26afb1d5827325fa0a89fd9",
+        "dependencies/openssl/include/openssl/encodererr.h": "d010ca78b1df89c7fe3410d2aa5674179bf6750a445382ab8a0314c20a5b9799",
+        "dependencies/openssl/include/openssl/engine.h": "185311cc9702aa00fcafefad6f83ca1f597659d5075b66100c61053e1be5f47d",
+        "dependencies/openssl/include/openssl/engineerr.h": "2732c698916f320ba12ba690a80c1ef0651112015c5eac6141b1c3c315d1f5fc",
+        "dependencies/openssl/include/openssl/err.h": "0d673984ff62d55d1fb4534d8136b7325e5264efeeb0b911cc94a4922681e080",
+        "dependencies/openssl/include/openssl/ess.h": "6cea782ca664e3dac149656e81a91fb32dbc98abd7b97e82c5e8e91c54dee626",
+        "dependencies/openssl/include/openssl/esserr.h": "9ab984787cce1224e1426be57987e7726d8c5d38651dd96802a7d433c5288ae4",
+        "dependencies/openssl/include/openssl/evp.h": "0c2e950834c4cd0ac8a887f039400932e7cb1d6aaf2f80da73698a8ed5c3b318",
+        "dependencies/openssl/include/openssl/evperr.h": "ee0a462f1985667434a2b8a91d5df67ce2ee74e4ad9246f660dece5fafcf4474",
+        "dependencies/openssl/include/openssl/fips_names.h": "95f0ddd1271d1bb609acbe42924e903a2dda8e224cced9eb56f5680a6ae75a8e",
+        "dependencies/openssl/include/openssl/fipskey.h": "2ace9db2041934a211c6edb082798db0aace37506fcdbdd4e7e899767fc41014",
+        "dependencies/openssl/include/openssl/hmac.h": "9caf0b993c6ae2b3c75b9b585c8539dd358ca5f4edc42447295f87fc504eb1b9",
+        "dependencies/openssl/include/openssl/hpke.h": "58f81dab37eddc03b86db9dd640980fca872ddf19f4477482826a64f20454cb9",
+        "dependencies/openssl/include/openssl/http.h": "1f8d65d9633d54a74e8477396f2e3d34f5cdafc753fa8d56a5ee31753f5b734f",
+        "dependencies/openssl/include/openssl/httperr.h": "56b740a25198f30d19c8ed57b36679bbb32f8f2d97291155d4b3091c347ae423",
+        "dependencies/openssl/include/openssl/idea.h": "d114cb69e2e820008c508b7ad9002586806d82e3006e88162bd4a7c2dcd1e801",
+        "dependencies/openssl/include/openssl/indicator.h": "4be987d4fe4a4b39feac27c2ee85000e1b6ca7188d8ca9f75689a8205c2b4563",
+        "dependencies/openssl/include/openssl/kdf.h": "c704d177a651fed1c617ddf3bed2eb8c9e35f453ac7b1187dc6f02c88b76fe3b",
+        "dependencies/openssl/include/openssl/kdferr.h": "cbf4bd667f0a53459163f546920c2c98ce6d10b0db99176c779d8bf32f04e8b7",
+        "dependencies/openssl/include/openssl/lhash.h": "ba50a0dc4caa9662e138f913566c44454a68f6e59c405c761c1f387f58855af4",
+        "dependencies/openssl/include/openssl/macros.h": "756bc73d844bb73b62f3e5b5e6141ec5c912a230f58310e1fea6b44f3a7244d7",
+        "dependencies/openssl/include/openssl/md2.h": "a8eb0a1cdd0ced053d0f5dc5d1f63fe67f96a83c1cc37b6bf7adde85a567a631",
+        "dependencies/openssl/include/openssl/md4.h": "75d0ff7b22daa2ab31a0cd03ce9ca10cef64f431d32c49def33d0f0164e36f0d",
+        "dependencies/openssl/include/openssl/md5.h": "e22e567d09253eebf2c17f620783808f407bc7b969aa90bf3b44ac9001f6d329",
+        "dependencies/openssl/include/openssl/mdc2.h": "740c2361d9b0ab5330ae0054e368f573416c401cb3855b72323967b29232421f",
+        "dependencies/openssl/include/openssl/ml_kem.h": "58ecec9d4d95ab5172290a4c5725b7b6940149ecdbff5a33b93cc67ede1b25f7",
+        "dependencies/openssl/include/openssl/modes.h": "8ea97ace0601cdce6a12d0e1e92aefec062c299d0fcb5ff6477e3d752a9b9763",
+        "dependencies/openssl/include/openssl/obj_mac.h": "cc17d91b8603c09df02b5cb060557484f56e2a04e7d5a2756282e7bf08f059f0",
+        "dependencies/openssl/include/openssl/objects.h": "b6227db488aa39ed20a29e67d48fe8fefb2f649a1afcc3149cba22ac26510057",
+        "dependencies/openssl/include/openssl/objectserr.h": "fc14e6c9e71fb550363394f912cb72e6078dd11e300bdddfdd17ec118c88dc4b",
+        "dependencies/openssl/include/openssl/ocsp.h": "a99653642b9c65cc6bcad62fffb1364d7df07865d3c0b9cb1159a0e2d8aa7520",
+        "dependencies/openssl/include/openssl/ocsperr.h": "51b319980fb406b70ff0aee9c145c260553f4ff6516305b9c2864643096cc30c",
+        "dependencies/openssl/include/openssl/opensslconf.h": "7f4b522c049d0bd0d651e6f6ebe71d6df0c37231a94e32524da3f4642ebda3be",
+        "dependencies/openssl/include/openssl/opensslv.h": "80d9b9534fdbdab12c29cb8c62887ede14bbb7112b93e838a63d6815400f5f0b",
+        "dependencies/openssl/include/openssl/ossl_typ.h": "8d430751bbcd1d9695f3dd85b16958fd6255dfbf55775207923f67cba1754548",
+        "dependencies/openssl/include/openssl/param_build.h": "f078c5549e172b49da9993ef68c7b7fedafd66b05255c9bf8a37154f0a40bdb7",
+        "dependencies/openssl/include/openssl/params.h": "881a034dbf0d1077df0e0505faa75591625dd60940f3e0dd3c3210b3baa4f5ef",
+        "dependencies/openssl/include/openssl/pem.h": "9098124ff7a21c8f1db5ddead59b1cf092f88c9f44bf88dacd3c8de9c67ade76",
+        "dependencies/openssl/include/openssl/pem2.h": "5bd104c872bbfee2d16f5af88c01b0aeee9f177ecc88c0dd237c9c9948eeedc6",
+        "dependencies/openssl/include/openssl/pemerr.h": "18c1dbdde2452416b1d49c7512b7c4b8bf26ac7b83f5c0ee5e27e9bec454d2fb",
+        "dependencies/openssl/include/openssl/pkcs12.h": "44ccd1ee3a68e178c2514a388a764784bbba19ed976b8f80a2e56d4874d573a7",
+        "dependencies/openssl/include/openssl/pkcs12err.h": "fbf4142e0ee58b6c6841890d873f07ba0362e21ad74702d70552122e01c096e9",
+        "dependencies/openssl/include/openssl/pkcs7.h": "2136c5de0065017dd22f38aabfd8fd216af12b0aae71d8e146378bb7471ae8c0",
+        "dependencies/openssl/include/openssl/pkcs7err.h": "717e017e7d0981928b33820660e19d5c264a06a5e824b94194036a8be92be07c",
+        "dependencies/openssl/include/openssl/prov_ssl.h": "23b96759ae94e17c7c0e7ee32a531676be2a276a6d9802828e80268e20f224fd",
+        "dependencies/openssl/include/openssl/proverr.h": "e95d9c1c8ed617e092a6e099ee144dc521538b92fadd65a27a7ac2532948769f",
+        "dependencies/openssl/include/openssl/provider.h": "dac4bfad226a8e5513cecf472e41e0b7ed93c95374a0ec3fd56f7b046e0aeff1",
+        "dependencies/openssl/include/openssl/quic.h": "a80af6c42394132eaad8de7177c6b0b3f747711730e8dd687acdc34284b3c2f8",
+        "dependencies/openssl/include/openssl/rand.h": "cb240ffedfd9516ec7a8cd0796951d46a4707c0460f940371620c83f7bafd037",
+        "dependencies/openssl/include/openssl/randerr.h": "a6acbb47da2f26fe5e572f232eb9d9ebcd65bb7c01d5984ab26229e5bf0bd45e",
+        "dependencies/openssl/include/openssl/rc2.h": "b86a429de0c73aca6e0504b8833c1dcd9e8c7cdf65c2b31b38d0d0c7b19cc5e9",
+        "dependencies/openssl/include/openssl/rc4.h": "1bb4fa9d14861cdcf0a721d8d1026be80ce019da459ffdd8b5c1d12365110e78",
+        "dependencies/openssl/include/openssl/rc5.h": "dd71ab468383a2a8ca4ff34f9273b481c1ed518c380da6d1ab82e9ca6b7edbd9",
+        "dependencies/openssl/include/openssl/ripemd.h": "4457b36942bc0e298c993b48468ef8f3f00331a9d67bd0b894dd5bc5f58ab35d",
+        "dependencies/openssl/include/openssl/rsa.h": "2c9780f9b4b35c3f14271962938e16b8505e9f5d38566c104bce9a82be23a0e1",
+        "dependencies/openssl/include/openssl/rsaerr.h": "b4f87b5dddc672b81de0dfd7f3c4e6409887bd08b286c99ded8f1255e5836804",
+        "dependencies/openssl/include/openssl/safestack.h": "ed039123a68c410992dd65ac365c08a2d1a29d767fd4f5274e90affd866e3fef",
+        "dependencies/openssl/include/openssl/seed.h": "75a00b017f40beba051fdaad04876e18d3c80d1b1f1c21d78fafc69ae8e3b034",
+        "dependencies/openssl/include/openssl/self_test.h": "e4d46353b1be292b162984c2a388fef89db037c39770c62f91e53c19883174e4",
+        "dependencies/openssl/include/openssl/sha.h": "7e006accd6565cc97dee672c097acc5e38482be7cd4fa1e0c316bf466425b895",
+        "dependencies/openssl/include/openssl/srp.h": "0d86508bcf50e521eae5632966536da1ce95f9485c1ea8eafaa482e2f40b0adf",
+        "dependencies/openssl/include/openssl/srtp.h": "6efa8edb1f040ba35cb05a671efc74c1494b9d4badc32d47cd5bb99e1a9cda38",
+        "dependencies/openssl/include/openssl/ssl.h": "29f1ff501f1ac10dc23b750dc1c64634acd267e430c12ccc6bd78c1d05c2f58f",
+        "dependencies/openssl/include/openssl/ssl2.h": "d33dc2afbcdee20f20ffcdd5cda6777c5e49a7cc37d513e4618b71a99129af20",
+        "dependencies/openssl/include/openssl/ssl3.h": "f98e0eb1702bf99614e92e2d09f1af5b59309e156441e40ab711df7d661536aa",
+        "dependencies/openssl/include/openssl/sslerr.h": "7a9dab7a198ea5c17fe5cf8e1905a54ae88c0044a86c1accf1e7cc9e7de374e2",
+        "dependencies/openssl/include/openssl/sslerr_legacy.h": "988c235994713d83d73ee904804f7edb4f6e321b4ab94c5aa5a9a0c7134fb499",
+        "dependencies/openssl/include/openssl/stack.h": "68e5e154c9af4d0c70f1101a4c5d94a45c42f371acac2538a1fec925a1a21d8a",
+        "dependencies/openssl/include/openssl/store.h": "8b02d55b78c95f3b49ea00ff4abf9b33f794c63c4ddfecaf9101ad1b2a5c7f8b",
+        "dependencies/openssl/include/openssl/storeerr.h": "e13ecdf3c46b4dde5d857f8a7a3e2c0a444e309aa05d789bf99d73ecefab87aa",
+        "dependencies/openssl/include/openssl/symhacks.h": "2b54552189bfbf4204c28c6a421b21702a3cd3dba37570dbcdadb7ee648f155b",
+        "dependencies/openssl/include/openssl/thread.h": "583716b74d6aa0596c1d1b06cb16f657d4d9fb9c13cf30505ec0327046af6baf",
+        "dependencies/openssl/include/openssl/tls1.h": "d34b3d17f1aedf83a072240cb81c6ae0927826f0200bc9e56926897e9b943d48",
+        "dependencies/openssl/include/openssl/trace.h": "5b7f86a453e6b404ff019e23e84de856c2a25b8243d4bfb92c92471a3735e332",
+        "dependencies/openssl/include/openssl/ts.h": "3de4eecd9a731d9a05a1b7baab18cb1c62f59f8a9f9e5ed049525a8ada9207b8",
+        "dependencies/openssl/include/openssl/tserr.h": "27e66bf494926dea06d8c3800823f2485cf1a7f8f41f5628ff4a443f9bcceb87",
+        "dependencies/openssl/include/openssl/txt_db.h": "cbd03be764d6d12e12895703756fbe5f2b7611d4cd55d343837d48e8e6e60523",
+        "dependencies/openssl/include/openssl/types.h": "de5422d2e621df11c17ab18473ea4f2368ecc64b1e45311c4890cc62b31f81c5",
+        "dependencies/openssl/include/openssl/ui.h": "52e7db7b23f582212969fc895c0fa7a2bf5577b215d847e1bee710f13f9c214b",
+        "dependencies/openssl/include/openssl/uierr.h": "a21be118ee97343a03dc28256370839e5751c82a2a7bcb4c60fcbd97a9e2bef5",
+        "dependencies/openssl/include/openssl/whrlpool.h": "d38ef40783400956d571e442d4f459e9c611239d719eb128e19bc64982d01922",
+        "dependencies/openssl/include/openssl/x509.h": "e9e8314bc5cff5126285aacc922002c39c65d9f43cdac9c083243362db967dcf",
+        "dependencies/openssl/include/openssl/x509_acert.h": "3c1c961dc311f7a88eb09b11364c69098b6a47d842f9b399c96201a99830ab9e",
+        "dependencies/openssl/include/openssl/x509_vfy.h": "73e2b36cf94ecf752540c01f153ba9afe8c189d275ff5633a2b554fb8faccd5f",
+        "dependencies/openssl/include/openssl/x509err.h": "be93ee6c9d58aadb5f836d5e293ec93c94ffc603c46a1d8d1c8b31cf83959fb9",
+        "dependencies/openssl/include/openssl/x509v3.h": "c6254a21c99db7156953a8b06ac15ba945c66fa5c143cf28c6f0ba0e0c67e7f4",
+        "dependencies/openssl/include/openssl/x509v3err.h": "b9be8b0429bfaefb973531e81d598e40779b3788e129c4cc9e33651d2308b990",
+        "dependencies/openssl/lib/cmake/OpenSSL/OpenSSLConfig.cmake": "cc349c20bd6ec73a5b7f020e303ea9197c15372e5b8d98dd03c45f01a68d4903",
+        "dependencies/openssl/lib/cmake/OpenSSL/OpenSSLConfigVersion.cmake": "66a94952949da14f8ac08d2665e9cacbf1808aa06265e5c65202c967128553a0",
+        "dependencies/openssl/lib/libcrypto.a": "6deb589f0275442a5a10b9e5ee2ff7b434d2a4a780467c4682694e5c84b1092e",
+        "dependencies/openssl/lib/libssl.a": "d5a771f30189bcdaa9f4802fdaebc7456fc1af12c097a501f912ede19d5dd400",
+        "dependencies/openssl/lib/pkgconfig/libcrypto.pc": "e9eb05a0908713c59ae3e83722f3b57e6321608d536d42784d8613878eba8c77",
+        "dependencies/openssl/lib/pkgconfig/libssl.pc": "b94bd41bd78f40cbb798a08c2d836936e92c977807c1e55a7441e3ac91859b4c",
+        "dependencies/openssl/lib/pkgconfig/openssl.pc": "a4ab16961b5d69d8add54c332bf02d8a934198607c5978148a09b3eccad67475",
+        "dependencies/openssl/source-archive.sha256": "4223596ae17a43f63f28de2663ad65da5186fa02efaecc81eff53cdf5951ae5b"
+      },
+      "reproducibility_scope": "exact source/dependency/toolchain and binary receipts; bit-for-bit cross-build equality not asserted",
+      "schema": "PQBTC-MLDSA44-SOURCE-BUILD-1",
+      "sha256": {
+        "/tmp/demo-signer-bin/pilot-signer": "6174c4e1f66338a8e608f650ecdec70aa6c220a918c43c2b86b1114a7cac0a16",
+        "/tmp/mldsa-demo-build/bin/pqbtc-cli": "704d984173bf72fea78ce47f79c4c1dd14932bd5d80abe5f3a90be98427e4bf3",
+        "/tmp/mldsa-demo-build/bin/pqbtc-mldsa-client": "59671b62812044c6e7b3302789b2a83ee56d05e3bd1dd30e5e9ceca1e09f984c",
+        "/tmp/mldsa-demo-build/bin/pqbtcd": "5ba9957583228aa4f57b043dceb65b8276f6b2d7956e7a6de94b2e15ef7f9cc7",
+        "/tmp/mldsa-demo-build/bin/test_pqbtc": "1e7574175ae8968724ec324591391cdcb10b7858cc3b26aebd834de06538204c",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_app.py": "ce5e4a440aa9dfaac578fd0f1005f09f3c4fe9fa8825bcc488c07ff8c86774aa",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_controller.py": "ba175939b711e824678d01405910f2a8e771e73f093efb30936d275cbf2ee2b5",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_runtime.py": "c1fd5f565ab1deb6875a8e0c005e75624575456519db6f744f282a87d0e2a348",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-production-contract/public-test-manifest-v1.json": "8595edee7a9523c2ff615509ed828a2b135e88da95b63d3f336c9d0eb768f0fd",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_consensus_controls.py": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_soak_agent.py": "84c60ec4873cbe4da97603b64e4e119470bf9a5735dd98099a287ea72f5ce310",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_transport.py": "f2203fa513041127539fc18ad240f2427eb1e8376c1d5531cc9f81f1d5026423",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_native_qualification.py": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_public_app_ci.py": "2f14e4dcfd1a229423a4a3966483b49d3ac536b423e244d724914e54eecb2ff9",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_spend_restore.py": "0dfc691f58d8a1ad89719d6d962104a3899a56ba1ccdc72a1828e1d625c5e02a",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-signer/node_wallet.py": "ec3a8f16d4d814ae31dfd202a79be3aa2c759b4e9b17359a051a35c22f55ccac",
+        "/tmp/mldsa-demo-source/docs/ML_DSA_44_PRODUCTION_CONTRACT_V1.md": "c7993d7f2ae72623cf3b9e2f45c021885f610ef3169dbf176e0c2dd1a619d126",
+        "/tmp/mldsa-demo-source/docs/ML_DSA_44_PUBLIC_TEST_PROFILE.md": "78f5f1024d8276a49acbf54c5026f3e4c7e1c9ba3b901c102a0ac4e1311fa933"
+      },
+      "source_date_epoch": 1794868227,
+      "source_head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+      "source_tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f",
+      "toolchain": {
+        "clang": "Debian clang version 16.0.6 (15~deb12u1)",
+        "clang++": "Debian clang version 16.0.6 (15~deb12u1)",
+        "cmake": "cmake version 3.25.1",
+        "git": "git version 2.39.5",
+        "ninja": "1.11.1"
+      }
+    },
+    "manifest_sha256": "6469a840c8cb7d3646f2fca3bd18873eef74d665ecbe76e9f4c85640823bba52"
+  },
+  "final_status": {
+    "phase": "running",
+    "ready": true,
+    "nodes": [
+      {
+        "name": "node0",
+        "height": 105,
+        "peers": 1,
+        "tip": "17554556ac44cf4ed590a266af94d6cc1654e6e3842f0031b717b3651dd905fa",
+        "utxo_hash": "f02662b1231233d3913b462b40c7cd0dca1b9f34e1e3086eae0a4924bb5072da",
+        "utxo_count": 109
+      },
+      {
+        "name": "node1",
+        "height": 105,
+        "peers": 1,
+        "tip": "17554556ac44cf4ed590a266af94d6cc1654e6e3842f0031b717b3651dd905fa",
+        "utxo_hash": "f02662b1231233d3913b462b40c7cd0dca1b9f34e1e3086eae0a4924bb5072da",
+        "utxo_count": 109
+      }
+    ],
+    "wallet": {
+      "wallet_id": "9718aa35cf2b26efd8931a9f9a25b179",
+      "locked": false,
+      "balance_sats": 1997000,
+      "spendable_sats": 1997000,
+      "confirmed_sats": 1997000,
+      "pending_sats": 0,
+      "utxos": [
+        {
+          "txid": "20ebd7d3732afc43e8b444464054fcd22b625415e3b3745de3a53de27dd80e8d",
+          "vout": 1,
+          "amount_sats": 799000,
+          "confirmations": 2,
+          "coinbase": false,
+          "spendable": true,
+          "address": "rq1zlft7x46a0mm7hw99pspfjt208vpvanawjvkl2cl9z272t9h4r8pq9mkcff",
+          "branch": 1,
+          "index": 1
+        },
+        {
+          "txid": "471c367a6ada0c770652d67b7f31c80811ae1e3c71585fdcfd439e2015298091",
+          "vout": 0,
+          "amount_sats": 100000,
+          "confirmations": 1,
+          "coinbase": false,
+          "spendable": true,
+          "address": "rq1zvfsxkxlla2kx4x25g65qghle9tayce7hajwjljtgsd5fg20hyh5qzk8leu",
+          "branch": 0,
+          "index": 4
+        },
+        {
+          "txid": "471c367a6ada0c770652d67b7f31c80811ae1e3c71585fdcfd439e2015298091",
+          "vout": 1,
+          "amount_sats": 99000,
+          "confirmations": 1,
+          "coinbase": false,
+          "spendable": true,
+          "address": "rq1zgyv37m0mqr5nh4q73akmgjjqpjpd3d58ypa8upevxtj64234gqqst3dneg",
+          "branch": 1,
+          "index": 2
+        },
+        {
+          "txid": "68be18e5a433787ed9a8c74b37112f832bf9329523b6e0995f342e83aa2facb4",
+          "vout": 1,
+          "amount_sats": 999000,
+          "confirmations": 3,
+          "coinbase": false,
+          "spendable": true,
+          "address": "rq1z2pzwzuvrekgm7q2xmctheknzvmlgvg62fuxj56wr9zy95wf99seqk3h04h",
+          "branch": 1,
+          "index": 0
+        }
+      ],
+      "next_receive": 5,
+      "next_change": 3,
+      "addresses": [
+        {
+          "address": "rq1zzypw0a7tydecg6jexjr8pdusmgz7lde4cdadcz6ym2v8xwwmmqpsucvx7x",
+          "index": 0,
+          "branch": 0
+        },
+        {
+          "address": "rq1z9wg2eynufvrx3q9em58t75wlwj0draj5wsxwl3a4afvfl58049xs83hyea",
+          "index": 1,
+          "branch": 0
+        },
+        {
+          "address": "rq1z2pzwzuvrekgm7q2xmctheknzvmlgvg62fuxj56wr9zy95wf99seqk3h04h",
+          "index": 0,
+          "branch": 1
+        },
+        {
+          "address": "rq1zjhchzfm96qymhjv6gfcdv8e0clsxrx2g8ateynq5mytgl4qlw28qdzxysp",
+          "index": 2,
+          "branch": 0
+        },
+        {
+          "address": "rq1zlft7x46a0mm7hw99pspfjt208vpvanawjvkl2cl9z272t9h4r8pq9mkcff",
+          "index": 1,
+          "branch": 1
+        },
+        {
+          "address": "rq1zuctqqx4z7rvmapfa580c52cltqu3zudfvg4r0wngnhjfgsama6rs09r9q4",
+          "index": 3,
+          "branch": 0
+        },
+        {
+          "address": "rq1zvfsxkxlla2kx4x25g65qghle9tayce7hajwjljtgsd5fg20hyh5qzk8leu",
+          "index": 4,
+          "branch": 0
+        },
+        {
+          "address": "rq1zgyv37m0mqr5nh4q73akmgjjqpjpd3d58ypa8upevxtj64234gqqst3dneg",
+          "index": 2,
+          "branch": 1
+        }
+      ],
+      "signer_connected": true,
+      "immature_sats": 0
+    },
+    "backups": [
+      {
+        "created_at": "2026-11-16T22:40:00+00:00",
+        "height": 102,
+        "id": "06f529e551714467a9005bf5dd2ca833",
+        "wallet_id": "9718aa35cf2b26efd8931a9f9a25b179"
+      }
+    ],
+    "activity": [
+      {
+        "kind": "start",
+        "message": "Offline console started",
+        "time": "2026-11-16T22:39:59+00:00"
+      },
+      {
+        "kind": "receive",
+        "message": "New test receive address saved",
+        "time": "2026-11-16T22:39:59+00:00"
+      },
+      {
+        "kind": "fund",
+        "message": "Test funding transaction created",
+        "time": "2026-11-16T22:40:00+00:00",
+        "txid": "9fa2707d24fed92443954a5ad2d808921c229b668ffcbadb0a07088bd32e2152"
+      },
+      {
+        "kind": "backup",
+        "message": "Encrypted backup saved",
+        "time": "2026-11-16T22:40:01+00:00"
+      },
+      {
+        "kind": "receive",
+        "message": "New test receive address saved",
+        "time": "2026-11-16T22:40:01+00:00"
+      },
+      {
+        "kind": "send",
+        "message": "Test transaction broadcast",
+        "time": "2026-11-16T22:40:02+00:00",
+        "txid": "68be18e5a433787ed9a8c74b37112f832bf9329523b6e0995f342e83aa2facb4"
+      },
+      {
+        "kind": "mine",
+        "message": "Test blocks mined",
+        "time": "2026-11-16T22:40:02+00:00"
+      },
+      {
+        "kind": "stop",
+        "message": "Console stopped",
+        "time": "2026-11-16T22:40:03+00:00"
+      },
+      {
+        "kind": "start",
+        "message": "Offline console started",
+        "time": "2026-11-16T22:40:04+00:00"
+      },
+      {
+        "kind": "recover",
+        "message": "Encrypted backup restored with retained address floors",
+        "time": "2026-11-16T22:40:08+00:00"
+      },
+      {
+        "kind": "receive",
+        "message": "New test receive address saved",
+        "time": "2026-11-16T22:40:09+00:00"
+      },
+      {
+        "kind": "send",
+        "message": "Test transaction broadcast",
+        "time": "2026-11-16T22:40:10+00:00",
+        "txid": "20ebd7d3732afc43e8b444464054fcd22b625415e3b3745de3a53de27dd80e8d"
+      },
+      {
+        "kind": "mine",
+        "message": "Test blocks mined",
+        "time": "2026-11-16T22:40:10+00:00"
+      },
+      {
+        "kind": "lock",
+        "message": "Fixture wallet locked",
+        "time": "2026-11-16T22:40:11+00:00"
+      },
+      {
+        "kind": "unlock",
+        "message": "Fixture wallet unlocked",
+        "time": "2026-11-16T22:40:11+00:00"
+      },
+      {
+        "kind": "stop",
+        "message": "Console stopped",
+        "time": "2026-11-16T22:40:13+00:00"
+      },
+      {
+        "kind": "start",
+        "message": "Offline console started",
+        "time": "2026-11-16T22:40:15+00:00"
+      },
+      {
+        "kind": "receive",
+        "message": "New test receive address saved",
+        "time": "2026-11-16T22:40:15+00:00"
+      },
+      {
+        "kind": "stop",
+        "message": "Console stopped",
+        "time": "2026-11-16T22:40:16+00:00"
+      },
+      {
+        "time": "2026-11-16T22:40:49+00:00",
+        "kind": "start",
+        "message": "Offline console started"
+      },
+      {
+        "time": "2026-11-16T22:40:50+00:00",
+        "kind": "stop",
+        "message": "Contained processes exited; retained durable state can be restarted"
+      },
+      {
+        "time": "2026-11-16T22:40:52+00:00",
+        "kind": "start",
+        "message": "Offline console started"
+      },
+      {
+        "time": "2026-11-16T22:40:53+00:00",
+        "kind": "receive",
+        "message": "New test receive address saved"
+      },
+      {
+        "time": "2026-11-16T22:40:54+00:00",
+        "kind": "send",
+        "message": "Test transaction broadcast",
+        "txid": "471c367a6ada0c770652d67b7f31c80811ae1e3c71585fdcfd439e2015298091"
+      },
+      {
+        "time": "2026-11-16T22:40:54+00:00",
+        "kind": "mine",
+        "message": "Test blocks mined"
+      }
+    ]
+  },
+  "post_recreation_txid": "471c367a6ada0c770652d67b7f31c80811ae1e3c71585fdcfd439e2015298091",
+  "flow_result": "PASS",
+  "events": [
+    {
+      "step": "build_progress",
+      "time": 1794868335.205529,
+      "message": "Building fresh Linux clang runtime from 7223772e76d2d0a0bb7fd1d35e0e16fba61918fd\u2026"
+    },
+    {
+      "step": "native_build_evidence_verified",
+      "time": 1794868795.0998647
+    },
+    {
+      "step": "launch_source_built_app",
+      "time": 1794868795.0998757
+    },
+    {
+      "step": "fresh_install_has_no_wallet",
+      "time": 1794868797.627121
+    },
+    {
+      "step": "command",
+      "time": 1794868797.6271808,
+      "argv": [
+        "/usr/bin/python3",
+        "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-console/test_end_to_end.py",
+        "--url",
+        "http://127.0.0.1:8844",
+        "--output",
+        "/tmp/pqbtc-assembled-clang-43970911876-1/flow.json"
+      ]
+    },
+    {
+      "step": "start",
+      "time": 1794868815.2673244,
+      "result": {
+        "phase": "running",
+        "ready": true,
+        "nodes": [
+          {
+            "name": "node0",
+            "height": 104,
+            "peers": 1,
+            "tip": "2f75f3a7d8a975d6f9e76fa278e0d700bf4e8fec62587b7d499ae679c62e2e4a",
+            "utxo_hash": "395cbbf026323edb2d4070a9947314d45be9901942db51929b8ecebdefb1968d",
+            "utxo_count": 107
+          },
+          {
+            "name": "node1",
+            "height": 104,
+            "peers": 1,
+            "tip": "2f75f3a7d8a975d6f9e76fa278e0d700bf4e8fec62587b7d499ae679c62e2e4a",
+            "utxo_hash": "395cbbf026323edb2d4070a9947314d45be9901942db51929b8ecebdefb1968d",
+            "utxo_count": 107
+          }
+        ],
+        "wallet": {
+          "wallet_id": "9718aa35cf2b26efd8931a9f9a25b179",
+          "locked": true,
+          "signer_connected": false,
+          "balance_sats": 1998000,
+          "confirmed_sats": 1998000,
+          "pending_sats": 0,
+          "immature_sats": 0,
+          "spendable_sats": 1998000,
+          "utxos": [
+            {
+              "txid": "20ebd7d3732afc43e8b444464054fcd22b625415e3b3745de3a53de27dd80e8d",
+              "vout": 0,
+              "amount_sats": 200000,
+              "confirmations": 1,
+              "coinbase": false,
+              "spendable": true,
+              "address": "rq1zjhchzfm96qymhjv6gfcdv8e0clsxrx2g8ateynq5mytgl4qlw28qdzxysp",
+              "branch": 0,
+              "index": 2
+            },
+            {
+              "txid": "20ebd7d3732afc43e8b444464054fcd22b625415e3b3745de3a53de27dd80e8d",
+              "vout": 1,
+              "amount_sats": 799000,
+              "confirmations": 1,
+              "coinbase": false,
+              "spendable": true,
+              "address": "rq1zlft7x46a0mm7hw99pspfjt208vpvanawjvkl2cl9z272t9h4r8pq9mkcff",
+              "branch": 1,
+              "index": 1
+            },
+            {
+              "txid": "68be18e5a433787ed9a8c74b37112f832bf9329523b6e0995f342e83aa2facb4",
+              "vout": 1,
+              "amount_sats": 999000,
+              "confirmations": 2,
+              "coinbase": false,
+              "spendable": true,
+              "address": "rq1z2pzwzuvrekgm7q2xmctheknzvmlgvg62fuxj56wr9zy95wf99seqk3h04h",
+              "branch": 1,
+              "index": 0
+            }
+          ],
+          "next_receive": 3,
+          "next_change": 2,
+          "addresses": [
+            {
+              "address": "rq1zzypw0a7tydecg6jexjr8pdusmgz7lde4cdadcz6ym2v8xwwmmqpsucvx7x",
+              "index": 0,
+              "branch": 0
+            },
+            {
+              "address": "rq1z9wg2eynufvrx3q9em58t75wlwj0draj5wsxwl3a4afvfl58049xs83hyea",
+              "index": 1,
+              "branch": 0
+            },
+            {
+              "address": "rq1z2pzwzuvrekgm7q2xmctheknzvmlgvg62fuxj56wr9zy95wf99seqk3h04h",
+              "index": 0,
+              "branch": 1
+            },
+            {
+              "address": "rq1zjhchzfm96qymhjv6gfcdv8e0clsxrx2g8ateynq5mytgl4qlw28qdzxysp",
+              "index": 2,
+              "branch": 0
+            },
+            {
+              "address": "rq1zlft7x46a0mm7hw99pspfjt208vpvanawjvkl2cl9z272t9h4r8pq9mkcff",
+              "index": 1,
+              "branch": 1
+            }
+          ]
+        },
+        "backups": [],
+        "activity": []
+      }
+    },
+    {
+      "step": "receive",
+      "time": 1794868815.896448,
+      "result": {
+        "branch": 0,
+        "index": 3,
+        "public_key": "1c8a2f746b9e7cb52d3fee59c517921724f6f0957352ba262b639dc37904cdab19d26e568e31982fd2a6b1dc9e206071945bb07fdc30de9af636597582c05cc92e9271daaa7996ef0c993c204b31c0aa5591ce517ddf70d2f25b1f49620907e1ca132d4d75f86be3ee1a36400e3299c6c71123b1d067d1102be43aaed94bb4e7e1257d6a242e801b642e857e85c4bacaf07df25d925a7a9ab2cdd74502f872651437dbc80aaf5e21886ff7354c123f2955a12618d00a6b466037a729cdb4a5b888a3bc0d39a934c7d6e0da01c47c36ad9f8ba1e028f2acbb8770dfb4817a80d0a9e71bca36c086310537bf1f8abc288bd2f007c5e1475d03b6ace5781f310bd604962cd1e1eabaa90c3056005fe127214cc4caca86cf971659aa4af282cb9e60d97ec5f6589a3ebbd853ff9caf9b88eab051965c35bb09ad62aecdc8d2ac8ac2d273707e816c0eb1c9bcfd0d533dd83f6921e22e807b32a93467e811641cf73ec73238a4fc4dec540e7e4d0e2b45d2a857b5521cf716bba4c708aa912383b342f1a0f97665283caa364f63a7551fa0f88b663653d2f0e74465c0c60241f24142f7bddb0bbc94e7f32963bf5c996e0656c0c7af722d2568ee9ff05dc067ca202daca40e9b84cd9379cd84ef3767d68b0525550d418e48d89851041081e0a37f2fb2f8570559658803e992e47967cf795f640ef1fb09d58bea945d8c74a511f6f99751524744be8d701ad5f2a99248deef48ed43c04d4f241e92f81006eb3b30c7122bda2b0e383d25b34b7fad948b1f6271648e98523ab6e36ec339f1aebae8ee220ba95fc40929705cafe33510b18c374f8cb2f20f8815a08abf3340933513183a7403a7ed27b3cf74a8e31864f0cf95aa532df0577394a3bc22faac73f8e67cd44288ddaad842d7a794e8bfa25ba12a43cd278ba4259b6b3a8e45612584420cc850b2ff34793d124945fd9c5389d5724e6516c9937349b423ec6686def6a5b439b4c86798e242eeeb00985d9f2b2e59e335b8babe5aa2ec2cf8726f6de4ca88c17d8b9698e5f1479575fb8f6a8a18d7dad2bb7503d0eaff3422db396fa49bff74addc7f54acd3c07889ac698036f68491a8e913effa06ddd71912c399389de2eef297870f0d9edea7fba1f90455a3527728f2e10296fe29b65925faccbd26adcf9bbc8a486eb39f769dbed25fed4e50487baaf13b46f331d00c652a059214924f9e807f2629031a331cc436bab36eed5a0a1411b4c08d354859c2d73080bda15f051c1bb8ac31468ff0fc11e7e83d5fe1d66f1424223e5a822bfe93eb176f7c561f3bb74dbb8699096277f0dd281ca8769f56b810db0ee2f8e0c64ff06950fd60f0c2b9fd64bd90f2b7314922f979ed7667a85b658012f1fc2ccab8397eb21f4a87ff7afda910a1b0e9738b869a633ed80651c36ddf5aa781e087a914b826357e9f52a505fa2f87abcff5cc02a2a85dfafb55158573180dcb9adc4a15c884050b7ee44a63078c6559fcc445b2f71401d9f08ce3c46a3a4df3f40c7ec6d37c8870f68057c23a9b8976c86894259a0494b3c0d2e4ed60059978f89afadfc61395c92cde03226656ad8f73fcb2de0f8f04d78ab76cdd8003189f9e13ef3e7530063f0807265bd18498cabb770400fbfe5ea06c12247c4556a02d0cea2fb6d2e70f5af3ee31dbb3d96e2351f4981801f03900cef3b49129a3c8bb87910695fee78317b0feb80292e055f846ce0f1ec6bcb2afe50bcce6fd419b7b5357b0f2a602730cdea3bfc9527f4490da69ef5fd3d33fc44643dc608a9b6723c2d1a7e77b60f9886d2dc7e72816b123c9c874fb9b21fd0ac880656c647be851b23e00400476e3",
+        "program": "e616001aa2f0d9be853da1df8a2b1f58391171a9622a37ba689de49443bbee87",
+        "address": "rq1zuctqqx4z7rvmapfa580c52cltqu3zudfvg4r0wngnhjfgsama6rs09r9q4",
+        "script_pubkey": "5220e616001aa2f0d9be853da1df8a2b1f58391171a9622a37ba689de49443bbee87"
+      }
+    },
+    {
+      "step": "stop",
+      "time": 1794868816.4911664,
+      "result": {
+        "stopped": true
+      }
+    },
+    {
+      "step": "command",
+      "time": 1794868816.5065262,
+      "argv": [
+        "docker",
+        "stop",
+        "--timeout",
+        "30",
+        "pqbtc-ci-clang-43970911876-1"
+      ]
+    },
+    {
+      "step": "command",
+      "time": 1794868846.7229323,
+      "argv": [
+        "docker",
+        "rm",
+        "pqbtc-ci-clang-43970911876-1"
+      ]
+    },
+    {
+      "step": "launch_source_built_app",
+      "time": 1794868846.7548952
+    },
+    {
+      "step": "start",
+      "time": 1794868849.6197076,
+      "result": {
+        "phase": "running",
+        "ready": true,
+        "nodes": [
+          {
+            "name": "node0",
+            "height": 104,
+            "peers": 1,
+            "tip": "2f75f3a7d8a975d6f9e76fa278e0d700bf4e8fec62587b7d499ae679c62e2e4a",
+            "utxo_hash": "395cbbf026323edb2d4070a9947314d45be9901942db51929b8ecebdefb1968d",
+            "utxo_count": 107
+          },
+          {
+            "name": "node1",
+            "height": 104,
+            "peers": 1,
+            "tip": "2f75f3a7d8a975d6f9e76fa278e0d700bf4e8fec62587b7d499ae679c62e2e4a",
+            "utxo_hash": "395cbbf026323edb2d4070a9947314d45be9901942db51929b8ecebdefb1968d",
+            "utxo_count": 107
+          }
+        ],
+        "wallet": {
+          "wallet_id": "9718aa35cf2b26efd8931a9f9a25b179",
+          "locked": true,
+          "signer_connected": false,
+          "balance_sats": 1998000,
+          "confirmed_sats": 1998000,
+          "pending_sats": 0,
+          "immature_sats": 0,
+          "spendable_sats": 1998000,
+          "utxos": [
+            {
+              "txid": "20ebd7d3732afc43e8b444464054fcd22b625415e3b3745de3a53de27dd80e8d",
+              "vout": 0,
+              "amount_sats": 200000,
+              "confirmations": 1,
+              "coinbase": false,
+              "spendable": true,
+              "address": "rq1zjhchzfm96qymhjv6gfcdv8e0clsxrx2g8ateynq5mytgl4qlw28qdzxysp",
+              "branch": 0,
+              "index": 2
+            },
+            {
+              "txid": "20ebd7d3732afc43e8b444464054fcd22b625415e3b3745de3a53de27dd80e8d",
+              "vout": 1,
+              "amount_sats": 799000,
+              "confirmations": 1,
+              "coinbase": false,
+              "spendable": true,
+              "address": "rq1zlft7x46a0mm7hw99pspfjt208vpvanawjvkl2cl9z272t9h4r8pq9mkcff",
+              "branch": 1,
+              "index": 1
+            },
+            {
+              "txid": "68be18e5a433787ed9a8c74b37112f832bf9329523b6e0995f342e83aa2facb4",
+              "vout": 1,
+              "amount_sats": 999000,
+              "confirmations": 2,
+              "coinbase": false,
+              "spendable": true,
+              "address": "rq1z2pzwzuvrekgm7q2xmctheknzvmlgvg62fuxj56wr9zy95wf99seqk3h04h",
+              "branch": 1,
+              "index": 0
+            }
+          ],
+          "next_receive": 4,
+          "next_change": 2,
+          "addresses": [
+            {
+              "address": "rq1zzypw0a7tydecg6jexjr8pdusmgz7lde4cdadcz6ym2v8xwwmmqpsucvx7x",
+              "index": 0,
+              "branch": 0
+            },
+            {
+              "address": "rq1z9wg2eynufvrx3q9em58t75wlwj0draj5wsxwl3a4afvfl58049xs83hyea",
+              "index": 1,
+              "branch": 0
+            },
+            {
+              "address": "rq1z2pzwzuvrekgm7q2xmctheknzvmlgvg62fuxj56wr9zy95wf99seqk3h04h",
+              "index": 0,
+              "branch": 1
+            },
+            {
+              "address": "rq1zjhchzfm96qymhjv6gfcdv8e0clsxrx2g8ateynq5mytgl4qlw28qdzxysp",
+              "index": 2,
+              "branch": 0
+            },
+            {
+              "address": "rq1zlft7x46a0mm7hw99pspfjt208vpvanawjvkl2cl9z272t9h4r8pq9mkcff",
+              "index": 1,
+              "branch": 1
+            },
+            {
+              "address": "rq1zuctqqx4z7rvmapfa580c52cltqu3zudfvg4r0wngnhjfgsama6rs09r9q4",
+              "index": 3,
+              "branch": 0
+            }
+          ]
+        },
+        "backups": [],
+        "activity": []
+      }
+    },
+    {
+      "step": "host_and_container_recreation_pass",
+      "time": 1794868849.6343288,
+      "old_container_id": "1d98f051ce262c86ec71ee56b4d51893c8af71e602221337eed8722ff19289c7",
+      "new_container_id": "7a6440173fe4c78ef90fc6e5a3fca3412819de7448e2e2f21c3d3c1f84904824"
+    },
+    {
+      "step": "command",
+      "time": 1794868849.634337,
+      "argv": [
+        "docker",
+        "kill",
+        "pqbtc-ci-clang-43970911876-1"
+      ]
+    },
+    {
+      "step": "command",
+      "time": 1794868849.798528,
+      "argv": [
+        "docker",
+        "rm",
+        "pqbtc-ci-clang-43970911876-1"
+      ]
+    },
+    {
+      "step": "command",
+      "time": 1794868849.830562,
+      "argv": [
+        "/usr/bin/python3",
+        "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-console/app.py",
+        "--no-browser",
+        "--compiler",
+        "clang",
+        "--runtime-descriptor",
+        "/tmp/pqbtc-assembled-clang-43970911876-1/runtime-descriptor.json",
+        "--container",
+        "pqbtc-ci-clang-43970911876-1",
+        "--state-dir",
+        "/tmp/pqbtc-assembled-clang-43970911876-1/state",
+        "--port",
+        "8844"
+      ]
+    },
+    {
+      "step": "receive",
+      "time": 1794868853.3499117,
+      "result": {
+        "branch": 0,
+        "index": 4,
+        "public_key": "6f42e3efcf3872f56d80453187411087bee7cf007631ee1754f501f02cbd9e7d6f3e2170da8e7b203af6646bbb041b708c1120da387969f578869391629fc78c1b0c7627ad9909c7328a2eaa601efb6999f31bd0a28034a4700224fb0efad3c621564dc348e8880515a4ce46b92ee3f4b0e04a15b4129e65c1fd5d583ba58e394efaed6c8c5e6caa7d13ac605fe230d9fdae9ba24bfa4d909adc4c20d3675028c80fa80de5dbfc4efbee26de94142ab8ffa583cfc9756ce3cb8f15c973e1fbdeff35a1b01b560683dd3504232870c6ef047bbbd9e6daa8af4dd5a5b73e56ba8512a28f1f54f3a3c4d2a6b59497c6474af750a5d825a9b480291a09cc0adcf36a1cf20c2cef9cc422d3066c15a8f9552c9a059f04ca68efe8335e4723a628efe47c55ef6f3390b29d5fc8c8c3a801457a1d2dbe2de93ee55b25a5222ec0dad661f2661bc7b8f1c4026c6817acf37b7d61c4d6e3139f1ff32a852dbf67e13f7008e834131ca8695f652ff5049495f116690ab7ce907032dfcd994dcf2cc3be8ccf5c9d39d315f32005f148975713f6c9e61ef790d4724905dd5cbb5c708a17dd5e4b465e8b3b8248cf6f5e8532477d45cc0a97d7e2c7569f4f0bc61d958c53277f57875086cf02e6b6df5eede53f4f6f4809b9de80b2a02a21c21333c7004e34663f3d1b72d83dee5bbe19fcc3f8ebc92a8027be4ec4c0902709d9dd37e03d892c9639cf6f4a683fe15e15f4167e8834bccf5f7e739c82a85de5aefb5600b538ae7e8a553a0cbbc5cdd9fe6cfd4bec57bd3a0422f9016e53dd49fca2429baa37e32ff780ce8d52c7ba95a5635b3adacf5da73d6ee9d800cb15a88fffefc88a6193955d268c182ed5b207e9ab6b06698ae6c8073f589adf8ba8a4092d854cb24dcc87db5feb4a9030ebc50049f078bd855a1c62feb25bc2fdf9b47580afadce39848cfb99d1f885c439514984922a5bd45d196e2ff2352b1a466c4ee65ebb711cc5f7e05c7d88a73e6cd1be21a742481f8fbe640effe362e0cb423ffbbad28ba8458fb569004707bd4b06706b35fcaf5fc40a0e78230e5f6da1fd07a576ad0d850f3b4b44b9bd0c35d59d415ce191b2d2a7191c96ad471a93edbd5af84338dcda668fd5c70a56cc5f84142054167b85657dc698ebb05f5e1fca04ed7b85e4cfc0617fbe7f67a00abeb01afe052ff5de60fd891309bf0f4d6efabc5cbb87df411be3b8ff37349efa047884499615d4a6f0bdd9a966fc693a5cc2adc9067924cd7029864c8b3d3eb0ddff20f3df134a6b0d39f613b7833a0e4134f7ea886784bb1aefa9de030fbb6f4d218d0096ed27f4a5ed48941cb81260ebfa9a7e8674684144aa2846560d5123230d1d74dedd2b2d5b7f3eb000eedba0c512c5da5261fcd15b4ed58510944f935fce204b575f93d2541583e9e6d34c0c340a03f790b9e2c9ad8354974d26a8cc523fe72190413dca8071893b327bd500ea8fff37057c404e140e2cf0e413e1211fc45b2f987669fa23093710f148cdd203fb3797916f23382a5495272a89f9bca73ccca0e67f107b0b87f5e0de235a84d5d9dd9b7d6253dc26d51637750945b9144d613b8f438163e675cce9161005de2bdcb5690a1624ec437de45b540b7da632f22c3529ddf921a00c88942f080c4388f521c8f5f628e63779304f2804cf4ce302016b1f84d5294464232a6492f091dc84b81fa5e8839ff7208c29c95e423621859da71e1d4930898ea48fd9d0bd222941060fb6393126bdcd83ad0438e921b4355101980da555b2ff6c4e5718281fbb94d284ae94ae13a09ccca4ee5dee24b331d87311724bc8f80696debe28a514ab28ae47246efe8b3e00",
+        "program": "62606b1bffeaac6a995446a8045ff92afa4c67d7ec9d2fc96883689429f725e8",
+        "address": "rq1zvfsxkxlla2kx4x25g65qghle9tayce7hajwjljtgsd5fg20hyh5qzk8leu",
+        "script_pubkey": "522062606b1bffeaac6a995446a8045ff92afa4c67d7ec9d2fc96883689429f725e8"
+      }
+    },
+    {
+      "step": "forced_container_recreation_pass",
+      "time": 1794868853.3499236
+    },
+    {
+      "step": "send",
+      "time": 1794868854.2989612,
+      "result": {
+        "txid": "471c367a6ada0c770652d67b7f31c80811ae1e3c71585fdcfd439e2015298091",
+        "broadcast": true,
+        "amount_sats": 100000,
+        "fee_sats": 1000,
+        "scope": "VALUELESS_EXPERIMENTAL_REGTEST_ONLY"
+      }
+    },
+    {
+      "step": "mine",
+      "time": 1794868854.4913743,
+      "result": {
+        "blocks": [
+          "17554556ac44cf4ed590a266af94d6cc1654e6e3842f0031b717b3651dd905fa"
+        ],
+        "height": 105,
+        "tip": "17554556ac44cf4ed590a266af94d6cc1654e6e3842f0031b717b3651dd905fa"
+      }
+    },
+    {
+      "step": "stop",
+      "time": 1794868854.936575,
+      "result": {
+        "stopped": true
+      }
+    },
+    {
+      "step": "command",
+      "time": 1794868854.9659228,
+      "argv": [
+        "docker",
+        "rm",
+        "--force",
+        "pqbtc-ci-clang-43970911876-1"
+      ]
+    },
+    {
+      "step": "command",
+      "time": 1794868855.0299778,
+      "argv": [
+        "docker",
+        "volume",
+        "rm",
+        "pqbtc-ci-clang-43970911876-1-data-v1"
+      ]
+    },
+    {
+      "step": "owned_runtime_removed",
+      "time": 1794868855.5951257
+    }
+  ]
+}

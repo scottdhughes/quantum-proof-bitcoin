@@ -1,0 +1,159 @@
+{
+  "cleanup": {
+    "exact_id": "4cdffb1a0c4f494e25ca903a3ac6b99cb07d49b8149e8aa1a4da4b923d302dd1",
+    "removed_stateless_metadata_container_only": true,
+    "stopped_PID0": true
+  },
+  "frozen_H_source": {
+    "evidence": [
+      {
+        "exact_source": "static bool LockDirectory(const fs::path& dir, bool probeOnly)\n{\n    // Make sure only a single process is using the directory.\n    switch (util::LockDirectory(dir, \".lock\", probeOnly)) {\n    case util::LockResult::ErrorWrite:\n        return InitError(strprintf(_(\"Cannot write to directory '%s'; check permissions.\"), fs::PathToString(dir)));\n    case util::LockResult::ErrorLock:\n        return InitError(strprintf(_(\"Cannot obtain a lock on directory %s. %s is probably already running.\"), fs::PathToString(dir), CLIENT_NAME));\n    case util::LockResult::Success: return true;\n    } // no default case, so the compiler can warn about missing cases\n    assert(false);\n}\nstatic bool LockDirectories(bool probeOnly)\n{\n    return LockDirectory(gArgs.GetDataDirNet(), probeOnly) && \\\n           LockDirectory(gArgs.GetBlocksDirPath(), probeOnly);\n}",
+        "file": "src/init.cpp",
+        "line_end": 1143,
+        "line_start": 1127,
+        "sha256": "e348f6e04525146785390a1ca741179f2873bc74c66bb678d96d002c812c5624"
+      },
+      {
+        "exact_source": "LockResult LockDirectory(const fs::path& directory, const fs::path& lockfile_name, bool probe_only)\n{\n    LOCK(cs_dir_locks);\n    fs::path pathLockFile = directory / lockfile_name;\n\n    // If a lock for this directory already exists in the map, don't try to re-lock it\n    if (dir_locks.count(fs::PathToString(pathLockFile))) {\n        return LockResult::Success;\n    }\n\n    // Create empty lock file if it doesn't exist.\n    if (auto created{fsbridge::fopen(pathLockFile, \"a\")}) {\n        std::fclose(created);\n    } else {\n        return LockResult::ErrorWrite;\n    }\n    auto lock = std::make_unique<fsbridge::FileLock>(pathLockFile);\n    if (!lock->TryLock()) {\n        LogError(\"Error while attempting to lock directory %s: %s\\n\", fs::PathToString(directory), lock->GetReason());",
+        "file": "src/util/fs_helpers.cpp",
+        "line_end": 65,
+        "line_start": 47,
+        "sha256": "c4118757ec9480dc33fc948bee9371ff46600ef5100ce39a7943dc79cb107197"
+      },
+      {
+        "exact_source": "    // size of the XOR-key file.\n    std::array<std::byte, Obfuscation::KEY_SIZE> obfuscation{};\n\n    // Consider this to be the first run if the blocksdir contains only hidden\n    // files (those which start with a .). Checking for a fully-empty dir would\n    // be too aggressive as a .lock file may have already been written.\n    bool first_run = true;",
+        "file": "src/node/blockstorage.cpp",
+        "line_end": 1132,
+        "line_start": 1126,
+        "sha256": "29a2af84415d1382713debbda5f65007052420a2e94f849c47bf5992f5004038"
+      }
+    ],
+    "head": "52f26f31e2d8fcf52459f9cb2e9159564395f74a",
+    "status": ""
+  },
+  "independent_closeout": {
+    "engines": {
+      "default": {
+        "id": "6f22cb63-5d49-484a-a8f2-9d0576ae320d",
+        "running": ""
+      },
+      "private": {
+        "id": "898eeae9-915d-499e-977a-9168abb73d17",
+        "running": ""
+      }
+    },
+    "services": {
+      "01": {
+        "ActiveState": "inactive",
+        "ControlGroup": "",
+        "MainPID": "0"
+      },
+      "02": {
+        "ActiveState": "inactive",
+        "ControlGroup": "",
+        "MainPID": "0"
+      }
+    },
+    "shared_limits": {
+      "cgroup.freeze": "0",
+      "cpu.max": "200000 100000",
+      "memory.max": "4294967296",
+      "pids.max": "2048"
+    }
+  },
+  "independent_closeout_sha256": "9e19ae4a2ba342027ffdc0dbbabdce9e523d4df6c00abfd2a1a78cc58c664842",
+  "inventory": {
+    "directories": 1,
+    "entries": 15,
+    "file": "remote02-safe-result.json",
+    "no_file_contents_read": true,
+    "sha256": "aff5d046f35ffd7f7410c3ef54976b6bbb89fd2cc21a175656da75372733c95f",
+    "source_before_after_equal": true,
+    "source_stopped_PID0": true
+  },
+  "metadata_helper_sha256": "f63352b1448b5794a0bbf7d5e43ccc4284abaa11e18481bed069c70b7f2cf780",
+  "offending_entry": {
+    "basename": ".lock",
+    "bytes": 0,
+    "gid": 1000,
+    "mode": "0600",
+    "nlink": 1,
+    "relative_path": "blocks/.lock",
+    "type": "regular",
+    "uid": 1001
+  },
+  "offline_frozen_path_kind": [
+    {
+      "classification": "REFUSE",
+      "guard": "PUBLIC_PATH_FILE",
+      "path": "blocks/.lock"
+    },
+    {
+      "classification": "data",
+      "path": "blocks/blk00000.dat"
+    },
+    {
+      "classification": "directory",
+      "path": "blocks/index"
+    },
+    {
+      "classification": "data",
+      "path": "blocks/index/000005.ldb"
+    },
+    {
+      "classification": "data",
+      "path": "blocks/index/000006.log"
+    },
+    {
+      "classification": "data",
+      "path": "blocks/index/CURRENT"
+    },
+    {
+      "classification": "data",
+      "path": "blocks/index/LOCK"
+    },
+    {
+      "classification": "data",
+      "path": "blocks/index/MANIFEST-000004"
+    },
+    {
+      "classification": "data",
+      "path": "blocks/rev00000.dat"
+    },
+    {
+      "classification": "data",
+      "path": "blocks/xor.dat"
+    },
+    {
+      "classification": "data",
+      "path": "chainstate/000005.ldb"
+    },
+    {
+      "classification": "data",
+      "path": "chainstate/000006.log"
+    },
+    {
+      "classification": "data",
+      "path": "chainstate/CURRENT"
+    },
+    {
+      "classification": "data",
+      "path": "chainstate/LOCK"
+    },
+    {
+      "classification": "data",
+      "path": "chainstate/MANIFEST-000004"
+    }
+  ],
+  "preserved_prior_metadata_precreate_failure": {
+    "helper_file": "inventory_host.f415ed58.py",
+    "no_container_created": true,
+    "reason": "Exact missing-name probe allowed only object spelling; safe container spelling required guarded format-only fix.",
+    "sha256": "f415ed58a9d265dadb863ca04613d31dab5ee365a140b75fab17e896457c7c75"
+  },
+  "recommendation_for_root_review_only": "Skip exactly regular single-link UID1001:GID1000 mode0600 empty blocks/.lock with strict metadata guard; node recreates its own lock in fresh clone. Leave all other strict path guards unchanged. No implementation or new execution performed.",
+  "result": "PASS_METADATA_ONLY",
+  "runtime_copy_native_or_allowlist_change": false,
+  "schema": "PQBTC-L-RECEIVER-METADATA-PATH-GUARD-DIAGNOSIS-1",
+  "unchanged_path_classifier_sha256": "e25dd8b5043adc359245b1894984adb4a006191763ca0d6632992f73e1f52edb"
+}

@@ -1,0 +1,14 @@
+{
+  "Desktop_restart_recovery_acceptance": "AUTHORIZED_NOT_YET_STARTED",
+  "driver_sha256": "83dce920be57140ddd36d63b27b8b516c559bf0ff058272b973a785bea4baf50",
+  "eleven_ID_verified_Musashi_containers_stopped_and_data_retained": true,
+  "further_human_confirmation_required_for_this_scoped_test": false,
+  "human_reply": "Stop the 11 and test",
+  "no_more_power_prompts": true,
+  "operating_system_reboot_performed": false,
+  "recorded_utc": "2026-11-17T02:34:17.020922+00:00",
+  "required_order": "Complete current actual86400s soak and owned cleanup, then run actual Desktop restart/cold-launch/recovery acceptance",
+  "schema": "PQBTC-DESKTOP-OWNER-APPROVAL-AND-ORDER-1",
+  "stop_receipt_sha256": "df2ac6462bbecdc739b5c4242cb79a9a03d06cf146a150d4da125635d19055e9",
+  "test_output_still_absent": true
+}

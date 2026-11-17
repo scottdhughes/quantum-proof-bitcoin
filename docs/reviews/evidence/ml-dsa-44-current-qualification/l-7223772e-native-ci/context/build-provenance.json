@@ -1,0 +1,16 @@
+{
+  "active_public_attempt_data_read": false,
+  "data_validator_source_files": {
+    "contrib/ml-dsa-qualification/public_consensus_controls.py": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c",
+    "contrib/ml-dsa-qualification/run_native_qualification.py": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0"
+  },
+  "native_or_network_operations": false,
+  "original_records_transformed": false,
+  "reference_verifier": {
+    "path": "docs/reviews/evidence/ml-dsa-44-current-qualification/h-k-native-preflight-20261116/verify.py",
+    "sha256": "d92319a528d7baf0a9519984579aa7dbc5221f9d573609d2df5e0caacdbcf49b"
+  },
+  "schema": "PQBTC-L-PACKET-BUILD-PROVENANCE-1",
+  "source_modified": false,
+  "utc": "2026-11-17T00:37:04.031013+00:00"
+}

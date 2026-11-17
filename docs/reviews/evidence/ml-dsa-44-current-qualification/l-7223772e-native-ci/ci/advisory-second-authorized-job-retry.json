@@ -1,0 +1,30 @@
+{
+  "schema": "PQBTC-L-ADVISORY-ADDITIONAL-AUTHORIZED-JOB-RETRY-1",
+  "source_head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+  "run_id": 43970746110,
+  "current_failed_job_id_used": 133678845923,
+  "target_attempt": 3,
+  "clock_before_call_utc": "2026-11-16 23:07:50 UTC",
+  "not_before_utc": "2026-11-16T23:07:14Z",
+  "pre_retry_metadata": {
+    "conclusion": "failure",
+    "head_sha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+    "html_url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43970746110",
+    "id": 43970746110,
+    "run_attempt": 2,
+    "status": "completed",
+    "updated_at": "2026-11-16T23:03:05Z"
+  },
+  "api_success": true,
+  "authorization": "advisory-additional-single-retry-authorization.json",
+  "preserved_failure_attempts": [
+    1,
+    2
+  ],
+  "executed_additional_retries": 1,
+  "executed_total_availability_retries": 2,
+  "maximum_authorized_total_retries": 2,
+  "additional_retry_allowed": false,
+  "auth_headers_contract_TLS_source_pins_changed": false,
+  "sibling_or_full_workflow_rerun": false
+}

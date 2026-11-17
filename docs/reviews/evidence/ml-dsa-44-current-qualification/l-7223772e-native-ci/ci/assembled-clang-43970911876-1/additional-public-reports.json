@@ -1,0 +1,58 @@
+{
+  "actual_frozen_source_data_validators_pass": true,
+  "artifact_id": 14280126532,
+  "artifact_zip_sha256": "da16db8def81770a29403ed2480f072acd98fe132e66e657de92fc31d8cf5a0b",
+  "compiler": "clang",
+  "consensus": {
+    "controls": 16,
+    "owned_node_cleanup": "STOPPED"
+  },
+  "data_validator_sha256": {
+    "public_consensus_controls.py": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c",
+    "run_native_qualification.py": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0"
+  },
+  "files": {
+    "evidence-sha256.json": {
+      "bytes": 8150,
+      "path": "candidate-l/github/assembled-clang-43970911876-1/native-qualification/evidence-sha256.json",
+      "sha256": "c6b01802e802391548392c11238df7b046693553411f95571ac82cce6ce4e51c"
+    },
+    "node-resources.json": {
+      "bytes": 30561,
+      "path": "candidate-l/github/assembled-clang-43970911876-1/native-qualification/node-resources.json",
+      "sha256": "8f7165c54998ab4700e867296ffc5b25586a9ecd9b723ddb6638b86ff3be861e"
+    },
+    "public-consensus-controls.json": {
+      "bytes": 12388,
+      "path": "candidate-l/github/assembled-clang-43970911876-1/native-qualification/public-consensus-controls.json",
+      "sha256": "a1558157e545e1088966f0ec0746867102fd762785f147a648d6c0a9c29ce6c4"
+    }
+  },
+  "inventory_sha256": "c6b01802e802391548392c11238df7b046693553411f95571ac82cce6ce4e51c",
+  "native_execution": false,
+  "node_binary_sha256": "5ba9957583228aa4f57b043dceb65b8276f6b2d7956e7a6de94b2e15ef7f9cc7",
+  "opened_zip_entries": [
+    "native-qualification/node-resources.json",
+    "native-qualification/public-consensus-controls.json",
+    "native-qualification/evidence-sha256.json"
+  ],
+  "original_native_inventory_entries": 83,
+  "private_wallet_backup_key_material_accessed": false,
+  "public_soak_credit_seconds": 0,
+  "resource": {
+    "blocks": 30,
+    "mempool_pressure_evicted": 17,
+    "mempool_usage": 31999728,
+    "node_peak_rss_bytes": 405270528,
+    "p95_wall_ns": 200323785,
+    "verifications_each": 128,
+    "weight_each": 4000000
+  },
+  "result": "PASS",
+  "run_id": 43970911876,
+  "schema": "PQBTC-ADDITIONAL-PUBLIC-NATIVE-REPORTS-1",
+  "source": {
+    "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+    "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+  }
+}

@@ -1,0 +1,31 @@
+--- run_desktop_recovery.py
++++ run_desktop_recovery_02.py
+@@ -176,8 +176,8 @@
+     require(descriptor['manifest']['source_head'] == HEAD and descriptor['manifest']['source_tree'] == TREE, 'Descriptor source')
+     require(hashlib.sha256(args.descriptor.read_bytes()).hexdigest() == 'c483f14b416eeb25c90d635a98f872faecda00d57259c5f35130816c2bf0eefb'
+             and descriptor['image'] == GCC_IMAGE, 'Exact qualified L GCC descriptor required')
+-    name = 'pqbtc-mldsa-public-l-desktop-20261116-01'
+-    url = 'http://127.0.0.1:18847'
++    name = 'pqbtc-mldsa-public-l-desktop-20261117-02'
++    url = 'http://127.0.0.1:18848'
+     old_url = 'http://127.0.0.1:8844'
+     exclusive(name)
+     for kind, target in [('container', name), ('volume', name + '-data-v1')]:
+@@ -207,7 +207,7 @@
+     owned = None
+     log = (args.output / 'launcher.log').open('xb')
+     launcher = [str(ROOT / 'contrib/ml-dsa-console/launch-public.command'), '--container', name,
+-                '--state-dir', str(state), '--port', '18847', '--p2p-port', '23943',
++                '--state-dir', str(state), '--port', '18848', '--p2p-port', '23944',
+                 '--runtime-descriptor', str(args.descriptor), '--no-browser']
+ 
+     def event(step, **data):
+@@ -299,7 +299,7 @@
+         newest = action(url, 'receive')['result']
+         require(newest['index'] > later['index'], 'Address reused after Desktop recovery')
+         action(url, 'recover', {'backup_id': backup, 'password': password})
+-        action(url, 'unlock', {'password': password})
++        require(status(url)['wallet']['locked'] is False, 'Successful recovery did not unlock the wallet')
+         recovered = action(url, 'receive')['result']
+         require(recovered['index'] > newest['index'], 'Older backup reused an address')
+         final_send = action(url, 'send', {'address': recovered['address'], 'amount_sats': 100000, 'fee_sats': 5000})['result']

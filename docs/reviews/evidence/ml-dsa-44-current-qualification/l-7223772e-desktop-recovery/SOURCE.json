@@ -1,0 +1,233 @@
+{
+  "files": [
+    {
+      "bytes": 8,
+      "path": ".gitattributes",
+      "provenance": {
+        "derivation": "Review presentation, offline stdlib verifier/controls, result record or Git byte-preservation attributes; no original evidence bytes changed.",
+        "transform": "DERIVED"
+      },
+      "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
+    },
+    {
+      "bytes": 3983,
+      "path": "README.md",
+      "provenance": {
+        "derivation": "Review presentation, offline stdlib verifier/controls, result record or Git byte-preservation attributes; no original evidence bytes changed.",
+        "transform": "DERIVED"
+      },
+      "sha256": "fdd0ab4f07f7356661717ece574eaf5588dc9f2e776f81534c385e921afb0f66"
+    },
+    {
+      "bytes": 7288,
+      "path": "authorization/musashi-stop-public-projection.json",
+      "provenance": {
+        "derivation": "Selected public fields; unrelated project names, paths, mounts and inventories excluded. Full original is external, not a local custody member.",
+        "original_bytes": 39091,
+        "original_sha256": "df2ac6462bbecdc739b5c4242cb79a9a03d06cf146a150d4da125635d19055e9",
+        "original_task_path": "candidate-l/musashi-stop-20261117-01/RESULT.json",
+        "transform": "SELECTED_PUBLIC_FIELDS_ONLY"
+      },
+      "sha256": "fa2a20121eeb96aceeca1051fa7e4cf74232abe8e7a04056dc99c206b60f8517"
+    },
+    {
+      "bytes": 805,
+      "path": "authorization/owner-order.json",
+      "provenance": {
+        "original_bytes": 805,
+        "original_sha256": "38be0752428744ad52b23cfb35e285eb88d45d26fef11f24486239b721bdeff3",
+        "original_task_path": "candidate-l/desktop-recovery-preparation/owner-approval-and-order-20261117.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "38be0752428744ad52b23cfb35e285eb88d45d26fef11f24486239b721bdeff3"
+    },
+    {
+      "bytes": 973,
+      "path": "driver-review/derivation.json",
+      "provenance": {
+        "original_bytes": 973,
+        "original_sha256": "f6afc2adcfb6cd521548098d94dc990d1c216535245c2d74e5070aa0bc31be9a",
+        "original_task_path": "candidate-l/desktop-driver-review-02/derivation.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "f6afc2adcfb6cd521548098d94dc990d1c216535245c2d74e5070aa0bc31be9a"
+    },
+    {
+      "bytes": 1913,
+      "path": "driver-review/driver.diff",
+      "provenance": {
+        "original_bytes": 1913,
+        "original_sha256": "41b53a8882247260cc679ec2aaa3e98ce57e4fa6a01a5f2d565e7c87834303ab",
+        "original_task_path": "candidate-l/desktop-driver-review-02/driver.diff",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "41b53a8882247260cc679ec2aaa3e98ce57e4fa6a01a5f2d565e7c87834303ab"
+    },
+    {
+      "bytes": 7177,
+      "path": "driver-review/final-review.json",
+      "provenance": {
+        "original_bytes": 7177,
+        "original_sha256": "c65f2e6d5d9bf677403e3d224e6633b6637e48f1edbabc4ea91d3f546a7432f9",
+        "original_task_path": "candidate-l/desktop-driver-review-02/final-review.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "c65f2e6d5d9bf677403e3d224e6633b6637e48f1edbabc4ea91d3f546a7432f9"
+    },
+    {
+      "bytes": 16842,
+      "path": "driver-review/test_driver_guards.py",
+      "provenance": {
+        "original_bytes": 16842,
+        "original_sha256": "26c57543fc221bfc27489d56f5a1bffec7f7cb0774673d84e370c03807c1811f",
+        "original_task_path": "candidate-l/desktop-driver-review-02/test_driver_guards.py",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "26c57543fc221bfc27489d56f5a1bffec7f7cb0774673d84e370c03807c1811f"
+    },
+    {
+      "bytes": 4588,
+      "path": "driver-review/test_post_recovery.py",
+      "provenance": {
+        "original_bytes": 4588,
+        "original_sha256": "791c4826ffa7e30fd873498ac9c9488d5eb2fab4c7793efc4e867068e7dc3291",
+        "original_task_path": "candidate-l/desktop-driver-review-02/test_post_recovery.py",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "791c4826ffa7e30fd873498ac9c9488d5eb2fab4c7793efc4e867068e7dc3291"
+    },
+    {
+      "bytes": 21272,
+      "path": "drivers/attempt01.py",
+      "provenance": {
+        "original_bytes": 21272,
+        "original_sha256": "83dce920be57140ddd36d63b27b8b516c559bf0ff058272b973a785bea4baf50",
+        "original_task_path": "candidate-l/run_desktop_recovery.py",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "83dce920be57140ddd36d63b27b8b516c559bf0ff058272b973a785bea4baf50"
+    },
+    {
+      "bytes": 21325,
+      "path": "drivers/attempt02.py",
+      "provenance": {
+        "original_bytes": 21325,
+        "original_sha256": "7ec3433ef1dd2849f4451a9003351898bfaa9176549b7eb089f2d472b41d3b7c",
+        "original_task_path": "candidate-l/run_desktop_recovery_02.py",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "7ec3433ef1dd2849f4451a9003351898bfaa9176549b7eb089f2d472b41d3b7c"
+    },
+    {
+      "bytes": 1023,
+      "path": "launch/attempt01.json",
+      "provenance": {
+        "original_bytes": 1023,
+        "original_sha256": "da62d1e81317cc278f382f3123121490ca34c1197dd39f4f94e94ec29d275be2",
+        "original_task_path": "candidate-l/desktop-recovery-preparation/actual-Desktop-launch-20261117-01.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "da62d1e81317cc278f382f3123121490ca34c1197dd39f4f94e94ec29d275be2"
+    },
+    {
+      "bytes": 1150,
+      "path": "launch/attempt02.json",
+      "provenance": {
+        "original_bytes": 1150,
+        "original_sha256": "a54100a804819be8da72f03af1e899aaf1d42d7a6d1ccaf5a1d17792c9baabcb",
+        "original_task_path": "candidate-l/desktop-recovery-preparation/actual-Desktop-launch-20261117-02.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "a54100a804819be8da72f03af1e899aaf1d42d7a6d1ccaf5a1d17792c9baabcb"
+    },
+    {
+      "bytes": 30509,
+      "path": "native/arm-gcc-runtime.json",
+      "provenance": {
+        "original_bytes": 30509,
+        "original_sha256": "c483f14b416eeb25c90d635a98f872faecda00d57259c5f35130816c2bf0eefb",
+        "original_task_path": "candidate-l/arm-gcc-runtime.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "c483f14b416eeb25c90d635a98f872faecda00d57259c5f35130816c2bf0eefb"
+    },
+    {
+      "bytes": 9551,
+      "path": "negative-controls.py",
+      "provenance": {
+        "derivation": "Review presentation, offline stdlib verifier/controls, result record or Git byte-preservation attributes; no original evidence bytes changed.",
+        "transform": "DERIVED"
+      },
+      "sha256": "ffe68d3f1ab9c64ccf062938c696e481fdfc1c556b23367e71d5c2f607a6be6f"
+    },
+    {
+      "bytes": 10715,
+      "path": "reports/attempt01.json",
+      "provenance": {
+        "original_bytes": 10715,
+        "original_sha256": "819558b469e3cf8cccb1ecc553f8ad82838ed80071b970d04bd39f845b30a3aa",
+        "original_task_path": "candidate-l/desktop-recovery-20261116-01/report.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "819558b469e3cf8cccb1ecc553f8ad82838ed80071b970d04bd39f845b30a3aa"
+    },
+    {
+      "bytes": 12678,
+      "path": "reports/attempt02.json",
+      "provenance": {
+        "original_bytes": 12678,
+        "original_sha256": "eb9be86d2d8171cad9df36ca418c09b20a24ce7f9441fcef9816ee903f436d8e",
+        "original_task_path": "candidate-l/desktop-recovery-20261117-02/report.json",
+        "original_verified_unchanged_after_copy": true,
+        "transform": "NONE"
+      },
+      "sha256": "eb9be86d2d8171cad9df36ca418c09b20a24ce7f9441fcef9816ee903f436d8e"
+    },
+    {
+      "bytes": 5204,
+      "path": "verification-controls.json",
+      "provenance": {
+        "derivation": "Review presentation, offline stdlib verifier/controls, result record or Git byte-preservation attributes; no original evidence bytes changed.",
+        "transform": "DERIVED"
+      },
+      "sha256": "763444214431c836b8dcfe79444314df7a695f5b2d50ac2f245eda44437941eb"
+    },
+    {
+      "bytes": 19222,
+      "path": "verify.py",
+      "provenance": {
+        "derivation": "Review presentation, offline stdlib verifier/controls, result record or Git byte-preservation attributes; no original evidence bytes changed.",
+        "transform": "DERIVED"
+      },
+      "sha256": "96aa6d384b7c96dfa7e5718a2b8057bd61158d068c5cd26c209879ed3da3da41"
+    }
+  ],
+  "final_result": "PASS_ACTUAL_DOCKER_DESKTOP_RESTART_AND_COLD_APP_RECOVERY",
+  "historical_driver_execution_by_verifier": false,
+  "historical_failure_inner_HTTP_body_retained": false,
+  "historical_failure_preserved": true,
+  "human_review_performed": false,
+  "operating_system_reboot_performed": false,
+  "production_admitted": false,
+  "public_soak_credit_seconds": 0,
+  "schema": "PQBTC-L-SELECTED-DESKTOP-RECOVERY-PACKET-1",
+  "scope": "VALUELESS_EXPERIMENTAL_TEST_DESKTOP_RECOVERY_ONLY",
+  "source_subject": {
+    "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+    "image": "sha256:fc470f630a0eaa679aa49563d13b1a1e1d183528eb4348877c7cbb60b3c0e6f3",
+    "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+  },
+  "unrelated_raw_Musashi_stop_receipt_included": false
+}

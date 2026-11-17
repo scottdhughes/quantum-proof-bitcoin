@@ -1,0 +1,2123 @@
+{
+  "schema": "PQBTC-L-NONMATRIX-CI-SUCCESS-SNAPSHOT-1",
+  "source": {
+    "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+    "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+  },
+  "observed_at_utc": "2026-11-16 23:23:59 UTC",
+  "result": "ALL_CURRENT_NON_MATRIX_JOBS_PASS",
+  "whole_CI_result": "PENDING_MATRIX",
+  "run_count": 13,
+  "latest_logical_job_count": 30,
+  "runs": [
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "createdAt": "2026-11-16T22:31:44Z",
+      "databaseId": 43970911876,
+      "event": "workflow_dispatch",
+      "headBranch": "codex/mldsa-runpod-soak-20261114",
+      "headSha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+      "status": "completed",
+      "updatedAt": "2026-11-16T22:48:33Z",
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43970911876",
+      "workflowDatabaseId": 412493927,
+      "workflowName": "ML-DSA-44 clean-checkout assembled system",
+      "jobs": [
+        {
+          "id": 133662513713,
+          "name": "Source build, wallet recovery and native qualification (clang)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970911876,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout exact source without persisted credentials",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify pristine checkout and host-only console checks",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Build native source without cache and test the assembled app",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Qualify native components, actual spend/restore and node resource bounds",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Test public-profile HTTP wallet and recovery on private test transport",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Verify source stayed unchanged",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Export the qualified GCC runtime image when requested",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 8
+            },
+            {
+              "name": "Upload the qualified GCC image bundle",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 9
+            },
+            {
+              "name": "Upload source, native and end-to-end evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Post Checkout exact source without persisted credentials",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 20
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 21
+            }
+          ]
+        },
+        {
+          "id": 133662514218,
+          "name": "Source build, wallet recovery and native qualification (gcc)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970911876,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout exact source without persisted credentials",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify pristine checkout and host-only console checks",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Build native source without cache and test the assembled app",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Qualify native components, actual spend/restore and node resource bounds",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Test public-profile HTTP wallet and recovery on private test transport",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Verify source stayed unchanged",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Export the qualified GCC runtime image when requested",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Upload the qualified GCC image bundle",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Upload source, native and end-to-end evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Post Checkout exact source without persisted credentials",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 20
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 21
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "createdAt": "2026-11-16T22:30:41Z",
+      "databaseId": 43970746257,
+      "event": "pull_request",
+      "headBranch": "codex/mldsa-runpod-soak-20261114",
+      "headSha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+      "status": "completed",
+      "updatedAt": "2026-11-16T22:45:11Z",
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43970746257",
+      "workflowDatabaseId": 224622741,
+      "workflowName": "CI",
+      "jobs": [
+        {
+          "id": 133661937796,
+          "name": "Linux native PQ tranche",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970746257,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Configure environment",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Restore caches",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Configure Docker",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "CI script",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Save caches",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Post Configure Docker",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            }
+          ]
+        },
+        {
+          "id": 133661938289,
+          "name": "lint",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970746257,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Configure Docker",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "CI script",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Post Configure Docker",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            }
+          ]
+        },
+        {
+          "id": 133661938365,
+          "name": "CI inventory",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970746257,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Validate CI inventory",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "createdAt": "2026-11-16T22:30:41Z",
+      "databaseId": 43970746510,
+      "event": "pull_request",
+      "headBranch": "codex/mldsa-runpod-soak-20261114",
+      "headSha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+      "status": "completed",
+      "updatedAt": "2026-11-16T22:31:06Z",
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43970746510",
+      "workflowDatabaseId": 418632223,
+      "workflowName": "ML-DSA-44 Runpod controls",
+      "jobs": [
+        {
+          "id": 133661938130,
+          "name": "Runpod DATA and control tests",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970746510,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout exact source without persisted credentials",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run DATA tests without provider access or native builds",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Verify source stayed unchanged",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Post Checkout exact source without persisted credentials",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "createdAt": "2026-11-16T22:30:41Z",
+      "databaseId": 43970745952,
+      "event": "pull_request",
+      "headBranch": "codex/mldsa-runpod-soak-20261114",
+      "headSha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+      "status": "completed",
+      "updatedAt": "2026-11-16T22:36:44Z",
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43970745952",
+      "workflowDatabaseId": 388897389,
+      "workflowName": "ML-DSA-44 wallet backup pilot",
+      "jobs": [
+        {
+          "id": 133661935879,
+          "name": "Encrypted recovery (clang)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970745952,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout exact source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify pristine frozen inputs before any compilation",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Build checksum-pinned isolated OpenSSL 3.6.5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Prove encrypted recovery and zero-value process boundary",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Verify unchanged runtime source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Upload complete source-bound pilot evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Post Checkout exact source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            }
+          ]
+        },
+        {
+          "id": 133661936569,
+          "name": "Encrypted recovery (gcc)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970745952,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout exact source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify pristine frozen inputs before any compilation",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Build checksum-pinned isolated OpenSSL 3.6.5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Prove encrypted recovery and zero-value process boundary",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Verify unchanged runtime source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Upload complete source-bound pilot evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Post Checkout exact source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "createdAt": "2026-11-16T22:30:41Z",
+      "databaseId": 43970746189,
+      "event": "pull_request",
+      "headBranch": "codex/mldsa-runpod-soak-20261114",
+      "headSha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+      "status": "completed",
+      "updatedAt": "2026-11-16T22:45:37Z",
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43970746189",
+      "workflowDatabaseId": 412493927,
+      "workflowName": "ML-DSA-44 clean-checkout assembled system",
+      "jobs": [
+        {
+          "id": 133661936638,
+          "name": "Source build, wallet recovery and native qualification (gcc)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970746189,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout exact source without persisted credentials",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify pristine checkout and host-only console checks",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Build native source without cache and test the assembled app",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Qualify native components, actual spend/restore and node resource bounds",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Test public-profile HTTP wallet and recovery on private test transport",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Verify source stayed unchanged",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Export the qualified GCC runtime image when requested",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 8
+            },
+            {
+              "name": "Upload the qualified GCC image bundle",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 9
+            },
+            {
+              "name": "Upload source, native and end-to-end evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Post Checkout exact source without persisted credentials",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 20
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 21
+            }
+          ]
+        },
+        {
+          "id": 133661937191,
+          "name": "Source build, wallet recovery and native qualification (clang)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970746189,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout exact source without persisted credentials",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify pristine checkout and host-only console checks",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Build native source without cache and test the assembled app",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Qualify native components, actual spend/restore and node resource bounds",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Test public-profile HTTP wallet and recovery on private test transport",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Verify source stayed unchanged",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Export the qualified GCC runtime image when requested",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 8
+            },
+            {
+              "name": "Upload the qualified GCC image bundle",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 9
+            },
+            {
+              "name": "Upload source, native and end-to-end evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Post Checkout exact source without persisted credentials",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 20
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 21
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 3,
+      "conclusion": "success",
+      "createdAt": "2026-11-16T22:30:41Z",
+      "databaseId": 43970746110,
+      "event": "pull_request",
+      "headBranch": "codex/mldsa-runpod-soak-20261114",
+      "headSha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+      "status": "completed",
+      "updatedAt": "2026-11-16T23:16:19Z",
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43970746110",
+      "workflowDatabaseId": 317844430,
+      "workflowName": "ML-DSA-44 advisory ledger",
+      "jobs": [
+        {
+          "id": 133681770292,
+          "name": "Pinned advisory, SBOM, and portable Miri audit",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970746110,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout exact audit head",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Validate checked-in contracts",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Acquire and verify exact tools and scan inputs",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Generate exact graph and CycloneDX evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Run complete retained cargo-audit and OSV scans",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Run pinned portable Miri smoke",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Adjudicate all evidence against the ledger",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Finalize retained checksums",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Upload advisory evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Post Checkout exact audit head",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 20
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 21
+            }
+          ]
+        },
+        {
+          "id": 133681774311,
+          "name": "Exact x86_64 AVX2 advisory regressions / Exact x86_64 AVX2 advisory regressions",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970746110,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Initialize isolated evidence paths",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Checkout exact audit head",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Verify exact clean checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Install exact Rust toolchain",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Validate checked-in regression contract",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Acquire exact libcrux release crate",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Run test-only portable and AVX2 regressions",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Verify checkout remained exact and clean",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Finalize retained evidence checksums",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Upload untrusted candidate evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Upload trusted-main evidence",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 12
+            },
+            {
+              "name": "Post Checkout exact audit head",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 24
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 25
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "createdAt": "2026-11-16T22:30:41Z",
+      "databaseId": 43970745804,
+      "event": "pull_request",
+      "headBranch": "codex/mldsa-runpod-soak-20261114",
+      "headSha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+      "status": "completed",
+      "updatedAt": "2026-11-16T22:31:57Z",
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43970745804",
+      "workflowDatabaseId": 388857380,
+      "workflowName": "ML-DSA-44 key lifecycle",
+      "jobs": [
+        {
+          "id": 133661935012,
+          "name": "Owned key lifecycle (gcc)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970745804,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout exact source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify clean runtime identity and frozen inputs before compilation",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Prove key lifecycle, cleanup, normal exports and ACVP identity",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Verify unchanged runtime identity",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Upload complete key-lifecycle evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Post Checkout exact source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            }
+          ]
+        },
+        {
+          "id": 133661935514,
+          "name": "Owned key lifecycle (clang)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970745804,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout exact source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify clean runtime identity and frozen inputs before compilation",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Prove key lifecycle, cleanup, normal exports and ACVP identity",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Verify unchanged runtime identity",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Upload complete key-lifecycle evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Post Checkout exact source",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "createdAt": "2026-11-16T22:30:41Z",
+      "databaseId": 43970746197,
+      "event": "pull_request",
+      "headBranch": "codex/mldsa-runpod-soak-20261114",
+      "headSha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+      "status": "completed",
+      "updatedAt": "2026-11-16T22:32:35Z",
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43970746197",
+      "workflowDatabaseId": 317034854,
+      "workflowName": "ML-DSA-44 sustained verifier fuzzing",
+      "jobs": [
+        {
+          "id": 133661937741,
+          "name": "Strict verifier (MSan)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970746197,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify toolchain",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Restore latest retained corpus",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 4
+            },
+            {
+              "name": "Run bounded sustained campaign",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Verify campaign evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Upload retained corpus and evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            }
+          ]
+        },
+        {
+          "id": 133661938202,
+          "name": "Stateful signer (ASan + UBSan)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970746197,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify toolchain and frozen signer corpus",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Restore latest retained signer corpus",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 4
+            },
+            {
+              "name": "Run bounded stateful signer campaign",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Verify stateful signer evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Upload retained signer corpus and evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            }
+          ]
+        },
+        {
+          "id": 133661938249,
+          "name": "Strict verifier (ASan + UBSan)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970746197,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify toolchain",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Restore latest retained corpus",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 4
+            },
+            {
+              "name": "Run bounded sustained campaign",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Verify campaign evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Upload retained corpus and evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            }
+          ]
+        },
+        {
+          "id": 133661938331,
+          "name": "Stateful signer (MSan)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970746197,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify toolchain and frozen signer corpus",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Restore latest retained signer corpus",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 4
+            },
+            {
+              "name": "Run bounded stateful signer campaign",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Verify stateful signer evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Upload retained signer corpus and evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "createdAt": "2026-11-16T22:30:41Z",
+      "databaseId": 43970746031,
+      "event": "pull_request",
+      "headBranch": "codex/mldsa-runpod-soak-20261114",
+      "headSha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+      "status": "completed",
+      "updatedAt": "2026-11-16T22:31:24Z",
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43970746031",
+      "workflowDatabaseId": 224732902,
+      "workflowName": "Gatekeeper",
+      "jobs": [
+        {
+          "id": 133661937649,
+          "name": "Freeze-gate enforcement",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970746031,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Resolve base ref",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Install dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Run gatekeeper",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "createdAt": "2026-11-16T22:30:41Z",
+      "databaseId": 43970745882,
+      "event": "pull_request",
+      "headBranch": "codex/mldsa-runpod-soak-20261114",
+      "headSha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+      "status": "completed",
+      "updatedAt": "2026-11-16T23:20:58Z",
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43970745882",
+      "workflowDatabaseId": 316498890,
+      "workflowName": "ML-DSA-44 wrapper prototype",
+      "jobs": [
+        {
+          "id": 133661935874,
+          "name": "Portable wrapper (gcc)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970745882,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify source capsule and wrapper contract",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            }
+          ]
+        },
+        {
+          "id": 133661936094,
+          "name": "Portable wrapper (clang)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970745882,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify source capsule and wrapper contract",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            }
+          ]
+        },
+        {
+          "id": 133661936135,
+          "name": "Concurrent strict verifier (Clang TSan)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970745882,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout exact test head",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify exact clean x86_64 checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Prepare ThreadSanitizer address space",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Calibrate ThreadSanitizer and run concurrent verifier",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Verify checkout remained exact and clean",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Post Checkout exact test head",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            }
+          ]
+        },
+        {
+          "id": 133661936181,
+          "name": "Isolated wrapper (clang-tidy 20 + scoped IWYU)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970745882,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Configure environment",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Restore caches",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Configure Docker",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Run versioned static analysis",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Upload static-analysis evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Post Configure Docker",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            }
+          ]
+        },
+        {
+          "id": 133661936217,
+          "name": "Isolated wrapper CT (valgrind-varlat_gcc13)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970745882,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Checkout pinned mldsa-native audit environment",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Prepare provisioning evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Install Nix",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Record Nix version",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Run versioned Valgrind constant-time audit",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Upload Valgrind constant-time evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Post Checkout pinned mldsa-native audit environment",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17
+            }
+          ]
+        },
+        {
+          "id": 133661936220,
+          "name": "Isolated wrapper CT (valgrind-varlat_clang20)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970745882,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Checkout pinned mldsa-native audit environment",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Prepare provisioning evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Install Nix",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Record Nix version",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Run versioned Valgrind constant-time audit",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Upload Valgrind constant-time evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Post Checkout pinned mldsa-native audit environment",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "createdAt": "2026-11-16T22:30:38Z",
+      "databaseId": 43970737712,
+      "event": "push",
+      "headBranch": "codex/mldsa-runpod-soak-20261114",
+      "headSha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+      "status": "completed",
+      "updatedAt": "2026-11-16T22:31:02Z",
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43970737712",
+      "workflowDatabaseId": 418632223,
+      "workflowName": "ML-DSA-44 Runpod controls",
+      "jobs": [
+        {
+          "id": 133661905495,
+          "name": "Runpod DATA and control tests",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970737712,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout exact source without persisted credentials",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run DATA tests without provider access or native builds",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Verify source stayed unchanged",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Post Checkout exact source without persisted credentials",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "createdAt": "2026-11-16T22:30:38Z",
+      "databaseId": 43970737117,
+      "event": "push",
+      "headBranch": "codex/mldsa-runpod-soak-20261114",
+      "headSha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+      "status": "completed",
+      "updatedAt": "2026-11-16T22:31:02Z",
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43970737117",
+      "workflowDatabaseId": 224732902,
+      "workflowName": "Gatekeeper",
+      "jobs": [
+        {
+          "id": 133661904464,
+          "name": "Freeze-gate enforcement",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970737117,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Resolve base ref",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Install dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Run gatekeeper",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "createdAt": "2026-11-16T22:30:38Z",
+      "databaseId": 43970737238,
+      "event": "push",
+      "headBranch": "codex/mldsa-runpod-soak-20261114",
+      "headSha": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+      "status": "completed",
+      "updatedAt": "2026-11-16T22:48:52Z",
+      "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43970737238",
+      "workflowDatabaseId": 224622741,
+      "workflowName": "CI",
+      "jobs": [
+        {
+          "id": 133661905031,
+          "name": "CI inventory",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970737238,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Validate CI inventory",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            }
+          ]
+        },
+        {
+          "id": 133661905569,
+          "name": "lint",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970737238,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Configure Docker",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "CI script",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Post Configure Docker",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            }
+          ]
+        },
+        {
+          "id": 133661906068,
+          "name": "Linux native PQ tranche",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43970737238,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Configure environment",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Restore caches",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Configure Docker",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "CI script",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Save caches",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Post Configure Docker",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "advisory_attempts": {
+    "failed_external_quota_attempts_preserved": [
+      1,
+      2
+    ],
+    "latest_attempt": 3,
+    "latest_result": "PASS",
+    "separately_authorized_executed_retries": 2,
+    "authentication_contract_unchanged": true,
+    "extra_retry_performed": false
+  },
+  "manual_dispatch_counts": {
+    "assembled_export": 1,
+    "matrix": 1
+  },
+  "prior_candidate_qualification_credit": false,
+  "public_soak_credit_seconds": 0
+}

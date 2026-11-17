@@ -1,0 +1,78 @@
+{
+  "driver_sha256": "7ec3433ef1dd2849f4451a9003351898bfaa9176549b7eb089f2d472b41d3b7c",
+  "exact_proposed_command": [
+    "python3",
+    "-B",
+    "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/candidate-l/run_desktop_recovery_02.py",
+    "--descriptor",
+    "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/candidate-l/arm-gcc-runtime.json",
+    "--output",
+    "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/candidate-l/desktop-recovery-20261117-02",
+    "--allow-desktop-restart"
+  ],
+  "exact_reversible_diff": true,
+  "fresh_namespace": {
+    "HTTP_port": 18848,
+    "P2P_port": 23944,
+    "container": "pqbtc-mldsa-public-l-desktop-20261117-02",
+    "output": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/candidate-l/desktop-recovery-20261117-02",
+    "output_absent": true
+  },
+  "no_actual_Desktop_Docker_HTTP_native_or_remote_execution": true,
+  "no_original_wallet_operations": true,
+  "no_power_queries": true,
+  "original_driver_sha256": "83dce920be57140ddd36d63b27b8b516c559bf0ff058272b973a785bea4baf50",
+  "original_failed_report_sha256": "819558b469e3cf8cccb1ecc553f8ad82838ed80071b970d04bd39f845b30a3aa",
+  "post_cold_unlock_retained": true,
+  "recovery_regression_RED_on_original": {
+    "failure": "Model rejects redundant unlock after successful recovery at originaldriverline302",
+    "tests": 2,
+    "tool_output_retained_in_chat": true
+  },
+  "remaining_risk": "Mock/model tests verify the harness correction and guards; root must approve exactSHA and execute actualDesktoprecovery02 before claiming hardwareacceptance.",
+  "result": "PASS_24_MOCK_AST_AND_RECOVERY_FLOW_TESTS_READY_FOR_ROOT_SHA_APPROVAL",
+  "schema": "PQBTC-L-DESKTOP-DRIVER-02-LOCAL-REVIEW-1",
+  "source_clean": true,
+  "source_head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+  "source_native_CI_qualification_subject_unchanged": true,
+  "source_tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f",
+  "test_count": 24,
+  "tests": [
+    {
+      "argv": [
+        "python3",
+        "-I",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/candidate-l/desktop-driver-review-02",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "name": "all24fixtures",
+      "returncode": 0,
+      "stderr": "test_actual_driver_control_flow_gates_mutations_and_final_PASS (test_driver_guards.DesktopEngineScope.test_actual_driver_control_flow_gates_mutations_and_final_PASS) ... ok\ntest_exact_local_context_and_engine_accepted (test_driver_guards.DesktopEngineScope.test_exact_local_context_and_engine_accepted) ... ok\ntest_foreign_endpoint_or_engine_refuses_without_desktop_mutation (test_driver_guards.DesktopEngineScope.test_foreign_endpoint_or_engine_refuses_without_desktop_mutation) ... ok\ntest_main_pins_only_child_environment_and_rejects_engine_before_any_workload (test_driver_guards.DesktopEngineScope.test_main_pins_only_child_environment_and_rejects_engine_before_any_workload) ... ok\ntest_already_stopped_backend_does_not_signal (test_driver_guards.OwnedCleanupAndMembership.test_already_stopped_backend_does_not_signal) ... ok\ntest_cleanup_uncertain_state_cannot_pass (test_driver_guards.OwnedCleanupAndMembership.test_cleanup_uncertain_state_cannot_pass) ... ok\ntest_confirmation_output_is_bounded (test_driver_guards.OwnedCleanupAndMembership.test_confirmation_output_is_bounded) ... ok\ntest_exact_known_membership_and_cookie_stays_inside (test_driver_guards.OwnedCleanupAndMembership.test_exact_known_membership_and_cookie_stays_inside) ... ok\ntest_false_missing_or_mismatched_membership_cannot_pass (test_driver_guards.OwnedCleanupAndMembership.test_false_missing_or_mismatched_membership_cannot_pass) ... ok\ntest_foreign_or_replaced_owned_identity_refuses_before_stop (test_driver_guards.OwnedCleanupAndMembership.test_foreign_or_replaced_owned_identity_refuses_before_stop) ... ok\ntest_invalid_known_transaction_or_block_refuses_before_exec (test_driver_guards.OwnedCleanupAndMembership.test_invalid_known_transaction_or_block_refuses_before_exec) ... ok\ntest_stop_uses_exact_ID_then_proves_zero_PID (test_driver_guards.OwnedCleanupAndMembership.test_stop_uses_exact_ID_then_proves_zero_PID) ... ok\ntest_action_rejection_does_not_echo_error_body (test_driver_guards.PublicDriverGuards.test_action_rejection_does_not_echo_error_body) ... ok\ntest_action_synthetic_password_and_token_only_in_memory (test_driver_guards.PublicDriverGuards.test_action_synthetic_password_and_token_only_in_memory) ... ok\ntest_dead_owned_app_refuses_before_http (test_driver_guards.PublicDriverGuards.test_dead_owned_app_refuses_before_http) ... ok\ntest_expected_running_names_accepted (test_driver_guards.PublicDriverGuards.test_expected_running_names_accepted) ... ok\ntest_http_read_bounds_body (test_driver_guards.PublicDriverGuards.test_http_read_bounds_body) ... ok\ntest_inspect_projection_excludes_environment_and_commandline (test_driver_guards.PublicDriverGuards.test_inspect_projection_excludes_environment_and_commandline) ... ok\ntest_selected_projection_retains_counters_but_no_extra_data (test_driver_guards.PublicDriverGuards.test_selected_projection_retains_counters_but_no_extra_data) ... ok\ntest_status_requires_real_bool (test_driver_guards.PublicDriverGuards.test_status_requires_real_bool) ... ok\ntest_unrelated_running_container_refused (test_driver_guards.PublicDriverGuards.test_unrelated_running_container_refused) ... ok\ntest_wait_ready_transport_retry_has_original_deadline (test_driver_guards.PublicDriverGuards.test_wait_ready_transport_retry_has_original_deadline) ... ok\ntest_recovery_reported_locked_refuses_before_new_address (test_post_recovery.PostRecoveryFlow.test_recovery_reported_locked_refuses_before_new_address) ... ok\ntest_successful_recovery_continues_without_redundant_unlock (test_post_recovery.PostRecoveryFlow.test_successful_recovery_continues_without_redundant_unlock) ... ok\n\n----------------------------------------------------------------------\nRan 24 tests in 0.018s\n\nOK\n",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "/Users/scott/quantum-proof-bitcoin-evidence/20261110-fully-green-main/validation-py311/bin/ruff",
+        "check",
+        "--select",
+        "B006,B008,E101,E401,E402,E701,E702,E703,E711,E714,E721,E722,E742,E743,F401,F402,F403,F404,F405,F406,F407,F541,F601,F602,F621,F631,F632,F811,F821,F822,F823,F841,PLE,W191,W291,W292,W293,W605",
+        "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/candidate-l/run_desktop_recovery_02.py",
+        "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/candidate-l/desktop-driver-review-02/test_driver_guards.py",
+        "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/candidate-l/desktop-driver-review-02/test_post_recovery.py"
+      ],
+      "name": "pinned_ruff",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "All checks passed!\n"
+    }
+  ],
+  "unchanged_non_main_AST_function_count": 14,
+  "utc": "2026-11-17T05:37:02.439031+00:00"
+}

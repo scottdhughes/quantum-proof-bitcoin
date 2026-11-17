@@ -1,0 +1,237 @@
+{
+  "after": "VERIFIED_FAILED_L_PUBLIC_ATTEMPT",
+  "baseline": "VERIFIED_FAILED_L_PUBLIC_ATTEMPT",
+  "controls": [
+    {
+      "case": "relocated-a",
+      "expected": "VERIFIED_FAIL",
+      "observed": "VERIFIED_FAILED_L_PUBLIC_ATTEMPT"
+    },
+    {
+      "case": "relocated with spaces",
+      "expected": "VERIFIED_FAIL",
+      "observed": "VERIFIED_FAILED_L_PUBLIC_ATTEMPT"
+    },
+    {
+      "case": "failed_report_promoted",
+      "expected_gate": "FAILED_REPORT_SOURCE_OUTCOME",
+      "observed_gate": "FAILED_REPORT_SOURCE_OUTCOME"
+    },
+    {
+      "case": "runner_source_changed",
+      "expected_gate": "FAILED_REPORT_SOURCE_OUTCOME",
+      "observed_gate": "FAILED_REPORT_SOURCE_OUTCOME"
+    },
+    {
+      "case": "preflight_relabel",
+      "expected_gate": "DECLARED_SOURCE_SCOPE_DURATION",
+      "observed_gate": "DECLARED_SOURCE_SCOPE_DURATION"
+    },
+    {
+      "case": "profile_changed",
+      "expected_gate": "DECLARED_SOURCE_SCOPE_DURATION",
+      "observed_gate": "DECLARED_SOURCE_SCOPE_DURATION"
+    },
+    {
+      "case": "live_cause_claimed",
+      "expected_gate": "UNKNOWN_CAUSE_LIMITS",
+      "observed_gate": "UNKNOWN_CAUSE_LIMITS"
+    },
+    {
+      "case": "zero_peers_claimed",
+      "expected_gate": "UNKNOWN_CAUSE_LIMITS",
+      "observed_gate": "UNKNOWN_CAUSE_LIMITS"
+    },
+    {
+      "case": "later_forensic_result_claimed",
+      "expected_gate": "UNKNOWN_CAUSE_LIMITS",
+      "observed_gate": "UNKNOWN_CAUSE_LIMITS"
+    },
+    {
+      "case": "human_review_claimed",
+      "expected_gate": "NO_COMPLETION_CREDIT_OR_ADMISSION",
+      "observed_gate": "NO_COMPLETION_CREDIT_OR_ADMISSION"
+    },
+    {
+      "case": "resumption_allowed",
+      "expected_gate": "NO_COMPLETION_CREDIT_OR_ADMISSION",
+      "observed_gate": "NO_COMPLETION_CREDIT_OR_ADMISSION"
+    },
+    {
+      "case": "partial_time_credited",
+      "expected_gate": "POSITIVE_CREDIT_REFUSED",
+      "observed_gate": "POSITIVE_CREDIT_REFUSED"
+    },
+    {
+      "case": "full_clock_claimed",
+      "expected_gate": "NO_COMPLETION_CREDIT_OR_ADMISSION",
+      "observed_gate": "NO_COMPLETION_CREDIT_OR_ADMISSION"
+    },
+    {
+      "case": "terminal_recovery_claimed",
+      "expected_gate": "NO_COMPLETION_CREDIT_OR_ADMISSION",
+      "observed_gate": "NO_COMPLETION_CREDIT_OR_ADMISSION"
+    },
+    {
+      "case": "worker_reap_precedes_failure",
+      "expected_gate": "WORKER_EXIT_AFTER_FAILURE",
+      "observed_gate": "WORKER_EXIT_AFTER_FAILURE"
+    },
+    {
+      "case": "research_backend_alive",
+      "expected_gate": "ACTUAL_RESEARCH_STOPPED_PROOF",
+      "observed_gate": "ACTUAL_RESEARCH_STOPPED_PROOF"
+    },
+    {
+      "case": "research_source_dirty",
+      "expected_gate": "RESEARCH_SOURCE_AND_RESOURCE_LIMITS",
+      "observed_gate": "RESEARCH_SOURCE_AND_RESOURCE_LIMITS"
+    },
+    {
+      "case": "research_cpu_limit_changed",
+      "expected_gate": "RESEARCH_SOURCE_AND_RESOURCE_LIMITS",
+      "observed_gate": "RESEARCH_SOURCE_AND_RESOURCE_LIMITS"
+    },
+    {
+      "case": "fictitious_remaining_budget",
+      "expected_gate": "DERIVED_TIMELINE_REPLAY",
+      "observed_gate": "DERIVED_TIMELINE_REPLAY"
+    },
+    {
+      "case": "postbroadcast_checkpoint_claim",
+      "expected_gate": "DERIVED_TIMELINE_REPLAY",
+      "observed_gate": "DERIVED_TIMELINE_REPLAY"
+    },
+    {
+      "case": "unneeded_resealed_original_change",
+      "expected_gate": "PINNED_ORIGINAL_BYTES",
+      "observed_gate": "PINNED_ORIGINAL_BYTES"
+    },
+    {
+      "case": "private_field_injection",
+      "expected_gate": "PRIVATE_FIELD_REFUSED",
+      "observed_gate": "PRIVATE_FIELD_REFUSED"
+    },
+    {
+      "case": "hash_chain_tamper",
+      "expected_gate": "EVENT_HASH_SEQUENCE_CLOCK",
+      "observed_gate": "EVENT_HASH_SEQUENCE_CLOCK"
+    },
+    {
+      "case": "clock_completed_falsely",
+      "expected_gate": "INCOMPLETE_86400_CLOCK_REQUIRED",
+      "observed_gate": "INCOMPLETE_86400_CLOCK_REQUIRED"
+    },
+    {
+      "case": "normal_slot_miss",
+      "expected_gate": "EXACT_COMPLETED_PAYMENT_SLOT_COUNTS",
+      "observed_gate": "EXACT_COMPLETED_PAYMENT_SLOT_COUNTS"
+    },
+    {
+      "case": "completed_wrong_fault",
+      "expected_gate": "ONLY_CRASH_PHASE_COMPLETED",
+      "observed_gate": "ONLY_CRASH_PHASE_COMPLETED"
+    },
+    {
+      "case": "confirmed_receipt_without_relay",
+      "expected_gate": "UNIQUE_PAYMENT_IDENTITY_AND_LATENCY",
+      "observed_gate": "UNIQUE_PAYMENT_IDENTITY_AND_LATENCY"
+    },
+    {
+      "case": "missing_actual_recipient_relay",
+      "expected_gate": "PAYMENT_NATIVE_PROOF_ORDER",
+      "observed_gate": "PAYMENT_NATIVE_PROOF_ORDER"
+    },
+    {
+      "case": "wrong_receiver_confirmation_block",
+      "expected_gate": "PAYMENT_NATIVE_PROOF_ORDER",
+      "observed_gate": "PAYMENT_NATIVE_PROOF_ORDER"
+    },
+    {
+      "case": "full_utxo_disagreement",
+      "expected_gate": "PAYMENT_FULL_UTXO_AGREEMENT",
+      "observed_gate": "PAYMENT_FULL_UTXO_AGREEMENT"
+    },
+    {
+      "case": "pending_recipient_observed",
+      "expected_gate": "PENDING_RECIPIENT_ABSENCE",
+      "observed_gate": "PENDING_RECIPIENT_ABSENCE"
+    },
+    {
+      "case": "pending_rebroadcast_new_payment",
+      "expected_gate": "FIVE_SAME_KNOWN_REBROADCASTS",
+      "observed_gate": "FIVE_SAME_KNOWN_REBROADCASTS"
+    },
+    {
+      "case": "pending_raw_changed",
+      "expected_gate": "FIVE_SAME_KNOWN_REBROADCASTS",
+      "observed_gate": "FIVE_SAME_KNOWN_REBROADCASTS"
+    },
+    {
+      "case": "last_peer_zero",
+      "expected_gate": "OBSERVED_TRANSACTION_PEERS",
+      "observed_gate": "OBSERVED_TRANSACTION_PEERS"
+    },
+    {
+      "case": "wrong_pending_transaction",
+      "expected_gate": "PENDING_BROADCAST_IDENTITY",
+      "observed_gate": "PENDING_BROADCAST_IDENTITY"
+    },
+    {
+      "case": "receive_after_broadcast",
+      "expected_gate": "NO_POST_BROADCAST_REISSUANCE",
+      "observed_gate": "NO_POST_BROADCAST_REISSUANCE"
+    },
+    {
+      "case": "research_signer_identity_changed",
+      "expected_gate": "H_RUNTIME_BINARY_IDENTITY",
+      "observed_gate": "H_RUNTIME_BINARY_IDENTITY"
+    },
+    {
+      "case": "original_volume_changed",
+      "expected_gate": "TWO_ORIGINAL_VOLUME_IDENTITIES",
+      "observed_gate": "TWO_ORIGINAL_VOLUME_IDENTITIES"
+    },
+    {
+      "case": "reported_backend_not_stopped",
+      "expected_gate": "BOTH_REPORTED_BACKENDS_STOPPED",
+      "observed_gate": "BOTH_REPORTED_BACKENDS_STOPPED"
+    },
+    {
+      "case": "gzip_nondeterministic_header",
+      "expected_gate": "DETERMINISTIC_GZIP_HEADER",
+      "observed_gate": "DETERMINISTIC_GZIP_HEADER"
+    },
+    {
+      "case": "unsealed_byte_change",
+      "expected_gate": "SEALED_FILE_HASH",
+      "observed_gate": "SEALED_FILE_HASH"
+    },
+    {
+      "case": "unexpected_member",
+      "expected_gate": "EXACT_PACKET_MEMBERS",
+      "observed_gate": "EXACT_PACKET_MEMBERS"
+    },
+    {
+      "case": "symlink_member",
+      "expected_gate": "SYMLINK_REFUSED",
+      "observed_gate": "SYMLINK_REFUSED"
+    },
+    {
+      "case": "hardlink_member",
+      "expected_gate": "NONREGULAR_OR_HARDLINK_REFUSED",
+      "observed_gate": "NONREGULAR_OR_HARDLINK_REFUSED"
+    },
+    {
+      "case": "duplicate_seal",
+      "expected_gate": "SEAL_FORMAT_OR_DUPLICATE",
+      "observed_gate": "SEAL_FORMAT_OR_DUPLICATE"
+    }
+  ],
+  "gate_specific_negative_controls": 43,
+  "historical_driver_or_runtime_execution": false,
+  "original_packet_member_hashes_unchanged": 15,
+  "relocated_positive_controls": 2,
+  "result": "PASS",
+  "schema": "PQBTC-L-FAILED-SOAK-PACKET-OFFLINE-CONTROLS-1"
+}

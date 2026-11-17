@@ -1,0 +1,641 @@
+{
+  "elapsed_public_soak_credit_seconds": 0,
+  "input_files_read": {
+    "arm-clang-public-app/report.json": {
+      "bytes": 5141,
+      "sha256": "b39e56f05668f806f8a6c51db1c96ee217bed87f448abbed67c8ceb159b5aea6"
+    },
+    "arm-clang-qualification/evidence-sha256.json": {
+      "bytes": 7960,
+      "sha256": "5d99220b25b3c709ba77b685c4fd5cb2deffec6b3551536fc5590a9dff3e1808"
+    },
+    "arm-clang-qualification/node-resources.json": {
+      "bytes": 30704,
+      "sha256": "7091f5d3eba4b10f1736a2f47c02f5f846e186d047f079140c04f84ccdde3d90"
+    },
+    "arm-clang-qualification/public-consensus-controls.json": {
+      "bytes": 12388,
+      "sha256": "2c58a7269a21c479234731f99ab5ff4a26be9032f0a26f8ea1e67818d2c7066a"
+    },
+    "arm-clang-qualification/report.json": {
+      "bytes": 22620,
+      "sha256": "8945fb9e2b5ca87aa92dc69303e6f32c2f4bb4770bd27e4e435f0d3b477ca74d"
+    },
+    "arm-clang-qualification/runtime-descriptor.json": {
+      "bytes": 30523,
+      "sha256": "00d89b9fca4390e25fd5206b263e6a4da11fc28507e479ad1f707ff8dbe24c64"
+    },
+    "arm-clang-runtime.json": {
+      "bytes": 30523,
+      "sha256": "00d89b9fca4390e25fd5206b263e6a4da11fc28507e479ad1f707ff8dbe24c64"
+    },
+    "arm-gcc-public-app/report.json": {
+      "bytes": 5142,
+      "sha256": "d873c2adffa0917c9032cf435af542fb6a2a1769ed84626cae77d97b7ef1e119"
+    },
+    "arm-gcc-qualification/evidence-sha256.json": {
+      "bytes": 7960,
+      "sha256": "71a9f38e5ccd926303c56b6e4db8db9f858a1915754896d900d7ffeb0ff193f7"
+    },
+    "arm-gcc-qualification/node-resources.json": {
+      "bytes": 30709,
+      "sha256": "5405bb5d6faabc52a2b3d340654ddb4859ab606c9b8e62067a1c39fdc71d363c"
+    },
+    "arm-gcc-qualification/public-consensus-controls.json": {
+      "bytes": 12388,
+      "sha256": "e71e65870a10c11275a1c87df45f7247ab72a7f8c0481fb62f67fd066947f84a"
+    },
+    "arm-gcc-qualification/report.json": {
+      "bytes": 22616,
+      "sha256": "7f4d9a9cebb6f32f6a8d1bd780a68be876f412ec3d601d6ba783308186bcff68"
+    },
+    "arm-gcc-qualification/runtime-descriptor.json": {
+      "bytes": 30509,
+      "sha256": "c483f14b416eeb25c90d635a98f872faecda00d57259c5f35130816c2bf0eefb"
+    },
+    "arm-gcc-runtime.json": {
+      "bytes": 30509,
+      "sha256": "c483f14b416eeb25c90d635a98f872faecda00d57259c5f35130816c2bf0eefb"
+    },
+    "github/assembled-clang-43970911876-1/native-qualification/evidence-sha256.json": {
+      "bytes": 8150,
+      "sha256": "c6b01802e802391548392c11238df7b046693553411f95571ac82cce6ce4e51c"
+    },
+    "github/assembled-clang-43970911876-1/native-qualification/node-resources.json": {
+      "bytes": 30561,
+      "sha256": "8f7165c54998ab4700e867296ffc5b25586a9ecd9b723ddb6638b86ff3be861e"
+    },
+    "github/assembled-clang-43970911876-1/native-qualification/public-consensus-controls.json": {
+      "bytes": 12388,
+      "sha256": "a1558157e545e1088966f0ec0746867102fd762785f147a648d6c0a9c29ce6c4"
+    },
+    "github/assembled-clang-43970911876-1/native-qualification/report.json": {
+      "bytes": 22608,
+      "sha256": "4a28206cdc22a7a90bc0d47f439a5cd8b9475a206641b3e051996d8a318652fe"
+    },
+    "github/assembled-clang-43970911876-1/native-qualification/runtime-descriptor.json": {
+      "bytes": 30641,
+      "sha256": "f0f489712c97be0b805f7baa9e63b542b574f12f82be2559a516df8dfc64b0fa"
+    },
+    "github/assembled-clang-43970911876-1/public-profile-app/report.json": {
+      "bytes": 5074,
+      "sha256": "b2be2af7dd8db52ccd63b22685399295bd7959018b9854defa5bcfae085bee9b"
+    },
+    "github/assembled-clang-43970911876-1/runtime-descriptor.json": {
+      "bytes": 30641,
+      "sha256": "88ec14126ce2337857b40cf6fad30358d71f3520136a0d96bed5ec0011710f88"
+    },
+    "github/assembled-gcc-43970911876-1/native-qualification/evidence-sha256.json": {
+      "bytes": 8150,
+      "sha256": "0f35b8c54537d73ea0252f69b6bba412658bafb287b237141e9c5a1bb4188c23"
+    },
+    "github/assembled-gcc-43970911876-1/native-qualification/node-resources.json": {
+      "bytes": 30565,
+      "sha256": "46fae2b04006b9be3749766d599a33754fcd156da61b6c2125756ba1bfe92851"
+    },
+    "github/assembled-gcc-43970911876-1/native-qualification/public-consensus-controls.json": {
+      "bytes": 12388,
+      "sha256": "b22c368b65e71ce23b4c0592d00604376dc44e014da887c324c7bbbaceedc5be"
+    },
+    "github/assembled-gcc-43970911876-1/native-qualification/report.json": {
+      "bytes": 22604,
+      "sha256": "c0fb59bc2ef5ab14b37fc158465577a0139be8d54ab298ad1b0f3c9ef5d555a3"
+    },
+    "github/assembled-gcc-43970911876-1/native-qualification/runtime-descriptor.json": {
+      "bytes": 30627,
+      "sha256": "4dd1c3e91e9024c407432c432cf136dfa209be4f6d147d89295ed588bc35b221"
+    },
+    "github/assembled-gcc-43970911876-1/public-profile-app/report.json": {
+      "bytes": 5073,
+      "sha256": "b0edc80c25cd0a31f934bd3cc6c12cca39076475f037be6f969bd933c4876c78"
+    },
+    "github/assembled-gcc-43970911876-1/runtime-descriptor.json": {
+      "bytes": 30627,
+      "sha256": "76f72ca631c9a66c2c1d67e5dd00f04ea20903f26d14782472587630665d25bc"
+    },
+    "source-clean-7223772e/contrib/ml-dsa-console/source_runtime.py": {
+      "bytes": 18039,
+      "sha256": "6f68de1ebeb85aa2d082f9f863c656ec6908b1969aed25e6e434af350ed0bfce"
+    },
+    "source-clean-7223772e/contrib/ml-dsa-qualification/public_consensus_controls.py": {
+      "bytes": 15821,
+      "sha256": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c"
+    },
+    "source-clean-7223772e/contrib/ml-dsa-qualification/run_native_qualification.py": {
+      "bytes": 27373,
+      "sha256": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0"
+    },
+    "source-clean-7223772e/contrib/ml-dsa-qualification/run_public_soak.py": {
+      "bytes": 86889,
+      "sha256": "6668f219acff79a25161d57bf505a3204ab50ef434adbb3487f913f0f913a6d0"
+    }
+  },
+  "native_code_executed": false,
+  "previous_collector_diagnostic_preserved": "root-native-reverification-collector-error.json",
+  "private_wallet_or_credential_files_read": false,
+  "production_admitted": false,
+  "profiles": [
+    {
+      "all_identity_entries_match_manifest": true,
+      "before_after_identity_equal": true,
+      "dependencies_match_manifest": true,
+      "identity_entries": 8,
+      "identity_sha256": {
+        "/tmp/demo-signer-bin/pilot-signer": "bd18fc492bd3460aa1bfe8f95dbf167fc527bff819133ff776fdc9d98d6f973a",
+        "/tmp/mldsa-demo-build/bin/pqbtc-cli": "f6e77d138025293e3febe9562305b88b341b48e74f7a36c7136d33b5c20d80ee",
+        "/tmp/mldsa-demo-build/bin/pqbtc-mldsa-client": "c43a6939b8609acdfc207eb6bbe308aa122027cba3c7d67522a982e4586bf175",
+        "/tmp/mldsa-demo-build/bin/pqbtcd": "15b6dfea63954224835eb9bf0670fbf2655efd6dc9e79434f2dfe6aa26b1ff44",
+        "/tmp/mldsa-demo-build/bin/test_pqbtc": "70cafc995126b37381f213605b296633724222152b51fad6237cd5982f2b406d",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_consensus_controls.py": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_native_qualification.py": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_spend_restore.py": "0dfc691f58d8a1ad89719d6d962104a3899a56ba1ccdc72a1828e1d625c5e02a"
+      },
+      "image": "sha256:fc470f630a0eaa679aa49563d13b1a1e1d183528eb4348877c7cbb60b3c0e6f3",
+      "manifest_sha256": "c59f7d0c9eb8e1a0e523d2911c6c1fc0eeeb9c49abb2d648546d7cc78900d480",
+      "manifest_sha256_entries": 18,
+      "native_checks": {
+        "actual-node-30-full-blocks-and-mempool-pressure": "PASS",
+        "actual-node-spend-old-record-restore": "PASS",
+        "actual-public-accepted-set-and-both-reindex-paths": "PASS",
+        "integration-asan-ubsan": "PASS",
+        "integration-normal": "PASS",
+        "key-lifecycle-normal-and-sanitized": "PASS",
+        "node-profile-and-resource-units": "PASS",
+        "signer-asan-ubsan": "PASS",
+        "signer-normal": "PASS"
+      },
+      "native_cleanup": "STOPPED_RETAINED",
+      "native_inventory": {
+        "entries": 81,
+        "path": "arm-gcc-qualification/evidence-sha256.json",
+        "sha256": "71a9f38e5ccd926303c56b6e4db8db9f858a1915754896d900d7ffeb0ff193f7",
+        "verified_selected_payloads": {
+          "node-resources.json": {
+            "inventory_match": true,
+            "path": "arm-gcc-qualification/node-resources.json",
+            "sha256": "5405bb5d6faabc52a2b3d340654ddb4859ab606c9b8e62067a1c39fdc71d363c"
+          },
+          "public-consensus-controls.json": {
+            "inventory_match": true,
+            "path": "arm-gcc-qualification/public-consensus-controls.json",
+            "sha256": "e71e65870a10c11275a1c87df45f7247ab72a7f8c0481fb62f67fd066947f84a"
+          },
+          "report.json": {
+            "inventory_match": true,
+            "path": "arm-gcc-qualification/report.json",
+            "sha256": "7f4d9a9cebb6f32f6a8d1bd780a68be876f412ec3d601d6ba783308186bcff68"
+          },
+          "runtime-descriptor.json": {
+            "inventory_match": true,
+            "path": "arm-gcc-qualification/runtime-descriptor.json",
+            "sha256": "c483f14b416eeb25c90d635a98f872faecda00d57259c5f35130816c2bf0eefb"
+          }
+        }
+      },
+      "openssl_dependency_entries": 152,
+      "outer_descriptor": {
+        "path": "arm-gcc-runtime.json",
+        "sha256": "c483f14b416eeb25c90d635a98f872faecda00d57259c5f35130816c2bf0eefb"
+      },
+      "profile": "aarch64-gcc",
+      "public_app": {
+        "cleanup_errors": [],
+        "confirmed_payment_count": 4,
+        "event_names": [
+          "two_fresh_private_containers_started",
+          "two_native_test_wallets_funded",
+          "confirmed_cross_container_send",
+          "confirmed_cross_container_send",
+          "unexpected_native_peer_disconnect_repaired",
+          "confirmed_cross_container_send",
+          "same_known_transaction_rebroadcast_after_rejoin",
+          "actual_signature_and_wrong_network_controls",
+          "durable_network_off_survived_native_reindex",
+          "chainstate_reindex_preserved_full_agreement",
+          "durable_network_off_survived_docker_restart",
+          "peer_policy_orphan_preserved_and_recovered_inactive",
+          "actual_docker_restart_and_public_orphan_recovery",
+          "actual_sigkill_restart_preserved_agreement",
+          "wrong_password_and_rechecksummed_corrupt_ciphertext_preserved_selected_record",
+          "confirmed_cross_container_send",
+          "old_backup_missing_both_records_recovered_and_spent"
+        ],
+        "events": 17,
+        "orphan_preserved_and_network_off": true,
+        "path": "arm-gcc-public-app/report.json",
+        "result": "PASS",
+        "same_known_transaction_rejoin": {
+          "raw_transaction_sha256": "9d5850e468cbff92fab919de7c4c9390ed6bfab3a2101e1aa09775aca6a79943",
+          "reissued_payment": false,
+          "txid": "85b2a8aabe5c8e5d9a1c52b066a9d539edc9815bdbbf4ca34bb44833beecba59"
+        },
+        "sha256": "d873c2adffa0917c9032cf435af542fb6a2a1769ed84626cae77d97b7ef1e119",
+        "source_image_manifest_match": true
+      },
+      "public_consensus": {
+        "binary_sha256": "15b6dfea63954224835eb9bf0670fbf2655efd6dc9e79434f2dfe6aa26b1ff44",
+        "controls": 16,
+        "owned_node_cleanup": "STOPPED",
+        "result": "PASS"
+      },
+      "raw_and_outer_descriptor_bytes_equal": true,
+      "raw_descriptor_semantically_equal_to_outer": true,
+      "resource": {
+        "binary_sha256": "15b6dfea63954224835eb9bf0670fbf2655efd6dc9e79434f2dfe6aa26b1ff44",
+        "block_weight": 4000000,
+        "boundaries_validated": true,
+        "evictions": 17,
+        "native_verifications_per_sample": 128,
+        "node_peak_rss_bytes": 401616896,
+        "p95_wall_ns": 155371500,
+        "samples": 30
+      },
+      "result": "PASS",
+      "runtime_isolation_validated": true
+    },
+    {
+      "all_identity_entries_match_manifest": true,
+      "before_after_identity_equal": true,
+      "dependencies_match_manifest": true,
+      "identity_entries": 8,
+      "identity_sha256": {
+        "/tmp/demo-signer-bin/pilot-signer": "fc03a760b8a9ba5436a30bc103333a5ab081bfb2c40a1a8b82212e3b1faee3f9",
+        "/tmp/mldsa-demo-build/bin/pqbtc-cli": "494c02f959e2e268f80a7eaa79e22824886a3fca9d95fa833bf4e129f646886d",
+        "/tmp/mldsa-demo-build/bin/pqbtc-mldsa-client": "b5a1fa16b7fed3d5b4177b1204b445422a1f7d2c73f9d4cfef40577895fa580d",
+        "/tmp/mldsa-demo-build/bin/pqbtcd": "11558bebf557586f60e22b8a0345d25941fde961e6839a395cfa7ae6ef5f0289",
+        "/tmp/mldsa-demo-build/bin/test_pqbtc": "d86f4861cb4ee129c67a2a26f15f24f20a5f4a1e029456d8b7623bcf732f920a",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_consensus_controls.py": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_native_qualification.py": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_spend_restore.py": "0dfc691f58d8a1ad89719d6d962104a3899a56ba1ccdc72a1828e1d625c5e02a"
+      },
+      "image": "sha256:0ed90c5378f44d374d37b52657b4e659674f9951046dfb25f86a2254ec50a5cb",
+      "manifest_sha256": "28e1d4658f789f1e442f7e9829fd79198f568dbb664a950a36c43f9784d8fdf9",
+      "manifest_sha256_entries": 18,
+      "native_checks": {
+        "actual-node-30-full-blocks-and-mempool-pressure": "PASS",
+        "actual-node-spend-old-record-restore": "PASS",
+        "actual-public-accepted-set-and-both-reindex-paths": "PASS",
+        "integration-asan-ubsan": "PASS",
+        "integration-normal": "PASS",
+        "key-lifecycle-normal-and-sanitized": "PASS",
+        "node-profile-and-resource-units": "PASS",
+        "signer-asan-ubsan": "PASS",
+        "signer-normal": "PASS"
+      },
+      "native_cleanup": "STOPPED_RETAINED",
+      "native_inventory": {
+        "entries": 81,
+        "path": "arm-clang-qualification/evidence-sha256.json",
+        "sha256": "5d99220b25b3c709ba77b685c4fd5cb2deffec6b3551536fc5590a9dff3e1808",
+        "verified_selected_payloads": {
+          "node-resources.json": {
+            "inventory_match": true,
+            "path": "arm-clang-qualification/node-resources.json",
+            "sha256": "7091f5d3eba4b10f1736a2f47c02f5f846e186d047f079140c04f84ccdde3d90"
+          },
+          "public-consensus-controls.json": {
+            "inventory_match": true,
+            "path": "arm-clang-qualification/public-consensus-controls.json",
+            "sha256": "2c58a7269a21c479234731f99ab5ff4a26be9032f0a26f8ea1e67818d2c7066a"
+          },
+          "report.json": {
+            "inventory_match": true,
+            "path": "arm-clang-qualification/report.json",
+            "sha256": "8945fb9e2b5ca87aa92dc69303e6f32c2f4bb4770bd27e4e435f0d3b477ca74d"
+          },
+          "runtime-descriptor.json": {
+            "inventory_match": true,
+            "path": "arm-clang-qualification/runtime-descriptor.json",
+            "sha256": "00d89b9fca4390e25fd5206b263e6a4da11fc28507e479ad1f707ff8dbe24c64"
+          }
+        }
+      },
+      "openssl_dependency_entries": 152,
+      "outer_descriptor": {
+        "path": "arm-clang-runtime.json",
+        "sha256": "00d89b9fca4390e25fd5206b263e6a4da11fc28507e479ad1f707ff8dbe24c64"
+      },
+      "profile": "aarch64-clang",
+      "public_app": {
+        "cleanup_errors": [],
+        "confirmed_payment_count": 4,
+        "event_names": [
+          "two_fresh_private_containers_started",
+          "two_native_test_wallets_funded",
+          "confirmed_cross_container_send",
+          "confirmed_cross_container_send",
+          "unexpected_native_peer_disconnect_repaired",
+          "confirmed_cross_container_send",
+          "same_known_transaction_rebroadcast_after_rejoin",
+          "actual_signature_and_wrong_network_controls",
+          "durable_network_off_survived_native_reindex",
+          "chainstate_reindex_preserved_full_agreement",
+          "durable_network_off_survived_docker_restart",
+          "peer_policy_orphan_preserved_and_recovered_inactive",
+          "actual_docker_restart_and_public_orphan_recovery",
+          "actual_sigkill_restart_preserved_agreement",
+          "wrong_password_and_rechecksummed_corrupt_ciphertext_preserved_selected_record",
+          "confirmed_cross_container_send",
+          "old_backup_missing_both_records_recovered_and_spent"
+        ],
+        "events": 17,
+        "orphan_preserved_and_network_off": true,
+        "path": "arm-clang-public-app/report.json",
+        "result": "PASS",
+        "same_known_transaction_rejoin": {
+          "raw_transaction_sha256": "9064ea7093d5dfc47e5078db509c11f0a2ef43df02386435dfc26981c095b182",
+          "reissued_payment": false,
+          "txid": "f749a0ce561d5ac0559105f6fc884ab2a8c0d04a27c803c6701790f4e591407f"
+        },
+        "sha256": "b39e56f05668f806f8a6c51db1c96ee217bed87f448abbed67c8ceb159b5aea6",
+        "source_image_manifest_match": true
+      },
+      "public_consensus": {
+        "binary_sha256": "11558bebf557586f60e22b8a0345d25941fde961e6839a395cfa7ae6ef5f0289",
+        "controls": 16,
+        "owned_node_cleanup": "STOPPED",
+        "result": "PASS"
+      },
+      "raw_and_outer_descriptor_bytes_equal": true,
+      "raw_descriptor_semantically_equal_to_outer": true,
+      "resource": {
+        "binary_sha256": "11558bebf557586f60e22b8a0345d25941fde961e6839a395cfa7ae6ef5f0289",
+        "block_weight": 4000000,
+        "boundaries_validated": true,
+        "evictions": 17,
+        "native_verifications_per_sample": 128,
+        "node_peak_rss_bytes": 401752064,
+        "p95_wall_ns": 128635750,
+        "samples": 30
+      },
+      "result": "PASS",
+      "runtime_isolation_validated": true
+    },
+    {
+      "all_identity_entries_match_manifest": true,
+      "before_after_identity_equal": true,
+      "dependencies_match_manifest": true,
+      "identity_entries": 8,
+      "identity_sha256": {
+        "/tmp/demo-signer-bin/pilot-signer": "fe8f29a06b94638239815a04a68378fd47250b1521bfecd5613af7711f952623",
+        "/tmp/mldsa-demo-build/bin/pqbtc-cli": "aec8233d3cebfe1cf46e200af22489215f788c6fc109acd388ca62fb834dc6c8",
+        "/tmp/mldsa-demo-build/bin/pqbtc-mldsa-client": "6eb48d60ee20653e680ef58104067e164bf42a2f91cf01e0b99caf11b235a714",
+        "/tmp/mldsa-demo-build/bin/pqbtcd": "633140a85127d44b60b81ed1a20d0aa3054c992b4042e273481261250225feae",
+        "/tmp/mldsa-demo-build/bin/test_pqbtc": "611febaa217c43549806ae44bf2569ec0c725abedbf20b2664844676bb5a3e93",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_consensus_controls.py": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_native_qualification.py": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_spend_restore.py": "0dfc691f58d8a1ad89719d6d962104a3899a56ba1ccdc72a1828e1d625c5e02a"
+      },
+      "image": "sha256:dd6752a750692c442c28655a078cfa2382274705c60c4c2d80f869718565ebf2",
+      "manifest_sha256": "538714254b8ebae4ff49d63189be7a8b6a7fe05f773ab7dce8d8c2716751b7ff",
+      "manifest_sha256_entries": 18,
+      "native_checks": {
+        "actual-node-30-full-blocks-and-mempool-pressure": "PASS",
+        "actual-node-spend-old-record-restore": "PASS",
+        "actual-public-accepted-set-and-both-reindex-paths": "PASS",
+        "integration-asan-ubsan": "PASS",
+        "integration-normal": "PASS",
+        "key-lifecycle-normal-and-sanitized": "PASS",
+        "node-profile-and-resource-units": "PASS",
+        "signer-asan-ubsan": "PASS",
+        "signer-normal": "PASS"
+      },
+      "native_cleanup": "REMOVED",
+      "native_inventory": {
+        "entries": 83,
+        "path": "github/assembled-gcc-43970911876-1/native-qualification/evidence-sha256.json",
+        "sha256": "0f35b8c54537d73ea0252f69b6bba412658bafb287b237141e9c5a1bb4188c23",
+        "verified_selected_payloads": {
+          "node-resources.json": {
+            "inventory_match": true,
+            "path": "github/assembled-gcc-43970911876-1/native-qualification/node-resources.json",
+            "sha256": "46fae2b04006b9be3749766d599a33754fcd156da61b6c2125756ba1bfe92851"
+          },
+          "public-consensus-controls.json": {
+            "inventory_match": true,
+            "path": "github/assembled-gcc-43970911876-1/native-qualification/public-consensus-controls.json",
+            "sha256": "b22c368b65e71ce23b4c0592d00604376dc44e014da887c324c7bbbaceedc5be"
+          },
+          "report.json": {
+            "inventory_match": true,
+            "path": "github/assembled-gcc-43970911876-1/native-qualification/report.json",
+            "sha256": "c0fb59bc2ef5ab14b37fc158465577a0139be8d54ab298ad1b0f3c9ef5d555a3"
+          },
+          "runtime-descriptor.json": {
+            "inventory_match": true,
+            "path": "github/assembled-gcc-43970911876-1/native-qualification/runtime-descriptor.json",
+            "sha256": "4dd1c3e91e9024c407432c432cf136dfa209be4f6d147d89295ed588bc35b221"
+          }
+        }
+      },
+      "openssl_dependency_entries": 152,
+      "outer_descriptor": {
+        "path": "github/assembled-gcc-43970911876-1/runtime-descriptor.json",
+        "sha256": "76f72ca631c9a66c2c1d67e5dd00f04ea20903f26d14782472587630665d25bc"
+      },
+      "profile": "x86_64-gcc",
+      "public_app": {
+        "cleanup_errors": [],
+        "confirmed_payment_count": 4,
+        "event_names": [
+          "two_fresh_private_containers_started",
+          "two_native_test_wallets_funded",
+          "confirmed_cross_container_send",
+          "confirmed_cross_container_send",
+          "unexpected_native_peer_disconnect_repaired",
+          "confirmed_cross_container_send",
+          "same_known_transaction_rebroadcast_after_rejoin",
+          "actual_signature_and_wrong_network_controls",
+          "durable_network_off_survived_native_reindex",
+          "chainstate_reindex_preserved_full_agreement",
+          "durable_network_off_survived_docker_restart",
+          "peer_policy_orphan_preserved_and_recovered_inactive",
+          "actual_docker_restart_and_public_orphan_recovery",
+          "actual_sigkill_restart_preserved_agreement",
+          "wrong_password_and_rechecksummed_corrupt_ciphertext_preserved_selected_record",
+          "confirmed_cross_container_send",
+          "old_backup_missing_both_records_recovered_and_spent"
+        ],
+        "events": 17,
+        "orphan_preserved_and_network_off": true,
+        "path": "github/assembled-gcc-43970911876-1/public-profile-app/report.json",
+        "result": "PASS",
+        "same_known_transaction_rejoin": {
+          "raw_transaction_sha256": "27e563b26c517195084b7092d6a8c5e66a21ab629c290672173403988dfbc5f8",
+          "reissued_payment": false,
+          "txid": "56953acd48e3c1a5342221749b7d32932d5f2bf082d8bdf0a4a995a58e621229"
+        },
+        "sha256": "b0edc80c25cd0a31f934bd3cc6c12cca39076475f037be6f969bd933c4876c78",
+        "source_image_manifest_match": true
+      },
+      "public_consensus": {
+        "binary_sha256": "633140a85127d44b60b81ed1a20d0aa3054c992b4042e273481261250225feae",
+        "controls": 16,
+        "owned_node_cleanup": "STOPPED",
+        "result": "PASS"
+      },
+      "raw_and_outer_descriptor_bytes_equal": false,
+      "raw_descriptor_semantically_equal_to_outer": true,
+      "resource": {
+        "binary_sha256": "633140a85127d44b60b81ed1a20d0aa3054c992b4042e273481261250225feae",
+        "block_weight": 4000000,
+        "boundaries_validated": true,
+        "evictions": 17,
+        "native_verifications_per_sample": 128,
+        "node_peak_rss_bytes": 402817024,
+        "p95_wall_ns": 225534750,
+        "samples": 30
+      },
+      "result": "PASS",
+      "runtime_isolation_validated": true
+    },
+    {
+      "all_identity_entries_match_manifest": true,
+      "before_after_identity_equal": true,
+      "dependencies_match_manifest": true,
+      "identity_entries": 8,
+      "identity_sha256": {
+        "/tmp/demo-signer-bin/pilot-signer": "6174c4e1f66338a8e608f650ecdec70aa6c220a918c43c2b86b1114a7cac0a16",
+        "/tmp/mldsa-demo-build/bin/pqbtc-cli": "704d984173bf72fea78ce47f79c4c1dd14932bd5d80abe5f3a90be98427e4bf3",
+        "/tmp/mldsa-demo-build/bin/pqbtc-mldsa-client": "59671b62812044c6e7b3302789b2a83ee56d05e3bd1dd30e5e9ceca1e09f984c",
+        "/tmp/mldsa-demo-build/bin/pqbtcd": "5ba9957583228aa4f57b043dceb65b8276f6b2d7956e7a6de94b2e15ef7f9cc7",
+        "/tmp/mldsa-demo-build/bin/test_pqbtc": "1e7574175ae8968724ec324591391cdcb10b7858cc3b26aebd834de06538204c",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_consensus_controls.py": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_native_qualification.py": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0",
+        "/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_spend_restore.py": "0dfc691f58d8a1ad89719d6d962104a3899a56ba1ccdc72a1828e1d625c5e02a"
+      },
+      "image": "sha256:98209ba29cc260e8671b959baa65f2b706e681cc0192c52a9cb2355d999277e5",
+      "manifest_sha256": "6469a840c8cb7d3646f2fca3bd18873eef74d665ecbe76e9f4c85640823bba52",
+      "manifest_sha256_entries": 18,
+      "native_checks": {
+        "actual-node-30-full-blocks-and-mempool-pressure": "PASS",
+        "actual-node-spend-old-record-restore": "PASS",
+        "actual-public-accepted-set-and-both-reindex-paths": "PASS",
+        "integration-asan-ubsan": "PASS",
+        "integration-normal": "PASS",
+        "key-lifecycle-normal-and-sanitized": "PASS",
+        "node-profile-and-resource-units": "PASS",
+        "signer-asan-ubsan": "PASS",
+        "signer-normal": "PASS"
+      },
+      "native_cleanup": "REMOVED",
+      "native_inventory": {
+        "entries": 83,
+        "path": "github/assembled-clang-43970911876-1/native-qualification/evidence-sha256.json",
+        "sha256": "c6b01802e802391548392c11238df7b046693553411f95571ac82cce6ce4e51c",
+        "verified_selected_payloads": {
+          "node-resources.json": {
+            "inventory_match": true,
+            "path": "github/assembled-clang-43970911876-1/native-qualification/node-resources.json",
+            "sha256": "8f7165c54998ab4700e867296ffc5b25586a9ecd9b723ddb6638b86ff3be861e"
+          },
+          "public-consensus-controls.json": {
+            "inventory_match": true,
+            "path": "github/assembled-clang-43970911876-1/native-qualification/public-consensus-controls.json",
+            "sha256": "a1558157e545e1088966f0ec0746867102fd762785f147a648d6c0a9c29ce6c4"
+          },
+          "report.json": {
+            "inventory_match": true,
+            "path": "github/assembled-clang-43970911876-1/native-qualification/report.json",
+            "sha256": "4a28206cdc22a7a90bc0d47f439a5cd8b9475a206641b3e051996d8a318652fe"
+          },
+          "runtime-descriptor.json": {
+            "inventory_match": true,
+            "path": "github/assembled-clang-43970911876-1/native-qualification/runtime-descriptor.json",
+            "sha256": "f0f489712c97be0b805f7baa9e63b542b574f12f82be2559a516df8dfc64b0fa"
+          }
+        }
+      },
+      "openssl_dependency_entries": 152,
+      "outer_descriptor": {
+        "path": "github/assembled-clang-43970911876-1/runtime-descriptor.json",
+        "sha256": "88ec14126ce2337857b40cf6fad30358d71f3520136a0d96bed5ec0011710f88"
+      },
+      "profile": "x86_64-clang",
+      "public_app": {
+        "cleanup_errors": [],
+        "confirmed_payment_count": 4,
+        "event_names": [
+          "two_fresh_private_containers_started",
+          "two_native_test_wallets_funded",
+          "confirmed_cross_container_send",
+          "confirmed_cross_container_send",
+          "unexpected_native_peer_disconnect_repaired",
+          "confirmed_cross_container_send",
+          "same_known_transaction_rebroadcast_after_rejoin",
+          "actual_signature_and_wrong_network_controls",
+          "durable_network_off_survived_native_reindex",
+          "chainstate_reindex_preserved_full_agreement",
+          "durable_network_off_survived_docker_restart",
+          "peer_policy_orphan_preserved_and_recovered_inactive",
+          "actual_docker_restart_and_public_orphan_recovery",
+          "actual_sigkill_restart_preserved_agreement",
+          "wrong_password_and_rechecksummed_corrupt_ciphertext_preserved_selected_record",
+          "confirmed_cross_container_send",
+          "old_backup_missing_both_records_recovered_and_spent"
+        ],
+        "events": 17,
+        "orphan_preserved_and_network_off": true,
+        "path": "github/assembled-clang-43970911876-1/public-profile-app/report.json",
+        "result": "PASS",
+        "same_known_transaction_rejoin": {
+          "raw_transaction_sha256": "f8b314ddac70d057c0b0860871ea7e66cc6b46748246f4c5f8a3b7abc99a9824",
+          "reissued_payment": false,
+          "txid": "32bd3aaf8bc91e76004c8880c744f511ffa04f4c302a37ea7d9e677fc637bb20"
+        },
+        "sha256": "b2be2af7dd8db52ccd63b22685399295bd7959018b9854defa5bcfae085bee9b",
+        "source_image_manifest_match": true
+      },
+      "public_consensus": {
+        "binary_sha256": "5ba9957583228aa4f57b043dceb65b8276f6b2d7956e7a6de94b2e15ef7f9cc7",
+        "controls": 16,
+        "owned_node_cleanup": "STOPPED",
+        "result": "PASS"
+      },
+      "raw_and_outer_descriptor_bytes_equal": false,
+      "raw_descriptor_semantically_equal_to_outer": true,
+      "resource": {
+        "binary_sha256": "5ba9957583228aa4f57b043dceb65b8276f6b2d7956e7a6de94b2e15ef7f9cc7",
+        "block_weight": 4000000,
+        "boundaries_validated": true,
+        "evictions": 17,
+        "native_verifications_per_sample": 128,
+        "node_peak_rss_bytes": 405270528,
+        "p95_wall_ns": 200323785,
+        "samples": 30
+      },
+      "result": "PASS",
+      "runtime_isolation_validated": true
+    }
+  ],
+  "public_soak": false,
+  "remaining_boundaries": [
+    "Actual Docker Desktop recovery acceptance is separate; this receipt does not establish its PASS",
+    "Fresh source-bound public preflight and separate actual 86400-second public-soak outcomes are not established by this receipt",
+    "Recorded native/app payloads were revalidated, not rerun; live running binaries were not inspected",
+    "Only the four requested native inventory payload members per lane were rehashed; unrequested logs and wallet branches were not read",
+    "Production RELEASE_HOLD and separate human review/release gates remain in force"
+  ],
+  "result": "PASS",
+  "runtime_or_network_operations": false,
+  "schema": "PQBTC-L-ROOT-FOUR-PROFILE-DATA-REVERIFICATION-1",
+  "source": {
+    "clean_before_and_after": true,
+    "head": "7223772e76d2d0a0bb7fd1d35e0e16fba61918fd",
+    "tree": "33b36275b1da7f7fbc27fae00d519206b0f7c16f"
+  },
+  "source_modified": false,
+  "subprocess_policy": "Validator replay blocked subprocess entrypoints; only explicitly scoped read-only git identity/status used a saved constructor",
+  "utc": "2026-11-17T00:29:03.833790+00:00",
+  "validators_replayed": [
+    "run_public_soak.validate_qualified_version",
+    "source_runtime.validate_descriptor",
+    "run_native_qualification.validate_runtime",
+    "run_native_qualification.validate_native_identity",
+    "run_native_qualification.validate_resource_report",
+    "run_native_qualification.validate_dependency_inventory",
+    "public_consensus_controls.validate_report",
+    "run_public_soak.validate_adverse"
+  ],
+  "verification_scope": "INDEPENDENT_DATA_ONLY_REPLAY_OF_FROZEN_L_VALIDATORS_AND_PUBLIC_EVIDENCE_BINDINGS"
+}
