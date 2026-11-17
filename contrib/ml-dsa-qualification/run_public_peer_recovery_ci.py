@@ -204,7 +204,10 @@ class StartupHelper:
     def __init__(self, invoke, manager, descriptor, arguments, attempt):
         self.invoke, self.container_id, self.proof = invoke, None, None
         self.layout_observed = False
-        self.lock = threading.Lock()
+        self.lock, self.state_lock = threading.Lock(), threading.Lock()
+        self.create_submitted = self.create_acknowledged = False
+        self.start_submitted = self.start_acknowledged = False
+        self.launch_state = 'REGISTERED'
         self.name = 'pqbtc-mldsa-recovery-helper-' + uuid.uuid4().hex
         self.image = descriptor['image']
         self.volume = validate_namespace(manager.container)
@@ -232,7 +235,9 @@ class StartupHelper:
             additions += ['--label', key + '=' + value]
         # Keep the production image-check/init script, public operands and all
         # existing containment options byte-for-byte; only add fixture bounds.
-        self.arguments = ['run', *additions, *arguments[1:]]
+        # create cannot execute the product command. Only a separately gated
+        # full-ID start may do so; a late ambiguous create therefore stays idle.
+        self.arguments = ['create', *additions, *arguments[1:]]
 
     def inspect(self, target):
         result = self.invoke(['inspect', '--format', HELPER_INSPECT, target], check=False, timeout=5)
@@ -274,26 +279,52 @@ class StartupHelper:
 
     def stop(self):
         with self.lock:
-            # Discovery by the never-reused name is needed when docker run lost
-            # its response. A captured ID is rechecked and cannot be replaced.
             row = self.inspect(self.name)
             if row is None and self.container_id is not None:
                 row = self.inspect(self.container_id)
             if row is not None:
-                self.container_id = row['Id']
+                with self.state_lock:
+                    require(self.container_id in (None, row['Id']), 'Startup helper identity changed during discovery')
+                    self.container_id = row['Id']
                 if row['State']['Running']:
                     result = self.invoke(['stop', '--time', '1', self.container_id], check=False, timeout=15)
                     require(result.returncode == 0 or b'No such' in result.stderr, 'Startup helper stop failed')
                 row = self.inspect(self.container_id)
-                if row is not None:
-                    require(row['State'] == {'Running': False, 'Pid': 0}, 'Startup helper stopped PID0 proof missing')
-            self.proof = {'name': self.name, 'kind': self.kind, 'container_id': self.container_id,
-                          'image': self.image, 'memory_bytes': self.memory, 'nano_cpus': 2000000000, 'pids_limit': 64,
-                          'ownership_labels': dict(self.labels), 'volume': self.volume if self.kind == 'volume_init' else None,
-                          'layout_observed': self.layout_observed,
-                          'resource_evidence': 'VALIDATED_LAYOUT' if self.layout_observed else 'REQUESTED_LIMITS_AND_PROVED_ABSENCE',
-                          'absence_proved': row is None, 'running': False, 'pid': 0}
-            return dict(self.proof)
+            with self.state_lock:
+                create_submitted, create_acknowledged = self.create_submitted, self.create_acknowledged
+                start_submitted, start_acknowledged = self.start_submitted, self.start_acknowledged
+            if start_submitted and row is not None:
+                # stop alone cannot fence a daemon-side start request delayed
+                # past the CLI timeout. Remove only this validated stateless
+                # full ID, without --volumes; all later starts of it must fail.
+                result = self.invoke(['rm', '--force', self.container_id], check=False, timeout=15)
+                require(result.returncode == 0 or b'No such' in result.stderr, 'Startup helper start fence failed')
+                row = self.inspect(self.container_id)
+                require(row is None, 'Startup helper start fence absence missing')
+            if row is None and create_submitted and not create_acknowledged and not start_submitted:
+                # A timed-out CLI is not cancellation of its daemon request.
+                # Retain this unresolved name, never report terminal absence.
+                # It can create only a stopped container: no start was issued.
+                with self.state_lock:
+                    self.launch_state = 'CREATE_UNRESOLVED'
+                    self.proof = {'name': self.name, 'kind': self.kind, 'container_id': self.container_id,
+                                  'launch_state': self.launch_state, 'cleanup_unproved': True,
+                                  'late_create_cannot_start': True, 'ownership_labels': dict(self.labels)}
+                raise ValueError('Startup helper create unresolved; absence is not terminal')
+            if row is not None:
+                require(row['State'] == {'Running': False, 'Pid': 0}, 'Startup helper stopped PID0 proof missing')
+            state = ('START_ACKNOWLEDGED' if start_acknowledged else 'START_FENCED' if start_submitted else
+                     'CREATE_UNRESOLVED' if create_submitted and not create_acknowledged else 'NOT_STARTED')
+            with self.state_lock:
+                self.launch_state = state
+                self.proof = {'name': self.name, 'kind': self.kind, 'container_id': self.container_id,
+                              'image': self.image, 'memory_bytes': self.memory, 'nano_cpus': 2000000000, 'pids_limit': 64,
+                              'ownership_labels': dict(self.labels), 'volume': self.volume if self.kind == 'volume_init' else None,
+                              'layout_observed': self.layout_observed,
+                              'resource_evidence': 'VALIDATED_LAYOUT' if self.layout_observed else 'NO_CREATE_DISPATCHED',
+                              'launch_state': state, 'late_create_cannot_start': not start_submitted,
+                              'absence_proved': row is None, 'running': False, 'pid': 0}
+                return dict(self.proof)
 
 
 class StartupHelpers:
@@ -323,12 +354,41 @@ class StartupHelpers:
                     require(len(self.records) < 4, 'Only four necessary startup helpers are allowed')
                     self.records.append(record)
                 try:
-                    kwargs['timeout'] = min(kwargs.get('timeout', 90), remaining(self.deadline))
-                    require(not self.closed, 'Startup helpers already shut down')
-                    return original(record.arguments, **kwargs)
+                    operation_deadline = min(self.deadline, time.monotonic() + kwargs.get('timeout', 90))
+                    # Shutdown and launch commitments share this lock. Cleanup
+                    # can see CREATE_IN_FLIGHT even before the CLI is invoked;
+                    # not-found at that point is explicitly nonterminal.
+                    with self.registry_lock:
+                        require(not self.closed, 'Startup helpers already shut down')
+                        with record.state_lock:
+                            record.create_submitted = True
+                            record.launch_state = 'CREATE_IN_FLIGHT'
+                    created = original(record.arguments, **{**kwargs, 'timeout': remaining(operation_deadline)})
+                    require(created.returncode == 0 and len(created.stdout) <= 65, 'Startup helper create response refused')
+                    identity = created.stdout.decode('ascii').strip()
+                    require(soak_api.hex64(identity), 'Startup helper create identity missing')
+                    with record.state_lock:
+                        require(record.container_id in (None, identity), 'Startup helper create identity changed')
+                        record.container_id, record.create_acknowledged = identity, True
+                        record.launch_state = 'CREATED'
+                    observed = record.inspect(identity)
+                    require(observed is not None and observed['State'] == {'Running': False, 'Pid': 0},
+                            'Validated stopped helper required before start')
+                    with self.registry_lock:
+                        require(not self.closed, 'Startup helpers already shut down')
+                        with record.state_lock:
+                            record.start_submitted = True
+                            record.launch_state = 'START_IN_FLIGHT'
+                    # If shutdown wins after the commitment but before dispatch,
+                    # cleanup removes the full ID. start cannot recreate it.
+                    result = original(['start', '--attach', identity], **{**kwargs, 'timeout': remaining(operation_deadline)})
+                    require(result.returncode == 0, 'Startup helper product command failed')
+                    with record.state_lock:
+                        record.start_acknowledged = True
+                    with self.registry_lock:
+                        require(not self.closed, 'Shutdown interrupted startup helper')
+                    return result
                 finally:
-                    # Even a failed or timed-out CLI may have created/started
-                    # the helper; recover ownership by name, never assume exit.
                     record.stop()
             finally:
                 self.serial.release()
@@ -487,7 +547,7 @@ def validate_acceptance(report):
                 row.get('memory_bytes') == (268435456 if row['kind'] == 'image_check' else 134217728) and
                 row.get('nano_cpus') == 2000000000 and row.get('pids_limit') == 64 and
                 row.get('running') is False and type(row.get('pid')) is int and row['pid'] == 0 and
-                type(row.get('absence_proved')) is bool and
+                row.get('launch_state') == 'START_ACKNOWLEDGED' and type(row.get('absence_proved')) is bool and
                 (row['absence_proved'] and row.get('container_id') is None or soak_api.hex64(row.get('container_id'))),
                 'Bounded startup helper stopped PID0 or absence proof missing')
     cleanup = report['cleanup']

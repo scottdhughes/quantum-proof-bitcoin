@@ -436,7 +436,7 @@ class HarnessBoundaryTests(unittest.TestCase):
                              for c in ('a', 'b')], 'proxy_stop': {'ok': True, 'active_connections': 0},
                  'public_soak_credit_seconds': 0, 'watchdog_expired': False, 'cleanup_errors': [],
                  'startup_helpers': [{'name': 'pqbtc-mldsa-recovery-helper-'+format(index, '032x'),
-                                      'kind': kind, 'container_id': None, 'absence_proved': True,
+                                      'kind': kind, 'container_id': None, 'absence_proved': True, 'launch_state': 'START_ACKNOWLEDGED',
                                       'running': False, 'pid': 0, 'memory_bytes': memory,
                                       'nano_cpus': 2000000000, 'pids_limit': 64}
                                      for index, (kind, memory) in enumerate((('image_check', 268435456),
@@ -448,6 +448,10 @@ class HarnessBoundaryTests(unittest.TestCase):
             broken[field] = replacement
             with self.subTest(field=field), self.assertRaises(ValueError):
                 self.h.validate_acceptance(broken)
+        unresolved = copy.deepcopy(value)
+        unresolved['startup_helpers'][0]['launch_state'] = 'CREATE_UNRESOLVED'
+        with self.assertRaises(ValueError):
+            self.h.validate_acceptance(unresolved)
         for field in ('pid', 'running'):
             broken = copy.deepcopy(value)
             broken['cleanup'][0][field] = 1
@@ -513,11 +517,13 @@ class StartupHelperTests(unittest.TestCase):
         name = 'pqbtc-mldsa-public-recovery-' + 'a' * 32
         manager = h.controls.PublicManager(Path(directory), container=name, p2p_port=23933)
         descriptor = {'image': 'sha256:' + 'b' * 64, 'manifest_sha256': 'c' * 64}
-        state = {'row': None, 'calls': [], 'launch': None, 'registered_before_run': False, 'pause': lambda: None, 'output': b'product-result'}
+        state = {'row': None, 'calls': [], 'launch': None, 'registered_before_run': False, 'pause': lambda: None, 'output': b'product-result',
+                 'before_dispatch': lambda _args: None, 'delay_create': False, 'start_count': 0}
         helpers = h.StartupHelpers(time.monotonic() + 60)
         def original(args, **kwargs):
             state['calls'].append(list(args))
-            if args[0] == 'run':
+            state['before_dispatch'](args)
+            if args[0] in ('run', 'create'):
                 state['launch'] = list(args)
                 state['registered_before_run'] = len(helpers.records) == 1
                 labels = {'org.pqbtc.console.build': 'source-1', **dict(args[i+1].split('=', 1) for i, value in enumerate(args) if value == '--label')}
@@ -531,20 +537,41 @@ class StartupHelperTests(unittest.TestCase):
                         'PidMode': '', 'IpcMode': 'private'}
                 row = {'Id': 'd' * 64, 'Name': '/' + helper_name, 'Image': descriptor['image'],
                        'Config': {'Labels': labels, 'User': '1001:1000' if kind == 'image_check' else ''},
-                       'HostConfig': host, 'State': {'Running': True, 'Pid': 111},
+                       'HostConfig': host, 'State': {'Running': args[0] == 'run', 'Pid': 111 if args[0] == 'run' else 0},
                        'Mounts': ([] if kind == 'image_check' else [{'Type': 'volume', 'Name': manager.volume,
                                    'Destination': '/var/lib/pqbtc', 'RW': True}])}
                 if corrupt:
                     corrupt(row)
+                state['created_row'] = copy.deepcopy(row)
+                if state['delay_create']:
+                    state['pending_creation'] = row
+                    raise h.controls.legacy.ConsoleError('simulated timeout before daemon create becomes visible')
                 state['row'] = row
+                if args[0] == 'create':
+                    return SimpleNamespace(returncode=0, stdout=(row['Id']+'\n').encode(), stderr=b'')
                 state['pause']()
                 if lose_response:
                     raise h.controls.legacy.ConsoleError('simulated Docker timeout after creation')
-                state['row'] = None  # --rm completed before the response.
+                state['row'] = None
                 return SimpleNamespace(returncode=0, stdout=state['output'], stderr=b'')
-            if args[0] == 'stop':
+            if args[0] == 'start':
+                self.assertEqual(args, ['start', '--attach', 'd'*64])
+                if state['row'] is None or state['row']['Id'] != args[-1]:
+                    raise h.controls.legacy.ConsoleError('start target has been removed')
+                state['start_count'] += 1
+                state['row']['State'] = {'Running': True, 'Pid': 111}
+                state['pause']()
+                if lose_response:
+                    raise h.controls.legacy.ConsoleError('simulated ambiguous start response')
+                state['row'] = None  # --rm completed before attached response.
+                return SimpleNamespace(returncode=0, stdout=state['output'], stderr=b'')
+            if args[0] == 'stop' and state['row'] is not None:
                 self.assertEqual(args[-1], 'd' * 64)
                 state['row']['State'] = {'Running': False, 'Pid': 0}
+            if args[0] == 'rm':
+                self.assertEqual(args, ['rm', '--force', 'd'*64])
+                state['row'] = None
+                return SimpleNamespace(returncode=0, stdout=b'', stderr=b'')
             row = state['row']
             if row is None:
                 return SimpleNamespace(returncode=1, stdout=b'', stderr=b'Error: No such object: fixture')
@@ -638,12 +665,12 @@ class StartupHelperTests(unittest.TestCase):
             self.assertTrue(entered.wait(3))
             second.start()
             helpers.stop_all()
-            self.assertEqual(state['row']['State'], {'Running': False, 'Pid': 0})
+            self.assertIsNone(state['row'])
             release.set()
             first.join(3)
             second.join(3)
             self.assertFalse(first.is_alive() or second.is_alive())
-            self.assertEqual(len([call for call in state['calls'] if call[0] == 'run']), 1)
+            self.assertEqual(len([call for call in state['calls'] if call[0] in ('run', 'create')]), 1)
             self.assertEqual(len(errors), 2)
             self.assertEqual(helpers.receipts()[0]['pid'], 0)
 
@@ -652,12 +679,13 @@ class StartupHelperTests(unittest.TestCase):
             helpers, manager, args, state = self.fixture(directory, 'image_check', lose_response=True)
             with self.assertRaises(self.h.controls.legacy.ConsoleError):
                 manager.run(args)
-            stopped_count = len([call for call in state['calls'] if call[0] == 'stop'])
+            stopped_count = len([call for call in state['calls'] if call[0] in ('stop', 'rm')])
+            state['row'] = copy.deepcopy(state['created_row'])
             state['row']['Id'] = 'e' * 64
             state['row']['State'] = {'Running': True, 'Pid': 222}
             with self.assertRaises(ValueError):
                 helpers.stop_all()
-            self.assertEqual(len([call for call in state['calls'] if call[0] == 'stop']), stopped_count)
+            self.assertEqual(len([call for call in state['calls'] if call[0] in ('stop', 'rm')]), stopped_count)
 
     def test_more_than_four_startup_helpers_is_refused_before_docker_run(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -666,7 +694,109 @@ class StartupHelperTests(unittest.TestCase):
                 manager.run(args)
             with self.assertRaises(ValueError):
                 manager.run(args)
-            self.assertEqual(len([call for call in state['calls'] if call[0] == 'run']), 4)
+            self.assertEqual(len([call for call in state['calls'] if call[0] in ('run', 'create')]), 4)
+
+    def test_watchdog_between_launch_gate_and_create_dispatch_cannot_claim_absence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            helpers, manager, args, state = self.fixture(directory, 'volume_init')
+            entered, release = threading.Event(), threading.Event()
+            errors = []
+            def before_dispatch(command):
+                if command[0] in ('create', 'run'):
+                    entered.set()
+                    if not release.wait(3):
+                        raise AssertionError('test did not release dispatch')
+            state['before_dispatch'] = before_dispatch
+            def launch():
+                try:
+                    manager.run(args)
+                except Exception as error:
+                    errors.append(type(error).__name__)
+            thread = threading.Thread(target=launch)
+            thread.start()
+            self.assertTrue(entered.wait(3))
+            try:
+                with self.assertRaises(ValueError):
+                    helpers.stop_all()
+                receipt = helpers.receipts()[0]
+                self.assertIs(receipt.get('cleanup_unproved'), True)
+                self.assertIsNot(receipt.get('absence_proved'), True)
+            finally:
+                release.set()
+                thread.join(3)
+            self.assertFalse(thread.is_alive())
+            self.assertTrue(errors)
+            self.assertEqual(state['start_count'], 0)
+            self.assertEqual(state['row']['State'], {'Running': False, 'Pid': 0})
+            helpers.stop_all()
+            self.assertFalse(helpers.receipts()[0]['absence_proved'])
+
+    def test_delayed_create_after_timeout_remains_unresolved_and_can_never_start(self):
+        with tempfile.TemporaryDirectory() as directory:
+            helpers, manager, args, state = self.fixture(directory, 'image_check')
+            state['delay_create'] = True
+            with self.assertRaises(Exception):
+                manager.run(args)
+            with self.assertRaises(ValueError):
+                helpers.stop_all()
+            receipt = helpers.receipts()[0]
+            self.assertEqual(receipt.get('launch_state'), 'CREATE_UNRESOLVED')
+            self.assertIs(receipt.get('cleanup_unproved'), True)
+            self.assertIsNot(receipt.get('absence_proved'), True)
+            # Model daemon completion after the CLI timed out and an absence
+            # scan returned. create is deliberately incapable of starting it.
+            state['row'] = state['pending_creation']
+            self.assertEqual(state['row']['State'], {'Running': False, 'Pid': 0})
+            self.assertEqual(state['start_count'], 0)
+            helpers.stop_all()
+            self.assertFalse(helpers.receipts()[0]['running'])
+            self.assertEqual(helpers.receipts()[0]['pid'], 0)
+            self.assertEqual(state['start_count'], 0)
+
+    def test_watchdog_after_validated_create_prevents_start_dispatch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            helpers, manager, args, state = self.fixture(directory, 'image_check')
+            fired = []
+            def before_dispatch(command):
+                if command[0] == 'inspect' and command[-1] == 'd'*64 and not fired:
+                    fired.append(True)
+                    helpers.stop_all()
+            state['before_dispatch'] = before_dispatch
+            with self.assertRaises(ValueError):
+                manager.run(args)
+            self.assertEqual(fired, [True])
+            self.assertFalse(any(call[0] == 'start' for call in state['calls']))
+            self.assertEqual(state['row']['State'], {'Running': False, 'Pid': 0})
+
+    def test_ambiguous_start_with_changed_layout_refuses_stop_and_removal(self):
+        with tempfile.TemporaryDirectory() as directory:
+            helpers, manager, args, state = self.fixture(directory, 'image_check', lose_response=True)
+            def changed():
+                state['row']['HostConfig']['Memory'] = 1
+            state['pause'] = changed
+            with self.assertRaises(ValueError):
+                manager.run(args)
+            self.assertEqual(state['start_count'], 1)
+            self.assertFalse(any(call[0] in ('stop', 'rm') for call in state['calls']))
+            with self.assertRaises(ValueError):
+                helpers.stop_all()
+
+    def test_watchdog_after_start_gate_fences_id_before_delayed_start(self):
+        with tempfile.TemporaryDirectory() as directory:
+            helpers, manager, args, state = self.fixture(directory, 'volume_init')
+            fired = []
+            def before_dispatch(command):
+                if command[0] == 'start':
+                    helpers.stop_all()
+                    fired.append(True)
+                    self.assertIsNone(state['row'])
+            state['before_dispatch'] = before_dispatch
+            with self.assertRaises(self.h.controls.legacy.ConsoleError):
+                manager.run(args)
+            self.assertEqual(fired, [True])
+            self.assertEqual(state['start_count'], 0)
+            self.assertEqual([call for call in state['calls'] if call[0] == 'rm'], [['rm', '--force', 'd'*64]])
+            self.assertIs(helpers.receipts()[0]['absence_proved'], True)
 
     def test_terminal_watchdog_prevents_any_later_helper_launch(self):
         with tempfile.TemporaryDirectory() as directory:
