@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 The PQBTC Core developers
 # Distributed under the MIT software license, see the accompanying COPYING.
-"""Disposable bounded native-v1 INV-loss proxy; no wallet material is handled."""
+"""Bounded private INV-loss and zero-peer gate; no wallet material is handled."""
 import argparse
 import collections
 import hashlib
@@ -95,6 +95,31 @@ class DropOnce:
                 "message_counts": dict(self.counts)}
 
 
+class PreissuanceGate:
+    def __init__(self):
+        self.mode, self.releases, self.rejected = "framed", 0, 0
+
+    def hold(self, drop, connections):
+        check(self.mode == "framed" and connections == 2 and drop.ever_armed and
+              not drop.armed and len(drop.dropped) == 1, "CONTROL_HOLD_ORDER")
+        self.mode = "held"
+
+    def release(self, active):
+        check(self.mode == "held" and active == 0 and self.releases == 0, "CONTROL_RELEASE_ORDER")
+        self.mode, self.releases = "opaque", 1
+
+    def accept(self, connections):
+        if self.mode == "held":
+            check(self.rejected < 32, "PROXY_HELD_ATTEMPT_BOUND")
+            self.rejected += 1
+            return False
+        check(connections < (2 if self.mode == "framed" else 3), "PROXY_EXTRA_CONNECTION")
+        return True
+
+    def status(self):
+        return {"mode": self.mode, "release_count": self.releases, "held_rejections": self.rejected}
+
+
 def parse_control(raw):
     check(len(raw) <= CONTROL_LIMIT and raw.endswith(b"\n"), "CONTROL_BOUND")
     def pairs(items):
@@ -104,7 +129,7 @@ def parse_control(raw):
         value = json.loads(raw, object_pairs_hook=pairs)
     except (UnicodeError, json.JSONDecodeError):
         raise ValueError("CONTROL_JSON") from None
-    check(type(value) is dict and set(value) == {"op"} and value["op"] in ("status", "arm", "stop"), "CONTROL_OPERATION")
+    check(type(value) is dict and set(value) == {"op"} and value["op"] in ("status", "arm", "hold", "release", "stop"), "CONTROL_OPERATION")
     return value["op"]
 
 
@@ -126,6 +151,7 @@ def serve(path, upstream, *, listen_port=23834):
     control = socket.socket(socket.AF_UNIX)
     control_bound = False
     drop, peers, connections, stopped = DropOnce(), {}, 0, False
+    gate = PreissuanceGate()
     deadline = time.monotonic() + 590
     pending, pending_deadline = None, None
 
@@ -199,13 +225,19 @@ def serve(path, upstream, *, listen_port=23834):
                         try:
                             op = parse_control(bytes(raw))
                             if op == "arm":
-                                check(len(peers) == 2, "CONTROL_NO_CONNECTION")
+                                check(gate.mode == "framed" and len(peers) == 2, "CONTROL_NO_CONNECTION")
                                 drop.arm()
+                            elif op == "hold":
+                                gate.hold(drop, connections)
+                                close_pair()
+                                close_pending()
+                            elif op == "release":
+                                gate.release(len(peers) // 2 + int(pending is not None))
                             stopped = op == "stop"
                             if stopped:
                                 close_pair()
                                 close_pending()
-                            result = {"ok": True, **drop.status(), "connections": connections,
+                            result = {"ok": True, **drop.status(), **gate.status(), "connections": connections,
                                       "active_connections": len(peers) // 2 + int(pending is not None)}
                         except ValueError:
                             result = {"ok": False, "error": "CONTROL_REFUSED"}
@@ -213,7 +245,10 @@ def serve(path, upstream, *, listen_port=23834):
                 elif key.data == "listen":
                     client, _ = listener.accept()
                     try:
-                        check(connections < 2 and pending is None, "PROXY_EXTRA_CONNECTION")
+                        if not gate.accept(connections):
+                            client.close()
+                            continue
+                        check(pending is None, "PROXY_EXTRA_CONNECTION")
                     except BaseException:
                         client.close()
                         raise
@@ -245,8 +280,9 @@ def serve(path, upstream, *, listen_port=23834):
                         if not data:
                             close_pair()
                             continue
-                        for command, payload, frame in state["framer"].feed(data):
-                            if drop.forward(state["direction"], command, payload):
+                        frames = ([(None, None, data)] if gate.mode == "opaque" else state["framer"].feed(data))
+                        for command, payload, frame in frames:
+                            if gate.mode == "opaque" or drop.forward(state["direction"], command, payload):
                                 queue = peers[state["other"]]["queue"]
                                 check(len(queue) + len(frame) <= MAX_QUEUE, "PROXY_QUEUE_BOUND")
                                 queue.extend(frame)

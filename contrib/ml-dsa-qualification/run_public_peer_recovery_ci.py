@@ -144,6 +144,83 @@ def validate_payment(value):
             type(nodes['A'].get('utxo_count')) is int, 'Full native state agreement missing')
 
 
+def state_agreement(value, *, peers):
+    require(type(value) is dict and set(value) == {'A', 'B'}, 'Two native state observations required')
+    fields = ('height', 'tip', 'utxo_hash', 'utxo_count')
+    require(all(value['A'].get(key) == value['B'].get(key) for key in fields) and
+            all(type(value['A'].get(key)) is int and value['A'][key] >= 0 for key in ('height', 'utxo_count')) and
+            all(soak_api.hex64(value['A'].get(key)) for key in ('tip', 'utxo_hash')) and
+            all(type(row.get('peers')) is int and (row['peers'] >= 1 if peers else row['peers'] == 0)
+                for row in value.values()), 'Native peer/full-state agreement missing')
+
+
+def validate_isolation(value):
+    require(type(value) is dict and set(value) == {'A', 'B'} and all(
+            type(row) is dict and row.get('endpoint') == ENDPOINT and row.get('network_active') is True and
+            row.get('peer_ids') == [] for row in value.values()) and value['A'].get('registered') is True,
+            'Registered active native route is not isolated')
+
+
+def validate_preissuance_payment(value):
+    fields = {'payment', 'renewal', 'counts', 'mutation_order', 'recipient_observed', 'renewal_elapsed',
+              'initial_isolation', 'before_renewal_isolation', 'initial_state', 'issuance_state', 'agreement',
+              'preissuance_floors', 'memberships', 'gate_held', 'gate_released', 'gate_after', 'ordinary_maintenance'}
+    require(type(value) is dict and fields <= value.keys(), 'Pre-issuance native receipt required')
+    payment, result = value['payment'], value['renewal']
+    require(type(payment) is dict and type(value.get('counts')) is dict and
+            all(type(count) is int for count in value['counts'].values()) and
+            value['counts'] == {'receive': 1, 'send': 1, 'mine': 1, 'renew_peer': 1} and
+            value.get('mutation_order') == ['renew_peer', 'receive', 'send', 'mine'], 'Pre-issuance mutation order or count failed')
+    require(payment.get('sender') == 'A' and payment.get('receiver') == 'B' and
+            payment.get('recipient_in_mempool') is True and value.get('recipient_observed') is True and
+            soak_api.finite(payment.get('settle_seconds')) and 0 < payment['settle_seconds'] <= 60 and
+            soak_api.finite(payment.get('recipient_relay_seconds')) and
+            10 <= payment['recipient_relay_seconds'] <= payment['settle_seconds'] and
+            all(soak_api.hex64(payment.get(key)) for key in ('txid', 'block_hash')), 'Pre-issuance payment deadline or relay failed')
+    # Preserve the original lost-INV validator's one-old-peer requirement.
+    require(type(result) is dict and result.get('old_peer_ids') == [] and
+            type(result.get('new_peer_id')) is int and result['new_peer_id'] >= 0 and
+            result.get('transport_protocol_type') in ('v1', 'v2'), 'Zero-peer renewal was not exercised')
+    require(result.get('endpoint') == ENDPOINT and result.get('renewed') is True and
+            result.get('network_active') is True and result.get('fresh_pong') is True, 'Pre-issuance native renewal proof missing')
+    for label in ('ping_sent', 'pong_received'):
+        before, after = result.get(label + '_before'), result.get(label + '_after')
+        require(type(before) is int and type(after) is int and 0 <= before < after, 'Pre-issuance native pong counters stale')
+    require(soak_api.finite(value.get('renewal_elapsed')) and 10 <= value['renewal_elapsed'] < payment['settle_seconds'],
+            'Pre-issuance ten-second trigger missing')
+    validate_isolation(value['initial_isolation'])
+    validate_isolation(value['before_renewal_isolation'])
+    state_agreement(value['initial_state'], peers=False)
+    state_agreement(value['issuance_state'], peers=True)
+    state_agreement(value['agreement'], peers=True)
+    require(value['agreement']['A']['tip'] == payment['block_hash'], 'Pre-issuance confirmation tip differs')
+    points = value['preissuance_floors']
+    require(type(points) is list and len(points) == 4 and type(points[0]) is dict and
+            set(points[0]) == {'A', 'B'} and all(type(point) is dict and point == points[0] for point in points) and
+            all(type(point) is dict and set(point) == {'wallet_id', 'next_receive', 'next_change'} and
+                type(point['wallet_id']) is str and re.fullmatch('[0-9a-f]{32}', point['wallet_id']) and
+                all(type(point[key]) is int and 0 <= point[key] < 2**31 for key in ('next_receive', 'next_change'))
+                for point in points[0].values()) and points[0]['A']['wallet_id'] != points[0]['B']['wallet_id'],
+            'Pre-issuance renewal changed wallet floors')
+    require(set(value['memberships']) == {'A', 'B'} and all(
+            row.get('txid') == payment['txid'] and row.get('block_hash') == payment['block_hash'] and
+            row.get('confirmed') is True and type(row.get('confirmations')) is int and row['confirmations'] >= 1
+            for row in value['memberships'].values()), 'Pre-issuance target membership missing')
+    held, released, after = (value[key] for key in ('gate_held', 'gate_released', 'gate_after'))
+    require(held.get('mode') == 'held' and held.get('release_count') == 0 and held.get('connections') == 2 and
+            held.get('active_connections') == 0 and released.get('mode') == after.get('mode') == 'opaque' and
+            released.get('release_count') == after.get('release_count') == 1 and
+            released.get('connections') == 2 and released.get('active_connections') == 0 and
+            after.get('connections') == 3 and after.get('active_connections') == 1 and
+            all(all(type(row.get(key)) is int for key in ('connections', 'active_connections', 'release_count', 'held_rejections'))
+                for row in (held, released, after)) and
+            0 <= held['held_rejections'] <= released['held_rejections'] == after['held_rejections'] <= 32,
+            'Pre-issuance gate order or connection bound failed')
+    maintenance = value['ordinary_maintenance']
+    require(maintenance.get('registered') is True and maintenance.get('peer') == ENDPOINT and
+            type(maintenance.get('maintenance')) is dict, 'Ordinary registered maintenance was not exercised')
+
+
 # Deliberately omit Env, process argv and logs. Cmd is the fixed sleep supervisor
 # declaration required by the production layout validator, never /proc argv.
 INSPECT = ('{"Id":{{json .Id}},"Name":{{json .Name}},"Image":{{json .Image}},'
@@ -696,6 +773,14 @@ if op=='known':
     assert isinstance(raw,str) and 2<=len(raw)<=2000000 and len(raw)%2==0 and re.fullmatch('[0-9a-f]+',raw)
     decoded=rpc('decoderawtransaction',raw);assert decoded['txid']==arg
     result={'txid':arg,'wtxid':decoded['hash'],'raw_transaction_sha256':hashlib.sha256(bytes.fromhex(raw)).hexdigest()}
+elif op=='isolation':
+    assert arg=='127.0.0.1:23834'
+    peers=rpc('getpeerinfo');assert isinstance(peers,list) and len(peers)<=256
+    ids=[p['id'] for p in peers];assert all(type(i) is int and i>=0 for i in ids) and len(set(ids))==len(ids)
+    added=rpc('getaddednodeinfo');assert isinstance(added,list) and len(added)<=4
+    network=rpc('getnetworkinfo');assert type(network['networkactive']) is bool
+    result={'endpoint':arg,'peer_ids':sorted(ids),'registered':any(p['addednode']==arg for p in added),
+            'network_active':network['networkactive']}
 elif op in ('peer','register'):
     assert re.fullmatch(r'[0-9.]+:2383[34]',arg) and transport in ('v1','v2')
     if op=='register':
@@ -780,8 +865,79 @@ class PaymentAudit:
                 self.data['memberships'][host] = value
 
 
+def native_isolation(nodes, deadline):
+    return {host: native(node, 'isolation', ENDPOINT, deadline=deadline) for host, node in nodes.items()}
+
+
+def observed_state(run):
+    return {host: {key: run.statuses[host]['nodes'][0][key]
+                   for key in ('height', 'tip', 'utxo_hash', 'utxo_count', 'peers')} for host in run.hosts}
+
+
+class PreissuanceAudit:
+    def __init__(self, nodes, run, proxy, deadline):
+        self.nodes, self.run, self.proxy, self.deadline = nodes, run, proxy, deadline
+        self.started, self.txid = time.monotonic(), None
+        self.data = {'counts': {'receive': 0, 'send': 0, 'mine': 0, 'renew_peer': 0},
+                     'mutation_order': [], 'preissuance_floors': [floors(nodes)], 'memberships': {},
+                     'recipient_observed': False}
+
+    def unchanged(self):
+        point = floors(self.nodes)
+        require(point == self.data['preissuance_floors'][0], 'Pre-issuance path changed wallet floors')
+        return point
+
+    def before(self, host, action, params, deadline):
+        deadline = min(deadline, self.deadline, self.run.action_deadline or self.deadline)
+        remaining(deadline)
+        if action in self.data['counts']:
+            counts = self.data['counts']
+            require(host == ('B' if action == 'receive' else 'A') and counts[action] == 0,
+                    'Duplicate or misrouted pre-issuance mutation')
+            if action == 'renew_peer':
+                require(self.data['mutation_order'] == [] and params.get('endpoint') == ENDPOINT,
+                        'Pre-issuance renewal occurred after issuance')
+                self.data['preissuance_floors'].append(self.unchanged())
+                isolated = native_isolation(self.nodes, deadline)
+                validate_isolation(isolated)
+                self.data['before_renewal_isolation'] = isolated
+                self.data['renewal_elapsed'] = time.monotonic() - self.started
+                require(self.data['renewal_elapsed'] >= 10, 'Pre-issuance renewal bypassed ordinary reconnect grace')
+                self.data['gate_released'] = self.proxy.control('release', deadline)
+                params['budget_seconds'] = min(params['budget_seconds'], remaining(deadline))
+            elif action == 'receive':
+                require(self.data['mutation_order'] == ['renew_peer'], 'Address issued before guarded renewal')
+                self.data['preissuance_floors'].append(self.unchanged())
+                require(self.run.transaction_peers_connected(), 'Address issued before native transaction peers ready')
+                self.run.statuses_now()
+                self.data['issuance_state'] = observed_state(self.run)
+                state_agreement(self.data['issuance_state'], peers=True)
+            else:
+                expected = ['renew_peer', 'receive'] + (['send'] if action == 'mine' else [])
+                require(self.data['mutation_order'] == expected, 'Pre-issuance payment mutation order failed')
+            counts[action] += 1
+            self.data['mutation_order'].append(action)
+        return params
+
+    def after(self, host, action, params, result, deadline):
+        value = result['result'] if 'status' in result and isinstance(result.get('result'), dict) else result
+        if action == 'renew_peer':
+            self.data['renewal'] = value
+            require(value.get('old_peer_ids') == [], 'Automatic reconnect won zero-peer renewal race')
+            self.data['preissuance_floors'].append(self.unchanged())
+        elif action == 'send':
+            self.txid = value['txid']
+        elif action == 'transaction':
+            require(self.txid is not None and value.get('txid') == self.txid, 'Pre-issuance transaction identity changed')
+            if host == 'B' and value.get('in_mempool') is True:
+                self.data['recipient_observed'] = True
+            if 'block_hash' in params:
+                self.data['memberships'][host] = value
+
+
 def validate_acceptance(report):
     validate_payment(report['payment_evidence'])
+    validate_preissuance_payment(report['preissuance_evidence'])
     v2 = report['v2']
     validate_renewal(v2['renewal'], v2['endpoint'], 'v2')
     require(v2['unrelated_before'] == v2['unrelated_after'] and v2['floors_before'] == v2['floors_after'],
@@ -834,7 +990,7 @@ class Proxy:
         self.node, self.upstream, self.process = node, private_ip(upstream), None
 
     def control(self, operation, deadline):
-        require(operation in ('status', 'arm', 'stop'), 'Proxy control refused')
+        require(operation in ('status', 'arm', 'hold', 'release', 'stop'), 'Proxy control refused')
         return self.node.invoke(CONTROL_SCRIPT, CONTROL, operation, deadline=deadline)
 
     def start(self, deadline):
@@ -940,6 +1096,47 @@ print(json.dumps({'network_active':node.rpc(timeout=.5).getnetworkinfo()['networ
     return node.invoke(script, controls.SOURCE, deadline=deadline)
 
 
+def exercise_preissuance(nodes, run, report, proxy, deadline):
+    audit = PreissuanceAudit(nodes, run, proxy, deadline)
+    data = audit.data
+    report['preissuance_evidence'] = data
+    data['transport_scope'] = 'PRIVATE_TCP_GATE_NOT_PUBLIC_TLS'
+    data['gate_held'] = proxy.control('hold', deadline)
+    data['ordinary_maintenance'] = run.action('A', 'peer', {'endpoint': ENDPOINT})
+    isolated_until = min(deadline, time.monotonic() + 20)
+    while True:
+        isolated = native_isolation(nodes, isolated_until)
+        run.statuses_now()
+        state = observed_state(run)
+        try:
+            validate_isolation(isolated)
+            state_agreement(state, peers=False)
+            break
+        except ValueError:
+            time.sleep(min(.05, remaining(isolated_until)))
+    data['initial_isolation'], data['initial_state'] = isolated, state
+    require(floors(nodes) == data['preissuance_floors'][0], 'Held gate changed wallet floors')
+    follower = run.agents['A'].agent
+    require(follower.bridge is None and proxy.process is not None and proxy.process.poll() is None,
+            'Private gate liveness adaptation requires the actual owned process')
+    original_audits = {host: agent.audit for host, agent in run.agents.items()}
+    # Private transport adaptation only: sample() observes the actual listener
+    # process. No public TLS claim or synthetic peer/status result is supplied.
+    follower.bridge = proxy.process
+    for agent in run.agents.values():
+        agent.audit = audit
+    audit.started = time.monotonic()
+    try:
+        data['payment'] = run.payment('A', 'B')
+        data['agreement'] = observed_state(run)
+        data['gate_after'] = proxy.control('status', deadline)
+        validate_preissuance_payment(data)
+    finally:
+        follower.bridge = None
+        for host, agent in run.agents.items():
+            agent.audit = original_audits[host]
+
+
 def exercise(nodes, report, log, proxy, deadline):
     config = {'hosts': [{'name': 'A', 'role': 'follower'}, {'name': 'B', 'role': 'bootstrap'}]}
     run = soak_api.Soak(config, 'preflight', log, {}, 'PRIVATE_REGRESSION_NO_PUBLIC_CLOCK')
@@ -975,17 +1172,19 @@ def exercise(nodes, report, log, proxy, deadline):
         require(audit.data['renewal']['old_peer_ids'] == [report['v1_before']['id']], 'Recovery did not renew original v1 peer')
     finally:
         audit.active = False
+    exercise_preissuance(nodes, run, report, proxy, deadline)
     direct = proxy.upstream + ':23833'
     before = floors(nodes)
-    unrelated = wait_peer(nodes['A'], ENDPOINT, 'v1', deadline)
+    unrelated_transport = report['preissuance_evidence']['renewal']['transport_protocol_type']
+    unrelated = wait_peer(nodes['A'], ENDPOINT, unrelated_transport, deadline)
     v2_before = register_ready_peer(run, nodes['A'], direct, 'v2', deadline)
     result = run.action('A', 'renew_peer', {'endpoint': direct, 'budget_seconds': min(10, remaining(deadline))}, timeout=10)
     validate_renewal(result, direct, 'v2')
     require(result['old_peer_ids'] == [v2_before['id']], 'V2 native target identity changed before renewal')
     report['v2'] = {'endpoint': direct, 'renewal': result, 'before': v2_before,
-                    'unrelated_before': unrelated, 'unrelated_after': wait_peer(nodes['A'], ENDPOINT, 'v1', deadline),
+                    'unrelated_before': unrelated, 'unrelated_after': wait_peer(nodes['A'], ENDPOINT, unrelated_transport, deadline),
                     'floors_before': before, 'floors_after': floors(nodes)}
-    require(report['v2']['unrelated_before'] == report['v2']['unrelated_after'], 'V2 renewal changed unrelated v1 peer')
+    require(report['v2']['unrelated_before'] == report['v2']['unrelated_after'], 'V2 renewal changed unrelated saved peer')
     run.action('A', 'network', {'active': False})
     before = floors(nodes)
     try:

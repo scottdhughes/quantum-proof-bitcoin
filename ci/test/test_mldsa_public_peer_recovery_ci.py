@@ -56,6 +56,26 @@ def evidence():
             'recipient_observed': True, 'renewal_elapsed': 10.1}
 
 
+def preissuance_evidence():
+    base = evidence()
+    state = {host: {**row, 'peers': 1} for host, row in base['agreement'].items()}
+    empty = {host: {'endpoint': '127.0.0.1:23834', 'network_active': True,
+                    'registered': host == 'A', 'peer_ids': []} for host in ('A', 'B')}
+    point = base['floors'][0]
+    return {'payment': base['payment'], 'renewal': {**renewal('v2'), 'old_peer_ids': []},
+            'counts': {'receive': 1, 'send': 1, 'mine': 1, 'renew_peer': 1},
+            'mutation_order': ['renew_peer', 'receive', 'send', 'mine'], 'renewal_elapsed': 10.1,
+            'recipient_observed': True, 'memberships': base['memberships'],
+            'initial_state': {host: {**row, 'peers': 0} for host, row in state.items()},
+            'issuance_state': copy.deepcopy(state), 'agreement': state,
+            'initial_isolation': empty, 'before_renewal_isolation': copy.deepcopy(empty),
+            'preissuance_floors': [copy.deepcopy(point) for _ in range(4)],
+            'ordinary_maintenance': {'registered': True, 'peer': '127.0.0.1:23834', 'maintenance': {}},
+            'gate_held': {'mode': 'held', 'release_count': 0, 'connections': 2, 'active_connections': 0, 'held_rejections': 0},
+            'gate_released': {'mode': 'opaque', 'release_count': 1, 'connections': 2, 'active_connections': 0, 'held_rejections': 2},
+            'gate_after': {'mode': 'opaque', 'release_count': 1, 'connections': 3, 'active_connections': 1, 'held_rejections': 2}}
+
+
 class ProxyTests(unittest.TestCase):
     def setUp(self):
         self.p = module('peer_recovery_proxy')
@@ -151,6 +171,17 @@ class ProxyTests(unittest.TestCase):
 class ReceiptTests(unittest.TestCase):
     def setUp(self):
         self.h = module('run_public_peer_recovery_ci')
+
+    def test_preissuance_validator_and_audit_are_separate_from_lost_inventory(self):
+        self.assertTrue(hasattr(self.h, 'validate_preissuance_payment'),
+                        'Native fixture lacks a separate zero-peer pre-issuance receipt gate')
+        self.assertTrue(hasattr(self.h, 'PreissuanceAudit'),
+                        'Native fixture lacks the before-issuance mutation audit')
+
+    def test_proxy_accepts_only_explicit_hold_and_release_controls(self):
+        proxy = module('peer_recovery_proxy')
+        for operation in ('hold', 'release'):
+            self.assertEqual(proxy.parse_control(('{"op":"' + operation + '"}\n').encode()), operation)
 
     def test_complete_payment_receipt_and_each_material_failure(self):
         self.h.validate_payment(evidence())
@@ -430,7 +461,7 @@ class HarnessBoundaryTests(unittest.TestCase):
             audit.before('B', 'transaction', {'txid': 'aa' * 32}, time.monotonic() + 3)
 
     def test_failure_report_cannot_claim_pass_without_two_stopped_nodes(self):
-        value = {'payment_evidence': evidence(), 'v2': {'renewal': renewal('v2'), 'endpoint': '127.0.0.1:23834',
+        value = {'payment_evidence': evidence(), 'preissuance_evidence': preissuance_evidence(), 'v2': {'renewal': renewal('v2'), 'endpoint': '127.0.0.1:23834',
                  'unrelated_before': {'id': 5}, 'unrelated_after': {'id': 5}, 'floors_before': {}, 'floors_after': {}},
                  'network_off': {'refused': True, 'network_active': False, 'saved_network_active': False,
                                  'floors_before': {}, 'floors_after': {}},
@@ -1423,6 +1454,238 @@ class NativePingBarrierTests(unittest.TestCase):
                     value = h.register_ready_peer(SimpleNamespace(action=action), object(), endpoint, transport, 150.0)
                 self.assertIs(value['ping_ready'], True)
                 self.assertEqual(events[-1], 'saved')
+
+
+class PreissuanceTests(unittest.TestCase):
+    def setUp(self):
+        self.h = module('run_public_peer_recovery_ci')
+        self.p = module('peer_recovery_proxy')
+
+    def test_gate_requires_finished_inventory_phase_and_releases_once_with_bounds(self):
+        gate, drop = self.p.PreissuanceGate(), self.p.DropOnce()
+        for operation in (lambda: gate.release(0), lambda: gate.hold(drop, 2)):
+            with self.assertRaises(ValueError):
+                operation()
+        self.assertTrue(gate.accept(0))
+        with self.assertRaises(ValueError):
+            gate.accept(2)
+        drop.arm()
+        drop.forward('sender_to_receiver', 'inv', b'\x01' + struct.pack('<I', 5) + bytes.fromhex('ab' * 32))
+        gate.hold(drop, 2)
+        for _ in range(32):
+            self.assertFalse(gate.accept(2))
+        with self.assertRaises(ValueError):
+            gate.accept(2)
+        with self.assertRaises(ValueError):
+            gate.release(1)
+        gate.release(0)
+        self.assertTrue(gate.accept(2))
+        with self.assertRaises(ValueError):
+            gate.accept(3)
+        with self.assertRaises(ValueError):
+            gate.release(0)
+        self.assertEqual(gate.status(), {'mode': 'opaque', 'release_count': 1, 'held_rejections': 32})
+
+    def test_live_gate_closes_old_pair_rejects_held_connections_and_relays_opaque_bytes(self):
+        import json
+        p = self.p
+        with tempfile.TemporaryDirectory() as directory, socket.socket() as upstream, socket.socket() as probe:
+            upstream.bind(('127.0.0.1', 0))
+            upstream.listen(3)
+            upstream.settimeout(3)
+            probe.bind(('127.0.0.1', 0))
+            port = probe.getsockname()[1]
+            probe.close()
+            address, path, errors = upstream.getsockname(), str(Path(directory) / 'gate'), []
+            stopped = [False]
+            connector = socket.create_connection
+            def control(operation):
+                with socket.socket(socket.AF_UNIX) as client:
+                    client.settimeout(3)
+                    client.connect(path)
+                    client.sendall(json.dumps({'op': operation}).encode() + b'\n')
+                    value = json.loads(client.recv(16384))
+                    self.assertTrue(value['ok'])
+                    stopped[0] = operation == 'stop' or stopped[0]
+                    return value
+            def serve():
+                try:
+                    p.serve(path, '127.0.0.1', listen_port=port)
+                except Exception as error:
+                    errors.append(str(error))
+            with patch.object(p.socket, 'create_connection', side_effect=lambda *_args, **kwargs: connector(address, **kwargs)):
+                thread = threading.Thread(target=serve, daemon=True)
+                thread.start()
+                until = time.monotonic() + 3
+                while not os.path.exists(path) and time.monotonic() < until:
+                    time.sleep(.01)
+                try:
+                    with socket.socket() as first:
+                        first.settimeout(3)
+                        first.connect(('127.0.0.1', port))
+                        target, _ = upstream.accept()
+                        with target:
+                            target.settimeout(3)
+                            first.sendall(frame(b'verack'))
+                            self.assertEqual(target.recv(24), frame(b'verack'))
+                            control('arm')
+                            first.sendall(frame(b'inv', b'\x01' + struct.pack('<I', 5) + bytes.fromhex('ab' * 32)))
+                            until = time.monotonic() + 3
+                            while not control('status')['dropped'] and time.monotonic() < until:
+                                time.sleep(.01)
+                    with socket.socket() as second:
+                        second.settimeout(3)
+                        second.connect(('127.0.0.1', port))
+                        target, _ = upstream.accept()
+                        with target:
+                            target.settimeout(3)
+                            second.sendall(frame(b'verack'))
+                            self.assertEqual(target.recv(24), frame(b'verack'))
+                            held = control('hold')
+                            self.assertEqual((held['mode'], held['connections'], held['active_connections']), ('held', 2, 0))
+                            self.assertEqual(second.recv(1), b'')
+                            self.assertEqual(target.recv(1), b'')
+                    with socket.socket() as rejected:
+                        rejected.settimeout(3)
+                        rejected.connect(('127.0.0.1', port))
+                        self.assertEqual(rejected.recv(1), b'')
+                    upstream.settimeout(.05)
+                    with self.assertRaises(TimeoutError):
+                        upstream.accept()
+                    upstream.settimeout(3)
+                    released = control('release')
+                    self.assertEqual((released['release_count'], released['held_rejections']), (1, 1))
+                    with socket.socket() as third:
+                        third.settimeout(3)
+                        third.connect(('127.0.0.1', port))
+                        target, _ = upstream.accept()
+                        with target:
+                            target.settimeout(3)
+                            raw = b'\x00\xffopaque-v2-handshake'
+                            third.sendall(raw)
+                            self.assertEqual(target.recv(len(raw)), raw)
+                            target.sendall(raw[::-1])
+                            self.assertEqual(third.recv(len(raw)), raw[::-1])
+                            self.assertEqual(control('status')['connections'], 3)
+                            self.assertEqual(control('stop')['active_connections'], 0)
+                            self.assertEqual(third.recv(1), b'')
+                            self.assertEqual(target.recv(1), b'')
+                finally:
+                    if thread.is_alive() and not stopped[0]:
+                        control('stop')
+                    thread.join(3)
+            self.assertFalse(thread.is_alive())
+            self.assertEqual(errors, [])
+            self.assertFalse(os.path.exists(path))
+
+    def test_preissuance_receipt_rejects_each_material_false_pass(self):
+        self.h.validate_preissuance_payment(preissuance_evidence())
+        mutations = [
+            lambda v: v['counts'].update(send=2),
+            lambda v: v['counts'].update(send=True),
+            lambda v: v['counts'].update(mine=0),
+            lambda v: v.update(mutation_order=['receive', 'renew_peer', 'send', 'mine']),
+            lambda v: v['renewal'].update(old_peer_ids=[4]),
+            lambda v: v['renewal'].update(new_peer_id=True),
+            lambda v: v['renewal'].update(endpoint='127.0.0.1:23999'),
+            lambda v: v['renewal'].update(fresh_pong=False),
+            lambda v: v['renewal'].update(pong_received_after=0),
+            lambda v: v['payment'].update(settle_seconds=60.01),
+            lambda v: v.update(renewal_elapsed=9.99),
+            lambda v: v.update(recipient_observed=False),
+            lambda v: v['initial_isolation']['A'].update(registered=False),
+            lambda v: v['initial_isolation']['B'].update(peer_ids=[3]),
+            lambda v: v['before_renewal_isolation']['A'].update(network_active=False),
+            lambda v: v['initial_state']['B'].update(utxo_hash='ff' * 32),
+            lambda v: v['issuance_state']['A'].update(peers=0),
+            lambda v: v['agreement']['A'].update(tip='ff' * 32),
+            lambda v: v['preissuance_floors'][2]['A'].update(next_receive=5),
+            lambda v: v.update(preissuance_floors=[{}, {}, {}, {}]),
+            lambda v: v['gate_held'].update(mode='opaque'),
+            lambda v: v['gate_released'].update(active_connections=1),
+            lambda v: v['gate_after'].update(connections=4),
+            lambda v: v['gate_after'].update(release_count=2),
+            lambda v: v['gate_after'].update(held_rejections=33),
+            lambda v: v['ordinary_maintenance'].update(registered=False),
+            lambda v: v['memberships']['B'].update(confirmed=False),
+        ]
+        for index, mutate in enumerate(mutations):
+            value = preissuance_evidence()
+            mutate(value)
+            with self.subTest(index=index), self.assertRaises(ValueError):
+                self.h.validate_preissuance_payment(value)
+
+    def test_native_isolation_observer_projects_ids_and_retains_exact_registration(self):
+        import contextlib
+        import io
+        import json
+        from types import SimpleNamespace
+        replies = {'peers': [], 'added': [{'addednode': self.h.ENDPOINT}], 'active': True}
+        class RPC:
+            def getpeerinfo(self):
+                return replies['peers']
+            def getaddednodeinfo(self):
+                return replies['added']
+            def getnetworkinfo(self):
+                return {'networkactive': replies['active']}
+        class Node:
+            def __init__(self, *_args):
+                pass
+            def rpc(self, **_kwargs):
+                return RPC()
+        replacements = {'public_runtime': SimpleNamespace(PublicNode=Node),
+                        'test_framework.authproxy': SimpleNamespace(AuthServiceProxy=None)}
+        args = ['native', '/fixture', 'isolation', self.h.ENDPOINT, 'v1', '3']
+        with patch.dict(sys.modules, replacements), patch.object(sys, 'argv', args), patch.object(sys, 'path', list(sys.path)):
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                exec(compile(self.h.NATIVE_SCRIPT, '<native-isolation-test>', 'exec'), {})
+            row = json.loads(output.getvalue())
+            self.assertEqual(row, {'endpoint': self.h.ENDPOINT, 'peer_ids': [], 'registered': True, 'network_active': True})
+            for peers, active in (([{'id': True}], True), ([{'id': 1}, {'id': 1}], True), ([], 1)):
+                replies['peers'], replies['active'] = peers, active
+                with self.subTest(peers=peers, active=active), self.assertRaises(AssertionError):
+                    exec(compile(self.h.NATIVE_SCRIPT, '<native-isolation-test>', 'exec'), {})
+
+    def test_audit_refuses_issuance_before_renewal_and_does_not_replay_uncertain_dispatch(self):
+        from types import SimpleNamespace
+        h, calls = self.h, []
+        nodes = {host: SimpleNamespace(controller=SimpleNamespace(journal={'checkpoint': point}))
+                 for host, point in evidence()['floors'][0].items()}
+        run = SimpleNamespace(action_deadline=160)
+        proxy = SimpleNamespace(control=lambda op, deadline: calls.append((op, deadline)) or preissuance_evidence()['gate_released'])
+        with patch.object(h.time, 'monotonic', return_value=100):
+            audit = h.PreissuanceAudit(nodes, run, proxy, 200)
+        with patch.object(h.time, 'monotonic', return_value=110), \
+                patch.object(h, 'native_isolation', return_value=preissuance_evidence()['initial_isolation']):
+            with self.assertRaises(ValueError):
+                audit.before('B', 'receive', {}, 160)
+            audit.before('A', 'renew_peer', {'endpoint': h.ENDPOINT, 'budget_seconds': 10}, 120)
+            with self.assertRaises(ValueError):
+                audit.before('A', 'renew_peer', {'endpoint': h.ENDPOINT, 'budget_seconds': 10}, 120)
+        self.assertEqual(calls, [('release', 120)])
+        self.assertEqual(audit.data['counts'], {'receive': 0, 'send': 0, 'mine': 0, 'renew_peer': 1})
+
+    def test_audit_refuses_changed_floor_or_native_reconnect_before_gate_release(self):
+        from types import SimpleNamespace
+        for changed_floor in (False, True):
+            h, calls = self.h, []
+            nodes = {host: SimpleNamespace(controller=SimpleNamespace(journal={'checkpoint': point}))
+                     for host, point in evidence()['floors'][0].items()}
+            run = SimpleNamespace(action_deadline=160)
+            proxy = SimpleNamespace(control=lambda *_: calls.append('release'))
+            with patch.object(h.time, 'monotonic', return_value=100):
+                audit = h.PreissuanceAudit(nodes, run, proxy, 200)
+            isolated = preissuance_evidence()['initial_isolation']
+            if changed_floor:
+                nodes['A'].controller.journal['checkpoint']['next_receive'] += 1
+            else:
+                isolated['A']['peer_ids'] = [10]
+            with patch.object(h.time, 'monotonic', return_value=110), \
+                    patch.object(h, 'native_isolation', return_value=isolated):
+                with self.assertRaises(ValueError):
+                    audit.before('A', 'renew_peer', {'endpoint': h.ENDPOINT, 'budget_seconds': 10}, 120)
+            self.assertEqual(calls, [])
 
 
 if __name__ == '__main__':

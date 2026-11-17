@@ -932,8 +932,8 @@ class Soak:
             self.action(host, "status")
         return self.statuses
 
-    def agree(self, *, peers=True, timeout=60):
-        deadline = time.monotonic() + timeout
+    def agree(self, *, peers=True, timeout=60, peer_recovery=None):
+        deadline = min(time.monotonic() + timeout, self.action_deadline if self.action_deadline is not None else float("inf"))
         while time.monotonic() < deadline:
             statuses = list(self.statuses_now().values())
             nodes = [value.get("nodes", []) for value in statuses]
@@ -943,16 +943,18 @@ class Soak:
                        for field in ("height", "tip", "utxo_hash", "utxo_count")) and (not peers or all(entry.get("peers", 0) >= 1 for entry in entries)):
                     require(hex64(entries[0]["tip"]) and hex64(entries[0]["utxo_hash"]), "Full UTXO/tip hashes missing")
                     return entries[0]
-            time.sleep(0.1)
+            if peer_recovery is not None:
+                peer_recovery()
+            time.sleep(min(0.1, max(0, deadline - time.monotonic())))
         raise ValueError("Two-host tip/full-UTXO/peer agreement deadline")
 
-    def bridge(self):
+    def bridge(self, *, peer_recovery=None):
         # A partition drops peer connections, not the contained listener.
         # Replacing a surviving bridge can fail to rebind its occupied port.
         if self.action(self.follower, "sample").get("bridge_alive") is not True:
             self.action(self.follower, "bridge_start", {**self.config["public_endpoint"], "until_utc": self.until})
         self.action(self.follower, "peer", {"endpoint": "127.0.0.1:23834"})
-        return self.agree()
+        return self.agree(peer_recovery=peer_recovery) if peer_recovery is not None else self.agree()
 
     def transaction_peers_connected(self):
         """Observe actual transaction peers without scanning wallet history."""
@@ -970,18 +972,35 @@ class Soak:
                     require(type(endpoints) is list and len(endpoints) <= 4 and
                             all(type(endpoint) is str for endpoint in endpoints),
                             "Declared public transaction-peer evidence missing")
-                    connected = connected and "127.0.0.1:23834" in endpoints
+                    if field == "declared_endpoints":
+                        require("127.0.0.1:23834" in endpoints, "Payment cannot register an undeclared public peer")
+                    else:
+                        connected = connected and "127.0.0.1:23834" in endpoints
         return connected
 
-    def ensure_transaction_peers(self):
+    def ensure_transaction_peers(self, renew_peer=None):
         # A live loopback listener does not prove its native/TLS connection is
         # still alive. Repair the existing declared route before a new payment.
-        deadline = min(time.monotonic() + 60, self.action_deadline if self.action_deadline is not None else float("inf"))
+        missing_since = time.monotonic()
+        deadline = min(missing_since + 60, self.action_deadline if self.action_deadline is not None else float("inf"))
         if not self.transaction_peers_connected():
-            self.bridge()
+            def recover():
+                # Registration/bridge liveness alone is not a handshake. Let
+                # ordinary reconnect finish before using the payment's one
+                # guarded renewal, including while bridge() awaits agreement.
+                if renew_peer is not None and time.monotonic() - missing_since >= 10 and not self.transaction_peers_connected():
+                    renew_peer()
+            self.bridge(peer_recovery=recover) if renew_peer is not None else self.bridge()
             while time.monotonic() < deadline:
                 if self.transaction_peers_connected():
-                    return
+                    # Generic peer counts can let bridge agreement precede
+                    # declared-route recovery. Refresh full state after actual
+                    # readiness, then ensure that route survived the check.
+                    remaining = max(0, deadline - time.monotonic())
+                    self.agree(timeout=remaining, peer_recovery=recover) if renew_peer is not None else self.agree(timeout=remaining)
+                    if self.transaction_peers_connected():
+                        return
+                recover()
                 time.sleep(min(0.1, max(0, deadline - time.monotonic())))
             raise ValueError("Declared public peer repair did not restore transaction relay")
 
@@ -1049,13 +1068,20 @@ class Soak:
         started = time.monotonic()
         outer_deadline = self.action_deadline
         self.action_deadline = min(started + 60, outer_deadline if outer_deadline is not None else float("inf"))
+        route_renewed = False
+        def renew_route():
+            nonlocal route_renewed
+            if not route_renewed:
+                # Consume before dispatch: an uncertain mutation is not replayed.
+                route_renewed = True
+                self.renew_declared_peer()
         try:
-            self.ensure_transaction_peers()
+            self.ensure_transaction_peers(renew_route)
             address = self.receive(receiver)
             sent = self.action(sender, "send", {"address": address, "amount_sats": 100_000, "fee_sats": 5000}, timeout=60)
             require(sent.get("broadcast") is True and hex64(sent.get("txid")), "Actual test payment was not broadcast")
             broadcast_at = time.monotonic()
-            checked_peers, rebroadcast_at, route_renewed, known_raw_sha256 = None, broadcast_at, False, None
+            checked_peers, rebroadcast_at, known_raw_sha256 = None, broadcast_at, None
             while time.monotonic() < self.action_deadline:
                 tx = self.action(receiver, "transaction", {"txid": sent["txid"]})
                 require(tx.get("txid") == sent["txid"], "Receiver relay observation returned another transaction")
@@ -1064,12 +1090,12 @@ class Soak:
                 now, repaired = time.monotonic(), False
                 if checked_peers is None or now - checked_peers >= 1:
                     if not self.transaction_peers_connected():
-                        self.ensure_transaction_peers()
+                        self.ensure_transaction_peers(renew_route)
                         repaired = True
                     checked_peers = time.monotonic()
                 if not route_renewed and time.monotonic() - broadcast_at >= 10:
-                    self.renew_declared_peer()
-                    route_renewed, repaired = True, True
+                    renew_route()
+                    repaired = True
                 if repaired or time.monotonic() - rebroadcast_at >= 10:
                     # Reannounce only the already-known mempool transaction.
                     # This never repeats receive/sign/send or consumes a path.

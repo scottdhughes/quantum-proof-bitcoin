@@ -499,19 +499,20 @@ class PublicSoakTests(unittest.TestCase):
         config = {"hosts": [{"name": "one", "role": "bootstrap"}, {"name": "two", "role": "follower"}]}
         run = runner.Soak(config, "preflight", type("Log", (), {"append": lambda *_: None})(), {}, "future")
         from unittest.mock import Mock
-        run.transaction_peers_connected = Mock(side_effect=[False, False, True])
+        run.transaction_peers_connected = Mock(side_effect=[False, False, True, True])
         run.bridge = Mock()
+        run.agree = Mock()
         with patch.object(runner.time, "sleep", return_value=None):
             run.ensure_transaction_peers()
         run.bridge.assert_called_once_with()
-        self.assertEqual(run.transaction_peers_connected.call_count, 3)
+        self.assertEqual(run.transaction_peers_connected.call_count, 4)
 
     def test_payment_repairs_a_dropped_connection_before_broadcast(self):
         runner = self.runner()
         config = {"hosts": [{"name": "one", "role": "bootstrap"}, {"name": "two", "role": "follower"}]}
         run = runner.Soak(config, "preflight", type("Log", (), {"append": lambda *_: None})(), {}, "future")
         state, seen = {"connected": False}, []
-        def bridge():
+        def bridge(**_kwargs):
             seen.append("repair")
             state["connected"] = True
         run.bridge = bridge
@@ -545,7 +546,7 @@ class PublicSoakTests(unittest.TestCase):
             state["received"] += 1
             return "tq1public-unit-address"
         run.receive, run.agree = receive, lambda **_kwargs: None
-        run.bridge = lambda: state.update(connected=True)
+        run.bridge = lambda **_kwargs: state.update(connected=True)
         def action(_host, name, params=None, **_kwargs):
             seen.append((name, params))
             if name == "peer_status":
@@ -586,6 +587,260 @@ class PublicSoakTests(unittest.TestCase):
         run.bridge = run.receive = forbidden
         with self.assertRaisesRegex(ValueError, "intentionally disabled"):
             run.payment("one", "two")
+
+    def preissuance_payment_fixture(self, *, automatic_after=None, inactive=False, declared=True,
+                                   sample_delay=0, peer_delay=0, renewal_delay=0, uncertain=False,
+                                   ready_after_renewal=0, relay_after=0, proof_change=None, divergent_utxo=False,
+                                   generic_peers=False, diverge_on_renewal=False):
+        """Keep the real payment/action/bridge/agreement path; fake only agents/time."""
+        runner = self.runner()
+        config = {"hosts": [{"name": "one", "role": "bootstrap"}, {"name": "two", "role": "follower"}],
+                  "public_endpoint": {"hostname": "public.example.org", "port": 443, "public_ips": ["1.1.1.1"]}}
+        run = runner.Soak(config, "preflight", type("Log", (), {"append": lambda *_: None})(), {}, "future")
+        clock, seen = [100.0], []
+        state = {"renewed_at": None, "sent_at": None, "ready_status_hosts": set(), "ready_peer_hosts": set(),
+                 "receive": {"one": 0, "two": 0}, "relay": False}
+
+        def connected():
+            return ((automatic_after is not None and clock[0] >= 100 + automatic_after) or
+                    (state["renewed_at"] is not None and clock[0] >= state["renewed_at"] + ready_after_renewal))
+
+        def status(host):
+            if connected() or generic_peers:
+                state["ready_status_hosts"].add(host)
+            return {"wallet": {"wallet_id": ("01" if host == "one" else "02") * 16,
+                               "next_receive": state["receive"][host], "next_change": 0},
+                    "nodes": [{"height": 443, "tip": "ab" * 32,
+                               "utxo_hash": ("56" if host == "two" and (divergent_utxo or
+                                             (diverge_on_renewal and state["renewed_at"] is not None)) else "cd") * 32,
+                               "utxo_count": 447, "peers": int(connected() or generic_peers)}]}
+
+        class Agent:
+            def __init__(self, host):
+                self.host = host
+
+            def call(agent, name, params, *, timeout):
+                host = agent.host
+                seen.append((host, name, params, timeout, clock[0], run.action_deadline))
+                delay = {"sample": sample_delay, "peer": peer_delay, "renew_peer": renewal_delay}.get(name, .01)
+                if delay >= timeout:
+                    clock[0] += timeout
+                    raise TimeoutError("Controlled original operation deadline")
+                clock[0] += delay
+                if name == "peer_status":
+                    if connected():
+                        state["ready_peer_hosts"].add(host)
+                    return {"network_active": not inactive, "transaction_peers": int(connected()),
+                            "declared_endpoints": ["127.0.0.1:23834"] if declared else [],
+                            "connected_endpoints": ["127.0.0.1:23834"] if connected() else []}
+                if name == "sample":
+                    return {"bridge_alive": True}
+                if name == "peer":
+                    self.assertEqual(host, "two")
+                    self.assertEqual(params, {"endpoint": "127.0.0.1:23834"})
+                    return {"registered": True, "maintenance": {"rate_limited": True},
+                            "endpoint": "127.0.0.1:23834"}
+                if name == "status":
+                    return status(host)
+                if name == "renew_peer":
+                    self.assertEqual(host, "two")
+                    self.assertEqual(params["endpoint"], "127.0.0.1:23834")
+                    self.assertTrue(0 < params["budget_seconds"] <= min(10, 160 - seen[-1][4]))
+                    state["renewed_at"] = clock[0]
+                    if uncertain:
+                        raise TimeoutError("Controlled uncertain renewal response")
+                    return {"endpoint": "127.0.0.1:23834", "renewed": True, "network_active": True,
+                            "old_peer_ids": [], "new_peer_id": 8, "transport_protocol_type": "v2",
+                            "fresh_pong": True, "ping_sent_before": 8, "ping_sent_after": 16,
+                            "pong_received_before": 8, "pong_received_after": 16, **(proof_change or {})}
+                if name == "receive":
+                    self.assertEqual(state["ready_status_hosts"], {"one", "two"})
+                    self.assertEqual(state["ready_peer_hosts"], {"one", "two"})
+                    index = state["receive"][host]
+                    state["receive"][host] += 1
+                    return {"result": {"branch": 0, "index": index, "address": "tq1public-unit-address"},
+                            "status": status(host)}
+                if name == "send":
+                    state["sent_at"] = clock[0]
+                    return {"broadcast": True, "txid": "ef" * 32}
+                if name == "rebroadcast":
+                    self.assertEqual(params, {"txid": "ef" * 32})
+                    return {"txid": "ef" * 32, "known_in_mempool": True, "rebroadcast": True,
+                            "reissued_payment": False, "raw_transaction_sha256": "12" * 32}
+                if name == "transaction" and "block_hash" not in params:
+                    state["relay"] = clock[0] >= state["sent_at"] + relay_after
+                    return {"txid": "ef" * 32, "in_mempool": state["relay"]}
+                if name == "mine":
+                    self.assertTrue(state["relay"])
+                    return {"blocks": ["34" * 32]}
+                if name == "transaction":
+                    return {"txid": "ef" * 32, "confirmed": True, "confirmations": 1, "block_hash": "34" * 32}
+                self.fail("Unexpected agent mutation: " + name)
+
+        run.agents = {host: Agent(host) for host in run.hosts}
+        for host in run.hosts:
+            run.guard.observe(host, status(host))
+        return runner, run, clock, state, seen
+
+    def test_zero_peer_preissuance_renews_after_rate_limited_registration_before_one_payment(self):
+        runner, run, clock, state, seen = self.preissuance_payment_fixture(ready_after_renewal=.5)
+        with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            try:
+                result = run.payment("one", "two")
+            except (ValueError, TimeoutError) as error:
+                names = [row[1] for row in seen]
+                self.assertEqual([names.count(name) for name in ("renew_peer", "receive", "send", "mine")], [0, 0, 0, 0])
+                self.assertGreaterEqual(clock[0], 160)
+                self.assertLess(clock[0], 160.1)
+                self.fail("Live bridge and registered/rate-limited peer exhausted the original budget without renewal: " + str(error))
+        names = [row[1] for row in seen]
+        self.assertEqual([names.count(name) for name in ("renew_peer", "receive", "send", "mine")], [1, 1, 1, 1])
+        renewal = next(row for row in seen if row[1] == "renew_peer")
+        self.assertGreaterEqual(renewal[4], 110)
+        self.assertTrue(all(row[5] == 160 for row in seen))
+        self.assertLess(names.index("renew_peer"), names.index("receive"))
+        self.assertEqual(state["receive"]["two"], 1)
+        self.assertLess(result["settle_seconds"], 60)
+        self.assertIsNone(run.action_deadline)
+
+    def test_preissuance_repair_refuses_inactive_or_unregistered_policy_before_mutation(self):
+        for options in ({"inactive": True}, {"declared": False}):
+            with self.subTest(options=options):
+                runner, run, clock, _state, seen = self.preissuance_payment_fixture(**options)
+                with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]):
+                    with self.assertRaises(ValueError):
+                        run.payment("one", "two")
+                self.assertTrue(all(row[1] == "peer_status" for row in seen))
+                self.assertIsNone(run.action_deadline)
+
+    def test_preissuance_setup_and_renewal_share_the_original_payment_budget(self):
+        for options in ({"sample_delay": 61}, {"peer_delay": 61},
+                        {"sample_delay": 25, "peer_delay": 29, "renewal_delay": 7}):
+            with self.subTest(options=options):
+                runner, run, clock, _state, seen = self.preissuance_payment_fixture(**options)
+                with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
+                        patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+                    with self.assertRaises(TimeoutError):
+                        run.payment("one", "two")
+                self.assertAlmostEqual(clock[0], 160)
+                self.assertTrue(all(row[5] == 160 for row in seen))
+                names = [row[1] for row in seen]
+                self.assertEqual(names.count("renew_peer"), int("renewal_delay" in options))
+                self.assertTrue(all(name not in names for name in ("receive", "send", "mine")))
+                self.assertIsNone(run.action_deadline)
+
+    def test_preissuance_repair_honors_a_shorter_outer_fault_budget(self):
+        runner, run, clock, _state, seen = self.preissuance_payment_fixture(sample_delay=10, peer_delay=20)
+        run.action_deadline = 125
+        with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]):
+            with self.assertRaises(TimeoutError):
+                run.payment("one", "two")
+        self.assertEqual(clock[0], 125)
+        self.assertTrue(all(row[5] == 125 for row in seen))
+        self.assertEqual(run.action_deadline, 125)
+        self.assertTrue(all(row[1] not in ("renew_peer", "receive", "send", "mine") for row in seen))
+
+    def test_uncertain_preissuance_renewal_is_never_replayed_or_followed_by_issuance(self):
+        runner, run, clock, _state, seen = self.preissuance_payment_fixture(uncertain=True)
+        with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            with self.assertRaisesRegex(TimeoutError, "uncertain renewal"):
+                run.payment("one", "two")
+        names = [row[1] for row in seen]
+        self.assertEqual(names.count("renew_peer"), 1)
+        self.assertTrue(all(name not in names for name in ("receive", "send", "mine")))
+        self.assertIsNone(run.action_deadline)
+
+    def test_quick_automatic_peer_replacement_avoids_explicit_renewal(self):
+        runner, run, clock, _state, seen = self.preissuance_payment_fixture(automatic_after=5)
+        with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            result = run.payment("one", "two")
+        names = [row[1] for row in seen]
+        self.assertEqual([names.count(name) for name in ("peer", "renew_peer", "receive", "send", "mine")], [1, 0, 1, 1, 1])
+        self.assertLess(result["settle_seconds"], 10)
+
+    def test_preissuance_renewal_and_postsend_fallback_share_one_permit(self):
+        runner, run, clock, state, seen = self.preissuance_payment_fixture(relay_after=15)
+        with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            result = run.payment("one", "two")
+        names = [row[1] for row in seen]
+        self.assertEqual([names.count(name) for name in ("renew_peer", "receive", "send", "mine")], [1, 1, 1, 1])
+        self.assertEqual(names.count("rebroadcast"), 1)
+        self.assertLess(names.index("renew_peer"), names.index("send"))
+        self.assertGreaterEqual(clock[0] - state["sent_at"], 15)
+        self.assertLess(result["settle_seconds"], 60)
+
+    def test_preissuance_renewal_needs_fresh_proof_and_actual_two_host_readiness(self):
+        for options in ({"proof_change": {"fresh_pong": False}},
+                        {"proof_change": {"endpoint": "127.0.0.1:23999"}},
+                        {"ready_after_renewal": 55}, {"divergent_utxo": True}):
+            with self.subTest(options=options):
+                runner, run, clock, _state, seen = self.preissuance_payment_fixture(**options)
+                with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
+                        patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+                    with self.assertRaises(ValueError):
+                        run.payment("one", "two")
+                names = [row[1] for row in seen]
+                self.assertEqual(names.count("renew_peer"), 1)
+                self.assertTrue(all(name not in names for name in ("receive", "send", "mine")))
+                self.assertLessEqual(clock[0], 160)
+                self.assertIsNone(run.action_deadline)
+
+    def test_generic_peers_cannot_reuse_pre_renewal_full_state_agreement(self):
+        for outer_deadline in (None, 112):
+            with self.subTest(outer_deadline=outer_deadline):
+                runner, run, clock, _state, seen = self.preissuance_payment_fixture(
+                    generic_peers=True, diverge_on_renewal=True)
+                run.action_deadline = outer_deadline
+                with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
+                        patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+                    with self.assertRaises((ValueError, TimeoutError)):
+                        run.payment("one", "two")
+                names = [row[1] for row in seen]
+                self.assertEqual(names.count("renew_peer"), 1)
+                self.assertTrue(all(name not in names for name in ("receive", "send", "mine")),
+                                "Issued a payment using full-state agreement from before route renewal")
+                renewal_index = names.index("renew_peer")
+                self.assertEqual({row[0] for row in seen[renewal_index + 1:] if row[1] == "status"}, {"one", "two"})
+                expected_deadline = 160 if outer_deadline is None else outer_deadline
+                self.assertTrue(all(row[5] == expected_deadline for row in seen))
+                self.assertLessEqual(clock[0], expected_deadline)
+                self.assertEqual(run.action_deadline, outer_deadline)
+
+    def test_generic_peers_repair_observes_fresh_full_state_before_single_issuance(self):
+        runner, run, clock, _state, seen = self.preissuance_payment_fixture(generic_peers=True, relay_after=15)
+        with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            result = run.payment("one", "two")
+        names = [row[1] for row in seen]
+        self.assertEqual([names.count(name) for name in ("renew_peer", "receive", "send", "mine")], [1, 1, 1, 1])
+        between_repair_and_issuance = seen[names.index("renew_peer") + 1:names.index("receive")]
+        self.assertEqual({row[0] for row in between_repair_and_issuance if row[1] == "status"}, {"one", "two"})
+        self.assertLess(result["settle_seconds"], 60)
+
+    def test_declared_route_lost_during_fresh_agreement_cannot_allow_issuance(self):
+        runner, run, clock, state, seen = self.preissuance_payment_fixture(generic_peers=True)
+        original, lost = run.agents["two"].call, [False]
+        def call(name, params, *, timeout):
+            value = original(name, params, timeout=timeout)
+            if name == "status" and state["renewed_at"] is not None:
+                lost[0] = True
+            if name == "peer_status" and lost[0]:
+                return {**value, "transaction_peers": 0, "connected_endpoints": []}
+            return value
+        run.agents["two"].call = call
+        with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            with self.assertRaises((ValueError, TimeoutError)):
+                run.payment("one", "two")
+        names = [row[1] for row in seen]
+        self.assertTrue(lost[0])
+        self.assertEqual(names.count("renew_peer"), 1)
+        self.assertTrue(all(name not in names for name in ("receive", "send", "mine")))
+        self.assertLessEqual(clock[0], 160)
 
     def renewal_payment_fixture(self, *, absent=False, proof_change=None, renewal_delay=0):
         runner = self.runner()
