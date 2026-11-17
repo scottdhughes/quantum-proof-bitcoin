@@ -705,9 +705,20 @@ class PublicController(Files):
                                   data=helper, check=False, timeout=remaining())
         require(result.returncode == 0 and len(result.stdout) <= 4096, "Public peer recovery refused")
         value = json.loads(result.stdout)
-        require(type(value) is dict and value.get("endpoint") == endpoint and value.get("renewed") is True and
-                value.get("network_active") is True and value.get("fresh_pong") is True,
-                "Public peer recovery proof refused")
+        proof_fields = {"endpoint", "renewed", "network_active", "old_peer_ids", "new_peer_id",
+                        "transport_protocol_type", "fresh_pong", "ping_sent_before", "ping_sent_after",
+                        "pong_received_before", "pong_received_after"}
+        require(type(value) is dict and set(value) == proof_fields and value["endpoint"] == endpoint and
+                value["renewed"] is True and value["network_active"] is True and value["fresh_pong"] is True and
+                type(value["old_peer_ids"]) is list and len(value["old_peer_ids"]) <= 1 and
+                all(type(item) is int and item >= 0 for item in value["old_peer_ids"]) and
+                type(value["new_peer_id"]) is int and value["new_peer_id"] >= 0 and
+                value["new_peer_id"] not in value["old_peer_ids"] and
+                value["transport_protocol_type"] in ("v1", "v2"), "Public peer recovery proof refused")
+        for before, after in (("ping_sent_before", "ping_sent_after"),
+                              ("pong_received_before", "pong_received_after")):
+            require(type(value[before]) is int and type(value[after]) is int and
+                    0 <= value[before] < value[after], "Public peer recovery proof refused")
         require(inspect(self.manager.container) == container_id, "Public container identity changed")
         remaining()
         return value
@@ -735,7 +746,11 @@ class PublicController(Files):
             deadline = time.monotonic() + budget
         with self._mutex:
             if action == "renew_peer":
-                result = self._renew_peer(params.get("endpoint"), deadline)
+                try:
+                    result = self._renew_peer(params.get("endpoint"), deadline)
+                except Exception:
+                    # Do not expose Docker stderr, arguments, or RPC details.
+                    raise legacy.ConsoleError("Public peer recovery refused") from None
                 return {"result": result}
             self._reconcile_handles()
             if action == "start":

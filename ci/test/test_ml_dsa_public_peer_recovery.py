@@ -201,5 +201,247 @@ class ControllerTests(unittest.TestCase):
         instance._request.assert_not_called()
 
 
+class HostPathTests(unittest.TestCase):
+    def setUp(self):
+        import copy
+        import hashlib
+        import threading
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        self.copy, self.patch, self.namespace = copy, patch, SimpleNamespace
+        path = ROOT / "contrib/ml-dsa-console/public_controller.py"
+        spec = importlib.util.spec_from_file_location("host_path_controller", path)
+        self.control = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.control)
+        c = self.control
+        manifest = {
+            "schema": "PQBTC-MLDSA44-SOURCE-BUILD-1",
+            "source_head": "1" * 40,
+            "source_tree": "2" * 40,
+            "compiler": "gcc",
+            "architecture": "x86_64",
+            "sha256": {key: "a" * 64 for key in c.source.REQUIRED_HASHES},
+        }
+        self.descriptor = {
+            "schema": c.source.DESCRIPTOR_SCHEMA,
+            "image": "sha256:" + "a" * 64,
+            "manifest": manifest,
+            "manifest_sha256": hashlib.sha256(c.source.canonical(manifest)).hexdigest(),
+        }
+        self.manager = object.__new__(c.PublicManager)
+        self.manager.descriptor, self.manager.container = (
+            self.descriptor,
+            "pqbtc-mldsa-public-test",
+        )
+        self.manager.volume, self.manager.port = (
+            self.manager.container + "-data-v1",
+            23833,
+        )
+        self.controller = object.__new__(c.PublicController)
+        self.controller.manager, self.controller.descriptor = (
+            self.manager,
+            self.descriptor,
+        )
+        self.controller._mutex = threading.RLock()
+        self.controller._request = Mock(side_effect=AssertionError("worker invoked"))
+        self.identity = "b" * 64
+        self.layout = {
+            "Id": self.identity,
+            "Image": self.descriptor["image"],
+            "Config": {
+                "Labels": self.manager.container_labels(),
+                "Cmd": ["sleep", "infinity"],
+                "User": "",
+            },
+            "HostConfig": {
+                "ReadonlyRootfs": True,
+                "NetworkMode": "bridge",
+                "Memory": 1073741824,
+                "NanoCpus": 2000000000,
+                "PidsLimit": 256,
+                "CapDrop": ["ALL"],
+                "CapAdd": None,
+                "SecurityOpt": ["no-new-privileges"],
+                "Privileged": False,
+                "Tmpfs": c.TMPFS,
+                "RestartPolicy": {"Name": "unless-stopped"},
+                "PortBindings": {
+                    "23833/tcp": [{"HostIp": "127.0.0.1", "HostPort": "23833"}]
+                },
+            },
+            "Mounts": [
+                {
+                    "Type": "volume",
+                    "Name": self.manager.volume,
+                    "Destination": c.DATA,
+                    "RW": True,
+                }
+            ],
+            "State": {"Running": True},
+        }
+        self.proof = {
+            "endpoint": "127.0.0.1:23833",
+            "renewed": True,
+            "network_active": True,
+            "old_peer_ids": [1],
+            "new_peer_id": 2,
+            "transport_protocol_type": "v2",
+            "fresh_pong": True,
+            "ping_sent_before": 10,
+            "ping_sent_after": 20,
+            "pong_received_before": 10,
+            "pong_received_after": 20,
+        }
+        self.calls = []
+        self.before, self.after = self.layout, self.layout
+        self.clock = 100.0
+        self.delays = [1.0, 2.0, 1.0]
+        self.exec_returncode = 0
+        self.exception = None
+        self.manager.run = self.run_docker
+
+    def run_docker(self, args, **kwargs):
+        self.calls.append((args, kwargs))
+        index = len(self.calls) - 1
+        self.clock += self.delays[index]
+        if self.exception and index == 1:
+            raise self.exception
+        payload = (
+            self.before if index == 0 else self.after if index == 2 else self.proof
+        )
+        return self.namespace(
+            returncode=self.exec_returncode if index == 1 else 0,
+            stdout=json.dumps(payload).encode(),
+            stderr=b"secret-auth-stderr",
+        )
+
+    def invoke(self, budget=10):
+        with self.patch.object(
+            self.control.time, "monotonic", side_effect=lambda: self.clock
+        ):
+            return self.controller.action(
+                "renew_peer",
+                {"endpoint": self.proof["endpoint"], "budget_seconds": budget},
+                include_status=False,
+            )
+
+    def test_full_path_uses_verified_id_and_streams_helper_with_shared_budget(self):
+        class Lock:
+            def __enter__(inner):
+                self.clock += 2
+
+            def __exit__(inner, *args):
+                pass
+
+        self.controller._mutex = Lock()
+        value = self.invoke()["result"]
+        self.assertEqual(value, self.proof)
+        self.assertEqual(
+            [round(call[1]["timeout"], 2) for call in self.calls], [8, 7, 5]
+        )
+        args, kwargs = self.calls[1]
+        self.assertEqual(args[4], self.identity)
+        self.assertEqual(kwargs["data"], PATH.read_bytes())
+        self.assertAlmostEqual(float(args[-1]), 7)
+        self.assertNotIn("Env", self.calls[0][0][3])
+        self.controller._request.assert_not_called()
+
+    def test_bad_layout_and_descriptor_never_execute(self):
+        for field in ("image", "layout", "id", "descriptor"):
+            with self.subTest(field=field):
+                self.calls.clear()
+                self.before = self.copy.deepcopy(self.layout)
+                self.controller.descriptor = self.copy.deepcopy(self.descriptor)
+                if field == "image":
+                    self.before["Image"] = "sha256:" + "f" * 64
+                if field == "layout":
+                    self.before["HostConfig"]["Privileged"] = True
+                if field == "id":
+                    self.before["Id"] = "not-a-container-id"
+                if field == "descriptor":
+                    self.controller.descriptor["manifest_sha256"] = "f" * 64
+                with self.assertRaises(Exception):
+                    self.invoke()
+                self.assertFalse(any(call[0][0] == "exec" for call in self.calls))
+                self.clock = 100
+
+    def test_changed_identity_after_execution_fails(self):
+        self.after = self.copy.deepcopy(self.layout)
+        self.after["Id"] = "c" * 64
+        with self.assertRaises(Exception):
+            self.invoke()
+
+    def test_malformed_or_stale_proof_fails_closed(self):
+        variants = [
+            {"fresh_pong": False},
+            {"fresh_pong": "yes"},
+            {"new_peer_id": 1},
+            {"ping_sent_after": 10},
+            {"pong_received_after": 10},
+            {"old_peer_ids": "1"},
+            {"transport_protocol_type": "detecting"},
+            {"unexpected": "private"},
+        ]
+        for change in variants:
+            with self.subTest(change=change):
+                original = self.proof
+                self.proof = {**original, **change}
+                self.calls.clear()
+                self.clock = 100
+                with self.assertRaises(Exception):
+                    self.invoke()
+                self.proof = original
+
+    def test_budget_expired_during_lock_or_probe_skips_execution(self):
+        class Lock:
+            def __enter__(inner):
+                self.clock += 10
+
+            def __exit__(inner, *args):
+                pass
+
+        self.controller._mutex = Lock()
+        with self.assertRaises(Exception):
+            self.invoke()
+        self.assertEqual(self.calls, [])
+        import threading
+
+        self.controller._mutex = threading.RLock()
+        self.clock = 100
+        self.delays = [10, 0, 0]
+        with self.assertRaises(Exception):
+            self.invoke()
+        self.assertEqual(len(self.calls), 1)
+
+    def test_budget_exhaustion_and_errors_are_sanitized(self):
+        import subprocess
+
+        self.delays = [9, 2, 0]
+        with self.assertRaises(Exception):
+            self.invoke()
+        self.assertEqual(len(self.calls), 2)
+        self.calls.clear()
+        self.clock = 100
+        self.delays = [1, 1, 1]
+        self.exception = subprocess.TimeoutExpired(
+            "sensitive-auth-argv", 1, stderr=b"secret-auth-stderr"
+        )
+        with self.assertRaises(Exception) as caught:
+            self.invoke()
+        self.assertNotIn("sensitive-auth", str(caught.exception))
+        self.assertNotIn("secret-auth", str(caught.exception))
+        self.calls.clear()
+        self.clock = 100
+        self.exception = None
+        self.exec_returncode = 1
+        with self.assertRaises(Exception) as caught:
+            self.invoke()
+        self.assertNotIn("secret-auth", str(caught.exception))
+        for budget in (0, 11, float("nan"), True):
+            with self.assertRaises(Exception):
+                self.invoke(budget)
+
+
 if __name__ == "__main__":
     unittest.main()
