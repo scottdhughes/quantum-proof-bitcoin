@@ -558,7 +558,8 @@ class PublicSoakTests(unittest.TestCase):
                 self.assertTrue(state["connected"])
                 self.assertEqual(params, {"txid": "ab" * 32})
                 state["relayed"] = True
-                return {"txid": "ab" * 32, "known_in_mempool": True, "rebroadcast": True, "reissued_payment": False}
+                return {"txid": "ab" * 32, "known_in_mempool": True, "rebroadcast": True, "reissued_payment": False,
+                        "raw_transaction_sha256": "ef" * 32}
             if name == "mine":
                 self.assertTrue(state["relayed"])
                 return {"blocks": ["cd" * 32]}
@@ -586,6 +587,105 @@ class PublicSoakTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "intentionally disabled"):
             run.payment("one", "two")
 
+    def renewal_payment_fixture(self, *, absent=False, proof_change=None, renewal_delay=0):
+        runner = self.runner()
+        config = {"hosts": [{"name": "one", "role": "bootstrap"}, {"name": "two", "role": "follower"}]}
+        run = runner.Soak(config, "preflight", type("Log", (), {"append": lambda *_: None})(), {}, "future")
+        clock, seen = [100.0], []
+        state = {"renewed": False, "relayed": False, "receive_count": 0, "renewal_deadlines": []}
+        def receive(_host):
+            state["receive_count"] += 1
+            return "tq1public-unit-address"
+        run.receive, run.agree = receive, lambda **_kwargs: None
+        def action(host, name, params=None, **kwargs):
+            seen.append((host, name, params, kwargs))
+            if name == "peer_status":
+                return {"network_active": True, "transaction_peers": 1,
+                        "declared_endpoints": ["127.0.0.1:23834"], "connected_endpoints": ["127.0.0.1:23834"]}
+            if name == "send":
+                return {"broadcast": True, "txid": "ab" * 32}
+            if name == "renew_peer":
+                self.assertEqual(host, "two")
+                self.assertEqual(params["endpoint"], "127.0.0.1:23834")
+                self.assertTrue(0 < params["budget_seconds"] <= 10)
+                state["renewal_deadlines"].append(run.action_deadline)
+                clock[0] += renewal_delay
+                state["renewed"] = True
+                value = {"endpoint": "127.0.0.1:23834", "renewed": True, "network_active": True,
+                         "old_peer_ids": [7], "new_peer_id": 8, "transport_protocol_type": "v2",
+                         "fresh_pong": True, "ping_sent_before": 8, "ping_sent_after": 16,
+                         "pong_received_before": 8, "pong_received_after": 16}
+                return {**value, **(proof_change or {})}
+            if name == "rebroadcast":
+                self.assertEqual(params, {"txid": "ab" * 32})
+                state["relayed"] = state["renewed"] and not absent
+                return {"txid": "ab" * 32, "known_in_mempool": True, "rebroadcast": True,
+                        "reissued_payment": False, "raw_transaction_sha256": "ef" * 32}
+            if name == "transaction" and "block_hash" not in params:
+                clock[0] += 2
+                return {"txid": "ab" * 32, "in_mempool": state["relayed"]}
+            if name == "mine":
+                self.assertTrue(state["relayed"])
+                return {"blocks": ["cd" * 32]}
+            return {"txid": "ab" * 32, "confirmed": True, "confirmations": 1, "block_hash": "cd" * 32}
+        run.action = action
+        return runner, run, clock, state, seen
+
+    def test_connected_peer_loss_renews_declared_route_once_without_new_payment(self):
+        runner, run, clock, state, seen = self.renewal_payment_fixture()
+        with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            result = run.payment("one", "two")
+        names = [row[1] for row in seen]
+        self.assertEqual(result["txid"], "ab" * 32)
+        self.assertEqual(names.count("send"), 1)
+        self.assertEqual(state["receive_count"], 1)
+        self.assertEqual(names.count("renew_peer"), 1)
+        self.assertEqual(names.count("rebroadcast"), 1)
+        self.assertLess(names.index("renew_peer"), names.index("rebroadcast"))
+        self.assertEqual(state["renewal_deadlines"], [160.0])
+        self.assertLessEqual(result["settle_seconds"], 60)
+
+    def test_peer_renewal_requires_fresh_target_proof_before_reannouncement(self):
+        for change in ({"fresh_pong": False}, {"new_peer_id": 7}, {"network_active": False},
+                       {"ping_sent_after": 8}, {"pong_received_after": 8}, {"endpoint": "127.0.0.1:23999"}):
+            with self.subTest(change=change):
+                runner, run, clock, _state, seen = self.renewal_payment_fixture(proof_change=change)
+                with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
+                        patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+                    with self.assertRaises(ValueError):
+                        run.payment("one", "two")
+                names = [row[1] for row in seen]
+                self.assertEqual(names.count("renew_peer"), 1)
+                self.assertNotIn("rebroadcast", names)
+                self.assertNotIn("mine", names)
+
+    def test_peer_renewal_cannot_replace_original_payment_deadline(self):
+        runner, run, clock, state, seen = self.renewal_payment_fixture(renewal_delay=55)
+        with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            with self.assertRaises(ValueError):
+                run.payment("one", "two")
+        names = [row[1] for row in seen]
+        self.assertEqual(state["renewal_deadlines"], [160.0])
+        self.assertEqual(names.count("send"), 1)
+        self.assertNotIn("rebroadcast", names)
+        self.assertNotIn("mine", names)
+        self.assertIsNone(run.action_deadline)
+
+    def test_renewal_proof_without_recipient_mempool_cannot_pass_payment(self):
+        runner, run, clock, state, seen = self.renewal_payment_fixture(absent=True)
+        with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            with self.assertRaises(ValueError):
+                run.payment("one", "two")
+        names = [row[1] for row in seen]
+        self.assertEqual(names.count("renew_peer"), 1)
+        self.assertEqual(names.count("send"), 1)
+        self.assertEqual(state["receive_count"], 1)
+        self.assertNotIn("mine", names)
+        self.assertIsNone(run.action_deadline)
+
     def test_known_rebroadcast_never_restarts_the_sixty_second_clock(self):
         runner = self.runner()
         config = {"hosts": [{"name": "one", "role": "bootstrap"}, {"name": "two", "role": "follower"}]}
@@ -598,13 +698,18 @@ class PublicSoakTests(unittest.TestCase):
                         "declared_endpoints": ["127.0.0.1:23834"], "connected_endpoints": ["127.0.0.1:23834"]}
             if name == "send":
                 return {"broadcast": True, "txid": "ab" * 32}
+            if name == "renew_peer":
+                return {"endpoint": "127.0.0.1:23834", "renewed": True, "network_active": True,
+                        "old_peer_ids": [7], "new_peer_id": 8, "transport_protocol_type": "v2", "fresh_pong": True,
+                        "ping_sent_before": 8, "ping_sent_after": 16, "pong_received_before": 8, "pong_received_after": 16}
             if name == "transaction":
                 clock[0] += 10
                 return {"txid": "ab" * 32, "in_mempool": False}
             if name == "rebroadcast":
                 deadlines.append(run.action_deadline)
                 clock[0] += 55
-                return {"txid": "ab" * 32, "known_in_mempool": True, "rebroadcast": True, "reissued_payment": False}
+                return {"txid": "ab" * 32, "known_in_mempool": True, "rebroadcast": True, "reissued_payment": False,
+                        "raw_transaction_sha256": "ef" * 32}
             self.fail("Late payment was mined or retried")
         run.action = action
         with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \

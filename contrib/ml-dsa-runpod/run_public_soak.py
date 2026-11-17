@@ -30,7 +30,8 @@ CONTROL_FILES = (
     "contrib/ml-dsa-runpod/run_public_soak.py", "contrib/ml-dsa-runpod/runpod_agent.py",
     "contrib/ml-dsa-runpod/native_backend.py", "contrib/ml-dsa-runpod/native_exec.py",
     "contrib/ml-dsa-qualification/run_public_soak.py", "contrib/ml-dsa-qualification/public_soak_agent.py",
-    "contrib/ml-dsa-console/public_controller.py", "contrib/ml-dsa-qualification/public_transport.py",
+    "contrib/ml-dsa-console/public_controller.py", "contrib/ml-dsa-console/public_peer_recovery.py",
+    "contrib/ml-dsa-qualification/public_transport.py",
 )
 _prepare_config = base.prepare_config
 _docker_namespace_probe, _docker_namespace_claim = base.namespace_probe, base.namespace_claim

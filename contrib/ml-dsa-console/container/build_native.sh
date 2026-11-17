@@ -97,6 +97,7 @@ paths=[
  '/tmp/mldsa-demo-source/contrib/ml-dsa-production-contract/public-test-manifest-v1.json',
  '/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_runtime.py',
  '/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_controller.py',
+ '/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_peer_recovery.py',
  '/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_app.py',
  '/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_public_app_ci.py',
  '/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_transport.py',

@@ -37,7 +37,8 @@ NODE = "/tmp/mldsa-demo-build/bin/pqbtcd"
 SIGNER = "/tmp/demo-signer-bin/pilot-signer"
 SOURCE_PREFIX = "/tmp/mldsa-demo-source/"
 CONTROL_FILES = ("contrib/ml-dsa-qualification/public_soak_agent.py",
-                 "contrib/ml-dsa-console/public_controller.py", "contrib/ml-dsa-qualification/public_transport.py")
+                 "contrib/ml-dsa-console/public_controller.py", "contrib/ml-dsa-console/public_peer_recovery.py",
+                 "contrib/ml-dsa-qualification/public_transport.py")
 CLAIM_SCHEMA = "PQBTC-MLDSA44-SOAK-ATTEMPT-CLAIM-1"
 CLAIM_FILE = ".public-soak-attempt.json"
 FAULTS = (("crash", 2 * 3600), ("partition", 4 * 3600), ("hostile", 6 * 3600),
@@ -984,6 +985,26 @@ class Soak:
                 time.sleep(min(0.1, max(0, deadline - time.monotonic())))
             raise ValueError("Declared public peer repair did not restore transaction relay")
 
+    def renew_declared_peer(self):
+        endpoint = "127.0.0.1:23834"
+        require(self.action_deadline is not None, "Peer renewal requires the original payment deadline")
+        budget = min(10.0, self.action_deadline - time.monotonic())
+        require(budget > 0, "Peer renewal reached the original payment deadline")
+        value = self.action(self.follower, "renew_peer", {"endpoint": endpoint, "budget_seconds": budget}, timeout=budget)
+        require(value.get("endpoint") == endpoint and value.get("renewed") is True and
+                value.get("network_active") is True and value.get("fresh_pong") is True,
+                "Declared peer renewal lacks fresh native proof")
+        old, new = value.get("old_peer_ids"), value.get("new_peer_id")
+        require(type(old) is list and len(old) <= 1 and all(type(item) is int and item >= 0 for item in old) and
+                type(new) is int and new >= 0 and new not in old and value.get("transport_protocol_type") in ("v1", "v2"),
+                "Declared peer renewal did not establish a new target identity")
+        for label in ("ping_sent", "pong_received"):
+            before, after = value.get(label + "_before"), value.get(label + "_after")
+            require(type(before) is int and type(after) is int and 0 <= before < after,
+                    "Declared peer renewal returned stale native ping evidence")
+        require(time.monotonic() < self.action_deadline, "Peer renewal exceeded the original payment deadline")
+        return value
+
     def probe(self):
         sys.path.insert(0, str(HERE))
         from public_transport import PublicEndpoint, probe
@@ -1033,7 +1054,8 @@ class Soak:
             address = self.receive(receiver)
             sent = self.action(sender, "send", {"address": address, "amount_sats": 100_000, "fee_sats": 5000}, timeout=60)
             require(sent.get("broadcast") is True and hex64(sent.get("txid")), "Actual test payment was not broadcast")
-            checked_peers, rebroadcast_at = None, time.monotonic()
+            broadcast_at = time.monotonic()
+            checked_peers, rebroadcast_at, route_renewed, known_raw_sha256 = None, broadcast_at, False, None
             while time.monotonic() < self.action_deadline:
                 tx = self.action(receiver, "transaction", {"txid": sent["txid"]})
                 require(tx.get("txid") == sent["txid"], "Receiver relay observation returned another transaction")
@@ -1045,13 +1067,20 @@ class Soak:
                         self.ensure_transaction_peers()
                         repaired = True
                     checked_peers = time.monotonic()
+                if not route_renewed and time.monotonic() - broadcast_at >= 10:
+                    self.renew_declared_peer()
+                    route_renewed, repaired = True, True
                 if repaired or time.monotonic() - rebroadcast_at >= 10:
                     # Reannounce only the already-known mempool transaction.
                     # This never repeats receive/sign/send or consumes a path.
+                    require(time.monotonic() < self.action_deadline, "Known reannouncement exceeded the original payment deadline")
                     value = self.action(sender, "rebroadcast", {"txid": sent["txid"]})
                     require(value.get("txid") == sent["txid"] and value.get("known_in_mempool") is True and
-                            value.get("rebroadcast") is True and value.get("reissued_payment") is False,
+                            value.get("rebroadcast") is True and value.get("reissued_payment") is False and
+                            hex64(value.get("raw_transaction_sha256")) and
+                            known_raw_sha256 in (None, value["raw_transaction_sha256"]),
                             "Known-transaction reannouncement identity or ownership proof failed")
+                    known_raw_sha256 = value["raw_transaction_sha256"]
                     rebroadcast_at = time.monotonic()
                 time.sleep(min(0.1, max(0, self.action_deadline - time.monotonic())))
             else:

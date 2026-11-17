@@ -24,6 +24,8 @@ class PublicSoakAgentTests(unittest.TestCase):
         from unittest.mock import Mock
         for action, params, result in (
                 ("peer_status", {}, {"network_active": True, "transaction_peers": 1}),
+                ("renew_peer", {"endpoint": "127.0.0.1:23834", "budget_seconds": 8.0},
+                 {"endpoint": "127.0.0.1:23834", "renewed": True, "fresh_pong": True}),
                 ("rebroadcast", {"txid": "ab" * 32}, {"txid": "ab" * 32, "reissued_payment": False})):
             with self.subTest(action=action):
                 controller = SimpleNamespace(action=Mock(return_value={"result": result}))
