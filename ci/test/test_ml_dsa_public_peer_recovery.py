@@ -54,6 +54,91 @@ class RecoveryTests(unittest.TestCase):
         self.assertNotIsInstance(caught.exception, TypeError)
         self.assertEqual(self.node.mutations, [])
 
+    def test_delayed_disconnect_attempts_connection_once_after_old_disappears(self):
+        class DelayedNode(FakeNode):
+            def __init__(self, endpoint):
+                super().__init__(endpoint)
+                self.delayed = True
+
+            def getpeerinfo(self):
+                if self.phase == 1 and self.delayed:
+                    self.delayed = False
+                    self.phase = 0
+                    result = super().getpeerinfo()
+                    self.phase = 1
+                    return result
+                return super().getpeerinfo()
+
+        self.node = DelayedNode(self.endpoint)
+        result = self.run_recovery(0.3)
+        self.assertEqual(result["new_peer_id"], 2)
+        self.assertEqual(
+            self.node.mutations,
+            [
+                ("disconnectnode", "", 1),
+                ("addnode", self.endpoint, "onetry", True),
+                ("ping",),
+            ],
+        )
+
+    def test_automatic_replacement_needs_no_connection_attempt(self):
+        class ReplacementNode(FakeNode):
+            def disconnectnode(self, *args):
+                self.mutations.append(("disconnectnode", *args))
+                self.phase = 2
+
+        self.node = ReplacementNode(self.endpoint)
+        result = self.run_recovery(0.3)
+        self.assertEqual(result["new_peer_id"], 2)
+        self.assertEqual(self.node.mutations, [("disconnectnode", "", 1), ("ping",)])
+
+    def test_uncertain_mutation_responses_are_not_replayed(self):
+        class UncertainNode(FakeNode):
+            def disconnectnode(self, *args):
+                super().disconnectnode(*args)
+                raise OSError("lost response")
+
+            def addnode(self, *args):
+                super().addnode(*args)
+                raise OSError("lost response")
+
+        self.node = UncertainNode(self.endpoint)
+        result = self.run_recovery(0.3)
+        self.assertEqual(result["new_peer_id"], 2)
+        self.assertEqual(
+            self.node.mutations,
+            [
+                ("disconnectnode", "", 1),
+                ("addnode", self.endpoint, "onetry", True),
+                ("ping",),
+            ],
+        )
+
+    def test_unanswered_connection_attempt_is_not_replayed(self):
+        class UncertainNode(FakeNode):
+            def addnode(self, *args):
+                self.mutations.append(("addnode", *args))
+                raise OSError("unknown outcome")
+
+        self.node = UncertainNode(self.endpoint)
+        with self.assertRaises(Exception):
+            self.run_recovery(0.12)
+        self.assertEqual(
+            self.node.mutations,
+            [("disconnectnode", "", 1), ("addnode", self.endpoint, "onetry", True)],
+        )
+
+    def test_network_off_after_disconnect_prevents_connection_attempt(self):
+        class PausedNode(FakeNode):
+            def disconnectnode(self, *args):
+                super().disconnectnode(*args)
+                self.active = False
+
+        self.node = PausedNode(self.endpoint)
+        with self.assertRaises(Exception):
+            self.run_recovery(0.3)
+        self.assertEqual(self.node.mutations, [("disconnectnode", "", 1)])
+
     def test_policy_guards_and_off(self):
         self.policy["network_active"] = False
         self.write_policy()

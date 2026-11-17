@@ -85,20 +85,26 @@ def renew(node, state, endpoint, budget_seconds, *, deadline=None):
             except Exception:
                 # The RPC may have taken effect before a lost response.
                 pass
-    current = peers(guard())
-    if not current:
-        try:
-            args = (endpoint, 'onetry') if transport is None else (endpoint, 'onetry', transport == 'v2')
-            rpc('addnode', *args)
-        except Exception:
-            # A connection may already be in flight; observe without replay.
-            pass
     baseline = None
+    attempted = False
     while True:
         targets = guard()
         current = peers(targets)
-        if current:
+        if not current and not attempted:
+            # Disconnect can return before the old ID disappears. Attempt once
+            # only after observing absence, and never replay an uncertain RPC.
+            attempted = True
+            try:
+                args = (endpoint, 'onetry') if transport is None else (endpoint, 'onetry', transport == 'v2')
+                rpc('addnode', *args)
+            except Exception:
+                # A connection may already be in flight; observe without replay.
+                pass
+        elif current:
             peer = current[0]
+            if peer['id'] not in old_ids:
+                # An automatic replacement is already underway.
+                attempted = True
             if peer['id'] not in old_ids and peer.get('version', 0) > 0 and peer.get('relaytxes') is True and peer.get('connection_type') in ('manual', 'inbound', 'outbound-full-relay'):
                 observed_transport = peer.get('transport_protocol_type')
                 require(observed_transport in ('v1', 'v2') and (transport is None or transport == observed_transport),
