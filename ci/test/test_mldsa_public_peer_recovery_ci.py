@@ -621,6 +621,36 @@ class StartupHelperTests(unittest.TestCase):
                 self.assertIs(row['running'], False)
                 self.assertEqual(len([call for call in state['calls'] if call[0] == 'stop']), 1)
 
+    def test_volume_initializer_accepts_exact_chown_capability_aliases(self):
+        for capabilities in (['CHOWN'], ['CAP_CHOWN']):
+            with self.subTest(capabilities=capabilities), tempfile.TemporaryDirectory() as directory:
+                helpers, manager, args, state = self.fixture(directory, 'volume_init',
+                    corrupt=lambda row: row['HostConfig'].update(CapAdd=capabilities))
+                try:
+                    result = manager.run(args)
+                except ValueError:
+                    self.fail('Exact CHOWN capability alias refused before initializer start')
+                self.assertEqual(result.stdout, b'product-result')
+                self.assertEqual(state['start_count'], 1)
+                self.assertEqual(args[args.index('--cap-add')+1], 'CHOWN')
+                self.assertEqual(helpers.receipts()[0]['launch_state'], 'START_ACKNOWLEDGED')
+                self.assertIs(helpers.receipts()[0]['absence_proved'], True)
+
+    def test_volume_initializer_refuses_changed_extra_or_duplicate_capabilities(self):
+        for capabilities in (None, [], 'CHOWN', ['chown'], ['SETUID'], ['CAP_SETUID'],
+                             ['CHOWN', 'SETUID'], ['CAP_CHOWN', 'CAP_SETUID'],
+                             ['CHOWN', 'CHOWN'], ['CAP_CHOWN', 'CAP_CHOWN'],
+                             ['CHOWN', 'CAP_CHOWN'], ['CAP_CHOWN', 'CHOWN']):
+            with self.subTest(capabilities=capabilities), tempfile.TemporaryDirectory() as directory:
+                helpers, manager, args, state = self.fixture(directory, 'volume_init',
+                    corrupt=lambda row: row['HostConfig'].update(CapAdd=capabilities))
+                with self.assertRaises(ValueError):
+                    manager.run(args)
+                self.assertEqual(state['start_count'], 0)
+                self.assertFalse(any(call[0] in ('stop', 'rm') for call in state['calls']))
+                with self.assertRaises(ValueError):
+                    helpers.stop_all()
+
     def test_lost_response_with_changed_layout_never_stops_unowned_helper(self):
         for corrupt in (lambda row: row['HostConfig'].update(Memory=1),
                         lambda row: row['Config'].update(User='wrong'),

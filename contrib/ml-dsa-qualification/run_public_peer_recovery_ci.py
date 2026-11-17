@@ -307,7 +307,7 @@ class StartupHelper:
             require(config.get('User') == '1001:1000' and host.get('CapAdd') in (None, []) and mounts == [],
                     'Image-check helper UID/capabilities/mounts changed')
         else:
-            require(config.get('User', '') in ('', '0') and host.get('CapAdd') == ['CHOWN'] and
+            require(config.get('User', '') in ('', '0') and host.get('CapAdd') in (['CHOWN'], ['CAP_CHOWN']) and
                     type(mounts) is list and len(mounts) == 1 and mounts[0].get('Type') == 'volume' and
                     mounts[0].get('Name') == self.volume and mounts[0].get('Destination') == controls.DATA and
                     mounts[0].get('RW') is True, 'Volume-init helper UID/capabilities/mount changed')
