@@ -1,0 +1,118 @@
+{
+  "archive_bytes": 36127,
+  "archive_sha256": "2f9fa34d5983493b7bd58a7756ac259ecd2695eb37eb86dd23736e8b29228fd0",
+  "directory_count": 4,
+  "file_count": 12,
+  "members": [
+    {
+      "bytes": 0,
+      "mode": "0700",
+      "path": "packet",
+      "type": "directory"
+    },
+    {
+      "bytes": 8,
+      "mode": "0644",
+      "path": "packet/.gitattributes",
+      "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da",
+      "type": "file"
+    },
+    {
+      "bytes": 3804,
+      "mode": "0644",
+      "path": "packet/README.md",
+      "sha256": "ccff99ef18d06c99aef5c20b5e1d08296cf3a250f8b7873be1430207fd166a0f",
+      "type": "file"
+    },
+    {
+      "bytes": 945,
+      "mode": "0644",
+      "path": "packet/SHA256SUMS",
+      "sha256": "53e6d043fb20fd84ede652360dff2f187af03e7f47ae8c75bdd592ac51ceb0b8",
+      "type": "file"
+    },
+    {
+      "bytes": 5273,
+      "mode": "0644",
+      "path": "packet/SOURCE.json",
+      "sha256": "b360acbc0cbb688639a32d7c10913a6428115823121b1f6520787e1347d96068",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0700",
+      "path": "packet/fixture",
+      "type": "directory"
+    },
+    {
+      "bytes": 22578,
+      "mode": "0644",
+      "path": "packet/fixture/bulk_recovery.py",
+      "sha256": "c13df76b388861d7e059de8d894d1e4946128b9b558bda987e6ebd5c2bd45fcb",
+      "type": "file"
+    },
+    {
+      "bytes": 13528,
+      "mode": "0644",
+      "path": "packet/fixture/test_bulk_recovery.py",
+      "sha256": "ce1478c9d2460d08d49177e88364b0e458bffcf25da12fbb9c3887dfc6224181",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0700",
+      "path": "packet/native",
+      "type": "directory"
+    },
+    {
+      "bytes": 30509,
+      "mode": "0644",
+      "path": "packet/native/arm-gcc-runtime.json",
+      "sha256": "d9cb075bfc4fdc03911eb7b0d702a622d88230a7801d9228831b2f289d869db2",
+      "type": "file"
+    },
+    {
+      "bytes": 11191,
+      "mode": "0755",
+      "path": "packet/negative-controls.py",
+      "sha256": "7e93198fa7d129a8f0ea436876dc0fc9a8c99153d0c7306cfcd5cf7dc856f929",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0700",
+      "path": "packet/receipt",
+      "type": "directory"
+    },
+    {
+      "bytes": 3377,
+      "mode": "0644",
+      "path": "packet/receipt/events.jsonl",
+      "sha256": "c75c3701c1a7f19d07328fdbe179a6c100c4d37eaf7e76269943dc166defde9d",
+      "type": "file"
+    },
+    {
+      "bytes": 1873,
+      "mode": "0644",
+      "path": "packet/receipt/report.json",
+      "sha256": "d81f175d7f94b7b85f3b93433c403dacc3c08b83283ceeb0c003d44995245de4",
+      "type": "file"
+    },
+    {
+      "bytes": 7434,
+      "mode": "0644",
+      "path": "packet/verification-controls.json",
+      "sha256": "44ba5e211ba4b23d5ed4ec9e73e1d329285ffb62003101c31b276390893bf61d",
+      "type": "file"
+    },
+    {
+      "bytes": 16156,
+      "mode": "0755",
+      "path": "packet/verify.py",
+      "sha256": "e0d62ebe007c66f1ff612f2d2878f02e8160089efd332dd8be9c071475f1226f",
+      "type": "file"
+    }
+  ],
+  "schema": "PQBTC-ARCHIVED-EVIDENCE-PACKET-1",
+  "tar_bytes": 133120
+}

@@ -1,0 +1,167 @@
+{
+  "archive_bytes": 564414,
+  "archive_sha256": "0b5d4956a1914109965c1cbd3a1d65f9d0b327133aebc0b11c4919cf18ad0fa1",
+  "directory_count": 4,
+  "file_count": 19,
+  "members": [
+    {
+      "bytes": 0,
+      "mode": "0700",
+      "path": "packet",
+      "type": "directory"
+    },
+    {
+      "bytes": 8,
+      "mode": "0644",
+      "path": "packet/.gitattributes",
+      "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da",
+      "type": "file"
+    },
+    {
+      "bytes": 2834,
+      "mode": "0644",
+      "path": "packet/README.md",
+      "sha256": "e6a2de80581f8021a9e3c4c0f832ee5022bba47e9af0560946b4f5132fb18ded",
+      "type": "file"
+    },
+    {
+      "bytes": 1585,
+      "mode": "0644",
+      "path": "packet/SHA256SUMS",
+      "sha256": "cb19235fcc6164ecd6d219b0b98a2bf54526beb8797ab43a7ecbccbe3aa57d69",
+      "type": "file"
+    },
+    {
+      "bytes": 10426,
+      "mode": "0644",
+      "path": "packet/SOURCE.json",
+      "sha256": "95a8a8d337911e53ef95ccc23839ee55aad0339eaf070384acc6099fecafb523",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0700",
+      "path": "packet/closeout",
+      "type": "directory"
+    },
+    {
+      "bytes": 6452,
+      "mode": "0644",
+      "path": "packet/closeout/l02-backend-observer-result.json",
+      "sha256": "c38266c8f9eea3aa0f5bb553171feebdc63dafa06ae8a7410b3d23ec065f1bdf",
+      "type": "file"
+    },
+    {
+      "bytes": 86889,
+      "mode": "0644",
+      "path": "packet/frozen-l-public-soak-driver.py",
+      "sha256": "6668f219acff79a25161d57bf505a3204ab50ef434adbb3487f913f0f913a6d0",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0700",
+      "path": "packet/l01",
+      "type": "directory"
+    },
+    {
+      "bytes": 10757,
+      "mode": "0644",
+      "path": "packet/l01/declaration.json",
+      "sha256": "660bea8afe1e7fda08257bf11dba62a899e0a7db00c8183b07846065b799f33e",
+      "type": "file"
+    },
+    {
+      "bytes": 236340,
+      "mode": "0644",
+      "path": "packet/l01/events.jsonl.gz",
+      "sha256": "53613359bbb345e0f3f14a1a66207a8607c16ea072fd051d4bc43385de13903a",
+      "type": "file"
+    },
+    {
+      "bytes": 251,
+      "mode": "0644",
+      "path": "packet/l01/evidence-sha256.json",
+      "sha256": "dcfcebbe98ebb72ad05959ae1cc29b0edef44196b4501f4c418a037bf9c01b3b",
+      "type": "file"
+    },
+    {
+      "bytes": 32088,
+      "mode": "0644",
+      "path": "packet/l01/independent-review.json",
+      "sha256": "a39f768307403435cc866fff87aeee2a348066d0dc91bf9f5338265235544a01",
+      "type": "file"
+    },
+    {
+      "bytes": 2481,
+      "mode": "0644",
+      "path": "packet/l01/report.json",
+      "sha256": "e7240a1350897f0132a5ad22c855b871e0f9cc0d68e06b189a430fbd31fd16f6",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0700",
+      "path": "packet/l02",
+      "type": "directory"
+    },
+    {
+      "bytes": 10757,
+      "mode": "0644",
+      "path": "packet/l02/declaration.json",
+      "sha256": "c0316cca1b4372da7aeead0b0973b8e685ab168de3b545ef1a0cfa107e4de937",
+      "type": "file"
+    },
+    {
+      "bytes": 266352,
+      "mode": "0644",
+      "path": "packet/l02/events.jsonl.gz",
+      "sha256": "6ee9059dbe7578241c1f0aab23675c46028b91f84bb31596f37d79709c9c2b35",
+      "type": "file"
+    },
+    {
+      "bytes": 251,
+      "mode": "0644",
+      "path": "packet/l02/evidence-sha256.json",
+      "sha256": "00fd6093468d770bb062c29c4c7f61e88007915df37e28b9d03619b2ff8f9b19",
+      "type": "file"
+    },
+    {
+      "bytes": 24310,
+      "mode": "0644",
+      "path": "packet/l02/independent-review.json",
+      "sha256": "f67fcafc7526e7828dbda1262ac0ddb8ae723782579078a556a88a299f663a54",
+      "type": "file"
+    },
+    {
+      "bytes": 11341,
+      "mode": "0644",
+      "path": "packet/l02/report.json",
+      "sha256": "f47e3dcb56ef56f62ff7aa1f7964f9d31a4e82fca698322d5f29a520eb2b2ee1",
+      "type": "file"
+    },
+    {
+      "bytes": 2776,
+      "mode": "0644",
+      "path": "packet/l02/root-terminal-review.json",
+      "sha256": "8281f0b7d7930859fcdd4e2aa776e7b720d985f70bfb441ab4501837ef30e6ef",
+      "type": "file"
+    },
+    {
+      "bytes": 6561,
+      "mode": "0644",
+      "path": "packet/verification-controls.json",
+      "sha256": "554a1c77936035d982d7d4de95ea40affc99ee3c73d8f92c373e53014a06f9c1",
+      "type": "file"
+    },
+    {
+      "bytes": 28900,
+      "mode": "0755",
+      "path": "packet/verify.py",
+      "sha256": "dc93ffdebab483fb37db4e21495733650ac4f9abb63adc20da19df60449b5f3e",
+      "type": "file"
+    }
+  ],
+  "schema": "PQBTC-ARCHIVED-EVIDENCE-PACKET-1",
+  "tar_bytes": 768000
+}

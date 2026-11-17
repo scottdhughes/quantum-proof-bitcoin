@@ -1,84 +1,90 @@
-# Candidate L: failed public soak, first full attempt
+# Archived selected public evidence: l-7223772e-failed-soak
 
-**The attempt failed. No partial elapsed time is credited to a replacement run.**
-The frozen host runner was L `7223772e76d2d0a0bb7fd1d35e0e16fba61918fd`, tree
-`33b36275b1da7f7fbc27fae00d519206b0f7c16f`. The two qualified H native images
-were still in use when it failed; the declared later H/L upgrade and rollback
-phases had not been reached.
+The complete original selected packet is preserved unchanged in [`packet.tar.gz`](packet.tar.gz), under one `packet/` root, including its original README, checksum seal, files and POSIX modes. The [checksum](packet.tar.gz.sha256) and [member index](packet-index.json) bind the archive and each member's bytes, type and mode. Archive SHA256: `534cdf4ce48e35122f6e3d83db1cefbe387ef2219f167b71e3533c48710cc5de`. Hashes check custody, not signer authenticity. Archive ownership and timestamps are normalized; they are not historical filesystem metadata.
 
-The actual public clock started at **2026-11-17 01:51:39.968062 UTC**. The failure
-boundary was **05:14:40.050802 UTC**, after **12,180.020856708 monotonic seconds**
-and **12,180.082740 wall seconds** (about 3 hours 23 minutes). This is a partial
-clock to failure, not a completed 86,400-second clock. The final cleanup event
-occurred later and is not used to inflate that elapsed time.
+This packaging preserves the original evidence scope, results and exclusions. It does not qualify later source, establish a completed public soak, or claim human review or production admission. The original README inside the archive provides packet-specific results and limits.
 
-The retained record contains:
-
-- 24,085 chained events, ending in
-  `9a862bbab5586acfd6d4dae26cd16b4f46e8f88da9fffb70c087da88261f1724`.
-- 205 unique confirmed payments. Each joins an actual send, recipient mempool
-  observation, mined block, both nodes' exact transaction/block proofs, and
-  matching height, tip, full UTXO hash and UTXO count.
-- 202 completed normal slots, all successful, and zero recorded normal misses.
-  The next slot did not complete; it is not relabeled as a declared fault miss.
-- One completed fault phase, crash/recovery, out of the seven declared phases.
-  The remaining phases, full-clock end probe, terminal old-backup recovery and
-  final recovered spend were not reached.
-
-The pending Mac-to-Research transaction was
-`f52c9e1538c8f9aa619266c06e5389fa194b724a51a769d0b00de54db6adcb94`.
-Mac reported its broadcast at 05:13:42.049880 UTC. All 320 completed recipient
-queries before failure reported it absent from Research's mempool and
-unconfirmed. Five same-known-transaction rebroadcasts reported the same TXID and
-raw-transaction SHA256
-`d9216ce739ace40ebbc309eada41f54317d7f48ec7d009e95480cc9f1bd8e028`,
-with `known_in_mempool=true` and `reissued_payment=false`. No additional receive
-or send action appears after that broadcast. This is an event-level issuance
-observation; post-broadcast wallet checkpoints were not independently reobserved.
-
-All 100 peer-status responses from initial payment readiness through failure
-(two before broadcast, 98 afterward) reported one transaction peer and active
-networking. Those counters do not establish fresh pong delivery or receiver
-acceptance. The final recipient query was dispatched at 05:14:39.998312 UTC;
-the shared original 60-second payment/action budget then expired with
-`Owned agent response deadline; ambiguous operations are not retried`.
-The roughly 52.49 milliseconds between that logged dispatch and failure are not a
-recorded remaining action budget. The exact payment deadline was not logged.
-**The live cause remains unknown. Neither an agent stall nor zero peers is
-proved by these records.** No later reproducer or forensic result is included.
-
-Recorded owned cleanup passed for both backends and retained their data. A later
-independent Research closeout confirmed its registered processes were gone, its
-failed backend was stopped with PID 0, both engines were idle, and the aggregate
-two-CPU/four-GiB limit remained unchanged. The registered worker CLI exited 0 at
-05:14:42.321440 UTC, **2.270638 seconds after the failure**, during cleanup.
-Its exit 0 and the container's cleanup exit 137 do not identify the earlier relay
-failure cause. The referenced filtered process trace and other raw closeout
-receipts are external; this packet does not claim local custody of them.
-
-The six original report/declaration/inventory/driver/review/closeout files are
-unchanged. The deterministic gzip expands exactly to the original inventory-bound
-event bytes. The closeout's early missing-datadir feasibility note and the
-reviewer's then-pending Desktop note remain historical statements; they are not
-current task or permission status. Separate preflight results do not change this
-FAIL or provide 24-hour credit, and they are outside this selected packet.
-
-Run offline with Python's standard library on a physical, nonsymlink POSIX path:
+On a POSIX system with Python 3.11 or newer, run this standard-library command from this directory. It verifies the archive and safe exact member closure, restores original modes in a fresh temporary directory, and runs the original offline verifier. The temporary directory is retained and its path printed.
 
 ```sh
-python3 -I -B /path/to/public-soak-l-failed-20261117-01/verify.py
-python3 -I -B /path/to/public-soak-l-failed-20261117-01/negative-controls.py
+python3 -I -B - <<'PY'
+"""Bounded, mode-preserving extraction used verbatim in the packet wrapper README."""
+import gzip
+import hashlib
+import io
+import json
+import os
+from pathlib import Path, PurePosixPath
+import tarfile
+import tempfile
+
+
+def require(value, gate):
+    if not value:
+        raise ValueError(gate)
+
+
+def extract_packet(folder, destination_parent=None):
+    folder = Path(folder)
+    index = json.loads((folder / 'packet-index.json').read_bytes())
+    blob = (folder / 'packet.tar.gz').read_bytes()
+    checksum = (folder / 'packet.tar.gz.sha256').read_text().split()
+    require(index['schema'] == 'PQBTC-ARCHIVED-EVIDENCE-PACKET-1' and len(blob) <= 4 * 1024 * 1024, 'ARCHIVE_BOUND')
+    require(checksum == [index['archive_sha256'], 'packet.tar.gz']
+            and hashlib.sha256(blob).hexdigest() == checksum[0], 'ARCHIVE_HASH')
+    require(type(index['tar_bytes']) is int and 0 < index['tar_bytes'] <= 8 * 1024 * 1024, 'TAR_BOUND')
+    with gzip.GzipFile(fileobj=io.BytesIO(blob)) as compressed:
+        raw = compressed.read(index['tar_bytes'] + 1)
+        require(len(raw) == index['tar_bytes'] and not compressed.read(1), 'TAR_SIZE')
+    records = index['members']
+    require(type(records) is list and 0 < len(records) <= 256, 'MEMBER_COUNT')
+    expected = {}
+    for record in records:
+        name = record['path']
+        path = PurePosixPath(name)
+        require(type(name) is str and path.parts and path.parts[0] == 'packet' and not path.is_absolute()
+                and path.as_posix() == name and '\\' not in name and not {'.', '..'}.intersection(path.parts), 'UNSAFE_MEMBER_PATH')
+        require(name not in expected, 'DUPLICATE_MEMBER')
+        require(record['type'] in ('file', 'directory') and len(record['mode']) == 4
+                and all(value in '01234567' for value in record['mode'])
+                and int(record['mode'], 8) <= 0o777, 'MEMBER_TYPE_MODE')
+        require(type(record['bytes']) is int and 0 <= record['bytes'] <= 4 * 1024 * 1024, 'MEMBER_SIZE')
+        expected[name] = record
+    require(expected.get('packet', {}).get('type') == 'directory', 'PACKET_ROOT')
+    files, seen = {}, set()
+    with tarfile.open(fileobj=io.BytesIO(raw), mode='r:') as archive:
+        for member in archive:
+            require(member.name in expected and member.name not in seen, 'EXACT_MEMBER_CLOSURE')
+            record = expected[member.name]
+            require(not member.linkname and not member.pax_headers
+                    and member.type in (tarfile.REGTYPE, tarfile.DIRTYPE), 'LINK_OR_SPECIAL_MEMBER')
+            require(('file' if member.isfile() else 'directory') == record['type']
+                    and member.mode == int(record['mode'], 8) and member.size == record['bytes'], 'MEMBER_METADATA')
+            if member.isfile():
+                value = archive.extractfile(member).read(record['bytes'] + 1)
+                require(len(value) == record['bytes'] and hashlib.sha256(value).hexdigest() == record['sha256'], 'MEMBER_HASH')
+                files[member.name] = value
+            seen.add(member.name)
+    require(seen == set(expected) and len(files) == index['file_count'], 'EXACT_MEMBER_CLOSURE')
+    output = Path(tempfile.mkdtemp(prefix='pqbtc-packet-', dir=destination_parent)).resolve()
+    for name in sorted(expected, key=lambda value: (len(PurePosixPath(value).parts), value)):
+        record, target = expected[name], output.joinpath(*PurePosixPath(name).parts)
+        if record['type'] == 'directory':
+            target.mkdir(mode=0o700)
+        else:
+            descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(descriptor, 'wb') as stream:
+                stream.write(files[name])
+    for name in sorted(expected, key=lambda value: -len(PurePosixPath(value).parts)):
+        os.chmod(output.joinpath(*PurePosixPath(name).parts), int(expected[name]['mode'], 8))
+    return output / 'packet'
+
+import subprocess
+import sys
+
+packet = extract_packet(Path.cwd())
+print("Extracted original packet:", packet, flush=True)
+subprocess.run([sys.executable, "-I", "-B", str(packet / "verify.py")], check=True)
+subprocess.run([sys.executable, "-I", "-B", str(packet / "negative-controls.py")], check=True)
+PY
 ```
-
-`SOURCE.json` records original byte custody and the lossless gzip transformation.
-`SHA256SUMS` covers every local member except itself. The verifier checks exact
-membership, no-follow bounded reads, checksums, all event hashes, native payment
-evidence, the failed-payment timeline, declared and observed coverage, and cleanup.
-It parses the frozen driver only as AST and checks its fixed bytes; it never
-imports, compiles executable code from, or runs that driver. The controls use
-temporary copies within this directory and execute only the offline verifier.
-
-No private wallet records, passwords, RPC cookies, environment files, binaries,
-image archives, raw transaction payloads, or process logs are included.
-Experimental valueless TEST use only. Human review and production admission are
-not claimed; the production release hold remains unchanged.

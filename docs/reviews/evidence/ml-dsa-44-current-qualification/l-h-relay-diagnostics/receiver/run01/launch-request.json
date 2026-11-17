@@ -1,8 +1,0 @@
-{
-  "schema": "PQBTC-L-APPROVED-RECEIVER-EXECUTION-LAUNCH-1",
-  "utc": "2026-11-17T07:15:00.249321+00:00",
-  "helper_sha256": "b36fc460bddf087f0fe1e7c103665d27ccd5350ae629574e3e1ad4c855fbaaf1",
-  "service": "pqbtc-public-soak-20261114-l-receiver-forensic-20261117-01.service",
-  "one_native_scenario_authorized": true,
-  "CPU_gate_before_heavywork_enforced_by_helper": true
-}

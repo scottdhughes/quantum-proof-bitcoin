@@ -110,7 +110,7 @@ class PublicSoakTests(unittest.TestCase):
                    "unix:///data/client/docker.sock#fragment", "unix:///data/../client/docker.sock",
                    "unix:////data/client/docker.sock", "unix:///data/client/./docker.sock",
                    "unix:///data/client/docker.sock\n", "unix:///data/$(touch-x)/docker.sock",
-                   "unix:///data/caf\u00e9/docker.sock", "unix:///var/run/docker.sock", "unix:///run/docker.sock",
+                   "unix:///data/client\u00e9/docker.sock", "unix:///var/run/docker.sock", "unix:///run/docker.sock",
                    "unix:///etc/client/docker.sock", "unix:///proc/self/docker.sock", "unix:///home/user/.ssh/docker.sock",
                    "unix:///data/credentials/docker.sock", "unix:///data/" + "x" * 260 + "/docker.sock")
         for endpoint in invalid:

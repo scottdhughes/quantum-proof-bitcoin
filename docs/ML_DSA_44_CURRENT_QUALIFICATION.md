@@ -70,12 +70,12 @@ The new selected packets separate completed evidence from outstanding work:
 | [L/H relay diagnostics](reviews/evidence/ml-dsa-44-current-qualification/l-h-relay-diagnostics/README.md) | Controlled private-v1 announcement loss with a separate passing reconnect control; read-only sender extraction and offline native H acceptance. The live public failure's cause remains unknown. |
 
 Each packet retains its original source/custody manifest, checksum seal and
-offline verifier. The native/CI and Desktop packets are distributed as
+offline verifier. All six selected packets are distributed as
 deterministic `packet.tar.gz` archives with external checksums and member indexes;
 their linked wrapper READMEs give hash-first, mode-preserving fresh-temp
 extraction and offline verification commands. This preserves frozen source and
 patch evidence without collecting it as live CI code or changing lint rules.
-The other four new packets remain directly browsable. Original staging notes
+Original staging notes
 remain unchanged and describe their creation time; inclusion here does not
 relabel historical outcomes or expand their scopes. Raw datasets, wallets,
 credentials, native binary/image archives and omitted inventory payloads are not
