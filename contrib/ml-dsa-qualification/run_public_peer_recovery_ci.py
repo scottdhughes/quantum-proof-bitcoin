@@ -165,8 +165,105 @@ class OwnedNode:
         require(self.manager.volume == validate_namespace(self.manager.container), 'Recovery volume namespace mismatch')
         self.container_id = self.volume_id = None
         self.lock = threading.Lock()
+        self.registry = getattr(self.manager, '_recovery_helpers', None)
+        self.gate = self.registry.registry_lock if self.registry is not None else threading.Lock()
+        self.closed, self.proof = False, None
+        self.create_submitted = self.create_acknowledged = False
+        self.start_submitted = self.start_acknowledged = False
+        self.fence_submitted = False
+        self.cleanup_context = threading.local()
+        self.original = self.manager.run
+        self.manager.run = self.run
         # All legacy manager observations now use the same selected fields.
         self.manager.inspect = self.inspect
+        self.bind_controller()
+
+    def is_open(self):
+        return not self.closed and (self.registry is None or not self.registry.closed)
+
+    def check_open(self):
+        with self.gate:
+            require(self.is_open(), 'Owned product node already shut down')
+
+    def bind_controller(self):
+        # These are instance-only admission wrappers. Product implementation,
+        # scripts, results and operator FDs are unchanged. Trusted close/signal
+        # paths may still inspect/terminate existing work after admission closes.
+        def cleanup(method):
+            def call(*args, **kwargs):
+                depth = getattr(self.cleanup_context, 'depth', 0)
+                self.cleanup_context.depth = depth + 1
+                try:
+                    return method(*args, **kwargs)
+                finally:
+                    self.cleanup_context.depth = depth
+            return call
+        def guarded(method, *, stop_allowed=False):
+            def call(*args, **kwargs):
+                if not (stop_allowed and args and args[0] == 'stop'):
+                    self.check_open()
+                return method(*args, **kwargs)
+            return call
+        for name in ('close', '_signal'):
+            if hasattr(self.controller, name):
+                setattr(self.controller, name, cleanup(getattr(self.controller, name)))
+        for name in ('action', '_request', '_renew_peer', '_start_worker', '_start_signer'):
+            if hasattr(self.controller, name):
+                setattr(self.controller, name, guarded(getattr(self.controller, name), stop_allowed=name == '_request'))
+        if hasattr(self.controller, '_command'):
+            original = self.controller._command
+            def command(*args):
+                if not getattr(self.cleanup_context, 'depth', 0):
+                    self.check_open()
+                require(self.container_id is not None, 'Contained command needs captured ownership')
+                value = original(*args)
+                target = len(self.manager.docker) + 4
+                require(value[target] == self.manager.container, 'Contained command target changed')
+                value[target] = self.container_id
+                return value
+            self.controller._command = command
+
+    def run(self, arguments, **kwargs):
+        operation = arguments[0] if arguments else None
+        if operation == 'create':
+            require('--name' in arguments and arguments[arguments.index('--name') + 1] == self.manager.container,
+                    'Product create namespace changed')
+            with self.gate:
+                require(self.is_open() and not self.create_submitted, 'Product create already submitted or shut down')
+                self.create_submitted = True
+            # A committed create may arrive late, but can never execute code.
+            result = self.original(arguments, **kwargs)
+            require(result.returncode == 0 and len(result.stdout) <= 65, 'Product create response refused')
+            identity = result.stdout.decode('ascii').strip()
+            require(soak_api.hex64(identity), 'Product create full identity missing')
+            with self.gate:
+                require(self.container_id in (None, identity), 'Product create identity changed')
+                self.container_id, self.create_acknowledged = identity, True
+                require(self.is_open(), 'Shutdown interrupted product create')
+            return result
+        if operation == 'start':
+            with self.lock:
+                self.check_open()
+                require(arguments in (['start', self.manager.container], ['start', self.container_id]) and
+                        self.create_acknowledged and not self.start_submitted, 'Fresh acknowledged product create required')
+                row = self.discover()
+                require(row is not None and row['State'] == {'Running': False, 'Pid': 0},
+                        'Validated stopped product node required before start')
+                with self.gate:
+                    require(self.is_open(), 'Product start already shut down')
+                    self.start_submitted = True
+                    identity = self.container_id
+            # Cleanup can invalidate this immutable ID even before dispatch.
+            # A late start cannot recreate a removed container or its volume.
+            result = self.original(['start', identity], **kwargs)
+            require(result.returncode == 0, 'Product start response refused')
+            with self.gate:
+                require(self.is_open(), 'Shutdown interrupted product start acknowledgement')
+                self.start_acknowledged = True
+            return result
+        if operation not in ('inspect', 'info') and not (operation == 'volume' and arguments[1:2] == ['inspect']):
+            self.check_open()
+        return self.original(arguments, **kwargs)
 
     def inspect(self, target=None):
         result = self.manager.run(['inspect', '--format', INSPECT, target or self.manager.container],
@@ -199,19 +296,68 @@ class OwnedNode:
         require(type(state.get('Running')) is bool and type(state.get('Pid')) is int and state['Pid'] >= 0,
                 'Native liveness evidence missing')
         if state['Running']:
-            result = self.manager.run(['exec', '--user', '1001:1000', identity, 'python3', '-c', MARKER_SCRIPT], timeout=10)
+            result = self.original(['exec', '--user', '1001:1000', identity, 'python3', '-c', MARKER_SCRIPT], timeout=10)
             require(len(result.stdout) <= 1024 and soak_api.parsed(result.stdout) ==
                     {'volume_id': volume_id, 'profile_sha256': controls.PROFILE}, 'Native volume marker mismatch')
-        self.container_id, self.volume_id = identity, volume_id
+        with self.gate:
+            require(self.container_id in (None, identity), 'Product identity changed during discovery')
+            self.container_id, self.volume_id = identity, volume_id
         return row
 
     def stop(self):
         with self.lock:
+            with self.gate:
+                self.closed = True
+            if self.fence_submitted:
+                absent = self.inspect() is None and self.inspect(self.container_id) is None
+                if absent:
+                    return self.fenced()
+                require(self.proof.get('launch_state') != 'START_FENCED', 'Fenced product identity or namespace reappeared')
             row = self.discover()
+            with self.gate:
+                unresolved_create = self.create_submitted and not self.create_acknowledged
+                ambiguous_start = self.start_submitted and not self.start_acknowledged
+            if unresolved_create:
+                self.proof = {'container': self.manager.container, 'container_id': self.container_id,
+                              'volume': self.manager.volume, 'volume_id': self.volume_id, 'retained': True,
+                              'launch_state': 'CREATE_UNRESOLVED', 'cleanup_unproved': True,
+                              'late_create_cannot_start': True}
+                if row is not None:
+                    require(row['State'] == {'Running': False, 'Pid': 0}, 'Unstarted product create unexpectedly running')
+                    self.proof.update(running=False, pid=0)
+                return dict(self.proof)
             if row is None:
                 return {'container': self.manager.container, 'created': False, 'retained': True}
+            if ambiguous_start:
+                # Record only the public fields validated above, before removal.
+                # Named data volumes and host state are never removed.
+                public_layout = {key: copy.deepcopy(row[key]) for key in ('Id', 'Name', 'Image', 'State')}
+                public_layout['Config'] = {key: copy.deepcopy(row['Config'].get(key)) for key in ('Labels', 'Cmd', 'User')}
+                public_layout['HostConfig'] = {key: copy.deepcopy(row['HostConfig'].get(key)) for key in (
+                    'ReadonlyRootfs', 'NetworkMode', 'Memory', 'NanoCpus', 'PidsLimit', 'CapDrop', 'CapAdd',
+                    'SecurityOpt', 'Privileged', 'Tmpfs', 'RestartPolicy', 'PortBindings')}
+                public_layout['Mounts'] = [{key: mount[key] for key in ('Type', 'Name', 'Destination', 'RW')}
+                                          for mount in row['Mounts']]
+                self.proof = {'container': self.manager.container, 'container_id': self.container_id,
+                              'volume': self.manager.volume, 'volume_id': self.volume_id,
+                              'launch_state': 'START_UNRESOLVED', 'cleanup_unproved': True,
+                              'fenced_layout': public_layout, 'volume_retained': True, 'retained': True}
+                # Revalidate immediately before the full-ID destructive fence.
+                self.discover()
+                self.fence_submitted = True
+                try:
+                    result = self.original(['rm', '--force', self.container_id], check=False, timeout=20)
+                except Exception:
+                    # A lost remove response is resolved only by target-bound
+                    # absence. Otherwise the live watchdog owns another attempt.
+                    if self.inspect() is None and self.inspect(self.container_id) is None:
+                        return self.fenced()
+                    raise
+                require(result.returncode == 0 or docker_absent(result, self.container_id), 'Product start fence failed')
+                require(self.inspect(self.container_id) is None, 'Product start fence absence missing')
+                return self.fenced()
             if row['State']['Running']:
-                result = self.manager.run(['stop', '--time', '5', self.container_id], check=False, timeout=20)
+                result = self.original(['stop', '--time', '5', self.container_id], check=False, timeout=20)
                 require(result.returncode == 0 or docker_absent(result, self.container_id), 'Owned node stop failed')
             # Bind proof to the full ID; a same-name replacement is never stopped.
             stopped = self.inspect(self.container_id)
@@ -219,9 +365,36 @@ class OwnedNode:
             self.manager.layout(stopped)
             require(stopped['Id'] == self.container_id and stopped['State'] == {'Running': False, 'Pid': 0},
                     'Stopped PID0 proof missing')
+            self.proof = {'container': self.manager.container, 'container_id': self.container_id,
+                          'volume': self.manager.volume, 'volume_id': self.volume_id,
+                          'running': False, 'pid': 0, 'retained': True,
+                          'launch_state': 'START_ACKNOWLEDGED' if self.start_acknowledged else 'NOT_STARTED'}
+            return dict(self.proof)
+
+    def fenced(self):
+        self.proof.update(launch_state='START_FENCED', cleanup_unproved=False, retained=False,
+                          absence_proved=True, running=False, pid=0)
+        return copy.deepcopy(self.proof)
+
+    def cleanup_resolved(self):
+        with self.lock:
+            # An unresolved create can only create a stopped container. Every
+            # committed start needs an actual fence or acknowledged-stop proof.
+            if not self.start_submitted:
+                return True
+            proof = self.proof or {}
+            return (proof.get('launch_state') == 'START_FENCED' and proof.get('absence_proved') is True or
+                    self.start_acknowledged and proof.get('launch_state') == 'START_ACKNOWLEDGED' and
+                    proof.get('running') is False and proof.get('pid') == 0 and proof.get('retained') is True)
+
+    def unresolved_receipt(self):
+        with self.lock:
+            if self.proof is not None:
+                return copy.deepcopy(self.proof)
             return {'container': self.manager.container, 'container_id': self.container_id,
-                    'volume': self.manager.volume, 'volume_id': self.volume_id,
-                    'running': False, 'pid': 0, 'retained': True}
+                    'volume': self.manager.volume, 'volume_id': self.volume_id, 'cleanup_unproved': True,
+                    'launch_state': 'START_UNRESOLVED' if self.start_submitted else 'CREATE_UNRESOLVED',
+                    'late_create_cannot_start': not self.start_submitted}
 
     def invoke(self, script, *arguments, deadline):
         require(self.container_id is not None, 'Native API needs captured ownership')
@@ -373,6 +546,7 @@ class StartupHelpers:
         self.serial, self.registry_lock = threading.Lock(), threading.Lock()
 
     def attach(self, manager, descriptor):
+        manager._recovery_helpers = self
         original = manager.run
         def bounded(arguments, **kwargs):
             if not arguments or arguments[0] != 'run':
@@ -465,6 +639,39 @@ class LocalAgent:
         self.audit.after(self.host, action, params, value, deadline)
         remaining(deadline)
         return value
+
+
+class FixtureDeadlineGuard(agent_api.DeadlineGuard):
+    """Keep this process alive while an executable product start is unresolved."""
+    def __init__(self, wall_deadline, monotonic_deadline, cleanup, cleanup_resolved):
+        self.finishing, self.cleanup_resolved = threading.Event(), cleanup_resolved
+        super().__init__(wall_deadline, monotonic_deadline, cleanup)
+        self.thread.daemon = False
+
+    def _run(self):
+        while not self.event.is_set():
+            left = min(self.wall_deadline - time.time(), self.monotonic_deadline - time.monotonic())
+            if left <= 0 or self.finishing.is_set():
+                if left <= 0:
+                    self.expired = True
+                try:
+                    self.cleanup()
+                    self.error_class = None
+                except Exception as error:
+                    self.error_class = type(error).__name__
+                if self.finishing.is_set() and self.cleanup_resolved():
+                    self.event.set()
+                    return
+            self.event.wait(.2)
+
+    def finish(self):
+        self.finishing.set()
+        if self.cleanup_resolved():
+            self.cancel()
+            return True
+        # Do not cancel the sole outstanding cleanup obligation. This non-daemon
+        # thread retries bounded guarded cleanup and exits itself once resolved.
+        return False
 
 
 NATIVE_SCRIPT = r'''import hashlib,json,math,re,sys,time
@@ -598,11 +805,13 @@ def validate_acceptance(report):
     require(type(cleanup) is list and len(cleanup) == 2 and all(
             soak_api.hex64(row.get('container_id')) and type(row.get('volume_id')) is str and
             re.fullmatch('[0-9a-f]{32}', row['volume_id']) and row.get('running') is False and
-            type(row.get('pid')) is int and row['pid'] == 0 and row.get('retained') is True for row in cleanup) and
+            type(row.get('pid')) is int and row['pid'] == 0 and row.get('retained') is True and
+            row.get('launch_state') == 'START_ACKNOWLEDGED' and row.get('cleanup_unproved') is not True for row in cleanup) and
             len({row['container_id'] for row in cleanup}) == 2 and len({row['volume_id'] for row in cleanup}) == 2,
             'Two distinct retained native nodes need stopped PID0 proof')
     require(report['proxy_stop'].get('ok') is True and report['proxy_stop'].get('active_connections') == 0 and
             report.get('public_soak_credit_seconds') == 0 and report.get('watchdog_expired') is False and
+            report.get('watchdog_pending_cleanup', False) is False and
             report.get('cleanup_errors') == [], 'Cleanup or private-scope acceptance failed')
 
 
@@ -629,6 +838,7 @@ class Proxy:
         return self.node.invoke(CONTROL_SCRIPT, CONTROL, operation, deadline=deadline)
 
     def start(self, deadline):
+        self.node.check_open()
         source = (HERE / 'peer_recovery_proxy.py').read_bytes()
         require(len(source) <= 32768, 'Proxy source bound')
         self.process = subprocess.Popen(['docker', 'exec', '--interactive', '--user', '1001:1000', self.node.container_id,
@@ -808,7 +1018,8 @@ def run(descriptor, output, *, expected_head=None):
               'native_payload_sha256': descriptor['manifest'].get('sha256', {}),
               'descriptor_sha256': hashlib.sha256(soak_api.canonical(descriptor)).hexdigest(),
               'baseline_red': 'RETAINED_EXTERNAL_L_EVIDENCE_NOT_REPLAYED_OR_NEW_ACCEPTANCE',
-              'cleanup': [], 'cleanup_errors': [], 'failure_sites': [], 'watchdog_expired': False}
+              'cleanup': [], 'cleanup_errors': [], 'failure_sites': [], 'watchdog_expired': False,
+              'watchdog_pending_cleanup': False}
     nodes, controllers, proxy, guard = {}, [], None, None
     deadline = time.monotonic() + 600
     helpers = StartupHelpers(deadline)
@@ -842,7 +1053,8 @@ def run(descriptor, output, *, expected_head=None):
         report['runtime'] = check_runtime(descriptor)
         state = Path(tempfile.mkdtemp(prefix='pqbtc-peer-recovery-state-'))
         report['retained_host_state'] = str(state)
-        guard = agent_api.DeadlineGuard(time.time() + remaining(deadline), deadline, stop_all)
+        guard = FixtureDeadlineGuard(time.time() + remaining(deadline), deadline, stop_all,
+                                     lambda: all(node.cleanup_resolved() for node in tuple(nodes.values())))
         guard.start()
         phase = 'fixture_startup'
         for host in ('A', 'B'):
@@ -888,6 +1100,7 @@ def run(descriptor, output, *, expected_head=None):
                 report['cleanup'].append(node.stop())
             except Exception as error:
                 record_failure(error)
+                report['cleanup'].append(node.unresolved_receipt())
                 report['cleanup_errors'].append({'phase': 'owned_stop', 'error_class': type(error).__name__})
         if proxy is not None:
             try:
@@ -897,7 +1110,7 @@ def run(descriptor, output, *, expected_head=None):
                 report['cleanup_errors'].append({'phase': 'proxy_reap', 'error_class': type(error).__name__})
         if guard is not None:
             try:
-                guard.cancel()
+                report['watchdog_pending_cleanup'] = not guard.finish()
             except Exception as error:
                 record_failure(error)
                 report['cleanup_errors'].append({'phase': 'watchdog', 'error_class': type(error).__name__})

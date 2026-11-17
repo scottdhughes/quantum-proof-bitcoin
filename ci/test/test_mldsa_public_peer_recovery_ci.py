@@ -434,7 +434,8 @@ class HarnessBoundaryTests(unittest.TestCase):
                  'unrelated_before': {'id': 5}, 'unrelated_after': {'id': 5}, 'floors_before': {}, 'floors_after': {}},
                  'network_off': {'refused': True, 'network_active': False, 'saved_network_active': False,
                                  'floors_before': {}, 'floors_after': {}},
-                 'cleanup': [{'container_id': c * 64, 'volume_id': c * 32, 'running': False, 'pid': 0, 'retained': True}
+                 'cleanup': [{'container_id': c * 64, 'volume_id': c * 32, 'running': False, 'pid': 0, 'retained': True,
+                              'launch_state': 'START_ACKNOWLEDGED'}
                              for c in ('a', 'b')], 'proxy_stop': {'ok': True, 'active_connections': 0},
                  'public_soak_credit_seconds': 0, 'watchdog_expired': False, 'cleanup_errors': [],
                  'startup_helpers': [{'name': 'pqbtc-mldsa-recovery-helper-'+format(index, '032x'),
@@ -445,7 +446,8 @@ class HarnessBoundaryTests(unittest.TestCase):
                                         ('volume_init', 134217728), ('image_check', 268435456), ('volume_init', 134217728)))]}
         self.h.validate_acceptance(value)
         for field, replacement in (('cleanup', value['cleanup'][:1]), ('public_soak_credit_seconds', 1),
-                                   ('watchdog_expired', True), ('cleanup_errors', ['ValueError']), ('startup_helpers', [])):
+                                   ('watchdog_expired', True), ('watchdog_pending_cleanup', True),
+                                   ('cleanup_errors', ['ValueError']), ('startup_helpers', [])):
             broken = copy.deepcopy(value)
             broken[field] = replacement
             with self.subTest(field=field), self.assertRaises(ValueError):
@@ -454,6 +456,11 @@ class HarnessBoundaryTests(unittest.TestCase):
         unresolved['startup_helpers'][0]['launch_state'] = 'CREATE_UNRESOLVED'
         with self.assertRaises(ValueError):
             self.h.validate_acceptance(unresolved)
+        for state in ('CREATE_UNRESOLVED', 'START_FENCED', 'NOT_STARTED', None):
+            broken = copy.deepcopy(value)
+            broken['cleanup'][0]['launch_state'] = state
+            with self.subTest(product_state=state), self.assertRaises(ValueError):
+                self.h.validate_acceptance(broken)
         for field in ('pid', 'running'):
             broken = copy.deepcopy(value)
             broken['cleanup'][0][field] = 1
@@ -851,6 +858,357 @@ class StartupHelperTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 manager.run(args)
             self.assertIsNone(state['launch'])
+
+
+class ProductNodeLifecycleTests(unittest.TestCase):
+    def setUp(self):
+        self.h = module('run_public_peer_recovery_ci')
+
+    def fixture(self, directory, *, bind=True):
+        import json
+        from types import SimpleNamespace
+        h = self.h
+        name = 'pqbtc-mldsa-public-recovery-' + 'a'*32
+        manager = h.controls.PublicManager(Path(directory), container=name, p2p_port=23933)
+        manager.descriptor = {'image': 'sha256:'+'c'*64, 'manifest_sha256': 'd'*64,
+                              'manifest': {'source_head': 'e'*40, 'source_tree': 'f'*40, 'architecture': 'x86_64'}}
+        template = {'Id': 'a'*64, 'Name': '/'+name, 'Image': manager.descriptor['image'],
+            'State': {'Running': False, 'Pid': 0},
+            'Config': {'Labels': manager.container_labels(), 'Cmd': ['sleep', 'infinity'], 'User': ''},
+            'HostConfig': {'ReadonlyRootfs': True, 'NetworkMode': 'bridge', 'Memory': 1073741824,
+                'NanoCpus': 2000000000, 'PidsLimit': 256, 'CapDrop': ['ALL'], 'CapAdd': [],
+                'SecurityOpt': ['no-new-privileges'], 'Privileged': False, 'Tmpfs': h.controls.TMPFS,
+                'RestartPolicy': {'Name': 'unless-stopped'},
+                'PortBindings': {'23833/tcp': [{'HostIp': '127.0.0.1', 'HostPort': '23933'}]}},
+            'Mounts': [{'Type': 'volume', 'Name': manager.volume, 'Destination': '/var/lib/pqbtc', 'RW': True}]}
+        marker = {'volume_id': 'e'*32, 'profile_sha256': h.controls.PROFILE}
+        manager._write_json('public-runtime.json', {'schema': 'PQBTC-MLDSA44-PUBLIC-RUNTIME-1',
+            'compatibility': h.controls.COMPATIBILITY, 'container': name, 'volume': manager.volume,
+            'volume_id': marker['volume_id'], 'port': 23933, 'descriptor': manager.descriptor})
+        state = {'row': None, 'calls': [], 'pending': [], 'timeout': None, 'before': lambda _args: None,
+                 'after': lambda _args: None, 'starts': 0}
+        def dispatch(args):
+            if args[0] == 'create':
+                state['row'] = copy.deepcopy(template)
+                return True
+            if args[0] == 'start' and state['row'] is not None and args[-1] in (name, state['row']['Id']):
+                state['row']['State'] = {'Running': True, 'Pid': 1234}
+                state['starts'] += 1
+                return True
+            return False
+        def original(args, **kwargs):
+            state['calls'].append(list(args))
+            state['before'](args)
+            if args[0] in ('create', 'start'):
+                if state['timeout'] == args[0]:
+                    state['pending'].append(list(args))
+                    raise h.controls.legacy.ConsoleError('simulated delayed daemon operation')
+                if not dispatch(args):
+                    raise h.controls.legacy.ConsoleError('immutable target no longer exists')
+                state['after'](args)
+                return SimpleNamespace(returncode=0, stdout=('a'*64+'\n').encode(), stderr=b'')
+            if args[0] in ('stop', 'rm'):
+                self.assertEqual(args[-1], 'a'*64)
+                if args[0] == 'rm' and state.get('rm_timeout') == 'before':
+                    raise h.controls.legacy.ConsoleError('simulated lost remove request')
+                if args[0] == 'stop':
+                    state['row']['State'] = {'Running': False, 'Pid': 0}
+                else:
+                    self.assertEqual(args, ['rm', '--force', 'a'*64])
+                    state['row'] = None
+                    if state.get('rm_timeout') == 'after':
+                        raise h.controls.legacy.ConsoleError('simulated lost remove response')
+                return SimpleNamespace(returncode=0, stdout=b'', stderr=b'')
+            if args[0] == 'exec':
+                return SimpleNamespace(returncode=0, stdout=json.dumps(marker).encode(), stderr=b'')
+            row = state['row']
+            if row is None or args[-1] not in (name, row['Id']):
+                return SimpleNamespace(returncode=1, stdout=b'\n',
+                    stderr=('error: no such object: '+args[-1]+'\n').encode())
+            return SimpleNamespace(returncode=0, stdout=json.dumps(row).encode(), stderr=b'')
+        state['dispatch'] = dispatch
+        manager.run = original
+        controller = h.controls.PublicController.__new__(h.controls.PublicController)
+        controller.manager = manager
+        controller._mutex = threading.RLock()
+        controller._worker = controller._signer = controller._lock = controller._log = None
+        helpers = h.StartupHelpers(time.monotonic()+60) if bind else None
+        if bind:
+            helpers.attach(manager, manager.descriptor)
+        node = h.OwnedNode(controller) if bind else None
+        return helpers, controller, node, state
+
+    def test_reviewer_delayed_start_is_fenced_before_terminal_cleanup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            helpers, controller, node, state = self.fixture(directory)
+            manager = controller.manager
+            manager.create()
+            node.discover()
+            state['timeout'] = 'start'
+            with self.assertRaises(self.h.controls.legacy.ConsoleError):
+                manager.run(['start', manager.container])
+            helpers.stop_all()
+            receipt = node.stop()
+            self.assertEqual(receipt.get('launch_state'), 'START_FENCED')
+            self.assertFalse(receipt['retained'])
+            self.assertTrue(receipt['volume_retained'])
+            self.assertTrue(receipt['absence_proved'])
+            self.assertEqual(receipt['fenced_layout']['Id'], 'a'*64)
+            self.assertEqual(receipt['fenced_layout']['Mounts'][0]['Name'], manager.volume)
+            self.assertEqual(state['pending'], [['start', 'a'*64]])
+            self.assertFalse(state['dispatch'](state['pending'][0]))
+            self.assertIsNone(state['row'])
+            self.assertEqual(node.stop(), receipt)
+            self.assertTrue((Path(directory)/'public-runtime.json').is_file())
+
+    def test_shutdown_before_create_or_start_prevents_dispatch(self):
+        for created in (False, True):
+            with self.subTest(created=created), tempfile.TemporaryDirectory() as directory:
+                helpers, controller, node, state = self.fixture(directory)
+                manager = controller.manager
+                if created:
+                    manager.create()
+                helpers.stop_all()
+                before = len(state['calls'])
+                with self.assertRaises(ValueError):
+                    manager.run(['start', manager.container]) if created else manager.create()
+                self.assertEqual(len(state['calls']), before)
+                self.assertEqual(state['starts'], 0)
+                self.assertTrue(node.stop()['retained'])
+
+    def test_create_timeout_remains_unresolved_when_daemon_creates_late(self):
+        with tempfile.TemporaryDirectory() as directory:
+            helpers, controller, node, state = self.fixture(directory)
+            manager = controller.manager
+            state['timeout'] = 'create'
+            with self.assertRaises(self.h.controls.legacy.ConsoleError):
+                manager.create()
+            helpers.stop_all()
+            receipt = node.stop()
+            self.assertEqual(receipt.get('launch_state'), 'CREATE_UNRESOLVED')
+            self.assertTrue(receipt['cleanup_unproved'])
+            self.assertNotIn('absence_proved', receipt)
+            self.assertTrue(state['dispatch'](state['pending'][0]))
+            receipt = node.stop()
+            self.assertEqual(receipt['launch_state'], 'CREATE_UNRESOLVED')
+            self.assertEqual(state['row']['State'], {'Running': False, 'Pid': 0})
+            with self.assertRaises(ValueError):
+                manager.run(['start', manager.container])
+            self.assertEqual(state['starts'], 0)
+            self.assertFalse(any(call[0] == 'rm' for call in state['calls']))
+
+    def test_shutdown_between_commitment_and_daemon_dispatch(self):
+        for operation in ('create', 'start'):
+            with self.subTest(operation=operation), tempfile.TemporaryDirectory() as directory:
+                helpers, controller, node, state = self.fixture(directory)
+                manager = controller.manager
+                if operation == 'start':
+                    manager.create()
+                observed = []
+                def before(args):
+                    if args[0] == operation:
+                        state['before'] = lambda _args: None
+                        helpers.stop_all()
+                        observed.append(node.stop())
+                state['before'] = before
+                try:
+                    manager.create() if operation == 'create' else manager.run(['start', manager.container])
+                except (ValueError, self.h.controls.legacy.ConsoleError):
+                    pass
+                self.assertEqual(len(observed), 1)
+                self.assertEqual(observed[0].get('launch_state'),
+                                 'CREATE_UNRESOLVED' if operation == 'create' else 'START_FENCED')
+                self.assertEqual(state['starts'], 0)
+                with self.assertRaises(ValueError):
+                    manager.run(['start', manager.container])
+
+    def test_shutdown_after_daemon_start_before_acknowledgement_still_fences(self):
+        with tempfile.TemporaryDirectory() as directory:
+            helpers, controller, node, state = self.fixture(directory)
+            controller.manager.create()
+            receipts = []
+            def after(args):
+                if args[0] == 'start':
+                    helpers.stop_all()
+                    receipts.append(node.stop())
+            state['after'] = after
+            with self.assertRaises(ValueError):
+                controller.manager.run(['start', controller.manager.container])
+            self.assertEqual(receipts[0]['launch_state'], 'START_FENCED')
+            self.assertIsNone(state['row'])
+            self.assertEqual(node.stop()['launch_state'], 'START_FENCED')
+
+    def test_ambiguous_start_changed_ownership_never_stops_or_removes(self):
+        for mutate in (lambda row: row.update(Id='b'*64),
+                       lambda row: row['HostConfig'].update(Memory=1),
+                       lambda row: row['Config'].update(Labels={}),
+                       lambda row: row['Mounts'][0].update(Name='unrelated-volume')):
+            with tempfile.TemporaryDirectory() as directory:
+                helpers, controller, node, state = self.fixture(directory)
+                controller.manager.create()
+                state['timeout'] = 'start'
+                with self.assertRaises(self.h.controls.legacy.ConsoleError):
+                    controller.manager.run(['start', controller.manager.container])
+                mutate(state['row'])
+                helpers.stop_all()
+                with self.assertRaises(Exception):
+                    node.stop()
+                self.assertFalse(any(call[0] in ('stop', 'rm') for call in state['calls']))
+
+    def test_acknowledged_start_retains_container_volume_and_closes_work_gate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            helpers, controller, node, state = self.fixture(directory)
+            manager = controller.manager
+            manager.create()
+            manager.run(['start', manager.container])
+            helpers.stop_all()
+            for operation in (lambda: manager.run(['exec', manager.container, 'unexpected-work']),
+                              lambda: controller._command('1001:1000', 'unexpected-work'),
+                              lambda: controller._request('start')):
+                with self.assertRaises(ValueError):
+                    operation()
+            # Trusted marker reads and graceful close remain available after shutdown.
+            node.discover()
+            controller.close()
+            receipt = node.stop()
+            self.assertEqual(receipt.get('launch_state'), 'START_ACKNOWLEDGED')
+            self.assertTrue(receipt['retained'])
+            self.assertEqual(state['row']['State'], {'Running': False, 'Pid': 0})
+            self.assertEqual([call for call in state['calls'] if call[0] == 'start'], [['start', 'a'*64]])
+            self.assertFalse(any(call[0] == 'rm' for call in state['calls']))
+
+    def test_unregistered_product_start_is_refused(self):
+        with tempfile.TemporaryDirectory() as directory:
+            _helpers, controller, node, state = self.fixture(directory)
+            state['dispatch'](['create'])
+            node.discover()
+            with self.assertRaises(ValueError):
+                controller.manager.run(['start', controller.manager.container])
+            self.assertEqual(state['starts'], 0)
+
+    def test_lost_remove_response_can_be_resolved_only_by_full_id_absence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            helpers, controller, node, state = self.fixture(directory)
+            controller.manager.create()
+            state['timeout'], state['rm_timeout'] = 'start', 'after'
+            with self.assertRaises(self.h.controls.legacy.ConsoleError):
+                controller.manager.run(['start', controller.manager.container])
+            helpers.stop_all()
+            try:
+                receipt = node.stop()
+            except self.h.controls.legacy.ConsoleError:
+                self.fail('Lost removal response was not resolved by full-ID absence')
+            self.assertEqual(receipt['launch_state'], 'START_FENCED')
+            self.assertTrue(receipt['absence_proved'])
+            self.assertFalse(state['dispatch'](state['pending'][0]))
+
+    def test_actual_graceful_close_and_signal_still_work_after_gate_closes(self):
+        import io
+        import json
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as directory:
+            helpers, controller, node, state = self.fixture(directory)
+            controller.manager.create()
+            controller.manager.run(['start', controller.manager.container])
+            helpers.stop_all()
+            writes = []
+            class Pipe(io.BytesIO):
+                def close(self):
+                    writes.append(self.getvalue())
+                    super().close()
+            process = SimpleNamespace(stdin=Pipe(), returncode=None, poll=lambda: None)
+            def communicate(**_kwargs):
+                process.returncode = 0
+                return b'', b''
+            process.communicate = communicate
+            controller._worker, controller._tainted = process, False
+            controller._line = lambda *_args: b'{"ok":true,"result":{},"manifest":null}'
+            controller.close()
+            self.assertEqual([json.loads(wire) for wire in writes], [{'action': 'stop', 'params': {}}])
+            self.assertIsNone(controller._worker)
+            with patch.object(self.h.controls.subprocess, 'run', return_value=SimpleNamespace(
+                    returncode=0, stdout=b'', stderr=b'')) as contained:
+                controller._signal({'pid': 1234, 'start': '456', 'uid': 1001, 'executable': '/usr/bin/python3'})
+                self.assertEqual(contained.call_args.args[0][5], 'a'*64)
+            node.stop()
+
+    def test_non_daemon_fixture_guard_keeps_process_alive_until_cleanup_resolves(self):
+        import select
+        import subprocess
+        self.assertTrue(hasattr(self.h, 'FixtureDeadlineGuard'))
+        script = '''import sys,time
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+from run_public_peer_recovery_ci import FixtureDeadlineGuard
+safe=[False]
+def cleanup():
+    if Path(sys.argv[2]).exists():
+        safe[0]=True
+        print("FENCED",flush=True)
+guard=FixtureDeadlineGuard(time.time()+60,time.monotonic()+60,cleanup,lambda:safe[0])
+guard.start()
+assert not guard.finish()
+assert not guard.thread.daemon
+print("MAIN_RETURNING",flush=True)
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            release = Path(directory)/'synthetic-fence'
+            process = subprocess.Popen([sys.executable, '-B', '-c', script, str(HERE), str(release)],
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            try:
+                self.assertTrue(select.select([process.stdout], [], [], 3)[0])
+                self.assertEqual(process.stdout.readline(), b'MAIN_RETURNING\n')
+                with self.assertRaises(subprocess.TimeoutExpired):
+                    process.wait(timeout=.2)
+                release.touch()
+                output, errors = process.communicate(timeout=3)
+                self.assertEqual(process.returncode, 0, errors)
+                self.assertIn(b'FENCED', output)
+            finally:
+                release.touch(exist_ok=True)
+                try:
+                    process.communicate(timeout=3)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.communicate(timeout=3)
+
+    def test_persisted_failure_report_preserves_fenced_and_unresolved_states(self):
+        import json
+        from types import SimpleNamespace
+        for operation, expected in (('create', 'CREATE_UNRESOLVED'), ('start', 'START_FENCED'),
+                                    ('unproved-fence', 'START_UNRESOLVED')):
+            with self.subTest(operation=operation), tempfile.TemporaryDirectory() as directory:
+                _helpers, controller, _node, state = self.fixture(directory, bind=False)
+                state['timeout'] = 'start' if operation == 'unproved-fence' else operation
+                if operation == 'unproved-fence':
+                    state['rm_timeout'] = 'before'
+                def action(_action):
+                    controller.manager.create()
+                    controller.manager.run(['start', controller.manager.container])
+                controller.action = action
+                descriptor = controller.manager.descriptor
+                state_dir = Path(directory)/'host-state'
+                state_dir.mkdir()
+                guard = SimpleNamespace(start=lambda: None, cancel=lambda: None,
+                    finish=lambda: operation != 'unproved-fence', expired=False)
+                with patch.object(self.h.controls.source, 'validate_descriptor', return_value=descriptor), \
+                        patch.object(self.h, 'checkout_identity', return_value={'head': 'e'*40, 'tree': 'f'*40}), \
+                        patch.object(self.h, 'check_runtime', return_value={}), \
+                        patch.object(self.h, 'require_fresh'), patch.object(self.h, 'host_port', return_value=23933), \
+                        patch.object(self.h.controls, 'PublicController', return_value=controller), \
+                        patch.object(self.h.tempfile, 'mkdtemp', return_value=str(state_dir)), \
+                        patch.object(self.h.agent_api, 'DeadlineGuard', return_value=guard), \
+                        patch.object(self.h, 'FixtureDeadlineGuard', return_value=guard, create=True):
+                    self.h.run(descriptor, Path(directory)/'evidence')
+                report = json.loads((Path(directory)/'evidence/report.json').read_text())
+                self.assertEqual(report['result'], 'FAIL')
+                self.assertEqual(len(report['cleanup']), 1, 'Failed fence must retain its public cleanup receipt')
+                self.assertEqual(report['cleanup'][0].get('launch_state'), expected)
+                self.assertEqual(report['public_soak_credit_seconds'], 0)
+                if operation == 'unproved-fence':
+                    self.assertTrue(report['watchdog_pending_cleanup'])
+                    self.assertTrue(report['cleanup'][0]['cleanup_unproved'])
+                    self.assertEqual(report['cleanup'][0]['fenced_layout']['Id'], 'a'*64)
 
 
 class ProxyReplacementTests(unittest.TestCase):
