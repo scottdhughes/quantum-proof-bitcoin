@@ -39,6 +39,45 @@ CONTROL_FILES = (*soak_api.CONTROL_FILES, 'contrib/ml-dsa-qualification/run_publ
 require = soak_api.require
 
 
+FAILURE_SOURCE_FILES = frozenset(CONTROL_FILES) | {
+    'contrib/ml-dsa-console/source_runtime.py', 'contrib/ml-dsa-console/controller.py',
+    'contrib/ml-dsa-console/run_assembled_ci.py', 'contrib/ml-dsa-console/public_runtime.py'}
+
+
+def docker_absent(result, target, kind='container'):
+    """Accept only a complete canonical missing-target response, never a substring."""
+    if (type(target) is not str or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}', target) or
+            kind not in ('container', 'volume') or type(result.returncode) is not int or result.returncode != 1 or
+            result.stdout not in (b'', b'\n', b'\r\n') or type(result.stderr) is not bytes or len(result.stderr) > 512):
+        return False
+    pattern = (rb'(?:error(?:: | response from daemon: ))?no such (?:object|' + kind.encode() + rb'): ' +
+               re.escape(target.encode('ascii')) + rb'\r?\n?')
+    if re.fullmatch(pattern, result.stderr, flags=re.IGNORECASE) is not None:
+        return True
+    volume_pattern = rb'error response from daemon: get ' + re.escape(target.encode('ascii')) + rb': no such volume\r?\n?'
+    return kind == 'volume' and re.fullmatch(volume_pattern, result.stderr, flags=re.IGNORECASE) is not None
+
+
+def failure_sites(error):
+    """Bounded source coordinates only; never format exception text or read source."""
+    sites, trace, walked = [], error.__traceback__, 0
+    while trace is not None and walked < 64:
+        code = trace.tb_frame.f_code
+        try:
+            relative = Path(code.co_filename).relative_to(ROOT).as_posix()
+        except ValueError:
+            relative = None
+        function, line = code.co_name, trace.tb_lineno
+        if (relative in FAILURE_SOURCE_FILES and type(line) is int and 0 < line <= 1000000 and
+                re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]{0,63}|<(?:module|lambda|listcomp|dictcomp|setcomp|genexpr)>', function)):
+            site = {'file': relative, 'function': function, 'line': line}
+            if site not in sites:
+                sites.append(site)
+                sites = sites[-8:]
+        trace, walked = trace.tb_next, walked + 1
+    return sites
+
+
 def remaining(deadline):
     require(type(deadline) in (int, float) and math.isfinite(deadline), 'Finite deadline required')
     left = deadline - time.monotonic()
@@ -133,8 +172,7 @@ class OwnedNode:
         result = self.manager.run(['inspect', '--format', INSPECT, target or self.manager.container],
                                   check=False, timeout=10)
         if result.returncode:
-            require(b'No such object:' in result.stderr or b'No such container:' in result.stderr,
-                    'Container liveness could not be determined')
+            require(docker_absent(result, target or self.manager.container), 'Container liveness could not be determined')
             return None
         require(len(result.stdout) <= 65536, 'Container layout response bound')
         return soak_api.parsed(result.stdout)
@@ -173,7 +211,8 @@ class OwnedNode:
             if row is None:
                 return {'container': self.manager.container, 'created': False, 'retained': True}
             if row['State']['Running']:
-                self.manager.run(['stop', '--time', '5', self.container_id], timeout=20)
+                result = self.manager.run(['stop', '--time', '5', self.container_id], check=False, timeout=20)
+                require(result.returncode == 0 or docker_absent(result, self.container_id), 'Owned node stop failed')
             # Bind proof to the full ID; a same-name replacement is never stopped.
             stopped = self.inspect(self.container_id)
             require(stopped is not None, 'Stopped native identity disappeared')
@@ -242,8 +281,7 @@ class StartupHelper:
     def inspect(self, target):
         result = self.invoke(['inspect', '--format', HELPER_INSPECT, target], check=False, timeout=5)
         if result.returncode:
-            require(b'No such object:' in result.stderr or b'No such container:' in result.stderr,
-                    'Startup helper absence could not be proved')
+            require(docker_absent(result, target), 'Startup helper absence could not be proved')
             return None
         require(len(result.stdout) <= 65536, 'Startup helper layout response bound')
         row = soak_api.parsed(result.stdout)
@@ -288,7 +326,7 @@ class StartupHelper:
                     self.container_id = row['Id']
                 if row['State']['Running']:
                     result = self.invoke(['stop', '--time', '1', self.container_id], check=False, timeout=15)
-                    require(result.returncode == 0 or b'No such' in result.stderr, 'Startup helper stop failed')
+                    require(result.returncode == 0 or docker_absent(result, self.container_id), 'Startup helper stop failed')
                 row = self.inspect(self.container_id)
             with self.state_lock:
                 create_submitted, create_acknowledged = self.create_submitted, self.create_acknowledged
@@ -298,7 +336,7 @@ class StartupHelper:
                 # past the CLI timeout. Remove only this validated stateless
                 # full ID, without --volumes; all later starts of it must fail.
                 result = self.invoke(['rm', '--force', self.container_id], check=False, timeout=15)
-                require(result.returncode == 0 or b'No such' in result.stderr, 'Startup helper start fence failed')
+                require(result.returncode == 0 or docker_absent(result, self.container_id), 'Startup helper start fence failed')
                 row = self.inspect(self.container_id)
                 require(row is None, 'Startup helper start fence absence missing')
             if row is None and create_submitted and not create_acknowledged and not start_submitted:
@@ -648,7 +686,7 @@ def require_fresh(name):
     volume = validate_namespace(name)
     for kind, target in (('container', name), ('volume', volume)):
         result = subprocess.run(['docker', kind, 'inspect', '--format', '{{json .Name}}', target], capture_output=True, timeout=15)
-        require(result.returncode != 0 and (b'No such' in result.stderr or b'no such' in result.stderr),
+        require(docker_absent(result, target, kind),
                 'Fresh native namespace absent proof missing')
 
 
@@ -759,23 +797,33 @@ def run(descriptor, output, *, expected_head=None):
               'native_payload_sha256': descriptor['manifest'].get('sha256', {}),
               'descriptor_sha256': hashlib.sha256(soak_api.canonical(descriptor)).hexdigest(),
               'baseline_red': 'RETAINED_EXTERNAL_L_EVIDENCE_NOT_REPLAYED_OR_NEW_ACCEPTANCE',
-              'cleanup': [], 'cleanup_errors': [], 'watchdog_expired': False}
+              'cleanup': [], 'cleanup_errors': [], 'failure_sites': [], 'watchdog_expired': False}
     nodes, controllers, proxy, guard = {}, [], None, None
     deadline = time.monotonic() + 600
     helpers = StartupHelpers(deadline)
     phase, success = 'runtime_preflight', False
     log = soak_api.EventLog(output / 'events.jsonl')
+    site_lock = threading.Lock()
+
+    def record_failure(error):
+        with site_lock:
+            for site in failure_sites(error):
+                if site not in report['failure_sites']:
+                    report['failure_sites'].append(site)
+            report['failure_sites'] = report['failure_sites'][-16:]
 
     def stop_all():
         errors = []
         try:
             helpers.stop_all()
         except Exception as error:
+            record_failure(error)
             errors.append(type(error).__name__)
         for node in tuple(nodes.values()):
             try:
                 node.stop()
             except Exception as error:
+                record_failure(error)
                 errors.append(type(error).__name__)
         require(not errors, 'Independent cleanup failed')
 
@@ -809,32 +857,38 @@ def run(descriptor, output, *, expected_head=None):
         require(checkout_identity(ROOT, expected_head) == identity, 'Host control checkout changed during regression')
         success = True
     except Exception as error:
+        record_failure(error)
         report.update(error_class=type(error).__name__, failed_phase=phase)
     finally:
         try:
             helpers.stop_all()
         except Exception as error:
+            record_failure(error)
             report['cleanup_errors'].append({'phase': 'startup_helpers', 'error_class': type(error).__name__})
         # Keep the independent watchdog armed until all close/stop proofs finish.
         for controller in controllers:
             try:
                 controller.close()
             except Exception as error:
+                record_failure(error)
                 report['cleanup_errors'].append({'phase': 'graceful_close', 'error_class': type(error).__name__})
         for node in nodes.values():
             try:
                 report['cleanup'].append(node.stop())
             except Exception as error:
+                record_failure(error)
                 report['cleanup_errors'].append({'phase': 'owned_stop', 'error_class': type(error).__name__})
         if proxy is not None:
             try:
                 proxy.reap()
             except Exception as error:
+                record_failure(error)
                 report['cleanup_errors'].append({'phase': 'proxy_reap', 'error_class': type(error).__name__})
         if guard is not None:
             try:
                 guard.cancel()
             except Exception as error:
+                record_failure(error)
                 report['cleanup_errors'].append({'phase': 'watchdog', 'error_class': type(error).__name__})
             report['watchdog_expired'] = guard.expired
         report['startup_helpers'] = helpers.receipts()
@@ -844,6 +898,7 @@ def run(descriptor, output, *, expected_head=None):
                 validate_acceptance(report)
                 report['result'] = 'PASS'
             except Exception as error:
+                record_failure(error)
                 report.update(error_class=type(error).__name__, failed_phase='acceptance')
         soak_api.public_value(report)
         soak_api.write_immutable(output / 'report.json', report)

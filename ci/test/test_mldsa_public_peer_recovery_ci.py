@@ -338,6 +338,8 @@ class HarnessBoundaryTests(unittest.TestCase):
             self.assertEqual(retained['failed_phase'], 'runtime_preflight')
             self.assertEqual(retained['error_class'], 'ValueError')
             self.assertEqual(retained['cleanup'], [])
+            self.assertTrue(retained.get('failure_sites'))
+            self.assertTrue(all(set(row) == {'file', 'function', 'line'} for row in retained['failure_sites']))
             self.assertNotIn('private diagnostic', json.dumps(retained))
             self.assertEqual(retained['public_soak_credit_seconds'], 0)
             with self.assertRaises(ValueError):
@@ -565,6 +567,10 @@ class StartupHelperTests(unittest.TestCase):
                     raise h.controls.legacy.ConsoleError('simulated ambiguous start response')
                 state['row'] = None  # --rm completed before attached response.
                 return SimpleNamespace(returncode=0, stdout=state['output'], stderr=b'')
+            if args[0] in ('stop', 'rm') and state.get('missing_on') == args[0]:
+                state['row'] = None
+                return SimpleNamespace(returncode=1, stdout=b'',
+                    stderr=('error response from daemon: no such container: '+args[-1]+'\n').encode())
             if args[0] == 'stop' and state['row'] is not None:
                 self.assertEqual(args[-1], 'd' * 64)
                 state['row']['State'] = {'Running': False, 'Pid': 0}
@@ -574,7 +580,7 @@ class StartupHelperTests(unittest.TestCase):
                 return SimpleNamespace(returncode=0, stdout=b'', stderr=b'')
             row = state['row']
             if row is None:
-                return SimpleNamespace(returncode=1, stdout=b'', stderr=b'Error: No such object: fixture')
+                return SimpleNamespace(returncode=1, stdout=b'\n', stderr=('error: no such object: '+args[-1]+'\n').encode())
             return SimpleNamespace(returncode=0, stdout=json.dumps(row).encode(), stderr=b'')
         manager.run = original
         helpers.attach(manager, descriptor)
@@ -798,6 +804,16 @@ class StartupHelperTests(unittest.TestCase):
             self.assertEqual([call for call in state['calls'] if call[0] == 'rm'], [['rm', '--force', 'd'*64]])
             self.assertIs(helpers.receipts()[0]['absence_proved'], True)
 
+    def test_lowercase_absence_during_stop_or_remove_fence_is_verified(self):
+        for operation in ('stop', 'rm'):
+            with self.subTest(operation=operation), tempfile.TemporaryDirectory() as directory:
+                helpers, manager, args, state = self.fixture(directory, 'image_check', lose_response=True)
+                state['missing_on'] = operation
+                with self.assertRaises(self.h.controls.legacy.ConsoleError):
+                    manager.run(args)
+                self.assertTrue(helpers.receipts()[0]['absence_proved'])
+                self.assertEqual(helpers.receipts()[0]['container_id'], 'd'*64)
+
     def test_terminal_watchdog_prevents_any_later_helper_launch(self):
         with tempfile.TemporaryDirectory() as directory:
             helpers, manager, args, state = self.fixture(directory, 'volume_init')
@@ -883,6 +899,72 @@ class ProxyReplacementTests(unittest.TestCase):
             thread.join(3)
             self.assertEqual(errors, ['PROXY_EXTRA_CONNECTION'])
             self.assertFalse(os.path.exists(path))
+
+
+class AbsenceAndFailureSiteTests(unittest.TestCase):
+    def setUp(self):
+        self.h = module('run_public_peer_recovery_ci')
+
+    def test_exact_docker_absence_forms_bind_target_and_refuse_other_errors(self):
+        from types import SimpleNamespace
+        self.assertTrue(hasattr(self.h, 'docker_absent'))
+        target = 'pqbtc-mldsa-public-recovery-' + '0'*32
+        for prefix in ('error: no such object: ', 'Error: No such object: ',
+                       'Error response from daemon: No such container: '):
+            result = SimpleNamespace(returncode=1, stdout=b'\n', stderr=(prefix+target+'\n').encode())
+            self.assertTrue(self.h.docker_absent(result, target))
+        volume = target + '-data-v1'
+        result = SimpleNamespace(returncode=1, stdout=b'',
+            stderr=('Error response from daemon: get '+volume+': no such volume\n').encode())
+        self.assertTrue(self.h.docker_absent(result, volume, 'volume'))
+        self.assertFalse(self.h.docker_absent(result, volume, 'container'))
+        for stderr in (b'permission denied', b'Cannot connect to the Docker daemon', b'template parsing error',
+                       ('error: no such object: '+target+'-other\n').encode(),
+                       ('permission denied; no such object: '+target).encode(),
+                       ('error: no such object: '+target+'\npermission denied\n').encode()):
+            result = SimpleNamespace(returncode=1, stdout=b'', stderr=stderr)
+            self.assertFalse(self.h.docker_absent(result, target))
+        for rc, stdout in ((0, b''), (125, b''), (1, b'{}')):
+            self.assertFalse(self.h.docker_absent(SimpleNamespace(returncode=rc, stdout=stdout,
+                stderr=('error: no such object: '+target).encode()), target))
+
+    def test_owned_node_accepts_actual_lowercase_missing_object(self):
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as directory:
+            name = 'pqbtc-mldsa-public-recovery-' + '0'*32
+            manager = self.h.controls.PublicManager(Path(directory), container=name)
+            manager.run = lambda args, **kwargs: SimpleNamespace(returncode=1, stdout=b'\n',
+                stderr=('error: no such object: '+args[-1]+'\n').encode())
+            node = self.h.OwnedNode(SimpleNamespace(manager=manager))
+            self.assertIsNone(node.inspect())
+            self.assertEqual(node.stop(), {'container': name, 'created': False, 'retained': True})
+
+    def test_failure_sites_emit_only_fixed_project_locations_and_are_bounded(self):
+        import json
+        self.assertTrue(hasattr(self.h, 'failure_sites'))
+        allowed = str(HERE / 'run_public_peer_recovery_ci.py')
+        scope = {}
+        source = '\n'.join('def frame%d():\n    %s' % (i, 'frame%d()' % (i+1) if i < 39 else
+                            'raise ValueError("PRIVATE_ARGUMENT_DO_NOT_EMIT")') for i in range(40))
+        exec(compile(source, allowed, 'exec'), scope)
+        outside = {}
+        exec(compile('def outside(callback):\n    callback()', '/private/not-a-project/secret.py', 'exec'), outside)
+        try:
+            outside['outside'](scope['frame0'])
+        except ValueError as error:
+            sites = self.h.failure_sites(error)
+        self.assertEqual(len(sites), 8)
+        self.assertTrue(all(set(row) == {'file', 'function', 'line'} and
+            row['file'] == 'contrib/ml-dsa-qualification/run_public_peer_recovery_ci.py' and
+            type(row['line']) is int and row['line'] > 0 for row in sites))
+        rendered = json.dumps(sites)
+        self.assertNotIn('PRIVATE_ARGUMENT', rendered)
+        self.assertNotIn('/private/', rendered)
+        scope['frame39'].__code__ = scope['frame39'].__code__.replace(co_name='unsafe / function name')
+        try:
+            scope['frame39']()
+        except ValueError as error:
+            self.assertEqual(self.h.failure_sites(error), [])
 
 
 if __name__ == '__main__':
