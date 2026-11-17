@@ -100,6 +100,7 @@ paths=[
  '/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_peer_recovery.py',
  '/tmp/mldsa-demo-source/contrib/ml-dsa-console/public_app.py',
  '/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_public_app_ci.py',
+ '/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_public_soak.py',
  '/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/run_public_peer_recovery_ci.py',
  '/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/peer_recovery_proxy.py',
  '/tmp/mldsa-demo-source/contrib/ml-dsa-qualification/public_transport.py',
