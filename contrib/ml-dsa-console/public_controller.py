@@ -8,6 +8,7 @@ import fcntl
 import hashlib
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -668,6 +669,49 @@ class PublicController(Files):
             value["restart_required"] = self._restart_needed
             return value
 
+    def _renew_peer(self, endpoint, deadline):
+        require(type(endpoint) is str and endpoint.isascii() and 3 <= len(endpoint) <= 255,
+                "Invalid public peer endpoint")
+        descriptor = source.validate_descriptor(self.manager.descriptor)
+        require(descriptor == source.validate_descriptor(self.descriptor), "Public descriptor changed")
+
+        def remaining():
+            value = deadline - time.monotonic()
+            require(value > 0, "Public peer recovery deadline")
+            return value
+
+        # Deliberately select fields: full docker inspect includes environment
+        # and other unrelated process metadata.
+        fmt = ('{"Id":{{json .Id}},"Image":{{json .Image}},"HostConfig":{{json .HostConfig}},'
+               '"Mounts":{{json .Mounts}},"State":{"Running":{{json .State.Running}}},'
+               '"Config":{"Labels":{{json .Config.Labels}},"Cmd":{{json .Config.Cmd}},'
+               '"User":{{json .Config.User}}}}')
+
+        def inspect(target):
+            result = self.manager.run(["inspect", "--format", fmt, target], check=False, timeout=remaining())
+            require(result.returncode == 0 and len(result.stdout) <= 65536, "Public container inspection failed")
+            value = json.loads(result.stdout)
+            self.manager.layout(value)
+            require(value["State"]["Running"] is True and type(value["Id"]) is str and
+                    re.fullmatch(r"[0-9a-f]{64}", value["Id"]), "Public container identity refused")
+            return value["Id"]
+
+        container_id = inspect(self.manager.container)
+        helper = (HERE / "public_peer_recovery.py").read_bytes()
+        require(len(helper) <= 32768, "Public peer helper size refused")
+        script = 'import sys;exec(compile(sys.stdin.buffer.read(),"<public-peer-recovery>","exec"))'
+        result = self.manager.run(["exec", "--interactive", "--user", "1001:1000", container_id,
+                                   "python3", "-c", script, endpoint, str(remaining())],
+                                  data=helper, check=False, timeout=remaining())
+        require(result.returncode == 0 and len(result.stdout) <= 4096, "Public peer recovery refused")
+        value = json.loads(result.stdout)
+        require(type(value) is dict and value.get("endpoint") == endpoint and value.get("renewed") is True and
+                value.get("network_active") is True and value.get("fresh_pong") is True,
+                "Public peer recovery proof refused")
+        require(inspect(self.manager.container) == container_id, "Public container identity changed")
+        remaining()
+        return value
+
     def action(self, action, params=None, *, include_status=True):
         params = {} if params is None else params
         allowed = {"start": set(), "stop": set(), "setup": {"password"}, "unlock": {"password"}, "lock": set(),
@@ -675,14 +719,24 @@ class PublicController(Files):
                    "fund": {"address"}, "backup": set(), "recover": {"backup_id", "password"}, "peer": {"endpoint"},
                    "network": {"active"}, "reindex": set(), "crash": set(), "adverse": set(), "bootstrap": set(), "clear_bans": set(),
                    "transaction": {"txid", "block_hash"}, "peer_status": set(), "rebroadcast": {"txid"},
-                   "sample": set(), "upgrade": {"descriptor"}, "rollback": {"descriptor"}}
+                   "renew_peer": {"endpoint", "budget_seconds"}, "sample": set(), "upgrade": {"descriptor"}, "rollback": {"descriptor"}}
         require(type(action) is str and type(params) is dict and action in allowed and set(params) <= allowed[action], "Unsupported public console action or parameters")
         # The owned soak polls exact transaction membership frequently. A full
         # UI refresh scans every owned Coin and needlessly grows poll latency.
         # Keep the default UI response and all address-consuming actions intact.
-        require(type(include_status) is bool and (include_status or action in ("transaction", "peer_status", "rebroadcast")),
+        require(type(include_status) is bool and (include_status or action in ("transaction", "peer_status", "rebroadcast", "renew_peer")),
                 "Only peer/transaction queries and known reannouncements may omit wallet status")
+        deadline = None
+        if action == "renew_peer":
+            require(include_status is False, "Public peer recovery requires compact response")
+            budget = params.get("budget_seconds")
+            require(type(budget) in (int, float) and math.isfinite(budget) and 0 < budget <= 10,
+                    "Public peer recovery budget refused")
+            deadline = time.monotonic() + budget
         with self._mutex:
+            if action == "renew_peer":
+                result = self._renew_peer(params.get("endpoint"), deadline)
+                return {"result": result}
             self._reconcile_handles()
             if action == "start":
                 result = self._start()
