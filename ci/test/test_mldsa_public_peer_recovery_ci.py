@@ -967,5 +967,75 @@ class AbsenceAndFailureSiteTests(unittest.TestCase):
             self.assertEqual(self.h.failure_sites(error), [])
 
 
+class NativePingBarrierTests(unittest.TestCase):
+    def setUp(self):
+        self.h = module('run_public_peer_recovery_ci')
+
+    def test_native_observer_reports_only_stable_strict_ping_readiness(self):
+        import contextlib
+        import io
+        import json
+        from decimal import Decimal
+        from types import SimpleNamespace
+        ping, requested = [None], [False]
+        class RPC:
+            def ping(self):
+                requested[0] = True
+            def getpeerinfo(self):
+                return [{'id': 1, 'addr': '127.0.0.1:23834', 'version': 70016, 'relaytxes': True,
+                         'transport_protocol_type': 'v1', **({'pingtime': ping[0]} if requested[0] and ping[0] is not None else {})}]
+        class Node:
+            def __init__(self, *_args):
+                pass
+            def rpc(self, **_kwargs):
+                return RPC()
+        replacements = {'public_runtime': SimpleNamespace(PublicNode=Node),
+                        'test_framework.authproxy': SimpleNamespace(AuthServiceProxy=None)}
+        args = ['native', '/fixture', 'peer', '127.0.0.1:23834', 'v1', '3']
+        valid = []
+        with patch.dict(sys.modules, replacements), patch.object(sys, 'argv', args), patch.object(sys, 'path', list(sys.path)):
+            for value, ready in ((None, False), (0, False), (-1, False), (True, False), ('0.1', False),
+                                 (float('nan'), False), (float('inf'), False), (Decimal('NaN'), False),
+                                 (60.001, False), (Decimal('0.01'), True), (0.2, True), (60, True)):
+                with self.subTest(value=value):
+                    ping[0], requested[0] = value, False
+                    output = io.StringIO()
+                    with contextlib.redirect_stdout(output):
+                        exec(compile(self.h.NATIVE_SCRIPT, '<native-test>', 'exec'), {})
+                    peer = json.loads(output.getvalue())['peers'][0]
+                    self.assertIs(peer.get('ping_ready'), ready)
+                    self.assertNotIn('pingtime', peer)
+                    if ready:
+                        valid.append(peer)
+        self.assertEqual(len(valid), 3)
+        self.assertEqual(valid[0], valid[1])
+        self.assertEqual(valid[1], valid[2])
+
+    def test_registration_waits_for_native_ping_before_saving_each_transport(self):
+        from types import SimpleNamespace
+        h = self.h
+        self.assertTrue(hasattr(h, 'register_ready_peer'))
+        for transport, endpoint in (('v1', h.ENDPOINT), ('v2', '172.17.0.2:23833')):
+            with self.subTest(transport=transport):
+                events, observations = [], [False, True]
+                def native(node, operation, argument, observed_transport, *, deadline):
+                    self.assertEqual((argument, observed_transport, deadline), (endpoint, transport, 150.0))
+                    events.append(operation)
+                    if operation == 'register':
+                        return {'peers': []}
+                    ready = observations.pop(0)
+                    return {'peers': [{'id': 7, 'addr': endpoint, 'version': 70016, 'relaytxes': True,
+                                       'transport_protocol_type': transport, 'ping_ready': ready}]}
+                def action(host, name, params):
+                    self.assertEqual((host, name, params), ('A', 'peer', {'endpoint': endpoint}))
+                    self.assertEqual(events, ['register', 'peer', 'peer'])
+                    events.append('saved')
+                with patch.object(h, 'native', side_effect=native), patch.object(h.time, 'monotonic', return_value=100.0), \
+                        patch.object(h.time, 'sleep'):
+                    value = h.register_ready_peer(SimpleNamespace(action=action), object(), endpoint, transport, 150.0)
+                self.assertIs(value['ping_ready'], True)
+                self.assertEqual(events[-1], 'saved')
+
+
 if __name__ == '__main__':
     unittest.main()

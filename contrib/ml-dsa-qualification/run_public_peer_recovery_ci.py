@@ -467,7 +467,8 @@ class LocalAgent:
         return value
 
 
-NATIVE_SCRIPT = r'''import hashlib,json,re,sys,time
+NATIVE_SCRIPT = r'''import hashlib,json,math,re,sys,time
+from decimal import Decimal
 from pathlib import Path
 sys.path[:0]=[sys.argv[1]+'/contrib/ml-dsa-console',sys.argv[1]+'/test/functional']
 from public_runtime import PublicNode
@@ -477,6 +478,10 @@ op,arg,transport=sys.argv[2:5];deadline=time.monotonic()+float(sys.argv[5])
 def rpc(method,*args):
     left=deadline-time.monotonic();assert left>0
     return getattr(node.rpc(timeout=min(0.5,left)),method)(*args)
+def ping_ready(peer):
+    ping=peer.get('pingtime')
+    finite=(type(ping) is Decimal and ping.is_finite() or type(ping) in (int,float) and math.isfinite(ping))
+    return bool(finite and 0<ping<=60)
 if op=='known':
     assert re.fullmatch('[0-9a-f]{64}',arg)
     entry=rpc('getmempoolentry',arg);assert isinstance(entry,dict) and 0<entry['vsize']<=1000000
@@ -489,9 +494,10 @@ elif op in ('peer','register'):
     if op=='register':
         registered=rpc('getaddednodeinfo');assert not any(p['addednode']==arg for p in registered)
         rpc('addnode',arg,'add',transport=='v2')
+    if op=='peer':rpc('ping')
     values=rpc('getpeerinfo');assert isinstance(values,list) and len(values)<=256
     peers=[{'id':p['id'],'addr':p['addr'],'version':p.get('version',0),'relaytxes':p.get('relaytxes',False),
-            'transport_protocol_type':p.get('transport_protocol_type')} for p in values if p['addr']==arg]
+            'transport_protocol_type':p.get('transport_protocol_type'),'ping_ready':ping_ready(p)} for p in values if p['addr']==arg]
     result={'endpoint':arg,'peers':peers}
 else:
     assert op=='network'
@@ -662,9 +668,18 @@ def wait_peer(node, endpoint, transport, deadline):
         require(type(peers) is list and len(peers) <= 1, 'Ambiguous target native peer')
         if peers:
             peer = peers[0]
-            if peer.get('version', 0) > 0 and peer.get('relaytxes') is True and peer.get('transport_protocol_type') == transport:
+            if peer.get('version', 0) > 0 and peer.get('relaytxes') is True and peer.get('transport_protocol_type') == transport and peer.get('ping_ready') is True:
                 return peer
         time.sleep(min(.05, remaining(deadline)))
+
+
+def register_ready_peer(run, node, endpoint, transport, deadline):
+    native(node, 'register', endpoint, transport, deadline=deadline)
+    # Saving an unready route can trigger the product's default-transport
+    # onetry. Establish relay and its native ping criterion before saving it.
+    peer = wait_peer(node, endpoint, transport, deadline)
+    run.action('A', 'peer', {'endpoint': endpoint})
+    return peer
 
 
 def check_runtime(descriptor):
@@ -722,9 +737,7 @@ def exercise(nodes, report, log, proxy, deadline):
     run.agents = {host: LocalAgent(host, agent_api.Agent(node.controller, node.controller.state_dir,
                   time.time() + remaining(deadline)), audit) for host, node in nodes.items()}
     run.action_deadline = deadline
-    native(nodes['A'], 'register', ENDPOINT, deadline=deadline)
-    run.action('A', 'peer', {'endpoint': ENDPOINT})
-    report['v1_before'] = wait_peer(nodes['A'], ENDPOINT, 'v1', deadline)
+    report['v1_before'] = register_ready_peer(run, nodes['A'], ENDPOINT, 'v1', deadline)
     run.agree(timeout=min(90, remaining(deadline)))
     for host in ('A', 'B'):
         password = secrets.token_urlsafe(32)
@@ -755,9 +768,7 @@ def exercise(nodes, report, log, proxy, deadline):
     direct = proxy.upstream + ':23833'
     before = floors(nodes)
     unrelated = wait_peer(nodes['A'], ENDPOINT, 'v1', deadline)
-    native(nodes['A'], 'register', direct, 'v2', deadline=deadline)
-    run.action('A', 'peer', {'endpoint': direct})
-    v2_before = wait_peer(nodes['A'], direct, 'v2', deadline)
+    v2_before = register_ready_peer(run, nodes['A'], direct, 'v2', deadline)
     result = run.action('A', 'renew_peer', {'endpoint': direct, 'budget_seconds': min(10, remaining(deadline))}, timeout=10)
     validate_renewal(result, direct, 'v2')
     require(result['old_peer_ids'] == [v2_before['id']], 'V2 native target identity changed before renewal')
