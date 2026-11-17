@@ -40,6 +40,20 @@ class RecoveryTests(unittest.TestCase):
     def run_recovery(self, budget=2):
         return recovery.renew(self.node, self.state, self.endpoint, budget)
 
+    def test_elapsed_startup_deadline_prevents_mutation(self):
+        import time
+
+        with self.assertRaises(Exception) as caught:
+            recovery.renew(
+                self.node,
+                self.state,
+                self.endpoint,
+                1,
+                deadline=time.monotonic() - 0.01,
+            )
+        self.assertNotIsInstance(caught.exception, TypeError)
+        self.assertEqual(self.node.mutations, [])
+
     def test_policy_guards_and_off(self):
         self.policy["network_active"] = False
         self.write_policy()
@@ -300,25 +314,51 @@ class HostPathTests(unittest.TestCase):
         self.exec_returncode = 0
         self.exception = None
         self.manager.run = self.run_docker
+        self.manager.docker = ("docker",)
 
     def run_docker(self, args, **kwargs):
         self.calls.append((args, kwargs))
         index = len(self.calls) - 1
         self.clock += self.delays[index]
-        if self.exception and index == 1:
-            raise self.exception
-        payload = (
-            self.before if index == 0 else self.after if index == 2 else self.proof
-        )
+        payload = self.before if index == 0 else self.after
         return self.namespace(
-            returncode=self.exec_returncode if index == 1 else 0,
-            stdout=json.dumps(payload).encode(),
-            stderr=b"secret-auth-stderr",
+            returncode=0, stdout=json.dumps(payload).encode(), stderr=b""
         )
+
+    def start_docker(self, args, **kwargs):
+        self.calls.append((args[1:], kwargs))
+        test = self
+
+        class Process:
+            def __init__(self):
+                read, write = os.pipe()
+                os.write(write, b"READY\n")
+                os.close(write)
+                self.stdout = os.fdopen(read, "rb", buffering=0)
+                self.returncode = None
+
+            def communicate(self, input=None, timeout=None):
+                test.handshake = (input, timeout)
+                test.clock += test.delays[1]
+                self.returncode = test.exec_returncode
+                self.stdout.close()
+                if test.exception:
+                    raise test.exception
+                return json.dumps(test.proof).encode(), b"secret-auth-stderr"
+
+            def poll(self):
+                return self.returncode
+
+            def kill(self):
+                self.returncode = -9
+
+        return Process()
 
     def invoke(self, budget=10):
         with self.patch.object(
             self.control.time, "monotonic", side_effect=lambda: self.clock
+        ), self.patch.object(
+            self.control.subprocess, "Popen", side_effect=self.start_docker
         ):
             return self.controller.action(
                 "renew_peer",
@@ -326,24 +366,87 @@ class HostPathTests(unittest.TestCase):
                 include_status=False,
             )
 
+    def test_remote_watchdog_covers_delayed_launch_and_contained_work(self):
+        import signal
+        import subprocess
+        import sys
+        import time
+
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / "mutation"
+            payload = (
+                "import time\ntime.sleep(.3)\n"
+                "open(" + repr(str(marker)) + ", 'w').write('mutation')\n"
+            ).encode()
+            bootstrap = self.control.peer_recovery_bootstrap(payload)
+            wrapper = "import time;time.sleep(.12);exec(" + repr(bootstrap) + ")"
+            deadline = time.monotonic() + 0.28
+            process = subprocess.Popen(
+                [sys.executable, "-c", wrapper],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            try:
+                self.assertEqual(process.stdout.readline(), b"READY\n")
+                remaining = deadline - time.monotonic()
+                self.assertGreater(remaining, 0)
+                process.communicate(input=(repr(remaining) + "\n").encode(), timeout=2)
+                self.assertEqual(process.returncode, -signal.SIGALRM)
+                self.assertFalse(marker.exists())
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.communicate()
+
+    def test_contended_mutex_refuses_within_budget(self):
+        import threading
+        import time
+
+        ready = threading.Event()
+        release = threading.Event()
+
+        def hold():
+            with self.controller._mutex:
+                ready.set()
+                release.wait(2)
+
+        thread = threading.Thread(target=hold)
+        thread.start()
+        self.assertTrue(ready.wait(1))
+        start = time.monotonic()
+        try:
+            with self.assertRaises(Exception):
+                self.controller.action(
+                    "renew_peer",
+                    {"endpoint": self.proof["endpoint"], "budget_seconds": 0.05},
+                    include_status=False,
+                )
+            self.assertLess(time.monotonic() - start, 0.3)
+            self.assertTrue(thread.is_alive())
+            self.assertEqual(self.calls, [])
+        finally:
+            release.set()
+            thread.join(1)
+
     def test_full_path_uses_verified_id_and_streams_helper_with_shared_budget(self):
         class Lock:
-            def __enter__(inner):
+            def acquire(inner, timeout):
                 self.clock += 2
+                return True
 
-            def __exit__(inner, *args):
+            def release(inner):
                 pass
 
         self.controller._mutex = Lock()
         value = self.invoke()["result"]
         self.assertEqual(value, self.proof)
-        self.assertEqual(
-            [round(call[1]["timeout"], 2) for call in self.calls], [8, 7, 5]
-        )
-        args, kwargs = self.calls[1]
+        self.assertEqual(self.calls[0][1]["timeout"], 8)
+        self.assertEqual(self.calls[2][1]["timeout"], 5)
+        args, _ = self.calls[1]
         self.assertEqual(args[4], self.identity)
-        self.assertEqual(kwargs["data"], PATH.read_bytes())
-        self.assertAlmostEqual(float(args[-1]), 7)
+        self.assertIn(repr(PATH.read_bytes()), args[-2])
+        self.assertEqual(self.handshake, (b"7.0\n", 7))
         self.assertNotIn("Env", self.calls[0][0][3])
         self.controller._request.assert_not_called()
 
@@ -395,10 +498,11 @@ class HostPathTests(unittest.TestCase):
 
     def test_budget_expired_during_lock_or_probe_skips_execution(self):
         class Lock:
-            def __enter__(inner):
+            def acquire(inner, timeout):
                 self.clock += 10
+                return True
 
-            def __exit__(inner, *args):
+            def release(inner):
                 pass
 
         self.controller._mutex = Lock()

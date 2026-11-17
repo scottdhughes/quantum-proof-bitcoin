@@ -12,6 +12,7 @@ import math
 import os
 from pathlib import Path
 import re
+import select
 import struct
 import subprocess
 import threading
@@ -45,6 +46,26 @@ SOCKET = "/run/pqbtc-ipc/public/signer.sock"
 LABELS = {"org.pqbtc.console.schema": "public-test-1", "org.pqbtc.console.profile": PROFILE}
 TMPFS = {"/run/pqbtc-ipc": "rw,noexec,nosuid,nodev,size=1048576,mode=1777",
          "/tmp": "rw,noexec,nosuid,nodev,size=16777216,mode=1777"}
+
+
+def peer_recovery_bootstrap(helper):
+    # The remote monotonic anchor predates the handshake, imports and RPCs.
+    # An independent alarm kills the remote helper even if docker exec is lost.
+    return ("import os,signal,sys,time\n"
+            "anchor=time.monotonic()\n"
+            "signal.signal(signal.SIGALRM,signal.SIG_DFL)\n"
+            "signal.setitimer(signal.ITIMER_REAL,10)\n"
+            "print('READY',flush=True)\n"
+            "line=sys.stdin.buffer.readline(128)\n"
+            "try: budget=float(line)\n"
+            "except (ValueError,OverflowError): os._exit(125)\n"
+            "if not 0 < budget <= 10: os._exit(125)\n"
+            "expiry=anchor+budget\n"
+            "left=expiry-time.monotonic()\n"
+            "if left <= 0: os._exit(124)\n"
+            "signal.setitimer(signal.ITIMER_REAL,left)\n"
+            "exec(compile(" + repr(helper) + ",'<public-peer-recovery>','exec'),"
+            "{'__name__':'__main__','__recovery_deadline__':expiry})\n")
 
 
 def validate_manifest(value):
@@ -699,12 +720,30 @@ class PublicController(Files):
         container_id = inspect(self.manager.container)
         helper = (HERE / "public_peer_recovery.py").read_bytes()
         require(len(helper) <= 32768, "Public peer helper size refused")
-        script = 'import sys;exec(compile(sys.stdin.buffer.read(),"<public-peer-recovery>","exec"))'
-        result = self.manager.run(["exec", "--interactive", "--user", "1001:1000", container_id,
-                                   "python3", "-c", script, endpoint, str(remaining())],
-                                  data=helper, check=False, timeout=remaining())
-        require(result.returncode == 0 and len(result.stdout) <= 4096, "Public peer recovery refused")
-        value = json.loads(result.stdout)
+        script = peer_recovery_bootstrap(helper)
+        remaining()
+        process = subprocess.Popen([*self.manager.docker, "exec", "--interactive", "--user", "1001:1000", container_id,
+                                    "python3", "-c", script, endpoint], stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
+        try:
+            ready = bytearray()
+            while not ready.endswith(b"\n"):
+                timeout = remaining()
+                require(select.select([process.stdout], [], [], timeout)[0], "Public peer recovery deadline")
+                byte = os.read(process.stdout.fileno(), 1)
+                require(byte and len(ready) < 16, "Public peer helper startup refused")
+                ready.extend(byte)
+            require(ready == b"READY\n", "Public peer helper startup refused")
+            # Host duration is computed only after the earlier remote anchor.
+            # The remote alarm and expiry therefore cannot outlive our deadline.
+            budget = remaining()
+            output, _ = process.communicate(input=(repr(budget) + "\n").encode(), timeout=remaining())
+            require(process.returncode == 0 and len(output) <= 4096, "Public peer recovery refused")
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.communicate()
+        value = json.loads(output)
         proof_fields = {"endpoint", "renewed", "network_active", "old_peer_ids", "new_peer_id",
                         "transport_protocol_type", "fresh_pong", "ping_sent_before", "ping_sent_after",
                         "pong_received_before", "pong_received_after"}
@@ -744,14 +783,21 @@ class PublicController(Files):
             require(type(budget) in (int, float) and math.isfinite(budget) and 0 < budget <= 10,
                     "Public peer recovery budget refused")
             deadline = time.monotonic() + budget
+        if action == "renew_peer":
+            acquired = False
+            try:
+                remaining = deadline - time.monotonic()
+                require(remaining > 0, "Public peer recovery deadline")
+                acquired = self._mutex.acquire(timeout=remaining)
+                require(acquired, "Public peer recovery deadline")
+                return {"result": self._renew_peer(params.get("endpoint"), deadline)}
+            except Exception:
+                # Do not expose Docker stderr, arguments, or RPC details.
+                raise legacy.ConsoleError("Public peer recovery refused") from None
+            finally:
+                if acquired:
+                    self._mutex.release()
         with self._mutex:
-            if action == "renew_peer":
-                try:
-                    result = self._renew_peer(params.get("endpoint"), deadline)
-                except Exception:
-                    # Do not expose Docker stderr, arguments, or RPC details.
-                    raise legacy.ConsoleError("Public peer recovery refused") from None
-                return {"result": result}
             self._reconcile_handles()
             if action == "start":
                 result = self._start()

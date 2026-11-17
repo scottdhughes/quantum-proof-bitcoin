@@ -30,11 +30,14 @@ def read_policy(state):
     return value
 
 
-def renew(node, state, endpoint, budget_seconds):
+def renew(node, state, endpoint, budget_seconds, *, deadline=None):
     endpoint = runtime.peer_endpoint(endpoint)
     require(type(budget_seconds) in (int, float) and math.isfinite(budget_seconds) and 0 < budget_seconds <= 10,
             'public peer recovery budget refused')
-    deadline = time.monotonic() + budget_seconds
+    now = time.monotonic()
+    deadline = now + budget_seconds if deadline is None else deadline
+    require(type(deadline) in (int, float) and math.isfinite(deadline) and now < deadline <= now + 10,
+            'public peer recovery deadline')
 
     def rpc(method, *args):
         remaining = deadline - time.monotonic()
@@ -123,7 +126,7 @@ def main():
     from test_framework.authproxy import AuthServiceProxy
     node = runtime.PublicNode('/opt/pqbtc-runtime/seed/mldsa-demo-build/bin/pqbtcd', '/var/lib/pqbtc/node/chain', AuthServiceProxy)
     try:
-        result = renew(node, '/var/lib/pqbtc/node', sys.argv[1], float(sys.argv[2]))
+        result = renew(node, '/var/lib/pqbtc/node', sys.argv[1], 10, deadline=globals()['__recovery_deadline__'])
         print(json.dumps(result, separators=(',', ':')))
     except Exception:
         print('public peer recovery refused', file=sys.stderr)
