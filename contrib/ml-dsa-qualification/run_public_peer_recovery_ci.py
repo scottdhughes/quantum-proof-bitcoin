@@ -193,6 +193,165 @@ class OwnedNode:
         return soak_api.parsed(result.stdout)
 
 
+HELPER_INSPECT = ('{"Id":{{json .Id}},"Name":{{json .Name}},"Image":{{json .Image}},'
+                  '"Config":{"Labels":{{json .Config.Labels}},"User":{{json .Config.User}}},'
+                  '"HostConfig":{{json .HostConfig}},"Mounts":{{json .Mounts}},'
+                  '"State":{"Running":{{json .State.Running}},"Pid":{{json .State.Pid}}}}')
+
+
+class StartupHelper:
+    """One pre-registered invocation of an unchanged product startup script."""
+    def __init__(self, invoke, manager, descriptor, arguments, attempt):
+        self.invoke, self.container_id, self.proof = invoke, None, None
+        self.layout_observed = False
+        self.lock = threading.Lock()
+        self.name = 'pqbtc-mldsa-recovery-helper-' + uuid.uuid4().hex
+        self.image = descriptor['image']
+        self.volume = validate_namespace(manager.container)
+        require(manager.volume == self.volume, 'Helper volume namespace mismatch')
+        image_index = arguments.index(self.image)
+        options = arguments[1:image_index]
+        common = ['--rm', '--network', 'none', '--read-only', '--cap-drop', 'ALL']
+        image_options = common + ['--security-opt', 'no-new-privileges', '--memory', '268435456',
+                                  '--pids-limit', '64', '--user', '1001:1000']
+        init_options = common + ['--cap-add', 'CHOWN', '--security-opt', 'no-new-privileges', '--mount',
+                                 'type=volume,source=' + self.volume + ',target=' + controls.DATA + ',volume-nocopy']
+        require(options in (image_options, init_options) and arguments[image_index+1:image_index+3] == ['python3', '-c'],
+                'Unexpected product startup helper invocation')
+        self.kind = 'image_check' if options == image_options else 'volume_init'
+        self.memory = 268435456 if self.kind == 'image_check' else 134217728
+        # Labels bind the original public product invocation without retaining
+        # its script/arguments in receipts or reading a container's raw argv.
+        self.labels = {'org.pqbtc.console.build': 'source-1', 'org.pqbtc.recovery.helper': self.kind, 'org.pqbtc.recovery.attempt': attempt,
+                       'org.pqbtc.recovery.node': manager.container, 'org.pqbtc.recovery.manifest': descriptor['manifest_sha256'],
+                       'org.pqbtc.recovery.invocation': hashlib.sha256(soak_api.canonical(arguments)).hexdigest()}
+        additions = ['--name', self.name, '--cpus', '2']
+        if self.kind == 'volume_init':
+            additions += ['--memory', '134217728', '--pids-limit', '64']
+        for key, value in self.labels.items():
+            additions += ['--label', key + '=' + value]
+        # Keep the production image-check/init script, public operands and all
+        # existing containment options byte-for-byte; only add fixture bounds.
+        self.arguments = ['run', *additions, *arguments[1:]]
+
+    def inspect(self, target):
+        result = self.invoke(['inspect', '--format', HELPER_INSPECT, target], check=False, timeout=5)
+        if result.returncode:
+            require(b'No such object:' in result.stderr or b'No such container:' in result.stderr,
+                    'Startup helper absence could not be proved')
+            return None
+        require(len(result.stdout) <= 65536, 'Startup helper layout response bound')
+        row = soak_api.parsed(result.stdout)
+        self.layout(row)
+        self.layout_observed = True
+        return row
+
+    def layout(self, row):
+        host, config = row['HostConfig'], row['Config']
+        require(row.get('Name') == '/' + self.name and row.get('Image') == self.image and
+                soak_api.hex64(row.get('Id')) and self.container_id in (None, row['Id']) and
+                config.get('Labels') == self.labels, 'Startup helper ownership or immutable identity changed')
+        require(host.get('NetworkMode') == 'none' and host.get('ReadonlyRootfs') is True and
+                host.get('NanoCpus') == 2000000000 and host.get('Memory') == self.memory and host.get('PidsLimit') == 64 and
+                host.get('CapDrop') == ['ALL'] and host.get('SecurityOpt') == ['no-new-privileges'] and
+                host.get('Privileged') is False and host.get('AutoRemove') is True and
+                host.get('RestartPolicy') == {'Name': 'no', 'MaximumRetryCount': 0} and
+                host.get('PortBindings') in (None, {}) and host.get('Binds') in (None, []) and host.get('Tmpfs') in (None, {}) and
+                host.get('Devices') in (None, []) and host.get('DeviceRequests') in (None, []) and
+                host.get('PidMode') == '' and host.get('IpcMode') == 'private', 'Startup helper isolation changed')
+        mounts = row.get('Mounts')
+        if self.kind == 'image_check':
+            require(config.get('User') == '1001:1000' and host.get('CapAdd') in (None, []) and mounts == [],
+                    'Image-check helper UID/capabilities/mounts changed')
+        else:
+            require(config.get('User', '') in ('', '0') and host.get('CapAdd') == ['CHOWN'] and
+                    type(mounts) is list and len(mounts) == 1 and mounts[0].get('Type') == 'volume' and
+                    mounts[0].get('Name') == self.volume and mounts[0].get('Destination') == controls.DATA and
+                    mounts[0].get('RW') is True, 'Volume-init helper UID/capabilities/mount changed')
+        state = row.get('State', {})
+        require(type(state.get('Running')) is bool and type(state.get('Pid')) is int and state['Pid'] >= 0,
+                'Startup helper liveness missing')
+
+    def stop(self):
+        with self.lock:
+            # Discovery by the never-reused name is needed when docker run lost
+            # its response. A captured ID is rechecked and cannot be replaced.
+            row = self.inspect(self.name)
+            if row is None and self.container_id is not None:
+                row = self.inspect(self.container_id)
+            if row is not None:
+                self.container_id = row['Id']
+                if row['State']['Running']:
+                    result = self.invoke(['stop', '--time', '1', self.container_id], check=False, timeout=15)
+                    require(result.returncode == 0 or b'No such' in result.stderr, 'Startup helper stop failed')
+                row = self.inspect(self.container_id)
+                if row is not None:
+                    require(row['State'] == {'Running': False, 'Pid': 0}, 'Startup helper stopped PID0 proof missing')
+            self.proof = {'name': self.name, 'kind': self.kind, 'container_id': self.container_id,
+                          'image': self.image, 'memory_bytes': self.memory, 'nano_cpus': 2000000000, 'pids_limit': 64,
+                          'ownership_labels': dict(self.labels), 'volume': self.volume if self.kind == 'volume_init' else None,
+                          'layout_observed': self.layout_observed,
+                          'resource_evidence': 'VALIDATED_LAYOUT' if self.layout_observed else 'REQUESTED_LIMITS_AND_PROVED_ABSENCE',
+                          'absence_proved': row is None, 'running': False, 'pid': 0}
+            return dict(self.proof)
+
+
+class StartupHelpers:
+    """Fixture-only manager.run adapter; shared across both product nodes."""
+    def __init__(self, deadline):
+        self.deadline, self.attempt = deadline, uuid.uuid4().hex
+        self.records, self.closed = [], False
+        self.serial, self.registry_lock = threading.Lock(), threading.Lock()
+
+    def attach(self, manager, descriptor):
+        original = manager.run
+        def bounded(arguments, **kwargs):
+            if not arguments or arguments[0] != 'run':
+                return original(arguments, **kwargs)
+            acquired = self.serial.acquire(timeout=remaining(self.deadline))
+            require(acquired, 'Startup helper serialization deadline')
+            try:
+                require(not self.closed, 'Startup helpers already shut down')
+                # Verify every prior helper is stopped/absent before another
+                # product startup invocation may enter Docker.
+                for prior in self.records:
+                    prior.stop()
+                record = StartupHelper(original, manager, descriptor, list(arguments), self.attempt)
+                require(record.inspect(record.name) is None, 'Startup helper namespace already exists')
+                with self.registry_lock:
+                    require(not self.closed, 'Startup helpers already shut down')
+                    require(len(self.records) < 4, 'Only four necessary startup helpers are allowed')
+                    self.records.append(record)
+                try:
+                    kwargs['timeout'] = min(kwargs.get('timeout', 90), remaining(self.deadline))
+                    require(not self.closed, 'Startup helpers already shut down')
+                    return original(record.arguments, **kwargs)
+                finally:
+                    # Even a failed or timed-out CLI may have created/started
+                    # the helper; recover ownership by name, never assume exit.
+                    record.stop()
+            finally:
+                self.serial.release()
+        manager.run = bounded
+
+    def stop_all(self):
+        with self.registry_lock:
+            self.closed = True
+            records = tuple(self.records)
+        errors = []
+        for record in records:
+            try:
+                record.stop()
+            except Exception as error:
+                errors.append(type(error).__name__)
+        require(not errors, 'Startup helper cleanup ownership or liveness failure')
+
+    def receipts(self):
+        with self.registry_lock:
+            return [dict(record.proof) if record.proof is not None else
+                    {'name': record.name, 'kind': record.kind, 'cleanup_unproved': True} for record in self.records]
+
+
 class LocalAgent:
     """Only transport adaptation: all actions are dispatched by production Agent."""
     def __init__(self, host, agent, audit):
@@ -319,6 +478,18 @@ def validate_acceptance(report):
     off = report['network_off']
     require(off.get('refused') is True and off.get('network_active') is False and off.get('saved_network_active') is False and
             off['floors_before'] == off['floors_after'], 'Network-off control resumed networking or changed floors')
+    helpers = report.get('startup_helpers')
+    require(type(helpers) is list and len(helpers) == 4 and
+            sorted(row.get('kind', '') for row in helpers) == ['image_check', 'image_check', 'volume_init', 'volume_init'] and
+            len({row.get('name') for row in helpers}) == 4, 'Four necessary startup helper cleanup receipts required')
+    for row in helpers:
+        require(type(row.get('name')) is str and re.fullmatch(r'pqbtc-mldsa-recovery-helper-[0-9a-f]{32}', row['name']) and
+                row.get('memory_bytes') == (268435456 if row['kind'] == 'image_check' else 134217728) and
+                row.get('nano_cpus') == 2000000000 and row.get('pids_limit') == 64 and
+                row.get('running') is False and type(row.get('pid')) is int and row['pid'] == 0 and
+                type(row.get('absence_proved')) is bool and
+                (row['absence_proved'] and row.get('container_id') is None or soak_api.hex64(row.get('container_id'))),
+                'Bounded startup helper stopped PID0 or absence proof missing')
     cleanup = report['cleanup']
     require(type(cleanup) is list and len(cleanup) == 2 and all(
             soak_api.hex64(row.get('container_id')) and type(row.get('volume_id')) is str and
@@ -531,11 +702,16 @@ def run(descriptor, output, *, expected_head=None):
               'cleanup': [], 'cleanup_errors': [], 'watchdog_expired': False}
     nodes, controllers, proxy, guard = {}, [], None, None
     deadline = time.monotonic() + 600
+    helpers = StartupHelpers(deadline)
     phase, success = 'runtime_preflight', False
     log = soak_api.EventLog(output / 'events.jsonl')
 
     def stop_all():
         errors = []
+        try:
+            helpers.stop_all()
+        except Exception as error:
+            errors.append(type(error).__name__)
         for node in tuple(nodes.values()):
             try:
                 node.stop()
@@ -556,6 +732,7 @@ def run(descriptor, output, *, expected_head=None):
             require_fresh(name)
             controller = controls.PublicController(state / host, descriptor, container=name, p2p_port=host_port(), bootstrap=host == 'B')
             controllers.append(controller)
+            helpers.attach(controller.manager, descriptor)
             node = OwnedNode(controller)
             nodes[host] = node
             controller.action('start')
@@ -574,6 +751,10 @@ def run(descriptor, output, *, expected_head=None):
     except Exception as error:
         report.update(error_class=type(error).__name__, failed_phase=phase)
     finally:
+        try:
+            helpers.stop_all()
+        except Exception as error:
+            report['cleanup_errors'].append({'phase': 'startup_helpers', 'error_class': type(error).__name__})
         # Keep the independent watchdog armed until all close/stop proofs finish.
         for controller in controllers:
             try:
@@ -596,6 +777,7 @@ def run(descriptor, output, *, expected_head=None):
             except Exception as error:
                 report['cleanup_errors'].append({'phase': 'watchdog', 'error_class': type(error).__name__})
             report['watchdog_expired'] = guard.expired
+        report['startup_helpers'] = helpers.receipts()
         log.close()
         if success:
             try:

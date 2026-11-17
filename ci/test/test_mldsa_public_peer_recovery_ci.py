@@ -434,10 +434,16 @@ class HarnessBoundaryTests(unittest.TestCase):
                                  'floors_before': {}, 'floors_after': {}},
                  'cleanup': [{'container_id': c * 64, 'volume_id': c * 32, 'running': False, 'pid': 0, 'retained': True}
                              for c in ('a', 'b')], 'proxy_stop': {'ok': True, 'active_connections': 0},
-                 'public_soak_credit_seconds': 0, 'watchdog_expired': False, 'cleanup_errors': []}
+                 'public_soak_credit_seconds': 0, 'watchdog_expired': False, 'cleanup_errors': [],
+                 'startup_helpers': [{'name': 'pqbtc-mldsa-recovery-helper-'+format(index, '032x'),
+                                      'kind': kind, 'container_id': None, 'absence_proved': True,
+                                      'running': False, 'pid': 0, 'memory_bytes': memory,
+                                      'nano_cpus': 2000000000, 'pids_limit': 64}
+                                     for index, (kind, memory) in enumerate((('image_check', 268435456),
+                                        ('volume_init', 134217728), ('image_check', 268435456), ('volume_init', 134217728)))]}
         self.h.validate_acceptance(value)
         for field, replacement in (('cleanup', value['cleanup'][:1]), ('public_soak_credit_seconds', 1),
-                                   ('watchdog_expired', True), ('cleanup_errors', ['ValueError'])):
+                                   ('watchdog_expired', True), ('cleanup_errors', ['ValueError']), ('startup_helpers', [])):
             broken = copy.deepcopy(value)
             broken[field] = replacement
             with self.subTest(field=field), self.assertRaises(ValueError):
@@ -492,6 +498,260 @@ class HarnessBoundaryTests(unittest.TestCase):
                 thread.join(3)
             self.assertFalse(thread.is_alive())
             self.assertEqual(errors, [])
+            self.assertFalse(os.path.exists(path))
+
+
+class StartupHelperTests(unittest.TestCase):
+    def setUp(self):
+        self.h = module('run_public_peer_recovery_ci')
+        self.assertTrue(hasattr(self.h, 'StartupHelpers'), 'Startup helpers must be owned before Docker run')
+
+    def fixture(self, directory, kind, *, lose_response=False, corrupt=None):
+        import json
+        from types import SimpleNamespace
+        h = self.h
+        name = 'pqbtc-mldsa-public-recovery-' + 'a' * 32
+        manager = h.controls.PublicManager(Path(directory), container=name, p2p_port=23933)
+        descriptor = {'image': 'sha256:' + 'b' * 64, 'manifest_sha256': 'c' * 64}
+        state = {'row': None, 'calls': [], 'launch': None, 'registered_before_run': False, 'pause': lambda: None, 'output': b'product-result'}
+        helpers = h.StartupHelpers(time.monotonic() + 60)
+        def original(args, **kwargs):
+            state['calls'].append(list(args))
+            if args[0] == 'run':
+                state['launch'] = list(args)
+                state['registered_before_run'] = len(helpers.records) == 1
+                labels = {'org.pqbtc.console.build': 'source-1', **dict(args[i+1].split('=', 1) for i, value in enumerate(args) if value == '--label')}
+                helper_name = args[args.index('--name')+1]
+                host = {'NetworkMode': 'none', 'ReadonlyRootfs': True, 'NanoCpus': 2000000000,
+                        'Memory': int(args[args.index('--memory')+1]), 'PidsLimit': int(args[args.index('--pids-limit')+1]),
+                        'CapDrop': ['ALL'], 'CapAdd': ['CHOWN'] if kind == 'volume_init' else None,
+                        'SecurityOpt': ['no-new-privileges'], 'Privileged': False, 'AutoRemove': True,
+                        'RestartPolicy': {'Name': 'no', 'MaximumRetryCount': 0}, 'PortBindings': {},
+                        'Binds': None, 'Tmpfs': None, 'Devices': [], 'DeviceRequests': None,
+                        'PidMode': '', 'IpcMode': 'private'}
+                row = {'Id': 'd' * 64, 'Name': '/' + helper_name, 'Image': descriptor['image'],
+                       'Config': {'Labels': labels, 'User': '1001:1000' if kind == 'image_check' else ''},
+                       'HostConfig': host, 'State': {'Running': True, 'Pid': 111},
+                       'Mounts': ([] if kind == 'image_check' else [{'Type': 'volume', 'Name': manager.volume,
+                                   'Destination': '/var/lib/pqbtc', 'RW': True}])}
+                if corrupt:
+                    corrupt(row)
+                state['row'] = row
+                state['pause']()
+                if lose_response:
+                    raise h.controls.legacy.ConsoleError('simulated Docker timeout after creation')
+                state['row'] = None  # --rm completed before the response.
+                return SimpleNamespace(returncode=0, stdout=state['output'], stderr=b'')
+            if args[0] == 'stop':
+                self.assertEqual(args[-1], 'd' * 64)
+                state['row']['State'] = {'Running': False, 'Pid': 0}
+            row = state['row']
+            if row is None:
+                return SimpleNamespace(returncode=1, stdout=b'', stderr=b'Error: No such object: fixture')
+            return SimpleNamespace(returncode=0, stdout=json.dumps(row).encode(), stderr=b'')
+        manager.run = original
+        helpers.attach(manager, descriptor)
+        args = ['run', '--rm', '--network', 'none', '--read-only', '--cap-drop', 'ALL']
+        if kind == 'image_check':
+            args += ['--security-opt', 'no-new-privileges', '--memory', '268435456', '--pids-limit', '64', '--user', '1001:1000']
+        else:
+            args += ['--cap-add', 'CHOWN', '--security-opt', 'no-new-privileges', '--mount',
+                     'type=volume,source='+manager.volume+',target=/var/lib/pqbtc,volume-nocopy']
+        args += [descriptor['image'], 'python3', '-c', 'unchanged product script', 'public-argument']
+        return helpers, manager, args, state
+
+    def test_helpers_are_registered_bounded_and_preserve_product_arguments(self):
+        for kind, memory in (('image_check', '268435456'), ('volume_init', '134217728')):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
+                helpers, manager, args, state = self.fixture(directory, kind)
+                result = manager.run(args)
+                self.assertEqual(result.stdout, b'product-result')
+                self.assertTrue(state['registered_before_run'])
+                launch = state['launch']
+                self.assertEqual(launch[launch.index('--memory')+1], memory)
+                self.assertEqual(launch[launch.index('--cpus')+1], '2')
+                self.assertEqual(launch[launch.index('--pids-limit')+1], '64')
+                image_index = launch.index('sha256:' + 'b'*64)
+                self.assertEqual(launch[image_index:], args[args.index('sha256:' + 'b'*64):])
+                self.assertEqual(helpers.receipts()[0]['absence_proved'], True)
+                self.assertFalse(any(call[0] == 'stop' for call in state['calls']))
+
+    def test_lost_run_response_discovers_full_identity_and_proves_pid_zero(self):
+        for kind in ('image_check', 'volume_init'):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
+                helpers, manager, args, state = self.fixture(directory, kind, lose_response=True)
+                with self.assertRaises(self.h.controls.legacy.ConsoleError):
+                    manager.run(args)
+                row = helpers.receipts()[0]
+                self.assertEqual(row['container_id'], 'd' * 64)
+                self.assertEqual(row['pid'], 0)
+                self.assertIs(row['running'], False)
+                self.assertEqual(len([call for call in state['calls'] if call[0] == 'stop']), 1)
+
+    def test_lost_response_with_changed_layout_never_stops_unowned_helper(self):
+        for corrupt in (lambda row: row['HostConfig'].update(Memory=1),
+                        lambda row: row['Config'].update(User='wrong'),
+                        lambda row: row['Config'].update(Labels={}),
+                        lambda row: row['Mounts'].append({'Type': 'bind', 'Destination': '/etc'})):
+            with tempfile.TemporaryDirectory() as directory:
+                helpers, manager, args, state = self.fixture(directory, 'image_check', lose_response=True, corrupt=corrupt)
+                with self.assertRaises(Exception):
+                    manager.run(args)
+                self.assertFalse(any(call[0] == 'stop' for call in state['calls']))
+                with self.assertRaises(Exception):
+                    helpers.stop_all()
+
+    def test_product_image_checker_still_executes_and_validates_its_result(self):
+        import json
+        with tempfile.TemporaryDirectory() as directory:
+            helpers, manager, args, state = self.fixture(directory, 'image_check')
+            descriptor = {'image': 'sha256:'+'b'*64, 'manifest_sha256': 'c'*64,
+                'manifest': {'checks': {name: 'PASS' for name in ('native_integration', 'signer', 'mldsa44_node_tests',
+                                                               'mldsa44_public_tests', 'mldsa44_resource_tests')},
+                             'sha256': {'/tmp/mldsa-demo-source/docs/ML_DSA_44_PRODUCTION_CONTRACT_V1.md': self.h.controls.wallet.SPEC}}}
+            state['output'] = json.dumps(descriptor['manifest']).encode()
+            with patch.object(self.h.controls.source, 'validate_descriptor', return_value=descriptor):
+                self.assertEqual(manager.image_check(descriptor), descriptor)
+                state['output'] = b'{}'
+                with self.assertRaises(self.h.controls.legacy.ConsoleError):
+                    manager.image_check(descriptor)
+            self.assertEqual(len(helpers.receipts()), 2)
+
+    def test_watchdog_cleans_helper_while_run_is_blocked_and_serializes_launches(self):
+        with tempfile.TemporaryDirectory() as directory:
+            helpers, manager, args, state = self.fixture(directory, 'volume_init', lose_response=True)
+            entered, release = threading.Event(), threading.Event()
+            errors = []
+            def pause():
+                entered.set()
+                if not release.wait(3):
+                    raise AssertionError('Test did not release Docker run')
+            state['pause'] = pause
+            def launch():
+                try:
+                    manager.run(args)
+                except Exception as error:
+                    errors.append(type(error).__name__)
+            first = threading.Thread(target=launch)
+            second = threading.Thread(target=launch)
+            first.start()
+            self.assertTrue(entered.wait(3))
+            second.start()
+            helpers.stop_all()
+            self.assertEqual(state['row']['State'], {'Running': False, 'Pid': 0})
+            release.set()
+            first.join(3)
+            second.join(3)
+            self.assertFalse(first.is_alive() or second.is_alive())
+            self.assertEqual(len([call for call in state['calls'] if call[0] == 'run']), 1)
+            self.assertEqual(len(errors), 2)
+            self.assertEqual(helpers.receipts()[0]['pid'], 0)
+
+    def test_helper_identity_replacement_is_never_stopped(self):
+        with tempfile.TemporaryDirectory() as directory:
+            helpers, manager, args, state = self.fixture(directory, 'image_check', lose_response=True)
+            with self.assertRaises(self.h.controls.legacy.ConsoleError):
+                manager.run(args)
+            stopped_count = len([call for call in state['calls'] if call[0] == 'stop'])
+            state['row']['Id'] = 'e' * 64
+            state['row']['State'] = {'Running': True, 'Pid': 222}
+            with self.assertRaises(ValueError):
+                helpers.stop_all()
+            self.assertEqual(len([call for call in state['calls'] if call[0] == 'stop']), stopped_count)
+
+    def test_more_than_four_startup_helpers_is_refused_before_docker_run(self):
+        with tempfile.TemporaryDirectory() as directory:
+            helpers, manager, args, state = self.fixture(directory, 'image_check')
+            for _ in range(4):
+                manager.run(args)
+            with self.assertRaises(ValueError):
+                manager.run(args)
+            self.assertEqual(len([call for call in state['calls'] if call[0] == 'run']), 4)
+
+    def test_terminal_watchdog_prevents_any_later_helper_launch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            helpers, manager, args, state = self.fixture(directory, 'volume_init')
+            helpers.stop_all()
+            with self.assertRaises(ValueError):
+                manager.run(args)
+            self.assertIsNone(state['launch'])
+
+
+class ProxyReplacementTests(unittest.TestCase):
+    def test_listener_before_old_eof_forwards_replacement_and_rejects_third(self):
+        import selectors
+        p = module('peer_recovery_proxy')
+        real_selector = selectors.DefaultSelector
+        arm, blocked, release = threading.Event(), threading.Event(), threading.Event()
+        order, errors = [], []
+        class OrderedSelector:
+            def __init__(self):
+                self.delegate = real_selector()
+            def __getattr__(self, name):
+                return getattr(self.delegate, name)
+            def select(self, timeout):
+                if arm.is_set() and not blocked.is_set():
+                    blocked.set()
+                    if not release.wait(3):
+                        raise AssertionError('test did not release selector')
+                    events = self.delegate.select(timeout)
+                    events.sort(key=lambda event: event[0].data != 'listen')
+                    order.extend('listen' if key.data == 'listen' else 'peer' for key, _ in events)
+                    return events
+                return self.delegate.select(timeout)
+        with tempfile.TemporaryDirectory() as directory, socket.socket() as upstream, socket.socket() as probe:
+            upstream.bind(('127.0.0.1', 0))
+            upstream.listen(2)
+            upstream.settimeout(3)
+            probe.bind(('127.0.0.1', 0))
+            port = probe.getsockname()[1]
+            probe.close()
+            address = upstream.getsockname()
+            connector = socket.create_connection
+            path = str(Path(directory) / 'control')
+            def serve():
+                try:
+                    p.serve(path, '127.0.0.1', listen_port=port)
+                except Exception as error:
+                    errors.append(str(error))
+            with patch.object(p.selectors, 'DefaultSelector', OrderedSelector), \
+                    patch.object(p.socket, 'create_connection', side_effect=lambda *_args, **kwargs: connector(address, **kwargs)):
+                thread = threading.Thread(target=serve, daemon=True)
+                thread.start()
+                deadline = time.monotonic()+3
+                while not os.path.exists(path) and time.monotonic() < deadline:
+                    time.sleep(.01)
+                with socket.socket() as first, socket.socket() as second, socket.socket() as third:
+                    first.settimeout(3)
+                    second.settimeout(3)
+                    first.connect(('127.0.0.1', port))
+                    target, _ = upstream.accept()
+                    with target:
+                        target.settimeout(3)
+                        first.sendall(frame(b'verack'))
+                        self.assertEqual(target.recv(24), frame(b'verack'))
+                        arm.set()
+                        self.assertTrue(blocked.wait(3))
+                        first.shutdown(socket.SHUT_RDWR)
+                        first.close()
+                        second.connect(('127.0.0.1', port))
+                        second.sendall(frame(b'ping', b'12345678'))
+                        release.set()
+                        replacement, _ = upstream.accept()
+                        with replacement:
+                            replacement.settimeout(3)
+                            self.assertEqual(replacement.recv(32), frame(b'ping', b'12345678'))
+                            self.assertTrue(thread.is_alive())
+                            self.assertEqual(errors, [])
+                            self.assertEqual(order[0], 'listen')
+                            self.assertIn('peer', order[1:])
+                            third.connect(('127.0.0.1', port))
+                            thread.join(3)
+                            self.assertFalse(thread.is_alive())
+                            self.assertEqual(second.recv(1), b'')
+            release.set()
+            thread.join(3)
+            self.assertEqual(errors, ['PROXY_EXTRA_CONNECTION'])
             self.assertFalse(os.path.exists(path))
 
 

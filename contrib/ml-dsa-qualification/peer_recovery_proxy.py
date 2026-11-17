@@ -127,6 +127,7 @@ def serve(path, upstream, *, listen_port=23834):
     control_bound = False
     drop, peers, connections, stopped = DropOnce(), {}, 0, False
     deadline = time.monotonic() + 590
+    pending, pending_deadline = None, None
 
     def close_pair():
         for sock in list(peers):
@@ -136,6 +137,25 @@ def serve(path, upstream, *, listen_port=23834):
                 pass
             sock.close()
         peers.clear()
+
+    def activate(client):
+        nonlocal connections
+        try:
+            target = socket.create_connection((str(address), 23833), timeout=2)
+        except BaseException:
+            client.close()
+            raise
+        connections += 1
+        for sock, other, direction in ((client, target, "sender_to_receiver"), (target, client, "receiver_to_sender")):
+            sock.setblocking(False)
+            peers[sock] = {"other": other, "direction": direction, "framer": Framer(), "queue": bytearray()}
+            selector.register(sock, selectors.EVENT_READ, peers[sock])
+
+    def close_pending():
+        nonlocal pending, pending_deadline
+        if pending is not None:
+            pending.close()
+            pending, pending_deadline = None, None
 
     def update(sock):
         state = peers[sock]
@@ -164,6 +184,7 @@ def serve(path, upstream, *, listen_port=23834):
         selector.register(control, selectors.EVENT_READ, "control")
         while not stopped:
             check(time.monotonic() < deadline, "PROXY_DEADLINE")
+            check(pending is None or time.monotonic() < pending_deadline, "PROXY_HANDOFF_DEADLINE")
             for key, mask in selector.select(0.2):
                 if key.data == "control":
                     client, _ = control.accept()
@@ -183,24 +204,26 @@ def serve(path, upstream, *, listen_port=23834):
                             stopped = op == "stop"
                             if stopped:
                                 close_pair()
+                                close_pending()
                             result = {"ok": True, **drop.status(), "connections": connections,
-                                      "active_connections": len(peers) // 2}
+                                      "active_connections": len(peers) // 2 + int(pending is not None)}
                         except ValueError:
                             result = {"ok": False, "error": "CONTROL_REFUSED"}
                         client.sendall(json.dumps(result, sort_keys=True).encode() + b"\n")
                 elif key.data == "listen":
                     client, _ = listener.accept()
                     try:
-                        check(not peers and connections < 2, "PROXY_EXTRA_CONNECTION")
-                        target = socket.create_connection((str(address), 23833), timeout=2)
+                        check(connections < 2 and pending is None, "PROXY_EXTRA_CONNECTION")
                     except BaseException:
                         client.close()
                         raise
-                    connections += 1
-                    for sock, other, direction in ((client, target, "sender_to_receiver"), (target, client, "receiver_to_sender")):
-                        sock.setblocking(False)
-                        peers[sock] = {"other": other, "direction": direction, "framer": Framer(), "queue": bytearray()}
-                        selector.register(sock, selectors.EVENT_READ, peers[sock])
+                    if peers:
+                        # A replacement may be accepted before the selector
+                        # delivers the old socket's EOF. Buffer nothing here:
+                        # one pending socket retains TCP backpressure until EOF.
+                        pending, pending_deadline = client, time.monotonic() + 2
+                    else:
+                        activate(client)
                 else:
                     sock = key.fileobj
                     if sock not in peers:
@@ -232,7 +255,11 @@ def serve(path, upstream, *, listen_port=23834):
                         if item not in selector.get_map():
                             selector.register(item, selectors.EVENT_READ, peers[item])
                         update(item)
+            if not stopped and not peers and pending is not None:
+                client, pending, pending_deadline = pending, None, None
+                activate(client)
     finally:
+        close_pending()
         close_pair()
         listener.close()
         control.close()
