@@ -43,6 +43,7 @@ BUILD = SEED + "/mldsa-demo-build"
 SERVER = SEED + "/demo-signer-bin/pilot-signer"
 DATA = "/var/lib/pqbtc"
 SOCKET = "/run/pqbtc-ipc/public/signer.sock"
+MAX_PEER_RENEWAL_SECONDS = 30
 LABELS = {"org.pqbtc.console.schema": "public-test-1", "org.pqbtc.console.profile": PROFILE}
 TMPFS = {"/run/pqbtc-ipc": "rw,noexec,nosuid,nodev,size=1048576,mode=1777",
          "/tmp": "rw,noexec,nosuid,nodev,size=16777216,mode=1777"}
@@ -59,7 +60,7 @@ def peer_recovery_bootstrap(helper):
             "line=sys.stdin.buffer.readline(128)\n"
             "try: budget=float(line)\n"
             "except (ValueError,OverflowError): os._exit(125)\n"
-            "if not 0 < budget <= 10: os._exit(125)\n"
+            f"if not 0 < budget <= {MAX_PEER_RENEWAL_SECONDS}: os._exit(125)\n"
             "expiry=anchor+budget\n"
             "left=expiry-time.monotonic()\n"
             "if left <= 0: os._exit(124)\n"
@@ -780,7 +781,7 @@ class PublicController(Files):
         if action == "renew_peer":
             require(include_status is False, "Public peer recovery requires compact response")
             budget = params.get("budget_seconds")
-            require(type(budget) in (int, float) and math.isfinite(budget) and 0 < budget <= 10,
+            require(type(budget) in (int, float) and math.isfinite(budget) and 0 < budget <= MAX_PEER_RENEWAL_SECONDS,
                     "Public peer recovery budget refused")
             deadline = time.monotonic() + budget
         if action == "renew_peer":

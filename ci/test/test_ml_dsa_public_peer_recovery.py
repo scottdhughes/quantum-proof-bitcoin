@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[2]
 PATH = ROOT / "contrib/ml-dsa-console/public_peer_recovery.py"
@@ -54,6 +54,32 @@ class RecoveryTests(unittest.TestCase):
         self.assertNotIsInstance(caught.exception, TypeError)
         self.assertEqual(self.node.mutations, [])
 
+    def test_explicit_deadline_cannot_extend_callers_short_budget(self):
+        with patch.object(recovery.time, "monotonic", return_value=100.0):
+            with self.assertRaisesRegex(Exception, "public peer recovery deadline"):
+                recovery.renew(self.node, self.state, self.endpoint, 1, deadline=102.0)
+        self.assertEqual(self.node.mutations, [])
+
+    def test_delayed_native_reconnect_observes_once_until_fresh_pong(self):
+        clock = [100.0]
+
+        class DelayedReconnect(FakeNode):
+            def getpeerinfo(self):
+                if self.phase == 2 and clock[0] < 118:
+                    return []
+                return super().getpeerinfo()
+
+        self.node = DelayedReconnect(self.endpoint)
+        with patch.object(recovery.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(recovery.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            proof = self.run_recovery(24)
+        self.assertGreaterEqual(clock[0], 118)
+        self.assertLess(clock[0], 124)
+        self.assertEqual(self.node.mutations, [("disconnectnode", "", 1), ("addnode", self.endpoint, "onetry", True), ("ping",)])
+        self.assertEqual(proof["old_peer_ids"], [1])
+        self.assertEqual(proof["new_peer_id"], 2)
+        self.assertTrue(proof["fresh_pong"])
+
     def test_delayed_disconnect_attempts_connection_once_after_old_disappears(self):
         class DelayedNode(FakeNode):
             def __init__(self, endpoint):
@@ -91,6 +117,101 @@ class RecoveryTests(unittest.TestCase):
         result = self.run_recovery(0.3)
         self.assertEqual(result["new_peer_id"], 2)
         self.assertEqual(self.node.mutations, [("disconnectnode", "", 1), ("ping",)])
+
+    def test_detecting_original_peer_is_left_alone_until_native_handshake_completes(self):
+        class HandshakingNode(FakeNode):
+            polls = 0
+
+            def getpeerinfo(self):
+                self.polls += 1
+                rows = super().getpeerinfo()
+                if self.phase == 0 and self.polls <= 4:
+                    rows[0].update(transport_protocol_type="detecting" if self.polls < 3 else "v2",
+                                   version=70016 if self.polls == 4 else 0, relaytxes=False)
+                return rows
+
+            def disconnectnode(self, *args):
+                assert self.polls >= 5, "disconnected an in-progress handshake"
+                super().disconnectnode(*args)
+
+        self.node = HandshakingNode(self.endpoint)
+        proof = self.run_recovery(1)
+        self.assertEqual(proof["old_peer_ids"], [1])
+        self.assertEqual(proof["new_peer_id"], 2)
+        self.assertEqual(self.node.mutations, [("disconnectnode", "", 1), ("addnode", self.endpoint, "onetry", True), ("ping",)])
+
+    def test_detecting_peer_replaced_automatically_needs_only_ping(self):
+        class HandshakingNode(FakeNode):
+            polls = 0
+
+            def getpeerinfo(self):
+                self.polls += 1
+                if self.polls == 2:
+                    self.phase = 2
+                rows = super().getpeerinfo()
+                if self.polls <= 3:
+                    rows[0].update(transport_protocol_type="detecting", version=0)
+                return rows
+
+        self.node = HandshakingNode(self.endpoint)
+        proof = self.run_recovery(1)
+        self.assertEqual(proof["old_peer_ids"], [1])
+        self.assertEqual(proof["new_peer_id"], 2)
+        self.assertTrue(proof["fresh_pong"])
+        self.assertEqual(self.node.mutations, [("ping",)])
+
+    def test_detecting_peer_without_handshake_expires_without_mutation(self):
+        class HandshakingNode(FakeNode):
+            def getpeerinfo(self):
+                return [dict(super().getpeerinfo()[0], transport_protocol_type="detecting", version=0)]
+
+        self.node = HandshakingNode(self.endpoint)
+        with self.assertRaisesRegex(Exception, "deadline"):
+            self.run_recovery(.09)
+        self.assertEqual(self.node.mutations, [])
+
+    def test_unknown_initial_transport_fails_without_mutation(self):
+        class UnknownTransport(FakeNode):
+            def getpeerinfo(self):
+                return [dict(super().getpeerinfo()[0], transport_protocol_type="unknown")]
+
+        self.node = UnknownTransport(self.endpoint)
+        with self.assertRaisesRegex(ValueError, "public peer transport refused"):
+            self.run_recovery()
+        self.assertEqual(self.node.mutations, [])
+
+    def test_native_peer_identity_and_transport_remain_pinned_to_ping(self):
+        for change in ({"id": 3}, {"transport_protocol_type": "v1"}):
+            with self.subTest(change=change):
+                class SwappedAfterPing(FakeNode):
+                    def getpeerinfo(self):
+                        rows = super().getpeerinfo()
+                        if self.phase == 3:
+                            rows[0].update(change)
+                        return rows
+
+                self.node = SwappedAfterPing(self.endpoint)
+                self.node.phase = 1
+                with self.assertRaisesRegex(ValueError, "public peer changed during ping"):
+                    self.run_recovery()
+                self.assertEqual(self.node.mutations, [("addnode", self.endpoint, "onetry"), ("ping",)])
+
+    def test_vanished_detecting_peer_allows_only_one_uncertain_onetry(self):
+        class VanishingNode(FakeNode):
+            def getpeerinfo(self):
+                if self.phase == 0:
+                    self.phase = 1
+                    return [{"id": 1, "addr": self.endpoint, "transport_protocol_type": "detecting", "version": 0}]
+                return []
+
+            def addnode(self, *args):
+                self.mutations.append(("addnode", *args))
+                raise OSError("unknown outcome")
+
+        self.node = VanishingNode(self.endpoint)
+        with self.assertRaisesRegex(Exception, "deadline"):
+            self.run_recovery(.09)
+        self.assertEqual(self.node.mutations, [("addnode", self.endpoint, "onetry")])
 
     def test_uncertain_mutation_responses_are_not_replayed(self):
         class UncertainNode(FakeNode):
@@ -514,6 +635,25 @@ class HostPathTests(unittest.TestCase):
             release.set()
             thread.join(1)
 
+    def test_remote_watchdog_accepts_longer_budget_on_its_own_monotonic_clock(self):
+        import subprocess
+        import sys
+
+        payload = b"import time\nassert 10 < __recovery_deadline__ - time.monotonic() <= 20\nprint('verified')"
+        completed = subprocess.run(
+            [sys.executable, "-c", self.control.peer_recovery_bootstrap(payload)],
+            input=b"20\n", capture_output=True, timeout=5, check=True,
+        )
+        self.assertEqual(completed.stdout.splitlines(), [b"READY", b"verified"])
+
+    def test_controller_validates_identity_after_a_delayed_valid_native_reply(self):
+        self.delays = [1, 15, 1]
+        value = self.invoke(budget=25)["result"]
+        self.assertEqual(value, self.proof)
+        self.assertEqual(self.handshake, (b"24.0\n", 24))
+        self.assertEqual(self.calls[2][1]["timeout"], 9)
+        self.assertEqual(self.clock, 117)
+
     def test_full_path_uses_verified_id_and_streams_helper_with_shared_budget(self):
         class Lock:
             def acquire(inner, timeout):
@@ -627,9 +767,12 @@ class HostPathTests(unittest.TestCase):
         with self.assertRaises(Exception) as caught:
             self.invoke()
         self.assertNotIn("secret-auth", str(caught.exception))
-        for budget in (0, 11, float("nan"), True):
+        self.calls.clear()
+        self.exec_returncode = 0
+        for budget in (0, 31, float("nan"), True):
             with self.assertRaises(Exception):
                 self.invoke(budget)
+            self.assertEqual(self.calls, [])
 
 
 if __name__ == "__main__":

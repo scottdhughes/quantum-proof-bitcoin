@@ -340,6 +340,29 @@ class PublicTransportTests(unittest.TestCase):
             self.assertIsNone(value["error_class"])
         self.assertEqual(values[-1]["close_side"], "local")
 
+    def test_bridge_survives_failed_tls_dial_before_forwarding_native_bytes_once(self):
+        remote, server = self.tls_pair()
+        client, local = socket.socketpair()
+        self.addCleanup(client.close)
+        self.addCleanup(local.close)
+        message = b"first native bytes"
+        client.sendall(message)
+        client.shutdown(socket.SHUT_WR)
+        endpoint = transport.PublicEndpoint("public.example.org", 443, ("1.1.1.1",))
+        output = io.StringIO()
+        deadline = time.monotonic() + 3
+        with transport.Bridge(self.bridge_port(), endpoint, deadline) as bridge, redirect_stdout(output):
+            self.assertTrue(bridge.verify_request(local, ("127.0.0.1", 1)))
+            with mock.patch.object(transport, "_connect_verified", side_effect=[ssl.SSLEOFError(), remote]) as connect:
+                transport.BridgeHandler(local, ("127.0.0.1", 1), bridge)
+        self.assertEqual(connect.call_count, 2)
+        self.assertEqual(server.recv(4096), message)
+        events = [json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertEqual([event["event"] for event in events],
+                         ["public_tls_connect_failures", "public_tls_connected", "public_tls_disconnected"])
+        self.assertEqual(events[0]["failures"], [{"address": "1.1.1.1", "reason": "SSLEOFError"}])
+        self.assertEqual(events[-1]["bytes"], [len(message), 0])
+
     def bridge_port(self):
         with socket.socket() as reserved:
             reserved.bind(("127.0.0.1", 0))

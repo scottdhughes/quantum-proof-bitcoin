@@ -1007,9 +1007,16 @@ class Soak:
     def renew_declared_peer(self):
         endpoint = "127.0.0.1:23834"
         require(self.action_deadline is not None, "Peer renewal requires the original payment deadline")
-        budget = min(10.0, self.action_deadline - time.monotonic())
-        require(budget > 0, "Peer renewal reached the original payment deadline")
-        value = self.action(self.follower, "renew_peer", {"endpoint": endpoint, "budget_seconds": budget}, timeout=budget)
+        # The remote budget starts on receipt. Reserve time both for the
+        # round trip and for relay, mining and confirmation after renewal.
+        transport_headroom, settlement_reserve = 3.0, 10.0
+        now = time.monotonic()
+        remote_budget = min(30.0, self.action_deadline - now - settlement_reserve - transport_headroom)
+        require(remote_budget > 0, "Insufficient time for peer renewal and payment settlement")
+        reply_timeout = remote_budget + transport_headroom
+        reply_deadline = now + reply_timeout
+        value = self.action(self.follower, "renew_peer", {"endpoint": endpoint, "budget_seconds": remote_budget},
+                            timeout=reply_timeout)
         require(value.get("endpoint") == endpoint and value.get("renewed") is True and
                 value.get("network_active") is True and value.get("fresh_pong") is True,
                 "Declared peer renewal lacks fresh native proof")
@@ -1021,7 +1028,7 @@ class Soak:
             before, after = value.get(label + "_before"), value.get(label + "_after")
             require(type(before) is int and type(after) is int and 0 <= before < after,
                     "Declared peer renewal returned stale native ping evidence")
-        require(time.monotonic() < self.action_deadline, "Peer renewal exceeded the original payment deadline")
+        require(time.monotonic() < reply_deadline, "Peer renewal reply exceeded its payment budget")
         return value
 
     def probe(self):

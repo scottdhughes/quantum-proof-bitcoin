@@ -1244,11 +1244,12 @@ print("MAIN_RETURNING",flush=True)
 
 class ProxyReplacementTests(unittest.TestCase):
     def test_listener_before_old_eof_forwards_replacement_and_rejects_third(self):
+        import select
         import selectors
         p = module('peer_recovery_proxy')
         real_selector = selectors.DefaultSelector
         arm, blocked, release = threading.Event(), threading.Event(), threading.Event()
-        order, errors = [], []
+        errors = []
         class OrderedSelector:
             def __init__(self):
                 self.delegate = real_selector()
@@ -1259,10 +1260,17 @@ class ProxyReplacementTests(unittest.TestCase):
                     blocked.set()
                     if not release.wait(3):
                         raise AssertionError('test did not release selector')
-                    events = self.delegate.select(timeout)
-                    events.sort(key=lambda event: event[0].data != 'listen')
-                    order.extend('listen' if key.data == 'listen' else 'peer' for key, _ in events)
-                    return events
+                    # A successful connect does not guarantee one OS poll
+                    # reports both queued accept and old EOF. Wait for each
+                    # real socket, then deliver the exact listener-first batch.
+                    keys = self.delegate.get_map().values()
+                    listener = next(key for key in keys if key.data == 'listen')
+                    old = next(key for key in keys if isinstance(key.data, dict) and
+                               key.data['direction'] == 'sender_to_receiver')
+                    for key in (listener, old):
+                        if not select.select([key.fileobj], [], [], 3)[0]:
+                            raise AssertionError('expected socket did not become readable')
+                    return [(listener, selectors.EVENT_READ), (old, selectors.EVENT_READ)]
                 return self.delegate.select(timeout)
         with tempfile.TemporaryDirectory() as directory, socket.socket() as upstream, socket.socket() as probe:
             upstream.bind(('127.0.0.1', 0))
@@ -1308,8 +1316,6 @@ class ProxyReplacementTests(unittest.TestCase):
                             self.assertEqual(replacement.recv(32), frame(b'ping', b'12345678'))
                             self.assertTrue(thread.is_alive())
                             self.assertEqual(errors, [])
-                            self.assertEqual(order[0], 'listen')
-                            self.assertIn('peer', order[1:])
                             third.connect(('127.0.0.1', port))
                             thread.join(3)
                             self.assertFalse(thread.is_alive())

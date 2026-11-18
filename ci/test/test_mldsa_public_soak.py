@@ -670,7 +670,9 @@ class PublicSoakTests(unittest.TestCase):
                 if name == "renew_peer":
                     self.assertEqual(host, "two")
                     self.assertEqual(params["endpoint"], "127.0.0.1:23834")
-                    self.assertTrue(0 < params["budget_seconds"] <= min(10, 160 - seen[-1][4]))
+                    self.assertTrue(0 < params["budget_seconds"] <= 30)
+                    self.assertAlmostEqual(timeout - params["budget_seconds"], 3)
+                    self.assertLessEqual(seen[-1][4] + timeout, run.action_deadline - 10)
                     state["renewed_at"] = clock[0]
                     if uncertain:
                         raise TimeoutError("Controlled uncertain renewal response")
@@ -739,9 +741,20 @@ class PublicSoakTests(unittest.TestCase):
                 self.assertTrue(all(row[1] == "peer_status" for row in seen))
                 self.assertIsNone(run.action_deadline)
 
+    def test_delayed_preissuance_proof_leaves_time_for_one_settled_payment(self):
+        runner, run, clock, _state, seen = self.preissuance_payment_fixture(renewal_delay=22, relay_after=4)
+        with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            result = run.payment("one", "two")
+        names = [row[1] for row in seen]
+        self.assertEqual([names.count(name) for name in ("renew_peer", "receive", "send", "mine")], [1, 1, 1, 1])
+        renewal = seen[names.index("renew_peer")]
+        self.assertEqual(renewal[2]["budget_seconds"], 30)
+        self.assertGreaterEqual(seen[names.index("receive")][4] - renewal[4], 22)
+        self.assertLess(result["settle_seconds"], 60)
+
     def test_preissuance_setup_and_renewal_share_the_original_payment_budget(self):
-        for options in ({"sample_delay": 61}, {"peer_delay": 61},
-                        {"sample_delay": 25, "peer_delay": 29, "renewal_delay": 7}):
+        for options in ({"sample_delay": 61}, {"peer_delay": 61}):
             with self.subTest(options=options):
                 runner, run, clock, _state, seen = self.preissuance_payment_fixture(**options)
                 with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
@@ -751,9 +764,20 @@ class PublicSoakTests(unittest.TestCase):
                 self.assertAlmostEqual(clock[0], 160)
                 self.assertTrue(all(row[5] == 160 for row in seen))
                 names = [row[1] for row in seen]
-                self.assertEqual(names.count("renew_peer"), int("renewal_delay" in options))
+                self.assertNotIn("renew_peer", names)
                 self.assertTrue(all(name not in names for name in ("receive", "send", "mine")))
                 self.assertIsNone(run.action_deadline)
+
+    def test_insufficient_time_for_settlement_refuses_renewal_before_dispatch(self):
+        runner, run, clock, _state, seen = self.preissuance_payment_fixture(sample_delay=25, peer_delay=29)
+        with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
+                patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
+            with self.assertRaisesRegex(ValueError, "Insufficient time for peer renewal"):
+                run.payment("one", "two")
+        self.assertLess(clock[0], 160)
+        self.assertTrue(all(row[5] == 160 for row in seen))
+        self.assertTrue(all(row[1] not in ("renew_peer", "receive", "send", "mine") for row in seen))
+        self.assertIsNone(run.action_deadline)
 
     def test_preissuance_repair_honors_a_shorter_outer_fault_budget(self):
         runner, run, clock, _state, seen = self.preissuance_payment_fixture(sample_delay=10, peer_delay=20)
@@ -815,7 +839,7 @@ class PublicSoakTests(unittest.TestCase):
                 self.assertIsNone(run.action_deadline)
 
     def test_generic_peers_cannot_reuse_pre_renewal_full_state_agreement(self):
-        for outer_deadline in (None, 112):
+        for outer_deadline in (None, 130):
             with self.subTest(outer_deadline=outer_deadline):
                 runner, run, clock, _state, seen = self.preissuance_payment_fixture(
                     generic_peers=True, diverge_on_renewal=True)
@@ -887,7 +911,9 @@ class PublicSoakTests(unittest.TestCase):
             if name == "renew_peer":
                 self.assertEqual(host, "two")
                 self.assertEqual(params["endpoint"], "127.0.0.1:23834")
-                self.assertTrue(0 < params["budget_seconds"] <= 10)
+                self.assertTrue(0 < params["budget_seconds"] <= 30)
+                self.assertAlmostEqual(kwargs["timeout"] - params["budget_seconds"], 3)
+                self.assertLessEqual(clock[0] + kwargs["timeout"], run.action_deadline - 10)
                 state["renewal_deadlines"].append(run.action_deadline)
                 clock[0] += renewal_delay
                 state["renewed"] = True
@@ -941,13 +967,14 @@ class PublicSoakTests(unittest.TestCase):
                 self.assertNotIn("mine", names)
 
     def test_peer_renewal_cannot_replace_original_payment_deadline(self):
-        runner, run, clock, state, seen = self.renewal_payment_fixture(renewal_delay=55)
+        runner, run, clock, state, seen = self.renewal_payment_fixture(renewal_delay=34)
         with patch.object(runner.time, "monotonic", side_effect=lambda: clock[0]), \
                 patch.object(runner.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
-            with self.assertRaises(ValueError):
+            with self.assertRaisesRegex(ValueError, "Peer renewal reply exceeded"):
                 run.payment("one", "two")
         names = [row[1] for row in seen]
         self.assertEqual(state["renewal_deadlines"], [160.0])
+        self.assertLess(clock[0], 160)
         self.assertEqual(names.count("send"), 1)
         self.assertNotIn("rebroadcast", names)
         self.assertNotIn("mine", names)

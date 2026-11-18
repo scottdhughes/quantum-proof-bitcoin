@@ -16,6 +16,7 @@ spec = importlib.util.spec_from_file_location('peer_recovery_runtime', HERE / 'p
 runtime = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runtime)
 require = runtime.require
+MAX_PEER_RENEWAL_SECONDS = 30
 
 
 def read_policy(state):
@@ -32,11 +33,11 @@ def read_policy(state):
 
 def renew(node, state, endpoint, budget_seconds, *, deadline=None):
     endpoint = runtime.peer_endpoint(endpoint)
-    require(type(budget_seconds) in (int, float) and math.isfinite(budget_seconds) and 0 < budget_seconds <= 10,
+    require(type(budget_seconds) in (int, float) and math.isfinite(budget_seconds) and 0 < budget_seconds <= MAX_PEER_RENEWAL_SECONDS,
             'public peer recovery budget refused')
     now = time.monotonic()
     deadline = now + budget_seconds if deadline is None else deadline
-    require(type(deadline) in (int, float) and math.isfinite(deadline) and now < deadline <= now + 10,
+    require(type(deadline) in (int, float) and math.isfinite(deadline) and now < deadline <= now + budget_seconds,
             'public peer recovery deadline')
 
     def rpc(method, *args):
@@ -70,23 +71,47 @@ def renew(node, state, endpoint, budget_seconds, *, deadline=None):
                 'ambiguous public peer')
         return matches
 
-    targets = guard()
-    old = peers(targets)
+    def observed_transport(peer):
+        value = peer.get('transport_protocol_type')
+        require(value in ('detecting', 'v1', 'v2'), 'public peer transport refused')
+        return None if value == 'detecting' else value
+
+    def relay_handshake(peer):
+        return (type(peer.get('version')) is int and peer['version'] > 0 and peer.get('relaytxes') is True and
+                peer.get('connection_type') in ('manual', 'inbound', 'outbound-full-relay'))
+
+    def wait_for_peer():
+        remaining = deadline - time.monotonic()
+        require(remaining > 0, 'public peer recovery deadline')
+        time.sleep(min(.05, remaining))
+
+    old = peers(guard())
     old_ids = [p['id'] for p in old]
-    transport = old[0].get('transport_protocol_type') if old else None
-    require(not old or transport in ('v1', 'v2'), 'public peer transport refused')
-    if old:
-        # Reinspect immediately before mutation. A vanished ID is already being
-        # renewed; do not disconnect an unrelated replacement.
-        current = peers(guard())
-        if current and current[0]['id'] == old_ids[0]:
-            try:
-                rpc('disconnectnode', '', old_ids[0])
-            except Exception:
-                # The RPC may have taken effect before a lost response.
-                pass
-    baseline = None
+    transport = observed_transport(old[0]) if old else None
     attempted = False
+    if old:
+        # The node can expose an ID while its native transport/version
+        # handshake is in progress. Keep that ID in the original inventory.
+        while True:
+            current = peers(guard())
+            if not current or current[0]['id'] != old_ids[0]:
+                # If a replacement was already observed, avoid a competing
+                # onetry even if it disappears between the two observations.
+                attempted = bool(current)
+                break
+            mode = observed_transport(current[0])
+            require(transport is None or mode == transport, 'public peer transport changed')
+            if mode is not None:
+                transport = mode
+                if relay_handshake(current[0]):
+                    try:
+                        rpc('disconnectnode', '', old_ids[0])
+                    except Exception:
+                        # The RPC may have taken effect before a lost response.
+                        pass
+                    break
+            wait_for_peer()
+    baseline = None
     while True:
         targets = guard()
         current = peers(targets)
@@ -102,29 +127,26 @@ def renew(node, state, endpoint, budget_seconds, *, deadline=None):
                 pass
         elif current:
             peer = current[0]
+            mode = observed_transport(peer)
+            require(baseline is None or (peer['id'], mode) == baseline[:2], 'public peer changed during ping')
             if peer['id'] not in old_ids:
                 # An automatic replacement is already underway.
                 attempted = True
-            if peer['id'] not in old_ids and peer.get('version', 0) > 0 and peer.get('relaytxes') is True and peer.get('connection_type') in ('manual', 'inbound', 'outbound-full-relay'):
-                observed_transport = peer.get('transport_protocol_type')
-                require(observed_transport in ('v1', 'v2') and (transport is None or transport == observed_transport),
-                        'public peer transport changed')
+            if peer['id'] not in old_ids and mode is not None and relay_handshake(peer):
+                require(transport is None or transport == mode, 'public peer transport changed')
                 sent, received = peer.get('bytessent_per_msg', {}).get('ping', 0), peer.get('bytesrecv_per_msg', {}).get('pong', 0)
                 require(type(sent) is int and sent >= 0 and type(received) is int and received >= 0, 'public peer ping counters refused')
                 if baseline is None:
-                    baseline = (peer['id'], sent, received)
+                    baseline = (peer['id'], mode, sent, received)
                     rpc('ping')
-                elif peer['id'] == baseline[0] and sent > baseline[1] and received > baseline[2] and not peer.get('pingwait', 0):
+                elif sent > baseline[2] and received > baseline[3] and not peer.get('pingwait', 0):
                     guard()
                     require(time.monotonic() < deadline, 'public peer recovery deadline')
                     return {'endpoint': endpoint, 'renewed': True, 'network_active': True, 'old_peer_ids': old_ids,
-                            'new_peer_id': peer['id'], 'transport_protocol_type': observed_transport, 'fresh_pong': True,
-                            'ping_sent_before': baseline[1], 'ping_sent_after': sent,
-                            'pong_received_before': baseline[2], 'pong_received_after': received}
-            elif baseline is not None and peer['id'] != baseline[0]:
-                require(False, 'public peer changed during ping')
-        require(time.monotonic() < deadline, 'public peer recovery deadline')
-        time.sleep(min(.05, max(0, deadline - time.monotonic())))
+                            'new_peer_id': peer['id'], 'transport_protocol_type': mode, 'fresh_pong': True,
+                            'ping_sent_before': baseline[2], 'ping_sent_after': sent,
+                            'pong_received_before': baseline[3], 'pong_received_after': received}
+        wait_for_peer()
 
 
 def main():
@@ -132,7 +154,8 @@ def main():
     from test_framework.authproxy import AuthServiceProxy
     node = runtime.PublicNode('/opt/pqbtc-runtime/seed/mldsa-demo-build/bin/pqbtcd', '/var/lib/pqbtc/node/chain', AuthServiceProxy)
     try:
-        result = renew(node, '/var/lib/pqbtc/node', sys.argv[1], 10, deadline=globals()['__recovery_deadline__'])
+        result = renew(node, '/var/lib/pqbtc/node', sys.argv[1], MAX_PEER_RENEWAL_SECONDS,
+                       deadline=globals()['__recovery_deadline__'])
         print(json.dumps(result, separators=(',', ':')))
     except Exception:
         print('public peer recovery refused', file=sys.stderr)
