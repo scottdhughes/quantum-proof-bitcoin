@@ -96,7 +96,7 @@ def open_public_tls(endpoint, timeout=10, *, retry_transient=False, failures=Non
             address_deadline = now + (deadline - now) / (len(endpoint.addresses) - index)
             try:
                 return _connect_verified(context, endpoint, address, address_deadline)
-            except (ssl.SSLEOFError, ConnectionError, TimeoutError) as error:
+            except (ssl.SSLEOFError, ssl.SSLZeroReturnError, ConnectionError, TimeoutError) as error:
                 reason = type(error).__name__
             except OSError as error:
                 # Other TLS errors (including untrusted certificates) and

@@ -353,14 +353,14 @@ class PublicTransportTests(unittest.TestCase):
         deadline = time.monotonic() + 3
         with transport.Bridge(self.bridge_port(), endpoint, deadline) as bridge, redirect_stdout(output):
             self.assertTrue(bridge.verify_request(local, ("127.0.0.1", 1)))
-            with mock.patch.object(transport, "_connect_verified", side_effect=[ssl.SSLEOFError(), remote]) as connect:
+            with mock.patch.object(transport, "_connect_verified", side_effect=[ssl.SSLZeroReturnError(), remote]) as connect:
                 transport.BridgeHandler(local, ("127.0.0.1", 1), bridge)
         self.assertEqual(connect.call_count, 2)
         self.assertEqual(server.recv(4096), message)
         events = [json.loads(line) for line in output.getvalue().splitlines()]
         self.assertEqual([event["event"] for event in events],
                          ["public_tls_connect_failures", "public_tls_connected", "public_tls_disconnected"])
-        self.assertEqual(events[0]["failures"], [{"address": "1.1.1.1", "reason": "SSLEOFError"}])
+        self.assertEqual(events[0]["failures"], [{"address": "1.1.1.1", "reason": "SSLZeroReturnError"}])
         self.assertEqual(events[-1]["bytes"], [len(message), 0])
 
     def bridge_port(self):
