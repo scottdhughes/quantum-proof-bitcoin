@@ -30,6 +30,8 @@ MAGIC = bytes.fromhex("a7e29cf7")
 MAX_PAYLOAD = 4_000_000
 MAX_CONNECTION_BYTES = 256 * 1024 * 1024
 MAX_LIFETIME = 27 * 3600
+# A guarded 30-second native renewal still needs time to negotiate P2P and ping.
+BRIDGE_CONNECT_SECONDS = 25
 
 
 def require(condition, message):
@@ -397,7 +399,7 @@ class BridgeHandler(socketserver.BaseRequestHandler):
                     raise TimeoutError("Public bridge lifetime deadline")
                 # No native bytes have been forwarded yet. After relay starts,
                 # a lost connection must end this native stream.
-                remote = open_public_tls(self.server.endpoint, timeout=min(10, remaining),
+                remote = open_public_tls(self.server.endpoint, timeout=min(BRIDGE_CONNECT_SECONDS, remaining),
                                          retry_transient=True, failures=failures)
             except (OSError, ValueError) as error:
                 error._pqbtc_close_side = "public_tls"
