@@ -10,6 +10,7 @@ endpoint. Resolve its public IP independently, then pass that numeric address.
 import argparse
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import errno
 import hashlib
 import ipaddress
 import json
@@ -58,23 +59,56 @@ class PublicEndpoint:
                     "Private, overlay, multicast and reserved destinations are refused")
 
 
-def open_public_tls(endpoint, timeout=10):
+def _connect_verified(context, endpoint, address, deadline):
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise TimeoutError("TCP connect deadline")
+    with socket.create_connection((address, endpoint.port), timeout=remaining) as raw:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("TLS handshake deadline")
+        raw.settimeout(remaining)
+        connection = context.wrap_socket(raw, server_hostname=endpoint.hostname)
+    try:
+        require(ipaddress.ip_address(connection.getpeername()[0]) == ipaddress.ip_address(address),
+                "TLS peer differs from declared public route")
+        if time.monotonic() >= deadline:
+            raise TimeoutError("TLS handshake deadline")
+    except BaseException:
+        connection.close()
+        raise
+    return connection
+
+
+def open_public_tls(endpoint, timeout=10, *, retry_transient=False, failures=None):
     """Use numeric public routing, with normal CA and DNS-name verification."""
+    deadline = time.monotonic() + timeout
     context = ssl.create_default_context()
     context.minimum_version = ssl.TLSVersion.TLSv1_2
-    for address in endpoint.addresses:
-        raw = None
-        try:
-            raw = socket.create_connection((address, endpoint.port), timeout=timeout)
-            connection = context.wrap_socket(raw, server_hostname=endpoint.hostname)
-            if ipaddress.ip_address(connection.getpeername()[0]) != ipaddress.ip_address(address):
-                connection.close()
-                raise ValueError("TLS peer differs from declared public route")
-            return connection
-        except (OSError, ssl.SSLError, ValueError):
-            if raw is not None:
-                raw.close()
-    raise ConnectionError("No declared public TLS destination completed certificate verification")
+    failures = [] if failures is None else failures
+    pause = 0.5
+    while time.monotonic() < deadline:
+        for index, address in enumerate(endpoint.addresses):
+            now = time.monotonic()
+            # Leave time for each remaining declared ingress address.
+            address_deadline = now + (deadline - now) / (len(endpoint.addresses) - index)
+            try:
+                return _connect_verified(context, endpoint, address, address_deadline)
+            except (ssl.SSLEOFError, ConnectionError, TimeoutError) as error:
+                reason = type(error).__name__
+            except OSError as error:
+                # Other TLS errors (including untrusted certificates) and
+                # unexpected local errors remain terminal.
+                if isinstance(error, ssl.SSLError) or error.errno not in (errno.ENETDOWN, errno.ENETUNREACH, errno.EHOSTUNREACH):
+                    raise
+                reason = errno.errorcode[error.errno]
+            failures.append({"address": address, "reason": reason})
+        remaining = deadline - time.monotonic()
+        if not retry_transient or remaining <= 0:
+            break
+        time.sleep(min(pause, remaining))
+        pause = min(2, 2 * pause)
+    raise ConnectionError("Public TLS ingress unavailable before P2P handshake: " + json.dumps(failures))
 
 
 def frame(command, payload=b""):
@@ -155,7 +189,7 @@ def parse_remote_version(payload):
     return version
 
 
-def probe(endpoint, *, timeout=20, owned_oversize_control=False):
+def probe(endpoint, *, timeout=20, owned_oversize_control=False, tls_failures=None):
     """Complete a native v1 P2P version/verack over certificate-checked TLS."""
     sys.path.insert(0, str(ROOT / "test/functional"))
     from test_framework.messages import msg_version
@@ -168,7 +202,8 @@ def probe(endpoint, *, timeout=20, owned_oversize_control=False):
     started = time.monotonic()
     deadline = started + timeout
     commands, remote_version = [], None
-    with open_public_tls(endpoint, timeout=min(10, timeout)) as connection:
+    tls_failures = [] if tls_failures is None else tls_failures
+    with open_public_tls(endpoint, timeout=min(10, timeout), retry_transient=True, failures=tls_failures) as connection:
         certificate = hashlib.sha256(connection.getpeercert(binary_form=True)).hexdigest()
         peer = connection.getpeername()[0]
         tls_version = connection.version()
@@ -194,7 +229,7 @@ def probe(endpoint, *, timeout=20, owned_oversize_control=False):
                 require(remote_version is not None, "P2P version must precede negotiation")
         result = {"result": "PASS", "scope": "ANONYMOUS_PUBLIC_TLS_NATIVE_P2P_HANDSHAKE_ONLY",
                 "hostname": endpoint.hostname, "port": endpoint.port, "public_peer_ip": peer,
-                "certificate_sha256": certificate, "tls_version": tls_version,
+                "certificate_sha256": certificate, "tls_version": tls_version, "tls_transient_failures": tls_failures,
                 "native_magic": MAGIC.hex(), "remote_protocol": remote_version.nVersion,
                 "remote_subversion": remote_version.strSubVer,
                 "remote_height": remote_version.nStartingHeight, "commands": commands,
@@ -355,11 +390,21 @@ class BridgeHandler(socketserver.BaseRequestHandler):
         try:
             with self.server.connections_lock:
                 self.server.connections.add(self.request)
+            failures = []
             try:
-                remote = open_public_tls(self.server.endpoint)
+                remaining = self.server.deadline - time.monotonic()
+                if remaining <= 0:
+                    raise TimeoutError("Public bridge lifetime deadline")
+                # No native bytes have been forwarded yet. After relay starts,
+                # a lost connection must end this native stream.
+                remote = open_public_tls(self.server.endpoint, timeout=min(10, remaining),
+                                         retry_transient=True, failures=failures)
             except (OSError, ValueError) as error:
                 error._pqbtc_close_side = "public_tls"
                 raise
+            finally:
+                if failures:
+                    self.server.connection_event({"event": "public_tls_connect_failures", "failures": failures})
             with self.server.connections_lock:
                 self.server.connections.add(remote)
             self.server.connection_event({"event": "public_tls_connected", "public_ip": remote.getpeername()[0],
