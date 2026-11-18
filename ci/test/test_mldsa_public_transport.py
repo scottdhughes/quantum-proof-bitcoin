@@ -510,6 +510,52 @@ class PublicTransportTests(unittest.TestCase):
     def test_probe_sends_a_valid_version_and_completes_native_handshake(self):
         self.probe_exchange()
 
+    def test_tls_transient_retry_records_failures_and_uses_original_deadline(self):
+        endpoint = transport.PublicEndpoint("public.example.org", 443, ("1.1.1.1", "8.8.8.8"))
+        clock, failures = [100.0], []
+        outcomes = [ConnectionResetError(), ssl.SSLEOFError(), object()]
+        with mock.patch.object(transport.time, "monotonic", side_effect=lambda: clock[0]), \
+             mock.patch.object(transport.time, "sleep", side_effect=lambda delay: clock.__setitem__(0, clock[0] + delay)), \
+             mock.patch.object(transport, "_connect_verified", side_effect=outcomes) as connect:
+            result = transport.open_public_tls(endpoint, timeout=10, retry_transient=True, failures=failures)
+        self.assertIs(result, outcomes[-1])
+        self.assertEqual(failures, [{"address": "1.1.1.1", "reason": "ConnectionResetError"},
+                                    {"address": "8.8.8.8", "reason": "SSLEOFError"}])
+        self.assertEqual([c.args[2] for c in connect.call_args_list], ["1.1.1.1", "8.8.8.8", "1.1.1.1"])
+        self.assertTrue(all(100 < c.args[3] <= 110 for c in connect.call_args_list))
+
+    def test_tls_security_failures_do_not_retry_or_try_another_ingress(self):
+        endpoint = transport.PublicEndpoint("public.example.org", 443, ("1.1.1.1", "8.8.8.8"))
+        for error in (ssl.SSLCertVerificationError("untrusted"), ssl.SSLError("invalid TLS"), ValueError("wrong peer")):
+            with self.subTest(error=type(error)), mock.patch.object(transport, "_connect_verified", side_effect=error) as connect:
+                with self.assertRaises(type(error)):
+                    transport.open_public_tls(endpoint, retry_transient=True)
+                self.assertEqual(connect.call_count, 1)
+
+    def test_unavailable_tls_exhausts_one_budget_and_never_sends_p2p(self):
+        endpoint = transport.PublicEndpoint("public.example.org", 443, ("1.1.1.1",))
+        clock = [100.0]
+        with mock.patch.object(transport.time, "monotonic", side_effect=lambda: clock[0]), \
+             mock.patch.object(transport.time, "sleep", side_effect=lambda delay: clock.__setitem__(0, clock[0] + delay)), \
+             mock.patch.object(transport, "_connect_verified", side_effect=ConnectionRefusedError()) as connect, \
+             mock.patch.object(transport, "frame") as frame:
+            with self.assertRaisesRegex(ConnectionError, "ConnectionRefusedError"):
+                transport.probe(endpoint, timeout=2)
+            self.assertGreater(connect.call_count, 1)
+            self.assertEqual(clock[0], 102)
+            frame.assert_not_called()
+
+    def test_verified_socket_checks_hostname_and_numeric_peer(self):
+        endpoint = transport.PublicEndpoint("public.example.org", 443, ("1.1.1.1",))
+        context, connection = mock.MagicMock(), mock.MagicMock()
+        context.wrap_socket.return_value = connection
+        connection.getpeername.return_value = ("8.8.8.8", 443)
+        with mock.patch.object(transport.socket, "create_connection") as create:
+            with self.assertRaisesRegex(ValueError, "peer differs"):
+                transport._connect_verified(context, endpoint, "1.1.1.1", time.monotonic() + 10)
+        context.wrap_socket.assert_called_once_with(create.return_value.__enter__.return_value, server_hostname=endpoint.hostname)
+        connection.close.assert_called_once()
+
     def test_owned_oversized_header_control_observes_native_disconnect(self):
         result = self.probe_exchange(hostile=True)
         self.assertTrue(result["disconnect_observed"])

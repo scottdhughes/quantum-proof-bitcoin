@@ -31,6 +31,31 @@ class PublicSoakTests(unittest.TestCase):
         self.assertIsNotNone(self.driver, "Reusable two-host public soak runner is missing")
         return self.driver
 
+    def test_failed_probe_keeps_transient_history_and_original_failure(self):
+        runner = self.runner()
+        events = []
+        class Log:
+            def append(self, kind, data):
+                events.append((kind, data))
+        config = {"hosts": [{"name": "one", "role": "bootstrap"}, {"name": "two", "role": "follower"}],
+                  "public_endpoint": {"hostname": "public.example.org", "port": 443, "public_ips": ["1.1.1.1"]}}
+        run = runner.Soak(config, "preflight", Log(), {}, "future")
+        run.funnel = {}
+        import ssl
+        failure = ssl.SSLCertVerificationError("untrusted")
+        transient = {"address": "1.1.1.1", "reason": "ConnectionResetError"}
+        def failing_probe(_endpoint, *, tls_failures):
+            tls_failures.append(transient)
+            raise failure
+        with patch.object(runner, "read_funnel", return_value={}), patch.object(runner, "same_funnel_handler", return_value=True), \
+             patch.dict(sys.modules, {"public_transport": runner.load_module(runner.HERE / "public_transport.py", "trace_transport")}), \
+             patch("public_transport.probe", side_effect=failing_probe):
+            with self.assertRaises(ssl.SSLCertVerificationError) as caught:
+                run.probe()
+        self.assertIs(caught.exception, failure)
+        self.assertEqual(events, [("anonymous_public_probe_failed",
+                                  {"error_class": "SSLCertVerificationError", "tls_transient_failures": [transient]})])
+
     def test_short_or_preflight_time_never_becomes_a_24_hour_pass(self):
         runner = self.runner()
         self.assertEqual(runner.duration_for("soak"), 86400)

@@ -1030,7 +1030,14 @@ class Soak:
         value = self.config["public_endpoint"]
         require(self.funnel is not None and same_funnel_handler(read_funnel(self.hosts[self.bootstrap]), self.funnel),
                 "Declared public handler changed during the attempt")
-        result = probe(PublicEndpoint(value["hostname"], value["port"], tuple(value["public_ips"])))
+        endpoint = PublicEndpoint(value["hostname"], value["port"], tuple(value["public_ips"]))
+        failures = []
+        try:
+            result = probe(endpoint, tls_failures=failures)
+        except (OSError, ValueError) as error:
+            self.log.append("anonymous_public_probe_failed",
+                            {"error_class": type(error).__name__, "tls_transient_failures": failures})
+            raise
         self.log.append("anonymous_public_probe", result)
         return result
 
