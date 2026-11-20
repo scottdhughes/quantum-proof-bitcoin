@@ -321,6 +321,27 @@ jobs:
           path: ~/AppData/Local/vcpkg/archives
           key: ${{ github.job }}-vcpkg-binary-${{ hashFiles('cmake_version', 'msbuild_version', 'toolset_version', 'vcpkg.json') }}
 
+      - name: Cache the pinned Boost.Unordered patch
+        if: matrix.job-type == 'standard'
+        run: |
+          commit=07f6463c1c302c5b1d28aa253e0b768e71c90235
+          sha512=99f631e57b0c7d8d08f32d994c34dbca2588b409c10ad35500c36dc5374dba91888ee5ba3ca7ed24fa75539e9d44ffc123892d859a736f63ca0ae5fffee2c178
+          downloads="${VCPKG_DOWNLOADS:-${VCPKG_INSTALLATION_ROOT}/downloads}"
+          mkdir -p "$downloads"
+          cd "$downloads"
+          patch="boost-unordered-arm32-${commit}.patch"
+          matches_pin() { printf '%s *%s\n' "$sha512" "$1" | sha512sum -c - >/dev/null; }
+          if [[ -f "$patch" ]] && matches_pin "$patch"; then exit 0; fi
+          tmp=$(mktemp ".${patch}.XXXXXX")
+          trap 'rm -f "$tmp"' EXIT
+          if curl -fsSL --proto '=https' --connect-timeout 10 --max-time 30 -o "$tmp" \
+              "https://github.com/boostorg/unordered/commit/${commit}.patch?full_index=true" && matches_pin "$tmp"; then
+            mv -f "$tmp" "$patch"
+            echo "Verified the Boost.Unordered patch for vcpkg."
+          else
+            echo "Verified patch unavailable. Retrying with vcpkg's configured download."
+          fi
+
       - name: Generate build system
         run: |
           cmake -B build -Werror=dev --preset vs2022 -DCMAKE_TOOLCHAIN_FILE="${VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake" ${{ matrix.generate-options }}
