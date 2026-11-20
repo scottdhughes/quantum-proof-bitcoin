@@ -1,0 +1,53 @@
+{
+  "archive": {
+    "bytes": 477432457,
+    "format": "docker-save+gzip",
+    "name": "runtime-image.tar.gz",
+    "sha256": "8a3c96fa7afecd3dee26780f03bf663b20d7a207bd49508cb4ac90068f03de80"
+  },
+  "compiler": "gcc",
+  "descriptor_sha256": "078c30dc1824abc022880ced14b2ed0591884f38103d36e41c4ede70cddd436e",
+  "image": {
+    "Architecture": "amd64",
+    "Id": "sha256:cbdb40bb721dbcf83aa8697005251adf54fbefd46e3d0836e91c43d43b8a941f",
+    "Os": "linux",
+    "RootFS": {
+      "Layers": [
+        "sha256:1d7b9dd8778ebc4d9bf2f64436dd358640718cb349f5640b33bebaea4ffd62c2",
+        "sha256:ef1e73878ad066219e4295e70d7d434b58f0f900bd822b8d19e8a1fe5ed60fec",
+        "sha256:0769ca67a5204c919d5a7bec258b6277a76eaf549acef9a23d7a847da5b15016",
+        "sha256:b53e0684d98f2dbab1f43b367dcd51c25780a8cec3bb1b05c6fabfbc4829863c",
+        "sha256:6ad3f86dd0c9d404062b35b5408ba6bc07d12971bbfed33c1bc77d7fb343a337",
+        "sha256:6fdbab95896bb517faa2989b5df845aa6834714bc2be3d97a5bbe0909e8ecb18"
+      ],
+      "Type": "layers"
+    },
+    "Size": 1236111165
+  },
+  "image_size_metric": "DOCKER_IMAGE_INSPECT_SIZE_NOT_FILESYSTEM_REQUIREMENT",
+  "manifest_sha256": "ca75d849e3e36ca40e449a72866d239a83491dd4c5f9ec671e3fe4535b6556c3",
+  "qualification_reports": {
+    "assembled": {
+      "path": "report.json",
+      "result": "PASS",
+      "sha256": "c15dd7521e02fd95a875c8a18ae2f1aff6b1929bf2adcb441438e82601f8aad5"
+    },
+    "native": {
+      "path": "native-qualification/report.json",
+      "result": "PASS",
+      "sha256": "0d40249638b2cbedbe28bde5470fb86128fc785c0982b5e93d7765b8c2c9675d"
+    },
+    "public_app": {
+      "path": "public-profile-app/report.json",
+      "result": "PASS",
+      "sha256": "2733f49145e44c33791b612a3888f89d9a0d617cc791f9857efd430d70d66c45"
+    }
+  },
+  "require_target_stored_and_unpacked_layer_capacity_check": true,
+  "result": "PASS",
+  "schema": "PQBTC-QUALIFIED-RUNTIME-IMAGE-EXPORT-1",
+  "source": {
+    "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+    "tree": "9426d9dd4c3c2d082059b2ffc14fa912a121b1dc"
+  }
+}

@@ -1,0 +1,202 @@
+{
+  "archive_bytes": 45250,
+  "archive_sha256": "234b59ed7eb8960a090de1a815755085bef97ddc41b5c56b8446c481f8aec812",
+  "directory_count": 7,
+  "file_count": 21,
+  "members": [
+    {
+      "bytes": 0,
+      "mode": "0700",
+      "path": "packet",
+      "type": "directory"
+    },
+    {
+      "bytes": 8,
+      "mode": "0644",
+      "path": "packet/.gitattributes",
+      "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da",
+      "type": "file"
+    },
+    {
+      "bytes": 3983,
+      "mode": "0644",
+      "path": "packet/README.md",
+      "sha256": "fdd0ab4f07f7356661717ece574eaf5588dc9f2e776f81534c385e921afb0f66",
+      "type": "file"
+    },
+    {
+      "bytes": 1816,
+      "mode": "0644",
+      "path": "packet/SHA256SUMS",
+      "sha256": "f193e58f2ad5a09701b217349c535119dc6b851cd286a79a77134f7c7ec5adac",
+      "type": "file"
+    },
+    {
+      "bytes": 9744,
+      "mode": "0644",
+      "path": "packet/SOURCE.json",
+      "sha256": "31801eaad605489bf34d15a7803041b23713a63269e6832e630c28ef9e3ef131",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0700",
+      "path": "packet/authorization",
+      "type": "directory"
+    },
+    {
+      "bytes": 7288,
+      "mode": "0644",
+      "path": "packet/authorization/musashi-stop-public-projection.json",
+      "sha256": "fa2a20121eeb96aceeca1051fa7e4cf74232abe8e7a04056dc99c206b60f8517",
+      "type": "file"
+    },
+    {
+      "bytes": 805,
+      "mode": "0644",
+      "path": "packet/authorization/owner-order.json",
+      "sha256": "38be0752428744ad52b23cfb35e285eb88d45d26fef11f24486239b721bdeff3",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0700",
+      "path": "packet/driver-review",
+      "type": "directory"
+    },
+    {
+      "bytes": 973,
+      "mode": "0644",
+      "path": "packet/driver-review/derivation.json",
+      "sha256": "f6afc2adcfb6cd521548098d94dc990d1c216535245c2d74e5070aa0bc31be9a",
+      "type": "file"
+    },
+    {
+      "bytes": 1913,
+      "mode": "0644",
+      "path": "packet/driver-review/driver.diff",
+      "sha256": "41b53a8882247260cc679ec2aaa3e98ce57e4fa6a01a5f2d565e7c87834303ab",
+      "type": "file"
+    },
+    {
+      "bytes": 7177,
+      "mode": "0644",
+      "path": "packet/driver-review/final-review.json",
+      "sha256": "c65f2e6d5d9bf677403e3d224e6633b6637e48f1edbabc4ea91d3f546a7432f9",
+      "type": "file"
+    },
+    {
+      "bytes": 16842,
+      "mode": "0644",
+      "path": "packet/driver-review/test_driver_guards.py",
+      "sha256": "26c57543fc221bfc27489d56f5a1bffec7f7cb0774673d84e370c03807c1811f",
+      "type": "file"
+    },
+    {
+      "bytes": 4588,
+      "mode": "0644",
+      "path": "packet/driver-review/test_post_recovery.py",
+      "sha256": "791c4826ffa7e30fd873498ac9c9488d5eb2fab4c7793efc4e867068e7dc3291",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0700",
+      "path": "packet/drivers",
+      "type": "directory"
+    },
+    {
+      "bytes": 21272,
+      "mode": "0644",
+      "path": "packet/drivers/attempt01.py",
+      "sha256": "83dce920be57140ddd36d63b27b8b516c559bf0ff058272b973a785bea4baf50",
+      "type": "file"
+    },
+    {
+      "bytes": 21325,
+      "mode": "0644",
+      "path": "packet/drivers/attempt02.py",
+      "sha256": "7ec3433ef1dd2849f4451a9003351898bfaa9176549b7eb089f2d472b41d3b7c",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0700",
+      "path": "packet/launch",
+      "type": "directory"
+    },
+    {
+      "bytes": 1023,
+      "mode": "0644",
+      "path": "packet/launch/attempt01.json",
+      "sha256": "da62d1e81317cc278f382f3123121490ca34c1197dd39f4f94e94ec29d275be2",
+      "type": "file"
+    },
+    {
+      "bytes": 1150,
+      "mode": "0644",
+      "path": "packet/launch/attempt02.json",
+      "sha256": "a54100a804819be8da72f03af1e899aaf1d42d7a6d1ccaf5a1d17792c9baabcb",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0700",
+      "path": "packet/native",
+      "type": "directory"
+    },
+    {
+      "bytes": 30509,
+      "mode": "0644",
+      "path": "packet/native/arm-gcc-runtime.json",
+      "sha256": "c483f14b416eeb25c90d635a98f872faecda00d57259c5f35130816c2bf0eefb",
+      "type": "file"
+    },
+    {
+      "bytes": 9551,
+      "mode": "0755",
+      "path": "packet/negative-controls.py",
+      "sha256": "ffe68d3f1ab9c64ccf062938c696e481fdfc1c556b23367e71d5c2f607a6be6f",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0700",
+      "path": "packet/reports",
+      "type": "directory"
+    },
+    {
+      "bytes": 10715,
+      "mode": "0644",
+      "path": "packet/reports/attempt01.json",
+      "sha256": "819558b469e3cf8cccb1ecc553f8ad82838ed80071b970d04bd39f845b30a3aa",
+      "type": "file"
+    },
+    {
+      "bytes": 12678,
+      "mode": "0644",
+      "path": "packet/reports/attempt02.json",
+      "sha256": "eb9be86d2d8171cad9df36ca418c09b20a24ce7f9441fcef9816ee903f436d8e",
+      "type": "file"
+    },
+    {
+      "bytes": 5204,
+      "mode": "0644",
+      "path": "packet/verification-controls.json",
+      "sha256": "763444214431c836b8dcfe79444314df7a695f5b2d50ac2f245eda44437941eb",
+      "type": "file"
+    },
+    {
+      "bytes": 19222,
+      "mode": "0755",
+      "path": "packet/verify.py",
+      "sha256": "96aa6d384b7c96dfa7e5718a2b8057bd61158d068c5cd26c209879ed3da3da41",
+      "type": "file"
+    }
+  ],
+  "metadata_normalization": "USTAR; uid/gid/mtime zero; empty user/group names; gzip mtime0/emptyfilename/level9. Original bytes and POSIX modes retained.",
+  "schema": "PQBTC-ARCHIVED-EVIDENCE-PACKET-1",
+  "source_complete_packet_unchanged": true,
+  "source_staging": "desktop-recovery-20261117-01",
+  "tar_bytes": 215040
+}

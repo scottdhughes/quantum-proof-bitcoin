@@ -1,0 +1,336 @@
+{
+  "audit": "ml-dsa-44-isolated-wrapper-valgrind-ct",
+  "builds": [
+    {
+      "binary": "bin/pqbtc_mldsa44_ct_memcheck",
+      "binary_sha256": "97a0586d0471dabd2035c416f338d3639852d2ed6e3414dadd58418cc96918e5",
+      "id": "build-wrapper",
+      "log": "logs/build-wrapper.log",
+      "return_code": 0,
+      "status": "passed"
+    },
+    {
+      "binary": "bin/pqbtc_mldsa44_ct_probe",
+      "binary_sha256": "8126a81b93e087b979e0c74dff691992c31f257470efdbd018db7f7dfff6b6c7",
+      "id": "build-probe",
+      "log": "logs/build-probe.log",
+      "return_code": 0,
+      "status": "passed"
+    }
+  ],
+  "checks": [
+    {
+      "expected_return_code": 99,
+      "id": "probe-branch",
+      "kind": "positive-control",
+      "log": "logs/probe-branch.log",
+      "return_code": 99,
+      "status": "passed",
+      "valgrind": {
+        "error_count": 1,
+        "error_summary": {
+          "error_contexts": 1,
+          "errors": 1,
+          "suppressed": 0,
+          "suppressed_contexts": 0
+        },
+        "errors": [
+          {
+            "frames": [
+              {
+                "file": "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_probe.c",
+                "function": "ProbeBranch",
+                "line": "17",
+                "object": "/tmp/ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-39604807430-1/audit/bin/pqbtc_mldsa44_ct_probe"
+              },
+              {
+                "file": "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_probe.c",
+                "function": "main",
+                "line": "39",
+                "object": "/tmp/ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-39604807430-1/audit/bin/pqbtc_mldsa44_ct_probe"
+              }
+            ],
+            "kind": "UninitCondition",
+            "what": "Conditional jump or move depends on uninitialised value(s)"
+          }
+        ],
+        "leak_error_count": 0,
+        "protocol_tool": "memcheck",
+        "protocol_version": "6",
+        "recorded_arguments": [
+          "branch"
+        ],
+        "recorded_executable": "/tmp/ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-39604807430-1/audit/bin/pqbtc_mldsa44_ct_probe",
+        "runtime_tool": "memcheck",
+        "states": [
+          "RUNNING",
+          "FINISHED"
+        ],
+        "summary_error_count": 1,
+        "valid": true,
+        "validation_errors": [],
+        "variable_latency_count": 0
+      },
+      "xml": "logs/probe-branch.xml"
+    },
+    {
+      "expected_return_code": 99,
+      "id": "probe-address",
+      "kind": "positive-control",
+      "log": "logs/probe-address.log",
+      "return_code": 99,
+      "status": "passed",
+      "valgrind": {
+        "error_count": 1,
+        "error_summary": {
+          "error_contexts": 1,
+          "errors": 1,
+          "suppressed": 0,
+          "suppressed_contexts": 0
+        },
+        "errors": [
+          {
+            "frames": [
+              {
+                "file": "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_probe.c",
+                "function": "ProbeAddress",
+                "line": "25",
+                "object": "/tmp/ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-39604807430-1/audit/bin/pqbtc_mldsa44_ct_probe"
+              },
+              {
+                "file": "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_probe.c",
+                "function": "main",
+                "line": "43",
+                "object": "/tmp/ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-39604807430-1/audit/bin/pqbtc_mldsa44_ct_probe"
+              }
+            ],
+            "kind": "UninitValue",
+            "what": "Use of uninitialised value of size 8"
+          }
+        ],
+        "leak_error_count": 0,
+        "protocol_tool": "memcheck",
+        "protocol_version": "6",
+        "recorded_arguments": [
+          "address"
+        ],
+        "recorded_executable": "/tmp/ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-39604807430-1/audit/bin/pqbtc_mldsa44_ct_probe",
+        "runtime_tool": "memcheck",
+        "states": [
+          "RUNNING",
+          "FINISHED"
+        ],
+        "summary_error_count": 1,
+        "valid": true,
+        "validation_errors": [],
+        "variable_latency_count": 0
+      },
+      "xml": "logs/probe-address.xml"
+    },
+    {
+      "expected_return_code": 99,
+      "id": "probe-variable-latency",
+      "kind": "positive-control",
+      "log": "logs/probe-variable-latency.log",
+      "return_code": 99,
+      "status": "passed",
+      "valgrind": {
+        "error_count": 1,
+        "error_summary": {
+          "error_contexts": 1,
+          "errors": 1,
+          "suppressed": 0,
+          "suppressed_contexts": 0
+        },
+        "errors": [
+          {
+            "frames": [
+              {
+                "file": "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_probe.c",
+                "function": "ProbeVariableLatency",
+                "line": "32",
+                "object": "/tmp/ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-39604807430-1/audit/bin/pqbtc_mldsa44_ct_probe"
+              },
+              {
+                "file": "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_probe.c",
+                "function": "main",
+                "line": "47",
+                "object": "/tmp/ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-39604807430-1/audit/bin/pqbtc_mldsa44_ct_probe"
+              }
+            ],
+            "kind": "UninitValue",
+            "what": "Variable-latency instruction operand of size 4 is secret/uninitialised"
+          }
+        ],
+        "leak_error_count": 0,
+        "protocol_tool": "memcheck",
+        "protocol_version": "6",
+        "recorded_arguments": [
+          "variable-latency"
+        ],
+        "recorded_executable": "/tmp/ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-39604807430-1/audit/bin/pqbtc_mldsa44_ct_probe",
+        "runtime_tool": "memcheck",
+        "states": [
+          "RUNNING",
+          "FINISHED"
+        ],
+        "summary_error_count": 1,
+        "valid": true,
+        "validation_errors": [],
+        "variable_latency_count": 1
+      },
+      "xml": "logs/probe-variable-latency.xml"
+    },
+    {
+      "expected_return_code": 99,
+      "id": "secret-key-taint-control",
+      "kind": "taint-control",
+      "log": "logs/secret-key-taint-control.log",
+      "return_code": 99,
+      "status": "passed",
+      "valgrind": {
+        "error_count": 1,
+        "error_summary": {
+          "error_contexts": 1,
+          "errors": 1,
+          "suppressed": 0,
+          "suppressed_contexts": 0
+        },
+        "errors": [
+          {
+            "frames": [
+              {
+                "file": "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_memcheck.c",
+                "function": "ProbeSecretKeyTaint",
+                "line": "33",
+                "object": "/tmp/ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-39604807430-1/audit/bin/pqbtc_mldsa44_ct_memcheck"
+              },
+              {
+                "file": "contrib/ml-dsa-engineering/pqbtc_mldsa44_ct_memcheck.c",
+                "function": "main",
+                "line": "84",
+                "object": "/tmp/ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-39604807430-1/audit/bin/pqbtc_mldsa44_ct_memcheck"
+              }
+            ],
+            "kind": "UninitCondition",
+            "what": "Conditional jump or move depends on uninitialised value(s)"
+          }
+        ],
+        "leak_error_count": 0,
+        "protocol_tool": "memcheck",
+        "protocol_version": "6",
+        "recorded_arguments": [
+          "secret-key-taint"
+        ],
+        "recorded_executable": "/tmp/ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-39604807430-1/audit/bin/pqbtc_mldsa44_ct_memcheck",
+        "runtime_tool": "memcheck",
+        "states": [
+          "RUNNING",
+          "FINISHED"
+        ],
+        "summary_error_count": 1,
+        "valid": true,
+        "validation_errors": [],
+        "variable_latency_count": 0
+      },
+      "xml": "logs/secret-key-taint-control.xml"
+    },
+    {
+      "expected_return_code": 0,
+      "id": "wrapper-ct",
+      "kind": "wrapper-audit",
+      "log": "logs/wrapper-ct.log",
+      "return_code": 0,
+      "status": "passed",
+      "valgrind": {
+        "error_count": 0,
+        "error_summary": {
+          "error_contexts": 0,
+          "errors": 0,
+          "suppressed": 0,
+          "suppressed_contexts": 0
+        },
+        "errors": [],
+        "leak_error_count": 0,
+        "protocol_tool": "memcheck",
+        "protocol_version": "6",
+        "recorded_arguments": [],
+        "recorded_executable": "/tmp/ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-39604807430-1/audit/bin/pqbtc_mldsa44_ct_memcheck",
+        "runtime_tool": "memcheck",
+        "states": [
+          "RUNNING",
+          "FINISHED"
+        ],
+        "summary_error_count": 0,
+        "valid": true,
+        "validation_errors": [],
+        "variable_latency_count": 0
+      },
+      "xml": "logs/wrapper-ct.xml"
+    }
+  ],
+  "elapsed_seconds": 3.566,
+  "errors": [],
+  "host": {
+    "machine": "x86_64",
+    "platform": "Linux-7.0.0-1017-azure-x86_64-with-glibc2.42",
+    "system": "Linux"
+  },
+  "plan_sha256": "89debfe0f2d67dde7d6e1d7a7520a542aa3c1e79dba5bda659ed2e5d6da17878",
+  "repository": {
+    "all_audit_inputs_tracked": true,
+    "audit_input_dirty": false,
+    "commit": "0b6474fd90023e3c13ccdbca0a08d264833e9401",
+    "dirty_audit_inputs": [],
+    "tracked_changes": [],
+    "untracked_evidence_sources": [],
+    "untracked_files": [
+      ".audit/mldsa-native/"
+    ],
+    "worktree_dirty": true
+  },
+  "schema_version": 1,
+  "status": "passed",
+  "tools": {
+    "compiler": {
+      "configured_command": "clang",
+      "predefined_macros": {
+        "__GNUC__": "4",
+        "__clang__": "1",
+        "__clang_major__": "20"
+      },
+      "resolved_command": "/nix/store/fjsi5ljbp4z2djdqdgjgdakibbl9gm64-clang-wrapper-20.1.8/bin/clang",
+      "sha256": "f29388a96527f820ce5c4cdc3a7e35f5db5285ef858b2d328527e888c7924bd4",
+      "status": "passed",
+      "version": "clang version 20.1.8\nTarget: x86_64-unknown-linux-gnu\nThread model: posix\nInstalledDir: /nix/store/zp88aqv38c13ghq3vw6p632diyhwj6w3-clang-20.1.8/bin"
+    },
+    "nix": {
+      "configured_command": "nix",
+      "resolved_command": "/nix/store/2nhrwv91g6ycpyxvhmvc0xs8p92wp4bk-nix-2.24.9/bin/nix",
+      "sha256": "7546b04d5774aa01784e9a1c8fdace5e74d0ac2e94eb7d6f30ac41b3a3c53959",
+      "status": "passed",
+      "version": "nix (Nix) 2.24.9"
+    },
+    "valgrind": {
+      "configured_command": "valgrind",
+      "resolved_command": "/nix/store/3zfcm1wx9llsb7z2wc57imdiil0kggn9-valgrind-3.26.0/bin/valgrind",
+      "sha256": "e0c52a92126ccabe9537452d6fff467a6b16efa59c86ae004cd50e8373c62b8e",
+      "status": "passed",
+      "variable_latency_option_present": true,
+      "version": "valgrind-3.26.0"
+    }
+  },
+  "upstream_environment": {
+    "commit": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+    "flake_lock_sha256": "8f1762cc57561256465ef3b467f44b99b606c3b196870b81a329b8de0cebdd69",
+    "git_archive_tar_sha256": "1bb12c7eac6a44ea96bc2043b8c8b5bb2f2b2a85a3a9b5926fa2eb5ed86e27b7",
+    "git_tree": "e61bc2b09d705cbc378e3e8c6d556cae05750fd6",
+    "nixpkgs_nar_hash": "sha256-bXMRa9VTsHSPXL4Cw8R6JJLQeY3Y/IP4+YJCYVmQ7FY=",
+    "nixpkgs_rev": "6b316287bae2ee04c9b93c8c858d930fd07d7338",
+    "path": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/.audit/mldsa-native",
+    "valgrind_patch_sha256": "d54b140f2bacaea91470940a963950b7126685810df2192640cd103328b421f4",
+    "validation_errors": [],
+    "worktree_clean": true,
+    "worktree_status": []
+  }
+}

@@ -1,0 +1,544 @@
+{
+  "campaign_limit": {
+    "runs": null,
+    "seconds": 1800
+  },
+  "coverage_enabled": true,
+  "crash_artifacts": {
+    "aggregate_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "file_count": 0,
+    "total_bytes": 0
+  },
+  "differential_oracles": {
+    "comparison": "accept/reject equality for every parsed fuzz frame",
+    "coverage_scope": {
+      "instrumented": [
+        "pqbtc_mldsa44 wrapper and vendored portable C backend",
+        "differential fuzz target and exact replay driver",
+        "OpenSSL C adapter"
+      ],
+      "not_instrumented": [
+        "prebuilt OpenSSL provider implementation body",
+        "prebuilt libcrux Rust implementation body"
+      ]
+    },
+    "exact_replay": {
+      "binary_sha256": "56a3e328eff378c03974f1714cbd62cd5dd6a8942e31d148c5469c7aba2112d9",
+      "case_count": 5,
+      "cases": [
+        {
+          "error": null,
+          "expected": "accept",
+          "frame_sha256": "1f1400abcc4219a5bb48c05e7f35525a9c98861f7b14fe8cfd8653dd52ca001d",
+          "name": "valid_frozen_vector",
+          "return_code": 0,
+          "source": "project",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "accept",
+          "frame_sha256": "34335fc41196fad28e8970efd5386acfd0ad7aa0d1bebca6b8d6237ef97b44c4",
+          "name": "valid_empty_message_context",
+          "return_code": 0,
+          "source": "project",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "reject",
+          "frame_sha256": "dd431b2d49e7ebf65bd4d6d6d14ec56e7d9bd433a9602e9aedb51218c267655f",
+          "name": "reject_ctilde_bit_flip",
+          "return_code": 0,
+          "source": "project",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "reject",
+          "frame_sha256": "f9ab7ac3eb9ff8a2a278abc63ed58955f939b2e281555177ad9dcaf4aab0741f",
+          "name": "reject_hint_counter_overflow",
+          "return_code": 0,
+          "source": "project",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "reject",
+          "frame_sha256": "ccd69d2b0691117dafce3ccaa79096cf13ce86d96fa153d21878eec5830aaaa7",
+          "name": "reject_null_signature",
+          "return_code": 0,
+          "source": "project",
+          "status": "pass"
+        }
+      ],
+      "expected_accept_count": 2,
+      "expected_reject_count": 3,
+      "status": "pass"
+    },
+    "fuzzer_binary_sha256": "23ceff81c0e06e49de1ae22ebb9ae25d21cd40ac4b0447f06a4f03ab1fe1c197",
+    "libcrux": {
+      "bridge_binary_sha256": "ae0c1afebec07f1974303c5b6a05b78b56cfc27ea1e54256dc770597c6462fbc",
+      "bridge_source_sha256": "29130fe71c99a05334cd21a8da9b9d2a3fa97d4e2527fe69b27e1132467d163a",
+      "cargo_lock_sha256": "10e6505cebc85f9cbf7836002fe5b3b1d9c6c7d84cfc6dd5b6e1f38ebbb6648d",
+      "commit": "c5fb80f37530ee9b2df9501ae5ff8cb4a973a4bd",
+      "crate_sha256": "783ebed7cb27de6d44ef2aa662648d1a0869694f2f754f2f1ed45e959ef3b48e",
+      "rlib_sha256": "4f4afef71738593371de77e5d644849f0bda13c47c831ad81aaa8ef681ef4bf4",
+      "version": "0.0.10"
+    },
+    "openssl": {
+      "bridge_source_sha256": "c0ae1f5d117f8be09382e755d20c73605e7a66cc1b05d7a586833d38b04b7816",
+      "commit": "c8bd5a57108599ac650bbae77fcabe3109dab2e8",
+      "git_tree": "96ac34688809c56b1afa117c75c0ef303ff19a75",
+      "runtime": {
+        "cli_version_a": "OpenSSL 3.6.5 29 Sep 2026 (Library: OpenSSL 3.6.5 29 Sep 2026)\nbuilt on: Wed Nov 11 13:04:39 2026 UTC\nplatform: linux-x86_64\noptions:  bn(64,64)\ncompiler: gcc -fPIC -pthread -m64 -Wa,--noexecstack -Wall -O3 -DOPENSSL_USE_NODELETE -DL_ENDIAN -DOPENSSL_PIC -DOPENSSL_BUILDING_OPENSSL -DNDEBUG\nOPENSSLDIR: \"/home/runner/work/_temp/ml-dsa-review/openssl-install/ssl\"\nENGINESDIR: \"/home/runner/work/_temp/ml-dsa-review/openssl-install/lib64/engines-3\"\nMODULESDIR: \"/home/runner/work/_temp/ml-dsa-review/openssl-install/lib64/ossl-modules\"\nSeeding source: os-specific\nCPUINFO: OPENSSL_ia32cap=0xfffa32235f8bffff:0x00415f46f1bf2fbb:0x0000000020000010:0x0000000000000000:0x0000000000000000",
+        "dependency_command": [
+          "ldd",
+          "/tmp/pqbtc-mldsa44-differential-vxet6kjg/pqbtc_mldsa44_differential_verify_fuzz"
+        ],
+        "dependency_report": "linux-vdso.so.1 (0x00007f9742ef4000)\n\tlibstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007f9741e00000)\n\t/tmp/pqbtc-mldsa44-differential-vxet6kjg/libpqbtc_mldsa44_libcrux_verify.so (0x00007f9742e5b000)\n\tlibssl.so.3 => /home/runner/work/_temp/ml-dsa-review/openssl-install/lib64/libssl.so.3 (0x00007f97420eb000)\n\tlibcrypto.so.3 => /home/runner/work/_temp/ml-dsa-review/openssl-install/lib64/libcrypto.so.3 (0x00007f9741600000)\n\tlibm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007f9742d72000)\n\tlibresolv.so.2 => /lib/x86_64-linux-gnu/libresolv.so.2 (0x00007f9742d5e000)\n\tlibgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007f97420bd000)\n\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f9741200000)\n\t/lib64/ld-linux-x86-64.so.2 (0x00007f9742ef6000)",
+        "libcrypto_path": "/home/runner/work/_temp/ml-dsa-review/openssl-install/lib64/libcrypto.so.3",
+        "libcrypto_resolution": "linked-dependency",
+        "libcrypto_sha256": "85b60456035d21b37c80b29b82af845aecae9c626a8fe451ad8a86804124727b",
+        "openssl_conf": "/dev/null",
+        "openssl_modules": null,
+        "pkg_config_libdir": "/home/runner/work/_temp/ml-dsa-review/openssl-install/lib64",
+        "pkg_config_prefix": "/home/runner/work/_temp/ml-dsa-review/openssl-install",
+        "pkg_config_version": "3.6.5",
+        "provider_inventory": "Providers:\n  default\n    name: OpenSSL Default Provider\n    version: 3.6.5\n    status: active\n    build info: 3.6.5\n    gettable provider parameters:\n      name: pointer to a UTF8 encoded string (arbitrary size)\n      version: pointer to a UTF8 encoded string (arbitrary size)\n      buildinfo: pointer to a UTF8 encoded string (arbitrary size)\n      status: integer (arbitrary size)"
+      },
+      "version": "3.6.5"
+    },
+    "promoted_regression_replay": {
+      "binary_sha256": "56a3e328eff378c03974f1714cbd62cd5dd6a8942e31d148c5469c7aba2112d9",
+      "case_count": 38,
+      "cases": [
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "007bafaba42dd5c986646b18f8e209aab1182434a03e35420fc2ae5ffb759ee5",
+          "name": "sha256_007bafaba42dd5c986646b18f8e209aab1182434a03e35420fc2ae5ffb759ee5",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "invalid_argument",
+          "frame_sha256": "01083d0f7edb3868ec1b7d2acc691e87ff105db3da07ef066ab7af8514be19d1",
+          "name": "sha256_01083d0f7edb3868ec1b7d2acc691e87ff105db3da07ef066ab7af8514be19d1",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "0ecac848c304e595355bd234e12e6d7fae0759ca1126930f94d479af9aff677b",
+          "name": "sha256_0ecac848c304e595355bd234e12e6d7fae0759ca1126930f94d479af9aff677b",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "10eaa22ec1be961ab015d6ffed9d09717e8a0bd84cd50c61f6c8ce090b21468c",
+          "name": "sha256_10eaa22ec1be961ab015d6ffed9d09717e8a0bd84cd50c61f6c8ce090b21468c",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "1ecd9e08781afd76789b5a6c9c98a3b8ab2974971696ba60616cb70c680009f3",
+          "name": "sha256_1ecd9e08781afd76789b5a6c9c98a3b8ab2974971696ba60616cb70c680009f3",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "invalid_argument",
+          "frame_sha256": "2858c371c25f9f324a3c4fef42ad6383066bfec8d4c49495679b1e5981172f41",
+          "name": "sha256_2858c371c25f9f324a3c4fef42ad6383066bfec8d4c49495679b1e5981172f41",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "invalid_argument",
+          "frame_sha256": "347b61640359198807c979891e18616a5e3c80ba108726f932d25bab21a76cd5",
+          "name": "sha256_347b61640359198807c979891e18616a5e3c80ba108726f932d25bab21a76cd5",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "466dbcff25b197178a2da4bbe06affe95c969edaad7c1171017fdada243c734e",
+          "name": "sha256_466dbcff25b197178a2da4bbe06affe95c969edaad7c1171017fdada243c734e",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "47837370b6c9bf58d1b9a979b1fd0bb0bec236ac7d4593078f9f228a7b23128e",
+          "name": "sha256_47837370b6c9bf58d1b9a979b1fd0bb0bec236ac7d4593078f9f228a7b23128e",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "4d0affe19cce953de0b2114a9594493cac74c00ab77589e8c6e688220d4c57d3",
+          "name": "sha256_4d0affe19cce953de0b2114a9594493cac74c00ab77589e8c6e688220d4c57d3",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "60daf0820c5bfcd963261f868db6651589b3a0ebe2405738e0e4fa132f1f50c3",
+          "name": "sha256_60daf0820c5bfcd963261f868db6651589b3a0ebe2405738e0e4fa132f1f50c3",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "invalid_argument",
+          "frame_sha256": "61a7451a8b610d8f197df28753327afd7a14196d23cbc9fd698ea215a0269d07",
+          "name": "sha256_61a7451a8b610d8f197df28753327afd7a14196d23cbc9fd698ea215a0269d07",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "6db55f9ce7c52bd14572de9ba124dda6521dc0883be83a763c707aab04677b03",
+          "name": "sha256_6db55f9ce7c52bd14572de9ba124dda6521dc0883be83a763c707aab04677b03",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "81acefc684b2a88793e1bf56d4319b7da58bc8042a29deb70c83c677cbda41e3",
+          "name": "sha256_81acefc684b2a88793e1bf56d4319b7da58bc8042a29deb70c83c677cbda41e3",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "89ad7769bafff175b3751de1ed79e4b15a20443a34998de754779b2beee9b94c",
+          "name": "sha256_89ad7769bafff175b3751de1ed79e4b15a20443a34998de754779b2beee9b94c",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "942a18f2e21fabbb1b3f8830af5d4f9b485551451a755498bc43c664608200f0",
+          "name": "sha256_942a18f2e21fabbb1b3f8830af5d4f9b485551451a755498bc43c664608200f0",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "995e929a8414e4970998733bcbfb7a9805313980b6f42a3bae39aa4413a4e8e5",
+          "name": "sha256_995e929a8414e4970998733bcbfb7a9805313980b6f42a3bae39aa4413a4e8e5",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "invalid_argument",
+          "frame_sha256": "9b540143440f9867f4f848d9ffc0d4ce15d6f49d439427e9f703aa2f1981f244",
+          "name": "sha256_9b540143440f9867f4f848d9ffc0d4ce15d6f49d439427e9f703aa2f1981f244",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "a89a5f5df5b1057eca352e32185492914aa093484375aba47ad6df8dbd9b7026",
+          "name": "sha256_a89a5f5df5b1057eca352e32185492914aa093484375aba47ad6df8dbd9b7026",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "invalid_argument",
+          "frame_sha256": "a9ad96e137958091a670ff8cdeeea1e3033ec812a9984bc66727032bf4e13e1b",
+          "name": "sha256_a9ad96e137958091a670ff8cdeeea1e3033ec812a9984bc66727032bf4e13e1b",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "adb7fe94a034d002b316650d0d3b0ddb1803c0362f4e008fc6f2b674517dc29e",
+          "name": "sha256_adb7fe94a034d002b316650d0d3b0ddb1803c0362f4e008fc6f2b674517dc29e",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "b5d5670adafb5f69f313df85204356afbb4bd9cbc2fd95ee3c46a4d23bd3f332",
+          "name": "sha256_b5d5670adafb5f69f313df85204356afbb4bd9cbc2fd95ee3c46a4d23bd3f332",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "b8616152093e34fc860d816ad7e6d1caa6af949c43933c847473b9a9eb32a26f",
+          "name": "sha256_b8616152093e34fc860d816ad7e6d1caa6af949c43933c847473b9a9eb32a26f",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "b913014f868bb937d05a695cf58ec704c992bd9b1424c69c92ff6288d71030d4",
+          "name": "sha256_b913014f868bb937d05a695cf58ec704c992bd9b1424c69c92ff6288d71030d4",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "invalid_argument",
+          "frame_sha256": "bdba750a3e734cdc6a1a29e43b727fcf24f27e08a5e63f4141fc0a46f02cc803",
+          "name": "sha256_bdba750a3e734cdc6a1a29e43b727fcf24f27e08a5e63f4141fc0a46f02cc803",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "invalid_argument",
+          "frame_sha256": "c21c6c2071de8f818529e198c50ef114b2639808578a0902c2086628506e669c",
+          "name": "sha256_c21c6c2071de8f818529e198c50ef114b2639808578a0902c2086628506e669c",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "invalid_argument",
+          "frame_sha256": "c45d27560900b09510ed64a5eee0b46088e486b7a002655bd6f3828986c4a610",
+          "name": "sha256_c45d27560900b09510ed64a5eee0b46088e486b7a002655bd6f3828986c4a610",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "invalid_argument",
+          "frame_sha256": "cd5ecdd91e05c1000172867a859c15459c3aa75eb2dde48dced32172b92a7ff7",
+          "name": "sha256_cd5ecdd91e05c1000172867a859c15459c3aa75eb2dde48dced32172b92a7ff7",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "d820815d7020a9eb7911449b540692b0c63d0d4e93233e0d1734e6644ec01345",
+          "name": "sha256_d820815d7020a9eb7911449b540692b0c63d0d4e93233e0d1734e6644ec01345",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "d9865133f0a8158dce008bed12cffd89a1f5379ebd1fe38adedc6377aaf6a311",
+          "name": "sha256_d9865133f0a8158dce008bed12cffd89a1f5379ebd1fe38adedc6377aaf6a311",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "invalid_argument",
+          "frame_sha256": "db68d1d136f295b41021da38bbfb72cb8630506f07f3d8dd964f7f523c84e501",
+          "name": "sha256_db68d1d136f295b41021da38bbfb72cb8630506f07f3d8dd964f7f523c84e501",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "dbdfa62c4b5ba50980f18d3e28751db7062da98d177ae2db2becad38838069a0",
+          "name": "sha256_dbdfa62c4b5ba50980f18d3e28751db7062da98d177ae2db2becad38838069a0",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "de7e14ed5d6b8741b5e564d073c4774c5af7ea35595874fadd3ebe3beaa49aee",
+          "name": "sha256_de7e14ed5d6b8741b5e564d073c4774c5af7ea35595874fadd3ebe3beaa49aee",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "e4b52a1451b8fc521bf01dd553f0610020c8d5dba496fa2c8d8604905c871f50",
+          "name": "sha256_e4b52a1451b8fc521bf01dd553f0610020c8d5dba496fa2c8d8604905c871f50",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "invalid_argument",
+          "frame_sha256": "e6054991727143bfd2c97878213599945a486f3690a127bfc4c9b6fc17b63bfb",
+          "name": "sha256_e6054991727143bfd2c97878213599945a486f3690a127bfc4c9b6fc17b63bfb",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "ed8a03175a79b0ef51bbed1bd982c54771289b352308aa2c97d9e5c7cc8ff0cb",
+          "name": "sha256_ed8a03175a79b0ef51bbed1bd982c54771289b352308aa2c97d9e5c7cc8ff0cb",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "invalid_argument",
+          "frame_sha256": "f0eb01bd150df384956f9f722d8e4dabc3f7fdae0dfba99090a28cf3e93245aa",
+          "name": "sha256_f0eb01bd150df384956f9f722d8e4dabc3f7fdae0dfba99090a28cf3e93245aa",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        },
+        {
+          "error": null,
+          "expected": "verify_rejection",
+          "frame_sha256": "f68fdd1191c8f6dbd75456918db2cf049e63896f185c5bf74bffd634f8383dc4",
+          "name": "sha256_f68fdd1191c8f6dbd75456918db2cf049e63896f185c5bf74bffd634f8383dc4",
+          "return_code": 0,
+          "source": "promoted",
+          "status": "pass"
+        }
+      ],
+      "expected_accept_count": 0,
+      "expected_reject_count": 38,
+      "expected_result_counts": {
+        "invalid_argument": 13,
+        "verify_rejection": 25
+      },
+      "status": "pass"
+    },
+    "source_files": {
+      ".github/workflows/ml-dsa-44-review-reproduction.yml": "80a0e05e8fe646949b7b4cd372cacaafede0591c1d66158ba76512ba3b2c49ad",
+      "contrib/ml-dsa-engineering/fuzz_sources/promoted/SOURCE.json": "458f8902fc50e240145a2dd6bfa717c3fca14d58e792ddbafe6f985b1c45ecc0",
+      "contrib/ml-dsa-engineering/fuzz_sources/wycheproof/LICENSE": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd",
+      "contrib/ml-dsa-engineering/fuzz_sources/wycheproof/SOURCE.json": "3522cf3ae87aaa929f8d6b0e3be809665d809ce97b71cc01aa3256d7f2b0f1f2",
+      "contrib/ml-dsa-engineering/fuzz_sources/wycheproof/mldsa_44_verify_test.json": "5ec04790c240c443ca8b662b8fc871834602c7cce87fcd36a193110745b2b9ea",
+      "contrib/ml-dsa-engineering/pqbtc_mldsa44.c": "61cdf459578277f737e3206049dfbc8e536a0c7e85760d85c78df3d3b2df3a70",
+      "contrib/ml-dsa-engineering/pqbtc_mldsa44.h": "9bb114b51bdc225605b99c92ed8b21ed5e08f9c8efb7ca7924214e1f679a8255",
+      "contrib/ml-dsa-engineering/pqbtc_mldsa44_config.h": "1794769a3a79d013fea68d8b58f667b5e0bec54810ed74a1bd785a867eba6c4d",
+      "contrib/ml-dsa-engineering/pqbtc_mldsa44_differential.h": "cf68dffbab7b15c6a796be7db1a3ede6dff0de8cb7d148dc87be121ab2cd770e",
+      "contrib/ml-dsa-engineering/pqbtc_mldsa44_differential_replay.c": "bdaf0adc4a8063dad3e638b2705510fcc036b8d1445eabbdc007dddab984af6c",
+      "contrib/ml-dsa-engineering/pqbtc_mldsa44_libcrux_verify.rs": "29130fe71c99a05334cd21a8da9b9d2a3fa97d4e2527fe69b27e1132467d163a",
+      "contrib/ml-dsa-engineering/pqbtc_mldsa44_openssl_verify.c": "c0ae1f5d117f8be09382e755d20c73605e7a66cc1b05d7a586833d38b04b7816",
+      "contrib/ml-dsa-engineering/pqbtc_mldsa44_verify_fuzz.c": "e135513970ab4f107febcf711fec83b1d16919e7fe90fa4fa2b53e8a60ed3b4f",
+      "contrib/ml-dsa-engineering/run_differential_verifier_fuzz.py": "679c46ddb1301cc8d9a103f36d64c66de2db35a83b0ec01292984c551b580b12",
+      "contrib/ml-dsa-engineering/run_verifier_fuzz.py": "38187956f120c5ca40422e078d023947e747e3e42f5edd1014fc51c33a595eec",
+      "contrib/ml-dsa-engineering/run_wrapper_tests.py": "24f3969b8ff9c3488ea702c625c0d338197d9a56bc4d72d74e930627de9c065f",
+      "contrib/ml-dsa-engineering/vendor/mldsa-native/SOURCE.json": "c381f8abcbc0ecce1592563379d23d8ca2f9c9bbf10aaccb06ea9aea43ca42c7",
+      "contrib/ml-dsa-engineering/verifier_fuzz_corpus.json": "742361b1636622e44917e60a088305782da32aa0fc566aabcea2171ec9c6c787",
+      "contrib/ml-dsa-ref/compare_oracles.py": "78b5036418e2a8c7ebb21f4f0e345700c22929a6cd2fe039d6f474832445cfd1",
+      "contrib/ml-dsa-ref/libcrux_oracle.rs": "3b924df4f1f6eefa575dd4dd87440fc978affd1141790d8a7c4172303cf157a2",
+      "contrib/ml-dsa-ref/vectors.json": "64d069741c014c07852bbd3c798296b2ff6cae990161bec3763b983746d44dba"
+    },
+    "toolchain": {
+      "cargo": "cargo 1.89.0 (c24e10642 2025-06-23)",
+      "rustc": "rustc 1.89.0 (29483883e 2025-08-04)"
+    },
+    "wrapper": {
+      "commit": "834a90d5e846ffa1e1611bd24e160bb2e9b86d35",
+      "implementation": "vendored mldsa-native through pqbtc_mldsa44_verify_strict",
+      "source_capsule_sha256": "e07f0f6a9bb46fd9afcbe7699f95f1ce43e6fcf48623d6de7b3e95ed405023cb"
+    }
+  },
+  "evidence_sha256": "450dab7d7d2f041bc93796655b66f8e0fbc7da6d4d31bb00963bbc6b6dbff612",
+  "executed_units": 1577151,
+  "final_stats": [
+    "stat::number_of_executed_units: 1577151",
+    "stat::average_exec_per_sec:     875",
+    "stat::new_units_added:          88",
+    "stat::slowest_unit_time_sec:    0",
+    "stat::peak_rss_mb:              466"
+  ],
+  "fuzzer_duration_seconds": 1801.211,
+  "imported_retained_seeds": 83,
+  "last_progress_line": "#1577151\tDONE   cov: 216 ft: 3600 corp: 219/768Kb lim: 8096 exec/s: 875 rss: 466Mb",
+  "minimized_corpus": {
+    "aggregate_sha256": "3c2f114584248f8c64afb4c63fdab3828f62b82b3ac34a4be6e373dde2849df9",
+    "file_count": 153,
+    "total_bytes": 529804
+  },
+  "repository_commit": "72acd0f566ece43723e8116ff70209e97f354746",
+  "repository_dirty": false,
+  "return_code": 0,
+  "sanitizer": "address-undefined",
+  "seconds": 1800,
+  "seed": 75118848,
+  "source_corpus": {
+    "aggregate_sha256": "6ee1368b01bfd758dd1c78a79bb7789769137f8d93055dfe9c4d040706597979",
+    "expected_counts": {
+      "invalid_argument": 36,
+      "ok": 81,
+      "verify_rejection": 128
+    },
+    "source_counts": {
+      "project": 27,
+      "promoted": 38,
+      "wycheproof": 180
+    },
+    "total_cases": 245,
+    "unique_frames": 240
+  },
+  "status": "pass",
+  "working_corpus": {
+    "aggregate_sha256": "a6a97462874d984539e8019b233011739c911a0b1f348ef4d18eb3fca3eed449",
+    "file_count": 403,
+    "total_bytes": 1464254
+  }
+}

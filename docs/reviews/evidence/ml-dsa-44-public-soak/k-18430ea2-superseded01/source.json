@@ -1,0 +1,108 @@
+{
+  "byte_policy": "OriginalJSONcopiedunchanged;eventbyteslosslessgzip;scoped*-text",
+  "classification": "CONTROLLED_SOURCE_SUPERSESSION_NOT_OBSERVED_NETWORK_WORKLOAD_FAILURE",
+  "files": [
+    {
+      "bytes": 8,
+      "origin_reference": "derived:.gitattributes",
+      "path": ".gitattributes",
+      "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da",
+      "transform": "DERIVED"
+    },
+    {
+      "bytes": 3919,
+      "origin_bytes": 3919,
+      "origin_reference": "research/k-soak01-independent-review/controlled-supersession-audit.json",
+      "origin_sha256": "e319739fb85f34cae81212d5106f8c12081e731eb2f20ec1cfb12a2856e4e93c",
+      "path": "classification.json",
+      "sha256": "e319739fb85f34cae81212d5106f8c12081e731eb2f20ec1cfb12a2856e4e93c",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 1028,
+      "origin_bytes": 1028,
+      "origin_reference": "research/k-soak01-coordinator-start.json",
+      "origin_sha256": "b375ce769f8cc48d5c5d0ba82466848405ef80c4699ab4d0319c51370e2607c0",
+      "path": "coordinator-start.json",
+      "sha256": "b375ce769f8cc48d5c5d0ba82466848405ef80c4699ab4d0319c51370e2607c0",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 10721,
+      "origin_bytes": 10721,
+      "origin_reference": "research/k-soak-20261116-01-output/declaration.json",
+      "origin_sha256": "fc8f307029b78066524135496bc082e27cf6b74afbf1c972374ae67e40b213ef",
+      "path": "declaration.json",
+      "sha256": "fc8f307029b78066524135496bc082e27cf6b74afbf1c972374ae67e40b213ef",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 1437873,
+      "origin_bytes": 7929445,
+      "origin_reference": "research/k-soak-20261116-01-output/events.jsonl",
+      "origin_sha256": "a066dae093c048baa1402a19e248efe1e12abea84585fd004fde78dc50671950",
+      "path": "events.jsonl.gz",
+      "sha256": "ea5e4e2b5fb7406b123188e04f5a3563cd4378b056b591c29372a3338471212b",
+      "transform": "LOSSLESS_GZIP_EMPTY_FILENAME_MTIME0_LEVEL9"
+    },
+    {
+      "bytes": 251,
+      "origin_bytes": 251,
+      "origin_reference": "research/k-soak-20261116-01-output/evidence-sha256.json",
+      "origin_sha256": "333b56d14acc726b881ecbccb4ded922e12a941095d999f9003fb2d3194d2a41",
+      "path": "evidence-sha256.json",
+      "sha256": "333b56d14acc726b881ecbccb4ded922e12a941095d999f9003fb2d3194d2a41",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 1967,
+      "origin_reference": "derived:readme.md",
+      "path": "readme.md",
+      "sha256": "d36ad7f25d83ae929c337c63db2b146b5052b28aa541f8f10db92bacf10bd6cb",
+      "transform": "DERIVED"
+    },
+    {
+      "bytes": 2436,
+      "origin_bytes": 2436,
+      "origin_reference": "research/k-soak-20261116-01-output/report.json",
+      "origin_sha256": "8d3faf0eb5ae1e4fd72201fa188e8c3411bc811487c1fa34ad67e991d3df2ea3",
+      "path": "report.json",
+      "sha256": "8d3faf0eb5ae1e4fd72201fa188e8c3411bc811487c1fa34ad67e991d3df2ea3",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 837,
+      "origin_bytes": 837,
+      "origin_reference": "research/k-soak01-controlled-supersession-request.json",
+      "origin_sha256": "c0718068aa74757a73cee1ed63570327c469b78c2e99a765575c9770971d8699",
+      "path": "stop-request.json",
+      "sha256": "c0718068aa74757a73cee1ed63570327c469b78c2e99a765575c9770971d8699",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 13601,
+      "origin_reference": "derived:verify.py",
+      "path": "verify.py",
+      "sha256": "2a297215de7cdbdd5cedf1489983f87ad67574130070dd5999a88a5b2c3ee401",
+      "transform": "DERIVED"
+    }
+  ],
+  "full7fault_completion_claimed": false,
+  "growing_live_output_included": false,
+  "human_review_claimed": false,
+  "native_reexecution_claimed": false,
+  "original_records_rewritten": false,
+  "prior_preflight_credit_seconds": 0,
+  "production_admitted": false,
+  "public_24h_soak_credit_seconds": 0,
+  "raw_error_class": "KeyboardInterrupt",
+  "raw_terminal_result": "FAIL",
+  "schema": "PQBTC-K-CONTROLLED-SUPERSESSION-PUBLIC-PACKET-1",
+  "scope": "SELECTED_CONTROLLED_PARTIAL_RUN_RECORDS_ONLY",
+  "source": {
+    "driver_sha256": "6668f219acff79a25161d57bf505a3204ab50ef434adbb3487f913f0f913a6d0",
+    "head": "18430ea2cfcac66cca0e8612605db47a5c0e935b",
+    "tree": "d397b324f83b82017722073c3c53688e0765fb30"
+  },
+  "staged_utc": "2026-11-16T22:25:46.820017+00:00"
+}

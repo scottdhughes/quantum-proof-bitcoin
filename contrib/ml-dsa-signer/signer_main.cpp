@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying COPYING.
 // Experimental valueless pilot launcher. No node RPC or passphrase argv/env input.
 #include <crypto/mldsa44/signer/service.h>
+#include <crypto/mldsa44/signer/identity.h>
 #include <crypto/mldsa44/signer/transport.h>
 #include <crypto/sha256.h>
 #include <algorithm>
@@ -63,6 +64,37 @@ static void ReadOperator(int fd,std::span<unsigned char> output,detail::Clock::t
         Require(count>0); offset+=count;
     }
 }
+// Unsealed operator-only extension. No change to signer IPC or wallet records.
+static uint32_t ReadOperatorNumber(int fd,size_t size,detail::Clock::time_point deadline)
+{
+    std::array<unsigned char,4> bytes{};Require(size==1 || size==4);
+    ReadOperator(fd,std::span(bytes).first(size),deadline);uint32_t value{0};
+    for(size_t i=0;i<size;++i) value|=uint32_t{bytes[i]}<<(8*i);
+    return value;
+}
+static void ReadRecoveryPublic(int fd,Recovery& recovery,detail::Clock::time_point deadline)
+{
+    const auto count=ReadOperatorNumber(fd,4,deadline);Require(count<=4096);
+    recovery.public_entries.reserve(count);
+    std::set<std::pair<uint8_t,uint32_t>> paths;std::set<Hash> programs;
+    for(uint32_t i=0;i<count;++i) {
+        Address entry{};entry.branch=ReadOperatorNumber(fd,1,deadline);
+        entry.index=ReadOperatorNumber(fd,4,deadline);
+        Require(entry.branch<=1 && entry.index<0x80000000U &&
+            entry.index<(entry.branch==0?recovery.minimum.receive:recovery.minimum.change));
+        ReadOperator(fd,entry.public_key,deadline);ReadOperator(fd,entry.program,deadline);
+        Require(paths.emplace(entry.branch,entry.index).second && programs.insert(entry.program).second);
+        recovery.public_entries.push_back(entry);
+    }
+    // A flagged restore must provide one finite frame, not a prefix followed by
+    // ignored bytes. The same deadline bounds both partial input and EOF.
+    unsigned char extra{};
+    for(;;) {
+        detail::Wait(fd,POLLIN,deadline);const auto count=read(fd,&extra,1);
+        if(count<0 && errno==EINTR) continue;
+        Require(count==0);break;
+    }
+}
 static void Checkpoint(int fd,const WalletStatus& status)
 {
     constexpr char digits[]{"0123456789abcdef"}; std::string id;
@@ -79,19 +111,28 @@ static void Checkpoint(int fd,const WalletStatus& status)
 int main(int argc,char** argv)
 {
     try {
-        const std::set<std::string> flags{"--valueless-pilot","--create","--restore","--acknowledge-restore-scan-range","--crypto-version"};
+        const std::set<std::string> flags{"--valueless-pilot","--create","--restore","--acknowledge-restore-scan-range","--crypto-version",
+            "--recovery-public-input"};
         const std::set<std::string> values{"--socket","--wallet-dir","--node-uid","--fee-cap","--spec-file","--operator-fd",
-            "--expected-wallet-id","--min-receive","--min-change","--operator-out-fd"};
+            "--expected-wallet-id","--min-receive","--min-change","--operator-out-fd","--network"};
         std::map<std::string,std::string> options;
         for (int i=1;i<argc;++i) {
             std::string name{argv[i]}; Require(!options.contains(name));
             if (flags.contains(name)) options[name]="yes";
             else { Require(values.contains(name) && i+1<argc); options[name]=argv[++i]; }
         }
+        Network network{Network::REGTEST};
+        if (options.contains("--network")) {
+            const auto& name=options.at("--network");
+            Require(name=="test" || name=="regtest",Code::UNSUPPORTED);
+            network=name=="test"?Network::TEST:Network::REGTEST;
+        }
         if (options.contains("--crypto-version")) {
-            Require(options.size()==2 && options.contains("--valueless-pilot"));std::cout<<CryptoVersion()<<'\n';return 0;
+            Require(options.size()==(options.contains("--network")?3U:2U) && options.contains("--valueless-pilot"));
+            std::cout<<CryptoVersion()<<'\n';return 0;
         }
         Require(options.contains("--valueless-pilot") && (options.contains("--create")!=options.contains("--restore")));
+        Require(!options.contains("--recovery-public-input") || options.contains("--restore"));
         for (auto name:{"--socket","--wallet-dir","--node-uid","--fee-cap","--spec-file","--operator-fd","--operator-out-fd"}) Require(options.contains(name));
         auto uid=Number(options.at("--node-uid")),fee=Number(options.at("--fee-cap")),fd=Number(options.at("--operator-fd"));
         auto out_fd=Number(options.at("--operator-out-fd"));
@@ -109,18 +150,21 @@ int main(int argc,char** argv)
             Require(receive<=0x80000000ULL && change<=0x80000000ULL); recovery.minimum={static_cast<uint32_t>(receive),static_cast<uint32_t>(change)};
         }
         auto spec=Spec(options.at("--spec-file"));
-        Wallet wallet{options.at("--wallet-dir"),Network::REGTEST}; // Policy initialization precedes secret FD input and threads.
+        Require(network!=Network::TEST || spec==CONTRACT_SPEC_SHA256,Code::BINDING);
+        Wallet wallet{options.at("--wallet-dir"),network}; // Policy initialization precedes secret FD input and threads.
         Secret<1024> password; std::array<unsigned char,2> size{};
         auto deadline=detail::Clock::now()+std::chrono::seconds{5}; ReadOperator(fd,size,deadline);
         size_t length=size[0]|size_t{size[1]}<<8; Require(length>0 && length<=1024);
-        ReadOperator(fd,password.span().first(length),deadline); close(fd);
+        ReadOperator(fd,password.span().first(length),deadline);
+        if(options.contains("--recovery-public-input")) ReadRecoveryPublic(fd,recovery,deadline);
+        close(fd);
         if (options.contains("--create")) wallet.Create(password.span().first(length));
         else wallet.Unlock(password.span().first(length),recovery);
         Zero(password.span());
         Checkpoint(out_fd,wallet.Status());
         struct sigaction action{}; action.sa_handler=Stop; sigemptyset(&action.sa_mask);
         Require(sigaction(SIGTERM,&action,nullptr)==0 && sigaction(SIGINT,&action,nullptr)==0,Code::INTERNAL);
-        RunService(wallet,{options.at("--socket"),static_cast<uid_t>(uid),Network::REGTEST,spec,fee},stopped);
+        RunService(wallet,{options.at("--socket"),static_cast<uid_t>(uid),network,spec,fee},stopped);
         wallet.Lock();Checkpoint(out_fd,wallet.Status());return 0;
     } catch (const Error& error) { std::cerr<<"MLDSA_PILOT_ERROR "<<static_cast<uint16_t>(error.code)<<'\n';return 1; }
     catch (const std::exception&) { std::cerr<<"MLDSA_PILOT_ERROR 13\n";return 1; }

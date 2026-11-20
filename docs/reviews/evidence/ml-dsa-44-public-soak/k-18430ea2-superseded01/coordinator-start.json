@@ -1,0 +1,22 @@
+{
+  "argv": [
+    "/opt/homebrew/opt/python@3.15/Frameworks/Python.framework/Versions/3.15/Resources/Python.app/Contents/MacOS/Python",
+    "-B",
+    "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/candidate-k/source-clean-18430ea2/contrib/ml-dsa-qualification/run_public_soak.py",
+    "--config",
+    "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/k-soak-20261116-01-config.json",
+    "--mode",
+    "soak",
+    "--output-dir",
+    "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/k-soak-20261116-01-output"
+  ],
+  "config_sha256": "1ae557418c82da103cb656311d58941b9a73a559d7b3be774f8c2f959c35f704",
+  "created_utc": "2026-11-16T19:55:00.244709+00:00",
+  "mode": "soak",
+  "output_absent_before_exec": true,
+  "pid": 10537,
+  "prior_preflight_credit_seconds": 0,
+  "schema": "PQBTC-K-COORDINATOR-PROCESS-START-1",
+  "scope": "PROCESS_START_ONLY_NOT_ELAPSED_QUALIFICATION",
+  "source_head": "18430ea2cfcac66cca0e8612605db47a5c0e935b"
+}

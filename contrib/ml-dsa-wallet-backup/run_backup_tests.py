@@ -26,15 +26,16 @@ KEY_HASHES = {
     "key_lifecycle_test.h": "05f6893a3f86e990804d7df4f05d0e397dbdd88be7a0fead56a83316855f03a6",
     "key_lifecycle_smoke.c": "eafa74db19a55eaa89494f4c46e5d9deaf0e89337ff5645c9adab315a5878099",
     "exports.map": "3696587b7350eaec149cf82e5785c1828e9201128d01ab0f93ac2ead8583666e",
-    "run_key_lifecycle_tests.py": "b6e833ef417f4b7d69e86c66ac39823e0c2ffe096d42be3f0f8b71a7f9c86a5d",
+    "run_key_lifecycle_tests.py": "4ba7bc3a8e68b04e594e9342ff5e3f2c5830f9a24269c95e8cb410e59ea900f9",
     "key_runtime.c": "8baccccc889000bf9022f44bd0bd692f6570449c806e5b792041b025e97f9b86",
     "key_runtime_probe.c": "17c03a3c66b05257fed1def93dcccf34bf8aa4ae219d693c72f5379530b3203c",
-    "run_key_runtime_tests.py": "1951350714a0c3586d2c4656d9ae5fed9f771ceec24f475ce089a3820798aff8",
+    "run_key_runtime_tests.py": "5b24dbbc8e56a431cb4585004e52841b9d88bd2d12f24ac3b50c000a6dfba55e",
 }
 CONTROL_HASHES = {
     "contrib/ml-dsa-engineering/backend_admission.json": "0a0a349ab822373484db4b08412660d142bd09bc0507038b257593e53d3411c0",
     "contrib/ml-dsa-ref/review_baseline_commit.txt": "2133fca644808b95c8e5d7f6b62c1fb11367ef3e46b0fdee79674452de8cba24",
     "contrib/shrincs/manifest.json": "c7b492c46e99cda50f2cc6f3c69dba454ca2841fdc7a152141c071ba11e7e990",
+    "contrib/ml-dsa-qualification/native_process.py": "dddab1d1543f17d113a043780b00c83a480aee6fe63876861cf271b4a2cd1bff",
 }
 MODULE_FILES = (
     "backup.c",
@@ -106,6 +107,41 @@ def load(path, name):
     return module
 
 
+def process_helper():
+    name = "contrib/ml-dsa-qualification/native_process.py"
+    if digest(regular(ROOT / name, ROOT)) != CONTROL_HASHES[name]:
+        raise HarnessError("frozen control mismatch: " + name)
+    return load(ROOT / name, "backup_native_process")
+
+
+class NativeCommands:
+    def __init__(self, process):
+        self.process = process
+        self.records = []
+
+    def run(self, command, status=0, env=None):
+        environment = dict(os.environ)
+        environment["OPENSSL_CONF"] = "/dev/null"
+        environment["ASAN_OPTIONS"] = "detect_leaks=1:abort_on_error=1"
+        environment["UBSAN_OPTIONS"] = "halt_on_error=1:print_stacktrace=1"
+        environment.update(env or {})
+        try:
+            child = self.process.capture(command, env=environment, timeout=600,
+                                         fail_on_stderr=status == 0)
+        except self.process.CaptureError as error:
+            self.records.append({"command": list(map(str, command)), "capture_failure": error.details})
+            raise HarnessError(str(error)) from error
+        self.records.append({
+            "command": list(map(str, command)), "returncode": child.returncode,
+            "stdout": child.stdout, "stderr": child.stderr,
+            "capture": child.capture_details,
+        })
+        if child.returncode != status or (status == 0 and child.stderr):
+            raise HarnessError("native command failed/diagnostic: " + str(command[0])
+                               + "\n" + child.stdout + child.stderr)
+        return child.stdout
+
+
 def validate_sources(root):
     root = Path(root)
     for name, want in KEY_HASHES.items():
@@ -134,6 +170,9 @@ def validate_sources(root):
 
 
 def source_hashes():
+    # This entry point is also callable without prove()/preflight. Validate the
+    # reader and the helper it imports before executing either Python module.
+    validate_sources(ROOT)
     actual = []
     for path in HERE.rglob("*"):
         if path.is_symlink():
@@ -159,19 +198,18 @@ def source_hashes():
 
 
 def runtime_identity(expected, root=ROOT):
-    head = subprocess.run(
-        ["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True, text=True
+    process = process_helper()
+    head = process.capture(
+        ["git", "-C", str(root), "rev-parse", "HEAD"], timeout=30
     )
     if head.returncode:
         if expected:
             raise HarnessError("cannot establish expected runtime source")
         return {"commit": None, "worktree": "unavailable; source hashes only"}
-    status = subprocess.run(
+    status = process.checked(
         ["git", "-C", str(root), "status", "--porcelain=v1", "--untracked-files=all"],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout
+        timeout=30,
+    )
     if expected and (head.stdout.strip() != expected or status):
         raise HarnessError("wrong or dirty expected runtime")
     return {"commit": head.stdout.strip(), "worktree": "dirty" if status else "clean"}
@@ -270,9 +308,9 @@ def validate_openssl(prefix):
     archive = digest(regular(prefix / "lib/libcrypto.a", prefix))
     cli = prefix / "bin/openssl"
     cli_hash = digest(regular(cli, prefix))
-    result = subprocess.run(
-        [str(cli), "version"], capture_output=True, text=True, check=True
-    ).stdout.strip()
+    result = process_helper().checked(
+        [str(cli), "version"], timeout=30
+    ).strip()
     if not result.startswith("OpenSSL 3.6.5 "):
         raise HarnessError("wrong OpenSSL runtime version")
     return {
@@ -334,6 +372,22 @@ def process_result(text):
     return {"result": "PASS", "checks": 16, "phases": phases}
 
 
+def process_campaign(demo, verifier, source_digest, records):
+    path = HERE / "process_demo_test.py"
+    if digest(regular(path, ROOT)) != source_digest:
+        raise HarnessError("process driver changed after preflight")
+    driver = load(path, "backup_process_campaign")
+    # Keep the supervisor in this process: every native phase is captured and
+    # reaped directly, without a killable wrapper between session boundaries.
+    try:
+        result = driver.exercise(demo, verifier)
+    except RuntimeError as error:
+        raise HarnessError("process campaign failed: " + str(error)) from error
+    summary = process_result(json.dumps(result))
+    records.extend(result["commands"])
+    return summary
+
+
 def prove(compiler, prefix, expected, allow_source_only):
     if sys.platform != "linux":
         raise HarnessError("new native proof is contained Linux only")
@@ -354,38 +408,9 @@ def prove(compiler, prefix, expected, allow_source_only):
         ),
         flush=True,
     )
-    records = []
-
-    def run(command, status=0, env=None):
-        environment = dict(os.environ)
-        environment["OPENSSL_CONF"] = "/dev/null"
-        environment["ASAN_OPTIONS"] = "detect_leaks=1:abort_on_error=1"
-        environment["UBSAN_OPTIONS"] = "halt_on_error=1:print_stacktrace=1"
-        environment.update(env or {})
-        child = subprocess.run(
-            [str(x) for x in command],
-            text=True,
-            capture_output=True,
-            env=environment,
-            timeout=600,
-        )
-        records.append(
-            {
-                "command": [str(x) for x in command],
-                "returncode": child.returncode,
-                "stdout": child.stdout,
-                "stderr": child.stderr,
-            }
-        )
-        if child.returncode != status or (status == 0 and child.stderr):
-            raise HarnessError(
-                "native command failed/diagnostic: "
-                + str(command[0])
-                + "\n"
-                + child.stdout
-                + child.stderr
-            )
-        return child.stdout
+    process = process_helper()
+    commands = NativeCommands(process)
+    records, run = commands.records, commands.run
 
     version = run([compiler, "--version"]).splitlines()[0]
     flags = [
@@ -404,6 +429,7 @@ def prove(compiler, prefix, expected, allow_source_only):
     ]
     link = [prefix / "lib/libcrypto.a", "-ldl", "-pthread"]
     observations = {}
+    layouts = {}
     controls = {}
     with tempfile.TemporaryDirectory(prefix="pqbtc-backup-proof-") as tmp:
         tmp = Path(tmp)
@@ -485,12 +511,19 @@ def prove(compiler, prefix, expected, allow_source_only):
                 if sanitized
                 else ["-O2"]
             )
+            executable_link = process.sanitizer_executable_link_flags(compiler, sanitized)
+
+            def layout(executable):
+                layouts[executable.name] = process.executable_layout(
+                    run(["readelf", "-h", executable]), executable_link)
+
             smoke = tmp / ("smoke-" + label)
             files = tmp / ("files-" + label)
             run(
                 [
                     *flags,
                     *mode,
+                    *executable_link,
                     "-DPQBTC_MLDSA44_TESTING=1",
                     HERE / "backup.c",
                     HERE / "backup_smoke.c",
@@ -499,6 +532,7 @@ def prove(compiler, prefix, expected, allow_source_only):
                     smoke,
                 ]
             )
+            layout(smoke)
             observed = bytes.fromhex(run([smoke, "--fixture"]).strip())
             if observed != expected_package:
                 raise HarnessError("native fixture differs from independent oracle")
@@ -512,6 +546,7 @@ def prove(compiler, prefix, expected, allow_source_only):
                 [
                     *flags,
                     *mode,
+                    *executable_link,
                     "-DPQBTC_BACKUP_FILE_TESTING=1",
                     HERE / "backup_file.c",
                     HERE / "backup_file_smoke.c",
@@ -520,6 +555,7 @@ def prove(compiler, prefix, expected, allow_source_only):
                     files,
                 ]
             )
+            layout(files)
             observations[label + "_files"] = smoke_result(run([files]), "file")
             demo = tmp / ("demo-" + label)
             verifier = tmp / ("verifier-" + label)
@@ -531,6 +567,7 @@ def prove(compiler, prefix, expected, allow_source_only):
                     [
                         *flags,
                         *mode,
+                        *executable_link,
                         *extra,
                         HERE / "backup.c",
                         HERE / "backup_file.c",
@@ -540,8 +577,9 @@ def prove(compiler, prefix, expected, allow_source_only):
                         executable,
                     ]
                 )
-            observations[label + "_process"] = process_result(
-                run([sys.executable, HERE / "process_demo_test.py", demo, verifier])
+                layout(executable)
+            observations[label + "_process"] = process_campaign(
+                demo, verifier, hashes["contrib/ml-dsa-wallet-backup/process_demo_test.py"], records
             )
             print(
                 "backup observed: "
@@ -618,6 +656,7 @@ def prove(compiler, prefix, expected, allow_source_only):
         "openssl": crypto,
         "exports": sorted(exports),
         "observations": observations,
+        "executable_layouts": layouts,
         "negative_controls": controls,
         "fixture": {
             "sha256": FIXTURE_SHA,

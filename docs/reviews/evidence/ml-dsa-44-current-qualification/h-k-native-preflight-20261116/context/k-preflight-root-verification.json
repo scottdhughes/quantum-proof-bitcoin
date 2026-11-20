@@ -1,0 +1,70 @@
+{
+  "actual_backend_cgroup_proof_sha256": "ad3487285ebf07138bfd4ab12cdb71fa5b20c240936d010049171a43ae0cc731",
+  "clock_elapsed": {
+    "monotonic_seconds": 900.075852042,
+    "wall_seconds": 900.081071
+  },
+  "confirmed_payments": 22,
+  "event_chain": {
+    "clock_boundaries": {
+      "public_clock_completed": {
+        "data": {
+          "monotonic_seconds": 900.0751787910704,
+          "wall_seconds": 900.0804629325867
+        },
+        "monotonic_ns": 1465272430694500,
+        "utc": "2026-11-16T19:48:30.327581+00:00"
+      },
+      "public_clock_started": {
+        "data": {
+          "duration_seconds": 900,
+          "public_probe": {
+            "certificate_sha256": "82dac8876ffe34291908e339d82e2020efa49cb5698c6bb25feb02be20581beb",
+            "commands": [
+              "version",
+              "wtxidrelay",
+              "sendaddrv2",
+              "verack"
+            ],
+            "elapsed_seconds": 0.11682474985718727,
+            "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+            "native_magic": "a7e29cf7",
+            "port": 443,
+            "public_peer_ip": "209.177.145.97",
+            "remote_height": 205,
+            "remote_protocol": 70016,
+            "remote_subversion": "/PQBTC:30.2.0/",
+            "result": "PASS",
+            "scope": "ANONYMOUS_PUBLIC_TLS_NATIVE_P2P_HANDSHAKE_ONLY",
+            "tls_version": "TLSv1.3"
+          }
+        },
+        "monotonic_ns": 1464372354842458,
+        "utc": "2026-11-16T19:33:30.246510+00:00"
+      }
+    },
+    "count": 2305,
+    "last_sha256": "c8597c7b21ac011a79207e24a197d3ae84233ec924a17aa263de5defea16ad8d"
+  },
+  "evidence_sha256": {
+    "declaration.json": "63e2401d02b84e7cf79d8a6753ff005cd389144258ef667aaf49ce4e21948c18",
+    "events.jsonl": "835968e19868b13b612ed6c344f563d632ecfd8f08db43871593048148e5e905",
+    "evidence-sha256.json": "ba53b27a47a1d802d52d64b63e35c097f25b839aae15362dd68af12d8a56f233",
+    "report.json": "7f2ad4662a9ae1d7c3d658ec75004556662cfd5274248a64ed97c1d9b69279d8"
+  },
+  "outcome": {
+    "elapsed_monotonic_seconds": 900.0751787910704,
+    "elapsed_wall_seconds": 900.0804629325867,
+    "missed_slots": 3,
+    "p95_settle_seconds": 9.140969916945323,
+    "result": "PREFLIGHT_PASS",
+    "successful_normal_slots": 12
+  },
+  "output_modified": false,
+  "result": "PASS",
+  "schema": "PQBTC-K-PREFLIGHT-ROOT-REVERIFICATION-1",
+  "soak_credit_seconds": 0,
+  "source_modified": false,
+  "terminal_reviewer_sha256": "ff26448057c7f18d9c632b931217270df5e7bea3f0ba4b61950bb7b7c95e49ee",
+  "utc": "2026-11-16T19:51:13.388782+00:00"
+}

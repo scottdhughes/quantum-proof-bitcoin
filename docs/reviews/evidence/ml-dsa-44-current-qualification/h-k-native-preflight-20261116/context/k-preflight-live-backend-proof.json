@@ -1,0 +1,175 @@
+{
+  "actual_init": {
+    "cgroup": "0::/pqbtc.slice/pqbtc-public.slice/pqbtc-public-soak.slice/pqbtc-public-soak-20261114.slice/docker-ab088423e34ebb0d030adc8d54c52e80c1c023885f4ac5824cee2217c6ed52d3.scope",
+    "gid": 0,
+    "pid": 204739,
+    "start_ticks": "15501804",
+    "state": "S",
+    "uid": 0,
+    "uids": [
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "actual_init_after": {
+    "cgroup": "0::/pqbtc.slice/pqbtc-public.slice/pqbtc-public-soak.slice/pqbtc-public-soak-20261114.slice/docker-ab088423e34ebb0d030adc8d54c52e80c1c023885f4ac5824cee2217c6ed52d3.scope",
+    "gid": 0,
+    "pid": 204739,
+    "start_ticks": "15501804",
+    "state": "S",
+    "uid": 0,
+    "uids": [
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "aggregate_cgroup": "/pqbtc.slice/pqbtc-public.slice/pqbtc-public-soak.slice/pqbtc-public-soak-20261114.slice",
+  "aggregate_kernel": {
+    "cgroup.events": "populated 1\nfrozen 0",
+    "cgroup.freeze": "0",
+    "cpu.max": "200000 100000",
+    "memory.max": "4294967296",
+    "pids.max": "2048"
+  },
+  "checks": [
+    {
+      "check": "private_engine_identity",
+      "evidence": {
+        "engine_id": "898eeae9-915d-499e-977a-9168abb73d17"
+      },
+      "pass": true
+    },
+    {
+      "check": "public_container_snapshot",
+      "evidence": {
+        "CgroupParent": "",
+        "Id": "ab088423e34ebb0d030adc8d54c52e80c1c023885f4ac5824cee2217c6ed52d3",
+        "Image": "sha256:ac9e2206349929c6e0c33fc64e6403d805417cffb4b7bc22135fde81dfe77d4c",
+        "Labels": {
+          "org.pqbtc.console.build": "source-1",
+          "org.pqbtc.console.manifest": "8de763784d46a2c660425e67ff8e44d0cd43c63328d302feed0936c9749d8fcb",
+          "org.pqbtc.console.profile": "78f5f1024d8276a49acbf54c5026f3e4c7e1c9ba3b901c102a0ac4e1311fa933",
+          "org.pqbtc.console.schema": "public-test-1"
+        },
+        "Memory": 1073741824,
+        "Name": "/pqbtc-mldsa-public-soak-r3-k-preflight-20261116-01-research",
+        "NanoCpus": 2000000000,
+        "Pid": 204739,
+        "PidsLimit": 256,
+        "Running": true
+      },
+      "pass": true
+    },
+    {
+      "check": "exact_owned_container_name_image_labels",
+      "pass": true
+    },
+    {
+      "check": "actual_supervisor_process_metadata_read",
+      "evidence": {
+        "cgroup": "0::/pqbtc.slice/pqbtc-public.slice/pqbtc-public-soak.slice/pqbtc-public-soak-20261114.slice/docker-ab088423e34ebb0d030adc8d54c52e80c1c023885f4ac5824cee2217c6ed52d3.scope",
+        "gid": 0,
+        "pid": 204739,
+        "start_ticks": "15501804",
+        "state": "S",
+        "uid": 0,
+        "uids": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "pass": true
+    },
+    {
+      "check": "supervisor_UID0_expected",
+      "pass": true
+    },
+    {
+      "check": "backend_is_direct_aggregate_sibling",
+      "evidence": {
+        "actual": "/pqbtc.slice/pqbtc-public.slice/pqbtc-public-soak.slice/pqbtc-public-soak-20261114.slice/docker-ab088423e34ebb0d030adc8d54c52e80c1c023885f4ac5824cee2217c6ed52d3.scope",
+        "expected": "/pqbtc.slice/pqbtc-public.slice/pqbtc-public-soak.slice/pqbtc-public-soak-20261114.slice/docker-ab088423e34ebb0d030adc8d54c52e80c1c023885f4ac5824cee2217c6ed52d3.scope"
+      },
+      "pass": true
+    },
+    {
+      "check": "actual_kernel_leaf_limits",
+      "evidence": {
+        "cgroup.events": "populated 1\nfrozen 0",
+        "cgroup.freeze": "0",
+        "cpu.max": "200000 100000",
+        "memory.max": "1073741824",
+        "pids.max": "256"
+      },
+      "pass": true
+    },
+    {
+      "check": "actual_kernel_aggregate_limits",
+      "evidence": {
+        "cgroup.events": "populated 1\nfrozen 0",
+        "cgroup.freeze": "0",
+        "cpu.max": "200000 100000",
+        "memory.max": "4294967296",
+        "pids.max": "2048"
+      },
+      "pass": true
+    },
+    {
+      "check": "declared_container_leaf_limits",
+      "evidence": {
+        "CgroupParent": "",
+        "Memory": 1073741824,
+        "NanoCpus": 2000000000,
+        "PidsLimit": 256
+      },
+      "pass": true
+    },
+    {
+      "check": "container_ID_image_PID_stable",
+      "pass": true
+    },
+    {
+      "check": "PID_start_UID_cgroup_stable",
+      "pass": true
+    }
+  ],
+  "container": {
+    "CgroupParent": "",
+    "Id": "ab088423e34ebb0d030adc8d54c52e80c1c023885f4ac5824cee2217c6ed52d3",
+    "Image": "sha256:ac9e2206349929c6e0c33fc64e6403d805417cffb4b7bc22135fde81dfe77d4c",
+    "Labels": {
+      "org.pqbtc.console.build": "source-1",
+      "org.pqbtc.console.manifest": "8de763784d46a2c660425e67ff8e44d0cd43c63328d302feed0936c9749d8fcb",
+      "org.pqbtc.console.profile": "78f5f1024d8276a49acbf54c5026f3e4c7e1c9ba3b901c102a0ac4e1311fa933",
+      "org.pqbtc.console.schema": "public-test-1"
+    },
+    "Memory": 1073741824,
+    "Name": "/pqbtc-mldsa-public-soak-r3-k-preflight-20261116-01-research",
+    "NanoCpus": 2000000000,
+    "Pid": 204739,
+    "PidsLimit": 256,
+    "Running": true
+  },
+  "engine_id": "898eeae9-915d-499e-977a-9168abb73d17",
+  "leaf_cgroup": "/pqbtc.slice/pqbtc-public.slice/pqbtc-public-soak.slice/pqbtc-public-soak-20261114.slice/docker-ab088423e34ebb0d030adc8d54c52e80c1c023885f4ac5824cee2217c6ed52d3.scope",
+  "leaf_kernel": {
+    "cgroup.events": "populated 1\nfrozen 0",
+    "cgroup.freeze": "0",
+    "cpu.max": "200000 100000",
+    "memory.max": "1073741824",
+    "pids.max": "256"
+  },
+  "no_Config_Env_argv_cookie_wallet_or_secret_read": true,
+  "no_mutations": true,
+  "public_soak_credit_seconds": 0,
+  "result": "PASS_LIVE_OWNED_BACKEND_CGROUP",
+  "schema": "PQBTC-LIVE-BACKEND-CGROUP-PROOF-1",
+  "scope": "READ_ONLY_RUNTIME_EVIDENCE_NO_NEW_CLOCK_CREDIT",
+  "utc": "2026-11-16T19:46:46.054342+00:00"
+}

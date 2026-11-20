@@ -1,0 +1,939 @@
+{
+  "H_arm_clang_qualification_claimed": false,
+  "H_qualified_profile_count": 3,
+  "K_qualified_profile_count": 4,
+  "byte_policy": {
+    "event_gzip": "Empty filename,mtime0,level9; original byte size/SHA and compressed size/SHA both bound",
+    "git_checkout": "Scoped * -text",
+    "original_records": "NONE transformations: copied exact bytes"
+  },
+  "closure": {
+    "all_original_native_inventory_payloads_closed": false,
+    "executable_reproduction_closure": false,
+    "external_historical_references": "Original report paths, unselected inventory members, CI artifact references and machine paths are historical custody; do not open/fetch them to verify this selected packet.",
+    "selected_payloads_closed": true
+  },
+  "derived_index": true,
+  "descriptor_auxiliary_observations": [
+    {
+      "canonical_JSON_semantically_equal": true,
+      "differing_top_keys": [],
+      "native_original_bytes": 30627,
+      "native_original_sha256": "b1872c891b07e2f84940c07994fd09911b5dcd017ff802444b837c6104a2e81e",
+      "outer_bytes": 30627,
+      "outer_sha256": "41d6163a50fb1c883221185a5ebf6ba1984416beb1255c0173484c40e2eef64d",
+      "profile": "h/linux-x86_64-gcc"
+    },
+    {
+      "canonical_JSON_semantically_equal": true,
+      "differing_top_keys": [],
+      "native_original_bytes": 30641,
+      "native_original_sha256": "5cf0350a3f32cbe92e3e1244ac9cc96a34cae0b59b88de7b4ecebdbd0fdc35c6",
+      "outer_bytes": 30641,
+      "outer_sha256": "7b63f404a0ac01cc2efd0b5c09332a489b4568a10bab0dc448cb9c908d2f6b85",
+      "profile": "h/linux-x86_64-clang"
+    },
+    {
+      "canonical_JSON_semantically_equal": true,
+      "differing_top_keys": [],
+      "native_original_bytes": 30627,
+      "native_original_sha256": "a7d8a29c47f02472de33774dc5fcfd58b657c1cada66f1dd0c738a638da7c9a1",
+      "outer_bytes": 30627,
+      "outer_sha256": "2866c382195eb6f82372e5c579f588a6ac5289e5aa6a9abb5f654adc52e1240e",
+      "profile": "k/linux-x86_64-gcc"
+    },
+    {
+      "canonical_JSON_semantically_equal": true,
+      "differing_top_keys": [],
+      "native_original_bytes": 30641,
+      "native_original_sha256": "eaf05781c3af8c9a012d12eb0e30ce1ffe7550dbaec208fde42b012eff3c2a6e",
+      "outer_bytes": 30641,
+      "outer_sha256": "e701aebdbbe0d249df81f0d78b189da111f367a0b17312f44b6d6ffa97bae7b1",
+      "profile": "k/linux-x86_64-clang"
+    }
+  ],
+  "descriptor_closure_note": "Four x86 native-original descriptor auxiliaries bind the original native inventory hashes; outer descriptors separately bind exported/preflight descriptors. Full canonical parsed objects compare equal, but original raw bytes differ. No original normalized or replaced.",
+  "files": [
+    {
+      "bytes": 8,
+      "classification": "DERIVED_PUBLIC_PACKET_METADATA",
+      "path": ".gitattributes",
+      "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da",
+      "transform": "DERIVED"
+    },
+    {
+      "bytes": 6409,
+      "classification": "ORIGINAL_PUBLIC_VERIFICATION_CONTEXT",
+      "origin_bytes": 6409,
+      "origin_sha256": "cdbc494c6e6e89139bd1d06f1490d5f9c5a5b0448e6999f375b2dd293bf21bf4",
+      "origin_task_root_relative": "candidate-h/arm-gcc-qualification-summary-20261116.json",
+      "path": "context/h-arm-gcc-summary.json",
+      "sha256": "cdbc494c6e6e89139bd1d06f1490d5f9c5a5b0448e6999f375b2dd293bf21bf4",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 2565,
+      "classification": "ORIGINAL_PUBLIC_VERIFICATION_CONTEXT",
+      "origin_bytes": 2565,
+      "origin_sha256": "37f487ab6b34a353fc098083e4b25dbea18cea9a79d8db7753703de5eeaa62da",
+      "origin_task_root_relative": "candidate-h/root-baseline-reverification-20261116.json",
+      "path": "context/h-baseline-reverification.json",
+      "sha256": "37f487ab6b34a353fc098083e4b25dbea18cea9a79d8db7753703de5eeaa62da",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 8459,
+      "classification": "DERIVED_PUBLIC_PACKET_METADATA",
+      "path": "context/implementation-byte-binding.json",
+      "sha256": "924d4c89b94dc08d8a8c214ff24544a3111875fc6bff0def6008d76f4dfaf957",
+      "transform": "DERIVED"
+    },
+    {
+      "bytes": 7010,
+      "classification": "ORIGINAL_PUBLIC_VERIFICATION_CONTEXT",
+      "origin_bytes": 7010,
+      "origin_sha256": "c2002d7c1bd0d406ac27afe4d1ece1ef9391ea24d1d13004f1fbb50d639c6aa3",
+      "origin_task_root_relative": "candidate-k/arm-clang-qualification-summary-20261116.json",
+      "path": "context/k-arm-clang-summary.json",
+      "sha256": "c2002d7c1bd0d406ac27afe4d1ece1ef9391ea24d1d13004f1fbb50d639c6aa3",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 6969,
+      "classification": "ORIGINAL_PUBLIC_VERIFICATION_CONTEXT",
+      "origin_bytes": 6969,
+      "origin_sha256": "e0867aef9b9367cb0ce156f2e67cd1893e262b20b9a39a5641229770c26c519d",
+      "origin_task_root_relative": "candidate-k/arm-gcc-qualification-summary-20261116.json",
+      "path": "context/k-arm-gcc-summary.json",
+      "sha256": "e0867aef9b9367cb0ce156f2e67cd1893e262b20b9a39a5641229770c26c519d",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 6151,
+      "classification": "ORIGINAL_PUBLIC_VERIFICATION_CONTEXT",
+      "origin_bytes": 6151,
+      "origin_sha256": "31f6c6d409b3b176708eb490df4dfe80c8c73b0b0faa67ecc1c56d071f77fe90",
+      "origin_task_root_relative": "candidate-k/arm-qualification-summary-20261116.json",
+      "path": "context/k-arm-summary.json",
+      "sha256": "31f6c6d409b3b176708eb490df4dfe80c8c73b0b0faa67ecc1c56d071f77fe90",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 3220,
+      "classification": "ORIGINAL_PUBLIC_VERIFICATION_CONTEXT",
+      "origin_bytes": 3220,
+      "origin_sha256": "45537637d528c04d236cd5976de2b267fb29794c3f568ee6101c8bab472e2ae9",
+      "origin_task_root_relative": "candidate-k/root-four-profile-reverification-20261116.json",
+      "path": "context/k-four-profile-reverification.json",
+      "sha256": "45537637d528c04d236cd5976de2b267fb29794c3f568ee6101c8bab472e2ae9",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 9722,
+      "classification": "ORIGINAL_PUBLIC_VERIFICATION_CONTEXT",
+      "origin_bytes": 9722,
+      "origin_sha256": "ff26448057c7f18d9c632b931217270df5e7bea3f0ba4b61950bb7b7c95e49ee",
+      "origin_task_root_relative": "research/k-preflight01-independent-review/terminal-reverification.json",
+      "path": "context/k-preflight-independent-verification.json",
+      "sha256": "ff26448057c7f18d9c632b931217270df5e7bea3f0ba4b61950bb7b7c95e49ee",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 5675,
+      "classification": "ORIGINAL_PUBLIC_VERIFICATION_CONTEXT",
+      "origin_bytes": 5675,
+      "origin_sha256": "ad3487285ebf07138bfd4ab12cdb71fa5b20c240936d010049171a43ae0cc731",
+      "origin_task_root_relative": "research/k-preflight-20261116-01-runtime-cgroup/RESULT.json",
+      "path": "context/k-preflight-live-backend-proof.json",
+      "sha256": "ad3487285ebf07138bfd4ab12cdb71fa5b20c240936d010049171a43ae0cc731",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 2574,
+      "classification": "ORIGINAL_PUBLIC_VERIFICATION_CONTEXT",
+      "origin_bytes": 2574,
+      "origin_sha256": "62c92de1c2e44a17d7b9f4067e9a7c6334c6f0db9d966418788eecd675271922",
+      "origin_task_root_relative": "research/k-preflight01-root-terminal-verification.json",
+      "path": "context/k-preflight-root-verification.json",
+      "sha256": "62c92de1c2e44a17d7b9f4067e9a7c6334c6f0db9d966418788eecd675271922",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 7960,
+      "classification": "ORIGINAL_PUBLIC_INVENTORY",
+      "origin_bytes": 7960,
+      "origin_sha256": "177419790df5983f840676be1e36ef131b0d777e62d37549a367677be584f40a",
+      "origin_task_root_relative": "candidate-h/arm-gcc-qualification/evidence-sha256.json",
+      "path": "native-h/linux-aarch64-gcc/native-qualification/evidence-sha256.json",
+      "sha256": "177419790df5983f840676be1e36ef131b0d777e62d37549a367677be584f40a",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30716,
+      "classification": "ORIGINAL_PUBLIC_RESOURCE",
+      "origin_bytes": 30716,
+      "origin_sha256": "92ab734b4ba5af7a2f10bf27c928497f6c455b89a1d71a4767626468cb21978e",
+      "origin_task_root_relative": "candidate-h/arm-gcc-qualification/node-resources.json",
+      "path": "native-h/linux-aarch64-gcc/native-qualification/node-resources.json",
+      "sha256": "92ab734b4ba5af7a2f10bf27c928497f6c455b89a1d71a4767626468cb21978e",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 12388,
+      "classification": "ORIGINAL_PUBLIC_CONSENSUS",
+      "origin_bytes": 12388,
+      "origin_sha256": "f5c3135a42bc6cb75e1544336b545391ede6f89a665937a950caa020477dac04",
+      "origin_task_root_relative": "candidate-h/arm-gcc-qualification/public-consensus-controls.json",
+      "path": "native-h/linux-aarch64-gcc/native-qualification/public-consensus-controls.json",
+      "sha256": "f5c3135a42bc6cb75e1544336b545391ede6f89a665937a950caa020477dac04",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 22616,
+      "classification": "ORIGINAL_PUBLIC_NATIVE",
+      "origin_bytes": 22616,
+      "origin_sha256": "8173118847f45717af1388b203b5fe42fa2b37fa0d1d2485a0b68861ec12b959",
+      "origin_task_root_relative": "candidate-h/arm-gcc-qualification/report.json",
+      "path": "native-h/linux-aarch64-gcc/native-qualification/report.json",
+      "sha256": "8173118847f45717af1388b203b5fe42fa2b37fa0d1d2485a0b68861ec12b959",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 5141,
+      "classification": "ORIGINAL_PUBLIC_APP",
+      "origin_bytes": 5141,
+      "origin_sha256": "41d17ceccea3d6e70bfc79bda5c92b50813fdbc798de41f0eb66e2455bc3f61a",
+      "origin_task_root_relative": "candidate-h/arm-gcc-public-app/report.json",
+      "path": "native-h/linux-aarch64-gcc/public-profile-app/report.json",
+      "sha256": "41d17ceccea3d6e70bfc79bda5c92b50813fdbc798de41f0eb66e2455bc3f61a",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30509,
+      "classification": "ORIGINAL_PUBLIC_DESCRIPTOR",
+      "origin_bytes": 30509,
+      "origin_sha256": "d9cb075bfc4fdc03911eb7b0d702a622d88230a7801d9228831b2f289d869db2",
+      "origin_task_root_relative": "candidate-h/arm-gcc-runtime.json",
+      "path": "native-h/linux-aarch64-gcc/runtime-descriptor.json",
+      "sha256": "d9cb075bfc4fdc03911eb7b0d702a622d88230a7801d9228831b2f289d869db2",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 8150,
+      "classification": "ORIGINAL_PUBLIC_INVENTORY",
+      "origin_bytes": 8150,
+      "origin_sha256": "04c003e706bf34c744e7230ae1abe96c656d2bd05df446f1eba0e9f9139dd876",
+      "origin_task_root_relative": "candidate-h/github/assembled-clang-43923679742-1/native-qualification/evidence-sha256.json",
+      "path": "native-h/linux-x86_64-clang/native-qualification/evidence-sha256.json",
+      "sha256": "04c003e706bf34c744e7230ae1abe96c656d2bd05df446f1eba0e9f9139dd876",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30546,
+      "classification": "ORIGINAL_PUBLIC_RESOURCE",
+      "origin_bytes": 30546,
+      "origin_sha256": "3541244f058d28826293c3d782d14dbc5fa4f908fac24e848987b3af93177b05",
+      "origin_task_root_relative": "candidate-h/github/assembled-clang-43923679742-1/native-qualification/node-resources.json",
+      "path": "native-h/linux-x86_64-clang/native-qualification/node-resources.json",
+      "sha256": "3541244f058d28826293c3d782d14dbc5fa4f908fac24e848987b3af93177b05",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 12388,
+      "classification": "ORIGINAL_PUBLIC_CONSENSUS",
+      "origin_bytes": 12388,
+      "origin_sha256": "c9e69d27a0df35af7d7396ef98643ba1e3db7f7e6394cdd0bfe47d8e2bcdfde2",
+      "origin_task_root_relative": "candidate-h/github/assembled-clang-43923679742-1/native-qualification/public-consensus-controls.json",
+      "path": "native-h/linux-x86_64-clang/native-qualification/public-consensus-controls.json",
+      "sha256": "c9e69d27a0df35af7d7396ef98643ba1e3db7f7e6394cdd0bfe47d8e2bcdfde2",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 22608,
+      "classification": "ORIGINAL_PUBLIC_NATIVE",
+      "origin_bytes": 22608,
+      "origin_sha256": "dd52bf6989988f2b8a65d497254d15b99ce7d56a5db0312d8a3a520e87da939d",
+      "origin_task_root_relative": "candidate-h/github/assembled-clang-43923679742-1/native-qualification/report.json",
+      "path": "native-h/linux-x86_64-clang/native-qualification/report.json",
+      "sha256": "dd52bf6989988f2b8a65d497254d15b99ce7d56a5db0312d8a3a520e87da939d",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30641,
+      "classification": "ORIGINAL_PUBLIC_NATIVE_DESCRIPTOR_AUXILIARY",
+      "origin_archive_sha256": "e7b481e8da62707b83989154b82cfd2e99d53e73253a9e0a0d8a274d52e6038e",
+      "origin_bytes": 30641,
+      "origin_kind": "EXACT_MEMBER_OF_VERIFIED_PUBLIC_REPORT_ZIP",
+      "origin_sha256": "5cf0350a3f32cbe92e3e1244ac9cc96a34cae0b59b88de7b4ecebdbd0fdc35c6",
+      "origin_task_root_relative": "candidate-h/github/assembled-clang-14255512505.zip::native-qualification/runtime-descriptor.json",
+      "path": "native-h/linux-x86_64-clang/native-qualification/runtime-descriptor.json",
+      "sha256": "5cf0350a3f32cbe92e3e1244ac9cc96a34cae0b59b88de7b4ecebdbd0fdc35c6",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 5073,
+      "classification": "ORIGINAL_PUBLIC_APP",
+      "origin_bytes": 5073,
+      "origin_sha256": "829625509cbcee75ec727775b7c83c287c680ca932e89c9e930de77106efbefd",
+      "origin_task_root_relative": "candidate-h/github/assembled-clang-43923679742-1/public-profile-app/report.json",
+      "path": "native-h/linux-x86_64-clang/public-profile-app/report.json",
+      "sha256": "829625509cbcee75ec727775b7c83c287c680ca932e89c9e930de77106efbefd",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30641,
+      "classification": "ORIGINAL_PUBLIC_DESCRIPTOR",
+      "origin_bytes": 30641,
+      "origin_sha256": "7b63f404a0ac01cc2efd0b5c09332a489b4568a10bab0dc448cb9c908d2f6b85",
+      "origin_task_root_relative": "candidate-h/github/assembled-clang-43923679742-1/runtime-descriptor.json",
+      "path": "native-h/linux-x86_64-clang/runtime-descriptor.json",
+      "sha256": "7b63f404a0ac01cc2efd0b5c09332a489b4568a10bab0dc448cb9c908d2f6b85",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 8150,
+      "classification": "ORIGINAL_PUBLIC_INVENTORY",
+      "origin_bytes": 8150,
+      "origin_sha256": "8a45dec0eca90f34a870ce6b98adb7c473747edc436e30d6ee4c5eee7d8b9311",
+      "origin_task_root_relative": "candidate-h/github/assembled-gcc-43923679742-1/native-qualification/evidence-sha256.json",
+      "path": "native-h/linux-x86_64-gcc/native-qualification/evidence-sha256.json",
+      "sha256": "8a45dec0eca90f34a870ce6b98adb7c473747edc436e30d6ee4c5eee7d8b9311",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30550,
+      "classification": "ORIGINAL_PUBLIC_RESOURCE",
+      "origin_bytes": 30550,
+      "origin_sha256": "d66e88429ac1566fecbad7d542d9ccf93d0d803a92433261d3dfb53c51b99720",
+      "origin_task_root_relative": "candidate-h/github/assembled-gcc-43923679742-1/native-qualification/node-resources.json",
+      "path": "native-h/linux-x86_64-gcc/native-qualification/node-resources.json",
+      "sha256": "d66e88429ac1566fecbad7d542d9ccf93d0d803a92433261d3dfb53c51b99720",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 12388,
+      "classification": "ORIGINAL_PUBLIC_CONSENSUS",
+      "origin_bytes": 12388,
+      "origin_sha256": "800a3e5f84b09c3d59f1c4e6c271ac36f528fd41604086af9f7cff44a0363ae0",
+      "origin_task_root_relative": "candidate-h/github/assembled-gcc-43923679742-1/native-qualification/public-consensus-controls.json",
+      "path": "native-h/linux-x86_64-gcc/native-qualification/public-consensus-controls.json",
+      "sha256": "800a3e5f84b09c3d59f1c4e6c271ac36f528fd41604086af9f7cff44a0363ae0",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 22604,
+      "classification": "ORIGINAL_PUBLIC_NATIVE",
+      "origin_bytes": 22604,
+      "origin_sha256": "93611bcd2d717ce16d3e019a1379848f78d6450c71bbe77db4168d6e10f7dbba",
+      "origin_task_root_relative": "candidate-h/github/assembled-gcc-43923679742-1/native-qualification/report.json",
+      "path": "native-h/linux-x86_64-gcc/native-qualification/report.json",
+      "sha256": "93611bcd2d717ce16d3e019a1379848f78d6450c71bbe77db4168d6e10f7dbba",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30627,
+      "classification": "ORIGINAL_PUBLIC_NATIVE_DESCRIPTOR_AUXILIARY",
+      "origin_archive_sha256": "080fa1b275fab4ab6cb214a66648782cffdb26b693f4b625a2ecabcdbf75fd56",
+      "origin_bytes": 30627,
+      "origin_kind": "EXACT_MEMBER_OF_VERIFIED_PUBLIC_REPORT_ZIP",
+      "origin_sha256": "b1872c891b07e2f84940c07994fd09911b5dcd017ff802444b837c6104a2e81e",
+      "origin_task_root_relative": "candidate-h/github/artifact-14256631422.zip::native-qualification/runtime-descriptor.json",
+      "path": "native-h/linux-x86_64-gcc/native-qualification/runtime-descriptor.json",
+      "sha256": "b1872c891b07e2f84940c07994fd09911b5dcd017ff802444b837c6104a2e81e",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 5072,
+      "classification": "ORIGINAL_PUBLIC_APP",
+      "origin_bytes": 5072,
+      "origin_sha256": "54a0dc628c8bf3e318d609ee388d45b3e9052010deed916027c4177577d4a801",
+      "origin_task_root_relative": "candidate-h/github/assembled-gcc-43923679742-1/public-profile-app/report.json",
+      "path": "native-h/linux-x86_64-gcc/public-profile-app/report.json",
+      "sha256": "54a0dc628c8bf3e318d609ee388d45b3e9052010deed916027c4177577d4a801",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30627,
+      "classification": "ORIGINAL_PUBLIC_DESCRIPTOR",
+      "origin_bytes": 30627,
+      "origin_sha256": "41d6163a50fb1c883221185a5ebf6ba1984416beb1255c0173484c40e2eef64d",
+      "origin_task_root_relative": "candidate-h/github/assembled-gcc-43923679742-1/runtime-descriptor.json",
+      "path": "native-h/linux-x86_64-gcc/runtime-descriptor.json",
+      "sha256": "41d6163a50fb1c883221185a5ebf6ba1984416beb1255c0173484c40e2eef64d",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 7960,
+      "classification": "ORIGINAL_PUBLIC_INVENTORY",
+      "origin_bytes": 7960,
+      "origin_sha256": "fef5ea88a1d6f05ebe68c7af1baf767f24cbc0bb67a9af20de60d6877eefdfde",
+      "origin_task_root_relative": "candidate-k/arm-clang-qualification/evidence-sha256.json",
+      "path": "native-k/linux-aarch64-clang/native-qualification/evidence-sha256.json",
+      "sha256": "fef5ea88a1d6f05ebe68c7af1baf767f24cbc0bb67a9af20de60d6877eefdfde",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30723,
+      "classification": "ORIGINAL_PUBLIC_RESOURCE",
+      "origin_bytes": 30723,
+      "origin_sha256": "95959f832a56bf85e2279e3c583db8cd7f33da93c56bb313a446b98e92187d91",
+      "origin_task_root_relative": "candidate-k/arm-clang-qualification/node-resources.json",
+      "path": "native-k/linux-aarch64-clang/native-qualification/node-resources.json",
+      "sha256": "95959f832a56bf85e2279e3c583db8cd7f33da93c56bb313a446b98e92187d91",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 12388,
+      "classification": "ORIGINAL_PUBLIC_CONSENSUS",
+      "origin_bytes": 12388,
+      "origin_sha256": "97b4a73304f305810f5f9f867ef8fddb7cf20f5d499606695f526788f945b5a4",
+      "origin_task_root_relative": "candidate-k/arm-clang-qualification/public-consensus-controls.json",
+      "path": "native-k/linux-aarch64-clang/native-qualification/public-consensus-controls.json",
+      "sha256": "97b4a73304f305810f5f9f867ef8fddb7cf20f5d499606695f526788f945b5a4",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 22620,
+      "classification": "ORIGINAL_PUBLIC_NATIVE",
+      "origin_bytes": 22620,
+      "origin_sha256": "2219f0f9f623b18f61aa2290051f7ab9a7be505b7ca84dc14fd711c5c848675f",
+      "origin_task_root_relative": "candidate-k/arm-clang-qualification/report.json",
+      "path": "native-k/linux-aarch64-clang/native-qualification/report.json",
+      "sha256": "2219f0f9f623b18f61aa2290051f7ab9a7be505b7ca84dc14fd711c5c848675f",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 5141,
+      "classification": "ORIGINAL_PUBLIC_APP",
+      "origin_bytes": 5141,
+      "origin_sha256": "365fb895190144b799a9591094ecb8153b3eeb37d59c26ab6c6a89df4ffedec9",
+      "origin_task_root_relative": "candidate-k/arm-clang-public-app/report.json",
+      "path": "native-k/linux-aarch64-clang/public-profile-app/report.json",
+      "sha256": "365fb895190144b799a9591094ecb8153b3eeb37d59c26ab6c6a89df4ffedec9",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30523,
+      "classification": "ORIGINAL_PUBLIC_DESCRIPTOR",
+      "origin_bytes": 30523,
+      "origin_sha256": "668d1abd651e1c9a116a3d9483e96d81559b7fb78b215144912046237bb6e3ef",
+      "origin_task_root_relative": "candidate-k/arm-clang-runtime.json",
+      "path": "native-k/linux-aarch64-clang/runtime-descriptor.json",
+      "sha256": "668d1abd651e1c9a116a3d9483e96d81559b7fb78b215144912046237bb6e3ef",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 7960,
+      "classification": "ORIGINAL_PUBLIC_INVENTORY",
+      "origin_bytes": 7960,
+      "origin_sha256": "2b24fa85fba079a81be6ca05863046fbabf28ab51df8ca09d09673984503041a",
+      "origin_task_root_relative": "candidate-k/arm-gcc-qualification/evidence-sha256.json",
+      "path": "native-k/linux-aarch64-gcc/native-qualification/evidence-sha256.json",
+      "sha256": "2b24fa85fba079a81be6ca05863046fbabf28ab51df8ca09d09673984503041a",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30742,
+      "classification": "ORIGINAL_PUBLIC_RESOURCE",
+      "origin_bytes": 30742,
+      "origin_sha256": "1ab6da42697c11b29ae466c7698f017d92c257786f92c5f68e3b433a5c70759a",
+      "origin_task_root_relative": "candidate-k/arm-gcc-qualification/node-resources.json",
+      "path": "native-k/linux-aarch64-gcc/native-qualification/node-resources.json",
+      "sha256": "1ab6da42697c11b29ae466c7698f017d92c257786f92c5f68e3b433a5c70759a",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 12388,
+      "classification": "ORIGINAL_PUBLIC_CONSENSUS",
+      "origin_bytes": 12388,
+      "origin_sha256": "e3b16aaf34a9101c8f8b3862dcd4b0e65126dfb5b2fd93e33eab13f63a08ca7c",
+      "origin_task_root_relative": "candidate-k/arm-gcc-qualification/public-consensus-controls.json",
+      "path": "native-k/linux-aarch64-gcc/native-qualification/public-consensus-controls.json",
+      "sha256": "e3b16aaf34a9101c8f8b3862dcd4b0e65126dfb5b2fd93e33eab13f63a08ca7c",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 22616,
+      "classification": "ORIGINAL_PUBLIC_NATIVE",
+      "origin_bytes": 22616,
+      "origin_sha256": "0997684e45fd7603234615cf9637286a5bf65f9fd9d74963db879cfba06ffc7d",
+      "origin_task_root_relative": "candidate-k/arm-gcc-qualification/report.json",
+      "path": "native-k/linux-aarch64-gcc/native-qualification/report.json",
+      "sha256": "0997684e45fd7603234615cf9637286a5bf65f9fd9d74963db879cfba06ffc7d",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 5140,
+      "classification": "ORIGINAL_PUBLIC_APP",
+      "origin_bytes": 5140,
+      "origin_sha256": "457cc5da97e16ad9461bfc9b7547654bc6499b6422e2951b031143599ba43a23",
+      "origin_task_root_relative": "candidate-k/arm-gcc-public-app/report.json",
+      "path": "native-k/linux-aarch64-gcc/public-profile-app/report.json",
+      "sha256": "457cc5da97e16ad9461bfc9b7547654bc6499b6422e2951b031143599ba43a23",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30509,
+      "classification": "ORIGINAL_PUBLIC_DESCRIPTOR",
+      "origin_bytes": 30509,
+      "origin_sha256": "f02b0bb26f1ac355f3d527ff6cac453b70ec5502f01ed24f83233947de683f00",
+      "origin_task_root_relative": "candidate-k/arm-gcc-runtime.json",
+      "path": "native-k/linux-aarch64-gcc/runtime-descriptor.json",
+      "sha256": "f02b0bb26f1ac355f3d527ff6cac453b70ec5502f01ed24f83233947de683f00",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 8150,
+      "classification": "ORIGINAL_PUBLIC_INVENTORY",
+      "origin_bytes": 8150,
+      "origin_sha256": "2b488ea93c458ecfc3350ea214480fbc5b3b8925a6ce0f317f36881aac51b418",
+      "origin_task_root_relative": "candidate-k/github/assembled-clang-43931134439-1/native-qualification/evidence-sha256.json",
+      "path": "native-k/linux-x86_64-clang/native-qualification/evidence-sha256.json",
+      "sha256": "2b488ea93c458ecfc3350ea214480fbc5b3b8925a6ce0f317f36881aac51b418",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30546,
+      "classification": "ORIGINAL_PUBLIC_RESOURCE",
+      "origin_bytes": 30546,
+      "origin_sha256": "024e1d6716e2f37992adee5d9aebd5a0a5356105f70c2ef872a7ce0c6e2be652",
+      "origin_task_root_relative": "candidate-k/github/assembled-clang-43931134439-1/native-qualification/node-resources.json",
+      "path": "native-k/linux-x86_64-clang/native-qualification/node-resources.json",
+      "sha256": "024e1d6716e2f37992adee5d9aebd5a0a5356105f70c2ef872a7ce0c6e2be652",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 12388,
+      "classification": "ORIGINAL_PUBLIC_CONSENSUS",
+      "origin_bytes": 12388,
+      "origin_sha256": "ab3f9c073f34a6d3f0942a11f3985d8520d1242501c30b53bd8ba68400c985b0",
+      "origin_task_root_relative": "candidate-k/github/assembled-clang-43931134439-1/native-qualification/public-consensus-controls.json",
+      "path": "native-k/linux-x86_64-clang/native-qualification/public-consensus-controls.json",
+      "sha256": "ab3f9c073f34a6d3f0942a11f3985d8520d1242501c30b53bd8ba68400c985b0",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 22608,
+      "classification": "ORIGINAL_PUBLIC_NATIVE",
+      "origin_bytes": 22608,
+      "origin_sha256": "1907607509cfbfefd7a3a672da5986f64e97aac07dbf768e30667a382996fe9d",
+      "origin_task_root_relative": "candidate-k/github/assembled-clang-43931134439-1/native-qualification/report.json",
+      "path": "native-k/linux-x86_64-clang/native-qualification/report.json",
+      "sha256": "1907607509cfbfefd7a3a672da5986f64e97aac07dbf768e30667a382996fe9d",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30641,
+      "classification": "ORIGINAL_PUBLIC_NATIVE_DESCRIPTOR_AUXILIARY",
+      "origin_archive_sha256": "56f2276e2bed0a6a3fa3199bf268f01d0ccf452d5b5848772ec23dc95cd22278",
+      "origin_bytes": 30641,
+      "origin_kind": "EXACT_MEMBER_OF_VERIFIED_PUBLIC_REPORT_ZIP",
+      "origin_sha256": "eaf05781c3af8c9a012d12eb0e30ce1ffe7550dbaec208fde42b012eff3c2a6e",
+      "origin_task_root_relative": "candidate-k/github/artifact-14258652904.zip::native-qualification/runtime-descriptor.json",
+      "path": "native-k/linux-x86_64-clang/native-qualification/runtime-descriptor.json",
+      "sha256": "eaf05781c3af8c9a012d12eb0e30ce1ffe7550dbaec208fde42b012eff3c2a6e",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 5073,
+      "classification": "ORIGINAL_PUBLIC_APP",
+      "origin_bytes": 5073,
+      "origin_sha256": "1878945b51237aa7ab21ea394f28c959aec3461bd5b5cbdbc89bcde9727f5c0b",
+      "origin_task_root_relative": "candidate-k/github/assembled-clang-43931134439-1/public-profile-app/report.json",
+      "path": "native-k/linux-x86_64-clang/public-profile-app/report.json",
+      "sha256": "1878945b51237aa7ab21ea394f28c959aec3461bd5b5cbdbc89bcde9727f5c0b",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30641,
+      "classification": "ORIGINAL_PUBLIC_DESCRIPTOR",
+      "origin_bytes": 30641,
+      "origin_sha256": "e701aebdbbe0d249df81f0d78b189da111f367a0b17312f44b6d6ffa97bae7b1",
+      "origin_task_root_relative": "candidate-k/github/assembled-clang-43931134439-1/runtime-descriptor.json",
+      "path": "native-k/linux-x86_64-clang/runtime-descriptor.json",
+      "sha256": "e701aebdbbe0d249df81f0d78b189da111f367a0b17312f44b6d6ffa97bae7b1",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 8150,
+      "classification": "ORIGINAL_PUBLIC_INVENTORY",
+      "origin_bytes": 8150,
+      "origin_sha256": "a4047e4e90267404cbe9d5d22ddc6688aee615c0fc6b9db6c83ea2ef76061b12",
+      "origin_task_root_relative": "candidate-k/github/assembled-gcc-43931134439-1/native-qualification/evidence-sha256.json",
+      "path": "native-k/linux-x86_64-gcc/native-qualification/evidence-sha256.json",
+      "sha256": "a4047e4e90267404cbe9d5d22ddc6688aee615c0fc6b9db6c83ea2ef76061b12",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30544,
+      "classification": "ORIGINAL_PUBLIC_RESOURCE",
+      "origin_bytes": 30544,
+      "origin_sha256": "1632b5e19cfd8028bff40732dcb3600832556a4db766dd316e7045dd60844e30",
+      "origin_task_root_relative": "candidate-k/github/assembled-gcc-43931134439-1/native-qualification/node-resources.json",
+      "path": "native-k/linux-x86_64-gcc/native-qualification/node-resources.json",
+      "sha256": "1632b5e19cfd8028bff40732dcb3600832556a4db766dd316e7045dd60844e30",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 12388,
+      "classification": "ORIGINAL_PUBLIC_CONSENSUS",
+      "origin_bytes": 12388,
+      "origin_sha256": "f4ec2044ab41c3b675e2a3141ac6348a6b23bdc0e26ead7e7c00cd1fef56e606",
+      "origin_task_root_relative": "candidate-k/github/assembled-gcc-43931134439-1/native-qualification/public-consensus-controls.json",
+      "path": "native-k/linux-x86_64-gcc/native-qualification/public-consensus-controls.json",
+      "sha256": "f4ec2044ab41c3b675e2a3141ac6348a6b23bdc0e26ead7e7c00cd1fef56e606",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 22604,
+      "classification": "ORIGINAL_PUBLIC_NATIVE",
+      "origin_bytes": 22604,
+      "origin_sha256": "5b2210b0d72cc5b5d5c9916a2a2465a3b7061795ab5421b2626f7b8adb17762b",
+      "origin_task_root_relative": "candidate-k/github/assembled-gcc-43931134439-1/native-qualification/report.json",
+      "path": "native-k/linux-x86_64-gcc/native-qualification/report.json",
+      "sha256": "5b2210b0d72cc5b5d5c9916a2a2465a3b7061795ab5421b2626f7b8adb17762b",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30627,
+      "classification": "ORIGINAL_PUBLIC_NATIVE_DESCRIPTOR_AUXILIARY",
+      "origin_archive_sha256": "e492790a12700171e1cbf2992de0fe04b48a35abf11d8f446e55dd3e4696f24c",
+      "origin_bytes": 30627,
+      "origin_kind": "EXACT_MEMBER_OF_VERIFIED_PUBLIC_REPORT_ZIP",
+      "origin_sha256": "a7d8a29c47f02472de33774dc5fcfd58b657c1cada66f1dd0c738a638da7c9a1",
+      "origin_task_root_relative": "candidate-k/github/artifact-14259787595.zip::native-qualification/runtime-descriptor.json",
+      "path": "native-k/linux-x86_64-gcc/native-qualification/runtime-descriptor.json",
+      "sha256": "a7d8a29c47f02472de33774dc5fcfd58b657c1cada66f1dd0c738a638da7c9a1",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 5072,
+      "classification": "ORIGINAL_PUBLIC_APP",
+      "origin_bytes": 5072,
+      "origin_sha256": "bf004207eee115154594f44325cdab76e6ddc26007669350643615321a653e79",
+      "origin_task_root_relative": "candidate-k/github/assembled-gcc-43931134439-1/public-profile-app/report.json",
+      "path": "native-k/linux-x86_64-gcc/public-profile-app/report.json",
+      "sha256": "bf004207eee115154594f44325cdab76e6ddc26007669350643615321a653e79",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 30627,
+      "classification": "ORIGINAL_PUBLIC_DESCRIPTOR",
+      "origin_bytes": 30627,
+      "origin_sha256": "2866c382195eb6f82372e5c579f588a6ac5289e5aa6a9abb5f654adc52e1240e",
+      "origin_task_root_relative": "candidate-k/github/assembled-gcc-43931134439-1/runtime-descriptor.json",
+      "path": "native-k/linux-x86_64-gcc/runtime-descriptor.json",
+      "sha256": "2866c382195eb6f82372e5c579f588a6ac5289e5aa6a9abb5f654adc52e1240e",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 10209,
+      "classification": "DERIVED_READONLY_VERIFIER_NEGATIVE_CONTROLS",
+      "path": "negative-controls.py",
+      "sha256": "6cf6823629d75b567a8abda57c5bfe9eaad559672ac5a237f03ff974ce7539c6",
+      "transform": "DERIVED"
+    },
+    {
+      "bytes": 10757,
+      "classification": "ORIGINAL_COMPLETED_PREFLIGHT_RECORD",
+      "origin_bytes": 10757,
+      "origin_sha256": "63e2401d02b84e7cf79d8a6753ff005cd389144258ef667aaf49ce4e21948c18",
+      "origin_task_root_relative": "research/k-preflight-20261116-01-output/declaration.json",
+      "path": "public-preflight01/declaration.json",
+      "sha256": "63e2401d02b84e7cf79d8a6753ff005cd389144258ef667aaf49ce4e21948c18",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 240879,
+      "classification": "ORIGINAL_COMPLETED_PREFLIGHT_EVENTS_LOSSLESS_GZIP",
+      "origin_bytes": 1331328,
+      "origin_sha256": "835968e19868b13b612ed6c344f563d632ecfd8f08db43871593048148e5e905",
+      "origin_task_root_relative": "research/k-preflight-20261116-01-output/events.jsonl",
+      "path": "public-preflight01/events.jsonl.gz",
+      "sha256": "adeb4996a7d07307dc5670bde4624cfe1cd08e5782f388c1c22f0b14abc92df2",
+      "transform": "DETERMINISTIC_GZIP_EMPTY_FILENAME_MTIME0_LEVEL9"
+    },
+    {
+      "bytes": 251,
+      "classification": "ORIGINAL_COMPLETED_PREFLIGHT_RECORD",
+      "origin_bytes": 251,
+      "origin_sha256": "ba53b27a47a1d802d52d64b63e35c097f25b839aae15362dd68af12d8a56f233",
+      "origin_task_root_relative": "research/k-preflight-20261116-01-output/evidence-sha256.json",
+      "path": "public-preflight01/evidence-sha256.json",
+      "sha256": "ba53b27a47a1d802d52d64b63e35c097f25b839aae15362dd68af12d8a56f233",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 11346,
+      "classification": "ORIGINAL_COMPLETED_PREFLIGHT_RECORD",
+      "origin_bytes": 11346,
+      "origin_sha256": "7f2ad4662a9ae1d7c3d658ec75004556662cfd5274248a64ed97c1d9b69279d8",
+      "origin_task_root_relative": "research/k-preflight-20261116-01-output/report.json",
+      "path": "public-preflight01/report.json",
+      "sha256": "7f2ad4662a9ae1d7c3d658ec75004556662cfd5274248a64ed97c1d9b69279d8",
+      "transform": "NONE"
+    },
+    {
+      "bytes": 3941,
+      "classification": "DERIVED_PUBLIC_PACKET_METADATA",
+      "path": "readme.md",
+      "sha256": "09fd88c40f359f49165bbb1d5c8db9bfd2c1aa7ac15d31b1466c9daa24d31738",
+      "transform": "DERIVED"
+    },
+    {
+      "bytes": 39926,
+      "classification": "DERIVED_PUBLIC_PACKET_METADATA",
+      "path": "verify.py",
+      "sha256": "d92319a528d7baf0a9519984579aa7dbc5221f9d573609d2df5e0caacdbcf49b",
+      "transform": "DERIVED"
+    }
+  ],
+  "historical_pending_statuses_relabelled": false,
+  "human_cryptographic_review_claimed": false,
+  "live_soak_payloads_included": false,
+  "preflight": {
+    "24h_soak_credit_seconds": 0,
+    "event_chain": {
+      "clock_boundaries": {
+        "public_clock_completed": {
+          "data": {
+            "monotonic_seconds": 900.0751787910704,
+            "wall_seconds": 900.0804629325867
+          },
+          "monotonic_ns": 1465272430694500,
+          "utc": "2026-11-16T19:48:30.327581+00:00"
+        },
+        "public_clock_started": {
+          "data": {
+            "duration_seconds": 900,
+            "public_probe": {
+              "certificate_sha256": "82dac8876ffe34291908e339d82e2020efa49cb5698c6bb25feb02be20581beb",
+              "commands": [
+                "version",
+                "wtxidrelay",
+                "sendaddrv2",
+                "verack"
+              ],
+              "elapsed_seconds": 0.11682474985718727,
+              "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+              "native_magic": "a7e29cf7",
+              "port": 443,
+              "public_peer_ip": "209.177.145.97",
+              "remote_height": 205,
+              "remote_protocol": 70016,
+              "remote_subversion": "/PQBTC:30.2.0/",
+              "result": "PASS",
+              "scope": "ANONYMOUS_PUBLIC_TLS_NATIVE_P2P_HANDSHAKE_ONLY",
+              "tls_version": "TLSv1.3"
+            }
+          },
+          "monotonic_ns": 1464372354842458,
+          "utc": "2026-11-16T19:33:30.246510+00:00"
+        }
+      },
+      "count": 2305,
+      "last_sha256": "c8597c7b21ac011a79207e24a197d3ae84233ec924a17aa263de5defea16ad8d"
+    },
+    "original_events": {
+      "bytes": 1331328,
+      "sha256": "835968e19868b13b612ed6c344f563d632ecfd8f08db43871593048148e5e905"
+    },
+    "path": "public-preflight01/report.json",
+    "result": "PREFLIGHT_PASS"
+  },
+  "production_admitted": false,
+  "profiles": [
+    {
+      "architecture": "aarch64",
+      "compiler": "gcc",
+      "id": "h/linux-aarch64-gcc",
+      "image": "sha256:87075e6b6c13a805afaa8dcdc72b8e9cb35c78389ed6283949f1cf079b626153",
+      "manifest_sha256": "b9e3a8896f4012fb10fc2eb7fffabb556c1f45d391b69a3a24da5801039bf92a",
+      "native_original_inventory_entries": 81,
+      "original_inventory_payloads_selected": 4,
+      "paths": {
+        "app": "native-h/linux-aarch64-gcc/public-profile-app/report.json",
+        "consensus": "native-h/linux-aarch64-gcc/native-qualification/public-consensus-controls.json",
+        "descriptor": "native-h/linux-aarch64-gcc/runtime-descriptor.json",
+        "inventory": "native-h/linux-aarch64-gcc/native-qualification/evidence-sha256.json",
+        "native": "native-h/linux-aarch64-gcc/native-qualification/report.json",
+        "resource": "native-h/linux-aarch64-gcc/native-qualification/node-resources.json"
+      },
+      "source": {
+        "head": "52f26f31e2d8fcf52459f9cb2e9159564395f74a",
+        "tree": "d2e07ad8db149f6d3eac1cb15379d97e1484e2e6"
+      },
+      "subject": "h",
+      "unselected_original_inventory_payloads_not_copied_or_rehashed": 77
+    },
+    {
+      "architecture": "x86_64",
+      "compiler": "gcc",
+      "id": "h/linux-x86_64-gcc",
+      "image": "sha256:b3358bb35d60a5f42c9ce1fe65c26926250c26e99815c3446810a8eb6e730f0a",
+      "manifest_sha256": "28b84900e98248961469340744081d3c1d49e8f76e5c16731418aee000e2e823",
+      "native_original_inventory_entries": 83,
+      "original_inventory_payloads_selected": 4,
+      "paths": {
+        "app": "native-h/linux-x86_64-gcc/public-profile-app/report.json",
+        "consensus": "native-h/linux-x86_64-gcc/native-qualification/public-consensus-controls.json",
+        "descriptor": "native-h/linux-x86_64-gcc/runtime-descriptor.json",
+        "inventory": "native-h/linux-x86_64-gcc/native-qualification/evidence-sha256.json",
+        "native": "native-h/linux-x86_64-gcc/native-qualification/report.json",
+        "native_descriptor": "native-h/linux-x86_64-gcc/native-qualification/runtime-descriptor.json",
+        "resource": "native-h/linux-x86_64-gcc/native-qualification/node-resources.json"
+      },
+      "source": {
+        "head": "52f26f31e2d8fcf52459f9cb2e9159564395f74a",
+        "tree": "d2e07ad8db149f6d3eac1cb15379d97e1484e2e6"
+      },
+      "subject": "h",
+      "unselected_original_inventory_payloads_not_copied_or_rehashed": 79
+    },
+    {
+      "architecture": "x86_64",
+      "compiler": "clang",
+      "id": "h/linux-x86_64-clang",
+      "image": "sha256:f7f2da0df067aab6e4d80c32bd2bcbd9e9f80bb166c3849e7db77dd459312579",
+      "manifest_sha256": "8687d1138c4f492205177f1e525a06e23483229d8fc07f5119c948285318023e",
+      "native_original_inventory_entries": 83,
+      "original_inventory_payloads_selected": 4,
+      "paths": {
+        "app": "native-h/linux-x86_64-clang/public-profile-app/report.json",
+        "consensus": "native-h/linux-x86_64-clang/native-qualification/public-consensus-controls.json",
+        "descriptor": "native-h/linux-x86_64-clang/runtime-descriptor.json",
+        "inventory": "native-h/linux-x86_64-clang/native-qualification/evidence-sha256.json",
+        "native": "native-h/linux-x86_64-clang/native-qualification/report.json",
+        "native_descriptor": "native-h/linux-x86_64-clang/native-qualification/runtime-descriptor.json",
+        "resource": "native-h/linux-x86_64-clang/native-qualification/node-resources.json"
+      },
+      "source": {
+        "head": "52f26f31e2d8fcf52459f9cb2e9159564395f74a",
+        "tree": "d2e07ad8db149f6d3eac1cb15379d97e1484e2e6"
+      },
+      "subject": "h",
+      "unselected_original_inventory_payloads_not_copied_or_rehashed": 79
+    },
+    {
+      "architecture": "aarch64",
+      "compiler": "gcc",
+      "id": "k/linux-aarch64-gcc",
+      "image": "sha256:d08be0fe97cd15551f9d9d597d5a47dad259a838da6698c2f572e67811a11aa3",
+      "manifest_sha256": "af8b7714630b7231e4378d11d1381825e0c4851177a7bcbc1525835bf82e0713",
+      "native_original_inventory_entries": 81,
+      "original_inventory_payloads_selected": 4,
+      "paths": {
+        "app": "native-k/linux-aarch64-gcc/public-profile-app/report.json",
+        "consensus": "native-k/linux-aarch64-gcc/native-qualification/public-consensus-controls.json",
+        "descriptor": "native-k/linux-aarch64-gcc/runtime-descriptor.json",
+        "inventory": "native-k/linux-aarch64-gcc/native-qualification/evidence-sha256.json",
+        "native": "native-k/linux-aarch64-gcc/native-qualification/report.json",
+        "resource": "native-k/linux-aarch64-gcc/native-qualification/node-resources.json"
+      },
+      "source": {
+        "head": "18430ea2cfcac66cca0e8612605db47a5c0e935b",
+        "tree": "d397b324f83b82017722073c3c53688e0765fb30"
+      },
+      "subject": "k",
+      "unselected_original_inventory_payloads_not_copied_or_rehashed": 77
+    },
+    {
+      "architecture": "aarch64",
+      "compiler": "clang",
+      "id": "k/linux-aarch64-clang",
+      "image": "sha256:51aaad8474396b37da1dde0b94acab0b5cf1b47e93742a0d385dd2f91a0e541a",
+      "manifest_sha256": "f11537ea3ac34d50766a4459e8b4d29092b16a7b0a050628c69f923011e8b62d",
+      "native_original_inventory_entries": 81,
+      "original_inventory_payloads_selected": 4,
+      "paths": {
+        "app": "native-k/linux-aarch64-clang/public-profile-app/report.json",
+        "consensus": "native-k/linux-aarch64-clang/native-qualification/public-consensus-controls.json",
+        "descriptor": "native-k/linux-aarch64-clang/runtime-descriptor.json",
+        "inventory": "native-k/linux-aarch64-clang/native-qualification/evidence-sha256.json",
+        "native": "native-k/linux-aarch64-clang/native-qualification/report.json",
+        "resource": "native-k/linux-aarch64-clang/native-qualification/node-resources.json"
+      },
+      "source": {
+        "head": "18430ea2cfcac66cca0e8612605db47a5c0e935b",
+        "tree": "d397b324f83b82017722073c3c53688e0765fb30"
+      },
+      "subject": "k",
+      "unselected_original_inventory_payloads_not_copied_or_rehashed": 77
+    },
+    {
+      "architecture": "x86_64",
+      "compiler": "gcc",
+      "id": "k/linux-x86_64-gcc",
+      "image": "sha256:ac9e2206349929c6e0c33fc64e6403d805417cffb4b7bc22135fde81dfe77d4c",
+      "manifest_sha256": "8de763784d46a2c660425e67ff8e44d0cd43c63328d302feed0936c9749d8fcb",
+      "native_original_inventory_entries": 83,
+      "original_inventory_payloads_selected": 4,
+      "paths": {
+        "app": "native-k/linux-x86_64-gcc/public-profile-app/report.json",
+        "consensus": "native-k/linux-x86_64-gcc/native-qualification/public-consensus-controls.json",
+        "descriptor": "native-k/linux-x86_64-gcc/runtime-descriptor.json",
+        "inventory": "native-k/linux-x86_64-gcc/native-qualification/evidence-sha256.json",
+        "native": "native-k/linux-x86_64-gcc/native-qualification/report.json",
+        "native_descriptor": "native-k/linux-x86_64-gcc/native-qualification/runtime-descriptor.json",
+        "resource": "native-k/linux-x86_64-gcc/native-qualification/node-resources.json"
+      },
+      "source": {
+        "head": "18430ea2cfcac66cca0e8612605db47a5c0e935b",
+        "tree": "d397b324f83b82017722073c3c53688e0765fb30"
+      },
+      "subject": "k",
+      "unselected_original_inventory_payloads_not_copied_or_rehashed": 79
+    },
+    {
+      "architecture": "x86_64",
+      "compiler": "clang",
+      "id": "k/linux-x86_64-clang",
+      "image": "sha256:076bd853eaa5df70830c974bbb8a72d638bf899071a5b813b2eb87b72d677c7f",
+      "manifest_sha256": "2d41de24a3ae6a7b4c6b26e50bd57bf5a94624774f7314b6ff9e7daf7d89ef0b",
+      "native_original_inventory_entries": 83,
+      "original_inventory_payloads_selected": 4,
+      "paths": {
+        "app": "native-k/linux-x86_64-clang/public-profile-app/report.json",
+        "consensus": "native-k/linux-x86_64-clang/native-qualification/public-consensus-controls.json",
+        "descriptor": "native-k/linux-x86_64-clang/runtime-descriptor.json",
+        "inventory": "native-k/linux-x86_64-clang/native-qualification/evidence-sha256.json",
+        "native": "native-k/linux-x86_64-clang/native-qualification/report.json",
+        "native_descriptor": "native-k/linux-x86_64-clang/native-qualification/runtime-descriptor.json",
+        "resource": "native-k/linux-x86_64-clang/native-qualification/node-resources.json"
+      },
+      "source": {
+        "head": "18430ea2cfcac66cca0e8612605db47a5c0e935b",
+        "tree": "d397b324f83b82017722073c3c53688e0765fb30"
+      },
+      "subject": "k",
+      "unselected_original_inventory_payloads_not_copied_or_rehashed": 79
+    }
+  ],
+  "public_24h_soak_credit_seconds": 0,
+  "publication_status_as_of_staging_snapshot": "STAGED_ONLY_NOT_COMMITTED_OR_PUSHED; no ongoing24h outcome included",
+  "schema": "PQBTC-HK-SELECTED-PUBLIC-PACKET-1",
+  "scope": "SELECTED_NATIVE_PRIVATE_HTTP_AND_COMPLETED900S_PREFLIGHT_ONLY",
+  "sources": {
+    "h": {
+      "head": "52f26f31e2d8fcf52459f9cb2e9159564395f74a",
+      "tree": "d2e07ad8db149f6d3eac1cb15379d97e1484e2e6"
+    },
+    "k": {
+      "head": "18430ea2cfcac66cca0e8612605db47a5c0e935b",
+      "tree": "d397b324f83b82017722073c3c53688e0765fb30"
+    }
+  },
+  "staged_at_utc": "2026-11-16T20:19:06.191928+00:00",
+  "validator_provenance": {
+    "copied_scope": "Only pure DATA validator/architecture function definitions, no runtime runner/CLI/native execution.",
+    "original_frozen_source_file_sha256": {
+      "contrib/ml-dsa-qualification/public_consensus_controls.py": "d7119e2ccb7b38a185fb578ed1dc6a1d4c89513d94472097d26afa150d2d953c",
+      "contrib/ml-dsa-qualification/run_native_qualification.py": "463c3ac473cb832a91ec26b8519f1d86f3b0ab3ba788336567fea024064634a0"
+    },
+    "source": {
+      "head": "18430ea2cfcac66cca0e8612605db47a5c0e935b",
+      "tree": "d397b324f83b82017722073c3c53688e0765fb30"
+    }
+  },
+  "whole_application_constant_time_claimed": false
+}

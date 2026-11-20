@@ -1,0 +1,44 @@
+{
+  "campaign_seconds": 1800,
+  "openssl_bridge": {
+    "branches": {
+      "count": 50,
+      "covered": 37,
+      "percent": 74.0,
+      "required_percent": 74.0
+    },
+    "functions": {
+      "count": 4,
+      "covered": 3,
+      "percent": 75.0,
+      "required_percent": 75.0
+    },
+    "lines": {
+      "count": 113,
+      "covered": 81,
+      "percent": 71.681416,
+      "required_percent": 71.0
+    }
+  },
+  "schema_version": 1,
+  "target": {
+    "branches": {
+      "count": 114,
+      "covered": 98,
+      "percent": 85.964912,
+      "required_percent": 85.0
+    },
+    "functions": {
+      "count": 11,
+      "covered": 11,
+      "percent": 100.0,
+      "required_percent": 100.0
+    },
+    "lines": {
+      "count": 307,
+      "covered": 275,
+      "percent": 89.576547,
+      "required_percent": 89.0
+    }
+  }
+}

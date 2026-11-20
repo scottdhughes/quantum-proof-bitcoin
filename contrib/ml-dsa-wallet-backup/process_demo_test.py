@@ -3,35 +3,65 @@
 # Distributed under the MIT software license, see the accompanying COPYING.
 """Contained native integration test. Imports are data-only, calls execute C."""
 
+import hashlib
+import importlib.util
 import json
+import os
 from pathlib import Path
 import shutil
-import subprocess
 import sys
 import tempfile
+import time
+
+PROCESS_HELPER = Path(__file__).resolve().parents[1] / "ml-dsa-qualification/native_process.py"
+PROCESS_HELPER_SHA = "dddab1d1543f17d113a043780b00c83a480aee6fe63876861cf271b4a2cd1bff"
 
 
-def exercise(demo, verifier):
+def process_helper():
+    # This nested CLI must independently verify its executable Python dependency.
+    if any(part.is_symlink() for part in (PROCESS_HELPER, *PROCESS_HELPER.parents)) or not PROCESS_HELPER.is_file():
+        raise RuntimeError("missing or symlink process helper")
+    if hashlib.sha256(PROCESS_HELPER.read_bytes()).hexdigest() != PROCESS_HELPER_SHA:
+        raise RuntimeError("changed process helper")
+    spec = importlib.util.spec_from_file_location("backup_phase_native_process", PROCESS_HELPER)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def run_phase(process, command, success, *, deadline=None):
+    timeout = 90 if deadline is None else min(90, deadline - time.monotonic())
+    if timeout <= 0:
+        raise RuntimeError("process campaign aggregate deadline expired before phase launch")
+    environment = dict(os.environ)
+    environment["OPENSSL_CONF"] = "/dev/null"
+    environment["ASAN_OPTIONS"] = "detect_leaks=1:abort_on_error=1"
+    environment["UBSAN_OPTIONS"] = "halt_on_error=1:print_stacktrace=1"
+    result = process.capture(command, env=environment, timeout=timeout, fail_on_stderr=success)
+    record = {"command": command, "returncode": result.returncode,
+              "stdout": result.stdout, "stderr": result.stderr,
+              "capture": result.capture_details}
+    if (result.returncode != (0 if success else 1)
+            or result.stderr != ("" if success else "zero-value pilot phase rejected\n")
+            or (not success and result.stdout)):
+        raise RuntimeError("unexpected native phase result: " + str(record))
+    return result, record
+
+
+def exercise(demo, verifier, *, deadline=None):
     if sys.platform != "linux":
         raise RuntimeError("native process proof requires contained Linux")
+    deadline = time.monotonic() + 600 if deadline is None else deadline
+    process = process_helper()
     commands, phases = [], []
     checks = 0
 
     def phase(executable, action, directory, success=True):
         nonlocal checks
         command = [str(executable), action, str(directory)]
-        result = subprocess.run(command, capture_output=True, text=True, timeout=90)
-        commands.append(
-            {
-                "command": command,
-                "returncode": result.returncode,
-                "stdout": result.stdout,
-                "stderr": result.stderr,
-            }
-        )
+        result, record = run_phase(process, command, success, deadline=deadline)
+        commands.append(record)
         checks += 1
-        if result.returncode != (0 if success else 1):
-            raise RuntimeError("unexpected native phase result: " + str(commands[-1]))
         if success:
             observed = json.loads(result.stdout)
             if (

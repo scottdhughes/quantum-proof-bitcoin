@@ -58,6 +58,14 @@ class LauncherTests(unittest.TestCase):
         self.assertTrue(app.reopen_existing(self.url, self.identity, autostart=False))
         self.assertEqual(self.controller.actions, [])
 
+    def test_public_reopen_handles_bounded_soak_sized_status(self):
+        self.controller.status = lambda: {"phase": "running", "ready": True,
+                                          "wallet": {"utxos": [{"txid": "ab" * 32, "metadata": "x" * 300}] * 720}}
+        with self.assertRaises(app.LaunchError):
+            app.read_local(self.url + "/api/status")
+        self.assertTrue(app.reopen_existing(self.url, self.identity, max_bytes=2 * 1024 * 1024))
+        self.assertEqual(self.controller.actions, [])
+
     def test_failed_auto_resume_keeps_http_recovery_controls_available(self):
         self.controller.fail = True
         output = io.StringIO()

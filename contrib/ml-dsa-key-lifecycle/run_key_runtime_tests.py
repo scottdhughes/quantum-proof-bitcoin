@@ -4,6 +4,7 @@
 """Data readers on import; prove_runtime executes only in contained Linux."""
 
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import re
@@ -11,6 +12,10 @@ import shutil
 import sys
 
 HERE = Path(__file__).resolve().parent
+PROCESS_HELPER = HERE.parents[1] / "contrib/ml-dsa-qualification/native_process.py"
+_process_spec = importlib.util.spec_from_file_location("runtime_native_process", PROCESS_HELPER)
+native_process = importlib.util.module_from_spec(_process_spec)
+_process_spec.loader.exec_module(native_process)
 WRAPS = (
     "getentropy",
     "prctl",
@@ -201,6 +206,7 @@ def require_profiles(proof):
         "profiles",
         "controls",
         "disassembly",
+        "executable_layouts",
     }:
         raise HarnessError("incomplete runtime proof inventory")
     if (
@@ -246,6 +252,15 @@ def require_profiles(proof):
         "owned-release-" + mode + ".asm" for mode in ("O2", "O3", "LTO")
     }:
         raise HarnessError("missing/extra optimized disassembly")
+    layouts = proof["executable_layouts"]
+    if (type(layouts) is not dict or set(layouts) != profiles | {"control-" + name for name in CONTROL_MARKERS}):
+        raise HarnessError("missing/extra executable layout receipt")
+    for name, layout in layouts.items():
+        if (type(layout) is not dict or set(layout) != {"link_flags", "elf_type"}
+                or layout["link_flags"] not in ([], ["-no-pie"])
+                or layout["elf_type"] not in ("EXEC", "DYN")
+                or (layout["link_flags"] and ("asan-ubsan" not in name or layout["elf_type"] != "EXEC"))):
+            raise HarnessError("invalid executable layout receipt")
     for text in proof["disassembly"].values():
         if not isinstance(text, str) or "<pqbtc_mldsa44_key_destroy>:" not in text:
             raise HarnessError("missing optimized release entry")
@@ -275,6 +290,7 @@ def prove_runtime(compiler, build, run):
         "-fno-omit-frame-pointer",
         "-fno-sanitize-recover=all",
     ]
+    sanitizer_link_flags = native_process.sanitizer_executable_link_flags(compiler, True)
     env = {
         "ASAN_OPTIONS": "detect_leaks=1:halt_on_error=1",
         "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1",
@@ -283,11 +299,18 @@ def prove_runtime(compiler, build, run):
     if clang:
         lto += ["-fuse-ld=" + ("lld" if shutil.which("ld.lld") else "gold")]
     profiles = {"O2": ["-O2"], "O3": ["-O3"], "LTO": lto, "asan-ubsan": sanitizer}
-    result = {"schema": 2, "profiles": {}, "controls": {}, "disassembly": {}}
+    result = {"schema": 2, "profiles": {}, "controls": {}, "disassembly": {}, "executable_layouts": {}}
+
+    def layout(name, executable, link_flags):
+        result["executable_layouts"][name] = native_process.executable_layout(
+            run(["readelf", "-h", executable])["stdout"], link_flags)
+
     for name, flags in profiles.items():
         exe = build / ("runtime-" + name)
-        command = [*common, *flags, HERE / "key_runtime_probe.c", *wraps, "-o", exe]
+        link_flags = sanitizer_link_flags if name == "asan-ubsan" else []
+        command = [*common, *flags, *link_flags, HERE / "key_runtime_probe.c", *wraps, "-o", exe]
         run(command)
+        layout(name, exe, link_flags)
         observations = {}
         for scenario in SCENARIOS:
             raw = run([exe, scenario], env=env)
@@ -325,11 +348,13 @@ def prove_runtime(compiler, build, run):
             result["profiles"][name]["release_symbols"] = names
 
     for name, extra in (("normal", ["-O0"]), ("asan-ubsan", sanitizer)):
+        link_flags = sanitizer_link_flags if name == "asan-ubsan" else []
         exe = build / ("runtime-entries-" + name)
         run(
             [
                 *common,
                 *extra,
+                *link_flags,
                 "-finstrument-functions",
                 "-fno-inline",
                 HERE / "key_runtime_probe.c",
@@ -338,6 +363,7 @@ def prove_runtime(compiler, build, run):
                 exe,
             ]
         )
+        layout("entries-" + name, exe, link_flags)
         result["profiles"]["entries-" + name] = runtime_result(
             run([exe, "entropy-boundaries"], env=env)["stdout"]
         )
@@ -346,6 +372,7 @@ def prove_runtime(compiler, build, run):
             [
                 *common,
                 *extra,
+                *link_flags,
                 "-DPQBTC_MLDSA44_TESTING=1",
                 HERE / "key_runtime_probe.c",
                 *wraps,
@@ -353,6 +380,7 @@ def prove_runtime(compiler, build, run):
                 exe,
             ]
         )
+        layout("consumed-" + name, exe, link_flags)
         result["profiles"]["consumed-" + name] = runtime_result(
             run([exe, "consumed-samples"], env=env)["stdout"]
         )
@@ -405,11 +433,13 @@ int main(void) {
         encoding="utf8",
     )
     for name, extra in (("normal", ["-O2"]), ("asan-ubsan", sanitizer)):
+        link_flags = sanitizer_link_flags if name == "asan-ubsan" else []
         exe = build / ("runtime-unsupported-" + name)
         run(
             [
                 *common,
                 *extra,
+                *link_flags,
                 branch_directory / "key_lifecycle.c",
                 unsupported,
                 "-Wl,--wrap=getentropy",
@@ -417,6 +447,7 @@ int main(void) {
                 exe,
             ]
         )
+        layout("unsupported-" + name, exe, link_flags)
         result["profiles"]["unsupported-" + name] = {
             "observation": runtime_result(run([exe], env=env)["stdout"]),
             "fixture_runtime_sha256": hashlib.sha256(
@@ -446,6 +477,7 @@ int main(void) {
         source.write_bytes((HERE / "key_runtime_probe.c").read_bytes())
         exe = directory / "control"
         run([*common, "-O2", source, *wraps, "-o", exe])
+        layout("control-" + kind, exe, [])
         scenario = CONTROL_MARKERS[kind][0]
         raw = run([exe, scenario], env=env, expected_status=1)
         require_runtime_control(kind, raw["returncode"], raw["stderr"])

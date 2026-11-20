@@ -150,15 +150,16 @@ static constexpr decltype(CTransaction::version) TX_MAX_STANDARD_VERSION{3};
 
 /**
 * Check for standard transaction types
+* @param[in] allow_mldsa44_test Restrict outputs to the explicit public TEST profile
 * @return True if all outputs (scriptPubKeys) use only standard transaction forms
 */
-bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_datacarrier_bytes, bool permit_bare_multisig, const CFeeRate& dust_relay_fee, std::string& reason);
+bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_datacarrier_bytes, bool permit_bare_multisig, const CFeeRate& dust_relay_fee, std::string& reason, bool allow_mldsa44_test = false);
 /**
 * Check for standard transaction types
 * @param[in] mapInputs       Map of previous transactions that have outputs we're spending
 * @return True if all inputs (scriptSigs) use only standard transaction forms
 */
-bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs, bool allow_mldsa44_demo = false);
+bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs, bool allow_mldsa44 = false);
 /**
 * Check if the transaction is over standard P2WSH resources limit:
 * 3600bytes witnessScript size, 80bytes per witness stack element, 100 witness stack elements

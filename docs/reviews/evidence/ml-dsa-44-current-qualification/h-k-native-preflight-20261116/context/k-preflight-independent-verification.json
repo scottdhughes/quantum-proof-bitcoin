@@ -1,0 +1,244 @@
+{
+  "attachment_before_public_clock_and_thaw0_proven": true,
+  "both_hosts_H_K_H_exact_qualified_binary_identities": {
+    "mac": [
+      "sha256:87075e6b6c13a805afaa8dcdc72b8e9cb35c78389ed6283949f1cf079b626153",
+      "sha256:d08be0fe97cd15551f9d9d597d5a47dad259a838da6698c2f572e67811a11aa3",
+      "sha256:87075e6b6c13a805afaa8dcdc72b8e9cb35c78389ed6283949f1cf079b626153"
+    ],
+    "research": [
+      "sha256:b3358bb35d60a5f42c9ce1fe65c26926250c26e99815c3446810a8eb6e730f0a",
+      "sha256:b3358bb35d60a5f42c9ce1fe65c26926250c26e99815c3446810a8eb6e730f0a",
+      "sha256:ac9e2206349929c6e0c33fc64e6403d805417cffb4b7bc22135fde81dfe77d4c",
+      "sha256:b3358bb35d60a5f42c9ce1fe65c26926250c26e99815c3446810a8eb6e730f0a"
+    ]
+  },
+  "cleanup_event_matches_terminal_report": true,
+  "configuration_sha256": "6b6cb657e3ed66d3b526084f3c5556c2424345ff33501a4f06426188464f7887",
+  "confirmed_payment_count": 22,
+  "event_chain": {
+    "clock_boundaries": {
+      "public_clock_completed": {
+        "data": {
+          "monotonic_seconds": 900.0751787910704,
+          "wall_seconds": 900.0804629325867
+        },
+        "monotonic_ns": 1465272430694500,
+        "utc": "2026-11-16T19:48:30.327581+00:00"
+      },
+      "public_clock_started": {
+        "data": {
+          "duration_seconds": 900,
+          "public_probe": {
+            "certificate_sha256": "82dac8876ffe34291908e339d82e2020efa49cb5698c6bb25feb02be20581beb",
+            "commands": [
+              "version",
+              "wtxidrelay",
+              "sendaddrv2",
+              "verack"
+            ],
+            "elapsed_seconds": 0.11682474985718727,
+            "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+            "native_magic": "a7e29cf7",
+            "port": 443,
+            "public_peer_ip": "209.177.145.97",
+            "remote_height": 205,
+            "remote_protocol": 70016,
+            "remote_subversion": "/PQBTC:30.2.0/",
+            "result": "PASS",
+            "scope": "ANONYMOUS_PUBLIC_TLS_NATIVE_P2P_HANDSHAKE_ONLY",
+            "tls_version": "TLSv1.3"
+          }
+        },
+        "monotonic_ns": 1464372354842458,
+        "utc": "2026-11-16T19:33:30.246510+00:00"
+      }
+    },
+    "count": 2305,
+    "last_sha256": "c8597c7b21ac011a79207e24a197d3ae84233ec924a17aa263de5defea16ad8d"
+  },
+  "event_clock_elapsed": {
+    "monotonic_seconds": 900.075852042,
+    "wall_seconds": 900.081071
+  },
+  "final_postclock_recovered_spend_payment": {
+    "block_hash": "3b11a038f003bab71a7528b3f94229319367f8a6079f8c9abbe7ceeecbeacf51",
+    "completed_elapsed": 908.6442119160201,
+    "receiver": "mac",
+    "recipient_in_mempool": true,
+    "recipient_relay_seconds": 4.98062645806931,
+    "sender": "research",
+    "settle_seconds": 5.646001500077546,
+    "started_elapsed": 902.998207333032,
+    "txid": "01796e2a54ec91b5ced68a312ccbfce8f7e01fab02d02270cbf5a6941cc96140"
+  },
+  "final_tip_full_UTXO_agreement": true,
+  "independent_reviewer_live_agent_and_aggregate_proof_receipt_sha256": "7b151c98fc67795869360f186f36a4cd554bb09a36f6ae3fa36832d7a8fd4eaf",
+  "independent_reviewer_live_backend_proof": "NOT_OBTAINED_COLLECTOR_ERRORS_SEPARATELY_PRESERVED",
+  "native_execution_by_reviewer": false,
+  "native_validator_outcome": {
+    "elapsed_monotonic_seconds": 900.0751787910704,
+    "elapsed_wall_seconds": 900.0804629325867,
+    "missed_slots": 3,
+    "p95_settle_seconds": 9.140969916945323,
+    "result": "PREFLIGHT_PASS",
+    "successful_normal_slots": 12
+  },
+  "output_files_modified": false,
+  "production_admitted": false,
+  "public_24h_soak_credit_seconds": 0,
+  "public_evidence_sha256": {
+    "declaration.json": "63e2401d02b84e7cf79d8a6753ff005cd389144258ef667aaf49ce4e21948c18",
+    "events.jsonl": "835968e19868b13b612ed6c344f563d632ecfd8f08db43871593048148e5e905",
+    "evidence-sha256.json": "ba53b27a47a1d802d52d64b63e35c097f25b839aae15362dd68af12d8a56f233",
+    "report.json": "7f2ad4662a9ae1d7c3d658ec75004556662cfd5274248a64ed97c1d9b69279d8"
+  },
+  "reported_elapsed": {
+    "monotonic_seconds": 900.0751787910704,
+    "wall_seconds": 900.0804629325867
+  },
+  "result": "PREFLIGHT_PASS_INDEPENDENTLY_REVERIFIED",
+  "reviewer_Research_mutations": false,
+  "samples": {
+    "count": 75,
+    "max_node_peak_rss_bytes": 66256896,
+    "max_research_host_cpu_percent": 1.2461059190031152,
+    "research_cpu_observations": 43
+  },
+  "schema": "PQBTC-K-PREFLIGHT-INDEPENDENT-TERMINAL-REVERIFICATION-1",
+  "scope": "ACTUAL_900_SECOND_PUBLIC_TEST_PREFLIGHT_ONLY_NOT_24_HOUR_SOAK",
+  "seven_faults": [
+    {
+      "finished_elapsed": 93.28281520819291,
+      "name": "crash",
+      "recovery_payment": {
+        "block_hash": "492df89960c5fd8f7ccbed06cdcec00e5fd039c907c1e6bd2b86d24ed0cea2e1",
+        "completed_elapsed": 92.90972616616637,
+        "receiver": "mac",
+        "recipient_in_mempool": true,
+        "recipient_relay_seconds": 7.171133749885485,
+        "sender": "research",
+        "settle_seconds": 7.7998069589957595,
+        "started_elapsed": 85.10991829121485,
+        "txid": "7b17ef8362c263d89c8720bbc8c433d36e21c2cc739a522c82406592da5be996"
+      },
+      "result": "PASS",
+      "started_elapsed": 75.76723766606301
+    },
+    {
+      "competing_tips": {
+        "mac": "75f801dcd211236e7485e348f2709359e69f8ac98ac97108caf42a9a9129b629",
+        "research": "25b0b807ac49101db8e9bff5fad72c794e8fe71cd748b1b45269fa8ef943b8db"
+      },
+      "finished_elapsed": 164.026567208115,
+      "name": "partition",
+      "recovery_payment": {
+        "block_hash": "6f191ad71bb8d87ffd7e10eeddcbfa2fc445a65c1884f32955927fa677f6fca4",
+        "completed_elapsed": 163.64572708308697,
+        "receiver": "mac",
+        "recipient_in_mempool": true,
+        "recipient_relay_seconds": 4.028876041062176,
+        "sender": "research",
+        "settle_seconds": 4.644618875114247,
+        "started_elapsed": 159.00110600003973,
+        "txid": "6d015efa04c516f1b84c57db3689aed3ac55c6f9e411367ada604bf276e8d54f"
+      },
+      "rejoined_tip": "25b0b807ac49101db8e9bff5fad72c794e8fe71cd748b1b45269fa8ef943b8db",
+      "result": "PASS",
+      "started_elapsed": 150.67985633318312
+    },
+    {
+      "finished_elapsed": 233.23803341621533,
+      "name": "hostile",
+      "recovery_payment": {
+        "block_hash": "55f3771120118a08bc037c25824cca3aa0016d151280d4097e87ecdd5a77c6f3",
+        "completed_elapsed": 232.86116012511775,
+        "receiver": "mac",
+        "recipient_in_mempool": true,
+        "recipient_relay_seconds": 4.373038582969457,
+        "sender": "research",
+        "settle_seconds": 4.99704391695559,
+        "started_elapsed": 227.86411420814693,
+        "txid": "2d18c0190afd6f91b667a6299211552147f0b241b53cc84187fab50686d600d7"
+      },
+      "result": "PASS",
+      "started_elapsed": 225.5714414580725
+    },
+    {
+      "finished_elapsed": 314.6796173751354,
+      "name": "old_backup_missing_record",
+      "recovery_payment": {
+        "block_hash": "3357c957eb0afeb79f0a4c4092efe8593b01256c218afd88c0f0907755152063",
+        "completed_elapsed": 314.2450487080496,
+        "receiver": "research",
+        "recipient_in_mempool": true,
+        "recipient_relay_seconds": 10.81342800008133,
+        "sender": "mac",
+        "settle_seconds": 11.37973695807159,
+        "started_elapsed": 302.86530970805325,
+        "txid": "82808fc396d68c2d9e84bde4205010d8ef712541dbe71141bfeed457aeea1cc2"
+      },
+      "result": "PASS",
+      "started_elapsed": 300.00503845815547
+    },
+    {
+      "finished_elapsed": 457.81671133311465,
+      "name": "reindex",
+      "recovery_payment": {
+        "block_hash": "2a527bd694d8ce84276ac0be50eab333305164641fb328304fc0e324484f4439",
+        "completed_elapsed": 457.398572916165,
+        "receiver": "mac",
+        "recipient_in_mempool": true,
+        "recipient_relay_seconds": 4.227187082869932,
+        "sender": "research",
+        "settle_seconds": 4.889523499878123,
+        "started_elapsed": 452.5090465832036,
+        "txid": "b7d127761d633ca9e9d78509660bf932ad3b28aadc287382d37c1d1d7716cca3"
+      },
+      "result": "PASS",
+      "started_elapsed": 450.716544583207
+    },
+    {
+      "finished_elapsed": 708.4213780830614,
+      "name": "upgrade",
+      "recovery_payment": {
+        "block_hash": "35c977d93b39f65cfd6d8944e26045fb21550cdd074ceb172051a98ea3fd5f84",
+        "completed_elapsed": 707.9734961660579,
+        "receiver": "research",
+        "recipient_in_mempool": true,
+        "recipient_relay_seconds": 5.924463167088106,
+        "sender": "mac",
+        "settle_seconds": 6.485623917076737,
+        "started_elapsed": 701.487870708108,
+        "txid": "d154c3c4686289ec57e183624018f1ad1cff149fdd6f0524bea2110fbb7c81a3"
+      },
+      "result": "PASS",
+      "started_elapsed": 600.0050403331406
+    },
+    {
+      "finished_elapsed": 814.3311513750814,
+      "name": "rollback",
+      "recovery_payment": {
+        "block_hash": "70ae586b19cad95ea3bd4035bc673671289fddc279a33ec5a45dd5462a78da7c",
+        "completed_elapsed": 813.8598329580855,
+        "receiver": "mac",
+        "recipient_in_mempool": true,
+        "recipient_relay_seconds": 5.368771707871929,
+        "sender": "research",
+        "settle_seconds": 6.464279667008668,
+        "started_elapsed": 807.3955520831514,
+        "txid": "84ea528ea08469d21241442a20f1461f8b0e2a9947b08e5dd975b19eb18b5549"
+      },
+      "result": "PASS",
+      "started_elapsed": 708.4215401250403
+    }
+  ],
+  "source": {
+    "driver_sha256": "6668f219acff79a25161d57bf505a3204ab50ef434adbb3487f913f0f913a6d0",
+    "head": "18430ea2cfcac66cca0e8612605db47a5c0e935b",
+    "pristine_after": true,
+    "tree": "d397b324f83b82017722073c3c53688e0765fb30"
+  },
+  "utc": "2026-11-16T19:49:15.108986+00:00",
+  "watcher_installed_or_started_by_reviewer": false
+}

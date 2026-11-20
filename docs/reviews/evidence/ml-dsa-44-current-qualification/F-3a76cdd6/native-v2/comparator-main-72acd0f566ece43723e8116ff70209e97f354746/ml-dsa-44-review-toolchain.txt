@@ -1,0 +1,12 @@
+pqbtc_commit=72acd0f566ece43723e8116ff70209e97f354746
+event_name=schedule
+github_ref=refs/heads/main
+review_head_ref=
+review_base_ref=
+runner_os=Linux runnervm7aw5e 7.0.0-1017-azure #17~24.04.1-Ubuntu SMP PREEMPT Thu Sep 24 18:46:57 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+cc=cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+rustc=rustc 1.89.0 (29483883e 2025-08-04)
+cargo=cargo 1.89.0 (c24e10642 2025-06-23)
+rustfmt=rustfmt 1.8.0-stable (29483883ee 2025-08-04)
+openssl=OpenSSL 3.6.5 29 Sep 2026 (Library: OpenSSL 3.6.5 29 Sep 2026)
+python=Python 3.12.3

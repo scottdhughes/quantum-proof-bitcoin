@@ -1,0 +1,159 @@
+{
+  "architecture": "aarch64",
+  "compiler": "gcc",
+  "descriptor_file_sha256": "d9cb075bfc4fdc03911eb7b0d702a622d88230a7801d9228831b2f289d869db2",
+  "docker_vm_architecture": "aarch64",
+  "emulated": false,
+  "files_sha256": {
+    "arm-gcc-build.log": {
+      "bytes": 4355,
+      "sha256": "69ab257b60160db8f1b0c8f5ea273592bb054b8b5736ebe5c77ace21616856b3"
+    },
+    "arm-gcc-native-initial-identity.json": {
+      "bytes": 702,
+      "sha256": "52b7f598e662b855fec464009a0942047d173e46dcbc16894199668979470fed"
+    },
+    "arm-gcc-native-output-seal.json": {
+      "bytes": 8769,
+      "sha256": "b1bcceae252455ab22f76f52bed919d3756a4e4f1eac9107267be5241f5ab0b4"
+    },
+    "arm-gcc-native-postpass-removal.json": {
+      "bytes": 1374,
+      "sha256": "95990d45fee504466df4a6f0bfd182d9d6cebde20de48fa628206c5782668be3"
+    },
+    "arm-gcc-public-app.log": {
+      "bytes": 3676,
+      "sha256": "b43b80b174d508676889536163b6924e9f3cf89dae90f1d6ca5752a6bb252b36"
+    },
+    "arm-gcc-public-app/report.json": {
+      "bytes": 5141,
+      "sha256": "41d17ceccea3d6e70bfc79bda5c92b50813fdbc798de41f0eb66e2455bc3f61a"
+    },
+    "arm-gcc-qualification.log": {
+      "bytes": 154,
+      "sha256": "48aed5037bd7b520fd03b20236ec4e8999ca1e133836e88c26f0386cbfa096d4"
+    },
+    "arm-gcc-qualification/evidence-sha256.json": {
+      "bytes": 7960,
+      "sha256": "177419790df5983f840676be1e36ef131b0d777e62d37549a367677be584f40a"
+    },
+    "arm-gcc-qualification/node-resources.json": {
+      "bytes": 30716,
+      "sha256": "92ab734b4ba5af7a2f10bf27c928497f6c455b89a1d71a4767626468cb21978e"
+    },
+    "arm-gcc-qualification/public-consensus-controls.json": {
+      "bytes": 12388,
+      "sha256": "f5c3135a42bc6cb75e1544336b545391ede6f89a665937a950caa020477dac04"
+    },
+    "arm-gcc-qualification/report.json": {
+      "bytes": 22616,
+      "sha256": "8173118847f45717af1388b203b5fe42fa2b37fa0d1d2485a0b68861ec12b959"
+    },
+    "arm-gcc-runtime.json": {
+      "bytes": 30509,
+      "sha256": "d9cb075bfc4fdc03911eb7b0d702a622d88230a7801d9228831b2f289d869db2"
+    }
+  },
+  "gcc_baseline_image_retained": true,
+  "image": "sha256:87075e6b6c13a805afaa8dcdc72b8e9cb35c78389ed6283949f1cf079b626153",
+  "image_platform": {
+    "architecture": "arm64",
+    "os": "linux"
+  },
+  "manifest_sha256": "b9e3a8896f4012fb10fc2eb7fffabb556c1f45d391b69a3a24da5801039bf92a",
+  "native_binaries_sha256": {
+    "/tmp/demo-signer-bin/pilot-signer": "36aa1d6e147fc66746d06d3425457e3e8a9fbd65879fc6350135fcd2395105e2",
+    "/tmp/mldsa-demo-build/bin/pqbtc-cli": "d2eaeedcdec267332d46708eba7636721700984b761597a93ba274e689959337",
+    "/tmp/mldsa-demo-build/bin/pqbtc-mldsa-client": "c43a6939b8609acdfc207eb6bbe308aa122027cba3c7d67522a982e4586bf175",
+    "/tmp/mldsa-demo-build/bin/pqbtcd": "ae55429d2303c4d8bb6974b5b401753a0c80575942e8332c12dcb658068396a5",
+    "/tmp/mldsa-demo-build/bin/test_pqbtc": "25be372efcb9ced9810b8f4a8ff6b455b9c399a4cdc602ff8dd06dc630e2e551"
+  },
+  "native_checks": {
+    "actual-node-30-full-blocks-and-mempool-pressure": "PASS",
+    "actual-node-spend-old-record-restore": "PASS",
+    "actual-public-accepted-set-and-both-reindex-paths": "PASS",
+    "integration-asan-ubsan": "PASS",
+    "integration-normal": "PASS",
+    "key-lifecycle-normal-and-sanitized": "PASS",
+    "node-profile-and-resource-units": "PASS",
+    "signer-asan-ubsan": "PASS",
+    "signer-normal": "PASS"
+  },
+  "native_evidence_hashes_verified": 81,
+  "native_gate_count": 9,
+  "native_original_report_cleanup": "STOPPED_RETAINED",
+  "new_clang_h_image_created": false,
+  "other_containers_or_prior_images_targeted": false,
+  "postpass_owned_native_container_removed": true,
+  "private_app": {
+    "clean_source_qualified": true,
+    "cleanup_errors": [],
+    "event_names": [
+      "two_fresh_private_containers_started",
+      "two_native_test_wallets_funded",
+      "confirmed_cross_container_send",
+      "confirmed_cross_container_send",
+      "unexpected_native_peer_disconnect_repaired",
+      "confirmed_cross_container_send",
+      "same_known_transaction_rebroadcast_after_rejoin",
+      "actual_signature_and_wrong_network_controls",
+      "durable_network_off_survived_native_reindex",
+      "chainstate_reindex_preserved_full_agreement",
+      "durable_network_off_survived_docker_restart",
+      "peer_policy_orphan_preserved_and_recovered_inactive",
+      "actual_docker_restart_and_public_orphan_recovery",
+      "actual_sigkill_restart_preserved_agreement",
+      "wrong_password_and_rechecksummed_corrupt_ciphertext_preserved_selected_record",
+      "confirmed_cross_container_send",
+      "old_backup_missing_both_records_recovered_and_spent"
+    ],
+    "independent_own_disposable_absence": {
+      "pqbtc-mldsa-public-ci-7314ddb37041": {
+        "container_absent": true,
+        "own_disposable_volume_absent": true
+      },
+      "pqbtc-mldsa-public-ci-b5d180882061": {
+        "container_absent": true,
+        "own_disposable_volume_absent": true
+      }
+    },
+    "peer_policy_recovered_off": {
+      "endpoints": [
+        "172.17.0.4:23833"
+      ],
+      "monotonic_ns": 1459487627174500,
+      "name": "peer_policy_orphan_preserved_and_recovered_inactive",
+      "network_active": false,
+      "original_sha256": "cb3555f8f566a2c4ca751061aabc9be7a7f6f203d825dccc140cece38a6079f4",
+      "preserved": true
+    },
+    "result": "PASS",
+    "same_known_transaction_reannounce": {
+      "elapsed_seconds": 9.554754666052759,
+      "known_in_mempool": true,
+      "monotonic_ns": 1459475632592875,
+      "name": "same_known_transaction_rebroadcast_after_rejoin",
+      "raw_transaction_sha256": "882e38f0098cc64d85487a522aa585aff176a58895d89a2bb05dd5f06cf456bc",
+      "rebroadcast": true,
+      "reissued_payment": false,
+      "txid": "74847e245b7f3dc573fc960f45afedb76869bcfcf3687f97197bdcd62f06c012"
+    }
+  },
+  "production_admitted": false,
+  "public_soak": false,
+  "resource": {
+    "node_peak_rss_bytes": 403996672,
+    "p95_wall_ns": 173739000,
+    "pressure_evicted": 17,
+    "samples": 30
+  },
+  "result": "PASS_NATIVE_AND_EXTENDED_PRIVATE_APP",
+  "schema": "PQBTC-H-ARM-GCC-QUALIFICATION-SUMMARY-1",
+  "scope": "NATIVE_LINUX_AARCH64_GCC_BASELINE_AND_PRIVATE_HTTP_FLOW_NOT_PUBLIC_SOAK",
+  "source": {
+    "head": "52f26f31e2d8fcf52459f9cb2e9159564395f74a",
+    "pristine_after": true,
+    "tree": "d2e07ad8db149f6d3eac1cb15379d97e1484e2e6"
+  },
+  "utc": "2026-11-16T18:14:28.658341+00:00"
+}

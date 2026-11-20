@@ -130,11 +130,11 @@ static ChainstateLoadResult CompleteChainstateInitialization(
             assert(chainstate->m_chain.Tip() != nullptr);
         }
 #ifdef ENABLE_EXPERIMENTAL_MLDSA44
-        if (chainman.GetParams().IsMLDSA44Demo()) {
+        if (chainman.GetParams().IsMLDSA44Enabled()) {
             try {
-                pqbtc::mldsa44::node::CheckDemoStartup(chainman.GetParams(), chainstate->CoinsTip());
+                pqbtc::mldsa44::node::CheckStartup(chainman.GetParams(), chainstate->CoinsTip());
             } catch (const std::exception&) {
-                return {ChainstateLoadStatus::FAILURE_INCOMPATIBLE_DB, Untranslated("ML-DSA demo startup manifest or pre-activation UTXO inventory mismatch")};
+                return {ChainstateLoadStatus::FAILURE_INCOMPATIBLE_DB, Untranslated("ML-DSA startup manifest or pre-activation UTXO inventory mismatch")};
             }
         }
 #endif

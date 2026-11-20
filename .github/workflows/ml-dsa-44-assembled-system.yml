@@ -5,15 +5,21 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      export_runtime_image:
+        description: Export the qualified GCC runtime image for installation without a build
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   assembled:
-    name: Source build, wallet and restart (${{ matrix.compiler }})
+    name: Source build, wallet recovery and native qualification (${{ matrix.compiler }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -21,6 +27,7 @@ jobs:
     env:
       EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
       EVIDENCE_DIR: /tmp/pqbtc-assembled-${{ matrix.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}
+      IMAGE_EXPORT_DIR: /tmp/pqbtc-qualified-image-${{ matrix.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Checkout exact source without persisted credentials
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -34,9 +41,10 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
           python3 -m unittest discover -s ci/test -p 'test_ml_dsa_console_*.py'
-          python3 -m unittest ci.test.test_ml_dsa_protocol_v1 ci.test.test_mldsa_node_wallet ci.test.test_ml_dsa_native_symbols
+          python3 -m unittest ci.test.test_ml_dsa_protocol_v1 ci.test.test_mldsa_node_wallet ci.test.test_ml_dsa_native_symbols ci.test.test_ml_dsa_native_process ci.test.test_mldsa_native_qualification ci.test.test_mldsa_public_wallet ci.test.test_mldsa_public_transport ci.test.test_mldsa_public_consensus_controls ci.test.test_mldsa_public_soak_agent ci.test.test_mldsa_public_soak ci.test.test_ml_dsa_public_peer_recovery ci.test.test_mldsa_public_peer_recovery_ci ci.test.test_ml_dsa_public_console
           node --check contrib/ml-dsa-console/web/app.js
-          sh -n 'Launch-Local-Wallet.command' contrib/ml-dsa-console/launch.command
+          node --check contrib/ml-dsa-console/web-public/app.js
+          sh -n 'Launch-Local-Wallet.command' contrib/ml-dsa-console/launch.command contrib/ml-dsa-console/launch-public.command
 
       - name: Build native source without cache and test the assembled app
         run: |
@@ -47,12 +55,144 @@ jobs:
             --container "pqbtc-ci-${{ matrix.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}" \
             --output-dir "$EVIDENCE_DIR"
 
+      - name: Qualify native components, actual spend/restore and node resource bounds
+        run: |
+          set -euo pipefail
+          python3 contrib/ml-dsa-qualification/run_native_qualification.py \
+            --compiler "${{ matrix.compiler }}" \
+            --descriptor "$EVIDENCE_DIR/runtime-descriptor.json" \
+            --expect-head "$EXPECTED_HEAD" --expect-architecture x86_64 \
+            --container "pqbtc-native-${{ matrix.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}" \
+            --output-dir "$EVIDENCE_DIR/native-qualification"
+
+      - name: Test public-profile HTTP wallet and recovery on private test transport
+        run: |
+          set -euo pipefail
+          python3 contrib/ml-dsa-qualification/run_public_app_ci.py \
+            --descriptor "$EVIDENCE_DIR/runtime-descriptor.json" \
+            --expect-head "$EXPECTED_HEAD" \
+            --output-dir "$EVIDENCE_DIR/public-profile-app"
+
       - name: Verify source stayed unchanged
         if: always()
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Export the qualified GCC runtime image when requested
+        id: export_runtime_image
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.export_runtime_image && matrix.compiler == 'gcc' }}
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          mkdir -m 700 "$IMAGE_EXPORT_DIR"
+          python3 -I -B - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import shutil
+          import sys
+
+          sys.path[:0] = [str(Path.cwd() / 'contrib/ml-dsa-console'),
+                         str(Path.cwd() / 'contrib/ml-dsa-qualification')]
+          import native_process
+          import source_runtime
+
+          evidence = Path(os.environ['EVIDENCE_DIR'])
+          export = Path(os.environ['IMAGE_EXPORT_DIR'])
+          descriptor_path = evidence / 'runtime-descriptor.json'
+          descriptor = source_runtime.load_descriptor(descriptor_path)
+          image, manifest = descriptor['image'], descriptor['manifest']
+          assert manifest['source_head'] == os.environ['EXPECTED_HEAD'] and manifest['compiler'] == 'gcc'
+          assert manifest['architecture'] in ('x86_64', 'amd64')
+          reports, report_hashes = {}, {}
+          for name, relative in (('assembled', 'report.json'), ('native', 'native-qualification/report.json'),
+                                 ('public_app', 'public-profile-app/report.json')):
+              path = evidence / relative
+              assert path.is_file() and not path.is_symlink() and path.stat().st_size <= 4 * 1024 * 1024
+              raw = path.read_bytes()
+              reports[name] = json.loads(raw)
+              assert reports[name]['result'] == 'PASS'
+              report_hashes[name] = {'path': relative, 'sha256': hashlib.sha256(raw).hexdigest(), 'result': 'PASS'}
+          source = {'head': manifest['source_head'], 'tree': manifest['source_tree']}
+          assert reports['assembled']['source'] == source and reports['assembled']['compiler'] == 'gcc'
+          native = reports['native']
+          assert native['source'] == source and native['compiler'] == 'gcc' and native['image'] == image
+          assert native['manifest_sha256'] == descriptor['manifest_sha256']
+          assert len(native['checks']) == 9 and all(value == 'PASS' for value in native['checks'].values())
+          public = reports['public_app']
+          assert public['source_head'] == source['head'] and public['source_tree'] == source['tree']
+          assert public['image'] == image and public['manifest_sha256'] == descriptor['manifest_sha256']
+          assert public['clean_source_qualified'] is True
+          template = ('{"Id":{{json .Id}},"Size":{{json .Size}},"RootFS":{{json .RootFS}},'
+                      '"Architecture":{{json .Architecture}},"Os":{{json .Os}}}')
+          observed = native_process.capture(['docker', 'image', 'inspect', '--format', template, image],
+                                           timeout=30, output_limit=65536, prefix_limit=0, fail_on_stderr=True)
+          assert observed.returncode == 0
+          metadata = json.loads(observed.stdout)
+          assert set(metadata) == {'Id', 'Size', 'RootFS', 'Architecture', 'Os'}
+          assert metadata['Id'] == image and metadata['Architecture'] == 'amd64' and metadata['Os'] == 'linux'
+          assert type(metadata['Size']) is int and 0 < metadata['Size'] <= 4 * 1024**3
+          assert set(metadata['RootFS']) == {'Type', 'Layers'} and metadata['RootFS']['Type'] == 'layers'
+          layers = metadata['RootFS']['Layers']
+          assert type(layers) is list and 1 <= len(layers) <= 256
+          assert all(type(layer) is str and re.fullmatch(r'sha256:[0-9a-f]{64}', layer) for layer in layers)
+          receipt = {'schema': 'PQBTC-QUALIFIED-RUNTIME-IMAGE-EXPORT-1', 'source': source, 'compiler': 'gcc',
+                     'descriptor_sha256': hashlib.sha256(descriptor_path.read_bytes()).hexdigest(),
+                     'manifest_sha256': descriptor['manifest_sha256'], 'image': metadata,
+                     'image_size_metric': 'DOCKER_IMAGE_INSPECT_SIZE_NOT_FILESYSTEM_REQUIREMENT',
+                     'require_target_stored_and_unpacked_layer_capacity_check': True, 'qualification_reports': report_hashes}
+          (export / 'runtime-image-export.json').write_text(json.dumps(receipt, sort_keys=True, indent=2) + '\n', encoding='utf8')
+          (export / 'image-id.txt').write_text(image + '\n', encoding='utf8')
+          shutil.copyfile(descriptor_path, export / 'runtime-descriptor.json')
+          PY
+          IFS= read -r qualified_image < "$IMAGE_EXPORT_DIR/image-id.txt"
+          trap 'rm -f "$IMAGE_EXPORT_DIR/runtime-image.tar.gz.part"' EXIT
+          docker image save "$qualified_image" | gzip -1n > "$IMAGE_EXPORT_DIR/runtime-image.tar.gz.part"
+          gzip -t "$IMAGE_EXPORT_DIR/runtime-image.tar.gz.part"
+          mv "$IMAGE_EXPORT_DIR/runtime-image.tar.gz.part" "$IMAGE_EXPORT_DIR/runtime-image.tar.gz"
+          python3 -I -B - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import shutil
+
+          export = Path(os.environ['IMAGE_EXPORT_DIR'])
+          archive = export / 'runtime-image.tar.gz'
+          assert 0 < archive.stat().st_size <= 8 * 1024**3
+          with archive.open('rb') as handle:
+              checksum = hashlib.file_digest(handle, 'sha256').hexdigest()
+          (export / 'runtime-image.tar.gz.sha256').write_text(checksum + '  runtime-image.tar.gz\n', encoding='utf8')
+          receipt_path = export / 'runtime-image-export.json'
+          receipt = json.loads(receipt_path.read_bytes())
+          receipt.update(result='PASS', archive={'name': archive.name, 'format': 'docker-save+gzip',
+                                               'sha256': checksum, 'bytes': archive.stat().st_size})
+          receipt_path.write_text(json.dumps(receipt, sort_keys=True, indent=2) + '\n', encoding='utf8')
+          shutil.copyfile(receipt_path, Path(os.environ['EVIDENCE_DIR']) / 'runtime-image-export.json')
+          PY
+
+      - name: Prove registered peer recovery with the actual payment driver
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          python3 contrib/ml-dsa-qualification/run_public_peer_recovery_ci.py \
+            --descriptor "$EVIDENCE_DIR/runtime-descriptor.json" \
+            --expect-head "$EXPECTED_HEAD" \
+            --output "$EVIDENCE_DIR/public-peer-recovery"
+
+      - name: Upload the qualified GCC image bundle
+        if: ${{ success() && steps.export_runtime_image.outcome == 'success' }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: pqbtc-qualified-runtime-gcc-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.IMAGE_EXPORT_DIR }}/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
 
       - name: Upload source, native and end-to-end evidence
         if: always()

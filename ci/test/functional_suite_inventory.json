@@ -277,6 +277,17 @@
     "notes": "Explicit valueless ML-DSA regtest coverage requires the experimental build option and command-line -mldsa44demo=1 opt-in; ordinary builds keep that option OFF. The assembled-system GCC and Clang jobs run this test directly with --validation-only, then test the source-built wallet spend, restart, and recovery flow through the app. This inventory classification records that separate CI coverage and does not admit a production backend or add the test to the default PQ functional gate."
   },
   {
+    "name": "feature_mldsa44_resources.py",
+    "policy_class": "experimental_only",
+    "owner": "@scottdhughes",
+    "tracking_issue": null,
+    "experimental_coverage": {
+      "build_option": "ENABLE_EXPERIMENTAL_MLDSA44=ON",
+      "workflow": ".github/workflows/ml-dsa-44-assembled-system.yml"
+    },
+    "notes": "Explicit valueless public-profile native resource qualification requires ENABLE_EXPERIMENTAL_MLDSA44=ON and -chain=test -mldsa44test. The assembled-system GCC/Clang jobs reuse their exact source-built image through run_native_qualification.py, which invokes this standalone driver with thirty release full-weight/128-check samples and bounded actual 32 MB mempool pressure, plus the 25/26 and 128/129 admission/template/block controls. This is experimental platform evidence, not production admission, public elapsed soak evidence, or an exemption for ordinary PQ tests."
+  },
+  {
     "name": "feature_notifications.py",
     "policy_class": "dual_profile",
     "owner": "@scottdhughes",

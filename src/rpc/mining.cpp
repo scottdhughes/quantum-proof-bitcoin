@@ -871,7 +871,13 @@ static RPCHelpMan getblocktemplate()
         time_start = GetTime();
 
         // Create new block
-        block_template = miner.createNewBlock();
+        node::BlockCreateOptions options{};
+        if (chainman.GetParams().IsMLDSA44Test()) {
+            // This output is a template placeholder, never a wallet payout.
+            // Keep it within the public profile's native-only output rules.
+            options.coinbase_output_script = CScript() << OP_2 << std::vector<unsigned char>(32, 0);
+        }
+        block_template = miner.createNewBlock(options);
         CHECK_NONFATAL(block_template);
 
 

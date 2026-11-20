@@ -1,5 +1,11 @@
 # Project Completion Plan
 
+> **Historical assessment — 2026-10-15.** Current executable installation,
+> bounded qualification and public-run status are recorded in
+> [the current qualification page](ML_DSA_44_CURRENT_QUALIFICATION.md) and
+> [completion roadmap](PROJECT_COMPLETION_ROADMAP.md). The source identities and
+> campaign results below retain their original scope and date.
+
 Assessment date: 2026-10-15. Completed campaign evidence revision:
 `1c3fccfe1fc68e6e779d9e3bbf4b6779de19266d`. Post-bookkeeping pointer-merge
 revision: `3967012c52470e656a246b8b2e22c9dff193e892`; its frozen baseline is

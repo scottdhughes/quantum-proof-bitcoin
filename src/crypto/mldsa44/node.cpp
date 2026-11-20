@@ -1,6 +1,7 @@
 // Copyright (c) 2026 The PQBTC Core developers
 // Distributed under the MIT software license, see the accompanying COPYING.
 #include <crypto/mldsa44/node.h>
+#include <crypto/mldsa44/public_profile.h>
 #include <coins.h>
 #include <consensus/amount.h>
 #include <kernel/chainparams.h>
@@ -45,9 +46,11 @@ Network ResolveNetwork(const CChainParams& params)
 }
 Snapshot::Snapshot(CTransactionRef tx,const CCoinsViewCache& coins):m_transaction(std::move(tx)),m_programs{},
     m_prepared(Prepare(m_transaction,coins,m_programs)) {}
-void CheckDemoActivation(const CChainParams& params,const uint256& previous,const CCoinsViewCache& coins)
+void CheckActivation(const CChainParams& params,const uint256& previous,const CCoinsViewCache& coins)
 {
-    Require(params.IsMLDSA44Demo() && ResolveNetwork(params)==Network::REGTEST);
+    const auto network = ResolveNetwork(params);
+    Require((params.IsMLDSA44Demo() && network==Network::REGTEST) ||
+        (params.IsMLDSA44Test() && network==Network::TEST));
     Require(previous==params.GenesisBlock().GetHash() && coins.GetBestBlock()==previous);
     // Fixed H=1 has only the unspendable genesis before activation. A complete
     // empty inventory has SHA256(empty)=e3b0c442... and zero native-v2 entries.
@@ -55,13 +58,37 @@ void CheckDemoActivation(const CChainParams& params,const uint256& previous,cons
     // not just the database or just one cache. Any live Coin is a deployment error.
     Require(coins.ForEachUnspentCoin([](const COutPoint&,const Coin&){return false;}));
 }
-void CheckDemoStartup(const CChainParams& params,const CCoinsViewCache& coins)
+void CheckStartup(const CChainParams& params,const CCoinsViewCache& coins)
 {
-    Require(params.IsMLDSA44Demo() && ResolveNetwork(params)==Network::REGTEST);
+    const auto network = ResolveNetwork(params);
+    Require((params.IsMLDSA44Demo() && network==Network::REGTEST) ||
+        (params.IsMLDSA44Test() && network==Network::TEST));
     const auto best=coins.GetBestBlock();
     if(best.IsNull() || best==params.GenesisBlock().GetHash()) {
         Require(coins.ForEachUnspentCoin([](const COutPoint&,const Coin&){return false;}));
     }
+}
+void CheckDemoActivation(const CChainParams& params,const uint256& previous,const CCoinsViewCache& coins)
+{
+    Require(params.IsMLDSA44Demo());
+    CheckActivation(params,previous,coins);
+}
+void CheckDemoStartup(const CChainParams& params,const CCoinsViewCache& coins)
+{
+    Require(params.IsMLDSA44Demo());
+    CheckStartup(params,coins);
+}
+bool CheckPublicOutputs(const CTransaction& tx)
+{
+    return std::all_of(tx.vout.begin(),tx.vout.end(),IsPublicOutput);
+}
+bool CheckPublicInputs(const CTransaction& tx,const CCoinsViewCache& coins)
+{
+    if (tx.IsCoinBase()) return true;
+    return std::all_of(tx.vin.begin(),tx.vin.end(),[&](const CTxIn& input) {
+        const auto& coin = coins.AccessCoin(input.prevout);
+        return input.scriptSig.empty() && !coin.IsSpent() && IsNativePublicScript(coin.out.scriptPubKey);
+    });
 }
 Hash Snapshot::Message(Network network,size_t index) const { return SigningMessage(network,m_prepared,index); }
 bool Snapshot::IsApplicable(size_t index) const

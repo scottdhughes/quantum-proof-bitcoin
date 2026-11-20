@@ -17,8 +17,8 @@ struct Address {
 struct Recovery { Identity expected_id; Counters minimum; std::vector<Address> public_entries; };
 struct WalletStatus { bool locked; Identity id; Counters next; uint64_t generation; };
 
-// Experimental signer-only custody engine. Not linked to the node, no main/test
-// address issuance or activation authority. Caller must serialize operator input;
+// Experimental signer-only custody engine. Not linked to the node, no main
+// address issuance or node activation authority. Caller must serialize operator input;
 // the class serializes its methods and never exports root/passphrase/child seeds.
 class Wallet {
     struct State;

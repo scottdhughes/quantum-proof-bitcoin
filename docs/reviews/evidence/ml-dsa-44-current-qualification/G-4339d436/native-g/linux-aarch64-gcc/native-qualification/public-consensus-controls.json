@@ -1,0 +1,280 @@
+{
+  "binary_sha256": "aac60621df8aa09139d1d46b458f57f57556dc76e60caff183fa6da0d0320cee",
+  "data_directory": "/tmp/mldsa-public-consensus-qualification",
+  "diagnostic_sha256": {
+    "node/mldsa44-test-v1/blocks/index/000003.log": "4e4bedda593c73f89ae64c5ecc65535264b848183867ceced9849471ac9cc58d",
+    "node/mldsa44-test-v1/chainstate/000003.log": "1a2b2250957e21154b5346792228910f0d90ddf328c8e7c038d67848119e5d88",
+    "node/mldsa44-test-v1/debug.log": "8c9b9beb2acd2b1ee20409047921171d1f7bb8461e03fddc0dcc1706c85662ba",
+    "node/process.log": "1c0fb4b79c3194fc76166c7a7dd2b2b38332bd6542ee73e2c53a484367be0740",
+    "node/reindex-chainstate-process.log": "cc5350eefc826a56ce66cdf26b20fed0b68c345e30085d0321cf6e5a97170134",
+    "node/reindex-process.log": "401d79aa13531ccfa04a181bf8b9605e32cb3a6eb43da1e8b093c016af2fbdb5",
+    "reindex-chainstate-debug.log": "5556e69a0e4ea199614dd94332fc5f23b90a9adc8274e0ec73dd52b97ecc40be",
+    "reindex-debug.log": "6430d90ccab1087ab52fd726519c50b2a2bef8fe87639bbb9cd6d7079ea34234"
+  },
+  "fixture_library_sha256": "f2304789db13ca25744282b5833c49494697fee24a74b8a9643ece122f8747e9",
+  "observations": [
+    {
+      "control": "classical_H1_coinbase",
+      "rejected_block_hash": "08c09c2b05ea10f640adb3027664e3e080597b7c317daf0f95957373bcdc53b2",
+      "submitblock": "bad-mldsa44-output",
+      "tip_unchanged": true
+    },
+    {
+      "control": "classical_OP_TRUE",
+      "rejected_block_hash": "2a458b1d47592d65a309f7e1e8e4955f635f1871238fece7ade5db03e0864ea3",
+      "submitblock": "bad-mldsa44-output",
+      "testmempoolaccept": {
+        "allowed": false,
+        "reject-details": "bad-mldsa44-output",
+        "reject-reason": "bad-mldsa44-output",
+        "txid": "8265afb44875ad5c2862a72b6a0933553b8a29b4ede1cbf55320b1ba16b6b119",
+        "wtxid": "91c035f83258dfba40991b907af505bda50c28ed891ea9d9c1b3ab078a68aec7"
+      },
+      "tip_unchanged": true
+    },
+    {
+      "control": "witness_v0",
+      "rejected_block_hash": "325724e6a5a5b59bf06990ee631f0bb271e288378e06fbb141ead7760768031a",
+      "submitblock": "bad-mldsa44-output",
+      "testmempoolaccept": {
+        "allowed": false,
+        "reject-details": "bad-mldsa44-output",
+        "reject-reason": "bad-mldsa44-output",
+        "txid": "9123ae6274770c8e8e402888769cd265585e8fa19854b8f25d6ebbf2b239e015",
+        "wtxid": "d0e759042fb7af0ca78611bc8965fc1086f30828a3fd0b776beeccb4856f6a13"
+      },
+      "tip_unchanged": true
+    },
+    {
+      "control": "witness_v1_rc2",
+      "rejected_block_hash": "5f5cf7b54d4bf09f4b0159e921356b1f77d765f5c068e5ba2315cb1b6b562cbe",
+      "submitblock": "bad-mldsa44-output",
+      "testmempoolaccept": {
+        "allowed": false,
+        "reject-details": "bad-mldsa44-output",
+        "reject-reason": "bad-mldsa44-output",
+        "txid": "15b7067148559c772f334c312564315223323650e777902fc9b5855ad29c6a5c",
+        "wtxid": "39d5550067ad45f84b05421dd82fe0a972ff6389046cc25b42d7e3b8967222f2"
+      },
+      "tip_unchanged": true
+    },
+    {
+      "control": "future_v3",
+      "rejected_block_hash": "656d87167c7d2af22e2ec160d590211f76222835c655f91b6a818a1f1c19b7be",
+      "submitblock": "bad-mldsa44-output",
+      "testmempoolaccept": {
+        "allowed": false,
+        "reject-details": "bad-mldsa44-output",
+        "reject-reason": "bad-mldsa44-output",
+        "txid": "08ebbb55039b19cee96d8db6d01c8977e82481d76efea3e92cc0f3fba12f5305",
+        "wtxid": "eb7e329aaf071011c5dcda179fb3475034f9ea70627129fcc2720ef48b38cb86"
+      },
+      "tip_unchanged": true
+    },
+    {
+      "control": "P2SH",
+      "rejected_block_hash": "517ee8a39fc33085bcc412f3907503bc75903486145f9d9c63dd58fdb690cc61",
+      "submitblock": "bad-mldsa44-output",
+      "testmempoolaccept": {
+        "allowed": false,
+        "reject-details": "bad-mldsa44-output",
+        "reject-reason": "bad-mldsa44-output",
+        "txid": "a85aac95b9f7807aa89adc7f4cc41a5659435a91e7569110c7113b25b6c9f228",
+        "wtxid": "262fbd11cc299d2bec6ba24993ec36c8c18bf8b9ec78a081cb20085dc72181c7"
+      },
+      "tip_unchanged": true
+    },
+    {
+      "control": "OP_RETURN_smallint_alias",
+      "rejected_block_hash": "0fd94d1d7828176bdd76cb7c1b67897b23575c726d6195fe6fe54e1a30a49e05",
+      "submitblock": "bad-mldsa44-output",
+      "testmempoolaccept": {
+        "allowed": false,
+        "reject-details": "bad-mldsa44-output",
+        "reject-reason": "bad-mldsa44-output",
+        "txid": "c8280aeda331c86a783f61b9e7749da140a6dd2bac2041de7584ecadebf982d0",
+        "wtxid": "e97cb24375532fb15569acbf979f840ff31bb5d08f031c8fda1f6862c55b712d"
+      },
+      "tip_unchanged": true
+    },
+    {
+      "control": "OP_RETURN_81bytes",
+      "rejected_block_hash": "194db3efdc4f80d86dfb85ffde8eacc8cf3c1e685d9a60cc56436718c224cd17",
+      "submitblock": "bad-mldsa44-output",
+      "testmempoolaccept": {
+        "allowed": false,
+        "reject-details": "bad-mldsa44-output",
+        "reject-reason": "bad-mldsa44-output",
+        "txid": "a8b09b93b209300bf49861f458d060d50c61df6fa957eeea1779845135ae238e",
+        "wtxid": "0806d2821138b348d44c3de85c990223aaaa369d00f8d27d32e3244ec0833896"
+      },
+      "tip_unchanged": true
+    },
+    {
+      "control": "nonempty_scriptSig",
+      "rejected_block_hash": "23e492efadd4738eea30336e2d992f23531400975e6d36833892fda2abc0e1f6",
+      "submitblock": "bad-mldsa44-prevout",
+      "testmempoolaccept": {
+        "allowed": false,
+        "reject-details": "bad-mldsa44-prevout",
+        "reject-reason": "bad-mldsa44-prevout",
+        "txid": "f9c605d0b90af69cd966c19fa95f5afa02802212c799a7af4a1de5108d72e340",
+        "wtxid": "c016284a4f0b7d006a707442e71bbd4edbd43f2ca4771a9a41b6c69129127b74"
+      },
+      "tip_unchanged": true
+    },
+    {
+      "control": "actual_wrong_network_signature",
+      "rejected_block_hash": "275d46d6c303c0171205ab544a78558f4e738a6c87e606f2696ba447175bb76e",
+      "submitblock": "block-script-verify-flag-failed (Witness program hash mismatch)",
+      "testmempoolaccept": {
+        "allowed": false,
+        "reject-details": "block-script-verify-flag-failed (Witness program hash mismatch), input 0 of 6a7ba809cd7cbb9efec83835cebcd3f601276a267d5c2a1908680aafb2a8cc31 (wtxid 1963543289d9518a8f67e0707842fe0b4ab481a1e43291fb7a68a90c69437190), spending 7ef2c2c1ee7157ab948b2fb78e65c51462b9a97f7c42ced86e6adba094646cff:0",
+        "reject-reason": "block-script-verify-flag-failed (Witness program hash mismatch)",
+        "txid": "6a7ba809cd7cbb9efec83835cebcd3f601276a267d5c2a1908680aafb2a8cc31",
+        "wtxid": "1963543289d9518a8f67e0707842fe0b4ab481a1e43291fb7a68a90c69437190"
+      },
+      "tip_unchanged": true
+    },
+    {
+      "accepted_block_hash": "6134cdddf627180c58511fca41aaca51c97e5e209a184deead4aca2168e9605e",
+      "control": "same_coin_valid_native_spend",
+      "submitblock": null,
+      "testmempoolaccept": {
+        "allowed": true,
+        "fees": {
+          "base": "0.00020000",
+          "effective-feerate": "0.00006400",
+          "effective-includes": [
+            "296b703c10fe07ec273f151622aa9c797b0a6d3be5c80dd17f8324dd12fb8264"
+          ]
+        },
+        "txid": "1263d0efd86c2d94e6fe04acedda7f8132ac4ef5cf483d36f1d586cd38ae6bce",
+        "vsize": 3125,
+        "wtxid": "296b703c10fe07ec273f151622aa9c797b0a6d3be5c80dd17f8324dd12fb8264"
+      }
+    },
+    {
+      "accepted_block_hash": "2abfca122280880942098541a5a188b654283799a03a825a956f5ef787736b49",
+      "control": "canonical_direct_byte_01",
+      "submitblock": null,
+      "testmempoolaccept": {
+        "allowed": true,
+        "fees": {
+          "base": "0.00020000",
+          "effective-feerate": "0.00006400",
+          "effective-includes": [
+            "2a9147294575d2660ece71dc07ca4b7eeb61b0ac73339b0578610d1e1783de39"
+          ]
+        },
+        "txid": "4d5bebd786eccb71c5b4cc0ddfdb7f96bb7b498f9774f59469fc5666ecf62065",
+        "vsize": 3125,
+        "wtxid": "2a9147294575d2660ece71dc07ca4b7eeb61b0ac73339b0578610d1e1783de39"
+      }
+    },
+    {
+      "accepted_block_hash": "7fae28b749cc9efcac094593ab8bf3237b52a31b1ef1e037467f423c45b74ffc",
+      "control": "canonical_empty_push",
+      "submitblock": null,
+      "testmempoolaccept": {
+        "allowed": true,
+        "fees": {
+          "base": "0.00020000",
+          "effective-feerate": "0.00006400",
+          "effective-includes": [
+            "fd4a7fb2525fc0d5804fb52a792d3411505962c088c56d1d5ee96bf1c69f3916"
+          ]
+        },
+        "txid": "ce1400fc82800e9bb808e550b168d5817da2573e0677e8b39ea4208800cfa167",
+        "vsize": 3125,
+        "wtxid": "fd4a7fb2525fc0d5804fb52a792d3411505962c088c56d1d5ee96bf1c69f3916"
+      }
+    },
+    {
+      "accepted_block_hash": "4e20948988c2a3263a66a7eb3df168c59b1ca5faead7201bead93beb3073f5cf",
+      "control": "canonical_direct_80_bytes",
+      "submitblock": null,
+      "testmempoolaccept": {
+        "allowed": true,
+        "fees": {
+          "base": "0.00020000",
+          "effective-feerate": "0.00006400",
+          "effective-includes": [
+            "8e45d1625b9bde684083d42cf0d081b1d27078cdf9a92ce38a18f41c3d7faf35"
+          ]
+        },
+        "txid": "1b08046b76fde497936300089b623dd5caa53a28fa1cf6a8abd9413388ee0b04",
+        "vsize": 3125,
+        "wtxid": "8e45d1625b9bde684083d42cf0d081b1d27078cdf9a92ce38a18f41c3d7faf35"
+      }
+    },
+    {
+      "control": "reindex-chainstate_full_history_and_native_rejection",
+      "rejected_block_hash": "3ebde0acbfe9ac71552f4465aa3d01e200d479d35ceedfdc9443e8736cea048d",
+      "state": {
+        "height": 106,
+        "tip": "4e20948988c2a3263a66a7eb3df168c59b1ca5faead7201bead93beb3073f5cf",
+        "utxo": {
+          "bestblock": "4e20948988c2a3263a66a7eb3df168c59b1ca5faead7201bead93beb3073f5cf",
+          "height": 106,
+          "muhash": "6f0c4570258ef2545cd5e75c3d4a8bce16eb550cb5676e9977a697407957fbe2",
+          "total_amount": "5299.99920000",
+          "txouts": 106
+        }
+      },
+      "submitblock": "bad-mldsa44-output",
+      "testmempoolaccept": {
+        "allowed": false,
+        "reject-details": "bad-mldsa44-output",
+        "reject-reason": "bad-mldsa44-output",
+        "txid": "d3695c39c076e88347ce6159126d0c4e2ee2a0c4c91acf557cb5f54b6c8169ea",
+        "wtxid": "f40547a63246aa97827449e085333281c00989e77241ad4350ea5f08b4ee19b0"
+      },
+      "tip_unchanged": true
+    },
+    {
+      "control": "reindex_full_history_and_native_rejection",
+      "fresh_reindex_log_sha256": "6430d90ccab1087ab52fd726519c50b2a2bef8fe87639bbb9cd6d7079ea34234",
+      "rejected_block_hash": "0d76d32e1d6a8927c988104674527f34dcadae52c15a9bef2742003405e75545",
+      "revisited_stored_block_hash": "3ebde0acbfe9ac71552f4465aa3d01e200d479d35ceedfdc9443e8736cea048d",
+      "state": {
+        "height": 106,
+        "tip": "4e20948988c2a3263a66a7eb3df168c59b1ca5faead7201bead93beb3073f5cf",
+        "utxo": {
+          "bestblock": "4e20948988c2a3263a66a7eb3df168c59b1ca5faead7201bead93beb3073f5cf",
+          "height": 106,
+          "muhash": "6f0c4570258ef2545cd5e75c3d4a8bce16eb550cb5676e9977a697407957fbe2",
+          "total_amount": "5299.99920000",
+          "txouts": 106
+        }
+      },
+      "stored_rejection_log_line": "2026-11-15T22:46:45Z [error] ConnectTip: ConnectBlock 3ebde0acbfe9ac71552f4465aa3d01e200d479d35ceedfdc9443e8736cea048d failed, bad-mldsa44-output",
+      "submitblock": "bad-mldsa44-output",
+      "testmempoolaccept": {
+        "allowed": false,
+        "reject-details": "bad-mldsa44-output",
+        "reject-reason": "bad-mldsa44-output",
+        "txid": "76790312f3156cc6ba771e65acbe0d321ba7b3babd0336b60243a7ab2c5563ba",
+        "wtxid": "7f7a5d324359388478df2a751847d68e624593d881eff194620211ee079c2bfb"
+      },
+      "tip_unchanged": true
+    }
+  ],
+  "owned_node_cleanup": "STOPPED",
+  "public_soak": false,
+  "result": "PASS",
+  "schema": "PQBTC-MLDSA44-PUBLIC-CONSENSUS-CONTROLS-1",
+  "scope": "ACTUAL_NODE_PUBLIC_PROFILE_ACCEPTED_SET_AND_REINDEX",
+  "source_binding": "parent must join exact-source qualification receipt",
+  "state_before_reindex": {
+    "height": 106,
+    "tip": "4e20948988c2a3263a66a7eb3df168c59b1ca5faead7201bead93beb3073f5cf",
+    "utxo": {
+      "bestblock": "4e20948988c2a3263a66a7eb3df168c59b1ca5faead7201bead93beb3073f5cf",
+      "height": 106,
+      "muhash": "6f0c4570258ef2545cd5e75c3d4a8bce16eb550cb5676e9977a697407957fbe2",
+      "total_amount": "5299.99920000",
+      "txouts": 106
+    }
+  }
+}

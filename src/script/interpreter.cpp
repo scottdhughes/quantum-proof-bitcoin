@@ -5,6 +5,7 @@
 
 #include <script/interpreter.h>
 
+#include <crypto/mldsa44/resource_limits.h>
 #include <crypto/pqsig/pqsig.h>
 #include <crypto/ripemd160.h>
 #include <crypto/sha1.h>
@@ -2229,6 +2230,12 @@ size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey,
     int witnessversion;
     std::vector<unsigned char> witnessprogram;
     if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
+        // Native v2/32 invokes one ML-DSA verification. Charge independently of
+        // witness validity, so malformed signatures cannot avoid accounting.
+        // P2SH-wrapped v2 remains an unknown witness program in the interpreter.
+        if (witnessversion == 2 && witnessprogram.size() == 32 && (flags & SCRIPT_VERIFY_MLDSA44)) {
+            return pqbtc::mldsa44::VERIFICATION_SIGOPS_COST;
+        }
         return WitnessSigOps(witnessversion, witnessprogram, witness ? *witness : witnessEmpty);
     }
 

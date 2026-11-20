@@ -16,6 +16,7 @@
 void SetupChainParamsBaseOptions(ArgsManager& argsman)
 {
     argsman.AddArg("-mldsa44demo", "Use the isolated valueless CONTRACT-1 regtest (requires explicit experimental build and -regtest; never production)", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::CHAINPARAMS);
+    argsman.AddArg("-mldsa44test", "Use the isolated valueless CONTRACT-1 public TEST profile (command-line only; requires -chain=test and experimental build; never production)", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::CHAINPARAMS);
     argsman.AddArg("-chain=<chain>", "Use the chain <chain> (default: main). Allowed values: " LIST_CHAIN_NAMES, ArgsManager::ALLOW_ANY, OptionsCategory::CHAINPARAMS);
     argsman.AddArg("-regtest", "Enter regression test mode, which uses a special chain in which blocks can be solved instantly. "
                  "This is intended for regression testing tools and app development. Equivalent to -chain=regtest.", ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::CHAINPARAMS);
@@ -46,6 +47,7 @@ bool IsMLDSA44Demo(const ArgsManager& args, ChainType chain)
     // section-specific value select a different consensus identity.
     if (args.IsArgSetInConfig("-mldsa44demo")) throw std::invalid_argument("-mldsa44demo is command-line only; not permitted in config/settings");
     if (!args.GetBoolArg("-mldsa44demo", false)) return false;
+    if (args.GetBoolArg("-mldsa44test", false)) throw std::invalid_argument("ML-DSA demo and public test modes conflict");
     if (chain != ChainType::REGTEST) throw std::invalid_argument("-mldsa44demo requires -regtest");
 #ifndef ENABLE_EXPERIMENTAL_MLDSA44
     throw std::invalid_argument("-mldsa44demo requires ENABLE_EXPERIMENTAL_MLDSA44");
@@ -54,8 +56,33 @@ bool IsMLDSA44Demo(const ArgsManager& args, ChainType chain)
 #endif
 }
 
-std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const ChainType chain, bool mldsa44_demo)
+bool IsMLDSA44Test(const ArgsManager& args, ChainType chain)
 {
+    if (args.IsArgSetInConfig("-mldsa44test")) throw std::invalid_argument("-mldsa44test is command-line only; not permitted in config/settings");
+    if (!args.GetBoolArg("-mldsa44test", false)) return false;
+    if (chain != ChainType::TESTNET || args.GetArg("-chain") != "test" || args.IsArgSetInConfig("-chain")) {
+        throw std::invalid_argument("-mldsa44test requires explicit command-line -chain=test");
+    }
+    if (args.GetBoolArg("-mldsa44demo", false) || args.GetBoolArg("-regtest", false) ||
+        args.GetBoolArg("-testnet", false) || args.GetBoolArg("-testnet4", false) || args.GetBoolArg("-signet", false) ||
+        args.IsArgSet("-testactivationheight") || args.IsArgSet("-vbparams") || args.IsArgSet("-signetchallenge") ||
+        args.IsArgSet("-signetseednode")) {
+        throw std::invalid_argument("-mldsa44test does not allow conflicting network/deployment options");
+    }
+#ifndef ENABLE_EXPERIMENTAL_MLDSA44
+    throw std::invalid_argument("-mldsa44test requires ENABLE_EXPERIMENTAL_MLDSA44");
+#else
+    return true;
+#endif
+}
+
+std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const ChainType chain, bool mldsa44_demo, bool mldsa44_test)
+{
+    if (mldsa44_demo && mldsa44_test) throw std::invalid_argument("ML-DSA demo and public test modes conflict");
+    if (mldsa44_test) {
+        if (chain != ChainType::TESTNET) throw std::invalid_argument("ML-DSA public test requires test");
+        return std::make_unique<CBaseChainParams>("mldsa44-test-v1", 23832);
+    }
     if (mldsa44_demo) {
         if (chain != ChainType::REGTEST) throw std::invalid_argument("ML-DSA demo requires regtest");
         return std::make_unique<CBaseChainParams>("mldsa44-regtest-v1", 24832);
@@ -77,6 +104,6 @@ std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const ChainType chain, b
 
 void SelectBaseParams(const ChainType chain)
 {
-    globalChainBaseParams = CreateBaseChainParams(chain, IsMLDSA44Demo(gArgs, chain));
+    globalChainBaseParams = CreateBaseChainParams(chain, IsMLDSA44Demo(gArgs, chain), IsMLDSA44Test(gArgs, chain));
     gArgs.SelectConfigNetwork(ChainTypeToString(chain));
 }

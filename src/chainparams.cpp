@@ -117,11 +117,12 @@ const CChainParams &Params() {
 std::unique_ptr<const CChainParams> CreateChainParams(const ArgsManager& args, const ChainType chain)
 {
     const bool mldsa44_demo = IsMLDSA44Demo(args, chain);
+    const bool mldsa44_test = IsMLDSA44Test(args, chain);
     switch (chain) {
     case ChainType::MAIN:
         return CChainParams::Main();
     case ChainType::TESTNET:
-        return CChainParams::TestNet();
+        return mldsa44_test ? CChainParams::MLDSA44Test() : CChainParams::TestNet();
     case ChainType::TESTNET4:
         return CChainParams::TestNet4();
     case ChainType::SIGNET: {
@@ -145,5 +146,8 @@ void SelectParams(const ChainType chain)
     globalChainParams = CreateChainParams(gArgs, chain);
     if ((BaseParams().DataDir()=="mldsa44-regtest-v1") != globalChainParams->IsMLDSA44Demo()) {
         throw std::invalid_argument("ML-DSA demo namespace/consensus identity mismatch");
+    }
+    if ((BaseParams().DataDir()=="mldsa44-test-v1") != globalChainParams->IsMLDSA44Test()) {
+        throw std::invalid_argument("ML-DSA public test namespace/consensus identity mismatch");
     }
 }

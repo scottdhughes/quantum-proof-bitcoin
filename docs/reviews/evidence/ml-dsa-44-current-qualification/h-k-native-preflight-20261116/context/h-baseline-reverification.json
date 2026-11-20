@@ -1,0 +1,60 @@
+{
+  "ARM_Clang_H_executed": false,
+  "profiles": [
+    {
+      "architecture": "aarch64",
+      "compiler": "gcc",
+      "descriptor_sha256": "d9cb075bfc4fdc03911eb7b0d702a622d88230a7801d9228831b2f289d869db2",
+      "image": "sha256:87075e6b6c13a805afaa8dcdc72b8e9cb35c78389ed6283949f1cf079b626153",
+      "native_cleanup_original": "STOPPED_RETAINED",
+      "native_gates": 9,
+      "native_report_sha256": "8173118847f45717af1388b203b5fe42fa2b37fa0d1d2485a0b68861ec12b959",
+      "node_peak_rss_bytes": 403996672,
+      "p95_wall_ns": 173739000,
+      "private_app_report_sha256": "41d17ceccea3d6e70bfc79bda5c92b50813fdbc798de41f0eb66e2455bc3f61a",
+      "private_events": 17,
+      "same_known_transaction_seconds": 9.554754666052759
+    },
+    {
+      "architecture": "x86_64",
+      "compiler": "gcc",
+      "descriptor_sha256": "41d6163a50fb1c883221185a5ebf6ba1984416beb1255c0173484c40e2eef64d",
+      "image": "sha256:b3358bb35d60a5f42c9ce1fe65c26926250c26e99815c3446810a8eb6e730f0a",
+      "native_cleanup_original": "REMOVED",
+      "native_gates": 9,
+      "native_report_sha256": "93611bcd2d717ce16d3e019a1379848f78d6450c71bbe77db4168d6e10f7dbba",
+      "node_peak_rss_bytes": 402862080,
+      "p95_wall_ns": 218697634,
+      "private_app_report_sha256": "54a0dc628c8bf3e318d609ee388d45b3e9052010deed916027c4177577d4a801",
+      "private_events": 17,
+      "same_known_transaction_seconds": 4.854412793000051
+    },
+    {
+      "architecture": "x86_64",
+      "compiler": "clang",
+      "descriptor_sha256": "7b63f404a0ac01cc2efd0b5c09332a489b4568a10bab0dc448cb9c908d2f6b85",
+      "image": "sha256:f7f2da0df067aab6e4d80c32bd2bcbd9e9f80bb166c3849e7db77dd459312579",
+      "native_cleanup_original": "REMOVED",
+      "native_gates": 9,
+      "native_report_sha256": "dd52bf6989988f2b8a65d497254d15b99ce7d56a5db0312d8a3a520e87da939d",
+      "node_peak_rss_bytes": 403320832,
+      "p95_wall_ns": 178451149,
+      "private_app_report_sha256": "829625509cbcee75ec727775b7c83c287c680ca932e89c9e930de77106efbefd",
+      "private_events": 17,
+      "same_known_transaction_seconds": 9.016079826999999
+    }
+  ],
+  "public_soak_credit_seconds": 0,
+  "result": "PASS_H_USED_GCC_BASELINES_AND_X86_CLANG",
+  "schema": "PQBTC-H-BASELINE-ROOT-REVERIFICATION-1",
+  "source": {
+    "head": "52f26f31e2d8fcf52459f9cb2e9159564395f74a",
+    "tree": "d2e07ad8db149f6d3eac1cb15379d97e1484e2e6"
+  },
+  "successor_K_qualified_by_this": false,
+  "used_public_baseline_profiles": [
+    "aarch64/gcc",
+    "x86_64/gcc"
+  ],
+  "verified_utc": "2026-11-16T18:40:50.982963+00:00"
+}

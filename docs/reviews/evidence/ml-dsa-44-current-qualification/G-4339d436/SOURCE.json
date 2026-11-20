@@ -1,0 +1,538 @@
+{
+  "baseline_f_reference": {
+    "duplicated": false,
+    "existing_index_sha256": "98b2cda98b1f89681c95a6ff46d30cbb50fb7d1a23ae1f5422a7e2ae5ddd3171",
+    "existing_repository_packet": "docs/reviews/evidence/ml-dsa-44-current-qualification/F-3a76cdd6/SOURCE.json",
+    "gcc_baselines_declared_by_preflight": [
+      {
+        "architecture": "aarch64",
+        "descriptor_file_sha256": "d5211de3b8781052c3d88d71706adc922e98aec3546065b1a4330788ba375b41",
+        "existing_packet_descriptor": "native-f/linux-aarch64-gcc/runtime-descriptor.json",
+        "existing_packet_native_report": "native-f/linux-aarch64-gcc/native-qualification/report.json",
+        "host": "mac",
+        "image": "sha256:e31973dfbc0cc11a960c8cbffb6b991966b5f1044acf96b83503fc61dfcb1efa",
+        "native_receipt_sha256": "ae57345d49487a94e5e294037b5a02fd44c1fdd71692c41d2e00d97a44b5cf83",
+        "node_sha256": "0f0fcaff4c2091ac4d9e02c498c57b54e899457e58b35e8e990faf6c4aae10af",
+        "signer_sha256": "1887e4dadac3ee3ea9f6bff0bdfb30f2251854d3112a8ba3626fb66ce010bb10",
+        "source_head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+        "source_tree": "9426d9dd4c3c2d082059b2ffc14fa912a121b1dc",
+        "version": "a"
+      },
+      {
+        "architecture": "x86_64",
+        "descriptor_file_sha256": "078c30dc1824abc022880ced14b2ed0591884f38103d36e41c4ede70cddd436e",
+        "existing_packet_descriptor": "native-f/linux-x86_64-gcc/runtime-descriptor.json",
+        "existing_packet_native_report": "native-f/linux-x86_64-gcc/native-qualification/report.json",
+        "host": "research",
+        "image": "sha256:cbdb40bb721dbcf83aa8697005251adf54fbefd46e3d0836e91c43d43b8a941f",
+        "native_receipt_sha256": "0d40249638b2cbedbe28bde5470fb86128fc785c0982b5e93d7765b8c2c9675d",
+        "node_sha256": "325a9d1f3707dde9257c96520140f4a0e41d4c9f32836df47a1787d508efa322",
+        "signer_sha256": "42c02d4a3fdd6be149ebede0f2c767a091f2ab4a1e11d70a83e1218e72c99f13",
+        "source_head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+        "source_tree": "9426d9dd4c3c2d082059b2ffc14fa912a121b1dc",
+        "version": "a"
+      }
+    ],
+    "native_v2_archive_duplicated_or_modified": false
+  },
+  "byte_policy": {
+    "derived_files": [
+      ".gitattributes",
+      "SOURCE.json",
+      "SHA256SUMS"
+    ],
+    "git_checkout_policy": "Scoped .gitattributes * -text preserves checksummed bytes through checkout line-ending settings.",
+    "gzip": "Empty filename, mtime=0, level9; both original and compressed digests are bound.",
+    "original_records": "Copied byte-for-byte; every selected path has original provenance, SHA256 and byte size.",
+    "sole_transformed_original": "public-preflight02/events.jsonl.gz"
+  },
+  "checksum_inventory": "SHA256SUMS",
+  "closure": {
+    "executable_reproduction_closure": false,
+    "historical_inner_inventory_policy": "Original preflight inventory still names uncompressed events; the compressed member retains the same original digest and complete content. Native report diagnostic/custody references are historical external records, not copied payloads.",
+    "raw_private_configuration_included": false,
+    "selected_records_only": true
+  },
+  "derived_index": true,
+  "excluded_categories": [
+    "F native-v2 archive and all previously published F payloads",
+    "wallet/state/session/backup records",
+    "operator input, private keys, ciphertext, passwords, cookies and credentials",
+    "runtime image, ELF, ZIP and tar archives",
+    "raw deployment configurations and temporary signed download URLs",
+    "unselected logs, diagnostics and corpus/frame data",
+    "live or growing 24-hour soak events"
+  ],
+  "files": [
+    {
+      "bytes": 8,
+      "classification": "DERIVED_GIT_BYTE_PRESERVATION_METADATA",
+      "path": ".gitattributes",
+      "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
+    },
+    {
+      "bytes": 30721,
+      "classification": "ORIGINAL_G_RELEASE_RESOURCE_REPORT",
+      "origin_task_root_relative": "candidate-g/arm-clang-qualification/node-resources.json",
+      "path": "native-g/linux-aarch64-clang/native-qualification/node-resources.json",
+      "sha256": "65fdd68cb45a9d07012f774a6941763a20f6af3acd6b7ad68f45b4b84b5c4ce5"
+    },
+    {
+      "bytes": 12388,
+      "classification": "ORIGINAL_G_NATIVE_PUBLIC_CONSENSUS_CONTROL_REPORT",
+      "origin_task_root_relative": "candidate-g/arm-clang-qualification/public-consensus-controls.json",
+      "path": "native-g/linux-aarch64-clang/native-qualification/public-consensus-controls.json",
+      "sha256": "0af3d23dacc6bf2bf708c70bca9b3890b967875df3c5ff9de2d17f638b63d124"
+    },
+    {
+      "bytes": 22616,
+      "classification": "ORIGINAL_G_NATIVE_NINE_GATE_REPORT",
+      "origin_task_root_relative": "candidate-g/arm-clang-qualification/report.json",
+      "path": "native-g/linux-aarch64-clang/native-qualification/report.json",
+      "sha256": "11400bb2623a41edaca79d3a9ca8590e1a15c4e760b812eaacfad8001900c5dd"
+    },
+    {
+      "bytes": 3378,
+      "classification": "ORIGINAL_G_PRIVATE_TRANSPORT_PUBLIC_PROFILE_HTTP_APP_REPORT",
+      "origin_task_root_relative": "candidate-g/arm-clang-public-app/report.json",
+      "path": "native-g/linux-aarch64-clang/public-profile-app/report.json",
+      "sha256": "a01afb32fa10483fdfc68cd716376aafaa9aed10b131668649cdb6b159b18162"
+    },
+    {
+      "bytes": 30523,
+      "classification": "ORIGINAL_G_QUALIFIED_RUNTIME_DESCRIPTOR",
+      "origin_task_root_relative": "candidate-g/arm-clang-runtime.json",
+      "path": "native-g/linux-aarch64-clang/runtime-descriptor.json",
+      "sha256": "0dba8ac7171c725e52c2414685c0b8bdaed4490228b77b8dd89a1f10f39c9bc2"
+    },
+    {
+      "bytes": 30703,
+      "classification": "ORIGINAL_G_RELEASE_RESOURCE_REPORT",
+      "origin_task_root_relative": "candidate-g/arm-gcc-qualification/node-resources.json",
+      "path": "native-g/linux-aarch64-gcc/native-qualification/node-resources.json",
+      "sha256": "694e965a5ca032ded5a6ebdde2ebe5259b5873af6a7a1d59afa8b2bdd80e3439"
+    },
+    {
+      "bytes": 12388,
+      "classification": "ORIGINAL_G_NATIVE_PUBLIC_CONSENSUS_CONTROL_REPORT",
+      "origin_task_root_relative": "candidate-g/arm-gcc-qualification/public-consensus-controls.json",
+      "path": "native-g/linux-aarch64-gcc/native-qualification/public-consensus-controls.json",
+      "sha256": "ef6c7221a83392d45df4441afb7f069ddc674992b86747c8738ca13726b7d8cd"
+    },
+    {
+      "bytes": 22612,
+      "classification": "ORIGINAL_G_NATIVE_NINE_GATE_REPORT",
+      "origin_task_root_relative": "candidate-g/arm-gcc-qualification/report.json",
+      "path": "native-g/linux-aarch64-gcc/native-qualification/report.json",
+      "sha256": "d7d480a826db26fc14a493d61f864c79ab9670675b8442261f403bc6125b39e8"
+    },
+    {
+      "bytes": 3378,
+      "classification": "ORIGINAL_G_PRIVATE_TRANSPORT_PUBLIC_PROFILE_HTTP_APP_REPORT",
+      "origin_task_root_relative": "candidate-g/arm-gcc-public-app/report.json",
+      "path": "native-g/linux-aarch64-gcc/public-profile-app/report.json",
+      "sha256": "ca131269b568d3b9179e20af4e2b3764b8d4fd675eb8e05f7eecba581fc3c5f7"
+    },
+    {
+      "bytes": 30509,
+      "classification": "ORIGINAL_G_QUALIFIED_RUNTIME_DESCRIPTOR",
+      "origin_task_root_relative": "candidate-g/arm-gcc-runtime.json",
+      "path": "native-g/linux-aarch64-gcc/runtime-descriptor.json",
+      "sha256": "d1df4672713494fc170df638131564af6c2632523cd0aef7826e472311a6fef1"
+    },
+    {
+      "bytes": 30542,
+      "classification": "ORIGINAL_G_RELEASE_RESOURCE_REPORT",
+      "origin_task_root_relative": "candidate-g/github/assembled-clang-43770171273-1/native-qualification/node-resources.json",
+      "path": "native-g/linux-x86_64-clang/native-qualification/node-resources.json",
+      "sha256": "e86577d02c13f44d3085a4ae9a1a9b9b85577753324c7c22f7e5a74b7ce55d35"
+    },
+    {
+      "bytes": 12388,
+      "classification": "ORIGINAL_G_NATIVE_PUBLIC_CONSENSUS_CONTROL_REPORT",
+      "origin_task_root_relative": "candidate-g/github/assembled-clang-43770171273-1/native-qualification/public-consensus-controls.json",
+      "path": "native-g/linux-x86_64-clang/native-qualification/public-consensus-controls.json",
+      "sha256": "243db1aeb1bc92a73d2da5d8897d3198793f562d3ed52d337a5f2af5415f498a"
+    },
+    {
+      "bytes": 22608,
+      "classification": "ORIGINAL_G_NATIVE_NINE_GATE_REPORT",
+      "origin_task_root_relative": "candidate-g/github/assembled-clang-43770171273-1/native-qualification/report.json",
+      "path": "native-g/linux-x86_64-clang/native-qualification/report.json",
+      "sha256": "cfbdb2ea91be50800175db07c8265e56b2b0151a0ea50a932e35d5dfe61bf912"
+    },
+    {
+      "bytes": 3334,
+      "classification": "ORIGINAL_G_PRIVATE_TRANSPORT_PUBLIC_PROFILE_HTTP_APP_REPORT",
+      "origin_task_root_relative": "candidate-g/github/assembled-clang-43770171273-1/public-profile-app/report.json",
+      "path": "native-g/linux-x86_64-clang/public-profile-app/report.json",
+      "sha256": "cde785b13cf68000269a17759a77d1b6ce6e9cb3f57771f83e43382843c3442d"
+    },
+    {
+      "bytes": 30641,
+      "classification": "ORIGINAL_G_QUALIFIED_RUNTIME_DESCRIPTOR",
+      "origin_task_root_relative": "candidate-g/github/assembled-clang-43770171273-1/runtime-descriptor.json",
+      "path": "native-g/linux-x86_64-clang/runtime-descriptor.json",
+      "sha256": "eb94c7f420bd8374bf595ed6345f3b86ff6825137ca3e64e54f7cf8f6b6484f5"
+    },
+    {
+      "bytes": 30549,
+      "classification": "ORIGINAL_G_RELEASE_RESOURCE_REPORT",
+      "origin_task_root_relative": "candidate-g/github/assembled-gcc-43770171273-1/native-qualification/node-resources.json",
+      "path": "native-g/linux-x86_64-gcc/native-qualification/node-resources.json",
+      "sha256": "c31508a65f0ed3fedc19f4229c6b346f12e16dc6deb920a94decfc23c37f2d25"
+    },
+    {
+      "bytes": 12388,
+      "classification": "ORIGINAL_G_NATIVE_PUBLIC_CONSENSUS_CONTROL_REPORT",
+      "origin_task_root_relative": "candidate-g/github/assembled-gcc-43770171273-1/native-qualification/public-consensus-controls.json",
+      "path": "native-g/linux-x86_64-gcc/native-qualification/public-consensus-controls.json",
+      "sha256": "fac4ea7e8b3ba0e92cfe8bde1db5b0daeaf5b3b4ddc2e071eaf32fca34a581a9"
+    },
+    {
+      "bytes": 22604,
+      "classification": "ORIGINAL_G_NATIVE_NINE_GATE_REPORT",
+      "origin_task_root_relative": "candidate-g/github/assembled-gcc-43770171273-1/native-qualification/report.json",
+      "path": "native-g/linux-x86_64-gcc/native-qualification/report.json",
+      "sha256": "872006d476ff8846fe5b91ffc06e44775fcb91766829f85faa46db505c8b144e"
+    },
+    {
+      "bytes": 3345,
+      "classification": "ORIGINAL_G_PRIVATE_TRANSPORT_PUBLIC_PROFILE_HTTP_APP_REPORT",
+      "origin_task_root_relative": "candidate-g/github/assembled-gcc-43770171273-1/public-profile-app/report.json",
+      "path": "native-g/linux-x86_64-gcc/public-profile-app/report.json",
+      "sha256": "9ee066c065333f3a854e0122992645f4dd82fbff1563d0cbc3657a1121cb4de5"
+    },
+    {
+      "bytes": 30627,
+      "classification": "ORIGINAL_G_QUALIFIED_RUNTIME_DESCRIPTOR",
+      "origin_task_root_relative": "candidate-g/github/qualified-runtime-gcc-43770171273-1/runtime-descriptor.json",
+      "path": "native-g/linux-x86_64-gcc/runtime-descriptor.json",
+      "sha256": "2ef412977e4b30be1eb1c1698451187b96b89a3e5b132ede43c5eb7aaa8db83f"
+    },
+    {
+      "bytes": 10713,
+      "classification": "ORIGINAL_COMPLETED_G_PUBLIC_PREFLIGHT_DECLARATION",
+      "origin_task_root_relative": "research/g-preflight-20261115-02-output/declaration.json",
+      "path": "public-preflight02/declaration.json",
+      "sha256": "eedb879d5f87f1ac3c610703794b04fc368bc65a48c941f65a21950a2a99c4f6"
+    },
+    {
+      "bytes": 236616,
+      "classification": "DERIVED_DETERMINISTIC_GZIP_OF_ORIGINAL_PUBLIC_EVENT_STREAM",
+      "gzip_compression_level": 9,
+      "gzip_filename": "",
+      "gzip_mtime": 0,
+      "origin_task_root_relative": "research/g-preflight-20261115-02-output/events.jsonl",
+      "path": "public-preflight02/events.jsonl.gz",
+      "sha256": "24f75ea91c29b2b3633d352d761c77fa9d16d951c6358dab7c7017efba9472bb",
+      "uncompressed_bytes": 1292109,
+      "uncompressed_sha256": "1f5d01f11141d7f58828370950e1e0cb3915d4a9f044ab1b672389060bd658e9"
+    },
+    {
+      "bytes": 251,
+      "classification": "ORIGINAL_COMPLETE_PREFLIGHT_EVIDENCE_INVENTORY",
+      "origin_task_root_relative": "research/g-preflight-20261115-02-output/evidence-sha256.json",
+      "path": "public-preflight02/evidence-sha256.json",
+      "sha256": "232962c59ec58779eb105f7dd45cca685734ea4c382156cfcb85debdad255089"
+    },
+    {
+      "bytes": 11312,
+      "classification": "ORIGINAL_COMPLETED_G_PUBLIC_PREFLIGHT_REPORT",
+      "origin_task_root_relative": "research/g-preflight-20261115-02-output/report.json",
+      "path": "public-preflight02/report.json",
+      "sha256": "e437e1481a98987f06c854193dffc1bd5b17594fe6d80e565ced3b4d5b9a1c3d"
+    },
+    {
+      "bytes": 980,
+      "classification": "ORIGINAL_ROOT_COMPLETED_PREFLIGHT_REVERIFICATION",
+      "origin_task_root_relative": "research/g-preflight02-root-reverification.json",
+      "path": "public-preflight02/root-reverification.json",
+      "sha256": "4d3dc00bb8676b9ec0ffa5e70705dd69e9c01a054191471531f1e20f981163ab"
+    },
+    {
+      "bytes": 2542,
+      "classification": "ORIGINAL_ROOT_FOUR_PROFILE_REVERIFICATION",
+      "origin_task_root_relative": "candidate-g/root-four-profile-reverification-20261115.json",
+      "path": "qualification-reverification/root-four-profile-reverification-20261115.json",
+      "sha256": "d70ac038c5badcb3a2b4c0f1a29f0f04055718776d03bfffe5a5323cec9746e9"
+    }
+  ],
+  "generated_at_utc": "2026-11-15T23:53:32.213069+00:00",
+  "independent_human_cryptographic_review": "NOT_PERFORMED",
+  "native_g": {
+    "native_profile_count": 4,
+    "private_app_flow_profile_count": 4,
+    "profiles": [
+      {
+        "architecture": "aarch64",
+        "compiler": "gcc",
+        "consensus_control_count": 16,
+        "consensus_report": "native-g/linux-aarch64-gcc/native-qualification/public-consensus-controls.json",
+        "descriptor": "native-g/linux-aarch64-gcc/runtime-descriptor.json",
+        "descriptor_sha256": "d1df4672713494fc170df638131564af6c2632523cd0aef7826e472311a6fef1",
+        "emulated": false,
+        "image_id": "sha256:3c042b6e21c94368ecf58ab2cb793bf5f40a546736e77d82e42d7d6e4197d02e",
+        "instrumentation_scope": {
+          "contract_backend_and_signer": "normal plus ASan/UBSan",
+          "key_lifecycle": "normal plus ASan/UBSan with entropy/fault controls",
+          "node": "release build; resource timings exclude fixture generation",
+          "openssl": "pinned static library; not instrumented by this run"
+        },
+        "manifest_sha256": "e4cc32fce388f4203cf78947323b7149ff8238239c45549c23be43c95669a9cd",
+        "matches_declared_version": "b",
+        "matches_preflight_host": "mac",
+        "native_cleanup": "STOPPED_RETAINED",
+        "native_gate_count": 9,
+        "native_report": "native-g/linux-aarch64-gcc/native-qualification/report.json",
+        "native_report_sha256": "d7d480a826db26fc14a493d61f864c79ab9670675b8442261f403bc6125b39e8",
+        "native_status": "PASS",
+        "node_sha256": "aac60621df8aa09139d1d46b458f57f57556dc76e60caff183fa6da0d0320cee",
+        "private_app_report": "native-g/linux-aarch64-gcc/public-profile-app/report.json",
+        "private_app_scope": "PRIVATE_TWO_CONTAINER_APP_FLOW_NOT_PUBLIC_SOAK",
+        "private_app_status": "PASS",
+        "resource_p95_wall_ns": 160920583,
+        "resource_peak_rss_bytes": 401788928,
+        "resource_report": "native-g/linux-aarch64-gcc/native-qualification/node-resources.json",
+        "resource_sample_count": 30,
+        "signer_sha256": "fba8b0c7d2c824d3c25c5b0105cd9f7cb2829e416f11cf754f77297ecd386a8b",
+        "source": {
+          "head": "4339d436cdcfce9724476b9786994d347f1a4b06",
+          "tree": "b9923bede37da41119ac69a39d57f16a8a89b3eb"
+        }
+      },
+      {
+        "architecture": "aarch64",
+        "compiler": "clang",
+        "consensus_control_count": 16,
+        "consensus_report": "native-g/linux-aarch64-clang/native-qualification/public-consensus-controls.json",
+        "descriptor": "native-g/linux-aarch64-clang/runtime-descriptor.json",
+        "descriptor_sha256": "0dba8ac7171c725e52c2414685c0b8bdaed4490228b77b8dd89a1f10f39c9bc2",
+        "emulated": false,
+        "image_id": "sha256:eccba6b830befef11d7bef59f985484d364e2880b2d44acd8e350849dd89173f",
+        "instrumentation_scope": {
+          "contract_backend_and_signer": "normal plus ASan/UBSan",
+          "key_lifecycle": "normal plus ASan/UBSan with entropy/fault controls",
+          "node": "release build; resource timings exclude fixture generation",
+          "openssl": "pinned static library; not instrumented by this run"
+        },
+        "manifest_sha256": "3aae3f3cb6377cbb335ee68b537f123c2002b36324a4d503ee80444bb5a900d0",
+        "native_cleanup": "STOPPED_RETAINED",
+        "native_gate_count": 9,
+        "native_report": "native-g/linux-aarch64-clang/native-qualification/report.json",
+        "native_report_sha256": "11400bb2623a41edaca79d3a9ca8590e1a15c4e760b812eaacfad8001900c5dd",
+        "native_status": "PASS",
+        "node_sha256": "eb7f905eaf9dd38874bb39b5626eb792c25f160ba84622e6d2e0f069fbe1046c",
+        "private_app_report": "native-g/linux-aarch64-clang/public-profile-app/report.json",
+        "private_app_scope": "PRIVATE_TWO_CONTAINER_APP_FLOW_NOT_PUBLIC_SOAK",
+        "private_app_status": "PASS",
+        "resource_p95_wall_ns": 161714833,
+        "resource_peak_rss_bytes": 402432000,
+        "resource_report": "native-g/linux-aarch64-clang/native-qualification/node-resources.json",
+        "resource_sample_count": 30,
+        "signer_sha256": "790d7ee3671d9a94e166e9a93db2d2becf4c500466f1b20cd153259befea4734",
+        "source": {
+          "head": "4339d436cdcfce9724476b9786994d347f1a4b06",
+          "tree": "b9923bede37da41119ac69a39d57f16a8a89b3eb"
+        }
+      },
+      {
+        "architecture": "x86_64",
+        "compiler": "gcc",
+        "consensus_control_count": 16,
+        "consensus_report": "native-g/linux-x86_64-gcc/native-qualification/public-consensus-controls.json",
+        "descriptor": "native-g/linux-x86_64-gcc/runtime-descriptor.json",
+        "descriptor_sha256": "2ef412977e4b30be1eb1c1698451187b96b89a3e5b132ede43c5eb7aaa8db83f",
+        "emulated": false,
+        "external_artifact_provenance": {
+          "artifact_id": 14184855468,
+          "artifact_zip_sha256": "94774a2e94dfe91f76bd155d8068b379df8b7402910644323ad6f993e64ed55d",
+          "extraction_receipt_sha256": "3b3a44eb3f2aa31140e20c54dbab4342f4b4a538145cf15918709c4adef398c8",
+          "extraction_receipt_task_root_relative": "candidate-g/github/assembled-gcc-43770171273-1/additional-public-reports.json",
+          "native_inventory_sha256": "79467806f9437f58f31515cf08176dceda15b61a518e9ba4f1d2f42674c082ff",
+          "outer_archives_included": false,
+          "run_id": 43770171273,
+          "workflow_url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43770171273"
+        },
+        "image_id": "sha256:89e3d98fa388a8fa4841174dc490feab836036f9352f8065b7a461b8d05f9eb8",
+        "instrumentation_scope": {
+          "contract_backend_and_signer": "normal plus ASan/UBSan",
+          "key_lifecycle": "normal plus ASan/UBSan with entropy/fault controls",
+          "node": "release build; resource timings exclude fixture generation",
+          "openssl": "pinned static library; not instrumented by this run"
+        },
+        "manifest_sha256": "7d3052354d408acad7de335cfb022ff4c0432f5145e0412b8d66e582ddf5060e",
+        "matches_declared_version": "b",
+        "matches_preflight_host": "research",
+        "native_cleanup": "REMOVED",
+        "native_gate_count": 9,
+        "native_report": "native-g/linux-x86_64-gcc/native-qualification/report.json",
+        "native_report_sha256": "872006d476ff8846fe5b91ffc06e44775fcb91766829f85faa46db505c8b144e",
+        "native_status": "PASS",
+        "node_sha256": "8971f59ae9deff4f8d09a1754da2ee875be2fc6cddb1c556d3b0131828bada2e",
+        "private_app_report": "native-g/linux-x86_64-gcc/public-profile-app/report.json",
+        "private_app_scope": "PRIVATE_TWO_CONTAINER_APP_FLOW_NOT_PUBLIC_SOAK",
+        "private_app_status": "PASS",
+        "resource_p95_wall_ns": 208458458,
+        "resource_peak_rss_bytes": 404062208,
+        "resource_report": "native-g/linux-x86_64-gcc/native-qualification/node-resources.json",
+        "resource_sample_count": 30,
+        "signer_sha256": "1072081dd194fdf454ee94c8c1f4eea937f0b67c71334352adf16c15ac74f406",
+        "source": {
+          "head": "4339d436cdcfce9724476b9786994d347f1a4b06",
+          "tree": "b9923bede37da41119ac69a39d57f16a8a89b3eb"
+        }
+      },
+      {
+        "architecture": "x86_64",
+        "compiler": "clang",
+        "consensus_control_count": 16,
+        "consensus_report": "native-g/linux-x86_64-clang/native-qualification/public-consensus-controls.json",
+        "descriptor": "native-g/linux-x86_64-clang/runtime-descriptor.json",
+        "descriptor_sha256": "eb94c7f420bd8374bf595ed6345f3b86ff6825137ca3e64e54f7cf8f6b6484f5",
+        "emulated": false,
+        "external_artifact_provenance": {
+          "artifact_id": 14184218944,
+          "artifact_zip_sha256": "7a846bccaeadc1ce7b599334566b453d21e5e2898e4a305898969fe6fe544081",
+          "extraction_receipt_sha256": "94b689be84a74f39d6989f02febab08689a301a61f91f2a5dba547d0a9e5f6ec",
+          "extraction_receipt_task_root_relative": "candidate-g/github/assembled-clang-43770171273-1/additional-public-reports.json",
+          "native_inventory_sha256": "3e213c1a021b9d447b60f4435e77d71ba89d86ef71809dd582e19c33bf5c718d",
+          "outer_archives_included": false,
+          "run_id": 43770171273,
+          "workflow_url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43770171273"
+        },
+        "image_id": "sha256:ae3b6598af01e8a8b0e1069cc9140f3b7b522970fb82faa7186a3740927a412c",
+        "instrumentation_scope": {
+          "contract_backend_and_signer": "normal plus ASan/UBSan",
+          "key_lifecycle": "normal plus ASan/UBSan with entropy/fault controls",
+          "node": "release build; resource timings exclude fixture generation",
+          "openssl": "pinned static library; not instrumented by this run"
+        },
+        "manifest_sha256": "aa553361733e1723eb3b0cb4b0f61088307b0cfcaa943ac1ec777993c95535c7",
+        "native_cleanup": "REMOVED",
+        "native_gate_count": 9,
+        "native_report": "native-g/linux-x86_64-clang/native-qualification/report.json",
+        "native_report_sha256": "cfbdb2ea91be50800175db07c8265e56b2b0151a0ea50a932e35d5dfe61bf912",
+        "native_status": "PASS",
+        "node_sha256": "edbb5ebb00d22be2a04a7a6cf0ccbd7ea6e78fcd358ce41d104f920612b104b6",
+        "private_app_report": "native-g/linux-x86_64-clang/public-profile-app/report.json",
+        "private_app_scope": "PRIVATE_TWO_CONTAINER_APP_FLOW_NOT_PUBLIC_SOAK",
+        "private_app_status": "PASS",
+        "resource_p95_wall_ns": 180001019,
+        "resource_peak_rss_bytes": 403972096,
+        "resource_report": "native-g/linux-x86_64-clang/native-qualification/node-resources.json",
+        "resource_sample_count": 30,
+        "signer_sha256": "c7ddef63819232a3dc92ea4dc99c798d21217cbabcdb973ab26323e46333b9c5",
+        "source": {
+          "head": "4339d436cdcfce9724476b9786994d347f1a4b06",
+          "tree": "b9923bede37da41119ac69a39d57f16a8a89b3eb"
+        }
+      }
+    ],
+    "runtime_images_binaries_archives_included": false,
+    "source": {
+      "head": "4339d436cdcfce9724476b9786994d347f1a4b06",
+      "tree": "b9923bede37da41119ac69a39d57f16a8a89b3eb"
+    }
+  },
+  "packet_file_count": 29,
+  "production_admitted": false,
+  "production_backend": "NONE",
+  "public_preflight02": {
+    "confirmed_payments": 22,
+    "declaration": "public-preflight02/declaration.json",
+    "event_chain": {
+      "clock_boundaries": {
+        "public_clock_completed": {
+          "data": {
+            "monotonic_seconds": 900.1545019170735,
+            "wall_seconds": 900.1607820987701
+          },
+          "monotonic_ns": 1392605003863000,
+          "utc": "2026-11-15T23:37:22.615024+00:00"
+        },
+        "public_clock_started": {
+          "data": {
+            "duration_seconds": 900,
+            "public_probe": {
+              "certificate_sha256": "82dac8876ffe34291908e339d82e2020efa49cb5698c6bb25feb02be20581beb",
+              "commands": [
+                "version",
+                "wtxidrelay",
+                "sendaddrv2",
+                "verack"
+              ],
+              "elapsed_seconds": 0.09697112487629056,
+              "hostname": "scotts-macbook-pro.tail628f36.ts.net",
+              "native_magic": "a7e29cf7",
+              "port": 443,
+              "public_peer_ip": "209.177.145.97",
+              "remote_height": 205,
+              "remote_protocol": 70016,
+              "remote_subversion": "/PQBTC:30.2.0/",
+              "result": "PASS",
+              "scope": "ANONYMOUS_PUBLIC_TLS_NATIVE_P2P_HANDSHAKE_ONLY",
+              "tls_version": "TLSv1.3"
+            }
+          },
+          "monotonic_ns": 1391704848754250,
+          "utc": "2026-11-15T23:22:22.453707+00:00"
+        }
+      },
+      "count": 2261,
+      "last_sha256": "5de5075806377f35e6f55bb8591eab3c9f3392ac73900e86b165ea4d87c1d112"
+    },
+    "event_clock_elapsed": {
+      "monotonic_seconds": 900.15510875,
+      "wall_seconds": 900.161317
+    },
+    "events_gzip": "public-preflight02/events.jsonl.gz",
+    "fault_phase_count": 7,
+    "final_recovered_spend": true,
+    "host_runner_source": {
+      "driver_sha256": "62a2a8af09ead25ff8a0d1cf379dd60bf5b70643611e8c1c0f2a86199bdce616",
+      "head": "4339d436cdcfce9724476b9786994d347f1a4b06",
+      "tree": "b9923bede37da41119ac69a39d57f16a8a89b3eb"
+    },
+    "mode": "preflight",
+    "original_inventory": "public-preflight02/evidence-sha256.json",
+    "owned_cleanup_ok": true,
+    "report": "public-preflight02/report.json",
+    "result": "PREFLIGHT_PASS",
+    "root_reverification": "public-preflight02/root-reverification.json",
+    "scope": "COMPLETED_900_SECOND_PUBLIC_PREFLIGHT_NOT_24H_SOAK",
+    "validation": {
+      "elapsed_monotonic_seconds": 900.1545019170735,
+      "elapsed_wall_seconds": 900.1607820987701,
+      "missed_slots": 3,
+      "p95_settle_seconds": 14.567081708926708,
+      "result": "PREFLIGHT_PASS",
+      "successful_normal_slots": 12
+    }
+  },
+  "public_soak_24h": {
+    "completed": false,
+    "elapsed_time_credit_from_preflight": 0,
+    "pass_claimed": false,
+    "required_actual_elapsed_seconds": 86400,
+    "snapshot_policy": "Staging checkpoint only; root will reconcile a separately completed exact-source soak result. No future outcome is asserted.",
+    "status": "NOT_STARTED"
+  },
+  "qualification_limits": [
+    "Linux x86_64 and native Linux aarch64, each with GCC and Clang; no native macOS or Windows ML-DSA signer qualification is asserted.",
+    "Native nine-gate ASan/UBSan scope excludes the pinned prebuilt static OpenSSL library.",
+    "Private-profile HTTP app runs are not public soak time.",
+    "The completed public preflight is 900 actual seconds and does not qualify an 86400-second soak.",
+    "No complete-app constant-time or production-admission claim."
+  ],
+  "release_hold": true,
+  "schema": "PQBTC-MLDSA44-G-NATIVE-PREFLIGHT-EVIDENCE-1",
+  "scope": "EXACT_G_FOUR_NATIVE_LINUX_PROFILES_AND_COMPLETED_PUBLIC_PREFLIGHT_ONLY",
+  "selected_file_count": 27,
+  "subject": {
+    "driver_sha256": "62a2a8af09ead25ff8a0d1cf379dd60bf5b70643611e8c1c0f2a86199bdce616",
+    "head": "4339d436cdcfce9724476b9786994d347f1a4b06",
+    "tree": "b9923bede37da41119ac69a39d57f16a8a89b3eb"
+  },
+  "whole_app_constant_time_qualified": false
+}

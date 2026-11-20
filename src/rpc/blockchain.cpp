@@ -17,6 +17,10 @@
 #include <consensus/params.h>
 #include <consensus/validation.h>
 #include <core_io.h>
+#ifdef ENABLE_EXPERIMENTAL_MLDSA44
+#include <crypto/mldsa44/resource_limits.h>
+#include <crypto/mldsa44/public_profile.h>
+#endif
 #include <deploymentinfo.h>
 #include <deploymentstatus.h>
 #include <flatfile.h>
@@ -1351,6 +1355,17 @@ RPCHelpMan getblockchaininfo()
                     {RPCResult::Type::STR_HEX, "network_binding", "Effective message-start and internal genesis bytes"},
                     {RPCResult::Type::STR_HEX, "spec_sha256", "Exact admitted demo contract bytes"},
                 }},
+                {RPCResult::Type::OBJ, "valueless_mldsa44_test", /*optional=*/true, "Explicit valueless public TEST profile; never production admission", {
+                    {RPCResult::Type::STR, "scope", "Valueless experimental public test only"},
+                    {RPCResult::Type::BOOL, "active", "Wallet issuance enabled after the fixed activation"},
+                    {RPCResult::Type::NUM, "activation_height", "Fixed activation height"},
+                    {RPCResult::Type::STR_HEX, "network_binding", "Effective message-start and internal genesis bytes"},
+                    {RPCResult::Type::STR_HEX, "spec_sha256", "Exact CONTRACT-1 bytes"},
+                    {RPCResult::Type::STR_HEX, "profile_sha256", "Exact public profile bytes"},
+                    {RPCResult::Type::NUM, "verification_cost", "Sigop cost of one native ML-DSA input"},
+                    {RPCResult::Type::NUM, "max_block_verifications", "Native verifications at the block sigop limit"},
+                    {RPCResult::Type::NUM, "max_standard_tx_verifications", "Native verifications at the standard transaction sigop limit"},
+                }},
 #endif
                 {RPCResult::Type::NUM, "blocks", "the height of the most-work fully-validated chain. The genesis block has height 0"},
                 {RPCResult::Type::NUM, "headers", "the current number of headers we have validated"},
@@ -1402,6 +1417,20 @@ RPCHelpMan getblockchaininfo()
         demo.pushKV("network_binding", HexStr(params.MessageStart()) + HexStr(params.GenesisBlock().GetHash()));
         demo.pushKV("spec_sha256", MLDSA44_CONTRACT_SHA256);
         obj.pushKV("valueless_mldsa44_demo", std::move(demo));
+    }
+    if (chainman.GetParams().IsMLDSA44Test()) {
+        const auto& params = chainman.GetParams();
+        UniValue profile{UniValue::VOBJ};
+        profile.pushKV("scope", "VALUELESS_EXPERIMENTAL_PUBLIC_TEST_ONLY");
+        profile.pushKV("active", height >= 1);
+        profile.pushKV("activation_height", 1);
+        profile.pushKV("network_binding", HexStr(params.MessageStart()) + HexStr(params.GenesisBlock().GetHash()));
+        profile.pushKV("spec_sha256", MLDSA44_CONTRACT_SHA256);
+        profile.pushKV("profile_sha256", pqbtc::mldsa44::node::PUBLIC_PROFILE_SHA256);
+        profile.pushKV("verification_cost", pqbtc::mldsa44::VERIFICATION_SIGOPS_COST);
+        profile.pushKV("max_block_verifications", pqbtc::mldsa44::MAX_BLOCK_VERIFICATIONS);
+        profile.pushKV("max_standard_tx_verifications", pqbtc::mldsa44::MAX_STANDARD_TX_VERIFICATIONS);
+        obj.pushKV("valueless_mldsa44_test", std::move(profile));
     }
 #endif
     obj.pushKV("blocks", height);

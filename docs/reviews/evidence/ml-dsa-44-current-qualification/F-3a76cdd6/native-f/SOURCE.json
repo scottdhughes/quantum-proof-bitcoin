@@ -1,0 +1,438 @@
+{
+  "artifact_metadata": [
+    {
+      "digest": "sha256:2e344ee741bcc2b0d81a7c4cc4a1032bdf09afa9ce6ee3d598c6afa0adcf23c1",
+      "expires_at": "2027-02-12T23:10:28Z",
+      "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+      "id": 14136926395,
+      "name": "pqbtc-assembled-gcc-43651886514-1",
+      "run_id": 43651886514,
+      "size_in_bytes": 587371
+    },
+    {
+      "digest": "sha256:d34a7982dd165b2289da3b7249aa93bd5d42e16ba803dff7b5cb3f154e74ae9e",
+      "expires_at": "2026-11-21T23:24:50Z",
+      "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+      "id": 14136801961,
+      "name": "pqbtc-qualified-runtime-gcc-43651886514-1",
+      "run_id": 43651886514,
+      "size_in_bytes": 477465989
+    },
+    {
+      "digest": "sha256:2b0d7529a65f65db60278dca1457772fd60c0754ecbefbd83ea25ccbe96e3c73",
+      "expires_at": "2027-02-12T23:10:28Z",
+      "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+      "id": 14136344441,
+      "name": "pqbtc-assembled-clang-43651886514-1",
+      "run_id": 43651886514,
+      "size_in_bytes": 596309
+    }
+  ],
+  "bundle_integrity": "VERIFIED",
+  "ci": {
+    "original_receipt": "originals/source-F-3a76cdd6-success.json",
+    "runs": [
+      {
+        "branch": "codex/mldsa-candidate-f-20261114",
+        "conclusion": "success",
+        "event": "workflow_dispatch",
+        "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+        "id": 43651886514,
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 132621961312,
+            "name": "Source build, wallet recovery and native qualification (clang)"
+          },
+          {
+            "conclusion": "success",
+            "id": 132621961579,
+            "name": "Source build, wallet recovery and native qualification (gcc)"
+          }
+        ],
+        "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43651886514"
+      },
+      {
+        "branch": "codex/mldsa-candidate-f-20261114",
+        "conclusion": "success",
+        "event": "push",
+        "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+        "id": 43651844437,
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 132621830190,
+            "name": "Freeze-gate enforcement"
+          }
+        ],
+        "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43651844437"
+      },
+      {
+        "branch": "codex/mldsa-candidate-f-20261114",
+        "conclusion": "success",
+        "event": "push",
+        "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+        "id": 43651844509,
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 132621830556,
+            "name": "CI inventory"
+          },
+          {
+            "conclusion": "success",
+            "id": 132621830869,
+            "name": "Linux native PQ tranche"
+          },
+          {
+            "conclusion": "success",
+            "id": 132621830891,
+            "name": "lint"
+          }
+        ],
+        "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43651844509"
+      },
+      {
+        "branch": "codex/mldsa-runpod-soak-20261114",
+        "conclusion": "success",
+        "event": "pull_request",
+        "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+        "id": 43651768979,
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 132621597695,
+            "name": "Runpod DATA and control tests"
+          }
+        ],
+        "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43651768979"
+      },
+      {
+        "branch": "codex/mldsa-runpod-soak-20261114",
+        "conclusion": "success",
+        "event": "pull_request",
+        "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+        "id": 43651768943,
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 132621597714,
+            "name": "Source build, wallet recovery and native qualification (clang)"
+          },
+          {
+            "conclusion": "success",
+            "id": 132621598066,
+            "name": "Source build, wallet recovery and native qualification (gcc)"
+          }
+        ],
+        "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43651768943"
+      },
+      {
+        "branch": "codex/mldsa-runpod-soak-20261114",
+        "conclusion": "success",
+        "event": "pull_request",
+        "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+        "id": 43651768993,
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 132621598242,
+            "name": "CI inventory"
+          },
+          {
+            "conclusion": "success",
+            "id": 132621598406,
+            "name": "Linux native PQ tranche"
+          },
+          {
+            "conclusion": "success",
+            "id": 132621598445,
+            "name": "lint"
+          }
+        ],
+        "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43651768993"
+      },
+      {
+        "branch": "codex/mldsa-runpod-soak-20261114",
+        "conclusion": "success",
+        "event": "push",
+        "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+        "id": 43651763632,
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 132621580841,
+            "name": "Runpod DATA and control tests"
+          }
+        ],
+        "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43651763632"
+      },
+      {
+        "branch": "codex/mldsa-runpod-soak-20261114",
+        "conclusion": "success",
+        "event": "push",
+        "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+        "id": 43651763477,
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 132621580933,
+            "name": "Freeze-gate enforcement"
+          }
+        ],
+        "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43651763477"
+      },
+      {
+        "branch": "codex/mldsa-runpod-soak-20261114",
+        "conclusion": "success",
+        "event": "push",
+        "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+        "id": 43651763451,
+        "jobs": [
+          {
+            "conclusion": "success",
+            "id": 132621580865,
+            "name": "lint"
+          },
+          {
+            "conclusion": "success",
+            "id": 132621581185,
+            "name": "CI inventory"
+          },
+          {
+            "conclusion": "success",
+            "id": 132621581245,
+            "name": "Linux native PQ tranche"
+          }
+        ],
+        "url": "https://github.com/scottdhughes/quantum-proof-bitcoin/actions/runs/43651763451"
+      }
+    ],
+    "successful_job_count": 17,
+    "successful_run_count": 9
+  },
+  "derived_index": true,
+  "excluded_categories": [
+    "whole ZIP and tar archives",
+    "wallet/state/session/backup files",
+    "operator credentials and cookies",
+    "private deployment or route configuration",
+    "engine/transfer/live diagnostic logs",
+    "provider credentials and financial data"
+  ],
+  "files": [
+    {
+      "bytes": 22611,
+      "path": "linux-aarch64-clang/native-qualification/report.json",
+      "sha256": "673c98c3d3a91202eb8df6f553cf19b09b0fd49289876a0895a3438c222f761d"
+    },
+    {
+      "bytes": 3378,
+      "path": "linux-aarch64-clang/public-profile-app/report.json",
+      "sha256": "930a71f91c90ace321637f7322e400f85c807b722210ee5f38f9dfe4d56b5029"
+    },
+    {
+      "bytes": 30523,
+      "path": "linux-aarch64-clang/runtime-descriptor.json",
+      "sha256": "3ec3653512722b36b9f4e6f141b9a7a7082d1fe7da898f7ae716ae9bc068831e"
+    },
+    {
+      "bytes": 22607,
+      "path": "linux-aarch64-gcc/native-qualification/report.json",
+      "sha256": "ae57345d49487a94e5e294037b5a02fd44c1fdd71692c41d2e00d97a44b5cf83"
+    },
+    {
+      "bytes": 3378,
+      "path": "linux-aarch64-gcc/public-profile-app/report.json",
+      "sha256": "22af05da88561f06d7102480e8c20436c99fcabb106e9e0fc7f6983f326480b8"
+    },
+    {
+      "bytes": 30509,
+      "path": "linux-aarch64-gcc/runtime-descriptor.json",
+      "sha256": "d5211de3b8781052c3d88d71706adc922e98aec3546065b1a4330788ba375b41"
+    },
+    {
+      "bytes": 56776,
+      "path": "linux-x86_64-clang/assembled/report.json",
+      "sha256": "a71839448d9874e6f795e07096fd07363c6d738c4c8fd8a18fe3d3c9d61f6885"
+    },
+    {
+      "bytes": 22608,
+      "path": "linux-x86_64-clang/native-qualification/report.json",
+      "sha256": "8456e664f6047861b51b377296970a9ce71af75fcf990f1d5e0566db6861a96d"
+    },
+    {
+      "bytes": 3334,
+      "path": "linux-x86_64-clang/public-profile-app/report.json",
+      "sha256": "6ce56ac0e3d047f7f514adca2b0402e0b91d9af843efcc16cdc04f15b23cf7bb"
+    },
+    {
+      "bytes": 30641,
+      "path": "linux-x86_64-clang/runtime-descriptor.json",
+      "sha256": "0ff7f76d4fb1010189e161b1bfde560da79f0831d9060476435f63c353d1c74f"
+    },
+    {
+      "bytes": 56735,
+      "path": "linux-x86_64-gcc/assembled/report.json",
+      "sha256": "c15dd7521e02fd95a875c8a18ae2f1aff6b1929bf2adcb441438e82601f8aad5"
+    },
+    {
+      "bytes": 22604,
+      "path": "linux-x86_64-gcc/native-qualification/report.json",
+      "sha256": "0d40249638b2cbedbe28bde5470fb86128fc785c0982b5e93d7765b8c2c9675d"
+    },
+    {
+      "bytes": 3334,
+      "path": "linux-x86_64-gcc/public-profile-app/report.json",
+      "sha256": "2733f49145e44c33791b612a3888f89d9a0d617cc791f9857efd430d70d66c45"
+    },
+    {
+      "bytes": 30627,
+      "path": "linux-x86_64-gcc/runtime-descriptor.json",
+      "sha256": "078c30dc1824abc022880ced14b2ed0591884f38103d36e41c4ede70cddd436e"
+    },
+    {
+      "bytes": 2050,
+      "path": "linux-x86_64-gcc/runtime-image-export.json",
+      "sha256": "01ef957642edeff514258cd35425042dd7241cddf09dfe88915437027ec310b7"
+    },
+    {
+      "bytes": 36989,
+      "path": "originals/source-F-3a76cdd6-success.json",
+      "sha256": "b49f4685635953c1f8723f34b68031900abaae3f35f85e09f5b4691333d51205"
+    }
+  ],
+  "image_binary_archive_included": false,
+  "image_export_receipt": "linux-x86_64-gcc/runtime-image-export.json",
+  "independent_human_cryptographic_review": "NOT_PERFORMED",
+  "omitted_allowlisted_files": [],
+  "original_aggregator_external_custody_fields": [
+    "qualified_runtime_verification",
+    "research_transfer_verification",
+    "previous_failure_preserved"
+  ],
+  "original_aggregator_reference_policy": "Frozen historical custody metadata; use this index files/profiles as the complete claim-bearing relative-path closure. External custody links in the original aggregate are not reproduction dependencies.",
+  "production_admitted": false,
+  "production_backend": "NONE",
+  "profiles": [
+    {
+      "architecture": "x86_64",
+      "assembled_report": "linux-x86_64-gcc/assembled/report.json",
+      "compiler": "gcc",
+      "descriptor": "linux-x86_64-gcc/runtime-descriptor.json",
+      "emulated": false,
+      "image_id": "sha256:cbdb40bb721dbcf83aa8697005251adf54fbefd46e3d0836e91c43d43b8a941f",
+      "instrumentation_scope": {
+        "contract_backend_and_signer": "normal plus ASan/UBSan",
+        "key_lifecycle": "normal plus ASan/UBSan with entropy/fault controls",
+        "node": "release build; resource timings exclude fixture generation",
+        "openssl": "pinned static library; not instrumented by this run"
+      },
+      "manifest_sha256": "ca75d849e3e36ca40e449a72866d239a83491dd4c5f9ec671e3fe4535b6556c3",
+      "native_gate_count": 9,
+      "native_report": "linux-x86_64-gcc/native-qualification/report.json",
+      "native_status": "PASS",
+      "node_sha256": "325a9d1f3707dde9257c96520140f4a0e41d4c9f32836df47a1787d508efa322",
+      "private_app_flow_status": "PASS",
+      "private_app_report": "linux-x86_64-gcc/public-profile-app/report.json",
+      "private_app_scope": "PRIVATE_TWO_CONTAINER_APP_FLOW_NOT_PUBLIC_SOAK",
+      "production_admitted": false,
+      "public_soak": false,
+      "signer_sha256": "42c02d4a3fdd6be149ebede0f2c767a091f2ab4a1e11d70a83e1218e72c99f13"
+    },
+    {
+      "architecture": "x86_64",
+      "assembled_report": "linux-x86_64-clang/assembled/report.json",
+      "compiler": "clang",
+      "descriptor": "linux-x86_64-clang/runtime-descriptor.json",
+      "emulated": false,
+      "image_id": "sha256:fcfed8466be9c61c244e03b039925379e26371ce62134bd4173148f8301df97b",
+      "instrumentation_scope": {
+        "contract_backend_and_signer": "normal plus ASan/UBSan",
+        "key_lifecycle": "normal plus ASan/UBSan with entropy/fault controls",
+        "node": "release build; resource timings exclude fixture generation",
+        "openssl": "pinned static library; not instrumented by this run"
+      },
+      "manifest_sha256": "cc05eeb9768fabd4396caa17b77306cc5806a6f61134ed2ceed146e4e70f5068",
+      "native_gate_count": 9,
+      "native_report": "linux-x86_64-clang/native-qualification/report.json",
+      "native_status": "PASS",
+      "node_sha256": "2f8b0ac211dd74c440de7790dbc706e212b3429522bd7f57af9f78887dd2a01d",
+      "private_app_flow_status": "PASS",
+      "private_app_report": "linux-x86_64-clang/public-profile-app/report.json",
+      "private_app_scope": "PRIVATE_TWO_CONTAINER_APP_FLOW_NOT_PUBLIC_SOAK",
+      "production_admitted": false,
+      "public_soak": false,
+      "signer_sha256": "f69e88c2536bdb031fb4048fba4d4825bc758d00bb52fa574e557f91b6604255"
+    },
+    {
+      "architecture": "aarch64",
+      "compiler": "gcc",
+      "descriptor": "linux-aarch64-gcc/runtime-descriptor.json",
+      "emulated": false,
+      "image_id": "sha256:e31973dfbc0cc11a960c8cbffb6b991966b5f1044acf96b83503fc61dfcb1efa",
+      "instrumentation_scope": {
+        "contract_backend_and_signer": "normal plus ASan/UBSan",
+        "key_lifecycle": "normal plus ASan/UBSan with entropy/fault controls",
+        "node": "release build; resource timings exclude fixture generation",
+        "openssl": "pinned static library; not instrumented by this run"
+      },
+      "manifest_sha256": "aef44a326a1e5067920610bb8af6b1efc6c910783bc5445476c50456f420646e",
+      "native_gate_count": 9,
+      "native_report": "linux-aarch64-gcc/native-qualification/report.json",
+      "native_status": "PASS",
+      "node_sha256": "0f0fcaff4c2091ac4d9e02c498c57b54e899457e58b35e8e990faf6c4aae10af",
+      "private_app_flow_status": "PASS",
+      "private_app_report": "linux-aarch64-gcc/public-profile-app/report.json",
+      "private_app_scope": "PRIVATE_TWO_CONTAINER_APP_FLOW_NOT_PUBLIC_SOAK",
+      "production_admitted": false,
+      "public_soak": false,
+      "signer_sha256": "1887e4dadac3ee3ea9f6bff0bdfb30f2251854d3112a8ba3626fb66ce010bb10"
+    },
+    {
+      "architecture": "aarch64",
+      "compiler": "clang",
+      "descriptor": "linux-aarch64-clang/runtime-descriptor.json",
+      "emulated": false,
+      "image_id": "sha256:7f9d769599b5ce97e009da0bdb590555d776980d88dd0d8f95fc4028464bab08",
+      "instrumentation_scope": {
+        "contract_backend_and_signer": "normal plus ASan/UBSan",
+        "key_lifecycle": "normal plus ASan/UBSan with entropy/fault controls",
+        "node": "release build; resource timings exclude fixture generation",
+        "openssl": "pinned static library; not instrumented by this run"
+      },
+      "manifest_sha256": "b877777566f6fb4238d59d79de9510b6fa87276ba4346caddad5af9c95d2a74e",
+      "native_gate_count": 9,
+      "native_report": "linux-aarch64-clang/native-qualification/report.json",
+      "native_status": "PASS",
+      "node_sha256": "27976360c1f854268d034a5911ee6d52dff1106f9a9903003442354932d17678",
+      "private_app_flow_status": "PASS",
+      "private_app_report": "linux-aarch64-clang/public-profile-app/report.json",
+      "private_app_scope": "PRIVATE_TWO_CONTAINER_APP_FLOW_NOT_PUBLIC_SOAK",
+      "production_admitted": false,
+      "public_soak": false,
+      "signer_sha256": "191954cb9b3212e58f95719308138b6d3d9772c93372692a6af9c95b4c7356cb"
+    }
+  ],
+  "public_preflight": {
+    "required_actual_elapsed_seconds": 900,
+    "status": "PENDING"
+  },
+  "public_soak_24h": {
+    "ci_and_private_flows_do_not_count": true,
+    "required_actual_elapsed_seconds": 86400,
+    "required_clocks": [
+      "UTC",
+      "monotonic"
+    ],
+    "status": "PENDING"
+  },
+  "release_hold": true,
+  "schema": "PQBTC-MLDSA44-PUBLICATION-EVIDENCE-1",
+  "scope": "ALLOWLISTED_NATIVE_AND_PRIVATE_APP_EVIDENCE",
+  "status_boundary": "Native and private app qualification only. No completed fresh D/F public preflight, elapsed public soak, human cryptographic review or production admission is asserted.",
+  "subject": {
+    "head": "3a76cdd6005c1f5d948deb602c6985c1db508375",
+    "tree": "9426d9dd4c3c2d082059b2ffc14fa912a121b1dc"
+  }
+}

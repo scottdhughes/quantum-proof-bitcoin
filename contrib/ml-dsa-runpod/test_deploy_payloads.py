@@ -1,0 +1,197 @@
+#!/usr/bin/env python3
+# Copyright (c) 2026 The PQBTC Core developers
+# Distributed under the MIT software license, see the accompanying COPYING.
+"""Public archive and strict transport boundary tests; no native execution."""
+import io
+import json
+import os
+from pathlib import Path
+import tarfile
+import tempfile
+import unittest
+import sys
+from types import SimpleNamespace
+from unittest.mock import patch
+
+import deploy_payloads
+import install_payload
+import export_state
+
+
+class DeploymentTests(unittest.TestCase):
+    def test_restart_during_final_binding_write_cannot_return_install_pass(self):
+        transport = {'kind': 'ssh', 'pod_id': 'pod-test', 'generation': '2026-11-14T19:23:27Z',
+                     'known_hosts_sha256': 'a' * 64, 'hostkey_source': 'AUTHENTICATED_PROVIDER_EXEC_PUBLIC_KEY_ONLY',
+                     'argv': ['ssh', '-T', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes',
+                              '-o', 'ForwardAgent=no', '-o', 'UserKnownHostsFile=/owned/hosts', 'root@203.0.113.1']}
+        before = {'id': 'pod-test', 'name': 'owned-task', 'started_at': transport['generation'], 'mounts': {}}
+        binding = deploy_payloads.binding_for_transport(transport, before)
+        entries = {role: {'sha256': role * 64, 'size': 1, 'path': '/public/' + role} for role in ('a3', 'c', 'control')}
+        plan = {'archives': entries, 'control_head': 'a' * 40, 'control_tree': 'b' * 40}
+        for changed in (False, True):
+            with self.subTest(changed=changed):
+                final = {**before, 'started_at': '2026-11-14T20:00:00Z'} if changed else before
+                responses = [SimpleNamespace(returncode=0, stdout='')]
+                responses.extend(SimpleNamespace(returncode=0, stdout=json.dumps(
+                    {'result': 'PASS', 'role': role, 'archive_sha256': entries[role]['sha256']})) for role in entries)
+                responses.append(SimpleNamespace(returncode=0, stdout=json.dumps({'result': 'PASS', 'provider_binding': binding})))
+                with patch.object(deploy_payloads, 'provider', side_effect=[before, before, final]), \
+                     patch.object(deploy_payloads, 'bounded', side_effect=responses):
+                    if changed:
+                        with self.assertRaisesRegex(ValueError, 'crossed a restart'):
+                            deploy_payloads.install(plan, transport)
+                    else:
+                        self.assertEqual(len(deploy_payloads.install(plan, transport)), 3)
+
+    def test_provider_binding_requires_matching_attestation_and_protected_destination(self):
+        transport = {'pod_id': 'pod-test', 'generation': '2026-11-14T19:23:27Z', 'known_hosts_sha256': 'a' * 64,
+                     'hostkey_source': 'AUTHENTICATED_PROVIDER_EXEC_PUBLIC_KEY_ONLY'}
+        pod = {'id': 'pod-test', 'started_at': transport['generation']}
+        binding = deploy_payloads.binding_for_transport(transport, pod)
+        with self.assertRaises(ValueError):
+            deploy_payloads.binding_for_transport(transport, {**pod, 'id': 'other-pod'})
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / 'binding.json'
+            install_payload.write_provider_binding(path, binding, owner=os.geteuid())
+            self.assertEqual(json.loads(path.read_text()), binding)
+            self.assertEqual(path.stat().st_mode & 0o777, 0o444)
+            with self.assertRaises(ValueError):
+                install_payload.write_provider_binding(path, {**binding, 'pod_id': 'other-pod'}, owner=os.geteuid())
+            link = root / 'linked'
+            link.symlink_to(path)
+            with self.assertRaises(ValueError):
+                install_payload.write_provider_binding(link, binding, owner=os.geteuid())
+
+    def test_runtime_layout_secures_only_mount_parent_and_refuses_links(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            mount = root / 'volume'
+            mount.mkdir(mode=0o777)
+            retained = mount / 'retained-data'
+            retained.write_bytes(b'UNCHANGED')
+            retained.chmod(0o600)
+            # This DATA fixture verifies layout ownership; real cross-UID
+            # traversal is checked separately with a traversable Linux parent.
+            with patch.object(install_payload.os.path, 'ismount', return_value=True), \
+                 patch.object(install_payload, 'verify_posix_isolation'):
+                install_payload.prepare_layout(root / 'runtime', mount, owner=os.geteuid(), group=os.getegid())
+                self.assertEqual(mount.stat().st_mode & 0o777, 0o755)
+                self.assertEqual(retained.read_bytes(), b'UNCHANGED')
+                self.assertEqual(retained.stat().st_mode & 0o777, 0o600)
+                linked = root / 'linked'
+                linked.symlink_to(mount)
+                with self.assertRaises(ValueError):
+                    install_payload.prepare_layout(root / 'other', linked, owner=os.geteuid(), group=os.getegid())
+            with self.assertRaises(ValueError):
+                install_payload.prepare_layout(root / 'other', mount, owner=os.geteuid(), group=os.getegid())
+
+    def test_refuse_unsafe_archive_members(self):
+        for name, kind in (("../escape", tarfile.REGTYPE), ("c/../../escape", tarfile.REGTYPE),
+                           ("a3/file", tarfile.REGTYPE), ("c/link", tarfile.SYMTYPE), ("c/fifo", tarfile.FIFOTYPE)):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                with tarfile.open(root / "bad.tar", "w") as archive:
+                    item = tarfile.TarInfo(name)
+                    item.type = kind
+                    item.linkname = "/etc/passwd"
+                    archive.addfile(item)
+                with self.assertRaises(ValueError):
+                    install_payload.extract(root / "bad.tar", root / "out", "c")
+                self.assertFalse((root / "escape").exists())
+
+    def test_regular_archive_and_duplicate_refusal(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with tarfile.open(root / "good.tar", "w") as archive:
+                item = tarfile.TarInfo("c/data")
+                item.size = 4
+                archive.addfile(item, io.BytesIO(b"DATA"))
+            install_payload.extract(root / "good.tar", root / "out", "c")
+            self.assertEqual((root / "out/c/data").read_bytes(), b"DATA")
+            with tarfile.open(root / "duplicate.tar", "w") as archive:
+                item = tarfile.TarInfo("c/data")
+                archive.addfile(item)
+                archive.addfile(item)
+            with self.assertRaises(ValueError):
+                install_payload.extract(root / "duplicate.tar", root / "twice", "c")
+
+    def test_provider_pinned_ssh_and_shell_quoting(self):
+        transport = {"kind": "ssh", "hostkey_source": "AUTHENTICATED_PROVIDER_EXEC_PUBLIC_KEY_ONLY",
+                     "argv": ["ssh", "-T", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes",
+                              "-o", "ForwardAgent=no", "-o", "UserKnownHostsFile=/owned/hosts", "root@203.0.113.1"]}
+        result = deploy_payloads.ssh_command(transport, ["python3", "-c", "print('literal; $HOME')"])
+        self.assertEqual(result[:-1], transport["argv"])
+        self.assertIn("'", result[-1])
+        changed = {**transport, "argv": [v for v in transport["argv"] if v != "StrictHostKeyChecking=yes"]}
+        with self.assertRaises(ValueError):
+            deploy_payloads.ssh_command(changed, ["true"])
+        with self.assertRaises(ValueError):
+            deploy_payloads.ssh_command({**transport, "hostkey_source": "TOFU"}, ["true"])
+
+    def test_installed_marker_replay_checks_actual_bytes_and_links(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with tarfile.open(root / 'payload.tar', 'w') as archive:
+                item = tarfile.TarInfo('c/data')
+                item.size = 4
+                archive.addfile(item, io.BytesIO(b'DATA'))
+            install_payload.extract(root / 'payload.tar', root / 'installed', 'c')
+            target = root / 'installed/c'
+            install_payload.verify_installed(root / 'payload.tar', target, 'c', owner=os.geteuid())
+            data = target / 'data'
+            data.chmod(0o644)
+            data.write_bytes(b'EVIL')
+            with self.assertRaises(ValueError):
+                install_payload.verify_installed(root / 'payload.tar', target, 'c', owner=os.geteuid())
+            link = root / 'linked'
+            link.symlink_to(target)
+            with self.assertRaises(ValueError):
+                install_payload.verify_installed(root / 'payload.tar', link, 'c', owner=os.geteuid())
+
+    def test_live_registry_refuses_state_export(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / 'native-processes.json'
+            path.write_text(json.dumps({'namespace': 'pqbtc-runpod-test', 'groups': []}))
+            path.chmod(0o600)
+            self.assertIn('native-processes.json', export_state.quiescent_inventory(root, owner=os.geteuid()))
+            path.write_text(json.dumps({'namespace': 'pqbtc-runpod-test', 'groups': [{'pid': 123}]}))
+            with self.assertRaises(ValueError):
+                export_state.quiescent_inventory(root, owner=os.geteuid())
+            self.assertIn('--exclude=.cookie*', export_state.tar_command(root))
+
+    def test_bounded_upload_stdin_and_output_overflow(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'public-data'
+            path.write_bytes(b'PUBLIC CODE DATA')
+            result = deploy_payloads.bounded([sys.executable, '-c',
+                                              'import sys;sys.stdout.buffer.write(sys.stdin.buffer.read())'],
+                                             stdin_path=path, limit=100)
+            self.assertEqual(result.stdout, path.read_text())
+            with self.assertRaises(ValueError):
+                deploy_payloads.bounded([sys.executable, '-c', 'import os;os.write(1,b"x"*4096)'], limit=1024)
+            with self.assertRaises(ValueError):
+                deploy_payloads.bounded([sys.executable, '-c', 'import os;os.write(2,b"diagnostic")'],
+                                        limit=1024, fail_on_stderr=True)
+
+    def test_binary_stream_preserves_non_utf8_and_enforces_write_bound(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / 'binary'
+            script = Path(deploy_payloads.HERE) / 'bounded_stream.py'
+            command = [sys.executable, '-B', str(script), '--output', str(path), '--maximum', '1024', '--',
+                       sys.executable, '-c', 'import os;os.write(1,bytes([255,0,13,10])*100)']
+            result = deploy_payloads.bounded(command, limit=4096)
+            self.assertEqual(json.loads(result.stdout)['bytes'], 400)
+            self.assertEqual(path.read_bytes(), bytes([255,0,13,10])*100)
+            path = root / 'overflow'
+            command = [sys.executable, '-B', str(script), '--output', str(path), '--maximum', '1024', '--',
+                       sys.executable, '-c', 'import os;os.write(1,b"X"*4096)']
+            with self.assertRaises(ValueError):
+                deploy_payloads.bounded(command, limit=4096)
+            self.assertLessEqual(path.stat().st_size, 1024)
+
+
+if __name__ == "__main__":
+    unittest.main()

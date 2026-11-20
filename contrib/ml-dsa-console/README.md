@@ -97,11 +97,14 @@ claimed.
    **Stop network** stops both nodes and the signer while leaving the console
    open. Ctrl+C in the launch terminal closes the console and its lab processes.
 
-All coins and wallets are disposable. The operator phrase is a deliberately
+All coins and wallets in this offline demo are disposable. The operator phrase is a deliberately
 public test fixture, and unlocking asks for no password. This console is for
-the experimental ML-DSA path. User-owned secret setup, production qualification
-and public-network operation remain later milestones. The owner-selected testing
-route is public GitHub; independent human review is recorded as not performed.
+the experimental ML-DSA path. The separate [public-test wallet](PUBLIC_TEST.md)
+provides operator-selected secret setup, public-profile peering and independent
+recovery floors on port 8845. Its native qualification and 24-hour public soak
+require their own actual receipts; production qualification remains open. The
+owner-selected testing route is public GitHub; independent human review is
+recorded as not performed.
 
 ## Saved state and recovery
 

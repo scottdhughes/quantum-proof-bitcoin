@@ -51,7 +51,7 @@ def double_hash(raw):
     return hashlib.sha256(hashlib.sha256(raw).digest()).digest()[::-1].hex()
 
 
-def open_public_store(module, path):
+def open_public_store(module, path, network="regtest"):
     """Preserve interrupted public writes while holding the actual writer lock.
 
     Partial metadata is diagnostic evidence, never an alternative manifest.
@@ -105,7 +105,7 @@ def open_public_store(module, path):
                 os.close(fd)
     # A competing opener can win this lock transition. PublicStore then refuses
     # the open; reconciliation never touches another active writer's temp file.
-    return module.PublicStore(path)
+    return module.PublicStore(path, network=network) if network != "regtest" else module.PublicStore(path)
 
 
 def preflight_ports(ports):

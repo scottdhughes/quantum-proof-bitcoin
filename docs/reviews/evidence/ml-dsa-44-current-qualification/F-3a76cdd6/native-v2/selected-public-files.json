@@ -1,0 +1,252 @@
+{
+  "binaries_or_raw_corpus_included": false,
+  "files": [
+    {
+      "bytes": 1136,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-review-run-context.txt",
+      "sha256": "48d3a6055a67076e90317054ac5c0d31830757a0b442f13fd546bdcd9c5601c6"
+    },
+    {
+      "bytes": 92,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-review-run.sha256",
+      "sha256": "009069a09541a883f9b5a4aafa974e41fa8b53b368a1f730019fda9c16efa75b"
+    },
+    {
+      "bytes": 453498,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-review-run.json",
+      "sha256": "f0b13f23d0a809c3a0383713039bcc0b97d5af29c094c6bcd85a9bd1c539d3af"
+    },
+    {
+      "bytes": 548,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-review-toolchain.txt",
+      "sha256": "064213ebb8b3c84b597e5d10f70b5637b5d137d822801763268898add2e4d292"
+    },
+    {
+      "bytes": 24896,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-fuzz-run.json",
+      "sha256": "114806501eeb9cd052532c2ead0dcac14f09efcfd34bf4dd50a018779b27b425"
+    },
+    {
+      "bytes": 103,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-fuzz-run.sha256",
+      "sha256": "2b3ff44b12fc270db7fc7d198a06a4fb4a3a093689f3b2acc7b1904ee3a4c26f"
+    },
+    {
+      "bytes": 565,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-campaign-parameters.txt",
+      "sha256": "3dc8665a62315303b882e27d305154cd797369a83888f5f37fa7f01471777fb8"
+    },
+    {
+      "bytes": 753,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-retained-corpus.txt",
+      "sha256": "0abc39ecb5e54c1ba8c3e47db8faf4ebc755e5ffa2693fe62586a077eb224eac"
+    },
+    {
+      "bytes": 827,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-coverage-floors.json",
+      "sha256": "7e99a1ad150592c34e75ef493c0649a56a5295599aa7b7c5ce85276ac328a263"
+    },
+    {
+      "bytes": 431,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-supplemental.sha256",
+      "sha256": "90c345c8baee9c761d677ed4ad2e621eac3b87ff86b507dddc98620a8d388eb6"
+    },
+    {
+      "bytes": 78430,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-fuzz/SHA256SUMS",
+      "sha256": "450dab7d7d2f041bc93796655b66f8e0fbc7da6d4d31bb00963bbc6b6dbff612"
+    },
+    {
+      "bytes": 26919,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-fuzz/campaign.json",
+      "sha256": "892b6a96dbfbf9a8f1d2397e4c205facd1666de7e8b1261e191e4f75acc86ef8"
+    },
+    {
+      "bytes": 40763,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-fuzz/coverage.json",
+      "sha256": "9667122d61d686b713319efc9487dd407e3350e7baf58aec51855c5445930a13"
+    },
+    {
+      "bytes": 12107,
+      "classification": "original comparator public report/context/checksum/coverage",
+      "path": "comparator-main-72acd0f566ece43723e8116ff70209e97f354746/ml-dsa-44-differential-fuzz/coverage.txt",
+      "sha256": "8e32ca078d7b248467752df718294cbf8f14817c8bd300f922616036548a7273"
+    },
+    {
+      "bytes": 17542,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/valgrind-ct-plan.json",
+      "sha256": "e610e69a0ed0910e79c5afdcacd4be6cb95caca3b7899679373c33193acb8dc4"
+    },
+    {
+      "bytes": 11404,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/valgrind-ct-report.json",
+      "sha256": "90426506ed43e4ce36c63c31636c1a7ccd54a43ae90b39adb39ce24a8c8d0d49"
+    },
+    {
+      "bytes": 1639,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/SHA256SUMS",
+      "sha256": "36f099b419822f3a90736d07c8cea294adb97097724fc115f7fe65491a24c886"
+    },
+    {
+      "bytes": 148,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/workflow-context.txt",
+      "sha256": "d420721c41c0139da4645abc809f82be4a60259576b9a77b31f6db399705eeb7"
+    },
+    {
+      "bytes": 3027,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-branch.xml",
+      "sha256": "1aad2e8d748da8b6190e95deb14967b0bcd9c50e09cba26d139629781eeef328"
+    },
+    {
+      "bytes": 3005,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-address.xml",
+      "sha256": "beecdf651467ac80c1d9a9c1b78a32d02a07989ee9ab416740aaf8e4b6b5b386"
+    },
+    {
+      "bytes": 3074,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-variable-latency.xml",
+      "sha256": "6f48195fac73d6cc2619e837b1e954e022ba8b17952f5a688bd636ba8544f4f2"
+    },
+    {
+      "bytes": 3092,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/secret-key-taint-control.xml",
+      "sha256": "f6841d66421d5b486d31eae9a812a2415c817f05527bbd22ae21d2eb9f6ec9c5"
+    },
+    {
+      "bytes": 2022,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/wrapper-ct.xml",
+      "sha256": "a559b588e5128a9708f9cdc813f09c1d8b52f6af2a0a5ed9c30fb65804eef78f"
+    },
+    {
+      "bytes": 17554,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/valgrind-ct-plan.json",
+      "sha256": "89debfe0f2d67dde7d6e1d7a7520a542aa3c1e79dba5bda659ed2e5d6da17878"
+    },
+    {
+      "bytes": 11633,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/valgrind-ct-report.json",
+      "sha256": "5299dc6b1192c4d581918e77163c0aa11791ac30a35c89cd5b3260a25b0fbdf5"
+    },
+    {
+      "bytes": 1639,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/SHA256SUMS",
+      "sha256": "9bc5e4b3e5c6f9b92d2e8c3b2fc804b1a9b11689f07cf44251f51c058c0945f7"
+    },
+    {
+      "bytes": 150,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/workflow-context.txt",
+      "sha256": "8e0f3d603c9620ac0b50e0b0772e5f314d37b3ea503d751fcc1737d504853826"
+    },
+    {
+      "bytes": 3037,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-branch.xml",
+      "sha256": "3911dc1091f4221998b664357cc13d8d08be2ec01bf6024a07aa0943ee4e9009"
+    },
+    {
+      "bytes": 3015,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-address.xml",
+      "sha256": "9d3639025f0ab65ee5e21fd216ecfdd3a53817fa2b5b6b96cefed5fd372717a7"
+    },
+    {
+      "bytes": 3084,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/probe-variable-latency.xml",
+      "sha256": "57e0a719123f5cf5096717d8f379825f5b0052e80ec3558fbfee286f0f51fef4"
+    },
+    {
+      "bytes": 3095,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/secret-key-taint-control.xml",
+      "sha256": "b87408f6eadb8c55a063fd932ec671b6c12d7941e8dacfa84ec070ce12975f56"
+    },
+    {
+      "bytes": 2028,
+      "classification": "original scoped CT public report/plan/context/XML/checksum",
+      "path": "ct-clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401/audit/logs/wrapper-ct.xml",
+      "sha256": "6f199401799a87cc55341ca657674b11bcf24d0b8008524a546ff28c812a11ae"
+    },
+    {
+      "bytes": 45250,
+      "classification": "derived verification or public primary metadata",
+      "path": "verification-receipt.json",
+      "sha256": "3ddc2d53b8ecc87bd11d4eade5e3d167482f06d9a88aa2c3a51b684d9e36741b"
+    },
+    {
+      "bytes": 4156,
+      "classification": "derived verification or public primary metadata",
+      "path": "source-lineage-from-explorer.json",
+      "sha256": "3e614e3cf7b54dc139b3c083c2064e50712fa65a236299fe7cf6eb8ae4c0352d"
+    },
+    {
+      "bytes": 2169,
+      "classification": "derived verification or public primary metadata",
+      "path": "upstream-pins-verification.json",
+      "sha256": "c55b0241b91b8a84408d702ebff03eebeed5ce6ae289df2f67f7aa905fdc1b0a"
+    },
+    {
+      "bytes": 18047,
+      "classification": "derived verification or public primary metadata",
+      "path": "github-observations.json",
+      "sha256": "0f8d26fa12abebe8e3b5bf4b1c96f1b12e9d98b88321494152b480c623cb93aa"
+    },
+    {
+      "bytes": 1164,
+      "classification": "derived verification or public primary metadata",
+      "path": "github-run-details.json",
+      "sha256": "f93b7e766ebd8cc0c3ddcdac632891889742b5872417efbfb4c7e768883b9c1c"
+    },
+    {
+      "bytes": 1606,
+      "classification": "pinned public upstream source bytes",
+      "path": "upstream-native-v2/flake.lock",
+      "sha256": "8f1762cc57561256465ef3b467f44b99b606c3b196870b81a329b8de0cebdd69"
+    },
+    {
+      "bytes": 10683,
+      "classification": "pinned public upstream source bytes",
+      "path": "upstream-native-v2/flake.nix",
+      "sha256": "37050e4cd51e0d83dd08b5164dc4a27640e50d0873b598b549f4e460d74e9d42"
+    },
+    {
+      "bytes": 36011,
+      "classification": "pinned public upstream source bytes",
+      "path": "upstream-native-v2/nix/valgrind/valgrind-varlat-patch-20240808.txt",
+      "sha256": "d54b140f2bacaea91470940a963950b7126685810df2192640cd103328b421f4"
+    }
+  ],
+  "historical_full_manifest_reference_policy": "Original manifests retain their original full-scope references; use the new selected checksum index for the selected packet.",
+  "independent_human_review": "NOT_PERFORMED",
+  "production_admitted": false,
+  "schema": "PQBTC-NATIVE-V2-PUBLIC-COPY-ALLOWLIST-1",
+  "scope": "PROPOSED_SELECTION_ONLY_NO_PUBLICATION",
+  "whole_app_constant_time_qualified": false,
+  "whole_archives_included": false
+}

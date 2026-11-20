@@ -1,0 +1,1489 @@
+{
+  "data": [
+    {
+      "files": [
+        {
+          "filename": "/home/runner/work/_temp/ml-dsa-review/openssl-install/include/openssl/core_dispatch.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 1,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 278,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 3,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 1,
+              "covered": 0,
+              "notcovered": 1,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/_temp/ml-dsa-review/openssl-install/include/openssl/core_names.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/_temp/ml-dsa-review/openssl-install/include/openssl/err.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 5,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 5,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 21,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 5,
+              "covered": 0,
+              "notcovered": 5,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/_temp/ml-dsa-review/openssl-install/include/openssl/evp.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/_temp/ml-dsa-review/openssl-install/include/openssl/lhash.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 11,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 33,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 37,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 11,
+              "covered": 0,
+              "notcovered": 11,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/_temp/ml-dsa-review/openssl-install/include/openssl/safestack.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 7,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 84,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 22,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 7,
+              "covered": 0,
+              "notcovered": 7,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/pqbtc_mldsa44.c",
+          "summary": {
+            "branches": {
+              "count": 106,
+              "covered": 22,
+              "notcovered": 84,
+              "percent": 20.754716981132077
+            },
+            "functions": {
+              "count": 16,
+              "covered": 4,
+              "percent": 25
+            },
+            "instantiations": {
+              "count": 16,
+              "covered": 4,
+              "percent": 25
+            },
+            "lines": {
+              "count": 205,
+              "covered": 35,
+              "percent": 17.073170731707318
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 165,
+              "covered": 31,
+              "notcovered": 134,
+              "percent": 18.787878787878785
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/pqbtc_mldsa44.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/pqbtc_mldsa44_config.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/pqbtc_mldsa44_openssl_verify.c",
+          "summary": {
+            "branches": {
+              "count": 50,
+              "covered": 37,
+              "notcovered": 13,
+              "percent": 74
+            },
+            "functions": {
+              "count": 4,
+              "covered": 3,
+              "percent": 75
+            },
+            "instantiations": {
+              "count": 4,
+              "covered": 3,
+              "percent": 75
+            },
+            "lines": {
+              "count": 113,
+              "covered": 81,
+              "percent": 71.68141592920354
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 84,
+              "covered": 72,
+              "notcovered": 12,
+              "percent": 85.71428571428571
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/pqbtc_mldsa44_verify_fuzz.c",
+          "summary": {
+            "branches": {
+              "count": 114,
+              "covered": 98,
+              "notcovered": 16,
+              "percent": 85.96491228070175
+            },
+            "functions": {
+              "count": 11,
+              "covered": 11,
+              "percent": 100
+            },
+            "instantiations": {
+              "count": 11,
+              "covered": 11,
+              "percent": 100
+            },
+            "lines": {
+              "count": 307,
+              "covered": 275,
+              "percent": 89.57654723127035
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 185,
+              "covered": 176,
+              "notcovered": 9,
+              "percent": 95.13513513513514
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/common.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/context.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 3,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 3,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 13,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 6,
+              "covered": 0,
+              "notcovered": 6,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/ct.h",
+          "summary": {
+            "branches": {
+              "count": 2,
+              "covered": 2,
+              "notcovered": 0,
+              "percent": 100
+            },
+            "functions": {
+              "count": 16,
+              "covered": 16,
+              "percent": 100
+            },
+            "instantiations": {
+              "count": 16,
+              "covered": 16,
+              "percent": 100
+            },
+            "lines": {
+              "count": 53,
+              "covered": 53,
+              "percent": 100
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 23,
+              "covered": 23,
+              "notcovered": 0,
+              "percent": 100
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/debug.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/fips202/fips202.c",
+          "summary": {
+            "branches": {
+              "count": 8,
+              "covered": 7,
+              "notcovered": 1,
+              "percent": 87.5
+            },
+            "functions": {
+              "count": 15,
+              "covered": 9,
+              "percent": 60
+            },
+            "instantiations": {
+              "count": 15,
+              "covered": 9,
+              "percent": 60
+            },
+            "lines": {
+              "count": 95,
+              "covered": 70,
+              "percent": 73.68421052631578
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 84,
+              "covered": 53,
+              "notcovered": 31,
+              "percent": 63.095238095238095
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/fips202/fips202.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/fips202/fips202x4.c",
+          "summary": {
+            "branches": {
+              "count": 8,
+              "covered": 5,
+              "notcovered": 3,
+              "percent": 62.5
+            },
+            "functions": {
+              "count": 10,
+              "covered": 6,
+              "percent": 60
+            },
+            "instantiations": {
+              "count": 10,
+              "covered": 6,
+              "percent": 60
+            },
+            "lines": {
+              "count": 83,
+              "covered": 49,
+              "percent": 59.036144578313255
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 59,
+              "covered": 37,
+              "notcovered": 22,
+              "percent": 62.71186440677966
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/fips202/fips202x4.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/fips202/keccakf1600.c",
+          "summary": {
+            "branches": {
+              "count": 6,
+              "covered": 6,
+              "notcovered": 0,
+              "percent": 100
+            },
+            "functions": {
+              "count": 9,
+              "covered": 9,
+              "percent": 100
+            },
+            "instantiations": {
+              "count": 9,
+              "covered": 9,
+              "percent": 100
+            },
+            "lines": {
+              "count": 301,
+              "covered": 301,
+              "percent": 100
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 137,
+              "covered": 137,
+              "notcovered": 0,
+              "percent": 100
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/fips202/keccakf1600.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/packing.c",
+          "summary": {
+            "branches": {
+              "count": 26,
+              "covered": 18,
+              "notcovered": 8,
+              "percent": 69.23076923076923
+            },
+            "functions": {
+              "count": 8,
+              "covered": 2,
+              "percent": 25
+            },
+            "instantiations": {
+              "count": 8,
+              "covered": 2,
+              "percent": 25
+            },
+            "lines": {
+              "count": 111,
+              "covered": 51,
+              "percent": 45.94594594594595
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 152,
+              "covered": 51,
+              "notcovered": 101,
+              "percent": 33.55263157894737
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/packing.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/params.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/poly.c",
+          "summary": {
+            "branches": {
+              "count": 50,
+              "covered": 39,
+              "notcovered": 11,
+              "percent": 78
+            },
+            "functions": {
+              "count": 29,
+              "covered": 23,
+              "percent": 79.3103448275862
+            },
+            "instantiations": {
+              "count": 29,
+              "covered": 23,
+              "percent": 79.3103448275862
+            },
+            "lines": {
+              "count": 505,
+              "covered": 311,
+              "percent": 61.584158415841586
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 302,
+              "covered": 218,
+              "notcovered": 84,
+              "percent": 72.18543046357617
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/poly.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/poly_kl.c",
+          "summary": {
+            "branches": {
+              "count": 18,
+              "covered": 11,
+              "notcovered": 7,
+              "percent": 61.111111111111114
+            },
+            "functions": {
+              "count": 14,
+              "covered": 5,
+              "percent": 35.714285714285715
+            },
+            "instantiations": {
+              "count": 14,
+              "covered": 5,
+              "percent": 35.714285714285715
+            },
+            "lines": {
+              "count": 435,
+              "covered": 107,
+              "percent": 24.597701149425287
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 204,
+              "covered": 77,
+              "notcovered": 127,
+              "percent": 37.745098039215684
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/poly_kl.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 1,
+              "covered": 1,
+              "percent": 100
+            },
+            "instantiations": {
+              "count": 1,
+              "covered": 1,
+              "percent": 100
+            },
+            "lines": {
+              "count": 4,
+              "covered": 4,
+              "percent": 100
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 5,
+              "covered": 5,
+              "notcovered": 0,
+              "percent": 100
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/polyvec.c",
+          "summary": {
+            "branches": {
+              "count": 24,
+              "covered": 10,
+              "notcovered": 14,
+              "percent": 41.66666666666667
+            },
+            "functions": {
+              "count": 16,
+              "covered": 5,
+              "percent": 31.25
+            },
+            "instantiations": {
+              "count": 16,
+              "covered": 5,
+              "percent": 31.25
+            },
+            "lines": {
+              "count": 231,
+              "covered": 74,
+              "percent": 32.03463203463203
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 174,
+              "covered": 61,
+              "notcovered": 113,
+              "percent": 35.05747126436782
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/polyvec.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/polyvec_lazy.c",
+          "summary": {
+            "branches": {
+              "count": 10,
+              "covered": 7,
+              "notcovered": 3,
+              "percent": 70
+            },
+            "functions": {
+              "count": 4,
+              "covered": 2,
+              "percent": 50
+            },
+            "instantiations": {
+              "count": 4,
+              "covered": 2,
+              "percent": 50
+            },
+            "lines": {
+              "count": 95,
+              "covered": 56,
+              "percent": 58.94736842105262
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 87,
+              "covered": 56,
+              "notcovered": 31,
+              "percent": 64.36781609195403
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/polyvec_lazy.h",
+          "summary": {
+            "branches": {
+              "count": 2,
+              "covered": 0,
+              "notcovered": 2,
+              "percent": 0
+            },
+            "functions": {
+              "count": 9,
+              "covered": 1,
+              "percent": 11.11111111111111
+            },
+            "instantiations": {
+              "count": 9,
+              "covered": 1,
+              "percent": 11.11111111111111
+            },
+            "lines": {
+              "count": 36,
+              "covered": 4,
+              "percent": 11.11111111111111
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 42,
+              "covered": 1,
+              "notcovered": 41,
+              "percent": 2.380952380952381
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/reduce.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 3,
+              "covered": 3,
+              "percent": 100
+            },
+            "instantiations": {
+              "count": 3,
+              "covered": 3,
+              "percent": 100
+            },
+            "lines": {
+              "count": 22,
+              "covered": 22,
+              "percent": 100
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 12,
+              "covered": 12,
+              "notcovered": 0,
+              "percent": 100
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/rounding.h",
+          "summary": {
+            "branches": {
+              "count": 16,
+              "covered": 8,
+              "notcovered": 8,
+              "percent": 50
+            },
+            "functions": {
+              "count": 4,
+              "covered": 2,
+              "percent": 50
+            },
+            "instantiations": {
+              "count": 4,
+              "covered": 2,
+              "percent": 50
+            },
+            "lines": {
+              "count": 41,
+              "covered": 29,
+              "percent": 70.73170731707317
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 49,
+              "covered": 29,
+              "notcovered": 20,
+              "percent": 59.183673469387756
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.c",
+          "summary": {
+            "branches": {
+              "count": 164,
+              "covered": 29,
+              "notcovered": 135,
+              "percent": 17.682926829268293
+            },
+            "functions": {
+              "count": 23,
+              "covered": 4,
+              "percent": 17.391304347826086
+            },
+            "instantiations": {
+              "count": 23,
+              "covered": 4,
+              "percent": 17.391304347826086
+            },
+            "lines": {
+              "count": 895,
+              "covered": 122,
+              "percent": 13.631284916201118
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 817,
+              "covered": 273,
+              "notcovered": 544,
+              "percent": 33.414932680538556
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sign.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/symmetric.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 0,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            }
+          }
+        },
+        {
+          "filename": "/home/runner/work/quantum-proof-bitcoin/quantum-proof-bitcoin/contrib/ml-dsa-engineering/vendor/mldsa-native/mldsa/src/sys.h",
+          "summary": {
+            "branches": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "functions": {
+              "count": 1,
+              "covered": 0,
+              "percent": 0
+            },
+            "instantiations": {
+              "count": 1,
+              "covered": 0,
+              "percent": 0
+            },
+            "lines": {
+              "count": 10,
+              "covered": 0,
+              "percent": 0
+            },
+            "mcdc": {
+              "count": 0,
+              "covered": 0,
+              "notcovered": 0,
+              "percent": 0
+            },
+            "regions": {
+              "count": 1,
+              "covered": 0,
+              "notcovered": 1,
+              "percent": 0
+            }
+          }
+        }
+      ],
+      "totals": {
+        "branches": {
+          "count": 604,
+          "covered": 299,
+          "notcovered": 305,
+          "percent": 49.503311258278146
+        },
+        "functions": {
+          "count": 220,
+          "covered": 106,
+          "percent": 48.18181818181818
+        },
+        "instantiations": {
+          "count": 596,
+          "covered": 106,
+          "percent": 17.78523489932886
+        },
+        "lines": {
+          "count": 3638,
+          "covered": 1644,
+          "percent": 45.18966465090709
+        },
+        "mcdc": {
+          "count": 0,
+          "covered": 0,
+          "notcovered": 0,
+          "percent": 0
+        },
+        "regions": {
+          "count": 2612,
+          "covered": 1312,
+          "notcovered": 1300,
+          "percent": 50.22970903522205
+        }
+      }
+    }
+  ],
+  "type": "llvm.coverage.json.export",
+  "version": "2.0.1"
+}

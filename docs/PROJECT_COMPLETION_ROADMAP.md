@@ -1,9 +1,12 @@
 # PQBTC completion roadmap
 
-Updated 2026-11-09. This is the current execution order for the ML-DSA path.
+Updated 2026-11-16 UTC. This is the current execution order for the ML-DSA path.
 The April–July Track A roadmap remains historical. This roadmap builds on the
 [owner continuation](ML_DSA_44_OWNER_CONTINUATION.md), the implemented node
 integration, and the [durable local app](DURABLE_RUNTIME_VALIDATION.md).
+The [current qualification record](ML_DSA_44_CURRENT_QUALIFICATION.md) identifies
+the tested sources, completed public preflights and terminal full-duration
+attempts, including controlled source supersession.
 
 ## Owner direction
 
@@ -46,8 +49,23 @@ after release; it is not an undefined prerequisite to shipping v1.
   restart, forced container recreation and host app restart.
 - Recovery with a missing current wallet record, later-address non-reuse and
   another confirmed spend, with matching full UTXO hashes on both nodes.
-- 111 focused console/protocol tests at the durable-app checkpoint. These are
-  bounded engineering results, not a count of all required release checks.
+- Historical durable-app checkpoint: 111 focused console/protocol tests. That
+  bounded count retains its original scope and is not the current release total.
+- Clean-source installation and assembled-system CI, with all nine native gates
+  and private app flows passing for F and G on Linux x86_64/aarch64 with GCC/Clang.
+- Fresh D/F public preflight 03: all seven fault phases, 22 confirmed payments,
+  final missing-record recovery/spend and owned cleanup passed over 900 seconds.
+  The separate F 24-hour attempt failed after approximately 21 hours.
+- Fresh F/G public preflight 02 also passed all seven fault phases, 22 confirmed
+  payments and final recovery/spend/cleanup. Its separate G 24-hour attempt
+  failed after 16 hours 46 minutes when both nodes lost their sole connection.
+  Neither failed attempt contributes elapsed credit to a new run.
+- H has three native profiles and K has all four Linux architecture/compiler
+  profiles, each with nine gates and the extended 17-event private HTTP flow.
+  K has 13 green CI runs/51 latest logical jobs. Its fresh H/K preflight passed
+  all seven faults, 22 payments and final recovery/spend/cleanup over 900 seconds.
+  The separate K run was deliberately stopped for a launcher correction;
+  its raw FAIL/KeyboardInterrupt and successful cleanup remain preserved.
 
 ## Build order and acceptance tests
 
@@ -66,37 +84,49 @@ later milestone. Public networking follows the dedicated network profile, not
 exposure of the current isolated local fixture. A soak duration is chosen before
 the run, and only actual elapsed time counts.
 
-## Immediate next implementation
+## Current implemented checkpoint
 
-**Start with milestone 1: a source-built, fresh-machine runtime.** The current
-`contrib/ml-dsa-console/durable.py` preserves a known-good runtime by copying a
-prepared seed container. It cannot bootstrap an unrelated user's machine. Replace
-that first-install dependency with a pinned, versioned build/package path while
-retaining existing durable-wallet resume and recovery behavior.
+The normal launcher builds the node, client and isolated signer from a clean
+committed checkout. The app has user-selected-secret TEST wallet setup, status,
+receive/send, test funding/mining, lock/unlock, private backup/recovery,
+persistent volume checks and version-replacement controls. The legacy seed
+runtime remains available for its original fixture; it is not the normal
+fresh-install prerequisite. See [clean-checkout validation](CLEAN_CHECKOUT_VALIDATION.md)
+and the [public wallet guide](../contrib/ml-dsa-console/PUBLIC_TEST.md).
 
-The acceptance scenario is executable: create an isolated new runtime namespace,
-build from the checked-in source and pinned dependencies, launch, fund/send/mine,
-restart, recover and spend again. Keep the existing default wallet/volume intact.
-Follow with the supported-build CI matrix and clean-checkout instructions needed
-for public GitHub testers. Do not make another private demonstration the finish
-line for this milestone.
+K has passing exact-source native and extended private app flows for Linux
+x86_64 and native Linux aarch64 with both GCC and Clang, plus 51 successful
+latest logical CI jobs across 13 runs. H baseline receipts are also complete
+for the used GCC images. F/G qualification and failed-soak evidence remain preserved.
+The dedicated TEST accepted-set, reindex and measured resource-bound checks are
+implemented. The current qualification record binds these observations to their
+sources and exclusions; inherited/default network rules retain their meaning.
 
-## Specific gaps in the current code
+## Remaining execution
 
-- `durable.py` still depends on a prepared seed container for first install.
-  Restart durability is complete; new-user bootstrap is not.
-- Existing cryptographic comparator CI does not build and test the assembled
-  ML-DSA node/signer/console flow. Add exact-source integration CI, including
-  restart/recovery and both supported compiler builds.
-- `-mldsa44demo` is explicitly regtest-only. The local runtime has network none
-  and loopback-only peers. A separately identified multi-machine network is new
-  work; actual witness verification is already implemented.
-- rc2 remains active in the inherited signature registry/default implementation.
-  The new network needs a complete accepted-signature/output contract and tests
-  that it cannot silently route protected funds through that unqualified path.
-- The research verifier batch model is not an enforced block budget. The
-  inherited node weight limit and ML-DSA verification accounting must be
-  reconciled and measured on the actual node before claiming network capacity.
+1. Qualify the public launcher's Docker-readiness ordering correction, including
+   one-click recovery with a surviving HTTP server while Desktop is stopped or
+   restarting. H/K qualified the TLS forwarding, durable peer maintenance and
+   known-transaction fixes and completed their fresh preflight. K's separate
+   24-hour run was deliberately superseded before completion when this launcher
+   gap was found. Repeat exact-source qualification and a fresh preflight,
+   then complete a separate fresh 24-hour public TEST soak. G fixed growing
+   transaction-poll overhead, but its
+   separate run failed after 16 hours 46 minutes with both peers disconnected;
+   the earlier F run failed after approximately 21 hours. Preserve the live
+   failure and independently reproduced TLS defect as distinct observations.
+   Both clocks, workload/fault/recovery
+   criteria, final cross-node state and cleanup must pass before recording a
+   soak PASS. Preserve failed attempts without carrying elapsed time forward.
+2. Finish the portable source/evidence packet and public tester instructions,
+   preserving source, image, compiler and workload identities. Fix reproducible
+   failures found during the soak or public testing.
+3. Publish the actual completed soak result and record a scoped, evidence-based
+   experimental release decision. Production activation remains a separate
+   explicit decision; the production backend and release hold are unchanged.
+
+Public GitHub source testing can continue while the soak is repaired. The completed
+900-second preflight does not replace the separate 86,400-second run.
 
 ## How work advances
 
@@ -113,5 +143,5 @@ line for this milestone.
   or a passing test suite. Decide that release posture from the completed
   technical record and explicit owner direction.
 
-This roadmap was prepared locally; it does not itself commit, push, publish a
-release, expose a network service, or claim that unfinished work has passed.
+Current results and the failed-run status are source-bound in the qualification
+record. Update the soak result only from its completed final report.

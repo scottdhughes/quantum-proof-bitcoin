@@ -1,0 +1,121 @@
+{
+  "archive_bytes": 2139939,
+  "archive_sha256": "534cdf4ce48e35122f6e3d83db1cefbe387ef2219f167b71e3533c48710cc5de",
+  "directory_count": 1,
+  "file_count": 15,
+  "members": [
+    {
+      "bytes": 0,
+      "mode": "0700",
+      "path": "packet",
+      "type": "directory"
+    },
+    {
+      "bytes": 8,
+      "mode": "0644",
+      "path": "packet/.gitattributes",
+      "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da",
+      "type": "file"
+    },
+    {
+      "bytes": 5125,
+      "mode": "0644",
+      "path": "packet/README.md",
+      "sha256": "b7a16f744369e6d41805a2d51ae07015624ca92ed2b12588e41498083a5b4e49",
+      "type": "file"
+    },
+    {
+      "bytes": 1185,
+      "mode": "0644",
+      "path": "packet/SHA256SUMS",
+      "sha256": "05fc23930fd8eb430210ea7b4451353c0010d3e1a098d642cf449697ef066826",
+      "type": "file"
+    },
+    {
+      "bytes": 8384,
+      "mode": "0644",
+      "path": "packet/SOURCE.json",
+      "sha256": "0f29131f2fd4a11db0888b1f61ae92d0b2f9a6dc5ee5029088a58370e85640f0",
+      "type": "file"
+    },
+    {
+      "bytes": 10721,
+      "mode": "0644",
+      "path": "packet/declaration.json",
+      "sha256": "45bc12ba62feddc2566781138d094982e3a89834c8c99ebdbc3ffa8f2df27595",
+      "type": "file"
+    },
+    {
+      "bytes": 2111371,
+      "mode": "0644",
+      "path": "packet/events.jsonl.gz",
+      "sha256": "47d17a639fe005e9f7b50cf93a9f87a7a6889d5669fb4b008e1dbcf9f67e859f",
+      "type": "file"
+    },
+    {
+      "bytes": 251,
+      "mode": "0644",
+      "path": "packet/evidence-sha256.json",
+      "sha256": "6e00bf96439463fa6c1c766b3b126c0693557cc4a0e2d4c2fb1a3f7c932a31e4",
+      "type": "file"
+    },
+    {
+      "bytes": 2186,
+      "mode": "0644",
+      "path": "packet/failure-timeline.json",
+      "sha256": "6d31c00787f815f0c7e5060436be5ba4860b6efb86f0be3dce9192037dc940da",
+      "type": "file"
+    },
+    {
+      "bytes": 86889,
+      "mode": "0644",
+      "path": "packet/frozen-l-public-soak-driver.py",
+      "sha256": "6668f219acff79a25161d57bf505a3204ab50ef434adbb3487f913f0f913a6d0",
+      "type": "file"
+    },
+    {
+      "bytes": 6235,
+      "mode": "0644",
+      "path": "packet/independent-review.json",
+      "sha256": "7755bf07de9f99d3d948940b61d011eb855e4ea52aba7f7d09bcfc181b2a0cbf",
+      "type": "file"
+    },
+    {
+      "bytes": 15174,
+      "mode": "0755",
+      "path": "packet/negative-controls.py",
+      "sha256": "651ee8ade3d02ee63063719e586f1808456d5e48c0659dda81283a2352a3f89b",
+      "type": "file"
+    },
+    {
+      "bytes": 2496,
+      "mode": "0644",
+      "path": "packet/report.json",
+      "sha256": "27e7bbaddd26e5225a44394a58be3345214355950e94859afc228c19b9d9aae5",
+      "type": "file"
+    },
+    {
+      "bytes": 5201,
+      "mode": "0644",
+      "path": "packet/research-closeout.json",
+      "sha256": "813a28966030443662501fac095c5a189854a4fad0b6c0e2f517028fe71a6483",
+      "type": "file"
+    },
+    {
+      "bytes": 7534,
+      "mode": "0644",
+      "path": "packet/verification-controls.json",
+      "sha256": "f8b48994ed59482877da6c3738b2a1e0df1901fedd7492c794f46e7442bbaf92",
+      "type": "file"
+    },
+    {
+      "bytes": 31720,
+      "mode": "0755",
+      "path": "packet/verify.py",
+      "sha256": "3d134412277cc9f589123fe3485c07e68f8a6963b7c88ccd2ff6782bc478ab95",
+      "type": "file"
+    }
+  ],
+  "schema": "PQBTC-ARCHIVED-EVIDENCE-PACKET-1",
+  "tar_bytes": 2314240
+}

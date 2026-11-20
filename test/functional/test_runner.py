@@ -409,6 +409,9 @@ STANDALONE_SCRIPTS = [
     # The assembled-system GCC/Clang workflow invokes it directly through
     # contrib/ml-dsa-console/container/build_native.sh with --validation-only.
     "feature_mldsa44_demo.py",
+    # Actual public-profile accounting/pressure and release-resource driver;
+    # the same GCC/Clang workflow invokes run_native_qualification.py directly.
+    "feature_mldsa44_resources.py",
 ]
 
 

@@ -1,0 +1,49 @@
+name: ML-DSA-44 Runpod controls
+
+on:
+  push:
+    branches: ['codex/mldsa-runpod-*']
+    paths:
+      - 'contrib/ml-dsa-runpod/**'
+      - 'contrib/ml-dsa-qualification/**'
+      - 'contrib/ml-dsa-console/**'
+      - '.github/workflows/ml-dsa-44-runpod-controls.yml'
+  pull_request:
+    paths:
+      - 'contrib/ml-dsa-runpod/**'
+      - 'contrib/ml-dsa-qualification/**'
+      - 'contrib/ml-dsa-console/**'
+      - '.github/workflows/ml-dsa-44-runpod-controls.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  controls:
+    name: Runpod DATA and control tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact source without persisted credentials
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run DATA tests without provider access or native builds
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          python3 -B -m unittest discover -s contrib/ml-dsa-runpod -p 'test_*.py' -v
+
+      - name: Verify source stayed unchanged
+        if: always()
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"

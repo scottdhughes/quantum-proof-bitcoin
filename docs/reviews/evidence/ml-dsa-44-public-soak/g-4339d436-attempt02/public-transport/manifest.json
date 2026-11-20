@@ -1,0 +1,40 @@
+{
+  "directory_mode": "0700",
+  "file_modes": "0600",
+  "files": [
+    {
+      "local_path": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/g-soak02-transport-logs/public-transport-141674854658832.jsonl",
+      "mode": "0o600",
+      "mtime_ns": 1794847521532326185,
+      "name": "public-transport-141674854658832.jsonl",
+      "path": "/data/pqbtc-public-runtime-20261114/client/attempts/g-soak-20261115-02-state/public-transport-141674854658832.jsonl",
+      "sha256": "d4841ead3df3d33c453c83dd5cfcf7137a9535d01abb28725be2ec74358e7d99",
+      "size_bytes": 493,
+      "uid": 1001
+    },
+    {
+      "local_path": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/g-soak02-transport-logs/public-transport-83946471535236.jsonl",
+      "mode": "0o600",
+      "mtime_ns": 1794787236867934766,
+      "name": "public-transport-83946471535236.jsonl",
+      "path": "/data/pqbtc-public-runtime-20261114/client/attempts/g-soak-20261115-02-state/public-transport-83946471535236.jsonl",
+      "sha256": "260a495c3e7cfffa5c636b055242fca3a338a895ba766c6030f416754351a270",
+      "size_bytes": 404,
+      "uid": 1001
+    },
+    {
+      "local_path": "/Users/scott/quantum-proof-bitcoin-evidence/20261114-runpod-public-soak/research/g-soak02-transport-logs/public-transport-91174136453043.jsonl",
+      "mode": "0o600",
+      "mtime_ns": 1794844914096764050,
+      "name": "public-transport-91174136453043.jsonl",
+      "path": "/data/pqbtc-public-runtime-20261114/client/attempts/g-soak-20261115-02-state/public-transport-91174136453043.jsonl",
+      "sha256": "a0eeb95cecea2b6e4e78257d253ddc36077b2d34bb7da7595c90c70d45665ef9",
+      "size_bytes": 1385,
+      "uid": 1001
+    }
+  ],
+  "only_exact_authorized_glob_read": true,
+  "result": "PASS_EXACT_PUBLIC_LOG_COPIES",
+  "source_snapshot_unchanged_from_metadata": true,
+  "utc": "2026-11-16T17:00:18.062820+00:00"
+}

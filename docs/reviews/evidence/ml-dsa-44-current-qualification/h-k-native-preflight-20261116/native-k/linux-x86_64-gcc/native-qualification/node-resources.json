@@ -1,0 +1,1089 @@
+{
+  "binary_sha256": "52fef22612b719572aba423d154d8e7eb1caaa8fe8ebf6db1e1be2dc370b9684",
+  "boundaries": {
+    "128_input_block": {
+      "after": {
+        "peak_rss_bytes": 79421440,
+        "rss_bytes": 79421440,
+        "system_ticks": 4,
+        "user_ticks": 20
+      },
+      "before": {
+        "peak_rss_bytes": 75902976,
+        "rss_bytes": 75825152,
+        "system_ticks": 3,
+        "user_ticks": 19
+      },
+      "block_hash": "03f7afa0dd5ed58bed95de34ca0e359d8864994bafc381baec85fe3f223d05ca",
+      "block_weight": 501800,
+      "end_monotonic_ns": 706581891448,
+      "native_verifications": 128,
+      "start_monotonic_ns": 706570932674,
+      "system_ticks": 1,
+      "user_ticks": 1,
+      "wall_ns": 10958774,
+      "wire_sha256": "8afce68e85b90d95531f89c6d50fb3491544464507f75d06aaeb67687a8f0017"
+    },
+    "129_input_submitblock": "bad-blk-sigops",
+    "25_input_entry": {
+      "ancestorcount": 1,
+      "ancestorsize": 78125,
+      "bip125-replaceable": true,
+      "depends": [],
+      "descendantcount": 1,
+      "descendantsize": 78125,
+      "fees": {
+        "ancestor": "0.00500000",
+        "base": "0.00500000",
+        "descendant": "0.00500000",
+        "modified": "0.00500000"
+      },
+      "height": 103,
+      "spentby": [],
+      "time": 1794855028,
+      "unbroadcast": true,
+      "vsize": 78125,
+      "weight": 97789,
+      "wtxid": "fc1e9c8976f2de0618b9875f0515ad229cac53734de628855de0bfd777656122"
+    },
+    "25_input_testmempoolaccept": {
+      "allowed": true,
+      "fees": {
+        "base": "0.00500000",
+        "effective-feerate": "0.00006400",
+        "effective-includes": [
+          "fc1e9c8976f2de0618b9875f0515ad229cac53734de628855de0bfd777656122"
+        ]
+      },
+      "txid": "269bc4c7a7fd471b79232ebde029fc163aec16668d61808d17dcf0b242e18f39",
+      "vsize": 78125,
+      "wtxid": "fc1e9c8976f2de0618b9875f0515ad229cac53734de628855de0bfd777656122"
+    },
+    "26_input_testmempoolaccept": {
+      "allowed": false,
+      "reject-details": "bad-txns-too-many-sigops, 16250",
+      "reject-reason": "bad-txns-too-many-sigops",
+      "txid": "d300bdd79831a2a3185e9e5fd1f221318e557b8ae5aa7895ab0500754e2c4da8",
+      "wtxid": "70f259a1794ee25b0c54651d84fd2f5225d44eb90c5794d4644d126c474f03e1"
+    },
+    "malformed_testmempoolaccept": {
+      "allowed": false,
+      "reject-details": "block-script-verify-flag-failed (Witness program hash mismatch), input 0 of ba6a13a52b031c07b5e0d8b982e5f8034217c1fcc81910a240ed462570c79844 (wtxid cd27acbb10488d4a30079ddf7db2353981fab605d072c35bbc2f1b225d447e6c), spending fde365299f290d19b8de02bfebdb73753d808dd7ac557a2737aec8627926533c:180",
+      "reject-reason": "block-script-verify-flag-failed (Witness program hash mismatch)",
+      "txid": "ba6a13a52b031c07b5e0d8b982e5f8034217c1fcc81910a240ed462570c79844",
+      "wtxid": "cd27acbb10488d4a30079ddf7db2353981fab605d072c35bbc2f1b225d447e6c"
+    },
+    "template_native_verifications": 128,
+    "template_sigops": 80000
+  },
+  "cgroup_cpu_max": "400000 100000",
+  "cgroup_memory_max": "4294967296",
+  "clock_ticks_per_second": 100,
+  "cpu_identifiers": [
+    "model name\t: Intel(R) Xeon(R) 6975P-C"
+  ],
+  "fixture_library_sha256": "69ab90663bd1e9859701a52fa5ac8db7de2fc6b13ea92997de7a941b14f9f8c0",
+  "hardware": [
+    "Linux",
+    "82c17546b658",
+    "7.0.0-1014-aws",
+    "#14~24.04.1-Ubuntu SMP PREEMPT Fri Sep 18 21:24:59 UTC 2026",
+    "x86_64"
+  ],
+  "logical_cpu_count": 4,
+  "node_peak_rss_bytes": 402739200,
+  "p95_wall_ns": 208498734,
+  "pressure": {
+    "admitted": 6750,
+    "evicted": 17,
+    "initial_mempoolminfee": "0.00000100",
+    "mempool": {
+      "bytes": 21040625,
+      "fullrbf": true,
+      "incrementalrelayfee": "0.00000100",
+      "loaded": true,
+      "maxdatacarriersize": 100000,
+      "maxmempool": 32000000,
+      "mempoolminfee": "0.00001700",
+      "minrelaytxfee": "0.00000100",
+      "permitbaremultisig": true,
+      "size": 6733,
+      "total_fee": "0.59915000",
+      "unbroadcastcount": 6733,
+      "usage": 31999728
+    },
+    "rejected": 0,
+    "rejections": [],
+    "retained": 6733,
+    "submitted": 6750
+  },
+  "qualification_scope": "RELEASE_RESOURCE_CONFIGURATION",
+  "release_timing_pass": true,
+  "result": "PASS",
+  "samples": [
+    {
+      "4000004_weight_rejection": "bad-blk-weight",
+      "after": {
+        "peak_rss_bytes": 92454912,
+        "rss_bytes": 92454912,
+        "system_ticks": 5,
+        "user_ticks": 27
+      },
+      "before": {
+        "peak_rss_bytes": 90177536,
+        "rss_bytes": 79929344,
+        "system_ticks": 5,
+        "user_ticks": 22
+      },
+      "block_hash": "1b895fb1ed45f569f1622462fc2e583f9a4fcaa283529f3b14f8b750bee2603e",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 713119495672,
+      "native_verifications": 128,
+      "sample": 0,
+      "start_monotonic_ns": 713065906764,
+      "system_ticks": 0,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 5,
+      "wall_ns": 53588908,
+      "wire_sha256": "4a3a95451cd71b593436d71f5c460740765bed1d90b843146fe2c38ea0c7c540"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 104873984,
+        "rss_bytes": 104873984,
+        "system_ticks": 5,
+        "user_ticks": 33
+      },
+      "before": {
+        "peak_rss_bytes": 92454912,
+        "rss_bytes": 92454912,
+        "system_ticks": 5,
+        "user_ticks": 27
+      },
+      "block_hash": "3c0714fe3dc8a84f466baafadd59a4b889788b982a33f4cbf9f66bc86eb1cb67",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 716297886337,
+      "native_verifications": 128,
+      "sample": 1,
+      "start_monotonic_ns": 716236512606,
+      "system_ticks": 0,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 6,
+      "wall_ns": 61373731,
+      "wire_sha256": "f9292f4b804fb55c0bac4a29c796a7a942363d6b811eb909c3d702233d8178b6"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 117645312,
+        "rss_bytes": 117645312,
+        "system_ticks": 6,
+        "user_ticks": 39
+      },
+      "before": {
+        "peak_rss_bytes": 104873984,
+        "rss_bytes": 104873984,
+        "system_ticks": 5,
+        "user_ticks": 33
+      },
+      "block_hash": "1b73a4a3119ff5cfd725eef1a62a8f978fa30c05a9a44043b7b95eb1b47b68f1",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 719510890509,
+      "native_verifications": 128,
+      "sample": 2,
+      "start_monotonic_ns": 719448888123,
+      "system_ticks": 1,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 6,
+      "wall_ns": 62002386,
+      "wire_sha256": "b115501c59f31fbf220a186ebf52a5101e13bd6b8555204721337f1a437d72e7"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 131747840,
+        "rss_bytes": 131747840,
+        "system_ticks": 7,
+        "user_ticks": 46
+      },
+      "before": {
+        "peak_rss_bytes": 117645312,
+        "rss_bytes": 117645312,
+        "system_ticks": 6,
+        "user_ticks": 39
+      },
+      "block_hash": "475b3aa1d9c1e2d3e01215363800ed5462d51d6e661dc7b661b6c2e89bca3634",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 722678229971,
+      "native_verifications": 128,
+      "sample": 3,
+      "start_monotonic_ns": 722606805170,
+      "system_ticks": 1,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 7,
+      "wall_ns": 71424801,
+      "wire_sha256": "70b7e559b1e755235aa0c7415671cbf3b2da1f5f93f6510a054ef6d7dff21701"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 143970304,
+        "rss_bytes": 143970304,
+        "system_ticks": 7,
+        "user_ticks": 52
+      },
+      "before": {
+        "peak_rss_bytes": 131747840,
+        "rss_bytes": 131747840,
+        "system_ticks": 7,
+        "user_ticks": 46
+      },
+      "block_hash": "7754b6eed423662328fc2e6090e6828b9ad9203a3062dd9705e94cab4270ff57",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 725972586845,
+      "native_verifications": 128,
+      "sample": 4,
+      "start_monotonic_ns": 725910222519,
+      "system_ticks": 0,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 6,
+      "wall_ns": 62364326,
+      "wire_sha256": "6260dd0353266b28cb329761198bdcb6a738dcbf4dd1eec39359f3582bf6188b"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 156098560,
+        "rss_bytes": 156098560,
+        "system_ticks": 8,
+        "user_ticks": 57
+      },
+      "before": {
+        "peak_rss_bytes": 143970304,
+        "rss_bytes": 143970304,
+        "system_ticks": 7,
+        "user_ticks": 52
+      },
+      "block_hash": "51f832e0dd457f8dc6efc4b6df8e561e671fefba70de5165edda764e80c845eb",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 729124778970,
+      "native_verifications": 128,
+      "sample": 5,
+      "start_monotonic_ns": 729065837830,
+      "system_ticks": 1,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 5,
+      "wall_ns": 58941140,
+      "wire_sha256": "bbec42ad8a67bfe195ab76e466289b8490323a1a0e2075421b67b38a430e2705"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 168382464,
+        "rss_bytes": 168382464,
+        "system_ticks": 9,
+        "user_ticks": 64
+      },
+      "before": {
+        "peak_rss_bytes": 156098560,
+        "rss_bytes": 156098560,
+        "system_ticks": 8,
+        "user_ticks": 58
+      },
+      "block_hash": "0c1097311c3617f9baaabe44aa134026f907e0afdb44d2afdebcc5b3d756123a",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 732336402553,
+      "native_verifications": 128,
+      "sample": 6,
+      "start_monotonic_ns": 732269584975,
+      "system_ticks": 1,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 6,
+      "wall_ns": 66817578,
+      "wire_sha256": "7cc64b6c19482d987c60ca8c6eedac64c73c74e6dd477527db48837ec8d93f0d"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 183390208,
+        "rss_bytes": 183390208,
+        "system_ticks": 9,
+        "user_ticks": 72
+      },
+      "before": {
+        "peak_rss_bytes": 168382464,
+        "rss_bytes": 168382464,
+        "system_ticks": 9,
+        "user_ticks": 64
+      },
+      "block_hash": "27ebe013e04c5f1078de9ed10fcf76bd9b042ba050f21ae08f0c09fbad776e1a",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 735546956832,
+      "native_verifications": 128,
+      "sample": 7,
+      "start_monotonic_ns": 735461964186,
+      "system_ticks": 0,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 8,
+      "wall_ns": 84992646,
+      "wire_sha256": "78b441094c71c536162087f6eda3d9a76067887a7f059fc1cefe512735562947"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 195534848,
+        "rss_bytes": 195534848,
+        "system_ticks": 10,
+        "user_ticks": 77
+      },
+      "before": {
+        "peak_rss_bytes": 183390208,
+        "rss_bytes": 183390208,
+        "system_ticks": 9,
+        "user_ticks": 72
+      },
+      "block_hash": "47c280dd8e9326be682e86d22a9c008802e68175b46daf43c9815129d68b0084",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 738767947506,
+      "native_verifications": 128,
+      "sample": 8,
+      "start_monotonic_ns": 738706863116,
+      "system_ticks": 1,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 5,
+      "wall_ns": 61084390,
+      "wire_sha256": "d56f7c7c2845aa47de366042e891b13c38ec63fa87a33306a3d9c5335c2ae1da"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 208310272,
+        "rss_bytes": 208310272,
+        "system_ticks": 11,
+        "user_ticks": 83
+      },
+      "before": {
+        "peak_rss_bytes": 195534848,
+        "rss_bytes": 195534848,
+        "system_ticks": 10,
+        "user_ticks": 78
+      },
+      "block_hash": "348150f944fa02cf5f041f6d976afb257fcce1b0cee1d72c9fd361cdf572d634",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 741968895447,
+      "native_verifications": 128,
+      "sample": 9,
+      "start_monotonic_ns": 741906892922,
+      "system_ticks": 1,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 5,
+      "wall_ns": 62002525,
+      "wire_sha256": "bb124a75bda043e18480223e7a63398fb3e5f55837512060714c8c702c221840"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 220536832,
+        "rss_bytes": 220536832,
+        "system_ticks": 11,
+        "user_ticks": 90
+      },
+      "before": {
+        "peak_rss_bytes": 208310272,
+        "rss_bytes": 208310272,
+        "system_ticks": 11,
+        "user_ticks": 83
+      },
+      "block_hash": "13c50535c074794990b95f2adac0c36ae946b7d5c1dd8de4a7ee82b4ba79b68a",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 745193368986,
+      "native_verifications": 128,
+      "sample": 10,
+      "start_monotonic_ns": 745127536703,
+      "system_ticks": 0,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 7,
+      "wall_ns": 65832283,
+      "wire_sha256": "26c461887f4c954ee26544c0bae97027a2896e8d0ccab0c844dba689ffb20e4c"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 274194432,
+        "rss_bytes": 258932736,
+        "system_ticks": 15,
+        "user_ticks": 110
+      },
+      "before": {
+        "peak_rss_bytes": 220536832,
+        "rss_bytes": 220536832,
+        "system_ticks": 11,
+        "user_ticks": 90
+      },
+      "block_hash": "40e66d28c2cb3120b70dba32dfd763e7cf039cf2ea33ce997b250aa4658085d5",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 748571621732,
+      "native_verifications": 128,
+      "sample": 11,
+      "start_monotonic_ns": 748361766439,
+      "system_ticks": 4,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 20,
+      "wall_ns": 209855293,
+      "wire_sha256": "4ee97ab945de1d82d45510ba00192a67e0d7362a18e7ae78d2dd27e1aab6170d"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 274194432,
+        "rss_bytes": 271314944,
+        "system_ticks": 16,
+        "user_ticks": 116
+      },
+      "before": {
+        "peak_rss_bytes": 274194432,
+        "rss_bytes": 258940928,
+        "system_ticks": 15,
+        "user_ticks": 111
+      },
+      "block_hash": "24c15bdb83b86a2a68dc69d0c6d6ddb8a9d5bbf57606fa9d9decfb3434f78d0e",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 751801678745,
+      "native_verifications": 128,
+      "sample": 12,
+      "start_monotonic_ns": 751739386361,
+      "system_ticks": 1,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 5,
+      "wall_ns": 62292384,
+      "wire_sha256": "96a4529b0ae27646c7432538b764d8817989e862c004e71b976cf16f15cd265b"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 282169344,
+        "rss_bytes": 282169344,
+        "system_ticks": 16,
+        "user_ticks": 123
+      },
+      "before": {
+        "peak_rss_bytes": 274194432,
+        "rss_bytes": 271314944,
+        "system_ticks": 16,
+        "user_ticks": 117
+      },
+      "block_hash": "49ac95b28ffc785af6c9d667b6a0e31c6fc5bc80f89f93e0a14c10abb4221a6d",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 755030578102,
+      "native_verifications": 128,
+      "sample": 13,
+      "start_monotonic_ns": 754963988558,
+      "system_ticks": 0,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 6,
+      "wall_ns": 66589544,
+      "wire_sha256": "79d3d0dcf6c9caffcacd2fbb6c67f61d52ecbc01e68f3c3e590ada472cfdb47d"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 295772160,
+        "rss_bytes": 295772160,
+        "system_ticks": 17,
+        "user_ticks": 129
+      },
+      "before": {
+        "peak_rss_bytes": 282169344,
+        "rss_bytes": 282169344,
+        "system_ticks": 16,
+        "user_ticks": 123
+      },
+      "block_hash": "6b558bab6908d6ae3fbee4aafbbd3872fc82b6d01502affddd6afa53adea3f80",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 758266890916,
+      "native_verifications": 128,
+      "sample": 14,
+      "start_monotonic_ns": 758199504196,
+      "system_ticks": 1,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 6,
+      "wall_ns": 67386720,
+      "wire_sha256": "55f9d62d9bb0279089c57d04853c3989f7d25759da1544950be2f75aa3c153b4"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 308678656,
+        "rss_bytes": 308678656,
+        "system_ticks": 18,
+        "user_ticks": 135
+      },
+      "before": {
+        "peak_rss_bytes": 295772160,
+        "rss_bytes": 295772160,
+        "system_ticks": 17,
+        "user_ticks": 129
+      },
+      "block_hash": "2cbb9ed40ea8b59e9f7773b9d2ca64babf4a5cc7aa6285f73a28998ee755afd9",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 761488009975,
+      "native_verifications": 128,
+      "sample": 15,
+      "start_monotonic_ns": 761421098004,
+      "system_ticks": 1,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 6,
+      "wall_ns": 66911971,
+      "wire_sha256": "6874b326a0e1b106d76ed3934f09fd00854c5b59ea0cd20a79b0b4a3824f2b03"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 310194176,
+        "rss_bytes": 310194176,
+        "system_ticks": 18,
+        "user_ticks": 142
+      },
+      "before": {
+        "peak_rss_bytes": 308678656,
+        "rss_bytes": 308678656,
+        "system_ticks": 18,
+        "user_ticks": 136
+      },
+      "block_hash": "3db674bf807d7c32f306f04498e226f800af0a88c30f3816e4bb1eca545d3b56",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 764795179819,
+      "native_verifications": 128,
+      "sample": 16,
+      "start_monotonic_ns": 764723831632,
+      "system_ticks": 0,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 6,
+      "wall_ns": 71348187,
+      "wire_sha256": "261246a3184d577d71b7079cf740d84bc36adbe72972a6ea9e287951b0bf9287"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 310198272,
+        "rss_bytes": 310198272,
+        "system_ticks": 18,
+        "user_ticks": 150
+      },
+      "before": {
+        "peak_rss_bytes": 310198272,
+        "rss_bytes": 310198272,
+        "system_ticks": 18,
+        "user_ticks": 143
+      },
+      "block_hash": "0caa5632d587c3063a612e179523cb56f8eae51af885ca3c3c5c4d79c81d8e78",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 768021479571,
+      "native_verifications": 128,
+      "sample": 17,
+      "start_monotonic_ns": 767955558147,
+      "system_ticks": 0,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 7,
+      "wall_ns": 65921424,
+      "wire_sha256": "a6108df249f042d1bd5b78d84a1b30ed8b1ed08ecd5b690814079bc342c1e5a4"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 311590912,
+        "rss_bytes": 311590912,
+        "system_ticks": 19,
+        "user_ticks": 158
+      },
+      "before": {
+        "peak_rss_bytes": 310198272,
+        "rss_bytes": 310198272,
+        "system_ticks": 19,
+        "user_ticks": 150
+      },
+      "block_hash": "641d49ca8367c4741ba4f28e41542143c23f6a2fe699db9498a81ea299870f95",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 771271650084,
+      "native_verifications": 128,
+      "sample": 18,
+      "start_monotonic_ns": 771197584475,
+      "system_ticks": 0,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 8,
+      "wall_ns": 74065609,
+      "wire_sha256": "053cc16e9c8a6f7e6cc1a85197728d3ab6f22cfebcfeb146d5e233da60b46384"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 313012224,
+        "rss_bytes": 313012224,
+        "system_ticks": 19,
+        "user_ticks": 165
+      },
+      "before": {
+        "peak_rss_bytes": 311590912,
+        "rss_bytes": 311590912,
+        "system_ticks": 19,
+        "user_ticks": 158
+      },
+      "block_hash": "56d769b173af7d6e112b611b7095ef9f3af31c19990c267c7d8cef025147538f",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 774527935066,
+      "native_verifications": 128,
+      "sample": 19,
+      "start_monotonic_ns": 774453228048,
+      "system_ticks": 0,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 7,
+      "wall_ns": 74707018,
+      "wire_sha256": "ce4697b41313b828c66b867626b91d074fe6dfcdf5ecc77637d8d99211f610c4"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 315711488,
+        "rss_bytes": 315711488,
+        "system_ticks": 19,
+        "user_ticks": 175
+      },
+      "before": {
+        "peak_rss_bytes": 313012224,
+        "rss_bytes": 313012224,
+        "system_ticks": 19,
+        "user_ticks": 166
+      },
+      "block_hash": "0701288e5d3994f30b61b61328d3de29121a0d311ab77691be57ba7a7f0c9364",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 777857812535,
+      "native_verifications": 128,
+      "sample": 20,
+      "start_monotonic_ns": 777760963297,
+      "system_ticks": 0,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 9,
+      "wall_ns": 96849238,
+      "wire_sha256": "281ee150f04297f2e9d2793536b9a9b39a0b3ed2d4657d23c2a182b22e769026"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 319283200,
+        "rss_bytes": 319283200,
+        "system_ticks": 20,
+        "user_ticks": 183
+      },
+      "before": {
+        "peak_rss_bytes": 315711488,
+        "rss_bytes": 315711488,
+        "system_ticks": 19,
+        "user_ticks": 176
+      },
+      "block_hash": "6b11be3721665816b8d8cf349b309a465ac762ae899e6a4fe25b1986f0ef6acc",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 781497187494,
+      "native_verifications": 128,
+      "sample": 21,
+      "start_monotonic_ns": 781423960226,
+      "system_ticks": 1,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 7,
+      "wall_ns": 73227268,
+      "wire_sha256": "410374b5d5ca3a411b4fedf350e2a30f5f9f86fbecb1a75011980a903ded20f0"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 319709184,
+        "rss_bytes": 319709184,
+        "system_ticks": 20,
+        "user_ticks": 190
+      },
+      "before": {
+        "peak_rss_bytes": 319283200,
+        "rss_bytes": 319283200,
+        "system_ticks": 20,
+        "user_ticks": 183
+      },
+      "block_hash": "6a50905fcf30dedcb6b53abbd267c5a10acb2d015782e8130ccb16a8d9f28d2d",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 785146820450,
+      "native_verifications": 128,
+      "sample": 22,
+      "start_monotonic_ns": 785076115187,
+      "system_ticks": 0,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 7,
+      "wall_ns": 70705263,
+      "wire_sha256": "2618fa7d7edade8fdb0fe807bdd4a143ea1d913991753a16dccdb4c333fa509f"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 320466944,
+        "rss_bytes": 320466944,
+        "system_ticks": 21,
+        "user_ticks": 197
+      },
+      "before": {
+        "peak_rss_bytes": 319709184,
+        "rss_bytes": 319709184,
+        "system_ticks": 20,
+        "user_ticks": 191
+      },
+      "block_hash": "55608c7ce84cdbd465489e6a929aa44a434a79837b8e0278a05f892f39aa625d",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 788780552359,
+      "native_verifications": 128,
+      "sample": 23,
+      "start_monotonic_ns": 788711119988,
+      "system_ticks": 1,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 6,
+      "wall_ns": 69432371,
+      "wire_sha256": "4cd18471884d3be19e486e65fb6719a3978d4306ad1d696cd62703b4b72dd552"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 363560960,
+        "rss_bytes": 363560960,
+        "system_ticks": 24,
+        "user_ticks": 218
+      },
+      "before": {
+        "peak_rss_bytes": 320466944,
+        "rss_bytes": 320466944,
+        "system_ticks": 21,
+        "user_ticks": 197
+      },
+      "block_hash": "658b220a82de74b330259e2670c5553954f822f055d8ac0dbf25cdfe971f952b",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 792569447320,
+      "native_verifications": 128,
+      "sample": 24,
+      "start_monotonic_ns": 792360948586,
+      "system_ticks": 3,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 21,
+      "wall_ns": 208498734,
+      "wire_sha256": "691795f77ee41a756294e8217f4cd52c919d95253784282f0aeabb367f69c752"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 374149120,
+        "rss_bytes": 374149120,
+        "system_ticks": 25,
+        "user_ticks": 230
+      },
+      "before": {
+        "peak_rss_bytes": 363560960,
+        "rss_bytes": 363560960,
+        "system_ticks": 24,
+        "user_ticks": 219
+      },
+      "block_hash": "5d2c44704f7cfe66c21a955090ef522bf8561735f5ac341f2e5472d34e8216b1",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 796236181332,
+      "native_verifications": 128,
+      "sample": 25,
+      "start_monotonic_ns": 796160491554,
+      "system_ticks": 1,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 11,
+      "wall_ns": 75689778,
+      "wire_sha256": "2d9e5455d5ab535fa502acab60e5e0db3ac55806072e5648db17d9c3c12c36b9"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 389341184,
+        "rss_bytes": 366567424,
+        "system_ticks": 26,
+        "user_ticks": 245
+      },
+      "before": {
+        "peak_rss_bytes": 389341184,
+        "rss_bytes": 363819008,
+        "system_ticks": 26,
+        "user_ticks": 239
+      },
+      "block_hash": "3acb6a46919f46985bd5dad87b93bb95bdaa10400c7a6c36d482ec1e74be7691",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 799967602122,
+      "native_verifications": 128,
+      "sample": 26,
+      "start_monotonic_ns": 799902906839,
+      "system_ticks": 0,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 6,
+      "wall_ns": 64695283,
+      "wire_sha256": "13ec4e60b05d5bbc0c16a94822615a4a99477bc8bc311d91e45e11d955eb25db"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 389341184,
+        "rss_bytes": 366952448,
+        "system_ticks": 27,
+        "user_ticks": 253
+      },
+      "before": {
+        "peak_rss_bytes": 389341184,
+        "rss_bytes": 366567424,
+        "system_ticks": 27,
+        "user_ticks": 246
+      },
+      "block_hash": "3759700404c4bd1edb1511bea671524512be6acc9528554b80f21e8e318f956a",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 803610558711,
+      "native_verifications": 128,
+      "sample": 27,
+      "start_monotonic_ns": 803542109198,
+      "system_ticks": 0,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 7,
+      "wall_ns": 68449513,
+      "wire_sha256": "b39bd4fa83fb72e989f9cf4044c7297653a2e72f13e6352a24abeaf19bc5a48c"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 389341184,
+        "rss_bytes": 367083520,
+        "system_ticks": 27,
+        "user_ticks": 260
+      },
+      "before": {
+        "peak_rss_bytes": 389341184,
+        "rss_bytes": 366952448,
+        "system_ticks": 27,
+        "user_ticks": 253
+      },
+      "block_hash": "31f86e1ca3d99764179643de48d054795c1b61a2cc885645469aafa8ef21ed41",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 807359192672,
+      "native_verifications": 128,
+      "sample": 28,
+      "start_monotonic_ns": 807287879608,
+      "system_ticks": 0,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 7,
+      "wall_ns": 71313064,
+      "wire_sha256": "e88d0abe83eaa573508ce0f6081033432ac5f247d42ce14f8f7a94e4e509d4d9"
+    },
+    {
+      "after": {
+        "peak_rss_bytes": 389341184,
+        "rss_bytes": 367149056,
+        "system_ticks": 27,
+        "user_ticks": 268
+      },
+      "before": {
+        "peak_rss_bytes": 389341184,
+        "rss_bytes": 367083520,
+        "system_ticks": 27,
+        "user_ticks": 260
+      },
+      "block_hash": "32b782bcf9196223ca70aa67c54af7fe53aa12578fc9399a2d77e612b0bf999d",
+      "block_weight": 4000000,
+      "end_monotonic_ns": 811043703319,
+      "native_verifications": 128,
+      "sample": 29,
+      "start_monotonic_ns": 810968417242,
+      "system_ticks": 0,
+      "transaction_input_counts": [
+        127,
+        1
+      ],
+      "transaction_output_counts": [
+        20000,
+        1
+      ],
+      "user_ticks": 8,
+      "wall_ns": 75286077,
+      "wire_sha256": "43c6f037b6378f9a8eca17841f577bad7d9db0c1ee4d55db89c5f03b739d89f7"
+    }
+  ],
+  "scope": "PUBLIC_SYNTHETIC_KEY_RESOURCE_FIXTURE_ONLY",
+  "timing_class": "release",
+  "timing_scope": "submitblock RPC wall; node /proc CPU ticks and lifetime VmHWM; fixture generation excluded"
+}

@@ -1,0 +1,561 @@
+{
+  "schema": "PQBTC-NATIVE-V2-GITHUB-OBSERVATIONS-1",
+  "runs": [
+    {
+      "run_id": 43024791797,
+      "jobs": [
+        {
+          "id": 130536659155,
+          "name": "Reproduce pinned three-oracle evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 43024791797,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Initialize failure evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Checkout PQBTC review head",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Validate review baseline pointer",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Install build dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Validate frozen repository inputs",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Stage failure evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Restore prior minimized differential corpus",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Select bounded differential campaign",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Fetch pinned standards artifacts and upstream sources",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Build pinned OpenSSL 3.6.5 out of tree",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Run complete pinned comparator",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Upload review evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            },
+            {
+              "name": "Upload checkout-failure context",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 14
+            },
+            {
+              "name": "Post Checkout PQBTC review head",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 28
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 29
+            }
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "id": 13859439392,
+          "name": "ml-dsa-44-review-evidence-72acd0f566ece43723e8116ff70209e97f354746",
+          "size_in_bytes": 2270896,
+          "url": "https://api.github.com/repos/scottdhughes/quantum-proof-bitcoin/actions/artifacts/13859439392",
+          "archive_download_url": "https://api.github.com/repos/scottdhughes/quantum-proof-bitcoin/actions/artifacts/13859439392/zip",
+          "expired": false,
+          "created_at": "2026-11-11T13:39:49Z",
+          "expires_at": "2027-02-09T12:57:18Z",
+          "updated_at": "2026-11-11T13:39:49Z",
+          "digest": "sha256:43b4e13ada29ef6c63e632a34c983637f329e7340606c3e965e4a695d32c0c43",
+          "workflow_run": {
+            "id": 43024791797,
+            "repository_id": 1136579990,
+            "head_repository_id": 1136579990,
+            "head_branch": "main",
+            "head_sha": "72acd0f566ece43723e8116ff70209e97f354746"
+          }
+        }
+      ]
+    },
+    {
+      "run_id": 39604807430,
+      "jobs": [
+        {
+          "id": 119238168835,
+          "name": "Isolated wrapper (clang-tidy 20 + scoped IWYU)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 39604807430,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Configure environment",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Restore caches",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Configure Docker",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Run versioned static analysis",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Upload static-analysis evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Post Configure Docker",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            }
+          ]
+        },
+        {
+          "id": 119238169236,
+          "name": "Portable wrapper (clang)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 39604807430,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify source capsule and wrapper contract",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            }
+          ]
+        },
+        {
+          "id": 119238169265,
+          "name": "Portable wrapper (gcc)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 39604807430,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify source capsule and wrapper contract",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            }
+          ]
+        },
+        {
+          "id": 119238169430,
+          "name": "Concurrent strict verifier (Clang TSan)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 39604807430,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout exact test head",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Verify exact clean x86_64 checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Prepare ThreadSanitizer address space",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Calibrate ThreadSanitizer and run concurrent verifier",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Verify checkout remained exact and clean",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Post Checkout exact test head",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            }
+          ]
+        },
+        {
+          "id": 119238169927,
+          "name": "Isolated wrapper CT (valgrind-varlat_clang20)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 39604807430,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Checkout pinned mldsa-native audit environment",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Prepare provisioning evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Install Nix",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Record Nix version",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Run versioned Valgrind constant-time audit",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Upload Valgrind constant-time evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Post Checkout pinned mldsa-native audit environment",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17
+            }
+          ]
+        },
+        {
+          "id": 119238170023,
+          "name": "Isolated wrapper CT (valgrind-varlat_gcc13)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 39604807430,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Checkout pinned mldsa-native audit environment",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Prepare provisioning evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Install Nix",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Record Nix version",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Run versioned Valgrind constant-time audit",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Upload Valgrind constant-time evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Post Checkout pinned mldsa-native audit environment",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            },
+            {
+              "name": "Post Checkout",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17
+            }
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "id": 12349147768,
+          "name": "ml-dsa-44-wrapper-static-analysis-0b6474fd90023e3c13ccdbca0a08d264833e9401-39604807430-1",
+          "size_in_bytes": 13646,
+          "url": "https://api.github.com/repos/scottdhughes/quantum-proof-bitcoin/actions/artifacts/12349147768",
+          "archive_download_url": "https://api.github.com/repos/scottdhughes/quantum-proof-bitcoin/actions/artifacts/12349147768/zip",
+          "expired": false,
+          "created_at": "2026-10-21T13:36:01Z",
+          "expires_at": "2027-01-19T13:04:31Z",
+          "updated_at": "2026-10-21T13:36:01Z",
+          "digest": "sha256:57bb5204489944c680391332d0a17d8d94b9d37187a20051ea3e78a3fa858f16",
+          "workflow_run": {
+            "id": 39604807430,
+            "repository_id": 1136579990,
+            "head_repository_id": 1136579990,
+            "head_branch": "main",
+            "head_sha": "0b6474fd90023e3c13ccdbca0a08d264833e9401"
+          }
+        },
+        {
+          "id": 12348177795,
+          "name": "ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_gcc13-0b6474fd90023e3c13ccdbca0a08d264833e9401-39604807430-1",
+          "size_in_bytes": 115511,
+          "url": "https://api.github.com/repos/scottdhughes/quantum-proof-bitcoin/actions/artifacts/12348177795",
+          "archive_download_url": "https://api.github.com/repos/scottdhughes/quantum-proof-bitcoin/actions/artifacts/12348177795/zip",
+          "expired": false,
+          "created_at": "2026-10-21T13:12:17Z",
+          "expires_at": "2027-01-19T13:04:31Z",
+          "updated_at": "2026-10-21T13:12:17Z",
+          "digest": "sha256:364070f73ee03aca938faffeaac799fe0d8cae010c75ba34b2e1ff401a3a6081",
+          "workflow_run": {
+            "id": 39604807430,
+            "repository_id": 1136579990,
+            "head_repository_id": 1136579990,
+            "head_branch": "main",
+            "head_sha": "0b6474fd90023e3c13ccdbca0a08d264833e9401"
+          }
+        },
+        {
+          "id": 12347698293,
+          "name": "ml-dsa-44-wrapper-valgrind-ct-valgrind-varlat_clang20-0b6474fd90023e3c13ccdbca0a08d264833e9401-39604807430-1",
+          "size_in_bytes": 124649,
+          "url": "https://api.github.com/repos/scottdhughes/quantum-proof-bitcoin/actions/artifacts/12347698293",
+          "archive_download_url": "https://api.github.com/repos/scottdhughes/quantum-proof-bitcoin/actions/artifacts/12347698293/zip",
+          "expired": false,
+          "created_at": "2026-10-21T13:11:26Z",
+          "expires_at": "2027-01-19T13:04:31Z",
+          "updated_at": "2026-10-21T13:11:26Z",
+          "digest": "sha256:d43b178b659ce5cc68077634adbd5ac654b9cfcd553e592ba69de214e30ea4c8",
+          "workflow_run": {
+            "id": 39604807430,
+            "repository_id": 1136579990,
+            "head_repository_id": 1136579990,
+            "head_branch": "main",
+            "head_sha": "0b6474fd90023e3c13ccdbca0a08d264833e9401"
+          }
+        }
+      ]
+    }
+  ]
+}

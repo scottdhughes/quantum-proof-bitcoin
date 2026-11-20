@@ -1,0 +1,802 @@
+{
+  "archive_bytes": 378122,
+  "archive_sha256": "8bdf2832b3d58729a78a214a522957b0d43a1b6d7bdce06ee4c1951868510c67",
+  "directory_count": 23,
+  "file_count": 93,
+  "members": [
+    {
+      "bytes": 0,
+      "mode": "0700",
+      "path": "packet",
+      "type": "directory"
+    },
+    {
+      "bytes": 8,
+      "mode": "0644",
+      "path": "packet/.gitattributes",
+      "sha256": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/ci",
+      "type": "directory"
+    },
+    {
+      "bytes": 6246,
+      "mode": "0644",
+      "path": "packet/ci/CI-EVIDENCE-SHA256SUMS",
+      "sha256": "3aa3cd34010842296e8142ceb57183e5e70d608c5fa7fe27b6dc85151373c12f",
+      "type": "file"
+    },
+    {
+      "bytes": 1141,
+      "mode": "0644",
+      "path": "packet/ci/advisory-additional-single-retry-authorization.json",
+      "sha256": "6035b903991e0a5d4ad94861e9ef0c46174864174648f871832b4a8e9e281536",
+      "type": "file"
+    },
+    {
+      "bytes": 4397,
+      "mode": "0644",
+      "path": "packet/ci/advisory-attempt1-fetch-failure-diagnosis.json",
+      "sha256": "174abd0533dbac7d7f4abdbe978110c35cbfff57a0503875e94fdcf9b92b2797",
+      "type": "file"
+    },
+    {
+      "bytes": 7722,
+      "mode": "0644",
+      "path": "packet/ci/advisory-attempt1-snapshot.json",
+      "sha256": "8a1fb6c9867e7d10db8dd36c2978075babd94f6fbd896cd242208dcc1e905309",
+      "type": "file"
+    },
+    {
+      "bytes": 4627,
+      "mode": "0644",
+      "path": "packet/ci/advisory-attempt2-fetch-failure-diagnosis.json",
+      "sha256": "e3c30673c6decd57b01ce9460bac71bbcdbc86ab79f58ffac2bbc48bfc3dc97f",
+      "type": "file"
+    },
+    {
+      "bytes": 8640,
+      "mode": "0644",
+      "path": "packet/ci/advisory-attempt2-snapshot.json",
+      "sha256": "2604a5ef58f25cdc857986252b636cb23bbb44c426dd343541e2f1e81003c0cd",
+      "type": "file"
+    },
+    {
+      "bytes": 71104,
+      "mode": "0644",
+      "path": "packet/ci/advisory-attempt3-feed-success.json",
+      "sha256": "daa4c978171b809e72f31b03b853167dd95150ec434bc30e4837325d9c9d5fec",
+      "type": "file"
+    },
+    {
+      "bytes": 10109,
+      "mode": "0644",
+      "path": "packet/ci/advisory-attempt3-success-snapshot.json",
+      "sha256": "375cbf4f88e6dd7fc4aa65588129cbc20d4d601b92ef8c487f3ae24e7ee85009",
+      "type": "file"
+    },
+    {
+      "bytes": 1206,
+      "mode": "0644",
+      "path": "packet/ci/advisory-one-authorized-job-retry.json",
+      "sha256": "64dd5f57753530cce935ae33d7658d4e9bb7b8d78a44b83f0334863d9260d235",
+      "type": "file"
+    },
+    {
+      "bytes": 758,
+      "mode": "0644",
+      "path": "packet/ci/advisory-quota-attempt-comparison.json",
+      "sha256": "47a3b42355fea70a420b7acdd768e771e429c541d2a116b2bf827843befe415e",
+      "type": "file"
+    },
+    {
+      "bytes": 1061,
+      "mode": "0644",
+      "path": "packet/ci/advisory-second-authorized-job-retry.json",
+      "sha256": "532cb25871be70dfbecf76531b5a67f1deefa2e41ebb56e71d61f89e8556adaf",
+      "type": "file"
+    },
+    {
+      "bytes": 1043,
+      "mode": "0644",
+      "path": "packet/ci/advisory-single-retry-authorization.json",
+      "sha256": "2953eef85d369817f653ba8dd1a63047b511be4f38ad42d9fdf9258be2bc71bd",
+      "type": "file"
+    },
+    {
+      "bytes": 243231,
+      "mode": "0644",
+      "path": "packet/ci/all-CI-qualification.json",
+      "sha256": "682c1677fe0aaeef4ab89cb82bd7c853a7bd9c0c84c45741c752225552bcd0c6",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/ci/assembled-clang-43970911876-1",
+      "type": "directory"
+    },
+    {
+      "bytes": 2298,
+      "mode": "0644",
+      "path": "packet/ci/assembled-clang-43970911876-1/additional-public-reports.json",
+      "sha256": "344fb4bdef1093d0ca5642d5ac27453896aad6b0ba213d312896b4d3ffdf9ace",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/ci/assembled-clang-43970911876-1/native-qualification",
+      "type": "directory"
+    },
+    {
+      "bytes": 8150,
+      "mode": "0644",
+      "path": "packet/ci/assembled-clang-43970911876-1/native-qualification/evidence-sha256.json",
+      "sha256": "c6b01802e802391548392c11238df7b046693553411f95571ac82cce6ce4e51c",
+      "type": "file"
+    },
+    {
+      "bytes": 30561,
+      "mode": "0644",
+      "path": "packet/ci/assembled-clang-43970911876-1/native-qualification/node-resources.json",
+      "sha256": "8f7165c54998ab4700e867296ffc5b25586a9ecd9b723ddb6638b86ff3be861e",
+      "type": "file"
+    },
+    {
+      "bytes": 12388,
+      "mode": "0644",
+      "path": "packet/ci/assembled-clang-43970911876-1/native-qualification/public-consensus-controls.json",
+      "sha256": "a1558157e545e1088966f0ec0746867102fd762785f147a648d6c0a9c29ce6c4",
+      "type": "file"
+    },
+    {
+      "bytes": 22608,
+      "mode": "0644",
+      "path": "packet/ci/assembled-clang-43970911876-1/native-qualification/report.json",
+      "sha256": "4a28206cdc22a7a90bc0d47f439a5cd8b9475a206641b3e051996d8a318652fe",
+      "type": "file"
+    },
+    {
+      "bytes": 30641,
+      "mode": "0644",
+      "path": "packet/ci/assembled-clang-43970911876-1/native-qualification/runtime-descriptor.json",
+      "sha256": "f0f489712c97be0b805f7baa9e63b542b574f12f82be2559a516df8dfc64b0fa",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/ci/assembled-clang-43970911876-1/public-profile-app",
+      "type": "directory"
+    },
+    {
+      "bytes": 5074,
+      "mode": "0644",
+      "path": "packet/ci/assembled-clang-43970911876-1/public-profile-app/report.json",
+      "sha256": "b2be2af7dd8db52ccd63b22685399295bd7959018b9854defa5bcfae085bee9b",
+      "type": "file"
+    },
+    {
+      "bytes": 56775,
+      "mode": "0644",
+      "path": "packet/ci/assembled-clang-43970911876-1/report.json",
+      "sha256": "4593def9d5e939666f0352283b7fbc7801f82a0f0cc287fc74f93620db52971b",
+      "type": "file"
+    },
+    {
+      "bytes": 30641,
+      "mode": "0644",
+      "path": "packet/ci/assembled-clang-43970911876-1/runtime-descriptor.json",
+      "sha256": "88ec14126ce2337857b40cf6fad30358d71f3520136a0d96bed5ec0011710f88",
+      "type": "file"
+    },
+    {
+      "bytes": 2272,
+      "mode": "0644",
+      "path": "packet/ci/assembled-clang-43970911876-1/verified-reports.json",
+      "sha256": "8a06819b3d4c0144018ce425f8431631dbc9b2161464c671980e528fd7a4d6fd",
+      "type": "file"
+    },
+    {
+      "bytes": 2781,
+      "mode": "0644",
+      "path": "packet/ci/assembled-clang-supplement.json",
+      "sha256": "5273af40f274598ca13ba96e1de635b8acd0f659c5b63f96f0901e437494776b",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/ci/assembled-gcc-43970911876-1",
+      "type": "directory"
+    },
+    {
+      "bytes": 2290,
+      "mode": "0644",
+      "path": "packet/ci/assembled-gcc-43970911876-1/additional-public-reports.json",
+      "sha256": "cd533ceb3bad95b2b0446205b3a352f1bea748eb2bdd78ffb70a866f60ad6c45",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/ci/assembled-gcc-43970911876-1/native-qualification",
+      "type": "directory"
+    },
+    {
+      "bytes": 8150,
+      "mode": "0644",
+      "path": "packet/ci/assembled-gcc-43970911876-1/native-qualification/evidence-sha256.json",
+      "sha256": "0f35b8c54537d73ea0252f69b6bba412658bafb287b237141e9c5a1bb4188c23",
+      "type": "file"
+    },
+    {
+      "bytes": 30565,
+      "mode": "0644",
+      "path": "packet/ci/assembled-gcc-43970911876-1/native-qualification/node-resources.json",
+      "sha256": "46fae2b04006b9be3749766d599a33754fcd156da61b6c2125756ba1bfe92851",
+      "type": "file"
+    },
+    {
+      "bytes": 12388,
+      "mode": "0644",
+      "path": "packet/ci/assembled-gcc-43970911876-1/native-qualification/public-consensus-controls.json",
+      "sha256": "b22c368b65e71ce23b4c0592d00604376dc44e014da887c324c7bbbaceedc5be",
+      "type": "file"
+    },
+    {
+      "bytes": 22604,
+      "mode": "0644",
+      "path": "packet/ci/assembled-gcc-43970911876-1/native-qualification/report.json",
+      "sha256": "c0fb59bc2ef5ab14b37fc158465577a0139be8d54ab298ad1b0f3c9ef5d555a3",
+      "type": "file"
+    },
+    {
+      "bytes": 30627,
+      "mode": "0644",
+      "path": "packet/ci/assembled-gcc-43970911876-1/native-qualification/runtime-descriptor.json",
+      "sha256": "4dd1c3e91e9024c407432c432cf136dfa209be4f6d147d89295ed588bc35b221",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/ci/assembled-gcc-43970911876-1/public-profile-app",
+      "type": "directory"
+    },
+    {
+      "bytes": 5073,
+      "mode": "0644",
+      "path": "packet/ci/assembled-gcc-43970911876-1/public-profile-app/report.json",
+      "sha256": "b0edc80c25cd0a31f934bd3cc6c12cca39076475f037be6f969bd933c4876c78",
+      "type": "file"
+    },
+    {
+      "bytes": 56732,
+      "mode": "0644",
+      "path": "packet/ci/assembled-gcc-43970911876-1/report.json",
+      "sha256": "755005e2fac7be681bdc721ada6f8b60c1bb1745a6d59350ddbbd321ace70dd1",
+      "type": "file"
+    },
+    {
+      "bytes": 30627,
+      "mode": "0644",
+      "path": "packet/ci/assembled-gcc-43970911876-1/runtime-descriptor.json",
+      "sha256": "76f72ca631c9a66c2c1d67e5dd00f04ea20903f26d14782472587630665d25bc",
+      "type": "file"
+    },
+    {
+      "bytes": 2270,
+      "mode": "0644",
+      "path": "packet/ci/assembled-gcc-43970911876-1/verified-reports.json",
+      "sha256": "dcfe9c88f5114a9446f31270b953590c77da22dce777cad8a4799e2bba99804f",
+      "type": "file"
+    },
+    {
+      "bytes": 2766,
+      "mode": "0644",
+      "path": "packet/ci/assembled-gcc-supplement.json",
+      "sha256": "c6d55d94e266bd76679f55b0f7c40e1df0d483ad3813c383bf4649e5d82d573e",
+      "type": "file"
+    },
+    {
+      "bytes": 30337,
+      "mode": "0644",
+      "path": "packet/ci/assembled-qualification-summary.json",
+      "sha256": "dc82a97fff08de47d2b28e155901a63bc4c829fba96ef857de25b954819a9600",
+      "type": "file"
+    },
+    {
+      "bytes": 3445,
+      "mode": "0644",
+      "path": "packet/ci/download_large_artifact_via_gh.py",
+      "sha256": "50aad3a20a687a2271f6c278e13eb56b8eafb88813188e72bae22f461856ee68",
+      "type": "file"
+    },
+    {
+      "bytes": 4818,
+      "mode": "0644",
+      "path": "packet/ci/failure-advisory-attempt1-job-133661937231.json",
+      "sha256": "a10640958f767354dcc4a7c7f1f51eb5655a8b489f5719fd6fcc9aa59eed310c",
+      "type": "file"
+    },
+    {
+      "bytes": 3170,
+      "mode": "0644",
+      "path": "packet/ci/failure-advisory-attempt2-job-133678845923.json",
+      "sha256": "a7c09dec3e12a19f3d016cc52cf02316020e601a4e1287c546055e21fad2a330",
+      "type": "file"
+    },
+    {
+      "bytes": 72047,
+      "mode": "0644",
+      "path": "packet/ci/initial-observation.json",
+      "sha256": "b2aaf8fa93c528a2ac396972f2e864918a4188f3d4707625e000c0f31bf0067e",
+      "type": "file"
+    },
+    {
+      "bytes": 774,
+      "mode": "0644",
+      "path": "packet/ci/large-artifact-download-verification.json",
+      "sha256": "5a3595553544e1565372c3718166e49a77e01fc0c70e1e26deef458a96b0e2ed",
+      "type": "file"
+    },
+    {
+      "bytes": 119156,
+      "mode": "0644",
+      "path": "packet/ci/latest-logical-job-inventory.json",
+      "sha256": "563d87466ce6fd6ebfcc90ade1611b80a7b2ff438c7c6cacf0662029a0365985",
+      "type": "file"
+    },
+    {
+      "bytes": 5613,
+      "mode": "0644",
+      "path": "packet/ci/local-seal-verification.json",
+      "sha256": "6207722f55c8d9ffeb43e5e059db45296bae5defa3535fad8af304b30b50c28f",
+      "type": "file"
+    },
+    {
+      "bytes": 793,
+      "mode": "0644",
+      "path": "packet/ci/manual-clang-artifact-14280126532.json",
+      "sha256": "541d001b66d287a17520b5d44515cddf20e612cdcdb577825eb5867ef0096488",
+      "type": "file"
+    },
+    {
+      "bytes": 87246,
+      "mode": "0644",
+      "path": "packet/ci/matrix-attempt1-terminal-success.json",
+      "sha256": "0551439f03bccc6b6b41910db16fcb3e2a69add050652c07ac0bf6a5493adc1b",
+      "type": "file"
+    },
+    {
+      "bytes": 3703,
+      "mode": "0644",
+      "path": "packet/ci/native-original-descriptor-auxiliaries.json",
+      "sha256": "f54f80e01846ae1d67d5498a794f6d9202d59ba621d53a7da4a5d0f521343201",
+      "type": "file"
+    },
+    {
+      "bytes": 64935,
+      "mode": "0644",
+      "path": "packet/ci/non-matrix-success-snapshot.json",
+      "sha256": "dacf20538d3590647f42452323d74f1d998774515f8eedfc651d6ea57dca1ef6",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/ci/qualified-runtime-gcc-43970911876-1",
+      "type": "directory"
+    },
+    {
+      "bytes": 72,
+      "mode": "0644",
+      "path": "packet/ci/qualified-runtime-gcc-43970911876-1/image-id.txt",
+      "sha256": "6a45c2f5b597c526b88da0a03067c1d3e6d3e9f3914a9c6a7eaf3595d7fd6417",
+      "type": "file"
+    },
+    {
+      "bytes": 30627,
+      "mode": "0644",
+      "path": "packet/ci/qualified-runtime-gcc-43970911876-1/runtime-descriptor.json",
+      "sha256": "76f72ca631c9a66c2c1d67e5dd00f04ea20903f26d14782472587630665d25bc",
+      "type": "file"
+    },
+    {
+      "bytes": 2050,
+      "mode": "0644",
+      "path": "packet/ci/qualified-runtime-gcc-43970911876-1/runtime-image-export.json",
+      "sha256": "e84b54c1635f7676799d742281307d622a0b7e94c7364aca73c3d95c6fc055a3",
+      "type": "file"
+    },
+    {
+      "bytes": 87,
+      "mode": "0644",
+      "path": "packet/ci/qualified-runtime-gcc-43970911876-1/runtime-image.tar.gz.sha256",
+      "sha256": "1b6cb9489e0b79ac6e3c2360d1a292b2140af25be7f34dfa0e032da2e62670e2",
+      "type": "file"
+    },
+    {
+      "bytes": 3106,
+      "mode": "0644",
+      "path": "packet/ci/qualified-runtime-verification.json",
+      "sha256": "735475589d695d2154469ba55a48d4d68a9ec1e222fb76cae0c54ffbdeeca314",
+      "type": "file"
+    },
+    {
+      "bytes": 2881,
+      "mode": "0644",
+      "path": "packet/ci/run-43970911876-artifacts.json",
+      "sha256": "2561be7bbd836e11c75bfb632c44a2310097d8adfb77ae4083e801577974bcad",
+      "type": "file"
+    },
+    {
+      "bytes": 587,
+      "mode": "0644",
+      "path": "packet/ci/run-43970911876-final.json",
+      "sha256": "c66ee3c4e1cf1b5446eac3577403713deaa3b83528a3f52d65522a0b80de89eb",
+      "type": "file"
+    },
+    {
+      "bytes": 4927,
+      "mode": "0644",
+      "path": "packet/ci/run-43970911876-jobs.json",
+      "sha256": "e87f24ac8c58434579a332bc5963f08c9a4faf0b80c950035618005531752422",
+      "type": "file"
+    },
+    {
+      "bytes": 6688,
+      "mode": "0644",
+      "path": "packet/ci/verify_assembled_artifact.py",
+      "sha256": "97e5a71fa9f3f9588cb1419b614dda709b18b9267f1b549ab64a1dc583c38432",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/context",
+      "type": "directory"
+    },
+    {
+      "bytes": 776,
+      "mode": "0644",
+      "path": "packet/context/build-provenance.json",
+      "sha256": "05b6b01c56e2f9eac7134c7007a6a008531845a0843aa897a9d3d9704c642171",
+      "type": "file"
+    },
+    {
+      "bytes": 31751,
+      "mode": "0644",
+      "path": "packet/context/root-four-profile-reverification.json",
+      "sha256": "c51a0c1a874d4451f29276a591e4e1bf833502f94d473a9c5f5451eaab79dea3",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/native-l",
+      "type": "directory"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/native-l/linux-aarch64-clang",
+      "type": "directory"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/native-l/linux-aarch64-clang/native-qualification",
+      "type": "directory"
+    },
+    {
+      "bytes": 7960,
+      "mode": "0644",
+      "path": "packet/native-l/linux-aarch64-clang/native-qualification/evidence-sha256.json",
+      "sha256": "5d99220b25b3c709ba77b685c4fd5cb2deffec6b3551536fc5590a9dff3e1808",
+      "type": "file"
+    },
+    {
+      "bytes": 30704,
+      "mode": "0644",
+      "path": "packet/native-l/linux-aarch64-clang/native-qualification/node-resources.json",
+      "sha256": "7091f5d3eba4b10f1736a2f47c02f5f846e186d047f079140c04f84ccdde3d90",
+      "type": "file"
+    },
+    {
+      "bytes": 12388,
+      "mode": "0644",
+      "path": "packet/native-l/linux-aarch64-clang/native-qualification/public-consensus-controls.json",
+      "sha256": "2c58a7269a21c479234731f99ab5ff4a26be9032f0a26f8ea1e67818d2c7066a",
+      "type": "file"
+    },
+    {
+      "bytes": 22620,
+      "mode": "0644",
+      "path": "packet/native-l/linux-aarch64-clang/native-qualification/report.json",
+      "sha256": "8945fb9e2b5ca87aa92dc69303e6f32c2f4bb4770bd27e4e435f0d3b477ca74d",
+      "type": "file"
+    },
+    {
+      "bytes": 30523,
+      "mode": "0644",
+      "path": "packet/native-l/linux-aarch64-clang/native-qualification/runtime-descriptor.json",
+      "sha256": "00d89b9fca4390e25fd5206b263e6a4da11fc28507e479ad1f707ff8dbe24c64",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/native-l/linux-aarch64-clang/public-profile-app",
+      "type": "directory"
+    },
+    {
+      "bytes": 5141,
+      "mode": "0644",
+      "path": "packet/native-l/linux-aarch64-clang/public-profile-app/report.json",
+      "sha256": "b39e56f05668f806f8a6c51db1c96ee217bed87f448abbed67c8ceb159b5aea6",
+      "type": "file"
+    },
+    {
+      "bytes": 30523,
+      "mode": "0644",
+      "path": "packet/native-l/linux-aarch64-clang/runtime-descriptor.json",
+      "sha256": "00d89b9fca4390e25fd5206b263e6a4da11fc28507e479ad1f707ff8dbe24c64",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/native-l/linux-aarch64-gcc",
+      "type": "directory"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/native-l/linux-aarch64-gcc/native-qualification",
+      "type": "directory"
+    },
+    {
+      "bytes": 7960,
+      "mode": "0644",
+      "path": "packet/native-l/linux-aarch64-gcc/native-qualification/evidence-sha256.json",
+      "sha256": "71a9f38e5ccd926303c56b6e4db8db9f858a1915754896d900d7ffeb0ff193f7",
+      "type": "file"
+    },
+    {
+      "bytes": 30709,
+      "mode": "0644",
+      "path": "packet/native-l/linux-aarch64-gcc/native-qualification/node-resources.json",
+      "sha256": "5405bb5d6faabc52a2b3d340654ddb4859ab606c9b8e62067a1c39fdc71d363c",
+      "type": "file"
+    },
+    {
+      "bytes": 12388,
+      "mode": "0644",
+      "path": "packet/native-l/linux-aarch64-gcc/native-qualification/public-consensus-controls.json",
+      "sha256": "e71e65870a10c11275a1c87df45f7247ab72a7f8c0481fb62f67fd066947f84a",
+      "type": "file"
+    },
+    {
+      "bytes": 22616,
+      "mode": "0644",
+      "path": "packet/native-l/linux-aarch64-gcc/native-qualification/report.json",
+      "sha256": "7f4d9a9cebb6f32f6a8d1bd780a68be876f412ec3d601d6ba783308186bcff68",
+      "type": "file"
+    },
+    {
+      "bytes": 30509,
+      "mode": "0644",
+      "path": "packet/native-l/linux-aarch64-gcc/native-qualification/runtime-descriptor.json",
+      "sha256": "c483f14b416eeb25c90d635a98f872faecda00d57259c5f35130816c2bf0eefb",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/native-l/linux-aarch64-gcc/public-profile-app",
+      "type": "directory"
+    },
+    {
+      "bytes": 5142,
+      "mode": "0644",
+      "path": "packet/native-l/linux-aarch64-gcc/public-profile-app/report.json",
+      "sha256": "d873c2adffa0917c9032cf435af542fb6a2a1769ed84626cae77d97b7ef1e119",
+      "type": "file"
+    },
+    {
+      "bytes": 30509,
+      "mode": "0644",
+      "path": "packet/native-l/linux-aarch64-gcc/runtime-descriptor.json",
+      "sha256": "c483f14b416eeb25c90d635a98f872faecda00d57259c5f35130816c2bf0eefb",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/native-l/linux-x86_64-clang",
+      "type": "directory"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/native-l/linux-x86_64-clang/native-qualification",
+      "type": "directory"
+    },
+    {
+      "bytes": 8150,
+      "mode": "0644",
+      "path": "packet/native-l/linux-x86_64-clang/native-qualification/evidence-sha256.json",
+      "sha256": "c6b01802e802391548392c11238df7b046693553411f95571ac82cce6ce4e51c",
+      "type": "file"
+    },
+    {
+      "bytes": 30561,
+      "mode": "0644",
+      "path": "packet/native-l/linux-x86_64-clang/native-qualification/node-resources.json",
+      "sha256": "8f7165c54998ab4700e867296ffc5b25586a9ecd9b723ddb6638b86ff3be861e",
+      "type": "file"
+    },
+    {
+      "bytes": 12388,
+      "mode": "0644",
+      "path": "packet/native-l/linux-x86_64-clang/native-qualification/public-consensus-controls.json",
+      "sha256": "a1558157e545e1088966f0ec0746867102fd762785f147a648d6c0a9c29ce6c4",
+      "type": "file"
+    },
+    {
+      "bytes": 22608,
+      "mode": "0644",
+      "path": "packet/native-l/linux-x86_64-clang/native-qualification/report.json",
+      "sha256": "4a28206cdc22a7a90bc0d47f439a5cd8b9475a206641b3e051996d8a318652fe",
+      "type": "file"
+    },
+    {
+      "bytes": 30641,
+      "mode": "0644",
+      "path": "packet/native-l/linux-x86_64-clang/native-qualification/runtime-descriptor.json",
+      "sha256": "f0f489712c97be0b805f7baa9e63b542b574f12f82be2559a516df8dfc64b0fa",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/native-l/linux-x86_64-clang/public-profile-app",
+      "type": "directory"
+    },
+    {
+      "bytes": 5074,
+      "mode": "0644",
+      "path": "packet/native-l/linux-x86_64-clang/public-profile-app/report.json",
+      "sha256": "b2be2af7dd8db52ccd63b22685399295bd7959018b9854defa5bcfae085bee9b",
+      "type": "file"
+    },
+    {
+      "bytes": 30641,
+      "mode": "0644",
+      "path": "packet/native-l/linux-x86_64-clang/runtime-descriptor.json",
+      "sha256": "88ec14126ce2337857b40cf6fad30358d71f3520136a0d96bed5ec0011710f88",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/native-l/linux-x86_64-gcc",
+      "type": "directory"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/native-l/linux-x86_64-gcc/native-qualification",
+      "type": "directory"
+    },
+    {
+      "bytes": 8150,
+      "mode": "0644",
+      "path": "packet/native-l/linux-x86_64-gcc/native-qualification/evidence-sha256.json",
+      "sha256": "0f35b8c54537d73ea0252f69b6bba412658bafb287b237141e9c5a1bb4188c23",
+      "type": "file"
+    },
+    {
+      "bytes": 30565,
+      "mode": "0644",
+      "path": "packet/native-l/linux-x86_64-gcc/native-qualification/node-resources.json",
+      "sha256": "46fae2b04006b9be3749766d599a33754fcd156da61b6c2125756ba1bfe92851",
+      "type": "file"
+    },
+    {
+      "bytes": 12388,
+      "mode": "0644",
+      "path": "packet/native-l/linux-x86_64-gcc/native-qualification/public-consensus-controls.json",
+      "sha256": "b22c368b65e71ce23b4c0592d00604376dc44e014da887c324c7bbbaceedc5be",
+      "type": "file"
+    },
+    {
+      "bytes": 22604,
+      "mode": "0644",
+      "path": "packet/native-l/linux-x86_64-gcc/native-qualification/report.json",
+      "sha256": "c0fb59bc2ef5ab14b37fc158465577a0139be8d54ab298ad1b0f3c9ef5d555a3",
+      "type": "file"
+    },
+    {
+      "bytes": 30627,
+      "mode": "0644",
+      "path": "packet/native-l/linux-x86_64-gcc/native-qualification/runtime-descriptor.json",
+      "sha256": "4dd1c3e91e9024c407432c432cf136dfa209be4f6d147d89295ed588bc35b221",
+      "type": "file"
+    },
+    {
+      "bytes": 0,
+      "mode": "0755",
+      "path": "packet/native-l/linux-x86_64-gcc/public-profile-app",
+      "type": "directory"
+    },
+    {
+      "bytes": 5073,
+      "mode": "0644",
+      "path": "packet/native-l/linux-x86_64-gcc/public-profile-app/report.json",
+      "sha256": "b0edc80c25cd0a31f934bd3cc6c12cca39076475f037be6f969bd933c4876c78",
+      "type": "file"
+    },
+    {
+      "bytes": 30627,
+      "mode": "0644",
+      "path": "packet/native-l/linux-x86_64-gcc/runtime-descriptor.json",
+      "sha256": "76f72ca631c9a66c2c1d67e5dd00f04ea20903f26d14782472587630665d25bc",
+      "type": "file"
+    },
+    {
+      "bytes": 8441,
+      "mode": "0644",
+      "path": "packet/negative-controls.py",
+      "sha256": "a534c89ba7b2308be99de7075367fd5b8f26be0a564fcaf11a571904d479908f",
+      "type": "file"
+    },
+    {
+      "bytes": 3317,
+      "mode": "0644",
+      "path": "packet/readme.md",
+      "sha256": "a88352b758717c857cc99967c837629f19aea14fea23f0bd219fcbf23eb8ae6e",
+      "type": "file"
+    },
+    {
+      "bytes": 10891,
+      "mode": "0644",
+      "path": "packet/sha256sums",
+      "sha256": "9152957e46541f927c8db6b3387ecdb0e8b2f56e0784eeb8203ebb806cba041b",
+      "type": "file"
+    },
+    {
+      "bytes": 41189,
+      "mode": "0644",
+      "path": "packet/source.json",
+      "sha256": "1750e70c51e7f5eccfcafec3bdf83750fd7368dc88c4113621d0fb3085c610ad",
+      "type": "file"
+    },
+    {
+      "bytes": 3186,
+      "mode": "0644",
+      "path": "packet/verification-receipt.json",
+      "sha256": "0255549b49a677eab50bb27f379862876ebc152301a6a684a4295d9d02cec7ce",
+      "type": "file"
+    },
+    {
+      "bytes": 32842,
+      "mode": "0644",
+      "path": "packet/verify.py",
+      "sha256": "13c4cffe915f0017d2da0612c557fba74b1b6248251969c401f229d5c942ee52",
+      "type": "file"
+    }
+  ],
+  "metadata_normalization": "USTAR; uid/gid/mtime zero; empty user/group names; gzip mtime0/emptyfilename/level9. Original bytes and POSIX modes retained.",
+  "schema": "PQBTC-ARCHIVED-EVIDENCE-PACKET-1",
+  "source_complete_packet_unchanged": true,
+  "source_staging": "native-ci-20261117-01",
+  "tar_bytes": 1996800
+}
